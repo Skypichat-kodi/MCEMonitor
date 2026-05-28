@@ -1,0 +1,1 @@
+Supervision software for Windows. Multimedia monitor, shutdown and sleep monitors. Sleep or shutdown scheduling. Configuration through creation of scheduled tasks and automatic sending of emails. Software entirely designed by AI Copilot in C#. This software can be very useful in the case of using KODI with an SQL configuration and SMB shares.
