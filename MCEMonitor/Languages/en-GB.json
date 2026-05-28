@@ -1,0 +1,62 @@
+{
+  "App.Title": "MCEMonitor",
+
+  "Tab.Email": "Email",
+  "Tab.MediaMonitor": "Media Monitor",
+  "Tab.WakeMonitor": "Wake Monitor",
+  "Tab.StopMonitor": "Stop Monitor",
+  "Tab.OnOff": "On/Off",
+  "Tab.About": "About",
+
+  "Email.Description": "You must enter your sending information and a recipient so that the software can automatically send reports.",
+  "Email.Title": "Email Configuration",
+  "Email.SmtpServer": "SMTP Server:",
+  "Email.Port": "Port:",
+  "Email.From": "Sender address:",
+  "Email.Password": "Password:",
+  "Email.Password.Show": "Show",
+  "Email.Password.Hide": "Hide",
+  "Email.To": "Recipient:",
+  "Email.SecurityMode": "Security:",
+  "Email.SaveConfig": "Save configuration",
+  "Email.Test": "Test Email",
+
+  "Media.Info.Title": "About MediaMonitor",
+  "Media.Info.Description": "MediaMonitor allows you to know which media are currently playing or have been played.\nThe process can be automated depending on the machine's activity period.\nA report can be sent automatically before shutdown or manually via the interface.",
+  "Media.Actions.Title": "Report Automation",
+  "Media.Service.Label": "MediaMonitor Service",
+  "Media.Task.Create": "Create scheduled task",
+  "Media.Task.Delete": "Delete scheduled task",
+  "Media.UI.Open": "Open MediaMonitor",
+
+  "Wake.Description": "WakeMonitor can report information about what caused your machine to wake up. This information is sent by email.",
+  "Wake.Options.Title": "Information to include in the email",
+  "Wake.Option.PublicIP": "Include public IP",
+  "Wake.Option.LocalIP": "Include local IP",
+  "Wake.Option.MAC": "Include MAC",
+  "Wake.Option.USB": "Include USB",
+  "Wake.Option.Cause": "Include wake cause",
+  "Wake.Option.Duration": "Include duration",
+  "Wake.Config.Save": "Save configuration",
+  "Wake.Run": "Run now",
+  "Wake.Task.Create": "Create scheduled task",
+  "Wake.Task.Delete": "Delete scheduled task",
+
+  "Stop.Description": "StopMonitor allows you to know why your machine started or restarted via a scheduled task.",
+  "Stop.Task.Create": "Create StopMonitor task",
+  "Stop.Task.Delete": "Delete StopMonitor task",
+  "Stop.Run": "Run StopMonitor",
+
+  "Shutdown.Title": "Scheduled Shutdown",
+  "Shutdown.Hour": "Hour (0–23):",
+  "Shutdown.Minute": "Minute (0–59):",
+  "Shutdown.Type": "Choose shutdown type:",
+  "Shutdown.Task.Create": "Create scheduled task",
+  "Shutdown.Task.Delete": "Delete scheduled task",
+
+  "WOL.Title": "Automatic Startup (Wake On Lan)",
+  "WOL.Description": "To automatically start your machine, you must use the Wake On Lan method.\n\nYou must enable the feature in the BIOS, and also in the Windows Device Manager.\n\nIf you do not want to use WOL, you will need to start your machine manually.",
+
+  "About.Text": "MCEMonitor\nVersion 1.0\n\nDeveloped by Christophe.\nMonitoring and automation tool for Media Center Edition."
+}
+

@@ -1,0 +1,54 @@
+using System;
+using System.IO;
+
+namespace WakeMonitor
+{
+    public class WakeMonitorSettings
+    {
+        public bool IncludePublicIP { get; set; } = true;
+        public bool IncludeLocalIP { get; set; } = true;
+        public bool IncludeMAC { get; set; } = true;
+        public bool IncludeUSB { get; set; } = true;
+        public bool IncludeCause { get; set; } = true;
+        public bool IncludeDuration { get; set; } = true;
+
+        public static WakeMonitorSettings Load()
+        {
+            string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
+            string dir = Path.Combine(programData, "MCEMonitor");
+            Directory.CreateDirectory(dir);
+
+            string path = Path.Combine(dir, "WakeMonitor.config");
+
+
+            var settings = new WakeMonitorSettings();
+
+            if (!File.Exists(path))
+                return settings;
+
+            foreach (var line in File.ReadAllLines(path))
+            {
+                if (!line.Contains("=")) continue;
+
+                var parts = line.Split('=');
+                string key = parts[0].Trim();
+                string value = parts[1].Trim().ToLower();
+
+                bool enabled = value == "true";
+
+                switch (key)
+                {
+                    case "IncludePublicIP": settings.IncludePublicIP = enabled; break;
+                    case "IncludeLocalIP": settings.IncludeLocalIP = enabled; break;
+                    case "IncludeMAC": settings.IncludeMAC = enabled; break;
+                    case "IncludeUSB": settings.IncludeUSB = enabled; break;
+                    case "IncludeCause": settings.IncludeCause = enabled; break;
+                    case "IncludeDuration": settings.IncludeDuration = enabled; break;
+                }
+            }
+
+            return settings;
+        }
+    }
+}
+

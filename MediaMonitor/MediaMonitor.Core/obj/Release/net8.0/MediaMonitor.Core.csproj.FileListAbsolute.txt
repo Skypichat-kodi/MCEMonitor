@@ -1,0 +1,12 @@
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\bin\Release\net8.0\MediaMonitor.Core.deps.json
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\bin\Release\net8.0\MediaMonitor.Core.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\bin\Release\net8.0\MediaMonitor.Core.pdb
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.csproj.AssemblyReference.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.GeneratedMSBuildEditorConfig.editorconfig
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.AssemblyInfoInputs.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.AssemblyInfo.cs
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.csproj.CoreCompileInputs.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\refint\MediaMonitor.Core.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\MediaMonitor.Core.pdb
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Core\obj\Release\net8.0\ref\MediaMonitor.Core.dll

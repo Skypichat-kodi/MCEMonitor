@@ -1,0 +1,62 @@
+{
+  "App.Title": "MCEMonitor",
+
+  "Tab.Email": "Email",
+  "Tab.MediaMonitor": "Media Monitor",
+  "Tab.WakeMonitor": "Wake Monitor",
+  "Tab.StopMonitor": "Stop Monitor",
+  "Tab.OnOff": "On/Off",
+  "Tab.About": "À propos",
+
+  "Email.Description": "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.",
+  "Email.Title": "Configuration Email",
+  "Email.SmtpServer": "Serveur SMTP :",
+  "Email.Port": "Port :",
+  "Email.From": "Adresse expéditeur :",
+  "Email.Password": "Mot de passe :",
+  "Email.Password.Show": "Afficher",
+  "Email.Password.Hide": "Masquer",
+  "Email.To": "Destinataire :",
+  "Email.SecurityMode": "Sécurité :",
+  "Email.SaveConfig": "Enregistrer configuration",
+  "Email.Test": "Tester Email",
+
+  "Media.Info.Title": "À propos de MediaMonitor",
+  "Media.Info.Description": "MediaMonitor permet de savoir quels médias sont en cours de lecture ou ont été lus.\nLe processus peut être automatisé selon la période d’activité de la machine.\nUn rapport peut être envoyé automatiquement avant l’arrêt ou manuellement via l’interface.",
+  "Media.Actions.Title": "Automatisation du rapport",
+  "Media.Service.Label": "Service MediaMonitor",
+  "Media.Task.Create": "Créer tâche planifiée",
+  "Media.Task.Delete": "Supprimer tâche planifiée",
+  "Media.UI.Open": "Ouvrir MediaMonitor",
+
+  "Wake.Description": "WakeMonitor peut vous remonter des informations qui ont provoqué le réveil de votre machine. Ces informations sont envoyées par mail.",
+  "Wake.Options.Title": "Indications à donner dans le mail",
+  "Wake.Option.PublicIP": "Inclure IP publique",
+  "Wake.Option.LocalIP": "Inclure IP locale",
+  "Wake.Option.MAC": "Inclure MAC",
+  "Wake.Option.USB": "Inclure USB",
+  "Wake.Option.Cause": "Inclure cause",
+  "Wake.Option.Duration": "Inclure durée",
+  "Wake.Config.Save": "Enregistrer configuration",
+  "Wake.Run": "Envoi Email de test",
+  "Wake.Task.Create": "Créer tâche planifiée",
+  "Wake.Task.Delete": "Supprimer tâche planifiée",
+
+  "Stop.Description": "StopMonitor vous permet de savoir pourquoi votre machine a démarré ou redémarré via une tâche planifiée.",
+  "Stop.Task.Create": "Créer tâche planifiée",
+  "Stop.Task.Delete": "Supprimer tâche planifiée",
+  "Stop.Run": "Envoi Email de test",
+
+  "Shutdown.Title": "Arrêt programmé",
+  "Shutdown.Hour": "Heure (0–23) :",
+  "Shutdown.Minute": "Minute (0–59) :",
+  "Shutdown.Type": "Choisir le type d'arrêt :",
+  "Shutdown.Task.Create": "Créer tâche planifiée",
+  "Shutdown.Task.Delete": "Supprimer tâche planifiée",
+
+  "WOL.Title": "Démarrage automatique (Wake On Lan)",
+  "WOL.Description": "Pour démarrer votre machine automatiquement vous devrez utiliser la méthode Wake On Lan.\n\nVous devez activer la fonctionnalité dans le BIOS, mais aussi dans le gestionnaire de périphériques de Windows.\n\nSi vous ne souhaitez pas utiliser WOL, vous devrez démarrer votre machine manuellement.",
+
+  "About.Text": "MCEMonitor\nVersion 1.0\n\nDéveloppé par Christophe.\nOutil de supervision et d'automatisation pour Media Center Edition."
+}
+

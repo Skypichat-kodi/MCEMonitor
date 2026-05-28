@@ -1,0 +1,15 @@
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.Tray.exe
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.ico
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.Tray.deps.json
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.Tray.runtimeconfig.json
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.Tray.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows\MediaMonitor.Tray.pdb
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.GeneratedMSBuildEditorConfig.editorconfig
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.AssemblyInfoInputs.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.AssemblyInfo.cs
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.csproj.CoreCompileInputs.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\refint\MediaMonitor.Tray.dll
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.pdb
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\MediaMonitor.Tray.genruntimeconfig.cache
+Z:\Compilations Programmes\Projet MCEMonitor\MediaMonitor\MediaMonitor.Tray\obj\Release\net8.0-windows\ref\MediaMonitor.Tray.dll
