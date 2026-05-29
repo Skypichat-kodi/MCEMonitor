@@ -12,7 +12,6 @@ namespace MediaMonitor.UI
 {
     public partial class MainWindow : Window
     {
-        // 🔥 Log désactivé par défaut
         private bool IsLoggingEnabled = false;
 
         public static Action<string> StaticUiLog;
@@ -24,7 +23,8 @@ namespace MediaMonitor.UI
 
         public MainWindow()
         {
-            // Vérifier si le service tourne
+            ResetUiLog();
+
             bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
 
             if (!serviceRunning)
@@ -86,9 +86,6 @@ namespace MediaMonitor.UI
                 }
             }
 
-            // ------------------------------------------------------------
-            // 3. Démarrer le Tray
-            // ------------------------------------------------------------
             string trayPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                 "MCEMonitor",
@@ -115,7 +112,9 @@ namespace MediaMonitor.UI
 
             InitializeComponent();
 
-            // 🔥 StaticUiLog NE LOG QUE SI LE SWITCH EST ACTIF
+            // 🔥 Correction : charger l’état email APRÈS que la fenêtre soit chargée
+            Loaded += MainWindow_Loaded;
+
             StaticUiLog = (msg) =>
             {
                 if (IsLoggingEnabled)
@@ -125,7 +124,6 @@ namespace MediaMonitor.UI
             FilesGrid.ItemsSource = _items;
             HistoryGrid.ItemsSource = _history;
 
-            // Timer UI pour rafraîchir les données
             _refreshTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(5)
@@ -133,29 +131,115 @@ namespace MediaMonitor.UI
             _refreshTimer.Tick += async (_, __) => await RefreshState();
             _refreshTimer.Start();
 
-            // Premier chargement
             _ = RefreshState();
         }
+        // 🔥 Nouvelle méthode appelée quand la fenêtre est prête
+        private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
+        {
+            await LoadEmailSwitch();
+        }
 
-        // ============================================================
-        //  SWITCH LOG
-        // ============================================================
+        private async Task LoadEmailSwitch()
+        {
+            try
+            {
+                var enabled = await ServiceIpcClient.GetEmailEnabled();
 
-        private void ToggleLog_Checked(object sender, RoutedEventArgs e)
+                if (enabled != null)
+                {
+                    ToggleEmail.IsChecked = enabled.Value;
+                    UiLog("État email chargé depuis le service : " + enabled.Value);
+                }
+                else
+                {
+                    UiLog("Impossible de lire l'état email depuis le service");
+                }
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur LoadEmailSwitch : " + ex.Message);
+            }
+        }
+
+        private void ResetUiLog()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.UI.log");
+
+                File.WriteAllText(file, string.Empty);
+            }
+            catch { }
+        }
+        private async void ToggleLog_Checked(object sender, RoutedEventArgs e)
         {
             IsLoggingEnabled = true;
             UiLog("Log activé");
+
+            try
+            {
+                await ServiceIpcClient.SetLogging(true);
+                UiLog("Service : log activé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetLogging(true) : " + ex.Message);
+            }
         }
 
-        private void ToggleLog_Unchecked(object sender, RoutedEventArgs e)
+        private async void ToggleLog_Unchecked(object sender, RoutedEventArgs e)
         {
             UiLog("Log désactivé");
             IsLoggingEnabled = false;
+
+            try
+            {
+                await ServiceIpcClient.SetLogging(false);
+                UiLog("Service : log désactivé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetLogging(false) : " + ex.Message);
+            }
         }
 
-        // ============================================================
-        //  LOG UI (respecte le switch)
-        // ============================================================
+        private async void ToggleEmail_Checked(object sender, RoutedEventArgs e)
+        {
+            UiLog("Envoi automatique du rapport activé");
+
+            try
+            {
+                await ServiceIpcClient.SetEmailSending(true);
+                UiLog("Service : envoi email activé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetEmailSending(true) : " + ex.Message);
+            }
+        }
+
+        private async void ToggleEmail_Unchecked(object sender, RoutedEventArgs e)
+        {
+            UiLog("Envoi automatique du rapport désactivé");
+
+            try
+            {
+                await ServiceIpcClient.SetEmailSending(false);
+                UiLog("Service : envoi email désactivé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetEmailSending(false) : " + ex.Message);
+            }
+        }
 
         private void UiLog(string msg)
         {
@@ -179,15 +263,8 @@ namespace MediaMonitor.UI
                     $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {msg}{Environment.NewLine}"
                 );
             }
-            catch
-            {
-                // ne jamais casser l'UI pour un log
-            }
+            catch { }
         }
-
-        // ============================================================
-        //  RAFRAÎCHISSEMENT DES DONNÉES VIA IPC
-        // ============================================================
 
         private async Task RefreshState()
         {
@@ -236,10 +313,6 @@ namespace MediaMonitor.UI
                 LastImageText.Text = "Erreur IPC : " + ex.Message;
             }
         }
-
-        // ============================================================
-        //  ENVOI MANUEL DU RAPPORT
-        // ============================================================
 
         private async void SendReportNow_Click(object sender, RoutedEventArgs e)
         {

@@ -3,26 +3,133 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="MediaMonitor"
         Height="750"
-        Width="1200"
-        Background="#f0f0f0">
+        Width="1200">
 
-    <Grid>
+    <!-- 🔥 RESSOURCES EN PREMIER (obligatoire) -->
+    <Window.Resources>
+
+        <!-- Couleurs Windows 11 Dark -->
+        <SolidColorBrush x:Key="Win11Background" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="Win11Panel" Color="#252526"/>
+        <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
+        <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
+        <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
+
+        <!-- Style des en-têtes de colonnes -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- Style des cellules -->
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style des lignes -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 0 1"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2D2D30"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ScrollBars sombres -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#3C3C3C"/>
+        </Style>
+
+        <!-- Style des boutons -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Padding" Value="10 5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3A3A3D"/>
+                                <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style DataGrid Windows 11 Dark -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="RowBackground" Value="#1E1E1E"/>
+            <Setter Property="AlternatingRowBackground" Value="#252526"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="FontSize" Value="14"/>
+        </Style>
+
+        <!-- Style TextBlock -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid Background="{StaticResource Win11Background}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Boutons -->
-            <RowDefinition Height="2*"/>     <!-- Fichiers en cours -->
-            <RowDefinition Height="Auto"/>   <!-- Dernière image -->
-            <RowDefinition Height="3*"/>     <!-- Historique -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="3*"/>
         </Grid.RowDefinitions>
 
         <!-- BOUTONS -->
         <StackPanel Orientation="Horizontal" Margin="10">
-
-            <!-- Bouton envoyer rapport -->
             <Button Width="150" Margin="5" Click="SendReportNow_Click">
                 <TextBlock Text="Envoyer rapport"/>
             </Button>
 
-            <!-- 🔥 SWITCH LOG + LABEL -->
+            <!-- SWITCH LOG -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15 5 5 5">
                 <TextBlock Text="Log" VerticalAlignment="Center" Margin="0,0,8,0"/>
 
@@ -31,6 +138,53 @@
                               Height="20"
                               Checked="ToggleLog_Checked"
                               Unchecked="ToggleLog_Unchecked">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Grid Width="40" Height="20">
+                                            <Border x:Name="SwitchBackground"
+                                                    CornerRadius="10"
+                                                    Background="#3C3C3C"/>
+                                            <Ellipse x:Name="SwitchThumb"
+                                                     Width="16" Height="16"
+                                                     Margin="2"
+                                                     Fill="#E5E5E5"
+                                                     HorizontalAlignment="Left"/>
+                                        </Grid>
+
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="SwitchBackground"
+                                                        Property="Background"
+                                                        Value="#4CC2FF"/>
+                                                <Setter TargetName="SwitchThumb"
+                                                        Property="HorizontalAlignment"
+                                                        Value="Right"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
+            </StackPanel>
+
+            <!-- 🔥 NOUVEAU SWITCH : ENVOI EMAIL -->
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="25 5 5 5">
+                <TextBlock Text="Envoi du rapport automatique"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0"/>
+
+                <ToggleButton x:Name="ToggleEmail"
+                              Width="40"
+                              Height="20"
+                              IsChecked="True"
+                              Checked="ToggleEmail_Checked"
+                              Unchecked="ToggleEmail_Unchecked">
 
                     <ToggleButton.Style>
                         <Style TargetType="ToggleButton">
@@ -38,33 +192,25 @@
                                 <Setter.Value>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Grid Width="40" Height="20">
-
-                                            <!-- Fond -->
                                             <Border x:Name="SwitchBackground"
                                                     CornerRadius="10"
-                                                    Background="LightGray"/>
-
-                                            <!-- Rond -->
+                                                    Background="#3C3C3C"/>
                                             <Ellipse x:Name="SwitchThumb"
                                                      Width="16" Height="16"
                                                      Margin="2"
-                                                     Fill="White"
+                                                     Fill="#E5E5E5"
                                                      HorizontalAlignment="Left"/>
-
                                         </Grid>
 
                                         <ControlTemplate.Triggers>
-
-                                            <!-- 🔥 Quand actif -->
                                             <Trigger Property="IsChecked" Value="True">
                                                 <Setter TargetName="SwitchBackground"
                                                         Property="Background"
-                                                        Value="LimeGreen"/>
+                                                        Value="#4CC2FF"/>
                                                 <Setter TargetName="SwitchThumb"
                                                         Property="HorizontalAlignment"
                                                         Value="Right"/>
                                             </Trigger>
-
                                         </ControlTemplate.Triggers>
 
                                     </ControlTemplate>
@@ -75,7 +221,6 @@
 
                 </ToggleButton>
             </StackPanel>
-
         </StackPanel>
 
         <!-- TABLEAU EN COURS -->
@@ -83,13 +228,22 @@
                   Grid.Row="1"
                   Margin="10"
                   AutoGenerateColumns="False"
-                  Background="White"
-                  Foreground="Black"
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto">
 
             <DataGrid.Columns>
+
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Image Width="22" Height="22"
+                                   Source="{Binding IconPath}"
+                                   VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="Client IP" Binding="{Binding ClientName}" Width="100"/>
                 <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100"/>
                 <DataGridTextColumn Header="Nom" Binding="{Binding Nom}" Width="2*"/>
@@ -97,6 +251,7 @@
                 <DataGridTextColumn Header="Episode" Binding="{Binding Episode}" Width="60"/>
                 <DataGridTextColumn Header="Fichier" Binding="{Binding FileName}" Width="2*"/>
                 <DataGridTextColumn Header="Chemin" Binding="{Binding Path}" Width="3*"/>
+
             </DataGrid.Columns>
 
         </DataGrid>
@@ -106,7 +261,6 @@
                    Grid.Row="2"
                    Margin="10"
                    FontSize="16"
-                   Foreground="Black"
                    Text="Dernière image ouverte : aucune"/>
 
         <!-- TABLEAU HISTORIQUE -->
@@ -114,13 +268,22 @@
                   Grid.Row="3"
                   Margin="10"
                   AutoGenerateColumns="False"
-                  Background="White"
-                  Foreground="Black"
                   CanUserAddRows="False"
                   IsReadOnly="True"
                   ScrollViewer.HorizontalScrollBarVisibility="Auto">
 
             <DataGrid.Columns>
+
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Image Width="22" Height="22"
+                                   Source="{Binding IconPath}"
+                                   VerticalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="Heure"
                     Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
                     Width="150"/>
@@ -131,6 +294,7 @@
                 <DataGridTextColumn Header="Episode" Binding="{Binding Episode}" Width="60"/>
                 <DataGridTextColumn Header="Fichier" Binding="{Binding FileName}" Width="2*"/>
                 <DataGridTextColumn Header="Chemin" Binding="{Binding Path}" Width="3*"/>
+
             </DataGrid.Columns>
 
         </DataGrid>

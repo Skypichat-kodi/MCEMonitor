@@ -11,6 +11,13 @@
   <ItemGroup>
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <Resource Include="Resources\Icons\icon_image.png" />
+    <Resource Include="Resources\Icons\icon_video.png" />
+    <Resource Include="Resources\Icons\icon_audio.png" />
+    <Resource Include="Resources\Icons\icon_serie.png" />
+  </ItemGroup>
 
 </Project>
 
