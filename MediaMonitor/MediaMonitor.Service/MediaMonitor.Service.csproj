@@ -10,6 +10,11 @@
   <ItemGroup>
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Shutdown.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
 </Project>
 
