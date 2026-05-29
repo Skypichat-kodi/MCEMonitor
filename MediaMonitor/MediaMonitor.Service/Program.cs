@@ -20,49 +20,81 @@ namespace MediaMonitor.Service
 
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            // ?? Réinitialisation du log au démarrage
-            ClearLog();
+            CoreLog.IsLoggingEnabled = () => ServiceIpcServer.ServiceLoggingEnabled;
 
-            Log("=== MediaMonitor.Service démarré (SYSTEM) ===");
+            ClearLog();
+            CoreLog.Write("=== MediaMonitor.Service démarré (SYSTEM) ===");
 
             var engine = new MediaMonitorEngine();
 
             try
             {
                 engine.Start();
-                Log("Engine.Start() exécuté.");
+                CoreLog.Write("Engine.Start() exécuté.");
             }
             catch (Exception ex)
             {
-                Log("ERREUR Engine.Start() : " + ex);
+                CoreLog.Write("ERREUR Engine.Start() : " + ex);
             }
 
             // ------------------------------------------------------------
-            // IPC : permet au Tray d'envoyer "shutdown"
+            // IPC
             // ------------------------------------------------------------
+            ServiceIpcServer ipc = null;
             try
             {
-                var ipc = new ServiceIpcServer(engine);
+                ipc = new ServiceIpcServer(engine);
                 ipc.Start();
-                Log("IPC Server démarré.");
+                CoreLog.Write("IPC Server démarré.");
             }
             catch (Exception ex)
             {
-                Log("ERREUR IPC Start : " + ex);
+                CoreLog.Write("ERREUR IPC Start : " + ex);
             }
+
+            // ?? IMPORTANT : Charger la config APRÈS la création de ServiceIpcServer
+            LoadEmailSetting();
 
             ScheduleNextReport(engine);
 
-            Log("Service en attente (Thread.Sleep Infinite).");
-
+            CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
-
         // ------------------------------------------------------------
-        // LOGGING
+        // CHARGEMENT DU SWITCH EMAIL (persistant)
         // ------------------------------------------------------------
+        private static void LoadEmailSetting()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
 
-        // ?? Nouveau : réinitialisation du log au démarrage
+                Directory.CreateDirectory(folder);
+
+                string path = Path.Combine(folder, "MediaMonitor.Service.config");
+
+                if (!File.Exists(path))
+                {
+                    ServiceIpcServer.EmailSendingEnabled = true;
+                    CoreLog.Write("MediaMonitor.Service.config introuvable ? EmailSendingEnabled = true");
+                    return;
+                }
+
+                string content = File.ReadAllText(path).Trim().ToLower();
+                ServiceIpcServer.EmailSendingEnabled = content.Contains("true");
+
+                CoreLog.Write("MediaMonitor.Service.config chargé ? EmailSendingEnabled = "
+                    + ServiceIpcServer.EmailSendingEnabled);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR LoadEmailSetting : " + ex);
+                ServiceIpcServer.EmailSendingEnabled = true;
+            }
+        }
         private static void ClearLog()
         {
             try
@@ -79,35 +111,7 @@ namespace MediaMonitor.Service
 
                 File.WriteAllText(file, string.Empty);
             }
-            catch
-            {
-                // On ne casse jamais le service pour un log
-            }
-        }
-
-        private static void Log(string message)
-        {
-            try
-            {
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Logs"
-                );
-
-                Directory.CreateDirectory(folder);
-
-                string file = Path.Combine(folder, "MediaMonitor.Service.log");
-
-                File.AppendAllText(
-                    file,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}"
-                );
-            }
-            catch
-            {
-                // On ne casse jamais le service pour un log
-            }
+            catch { }
         }
 
         private static (int hour, int minute)? LoadShutdownTime()
@@ -122,7 +126,7 @@ namespace MediaMonitor.Service
 
                 if (!File.Exists(path))
                 {
-                    Log("Shutdown.config introuvable.");
+                    CoreLog.Write("Shutdown.config introuvable.");
                     return null;
                 }
 
@@ -142,16 +146,16 @@ namespace MediaMonitor.Service
 
                 if (hour >= 0 && minute >= 0)
                 {
-                    Log($"Shutdown.config chargé : {hour:D2}:{minute:D2}");
+                    CoreLog.Write($"Shutdown.config chargé : {hour:D2}:{minute:D2}");
                     return (hour, minute);
                 }
 
-                Log("Shutdown.config invalide.");
+                CoreLog.Write("Shutdown.config invalide.");
                 return null;
             }
             catch (Exception ex)
             {
-                Log("ERREUR LoadShutdownTime : " + ex);
+                CoreLog.Write("ERREUR LoadShutdownTime : " + ex);
                 return null;
             }
         }
@@ -162,7 +166,7 @@ namespace MediaMonitor.Service
 
             if (shutdown == null)
             {
-                Log("Aucune heure de shutdown, rapport dans 1 minute.");
+                CoreLog.Write("Aucune heure de shutdown, rapport dans 1 minute.");
                 return DateTime.Now.AddMinutes(1);
             }
 
@@ -174,7 +178,7 @@ namespace MediaMonitor.Service
             if (target < DateTime.Now)
                 target = target.AddDays(1);
 
-            Log($"Prochain envoi de rapport prévu à : {target:HH:mm:ss}");
+            CoreLog.Write($"Prochain envoi de rapport prévu à : {target:HH:mm:ss}");
 
             return target;
         }
@@ -187,23 +191,29 @@ namespace MediaMonitor.Service
             if (delay.TotalMilliseconds < 0)
                 delay = TimeSpan.FromMinutes(1);
 
-            Log($"Timer rapport programmé dans {delay.TotalMinutes:F1} minutes.");
+            CoreLog.Write($"Timer rapport programmé dans {delay.TotalMinutes:F1} minutes.");
 
             reportTimer = new System.Threading.Timer(async _ =>
             {
                 try
                 {
-                    Log("Envoi du rapport...");
-                    await engine.SendReportEmail();
-                    Log("Rapport envoyé.");
+                    if (!ServiceIpcServer.EmailSendingEnabled)
+                    {
+                        CoreLog.Write("Envoi automatique du rapport désactivé ? rapport ignoré.");
+                    }
+                    else
+                    {
+                        CoreLog.Write("Envoi du rapport...");
+                        await engine.SendReportEmail();
+                        CoreLog.Write("Rapport envoyé.");
 
-                    // ?? Effacer l’historique en RAM après envoi
-                    engine.ClearHistory();
-                    Log("Historique RAM effacé après envoi du rapport.");
+                        engine.ClearHistory();
+                        CoreLog.Write("Historique RAM effacé après envoi du rapport.");
+                    }
                 }
                 catch (Exception ex)
                 {
-                    Log("ERREUR SendReportEmail : " + ex);
+                    CoreLog.Write("ERREUR SendReportEmail : " + ex);
                 }
 
                 ScheduleNextReport(engine);
