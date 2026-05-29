@@ -64,7 +64,7 @@ namespace MCEMonitor
             this.tabControl.Controls.Add(this.tabAbout);
 
             // ============================================================
-            // CONFIGURATION DES ONGLET
+            // CONFIGURATION DES ONGLETS
             // ============================================================
 
             this.tabEmail.Location = new System.Drawing.Point(4, 29);
@@ -602,7 +602,39 @@ namespace MCEMonitor
             // ============================================================
             // ON / OFF — CONTENU
             // ============================================================
+           
+            // === BLOC D’INFORMATION ON/OFF ===
+            this.grpOnOffInfo = new System.Windows.Forms.GroupBox();
+            this.lblOnOffInfo = new System.Windows.Forms.Label();
+            this.picOnOffInfo = new System.Windows.Forms.PictureBox();
 
+            this.grpOnOffInfo.Text = LanguageManager.Get("OnOff.Info.Title") ?? "Information";
+            this.grpOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.grpOnOffInfo.Location = new System.Drawing.Point(15, 10);
+            this.grpOnOffInfo.Size = new System.Drawing.Size(640, 120);
+
+            // Icône info
+            this.picOnOffInfo.Location = new System.Drawing.Point(15, 35);
+            this.picOnOffInfo.Size = new System.Drawing.Size(28, 28);
+            this.picOnOffInfo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
+            this.picOnOffInfo.Image = SystemIcons.Information.ToBitmap();
+
+            // Texte
+            this.lblOnOffInfo.AutoSize = false;
+            this.lblOnOffInfo.Location = new System.Drawing.Point(50, 30);
+            this.lblOnOffInfo.Size = new System.Drawing.Size(580, 90);
+            this.lblOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
+            this.lblOnOffInfo.Text =
+                LanguageManager.Get("OnOff.Info.Description") ??
+                "Le module On/Off permet de programmer l’arrêt ou la mise en veille de votre machine à une heure précise.\n" +
+                "Cette heure est également utilisée par MediaMonitor pour envoyer un rapport par email 10 minutes avant l’arrêt ou la mise en veille.\n" +
+                "Si vous ne souhaitez pas envoyer de rapport, vous pouvez désactiver cette fonctionnalité dans l’interface de MediaMonitor.";
+
+            this.grpOnOffInfo.Controls.Add(this.picOnOffInfo);
+            this.grpOnOffInfo.Controls.Add(this.lblOnOffInfo);
+            this.tabOnOff.Controls.Add(this.grpOnOffInfo);
+
+            // === ARRÊT PROGRAMMÉ ===
             this.grpShutdown = new System.Windows.Forms.GroupBox();
             this.lblShutdownHour = new System.Windows.Forms.Label();
             this.numShutdownHour = new System.Windows.Forms.NumericUpDown();
@@ -613,14 +645,10 @@ namespace MCEMonitor
             this.btnCreateShutdownTask = new System.Windows.Forms.Button();
             this.btnDeleteShutdownTask = new System.Windows.Forms.Button();
 
-            this.grpWOL = new System.Windows.Forms.GroupBox();
-            this.lblWOLInfo = new System.Windows.Forms.Label();
-
-            // GroupBox Arrêt programmé
             this.grpShutdown.Text = LanguageManager.Get("Shutdown.Title") ?? "Arrêt programmé";
             this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
-            this.grpShutdown.Location = new System.Drawing.Point(15, 15);
-            this.grpShutdown.Size = new System.Drawing.Size(640, 240);
+            this.grpShutdown.Location = new System.Drawing.Point(15, 135);
+            this.grpShutdown.Size = new System.Drawing.Size(640, 150);
 
             this.lblShutdownHour.Text = LanguageManager.Get("Shutdown.Hour") ?? "Heure (0–23) :";
             this.lblShutdownHour.Location = new System.Drawing.Point(20, 35);
@@ -643,25 +671,25 @@ namespace MCEMonitor
             this.numShutdownMinute.Font = normalFont;
 
             this.lblShutdownType.Text = LanguageManager.Get("Shutdown.Type") ?? "Choisir le type d'arrêt :";
-            this.lblShutdownType.Location = new System.Drawing.Point(20, 90);
-            this.lblShutdownType.Size = new System.Drawing.Size(200, 25);
+            this.lblShutdownType.Location = new System.Drawing.Point(20, 65);
+            this.lblShutdownType.Size = new System.Drawing.Size(110, 25);
             this.lblShutdownType.Font = normalFont;
 
             this.cmbShutdownType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbShutdownType.Items.AddRange(new object[] { "Arrêt", "Veille" });
-            this.cmbShutdownType.Location = new System.Drawing.Point(230, 88);
-            this.cmbShutdownType.Size = new System.Drawing.Size(150, 28);
+            this.cmbShutdownType.Location = new System.Drawing.Point(150, 65);
+            this.cmbShutdownType.Size = new System.Drawing.Size(150, 25);
             this.cmbShutdownType.SelectedIndex = 0;
             this.cmbShutdownType.Font = normalFont;
 
             this.btnCreateShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Create") ?? "Créer tâche planifiée";
-            this.btnCreateShutdownTask.Location = new System.Drawing.Point(20, 150);
+            this.btnCreateShutdownTask.Location = new System.Drawing.Point(20, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
             this.btnDeleteShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Delete") ?? "Supprimer tâche planifiée";
-            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(230, 150);
+            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(230, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
             this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);
@@ -677,15 +705,19 @@ namespace MCEMonitor
 
             this.tabOnOff.Controls.Add(this.grpShutdown);
 
-            // GroupBox WOL
+
+            // === WOL ===
+            this.grpWOL = new System.Windows.Forms.GroupBox();
+            this.lblWOLInfo = new System.Windows.Forms.Label();
+
             this.grpWOL.Text = LanguageManager.Get("WOL.Title") ?? "Démarrage automatique (Wake On Lan)";
             this.grpWOL.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
-            this.grpWOL.Location = new System.Drawing.Point(15, 270);
-            this.grpWOL.Size = new System.Drawing.Size(640, 150);
+            this.grpWOL.Location = new System.Drawing.Point(15, 290);
+            this.grpWOL.Size = new System.Drawing.Size(640, 120);
 
             this.lblWOLInfo.AutoSize = false;
             this.lblWOLInfo.Location = new System.Drawing.Point(20, 30);
-            this.lblWOLInfo.Size = new System.Drawing.Size(600, 150);
+            this.lblWOLInfo.Size = new System.Drawing.Size(600, 135);
             this.lblWOLInfo.Font = normalFont;
             this.lblWOLInfo.Text =
                 LanguageManager.Get("WOL.Description") ??
@@ -802,6 +834,10 @@ namespace MCEMonitor
         private System.Windows.Forms.Label lblShutdownMinute;
         private System.Windows.Forms.NumericUpDown numShutdownMinute;
         private System.Windows.Forms.Label lblShutdownType;
+        private System.Windows.Forms.GroupBox grpOnOffInfo;
+        private System.Windows.Forms.Label lblOnOffInfo;
+        private System.Windows.Forms.PictureBox picOnOffInfo;
+
         private System.Windows.Forms.ComboBox cmbShutdownType;
         private System.Windows.Forms.Button btnCreateShutdownTask;
         private System.Windows.Forms.Button btnDeleteShutdownTask;

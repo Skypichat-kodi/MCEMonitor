@@ -372,8 +372,20 @@ namespace MCEMonitor
         {
             bool exists = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
 
+            // Activer/désactiver les boutons
             btnCreateMediaTask2.Enabled = !exists;
             btnDeleteMediaTask2.Enabled = exists;
+
+            // Couleurs
+            Color lightGreen = Color.FromArgb(200, 255, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color defaultColor = SystemColors.Control;
+
+            // Créer = vert quand actif
+            btnCreateMediaTask2.BackColor = btnCreateMediaTask2.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
+            btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
         }
 
         // ============================================================
@@ -507,6 +519,16 @@ namespace MCEMonitor
 
             btnCreateWakeTask.Enabled = !exists;
             btnDeleteWakeTask.Enabled = exists;
+
+            Color lightGreen = Color.FromArgb(200, 255, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color defaultColor = SystemColors.Control;
+
+            // Créer = vert quand actif
+            btnCreateWakeTask.BackColor = btnCreateWakeTask.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
+            btnDeleteWakeTask.BackColor = btnDeleteWakeTask.Enabled ? lightRed : defaultColor;
         }
 
         // ============================================================
@@ -577,9 +599,22 @@ namespace MCEMonitor
         {
             bool exists = TaskSchedulerHelper.StopTaskExists();
 
+            // Activer/désactiver les boutons
             btnCreateStopTask.Enabled = !exists;
             btnDeleteStopTask.Enabled = exists;
+
+            // Couleurs
+            Color lightGreen = Color.FromArgb(200, 255, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color defaultColor = SystemColors.Control;
+
+            // Créer = vert quand actif
+            btnCreateStopTask.BackColor = btnCreateStopTask.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
+            btnDeleteStopTask.BackColor = btnDeleteStopTask.Enabled ? lightRed : defaultColor;
         }
+
         // ============================================================
         // ARRÊT PROGRAMMÉ
         // ============================================================
@@ -638,7 +673,17 @@ namespace MCEMonitor
 
             btnCreateShutdownTask.Enabled = !exists;
             btnDeleteShutdownTask.Enabled = exists;
+            
+          Color lightGreen = Color.FromArgb(200, 255, 200);
+          Color lightRed   = Color.FromArgb(255, 200, 200);
+          Color defaultColor = SystemColors.Control;
 
+          // Créer = vert quand actif
+          btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
+
+          // Supprimer = rouge quand actif
+          btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
+    
             if (exists)
             {
                 string mode = TaskSchedulerHelper.GetShutdownTaskMode();
