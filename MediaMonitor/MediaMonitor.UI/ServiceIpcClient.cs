@@ -32,14 +32,12 @@ namespace MediaMonitor.UI.Services
 
                 client.ReadMode = PipeTransmissionMode.Byte;
 
-                MainWindow.StaticUiLog("IPC ? connecté au pipe, envoi commande : " + command);
+                MainWindow.StaticUiLog("IPC ? connecté, envoi commande : " + command);
 
-                // ?? On envoie la commande + \n pour ReadLine()
                 byte[] cmdBytes = Encoding.UTF8.GetBytes(command + "\n");
                 await client.WriteAsync(cmdBytes, 0, cmdBytes.Length);
                 await client.FlushAsync();
 
-                // ?? Lecture illimitée
                 byte[] buffer = new byte[4096];
                 int bytesRead;
 
@@ -137,6 +135,73 @@ namespace MediaMonitor.UI.Services
         {
             string? json = await SendCommand("shutdown");
             return json != null;
+        }
+
+        // ============================================================
+        // ?? ACTIVER / DÉSACTIVER LE LOG DU SERVICE
+        // ============================================================
+        public static async Task<bool> SetLogging(bool enabled)
+        {
+            string cmd = enabled ? "set-logging true" : "set-logging false";
+
+            string? json = await SendCommand(cmd);
+            if (json == null)
+                return false;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                return obj != null && obj.ContainsKey("status") && obj["status"] == "ok";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON set-logging : " + ex.Message);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // ?? ACTIVER / DÉSACTIVER ENVOI EMAIL
+        // ============================================================
+        public static async Task<bool> SetEmailSending(bool enabled)
+        {
+            string cmd = enabled ? "set-email-enabled true" : "set-email-enabled false";
+
+            string? json = await SendCommand(cmd);
+            if (json == null)
+                return false;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                return obj != null && obj.ContainsKey("status") && obj["status"] == "ok";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON set-email-enabled : " + ex.Message);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // ?? NOUVELLE COMMANDE : LIRE L'ÉTAT EMAIL DU SERVICE
+        // ============================================================
+        public static async Task<bool?> GetEmailEnabled()
+        {
+            string? json = await SendCommand("get-email-enabled");
+            if (json == null)
+                return null;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, bool>>(json);
+                return obj != null && obj.ContainsKey("enabled") ? obj["enabled"] : null;
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON get-email-enabled : " + ex.Message);
+                return null;
+            }
         }
     }
 }
