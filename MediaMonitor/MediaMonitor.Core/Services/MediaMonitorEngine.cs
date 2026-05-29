@@ -7,13 +7,14 @@ using MediaMonitor.Core.Models;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.IO;
+using MediaMonitor.Core.Services;   // ?? pour CoreLog
 
 namespace MediaMonitor.Core.Services
 {
     public class MediaMonitorEngine
     {
         private readonly List<MediaUsageItem> _history = new();
-        private readonly List<MediaUsageItem> _currentOpen = new();   // ? AJOUT
+        private readonly List<MediaUsageItem> _currentOpen = new();
         private readonly System.Timers.Timer _timer;
         private string _lastImage = "";
 
@@ -42,18 +43,23 @@ namespace MediaMonitor.Core.Services
 
                 var joined =
                     from f in files
-                    let ext = System.IO.Path.GetExtension(f.Path).ToLower()
+                    let ext = Path.GetExtension(f.Path).ToLower()
                     where ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".mov" ||
                           ext == ".ts"  || ext == ".wmv" || ext == ".flv" ||
+
+                          ext == ".mp3" || ext == ".wav" || ext == ".flac" ||
+                          ext == ".aac" || ext == ".ogg" || ext == ".wma"  ||
+                          ext == ".m4a" ||
+
                           ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
                           ext == ".gif" || ext == ".bmp"  || ext == ".webp"
+
                     where MediaClassifier.IsMedia(f.Path)
                     join s in sessions on f.SessionId equals s.SessionId into gj
                     from match in gj.DefaultIfEmpty()
                     select BuildItem(f, match);
 
                 var rawList = joined.ToList();
-
                 var filtered = new List<MediaUsageItem>();
 
                 foreach (var item in rawList)
@@ -63,21 +69,20 @@ namespace MediaMonitor.Core.Services
 
                     double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
 
-                    // ?? Filtrer les miniatures d'images
+                    // Filtrer miniatures
                     if (item.MediaType == "Image")
                     {
                         try
                         {
                             long size = new FileInfo(item.Path).Length;
                             if (size < 200_000)
-                                continue; // ignorer miniatures
+                                continue;
                         }
                         catch { }
                     }
 
                     bool keep = item.MediaType switch
                     {
-                        // ?? Durci pour les images pour éviter le listing de dossier
                         "Image" => seconds >= 5,
                         "Serie" => seconds >= 7,
                         "Video" => seconds >= 7,
@@ -104,7 +109,6 @@ namespace MediaMonitor.Core.Services
 
                     foreach (var item in filtered)
                     {
-                        // ?? Pour les images : n'ajouter que la vraie image affichée
                         if (item.MediaType == "Image" && item.Path != _lastImage)
                             continue;
 
@@ -115,13 +119,13 @@ namespace MediaMonitor.Core.Services
                         if (isNew)
                         {
                             _history.Add(item);
-                            LogService.WriteDebug($"Nouveau : {item.Path} ({item.ClientName})");
+
+                            // ?? remplacé LogService ? CoreLog
+                            CoreLog.Write($"Nouveau : {item.Path} ({item.ClientName})");
                         }
                     }
-
                 }
 
-                // Dernière image ouverte (uniquement images)
                 foreach (var item in filtered)
                 {
                     if (item.MediaType == "Image")
@@ -132,30 +136,24 @@ namespace MediaMonitor.Core.Services
             }
             catch (Exception ex)
             {
-                LogService.WriteError("SMB ERROR: " + ex.Message);
+                // ?? remplacé LogService ? CoreLog
+                CoreLog.Write("SMB ERROR: " + ex.Message);
             }
         }
-
         // ============================================================
-        //  ?? Nettoyage du nom (version finale)
+        //  Nettoyage du nom
         // ============================================================
 
         private string CleanEpisodeName(string fileName)
         {
-            string name = System.IO.Path.GetFileNameWithoutExtension(fileName);
+            string name = Path.GetFileNameWithoutExtension(fileName);
 
-            name = Regex.Replace(
-                name,
-                @"\b(S?\d{1,2}[xE]\d{1,2})\b",
-                "",
-                RegexOptions.IgnoreCase
-            );
+            name = Regex.Replace(name, @"\b(S?\d{1,2}[xE]\d{1,2})\b", "", RegexOptions.IgnoreCase);
 
             name = name.Replace("  ", " ");
             name = name.Replace(" -  - ", " - ");
             name = name.Replace(" -  ", " - ");
             name = name.Replace("  - ", " - ");
-
             name = name.Replace("-  -", "-");
             name = name.Replace("- -", "-");
 
@@ -167,13 +165,12 @@ namespace MediaMonitor.Core.Services
 
             return name;
         }
+
         private MediaUsageItem BuildItem(SmbOpenFile f, SmbSession? match)
         {
             string clientName = match?.ClientComputerName;
-
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = match?.Username;
-
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = "Inconnu";
 
@@ -181,21 +178,19 @@ namespace MediaMonitor.Core.Services
             if (string.IsNullOrWhiteSpace(ip))
                 ip = "0.0.0.0";
 
-            string ext = System.IO.Path.GetExtension(f.Path).ToLower();
+            string ext = Path.GetExtension(f.Path).ToLower();
 
             int saison = 0;
             int episode = 0;
             string mediaType;
 
-            // ?? Correction : ne jamais analyser saison/épisode pour les images
             if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
-                ext == ".gif" || ext == ".bmp"  || ext == ".webp")
+                ext == ".gif" || ext == ".bmp" || ext == ".webp")
             {
                 mediaType = "Image";
             }
             else
             {
-                // Analyse uniquement pour les vidéos
                 MediaClassifier.ExtractEpisodeInfo(f.Path, out saison, out episode);
 
                 mediaType = saison > 0 && episode > 0
@@ -203,7 +198,7 @@ namespace MediaMonitor.Core.Services
                     : MediaClassifier.GetMediaType(f.Path);
             }
 
-            string file = System.IO.Path.GetFileName(f.Path);
+            string file = Path.GetFileName(f.Path);
 
             return new MediaUsageItem
             {
@@ -215,10 +210,7 @@ namespace MediaMonitor.Core.Services
                 UNC = PathTools.ToUNC(f.Path),
                 Timestamp = DateTime.Now,
                 MediaType = mediaType,
-
-                // Nom propre
                 Nom = CleanEpisodeName(file),
-
                 Saison = saison,
                 Episode = episode
             };
@@ -231,25 +223,19 @@ namespace MediaMonitor.Core.Services
         public List<MediaUsageItem> GetCurrentOpenFiles()
         {
             lock (_sync)
-            {
                 return new List<MediaUsageItem>(_currentOpen);
-            }
         }
 
         public string GetLastImage()
         {
             lock (_sync)
-            {
                 return _lastImage;
-            }
         }
 
         public List<MediaUsageItem> GetHistory()
         {
             lock (_sync)
-            {
                 return new List<MediaUsageItem>(_history);
-            }
         }
 
         // ============================================================
@@ -315,21 +301,17 @@ th { background: #eee; }
             try
             {
                 string html = GenerateReportFromHistory();
-
                 var cfg = EmailConfig.Load();
 
-                await EmailSender.SendAsync(
-                    cfg,
-                    "Rapport MediaMonitor",
-                    html,
-                    isHtml: true
-                );
+                await EmailSender.SendAsync(cfg, "Rapport MediaMonitor", html, isHtml: true);
 
-                LogService.WriteDebug("Email automatique envoyé.");
+                // ?? remplacé LogService ? CoreLog
+                CoreLog.Write("Email automatique envoyé.");
             }
             catch (Exception ex)
             {
-                LogService.WriteError("Erreur envoi email automatique : " + ex.Message);
+                // ?? remplacé LogService ? CoreLog
+                CoreLog.Write("Erreur envoi email automatique : " + ex.Message);
             }
         }
 
