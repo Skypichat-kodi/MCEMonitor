@@ -1,0 +1,16 @@
+/MCEMonitor Ver 1.0
+/MCEMonitor/bin
+/MCEMonitor/obj
+/StopMonitor/obj
+/StopMonitor/bin
+/WakeMonitor/obj
+/WakeMonitor/bin
+/MediaMonitor/MediaMonitor.Core/obj
+/MediaMonitor/MediaMonitor.Core/bin
+/MediaMonitor/MediaMonitor.Service/obj
+/MediaMonitor/MediaMonitor.Service/bin
+/MediaMonitor/MediaMonitor.Tray/obj
+/MediaMonitor/MediaMonitor.Tray/bin
+/MediaMonitor/MediaMonitor.UI/obj
+/MediaMonitor/MediaMonitor.UI/bin
+
