@@ -733,19 +733,46 @@ namespace MCEMonitor
             // A PROPOS — CONTENU
             // ============================================================
 
+            // PANEL DÉFILANT
+            this.pnlAboutScroll = new System.Windows.Forms.Panel();
+            this.pnlAboutScroll.Location = new System.Drawing.Point(10, 10);
+            this.pnlAboutScroll.Size = new System.Drawing.Size(620, 400);
+            this.pnlAboutScroll.AutoScroll = true;
+            this.pnlAboutScroll.BackColor = Color.FromArgb(245, 245, 245); // optionnel
+
+            // LABEL À L’INTÉRIEUR
             this.lblAbout = new System.Windows.Forms.Label();
-            this.lblAbout.AutoSize = false;
-            this.lblAbout.Location = new System.Drawing.Point(20, 20);
-            this.lblAbout.Size = new System.Drawing.Size(620, 200);
+            this.lblAbout.AutoSize = true; // important pour le scroll
+            this.lblAbout.MaximumSize = new System.Drawing.Size(600, 0); // largeur fixe, hauteur auto
             this.lblAbout.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblAbout.Text =
                 LanguageManager.Get("About.Text") ??
-                "MCEMonitor\n"
-              + "Version 1.0\n\n"
-              + "Développé par Christophe.\n"
-              + "Outil de supervision et d'automatisation pour Media Center Edition.";
+                "MCEMonitor (Version 1.1)\n" +
+                "Outil de supervision et d'automatisation pour Media Server (KODI).\n" +
+                "\n" +
+                "MIT License\n" +
+                "Copyright (c) 2026 Skypichat-kodi\n" +
+                "\n" +
+                "Permission is hereby granted, free of charge, to any person obtaining a copy\n" +
+                "of this software and associated documentation files (the \"Software\"), to deal\n" +
+                "in the Software without restriction, including without limitation the rights\n" +
+                "to use, copy, modify, merge, publish, distribute, sublicense, and/or sell\n" +
+                "copies of the Software, and to permit persons to whom the Software is\n" +
+                "furnished to do so, subject to the following conditions:\n" +
+                "\n" +
+                "The above copyright notice and this permission notice shall be included in all\n" +
+                "copies or substantial portions of the Software.\n" +
+                "\n" +
+                "THE SOFTWARE IS PROVIDED \"AS IS\", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR\n" +
+                "IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,\n" +
+                "FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE\n" +
+                "AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER\n" +
+                "LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,\n" +
+                "OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.";
 
-            this.tabAbout.Controls.Add(this.lblAbout);
+            // AJOUTS
+            this.pnlAboutScroll.Controls.Add(this.lblAbout);
+            this.tabAbout.Controls.Add(this.pnlAboutScroll);
 
             // ============================================================
             // FINALISATION DU FORMULAIRE
@@ -846,6 +873,8 @@ namespace MCEMonitor
         private System.Windows.Forms.Label lblWOLInfo;
 
         private System.Windows.Forms.Label lblAbout;
+        private System.Windows.Forms.Panel pnlAboutScroll;
+
     }
 }
 
