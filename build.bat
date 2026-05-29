@@ -1,6 +1,9 @@
 @echo off
 setlocal enabledelayedexpansion
 
+REM Récupérer ESC pour les couleurs
+for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
+
 echo ============================================
 echo       BUILD COMPLET DE MCEMONITOR
 
@@ -10,7 +13,7 @@ set ROOT=Z:\Compilations Programmes\Projet MCEMonitor
 REM --- Dossier de sortie ---
 set OUT="%ROOT%\MCEMonitor Ver 1.0"
 
-REM Netoyage du dossier avant copie
+REM Nettoyage du dossier avant copie
 if exist %OUT% rmdir /s /q %OUT%
 mkdir %OUT%
 
@@ -61,14 +64,7 @@ call :ProcessOne "StopMonitor\bin\Release" "%output%" "%DEST_APPDATA%"
 call :ProcessOne "WakeMonitor\bin\Release" "%output%" "%DEST_APPDATA%"
 call :ProcessOne "MediaMonitor\MediaMonitor.Service\bin\Release" "%output%" "%DEST_APPDATA%"
 
-
-goto :end
-
-REM Copier les dossiers détectés
-call :CopyFromTxt
-
-echo.
-echo Terminé.
+goto :finalMessage
 
 :ProcessOne
 REM %1 = base, %2 = fichier de sortie, %3 = dossier de destination
@@ -108,27 +104,12 @@ xcopy "!FullPath!\*" "%dest%" /E /I /Y >nul
 
 exit /b 0
 
-echo.
-echo ============================================
-echo        COPIE DU DOSSIER RELEASE
-echo ============================================
-
-:CopyFromTxt
-echo.
-
-for /f "usebackq delims=" %%P in ("%output%") do (
-    echo Copie de : %%P
-    xcopy "%%P\*" "%DEST%" /E /I /Y >nul
-)
-
-exit /b 0
-
 :build
 setlocal
 
-REM Récupérer le caractère ESC
+REM Récupérer ESC
 for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
-echo.
+
 echo.
 echo ============================================
 echo              FONCTION : BUILD
@@ -140,32 +121,81 @@ dotnet build %1 -c Release
 if errorlevel 1 (
     echo %ESC%[31mERREUR : La compilation a echoue pour :%ESC%[0m
     echo %1
-    set ERROR=1
+    endlocal & set ERROR=1 & exit /b 0
 )
 
+endlocal & exit /b 0
 
-setlocal
-
-REM Récupérer le caractère ESC
-for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
-
-echo ========== RESULTAT DE LA BUILD ============
+:finalMessage
+echo.
+echo ============================================
 
 if %ERROR%==0 (
-    echo %ESC%[32m       BUILD TERMINE AVEC SUCCES !%ESC%[0m
-    echo Les fichiers sont dans :
-    echo %OUT%
+    echo %ESC%[32m? AUCUNE ERREUR DE COMPILATION%ESC%[0m
+    echo ============================================
+    echo.
+    set /p CHOICE="Voulez-vous compiler l'installeur Inno Setup ? (O/N) : "
+
+    if /I "%CHOICE%"=="O" (
+        echo.
+        echo Vérification de la présence de ISCC.exe...
+
+        REM --- Chemin par défaut d'Inno Setup ---
+        set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+
+        if not exist "%ISCC%" (
+            echo %ESC%[31m? ERREUR : ISCC.exe introuvable !%ESC%[0m
+            echo Vérifiez l'installation de Inno Setup.
+            echo.
+            echo Ouverture du script Inno Setup pour édition...
+            start "" "%ROOT%\MCEMonitorInstaller.iss"
+            goto endFinal
+        )
+
+        echo ISCC trouvé. Compilation en cours...
+        "%ISCC%" "%ROOT%\MCEMonitorInstaller.iss"
+
+        if errorlevel 1 (
+            echo %ESC%[31m? Erreur lors de la compilation Inno Setup.%ESC%[0m
+        ) else (
+            echo %ESC%[32m? Installeur compilé avec succès !%ESC%[0m
+
+            REM --- Récupération du OutputDir dans le .iss ---
+            set "INNO_OUT="
+
+            for /f "tokens=1,* delims==" %%A in ('findstr /I "OutputDir" "%ROOT%\MCEMonitorInstaller.iss"') do (
+                set "INNO_OUT=%%B"
+            )
+
+            REM Nettoyage des guillemets éventuels
+            set "INNO_OUT=%INNO_OUT:"=%"
+
+            echo.
+            echo Dossier de sortie détecté :
+            echo %INNO_OUT%
+
+            if exist "%INNO_OUT%" (
+                echo Ouverture du dossier de l'installeur...
+                start "" "%INNO_OUT%"
+            ) else (
+                echo %ESC%[31m? Le dossier de sortie n'existe pas !%ESC%[0m
+            )
+        )
+
+    ) else (
+        echo.
+        echo Ouverture du script Inno Setup...
+        start "" "%ROOT%\MCEMonitorInstaller.iss"
+    )
+
 ) else (
-    echo DES ERREURS ONT ETE RENCONTREES.
+    echo %ESC%[31m? DES ERREURS ONT ETE DETECTEES !%ESC%[0m
+    echo Consulte le log ci-dessus.
 )
 
-exit /b 0
+echo ============================================
 
-:end
-echo.
+:endFinal
 pause
 exit /b 0
-
-
-
 
