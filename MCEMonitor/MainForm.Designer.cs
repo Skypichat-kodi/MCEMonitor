@@ -598,8 +598,7 @@ namespace MCEMonitor
             this.tabStopMonitor.Controls.Add(this.btnCreateStopTask);
             this.tabStopMonitor.Controls.Add(this.btnDeleteStopTask);
             this.tabStopMonitor.Controls.Add(this.btnRunStopMonitor);
-
-            // ============================================================
+             // ============================================================
             // ON / OFF — CONTENU
             // ============================================================
            
@@ -633,7 +632,6 @@ namespace MCEMonitor
             this.grpOnOffInfo.Controls.Add(this.picOnOffInfo);
             this.grpOnOffInfo.Controls.Add(this.lblOnOffInfo);
             this.tabOnOff.Controls.Add(this.grpOnOffInfo);
-
             // === ARRÊT PROGRAMMÉ ===
             this.grpShutdown = new System.Windows.Forms.GroupBox();
             this.lblShutdownHour = new System.Windows.Forms.Label();
@@ -642,6 +640,11 @@ namespace MCEMonitor
             this.numShutdownMinute = new System.Windows.Forms.NumericUpDown();
             this.lblShutdownType = new System.Windows.Forms.Label();
             this.cmbShutdownType = new System.Windows.Forms.ComboBox();
+
+            // Bouton Sauvegarder
+            this.btnSaveShutdownConfig = new System.Windows.Forms.Button();
+
+            // Bouton existant : créer tâche planifiée
             this.btnCreateShutdownTask = new System.Windows.Forms.Button();
             this.btnDeleteShutdownTask = new System.Windows.Forms.Button();
 
@@ -682,29 +685,39 @@ namespace MCEMonitor
             this.cmbShutdownType.SelectedIndex = 0;
             this.cmbShutdownType.Font = normalFont;
 
+            // ?? BOUTON SAUVEGARDER (NOUVEAU)
+            this.btnSaveShutdownConfig.Text = LanguageManager.Get("Shutdown.Task.Save") ?? "Sauvegarder";
+            this.btnSaveShutdownConfig.Location = new System.Drawing.Point(10, 100);
+            this.btnSaveShutdownConfig.Size = new System.Drawing.Size(200, 35);
+            this.btnSaveShutdownConfig.Font = normalFont;
+            this.btnSaveShutdownConfig.Click += new System.EventHandler(this.BtnCreateSaveConfig_Click);
+
+            // ?? BOUTON CRÉER TÂCHE PLANIFIÉE (EXISTANT)
             this.btnCreateShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Create") ?? "Créer tâche planifiée";
-            this.btnCreateShutdownTask.Location = new System.Drawing.Point(20, 100);
+            this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
+            // Bouton supprimer tâche
             this.btnDeleteShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Delete") ?? "Supprimer tâche planifiée";
-            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(230, 100);
+            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
             this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);
 
+            // Ajout des contrôles
             this.grpShutdown.Controls.Add(this.lblShutdownHour);
             this.grpShutdown.Controls.Add(this.numShutdownHour);
             this.grpShutdown.Controls.Add(this.lblShutdownMinute);
             this.grpShutdown.Controls.Add(this.numShutdownMinute);
             this.grpShutdown.Controls.Add(this.lblShutdownType);
             this.grpShutdown.Controls.Add(this.cmbShutdownType);
+            this.grpShutdown.Controls.Add(this.btnSaveShutdownConfig);
             this.grpShutdown.Controls.Add(this.btnCreateShutdownTask);
             this.grpShutdown.Controls.Add(this.btnDeleteShutdownTask);
 
             this.tabOnOff.Controls.Add(this.grpShutdown);
-
 
             // === WOL ===
             this.grpWOL = new System.Windows.Forms.GroupBox();
@@ -868,6 +881,7 @@ namespace MCEMonitor
         private System.Windows.Forms.ComboBox cmbShutdownType;
         private System.Windows.Forms.Button btnCreateShutdownTask;
         private System.Windows.Forms.Button btnDeleteShutdownTask;
+        private System.Windows.Forms.Button btnSaveShutdownConfig;
 
         private System.Windows.Forms.GroupBox grpWOL;
         private System.Windows.Forms.Label lblWOLInfo;

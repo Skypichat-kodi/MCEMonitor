@@ -149,6 +149,7 @@ namespace MCEMonitor
                 );
             }
         }
+
         // ============================================================
         // ONGLET MEDIA MONITOR
         // ============================================================
@@ -236,10 +237,12 @@ namespace MCEMonitor
         {
             return Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
         }
+
         private bool IsMediaUIRunning()
         {
             return Process.GetProcessesByName("MediaMonitor.UI").Length > 0;
         }
+
         private void UpdateMediaToggle()
         {
             bool running = IsMediaServiceRunning();
@@ -261,7 +264,6 @@ namespace MCEMonitor
                     "Service MediaMonitor : arrêté";
             }
         }
-
         private void toggleMediaService_Click(object sender, EventArgs e)
         {
             bool running = IsMediaServiceRunning();
@@ -443,8 +445,6 @@ namespace MCEMonitor
 
             string path = Path.Combine(dir, "WakeMonitor.config");
 
-
-
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllLines(path, lines);
 
@@ -530,7 +530,6 @@ namespace MCEMonitor
             // Supprimer = rouge quand actif
             btnDeleteWakeTask.BackColor = btnDeleteWakeTask.Enabled ? lightRed : defaultColor;
         }
-
         // ============================================================
         // STOP MONITOR
         // ============================================================
@@ -650,21 +649,28 @@ namespace MCEMonitor
             }
         }
 
-        private void SaveShutdownConfig(int hour, int minute)
+        private void BtnCreateSaveConfig_Click(object sender, EventArgs e)
         {
-            string path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "MCEMonitor",
-                "Shutdown.config"
-            );
-
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-
-            File.WriteAllLines(path, new[]
+            try
             {
-                $"Hour={hour}",
-                $"Minute={minute}"
-            });
+                SaveShutdownConfig();
+
+                MessageBox.Show(
+                    LanguageManager.Get("Shutdown.ConfigSaved") ?? "Configuration enregistrée.",
+                    "MCEMonitor",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information
+                );
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
+                    "MCEMonitor",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
         }
 
         private void UpdateShutdownTaskStatus()
@@ -673,17 +679,14 @@ namespace MCEMonitor
 
             btnCreateShutdownTask.Enabled = !exists;
             btnDeleteShutdownTask.Enabled = exists;
-            
-          Color lightGreen = Color.FromArgb(200, 255, 200);
-          Color lightRed   = Color.FromArgb(255, 200, 200);
-          Color defaultColor = SystemColors.Control;
 
-          // Créer = vert quand actif
-          btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
+            Color lightGreen = Color.FromArgb(200, 255, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color defaultColor = SystemColors.Control;
 
-          // Supprimer = rouge quand actif
-          btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
-    
+            btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
+            btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
+
             if (exists)
             {
                 string mode = TaskSchedulerHelper.GetShutdownTaskMode();
@@ -724,6 +727,7 @@ namespace MCEMonitor
                 );
             }
         }
+
         private void BtnDeleteShutdownTask_Click(object sender, EventArgs e)
         {
             try
@@ -744,6 +748,39 @@ namespace MCEMonitor
                 );
             }
         }
+
+        // ============================================================
+        // ?? MÉTHODES MANQUANTES — AJOUT CORRECTIF
+        // ============================================================
+
+        private void SaveShutdownConfig(int hour, int minute)
+        {
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "Shutdown.config"
+            );
+
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+            File.WriteAllLines(path, new[]
+            {
+                $"Hour={hour}",
+                $"Minute={minute}"
+            });
+        }
+
+        // ?? MÉTHODE QUI MANQUAIT (corrige l’erreur CS0103)
+        private void SaveShutdownConfig()
+        {
+            int hour = (int)numShutdownHour.Value;
+            int minute = (int)numShutdownMinute.Value;
+
+            SaveShutdownConfig(hour, minute);
+        }
+        // ============================================================
+        // FIN DES MÉTHODES
+        // ============================================================
 
     }
 }
