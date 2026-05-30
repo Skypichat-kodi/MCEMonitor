@@ -1,6 +1,6 @@
 ; ============================================
 ; Installeur MCEMonitor - Multilingue FR + EN
-; Version 64 bits + Vérification .NET 8 Desktop
+; Version 64 bits + VÃ©rification .NET 8 Desktop
 ; ============================================
 
 [Setup]
@@ -17,7 +17,7 @@ UsedUserAreasWarning=no
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
 
-; Icônes
+; IcÃ´nes
 SetupIconFile="MediaMonitor\MediaMonitor.Tray\MediaMonitor.ico"
 UninstallDisplayIcon="{app}\MediaMonitor.ico"
 
@@ -30,16 +30,21 @@ Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
-; --- Fichiers destinés à Program Files (x64) ---
+; --- Fichiers destinÃ©s Ã  Program Files (x64) ---
 Source: "MCEMonitor Ver 1.0\ProgramFiles\*"; \
     DestDir: "{autopf}\MCEMonitor"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
 
-; --- Fichiers destinés à ProgramData ---
+; --- ProgramData : .config â†’ ne pas remplacer ---
+Source: "MCEMonitor Ver 1.0\ProgramData\*.config"; \
+    DestDir: "{commonappdata}\MCEMonitor"; \
+    Flags: ignoreversion onlyifdoesntexist
+
+; --- Fichiers destinÃ©s Ã  ProgramData (sauf .config) ---
 Source: "MCEMonitor Ver 1.0\ProgramData\*"; \
     DestDir: "{commonappdata}\MCEMonitor"; \
+    Excludes: "*.config"; \
     Flags: ignoreversion recursesubdirs createallsubdirs
-
 
 [Icons]
 Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"
