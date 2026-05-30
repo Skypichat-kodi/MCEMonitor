@@ -31,9 +31,19 @@ namespace MCEMonitor
             UpdateWakeTaskStatus();
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
-
-            // AJOUT STOP MONITOR
             UpdateStopTaskStatus();
+
+            var nextReportTimer = new System.Windows.Forms.Timer();
+            nextReportTimer.Interval = 10000; // 10 secondes
+            nextReportTimer.Tick += (s, e) =>
+            {
+                UpdateNextReportInfo();
+                UpdateLastReportInfo();
+            };
+            nextReportTimer.Start();
+
+            UpdateNextReportInfo();
+            UpdateLastReportInfo();
         }
 
         // ============================================================
@@ -388,6 +398,90 @@ namespace MCEMonitor
 
             // Supprimer = rouge quand actif
             btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
+        }
+
+      private void UpdateNextReportInfo()
+      {
+          try
+          {
+              string path = Path.Combine(
+                  Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                  "MCEMonitor",
+                  "Logs",
+                  "MediaMonitor.Schedule.log"
+              );
+
+              if (!File.Exists(path))
+              {
+                  lblNextReport.Text = "Prochain envoi : aucune information disponible.";
+                  return;
+              }
+
+              // IMPORTANT : lire toutes les lignes pour éviter le cache
+              var lines = File.ReadAllLines(path);
+
+              // On cherche la dernière ligne contenant l’info utile
+              string lastLine = lines
+                  .LastOrDefault(l => l.Contains("Prochain envoi du rapport prévu"));
+
+              if (string.IsNullOrWhiteSpace(lastLine))
+              {
+                  lblNextReport.Text = "Prochain envoi : aucune information.";
+                  return;
+              }
+
+              // On enlève la date/heure du début : "[2026-05-30 14:45:12] "
+              int idx = lastLine.IndexOf("] ");
+              if (idx > 0)
+                  lastLine = lastLine.Substring(idx + 2);
+
+              lblNextReport.Text = lastLine;
+        }
+        catch
+        {
+            lblNextReport.Text = "Prochain envoi : erreur de lecture.";
+        }
+    }
+
+
+        private void UpdateLastReportInfo()
+        {
+            try
+            {
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs",
+                    "MediaMonitor.Schedule.log"
+                );
+
+                if (!File.Exists(path))
+                {
+                    lblLastReport.Text = "Dernier rapport : aucune information.";
+                    return;
+                }
+
+                // Cherche la dernière ligne contenant "Dernier rapport envoyé"
+                string lastLine = File.ReadLines(path)
+                    .LastOrDefault(l => l.Contains("Dernier rapport envoyé"));
+
+                if (string.IsNullOrWhiteSpace(lastLine))
+                {
+                    lblLastReport.Text = "Dernier rapport : aucune information.";
+                    return;
+                }
+
+                // Retire la date entre crochets
+                int idx = lastLine.IndexOf("] ");
+                if (idx > 0)
+                    lastLine = lastLine.Substring(idx + 2);
+
+                lblLastReport.Text = lastLine;
+            }
+            catch
+            {
+                lblLastReport.Text = "Dernier rapport : erreur de lecture.";
+            }
         }
 
         // ============================================================
