@@ -257,23 +257,13 @@ namespace MCEMonitor
         {
             bool running = IsMediaServiceRunning();
 
-            if (running)
-            {
-                toggleMediaService.BackColor = System.Drawing.Color.LimeGreen;
-                toggleKnob.Left = 20;
-                lblMediaStatus.Text =
-                    LanguageManager.Get("Media.Service.Active") ??
-                    "Service MediaMonitor : actif";
-            }
-            else
-            {
-                toggleMediaService.BackColor = System.Drawing.Color.LightGray;
-                toggleKnob.Left = 2;
-                lblMediaStatus.Text =
-                    LanguageManager.Get("Media.Service.Stopped") ??
-                    "Service MediaMonitor : arrêté";
-            }
+            toggleMediaService.Checked = running;
+
+            lblMediaStatus.Text = running
+                ? (LanguageManager.Get("Media.Service.Active") ?? "Service MediaMonitor : actif")
+                : (LanguageManager.Get("Media.Service.Stopped") ?? "Service MediaMonitor : arrêté");
         }
+
         private void toggleMediaService_Click(object sender, EventArgs e)
         {
             bool running = IsMediaServiceRunning();

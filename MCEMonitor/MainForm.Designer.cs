@@ -287,12 +287,8 @@ namespace MCEMonitor
             this.pnlMediaInfo = new System.Windows.Forms.Panel();
             this.picMediaInfo = new System.Windows.Forms.PictureBox();
             this.lblMediaInfo = new System.Windows.Forms.Label();
-
             this.grpMediaActions = new System.Windows.Forms.GroupBox();
-            this.toggleMediaService = new System.Windows.Forms.Panel();
-            this.toggleKnob = new System.Windows.Forms.Panel();
             this.lblMediaStatus = new System.Windows.Forms.Label();
-
             this.btnCreateMediaTask2 = new System.Windows.Forms.Button();
             this.btnDeleteMediaTask2 = new System.Windows.Forms.Button();
             this.btnOpenMediaUI = new System.Windows.Forms.Button();
@@ -344,45 +340,25 @@ namespace MCEMonitor
             this.grpMediaActions.Size = new System.Drawing.Size(620, 160);
 
             // ------------------------------------------------------------
-            // TOGGLE SWITCH
+            // TOGGLE SWITCH (ToggleSwitch.cs)
             // ------------------------------------------------------------
 
-            this.toggleMediaService.Location = new System.Drawing.Point(20, 34);
-            this.toggleMediaService.Size = new System.Drawing.Size(34, 16);
-            this.toggleMediaService.BackColor = System.Drawing.Color.LightGray;
-            this.toggleMediaService.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.toggleMediaService.Cursor = Cursors.Hand;
+            // ------------------------------------------------------------
+            // TOGGLE SWITCH (ToggleSwitch.cs)
+            // ------------------------------------------------------------
 
-            this.toggleMediaService.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddArc(0, 0, 16, 16, 90, 180);
-                gp.AddArc(18, 0, 16, 16, 270, 180);
-                gp.CloseFigure();
-                toggleMediaService.Region = new Region(gp);
-            };
+            this.toggleMediaService = new ToggleSwitch();
+            this.toggleMediaService.Location = new System.Drawing.Point(20, 38);
+            this.toggleMediaService.Size = new System.Drawing.Size(40, 20);
+            this.toggleMediaService.Checked = false;
+            this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
+            this.grpMediaActions.Controls.Add(this.toggleMediaService);
 
-            this.toggleKnob.Size = new System.Drawing.Size(12, 12);
-            this.toggleKnob.Location = new System.Drawing.Point(2, 2);
-            this.toggleKnob.BackColor = System.Drawing.Color.White;
-            this.toggleKnob.Cursor = Cursors.Hand;
-
-            this.toggleKnob.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddEllipse(0, 0, toggleKnob.Width - 1, toggleKnob.Height - 1);
-                toggleKnob.Region = new Region(gp);
-            };
-
-            this.toggleMediaService.Controls.Add(this.toggleKnob);
-
+            // Label du service
             this.lblMediaStatus.Text = LanguageManager.Get("Media.Service.Label") ?? "Service MediaMonitor";
             this.lblMediaStatus.Font = normalFont;
-            this.lblMediaStatus.Location = new System.Drawing.Point(70, 32);
+            this.lblMediaStatus.Location = new System.Drawing.Point(70, 40);   // ? nouvelle position
             this.lblMediaStatus.AutoSize = true;
-
-            this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
-            this.toggleKnob.Click += new System.EventHandler(this.toggleMediaService_Click);
 
             // ------------------------------------------------------------
             // BOUTONS MEDIA MONITOR
@@ -881,10 +857,9 @@ namespace MCEMonitor
         private System.Windows.Forms.Panel pnlMediaInfo;
         private System.Windows.Forms.PictureBox picMediaInfo;
         private System.Windows.Forms.Label lblMediaInfo;
-
+        private ToggleSwitch toggleMediaService;
+        
         private System.Windows.Forms.GroupBox grpMediaActions;
-        private System.Windows.Forms.Panel toggleMediaService;
-        private System.Windows.Forms.Panel toggleKnob;
         private System.Windows.Forms.Label lblMediaStatus;
         private System.Windows.Forms.Timer mediaServiceTimer;
         private System.Windows.Forms.Label lblNextReport;
