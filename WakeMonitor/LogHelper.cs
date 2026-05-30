@@ -17,6 +17,20 @@ public static class LogHelper
         return Path.Combine(baseDir, "WakeMonitor.log");
     }
 
+    // ?? Ajout : vider le fichier log
+    public static void Clear()
+    {
+        try
+        {
+            string path = GetLogPath();
+            File.WriteAllText(path, string.Empty);
+        }
+        catch
+        {
+            // Ne jamais casser WakeMonitor pour un log
+        }
+    }
+
     public static void Write(string message)
     {
         try

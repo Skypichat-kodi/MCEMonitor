@@ -7,13 +7,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-<ItemGroup>
+  <ItemGroup>
     <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="MimeKit" Version="4.16.0" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <EmbeddedResource Include="Assets\MCEMonitor.png" />
-</ItemGroup>
+    <PackageReference Include="TaskScheduler" Version="2.12.2" />
+
+    <!-- ?? Intégration du fichier WakeMonitor.config dans le projet -->
+    <None Include="WakeMonitor.config">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>
 

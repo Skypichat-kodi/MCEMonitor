@@ -1,14 +1,19 @@
 using System;
 using System.Diagnostics.Eventing.Reader;
+using System.Linq;
+using System.Text;
 
 public static class WakeEventReader
 {
     public static WakeInfo GetLastWakeInfo()
     {
-        var query = new EventLogQuery("System", PathType.LogName,
-            "*[System/EventID=1]")
+        var query = new EventLogQuery(
+            "System",
+            PathType.LogName,
+            "*[System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and (EventID=1)]]"
+        )
         {
-            ReverseDirection = true // ?? LIRE LE PLUS RÉCENT
+            ReverseDirection = true
         };
 
         using var reader = new EventLogReader(query);
@@ -17,84 +22,65 @@ public static class WakeEventReader
         if (evt == null)
             return new WakeInfo { WakeTime = DateTime.Now };
 
+        string desc = Clean(evt.FormatDescription() ?? "");
+        string[] lines = desc.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
         DateTime wakeTime = evt.TimeCreated ?? DateTime.Now;
+        DateTime sleepTime = wakeTime;
+        string source = "Inconnue";
 
-        string cause = "Inconnue";
-
-        try
+        foreach (var raw in lines)
         {
-            string desc = evt.FormatDescription();
+            string l = Clean(raw);
 
-            if (!string.IsNullOrWhiteSpace(desc))
+            if (l.StartsWith("Temps de veille", StringComparison.OrdinalIgnoreCase))
             {
-                if (desc.Contains(":"))
-                    cause = desc[(desc.IndexOf(':') + 1)..].Trim();
-                else
-                    cause = desc.Trim();
+                if (TryParseDate(l, out var dt))
+                    sleepTime = dt.ToLocalTime();
             }
-
-            if (string.IsNullOrWhiteSpace(cause))
-                cause = "Inconnue";
+            else if (l.StartsWith("Temps de réveil", StringComparison.OrdinalIgnoreCase))
+            {
+                if (TryParseDate(l, out var dt))
+                    wakeTime = dt.ToLocalTime();
+            }
+            else if (l.StartsWith("Source de réveil", StringComparison.OrdinalIgnoreCase))
+            {
+                source = l[(l.IndexOf(':') + 1)..].Trim();
+            }
         }
-        catch
-        {
-            cause = "Inconnue";
-        }
-
-        cause = NormalizeCause(cause);
-
-        DateTime sleepTime = DateTime.Now;
-
-        var sleepQuery = new EventLogQuery("System", PathType.LogName,
-            "*[System/EventID=42]")
-        {
-            ReverseDirection = true // ?? LIRE LE PLUS RÉCENT
-        };
-
-        using var sleepReader = new EventLogReader(sleepQuery);
-        var sleepEvt = sleepReader.ReadEvent();
-
-        if (sleepEvt != null)
-            sleepTime = sleepEvt.TimeCreated ?? DateTime.Now;
 
         return new WakeInfo
         {
             WakeTime = wakeTime,
             SleepTime = sleepTime,
             SleepDuration = wakeTime - sleepTime,
-            Cause = cause
+            Cause = source
         };
     }
 
-    private static string NormalizeCause(string raw)
+    private static string Clean(string s)
     {
-        string r = raw.ToLowerInvariant();
+        // Supprime les caractères invisibles (RTL, LTR, etc.)
+        return new string(s.Where(c => !char.IsControl(c) || c == '\n').ToArray())
+            .Replace("\u200E", "") // LRM
+            .Replace("\u200F", "") // RLM
+            .Replace("\u202A", "") // LRE
+            .Replace("\u202B", "") // RLE
+            .Replace("\u202C", "") // PDF
+            .Trim();
+    }
 
-        if (r.Contains("usb"))
-            return "USB (" + UsbDeviceDetector.GetLastUsbDevice() + ")";
+    private static bool TryParseDate(string line, out DateTime dt)
+    {
+        dt = DateTime.MinValue;
 
-        if (r.Contains("keyboard") || r.Contains("clavier"))
-            return "Clavier";
+        int idx = line.IndexOf(':');
+        if (idx < 0)
+            return false;
 
-        if (r.Contains("mouse") || r.Contains("souris"))
-            return "Souris";
+        string raw = Clean(line[(idx + 1)..].Trim());
 
-        if (r.Contains("network") || r.Contains("réseau") || r.Contains("lan"))
-            return "Wake-on-LAN";
-
-        if (r.Contains("timer"))
-            return "Timer";
-
-        if (r.Contains("power button") || r.Contains("bouton"))
-            return "Bouton d’alimentation";
-
-        if (r.Contains("bluetooth"))
-            return "Bluetooth";
-
-        if (r.Contains("infrared") || r.Contains("ir"))
-            return "Infrarouge";
-
-        return raw.Trim();
+        return DateTime.TryParse(raw, out dt);
     }
 }
 

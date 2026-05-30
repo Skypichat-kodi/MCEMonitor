@@ -9,9 +9,12 @@ namespace WakeMonitor
         {
             try
             {
-                // On lit uniquement les derniers EventID=1 du journal System
-                var query = new EventLogQuery("System", PathType.LogName,
-                    "*[System[(EventID=1)]]");
+                // On lit UNIQUEMENT les vrais réveils Power-Troubleshooter
+                var query = new EventLogQuery(
+                    "System",
+                    PathType.LogName,
+                    "*[System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and (EventID=1)]]"
+                );
 
                 using var reader = new EventLogReader(query);
 
@@ -19,11 +22,8 @@ namespace WakeMonitor
                 if (evt == null)
                     return false;
 
-                string provider = evt.ProviderName ?? "";
-
-                // ?? Le SEUL vrai réveil Windows
-                return provider.Equals("Microsoft-Windows-Power-Troubleshooter",
-                                       StringComparison.OrdinalIgnoreCase);
+                // Ici, plus besoin de vérifier le provider : il est déjà filtré
+                return true;
             }
             catch
             {
