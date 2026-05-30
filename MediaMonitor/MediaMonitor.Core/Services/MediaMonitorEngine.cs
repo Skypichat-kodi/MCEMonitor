@@ -265,8 +265,7 @@ th { background: #eee; }
 <table>
 <tr>
 <th>Heure</th>
-<th>Client</th>
-<th>IP</th>
+<th>Client IP</th>
 <th>Type</th>
 <th>Nom</th>
 <th>Saison</th>
@@ -279,16 +278,16 @@ th { background: #eee; }
                 foreach (var item in _history)
                 {
                     html += "<tr>" +
-                            $"<td>{item.Timestamp:HH:mm:ss}</td>" +
-                            $"<td>{item.ClientName}</td>" +
-                            $"<td>{item.ClientIP}</td>" +
-                            $"<td>{item.MediaType}</td>" +
-                            $"<td>{item.Nom}</td>" +
-                            $"<td>{item.Saison}</td>" +
-                            $"<td>{item.Episode}</td>" +
-                            $"<td>{item.FileName}</td>" +
-                            $"<td>{item.Path}</td>" +
-                            "</tr>";
+                      $"<td>{item.Timestamp:HH:mm:ss}</td>" +
+                      $"<td>{item.ClientName}</td>" +   // IP réelle
+                      $"<td>{item.MediaType}</td>" +
+                      $"<td>{item.Nom}</td>" +
+                      $"<td>{item.Saison}</td>" +
+                      $"<td>{item.Episode}</td>" +
+                      $"<td>{item.FileName}</td>" +
+                      $"<td>{item.Path}</td>" +
+                      "</tr>";
+
                 }
 
                 html += "</table></body></html>";
@@ -303,15 +302,37 @@ th { background: #eee; }
                 string html = GenerateReportFromHistory();
                 var cfg = EmailConfig.Load();
 
-                await EmailSender.SendAsync(cfg, "Rapport MediaMonitor", html, isHtml: true);
+                // Découper le HTML en lignes
+                var lignes = html.Split('\n').ToList();
 
-                // ?? remplacé LogService ? CoreLog
-                CoreLog.Write("Email automatique envoyé.");
+                // Taille d'un bloc : 200 lignes
+                int blocTaille = 200;
+                int totalBlocs = (int)Math.Ceiling(lignes.Count / (double)blocTaille);
+
+                for (int i = 0; i < totalBlocs; i++)
+                {
+                    var bloc = lignes
+                        .Skip(i * blocTaille)
+                        .Take(blocTaille)
+                        .ToList();
+
+                    // Ajouter un footer simple
+                    bloc.Add($"<br><div style='font-size:12px;color:#888;'>Partie {i + 1} / {totalBlocs}</div>");
+
+                    string htmlBloc = string.Join("\n", bloc);
+
+                    string sujet = totalBlocs == 1
+                        ? "Rapport MediaMonitor"
+                        : $"Rapport MediaMonitor (partie {i + 1}/{totalBlocs})";
+
+                    await EmailSender.SendAsync(cfg, sujet, htmlBloc, isHtml: true);
+
+                    CoreLog.Write($"Email automatique envoyé : bloc {i + 1}/{totalBlocs}");
+                }
             }
             catch (Exception ex)
             {
-                // ?? remplacé LogService ? CoreLog
-                CoreLog.Write("Erreur envoi email automatique : " + ex.Message);
+                CoreLog.Write("Erreur envoi email automatique : " + ex.ToString());
             }
         }
 
