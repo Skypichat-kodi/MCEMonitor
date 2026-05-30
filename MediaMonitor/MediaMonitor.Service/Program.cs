@@ -11,6 +11,56 @@ namespace MediaMonitor.Service
         private static System.Threading.Timer reportTimer;
         private static Mutex _mutex;
 
+        // >>> AJOUT : mémorisation de la dernière heure connue
+        private static (int hour, int minute)? _lastShutdownTime = null;
+
+        // >>> AJOUT : FileSystemWatcher
+        private static FileSystemWatcher _shutdownWatcher;
+
+        // ------------------------------------------------------------
+        // LOGGER DÉDIÉ À LA PLANIFICATION
+        // ------------------------------------------------------------
+        private static void WriteScheduleLog(string message)
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
+
+                File.AppendAllText(file,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\r\n"
+                );
+            }
+            catch { }
+        }
+
+        // >>> AJOUT : vider le log de planification
+        private static void ClearScheduleLog()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
+
+                File.WriteAllText(file, string.Empty);
+            }
+            catch { }
+        }
+
         static void Main()
         {
             bool createdNew;
@@ -52,16 +102,39 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR IPC Start : " + ex);
             }
 
-            // ?? IMPORTANT : Charger la config APRÈS la création de ServiceIpcServer
+            // Charger la config email
             LoadEmailSetting();
 
+            // === AJOUT : SURVEILLANCE DE Shutdown.config ===
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                _shutdownWatcher = new FileSystemWatcher(folder, "Shutdown.config");
+                _shutdownWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+                _shutdownWatcher.Changed += ShutdownConfigChanged;
+                _shutdownWatcher.Created += ShutdownConfigChanged;
+                _shutdownWatcher.Renamed += ShutdownConfigChanged;
+                _shutdownWatcher.EnableRaisingEvents = true;
+
+                CoreLog.Write("FileSystemWatcher actif sur Shutdown.config");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR FileSystemWatcher : " + ex);
+            }
+
+            // Programmer le premier rapport
             ScheduleNextReport(engine);
 
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
         // ------------------------------------------------------------
-        // CHARGEMENT DU SWITCH EMAIL (persistant)
+        // CHARGEMENT DU SWITCH EMAIL
         // ------------------------------------------------------------
         private static void LoadEmailSetting()
         {
@@ -95,6 +168,7 @@ namespace MediaMonitor.Service
                 ServiceIpcServer.EmailSendingEnabled = true;
             }
         }
+
         private static void ClearLog()
         {
             try
@@ -114,6 +188,9 @@ namespace MediaMonitor.Service
             catch { }
         }
 
+        // ------------------------------------------------------------
+        // CHARGEMENT DE L'HEURE DE SHUTDOWN
+        // ------------------------------------------------------------
         private static (int hour, int minute)? LoadShutdownTime()
         {
             try
@@ -127,6 +204,7 @@ namespace MediaMonitor.Service
                 if (!File.Exists(path))
                 {
                     CoreLog.Write("Shutdown.config introuvable.");
+                    WriteScheduleLog("Shutdown.config introuvable — impossible de programmer l’envoi automatique.");
                     return null;
                 }
 
@@ -147,26 +225,44 @@ namespace MediaMonitor.Service
                 if (hour >= 0 && minute >= 0)
                 {
                     CoreLog.Write($"Shutdown.config chargé : {hour:D2}:{minute:D2}");
+                    WriteScheduleLog($"Shutdown.config chargé : {hour:D2}:{minute:D2}");
+
+                    // >>> AJOUT : détection de changement
+                    if (_lastShutdownTime == null ||
+                        _lastShutdownTime.Value.hour != hour ||
+                        _lastShutdownTime.Value.minute != minute)
+                    {
+                        _lastShutdownTime = (hour, minute);
+                        ClearScheduleLog();
+                        WriteScheduleLog($"Nouvelle heure détectée : {hour:D2}:{minute:D2}");
+                    }
+
                     return (hour, minute);
                 }
 
                 CoreLog.Write("Shutdown.config invalide.");
+                WriteScheduleLog("Shutdown.config invalide — valeurs incorrectes.");
                 return null;
             }
             catch (Exception ex)
             {
                 CoreLog.Write("ERREUR LoadShutdownTime : " + ex);
+                WriteScheduleLog("ERREUR LoadShutdownTime : " + ex.Message);
                 return null;
             }
         }
 
+        // ------------------------------------------------------------
+        // CALCUL DE L'HEURE D'ENVOI DU RAPPORT
+        // ------------------------------------------------------------
         private static DateTime GetReportSendTime()
         {
             var shutdown = LoadShutdownTime();
 
             if (shutdown == null)
             {
-                CoreLog.Write("Aucune heure de shutdown, rapport dans 1 minute.");
+                CoreLog.Write("Aucune heure de shutdown — rapport dans 1 minute.");
+                WriteScheduleLog("Aucune heure de shutdown — rapport dans 1 minute.");
                 return DateTime.Now.AddMinutes(1);
             }
 
@@ -178,11 +274,21 @@ namespace MediaMonitor.Service
             if (target < DateTime.Now)
                 target = target.AddDays(1);
 
-            CoreLog.Write($"Prochain envoi de rapport prévu à : {target:HH:mm:ss}");
+            TimeSpan remaining = target - DateTime.Now;
+
+            string msg =
+                $"Prochain envoi du rapport prévu à {target:HH:mm} " +
+                $"(dans {remaining.Hours}h {remaining.Minutes}min)";
+
+            CoreLog.Write(msg);
+            WriteScheduleLog(msg);
 
             return target;
         }
 
+        // ------------------------------------------------------------
+        // PROGRAMMATION DU TIMER
+        // ------------------------------------------------------------
         private static void ScheduleNextReport(MediaMonitorEngine engine)
         {
             DateTime sendTime = GetReportSendTime();
@@ -191,7 +297,21 @@ namespace MediaMonitor.Service
             if (delay.TotalMilliseconds < 0)
                 delay = TimeSpan.FromMinutes(1);
 
-            CoreLog.Write($"Timer rapport programmé dans {delay.TotalMinutes:F1} minutes.");
+            // Format attendu par l’UI
+            string msgOld =
+                $"Prochain envoi du rapport prévu à {sendTime:HH:mm} " +
+                $"(dans {delay.Hours}h {delay.Minutes}min)";
+
+            WriteScheduleLog(msgOld);
+
+            // Nouveau format (on le garde aussi)
+            string msgNew =
+                $"Timer programmé : prochain rapport dans {delay.Hours}h {delay.Minutes}min " +
+                $"(à {sendTime:HH:mm})";
+
+            WriteScheduleLog(msgNew);
+            CoreLog.Write(msgNew);
+
 
             reportTimer = new System.Threading.Timer(async _ =>
             {
@@ -199,13 +319,18 @@ namespace MediaMonitor.Service
                 {
                     if (!ServiceIpcServer.EmailSendingEnabled)
                     {
-                        CoreLog.Write("Envoi automatique du rapport désactivé ? rapport ignoré.");
+                        CoreLog.Write("Envoi automatique désactivé — rapport ignoré.");
+                        WriteScheduleLog("Envoi automatique désactivé — rapport ignoré.");
                     }
                     else
                     {
                         CoreLog.Write("Envoi du rapport...");
+                        WriteScheduleLog("Envoi du rapport…");
+
                         await engine.SendReportEmail();
+
                         CoreLog.Write("Rapport envoyé.");
+                        WriteScheduleLog("Rapport envoyé.");
 
                         engine.ClearHistory();
                         CoreLog.Write("Historique RAM effacé après envoi du rapport.");
@@ -214,11 +339,59 @@ namespace MediaMonitor.Service
                 catch (Exception ex)
                 {
                     CoreLog.Write("ERREUR SendReportEmail : " + ex);
+                    WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
                 }
 
                 ScheduleNextReport(engine);
 
             }, null, delay, Timeout.InfiniteTimeSpan);
+        }
+
+        // ------------------------------------------------------------
+        // AJOUT : RÉACTION AUX MODIFICATIONS DE Shutdown.config
+        // ------------------------------------------------------------
+        private static void ShutdownConfigChanged(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                CoreLog.Write("Modification détectée dans Shutdown.config");
+                WriteScheduleLog("Modification détectée dans Shutdown.config");
+
+                var newTime = LoadShutdownTime();
+
+                if (newTime == null)
+                    return;
+
+                if (_lastShutdownTime == null ||
+                    _lastShutdownTime.Value.hour != newTime.Value.hour ||
+                    _lastShutdownTime.Value.minute != newTime.Value.minute)
+                {
+                    _lastShutdownTime = newTime.Value;
+
+                    ClearScheduleLog();
+                    WriteScheduleLog($"Nouvelle heure détectée : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
+                }
+
+                // ?? Toujours écrire la ligne attendue par l’UI, même si l’heure n’a pas changé
+                DateTime next = DateTime.Today
+                    .AddHours(newTime.Value.hour)
+                    .AddMinutes(newTime.Value.minute)
+                    .AddMinutes(-10);
+
+                if (next < DateTime.Now)
+                    next = next.AddDays(1);
+
+                TimeSpan remaining = next - DateTime.Now;
+
+                WriteScheduleLog(
+                    $"Prochain envoi du rapport prévu à {next:HH:mm} (dans {remaining.Hours}h {remaining.Minutes}min)"
+                );
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR ShutdownConfigChanged : " + ex);
+                WriteScheduleLog("ERREUR ShutdownConfigChanged : " + ex.Message);
+            }
         }
     }
 }
