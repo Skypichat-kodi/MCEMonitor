@@ -245,7 +245,45 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="Client IP" Binding="{Binding ClientName}" Width="100"/>
-                <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Foreground" Value="#E5E5E5"/>
+                            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+
+                            <Style.Triggers>
+
+                                <!-- Série -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                    <Setter Property="Background" Value="#FF2A3A4A"/>
+                                </DataTrigger>
+
+                                <!-- Vidéo -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                    <Setter Property="Background" Value="#FF3A2A2A"/>
+                                </DataTrigger>
+
+                                <!-- Musique -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                    <Setter Property="Background" Value="#FF2A4A2A"/>
+                                </DataTrigger>
+
+                                <!-- Image -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                    <Setter Property="Background" Value="#FF4A4A2A"/>
+                                </DataTrigger>
+
+                                <!-- Sélection -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#4CC2FF"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Nom" Binding="{Binding Nom}" Width="2*"/>
                 <DataGridTextColumn Header="Saison" Binding="{Binding Saison}" Width="60"/>
                 <DataGridTextColumn Header="Episode" Binding="{Binding Episode}" Width="60"/>
@@ -288,7 +326,45 @@
                     Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
                     Width="150"/>
                 <DataGridTextColumn Header="Client IP" Binding="{Binding ClientName}" Width="100"/>
-                <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100"/>
+                <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100">
+                    <DataGridTextColumn.CellStyle>
+                        <Style TargetType="DataGridCell">
+                            <Setter Property="Foreground" Value="#E5E5E5"/>
+                            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+
+                            <Style.Triggers>
+
+                                <!-- Série -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                    <Setter Property="Background" Value="#FF2A3A4A"/>
+                                </DataTrigger>
+
+                                <!-- Vidéo -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                    <Setter Property="Background" Value="#FF3A2A2A"/>
+                                </DataTrigger>
+
+                                <!-- Musique -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                    <Setter Property="Background" Value="#FF2A4A2A"/>
+                                </DataTrigger>
+
+                                <!-- Image -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                    <Setter Property="Background" Value="#FF4A4A2A"/>
+                                </DataTrigger>
+
+                                <!-- Sélection -->
+                                <Trigger Property="IsSelected" Value="True">
+                                    <Setter Property="Background" Value="#4CC2FF"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </Trigger>
+
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.CellStyle>
+                </DataGridTextColumn>
                 <DataGridTextColumn Header="Nom" Binding="{Binding Nom}" Width="2*"/>
                 <DataGridTextColumn Header="Saison" Binding="{Binding Saison}" Width="60"/>
                 <DataGridTextColumn Header="Episode" Binding="{Binding Episode}" Width="60"/>
