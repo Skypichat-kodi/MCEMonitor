@@ -521,14 +521,24 @@ namespace MCEMonitor
 
         private void BtnManageWolMacs_Click(object sender, EventArgs e)
         {
-            MessageBox.Show(
-                LanguageManager.Get("Wake.WolMacs.NotImplemented") ??
-                "La gestion des adresses MAC autorisées pour WOL n'est pas encore implémentée.",
-                "WakeMonitor",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Information
-            );
+            try
+            {
+                using (var frm = new FormWolMacManager())
+                {
+                    frm.ShowDialog(this);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Impossible d’ouvrir la gestion des MAC autorisées :\n" + ex.Message,
+                    "Erreur",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
         }
+
         private void BtnSaveOnOff_Click(object sender, EventArgs e)
         {
             int hour = (int)numShutdownHour.Value;

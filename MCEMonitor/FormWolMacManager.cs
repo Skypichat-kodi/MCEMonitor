@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 namespace MCEMonitor
@@ -45,10 +46,21 @@ namespace MCEMonitor
         {
             Directory.CreateDirectory(Path.GetDirectoryName(WhitelistPath));
 
-            File.WriteAllLines(
-                WhitelistPath,
-                listBoxMacs.Items.Cast<string>()
-            );
+            var cleaned = listBoxMacs.Items
+                .Cast<string>()
+                .Select(m => m.Trim().ToUpper())
+                .Where(m => m.Length > 0)
+                .Distinct()
+                .OrderBy(m => m)
+                .ToArray();
+
+            File.WriteAllLines(WhitelistPath, cleaned);
+        }
+
+        private bool IsValidMac(string mac)
+        {
+            // Format AA:BB:CC:DD:EE:FF
+            return Regex.IsMatch(mac, @"^[0-9A-F]{2}(:[0-9A-F]{2}){5}$");
         }
 
         private void btnAdd_Click(object sender, EventArgs e)
@@ -67,8 +79,7 @@ namespace MCEMonitor
                 mac = string.Join(":", Enumerable.Range(0, 6).Select(i => mac.Substring(i * 2, 2)));
             }
 
-            // Vérification simple
-            if (mac.Length != 17 || mac.Count(c => c == ':') != 5)
+            if (!IsValidMac(mac))
             {
                 MessageBox.Show("Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF");
                 return;
@@ -95,6 +106,30 @@ namespace MCEMonitor
             SaveWhitelist();
             this.Close();
         }
+        
+        private void textBoxMac_TextChanged(object sender, EventArgs e)
+        {
+            string input = textBoxMac.Text.Trim().ToUpper();
+
+            // Remplace les tirets par des deux-points
+            input = input.Replace("-", ":");
+
+            // Supprime les espaces
+            input = input.Replace(" ", "");
+
+            // Si format collé (12 caractères hex), on ajoute les :
+            if (!input.Contains(":") && input.Length == 12)
+            {
+                input = string.Join(":", Enumerable.Range(0, 6).Select(i => input.Substring(i * 2, 2)));
+            }
+
+            // Empêche le curseur de sauter en fin de texte
+            int pos = textBoxMac.SelectionStart;
+            textBoxMac.TextChanged -= textBoxMac_TextChanged;
+            textBoxMac.Text = input;
+            textBoxMac.SelectionStart = Math.Min(pos, textBoxMac.Text.Length);
+            textBoxMac.TextChanged += textBoxMac_TextChanged;
+        }          
     }
 }
 

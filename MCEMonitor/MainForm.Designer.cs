@@ -267,13 +267,13 @@ namespace MCEMonitor
             this.tabEmail.Controls.Add(this.cmbSecurityMode);
 
             // Boutons Email
-            this.btnSaveEmail.Location = new System.Drawing.Point(200, 340);
-            this.btnSaveEmail.Size = new System.Drawing.Size(200, 35);
+            this.btnSaveEmail.Location = new System.Drawing.Point(100, 340);
+            this.btnSaveEmail.Size = new System.Drawing.Size(220, 35);
             this.btnSaveEmail.Text = LanguageManager.Get("Email.SaveConfig") ?? "Enregistrer configuration";
             this.btnSaveEmail.Font = normalFont;
             this.btnSaveEmail.Click += new System.EventHandler(this.BtnSaveEmail_Click);
 
-            this.btnTestEmail.Location = new System.Drawing.Point(410, 340);
+            this.btnTestEmail.Location = new System.Drawing.Point(330, 340);
             this.btnTestEmail.Size = new System.Drawing.Size(200, 35);
             this.btnTestEmail.Text = LanguageManager.Get("Email.Test") ?? "Tester Email";
             this.btnTestEmail.Font = normalFont;
@@ -398,19 +398,19 @@ namespace MCEMonitor
             this.btnCreateMediaTask2.Text = LanguageManager.Get("Media.Task.Create") ?? "Créer tâche planifiée";
             this.btnCreateMediaTask2.Font = normalFont;
             this.btnCreateMediaTask2.Size = new System.Drawing.Size(180, 32);
-            this.btnCreateMediaTask2.Location = new System.Drawing.Point(20, 100);
+            this.btnCreateMediaTask2.Location = new System.Drawing.Point(30, 100);
             this.btnCreateMediaTask2.Click += new System.EventHandler(this.BtnCreateMediaTask_Click);
 
             this.btnDeleteMediaTask2.Text = LanguageManager.Get("Media.Task.Delete") ?? "Supprimer tâche planifiée";
             this.btnDeleteMediaTask2.Font = normalFont;
             this.btnDeleteMediaTask2.Size = new System.Drawing.Size(180, 32);
-            this.btnDeleteMediaTask2.Location = new System.Drawing.Point(210, 100);
+            this.btnDeleteMediaTask2.Location = new System.Drawing.Point(220, 100);
             this.btnDeleteMediaTask2.Click += new System.EventHandler(this.BtnDeleteMediaTask_Click);
 
             this.btnOpenMediaUI.Text = LanguageManager.Get("Media.UI.Open") ?? "Ouvrir MediaMonitor";
             this.btnOpenMediaUI.Font = normalFont;
             this.btnOpenMediaUI.Size = new System.Drawing.Size(180, 32);
-            this.btnOpenMediaUI.Location = new System.Drawing.Point(400, 100);
+            this.btnOpenMediaUI.Location = new System.Drawing.Point(410, 100);
             this.btnOpenMediaUI.Click += new System.EventHandler(this.BtnOpenUI_Click);
 
             this.grpMediaActions.Controls.Add(this.toggleMediaService);
@@ -712,20 +712,20 @@ namespace MCEMonitor
             this.btnSaveOnOff = new System.Windows.Forms.Button();
             this.btnSaveOnOff.Text = LanguageManager.Get("OnOff.Save") ?? "Sauvegarder";
             this.btnSaveOnOff.Font = normalFont;
-            this.btnSaveOnOff.Location = new System.Drawing.Point(20, 100);
+            this.btnSaveOnOff.Location = new System.Drawing.Point(10, 100);
             this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
             this.btnSaveOnOff.Click += new System.EventHandler(this.BtnSaveOnOff_Click);
 
             this.grpShutdown.Controls.Add(this.btnSaveOnOff);
 
             this.btnCreateShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Create") ?? "Créer tâche planifiée";
-            this.btnCreateShutdownTask.Location = new System.Drawing.Point(230, 100);
+            this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
             this.btnDeleteShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Delete") ?? "Supprimer tâche planifiée";
-            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(440, 100);
+            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
             this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);

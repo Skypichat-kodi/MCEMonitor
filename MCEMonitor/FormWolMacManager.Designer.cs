@@ -86,7 +86,8 @@ namespace MCEMonitor
 
             // 
             // FormWolMacManager
-            // 
+            //
+            this.textBoxMac.TextChanged += new System.EventHandler(this.textBoxMac_TextChanged);
             this.ClientSize = new System.Drawing.Size(360, 320);
             this.Controls.Add(this.labelTitle);
             this.Controls.Add(this.listBoxMacs);
