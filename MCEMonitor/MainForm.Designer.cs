@@ -30,6 +30,13 @@ namespace MCEMonitor
             this.tabStopMonitor = new System.Windows.Forms.TabPage();
             this.tabOnOff = new System.Windows.Forms.TabPage();
             this.tabAbout = new System.Windows.Forms.TabPage();
+            this.logRefreshTimer = new System.Windows.Forms.Timer();
+            this.logRefreshTimer.Interval = 2000; // 2 secondes
+            this.logRefreshTimer.Tick += new System.EventHandler(this.LogRefreshTimer_Tick);
+            this.logRefreshTimer.Start();           
+            this.ResumeLayout(false);
+            this.PerformLayout();
+            
 
             // ============================================================
             // SUSPEND LAYOUT
@@ -379,16 +386,19 @@ namespace MCEMonitor
             this.lblMediaStatus.Location = new System.Drawing.Point(70, 32);
             this.lblMediaStatus.AutoSize = true;
 
-            // Labels de statut
+            // lblNextReport
+            this.lblNextReport = new System.Windows.Forms.Label();
             this.lblNextReport.AutoSize = true;
             this.lblNextReport.Font = normalFont;
-            this.lblNextReport.Location = new System.Drawing.Point(250, 32);
-            this.lblNextReport.Text = "Prochain envoi : ...";
+            this.lblNextReport.Location = new System.Drawing.Point(300, 32);
+            this.lblNextReport.Text = "";   // ? VIDE
 
+            // lblLastReport
+            this.lblLastReport = new System.Windows.Forms.Label();
             this.lblLastReport.AutoSize = true;
             this.lblLastReport.Font = normalFont;
-            this.lblLastReport.Location = new System.Drawing.Point(250, 52);
-            this.lblLastReport.Text = "Dernier rapport : ...";
+            this.lblLastReport.Location = new System.Drawing.Point(300, 52);
+            this.lblLastReport.Text = "";   // ? VIDE
 
             this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
             this.toggleKnob.Click += new System.EventHandler(this.toggleMediaService_Click);
@@ -857,6 +867,7 @@ namespace MCEMonitor
         private System.Windows.Forms.Panel pnlMediaInfo;
         private System.Windows.Forms.PictureBox picMediaInfo;
         private System.Windows.Forms.Label lblMediaInfo;
+        private System.Windows.Forms.Timer logRefreshTimer;
 
         private System.Windows.Forms.GroupBox grpMediaActions;
         private System.Windows.Forms.Panel toggleMediaService;

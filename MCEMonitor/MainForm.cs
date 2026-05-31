@@ -36,6 +36,9 @@ namespace MCEMonitor
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
             UpdateStopTaskStatus();
+            UpdateNextReportLabel();
+            UpdateLastReportLabel();
+
         }
 
         // ============================================================
@@ -156,6 +159,51 @@ namespace MCEMonitor
         // ============================================================
         // ONGLET MEDIA MONITOR
         // ============================================================
+
+private void UpdateNextReportLabel()
+{
+    try
+    {
+        string path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor",
+            "Logs",
+            "MediaMonitor.Schedule.log"
+        );
+
+        if (!File.Exists(path))
+        {
+            lblNextReport.Text = "";
+            return;
+        }
+
+        // On cherche la DERNIÈRE ligne contenant [CODE01]
+        string lastCode01 = File.ReadLines(path)
+            .Reverse()
+            .FirstOrDefault(l => l.Contains("[CODE01]"));
+
+        if (string.IsNullOrWhiteSpace(lastCode01))
+        {
+            lblNextReport.Text = "";
+            return;
+        }
+
+        // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
+        int idx = lastCode01.IndexOf("] ");
+        if (idx > 0)
+            lastCode01 = lastCode01.Substring(idx + 2);
+
+        // Retirer le tag [CODE01]
+        lastCode01 = lastCode01.Replace("[CODE01]", "").Trim();
+
+        // Afficher EXACTEMENT ce qui reste
+        lblNextReport.Text = lastCode01;
+    }
+    catch
+    {
+        lblNextReport.Text = "";
+    }
+}
 
         private void LoadMediaConfig()
         {
@@ -379,6 +427,55 @@ namespace MCEMonitor
 
             btnCreateMediaTask2.BackColor = btnCreateMediaTask2.Enabled ? lightGreen : defaultColor;
             btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
+        }
+        private void UpdateLastReportLabel()
+        {
+            try
+            {
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs",
+                    "MediaMonitor.Schedule.log"
+                );
+
+                if (!File.Exists(path))
+                {
+                    lblLastReport.Text = "";
+                    return;
+                }
+
+                // On cherche la DERNIÈRE ligne contenant [CODE02]
+                string lastCode02 = File.ReadLines(path)
+                    .Reverse()
+                    .FirstOrDefault(l => l.Contains("[CODE02]"));
+
+                if (string.IsNullOrWhiteSpace(lastCode02))
+                {
+                    lblLastReport.Text = "";
+                    return;
+                }
+
+                // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
+                int idx = lastCode02.IndexOf("] ");
+                if (idx > 0)
+                    lastCode02 = lastCode02.Substring(idx + 2);
+
+                // Retirer le tag [CODE02]
+                lastCode02 = lastCode02.Replace("[CODE02]", "").Trim();
+
+                // Afficher EXACTEMENT ce qui reste
+                lblLastReport.Text = lastCode02;
+            }
+            catch
+            {
+                lblLastReport.Text = "";
+            }
+        }
+        private void LogRefreshTimer_Tick(object sender, EventArgs e)
+        {
+            UpdateNextReportLabel();
+            UpdateLastReportLabel();
         }
 
         // ============================================================
