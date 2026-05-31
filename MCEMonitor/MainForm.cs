@@ -26,6 +26,13 @@ namespace MCEMonitor
             _wake = wake;
 
             InitializeComponent();
+            
+            // Empêche le redimensionnement
+            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+            this.MaximizeBox = false;
+            
+            // Centre la fenêtre au démarrage
+            this.StartPosition = FormStartPosition.CenterScreen;                        
 
             this.Icon = new Icon("Assets/MediaMonitor.ico");
 
@@ -71,7 +78,8 @@ namespace MCEMonitor
 
             cfg.Save();
 
-            MessageBox.Show(
+            PopupHelper.ShowBottomPopup(
+            this,
                 LanguageManager.Get("Email.ConfigSaved") ?? "Configuration Email enregistrée"
             );
         }
@@ -216,7 +224,8 @@ private void UpdateNextReportLabel()
             try
             {
                 string result = TaskSchedulerHelper.CreateMediaMonitorServiceTask();
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                this,
                     result,
                     LanguageManager.Get("Media.Task.CreateResult") ?? "Résultat création tâche MediaMonitor"
                 );
@@ -225,7 +234,8 @@ private void UpdateNextReportLabel()
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                this,
                     (LanguageManager.Get("Error.Generic") ?? "Erreur : ") + ex.Message
                 );
             }
@@ -236,7 +246,8 @@ private void UpdateNextReportLabel()
             try
             {
                 string result = TaskSchedulerHelper.DeleteMediaMonitorServiceTask();
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                this,
                     result,
                     LanguageManager.Get("Media.Task.DeleteResult") ?? "Résultat suppression tâche MediaMonitor"
                 );
@@ -245,7 +256,8 @@ private void UpdateNextReportLabel()
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                this,
                     (LanguageManager.Get("Error.Generic") ?? "Erreur : ") + ex.Message
                 );
             }
@@ -259,13 +271,12 @@ private void UpdateNextReportLabel()
 
                 if (!File.Exists(uiPath))
                 {
-                    MessageBox.Show(
-                        LanguageManager.Get("Media.UI.NotFound") ??
-                        "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
-                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Media.UI.NotFound") ??
+                    "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
+                    LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
+                );
                     return;
                 }
 
@@ -277,7 +288,8 @@ private void UpdateNextReportLabel()
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                this,
                     (LanguageManager.Get("Media.UI.OpenError") ??
                     "Erreur lors de l'ouverture de MediaMonitor.UI : ") + ex.Message
                 );
