@@ -329,7 +329,7 @@ namespace MCEMonitor
 
             // Texte
             this.lblMediaInfo.AutoSize = false;
-            this.lblMediaInfo.Location = new System.Drawing.Point(45, 5);
+            this.lblMediaInfo.Location = new System.Drawing.Point(50, 15);
             this.lblMediaInfo.Size = new System.Drawing.Size(530, 70);
             this.lblMediaInfo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.lblMediaInfo.Text =
@@ -608,7 +608,7 @@ namespace MCEMonitor
             this.picStopInfo.Image = SystemIcons.Information.ToBitmap();
 
             this.lblStopDescription.AutoSize = false;
-            this.lblStopDescription.Location = new System.Drawing.Point(45, 5);
+            this.lblStopDescription.Location = new System.Drawing.Point(45, 15);
             this.lblStopDescription.Size = new System.Drawing.Size(580, 45);
             this.lblStopDescription.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.lblStopDescription.Text =
