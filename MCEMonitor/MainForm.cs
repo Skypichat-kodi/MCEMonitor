@@ -2,10 +2,6 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
-using System.Drawing;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEMonitor.Services;
 using MCEMonitor.Utils;
@@ -35,10 +31,9 @@ namespace MCEMonitor
             UpdateWakeTaskStatus();
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
-            UpdateStopTaskStatus();
-            UpdateNextReportLabel();
-            UpdateLastReportLabel();
 
+            // AJOUT STOP MONITOR
+            UpdateStopTaskStatus();
         }
 
         // ============================================================
@@ -108,8 +103,7 @@ namespace MCEMonitor
                 );
 
                 var addresses = await Dns.GetHostAddressesAsync(cfg.Server);
-                if (addresses.Length > 0)
-                    logForm.Log($"IP : {addresses[0]}");
+                logForm.Log($"IP : {addresses[0]}");
 
                 logForm.Log(
                     (LanguageManager.Get("Email.Test.Connecting") ?? "Connexion au serveur SMTP sur le port") +
@@ -155,55 +149,9 @@ namespace MCEMonitor
                 );
             }
         }
-
         // ============================================================
         // ONGLET MEDIA MONITOR
         // ============================================================
-
-private void UpdateNextReportLabel()
-{
-    try
-    {
-        string path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "MCEMonitor",
-            "Logs",
-            "MediaMonitor.Schedule.log"
-        );
-
-        if (!File.Exists(path))
-        {
-            lblNextReport.Text = "";
-            return;
-        }
-
-        // On cherche la DERNIÈRE ligne contenant [CODE01]
-        string lastCode01 = File.ReadLines(path)
-            .Reverse()
-            .FirstOrDefault(l => l.Contains("[CODE01]"));
-
-        if (string.IsNullOrWhiteSpace(lastCode01))
-        {
-            lblNextReport.Text = "";
-            return;
-        }
-
-        // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
-        int idx = lastCode01.IndexOf("] ");
-        if (idx > 0)
-            lastCode01 = lastCode01.Substring(idx + 2);
-
-        // Retirer le tag [CODE01]
-        lastCode01 = lastCode01.Replace("[CODE01]", "").Trim();
-
-        // Afficher EXACTEMENT ce qui reste
-        lblNextReport.Text = lastCode01;
-    }
-    catch
-    {
-        lblNextReport.Text = "";
-    }
-}
 
         private void LoadMediaConfig()
         {
@@ -288,19 +236,17 @@ private void UpdateNextReportLabel()
         {
             return Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
         }
-
         private bool IsMediaUIRunning()
         {
             return Process.GetProcessesByName("MediaMonitor.UI").Length > 0;
         }
-
         private void UpdateMediaToggle()
         {
             bool running = IsMediaServiceRunning();
 
             if (running)
             {
-                toggleMediaService.BackColor = Color.LimeGreen;
+                toggleMediaService.BackColor = System.Drawing.Color.LimeGreen;
                 toggleKnob.Left = 20;
                 lblMediaStatus.Text =
                     LanguageManager.Get("Media.Service.Active") ??
@@ -308,7 +254,7 @@ private void UpdateNextReportLabel()
             }
             else
             {
-                toggleMediaService.BackColor = Color.LightGray;
+                toggleMediaService.BackColor = System.Drawing.Color.LightGray;
                 toggleKnob.Left = 2;
                 lblMediaStatus.Text =
                     LanguageManager.Get("Media.Service.Stopped") ??
@@ -322,7 +268,7 @@ private void UpdateNextReportLabel()
 
             if (running)
             {
-                // Empêcher l'arrêt si MediaMonitor.UI est ouvert
+                // ?? Empêcher l'arrêt si MediaMonitor.UI est ouvert
                 if (IsMediaUIRunning())
                 {
                     MessageBox.Show(
@@ -336,13 +282,17 @@ private void UpdateNextReportLabel()
                     return;
                 }
 
+                // ------------------------------------------------------------
                 // 1. Arrêter le service
+                // ------------------------------------------------------------
                 foreach (var p in Process.GetProcessesByName("MediaMonitor.Service"))
                     p.Kill();
             }
             else
             {
+                // ------------------------------------------------------------
                 // 1. Démarrer le service
+                // ------------------------------------------------------------
                 string servicePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
@@ -366,7 +316,9 @@ private void UpdateNextReportLabel()
 
                 Thread.Sleep(1200);
 
+                // ------------------------------------------------------------
                 // 2. Vérifier si le service tourne réellement
+                // ------------------------------------------------------------
                 bool serviceRunning = Process.GetProcesses()
                     .Any(p => p.ProcessName.StartsWith("MediaMonitor.Service", StringComparison.OrdinalIgnoreCase));
 
@@ -376,7 +328,9 @@ private void UpdateNextReportLabel()
                     return;
                 }
 
+                // ------------------------------------------------------------
                 // 3. Démarrer le Tray
+                // ------------------------------------------------------------
                 string trayPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                     "MCEMonitor",
@@ -418,64 +372,20 @@ private void UpdateNextReportLabel()
         {
             bool exists = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
 
+            // Activer/désactiver les boutons
             btnCreateMediaTask2.Enabled = !exists;
             btnDeleteMediaTask2.Enabled = exists;
 
+            // Couleurs
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
+            // Créer = vert quand actif
             btnCreateMediaTask2.BackColor = btnCreateMediaTask2.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
             btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
-        }
-        private void UpdateLastReportLabel()
-        {
-            try
-            {
-                string path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Logs",
-                    "MediaMonitor.Schedule.log"
-                );
-
-                if (!File.Exists(path))
-                {
-                    lblLastReport.Text = "";
-                    return;
-                }
-
-                // On cherche la DERNIÈRE ligne contenant [CODE02]
-                string lastCode02 = File.ReadLines(path)
-                    .Reverse()
-                    .FirstOrDefault(l => l.Contains("[CODE02]"));
-
-                if (string.IsNullOrWhiteSpace(lastCode02))
-                {
-                    lblLastReport.Text = "";
-                    return;
-                }
-
-                // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
-                int idx = lastCode02.IndexOf("] ");
-                if (idx > 0)
-                    lastCode02 = lastCode02.Substring(idx + 2);
-
-                // Retirer le tag [CODE02]
-                lastCode02 = lastCode02.Replace("[CODE02]", "").Trim();
-
-                // Afficher EXACTEMENT ce qui reste
-                lblLastReport.Text = lastCode02;
-            }
-            catch
-            {
-                lblLastReport.Text = "";
-            }
-        }
-        private void LogRefreshTimer_Tick(object sender, EventArgs e)
-        {
-            UpdateNextReportLabel();
-            UpdateLastReportLabel();
         }
 
         // ============================================================
@@ -532,6 +442,8 @@ private void UpdateNextReportLabel()
             Directory.CreateDirectory(dir);
 
             string path = Path.Combine(dir, "WakeMonitor.config");
+
+
 
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllLines(path, lines);
@@ -609,56 +521,14 @@ private void UpdateNextReportLabel()
             btnDeleteWakeTask.Enabled = exists;
 
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
+            // Créer = vert quand actif
             btnCreateWakeTask.BackColor = btnCreateWakeTask.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
             btnDeleteWakeTask.BackColor = btnDeleteWakeTask.Enabled ? lightRed : defaultColor;
-        }
-
-        private void BtnManageWolMacs_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                using (var frm = new FormWolMacManager())
-                {
-                    frm.ShowDialog(this);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(
-                    "Impossible d’ouvrir la gestion des MAC autorisées :\n" + ex.Message,
-                    "Erreur",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
-        }
-
-        private void BtnSaveOnOff_Click(object sender, EventArgs e)
-        {
-            int hour = (int)numShutdownHour.Value;
-            int minute = (int)numShutdownMinute.Value;
-
-            SaveShutdownConfig(hour, minute);
-
-            MessageBox.Show(
-                LanguageManager.Get("OnOff.ConfigSaved") ??
-                "Configuration enregistrée."
-            );
-
-            // Si une tâche existe déjà, on la met à jour
-            if (TaskSchedulerHelper.ShutdownTaskExists())
-            {
-                string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
-                    ? "sleep"
-                    : "shutdown";
-
-                TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
-            }
-
-            UpdateShutdownTaskStatus();
         }
 
         // ============================================================
@@ -729,20 +599,66 @@ private void UpdateNextReportLabel()
         {
             bool exists = TaskSchedulerHelper.StopTaskExists();
 
+            // Activer/désactiver les boutons
             btnCreateStopTask.Enabled = !exists;
             btnDeleteStopTask.Enabled = exists;
 
+            // Couleurs
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
+            Color lightRed   = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
+            // Créer = vert quand actif
             btnCreateStopTask.BackColor = btnCreateStopTask.Enabled ? lightGreen : defaultColor;
+
+            // Supprimer = rouge quand actif
             btnDeleteStopTask.BackColor = btnDeleteStopTask.Enabled ? lightRed : defaultColor;
         }
 
         // ============================================================
         // ARRÊT PROGRAMMÉ
         // ============================================================
+private void BtnSaveOnOff_Click(object sender, EventArgs e)
+{
+    try
+    {
+        string logPath = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
+        Directory.CreateDirectory(Path.GetDirectoryName(logPath));
+
+        // Lecture des valeurs Shutdown.config
+        int hour = (int)numShutdownHour.Value;
+        int minute = (int)numShutdownMinute.Value;
+        string shutdownType = cmbShutdownType.SelectedItem?.ToString() ?? "Arrêt";
+
+        // Calcul de l'heure du prochain rapport (10 minutes avant)
+        DateTime nextShutdown = DateTime.Today.AddHours(hour).AddMinutes(minute);
+        if (nextShutdown < DateTime.Now)
+            nextShutdown = nextShutdown.AddDays(1);
+
+        DateTime nextReport = nextShutdown.AddMinutes(-10);
+        TimeSpan remaining = nextReport - DateTime.Now;
+
+        string remainingText = $"{(int)remaining.TotalHours}h {remaining.Minutes}min";
+
+        // Exemple de ligne CODE02
+        string line1 = $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [CODE02] Dernier rapport inexistant";
+
+        // Exemple de ligne CODE01
+        string line2 =
+            $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] [CODE01] Prochain envoi du rapport prévu à {nextReport:HH:mm} (dans {remainingText})";
+
+        // Écriture du log
+        File.WriteAllLines(logPath, new[] { line1, line2 });
+
+        MessageBox.Show("Configuration sauvegardée et log mis à jour.", "On/Off",
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Erreur : " + ex.Message, "On/Off",
+            MessageBoxButtons.OK, MessageBoxIcon.Error);
+    }
+}
 
         private void LoadShutdownConfig()
         {
@@ -798,14 +714,17 @@ private void UpdateNextReportLabel()
 
             btnCreateShutdownTask.Enabled = !exists;
             btnDeleteShutdownTask.Enabled = exists;
+            
+          Color lightGreen = Color.FromArgb(200, 255, 200);
+          Color lightRed   = Color.FromArgb(255, 200, 200);
+          Color defaultColor = SystemColors.Control;
 
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
+          // Créer = vert quand actif
+          btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
 
-            btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
-            btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
-
+          // Supprimer = rouge quand actif
+          btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
+    
             if (exists)
             {
                 string mode = TaskSchedulerHelper.GetShutdownTaskMode();
@@ -846,7 +765,6 @@ private void UpdateNextReportLabel()
                 );
             }
         }
-
         private void BtnDeleteShutdownTask_Click(object sender, EventArgs e)
         {
             try
@@ -867,6 +785,7 @@ private void UpdateNextReportLabel()
                 );
             }
         }
+
     }
 }
 
