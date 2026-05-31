@@ -2,6 +2,10 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Drawing;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEMonitor.Services;
 using MCEMonitor.Utils;
@@ -32,18 +36,6 @@ namespace MCEMonitor
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
             UpdateStopTaskStatus();
-
-            var nextReportTimer = new System.Windows.Forms.Timer();
-            nextReportTimer.Interval = 10000; // 10 secondes
-            nextReportTimer.Tick += (s, e) =>
-            {
-                UpdateNextReportInfo();
-                UpdateLastReportInfo();
-            };
-            nextReportTimer.Start();
-
-            UpdateNextReportInfo();
-            UpdateLastReportInfo();
         }
 
         // ============================================================
@@ -113,7 +105,8 @@ namespace MCEMonitor
                 );
 
                 var addresses = await Dns.GetHostAddressesAsync(cfg.Server);
-                logForm.Log($"IP : {addresses[0]}");
+                if (addresses.Length > 0)
+                    logForm.Log($"IP : {addresses[0]}");
 
                 logForm.Log(
                     (LanguageManager.Get("Email.Test.Connecting") ?? "Connexion au serveur SMTP sur le port") +
@@ -257,11 +250,22 @@ namespace MCEMonitor
         {
             bool running = IsMediaServiceRunning();
 
-            toggleMediaService.Checked = running;
-
-            lblMediaStatus.Text = running
-                ? (LanguageManager.Get("Media.Service.Active") ?? "Service MediaMonitor : actif")
-                : (LanguageManager.Get("Media.Service.Stopped") ?? "Service MediaMonitor : arrêté");
+            if (running)
+            {
+                toggleMediaService.BackColor = Color.LimeGreen;
+                toggleKnob.Left = 20;
+                lblMediaStatus.Text =
+                    LanguageManager.Get("Media.Service.Active") ??
+                    "Service MediaMonitor : actif";
+            }
+            else
+            {
+                toggleMediaService.BackColor = Color.LightGray;
+                toggleKnob.Left = 2;
+                lblMediaStatus.Text =
+                    LanguageManager.Get("Media.Service.Stopped") ??
+                    "Service MediaMonitor : arrêté";
+            }
         }
 
         private void toggleMediaService_Click(object sender, EventArgs e)
@@ -270,7 +274,7 @@ namespace MCEMonitor
 
             if (running)
             {
-                // ?? Empêcher l'arrêt si MediaMonitor.UI est ouvert
+                // Empêcher l'arrêt si MediaMonitor.UI est ouvert
                 if (IsMediaUIRunning())
                 {
                     MessageBox.Show(
@@ -284,17 +288,13 @@ namespace MCEMonitor
                     return;
                 }
 
-                // ------------------------------------------------------------
                 // 1. Arrêter le service
-                // ------------------------------------------------------------
                 foreach (var p in Process.GetProcessesByName("MediaMonitor.Service"))
                     p.Kill();
             }
             else
             {
-                // ------------------------------------------------------------
                 // 1. Démarrer le service
-                // ------------------------------------------------------------
                 string servicePath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
@@ -318,9 +318,7 @@ namespace MCEMonitor
 
                 Thread.Sleep(1200);
 
-                // ------------------------------------------------------------
                 // 2. Vérifier si le service tourne réellement
-                // ------------------------------------------------------------
                 bool serviceRunning = Process.GetProcesses()
                     .Any(p => p.ProcessName.StartsWith("MediaMonitor.Service", StringComparison.OrdinalIgnoreCase));
 
@@ -330,9 +328,7 @@ namespace MCEMonitor
                     return;
                 }
 
-                // ------------------------------------------------------------
                 // 3. Démarrer le Tray
-                // ------------------------------------------------------------
                 string trayPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                     "MCEMonitor",
@@ -374,104 +370,15 @@ namespace MCEMonitor
         {
             bool exists = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
 
-            // Activer/désactiver les boutons
             btnCreateMediaTask2.Enabled = !exists;
             btnDeleteMediaTask2.Enabled = exists;
 
-            // Couleurs
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color lightRed = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
-            // Créer = vert quand actif
             btnCreateMediaTask2.BackColor = btnCreateMediaTask2.Enabled ? lightGreen : defaultColor;
-
-            // Supprimer = rouge quand actif
             btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
-        }
-
-      private void UpdateNextReportInfo()
-      {
-          try
-          {
-              string path = Path.Combine(
-                  Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                  "MCEMonitor",
-                  "Logs",
-                  "MediaMonitor.Schedule.log"
-              );
-
-              if (!File.Exists(path))
-              {
-                  lblNextReport.Text = "Prochain envoi : aucune information disponible.";
-                  return;
-              }
-
-              // IMPORTANT : lire toutes les lignes pour éviter le cache
-              var lines = File.ReadAllLines(path);
-
-              // On cherche la dernière ligne contenant l’info utile
-              string lastLine = lines
-                  .LastOrDefault(l => l.Contains("Prochain envoi du rapport prévu"));
-
-              if (string.IsNullOrWhiteSpace(lastLine))
-              {
-                  lblNextReport.Text = "Prochain envoi : aucune information.";
-                  return;
-              }
-
-              // On enlève la date/heure du début : "[2026-05-30 14:45:12] "
-              int idx = lastLine.IndexOf("] ");
-              if (idx > 0)
-                  lastLine = lastLine.Substring(idx + 2);
-
-              lblNextReport.Text = lastLine;
-        }
-        catch
-        {
-            lblNextReport.Text = "Prochain envoi : erreur de lecture.";
-        }
-    }
-
-
-        private void UpdateLastReportInfo()
-        {
-            try
-            {
-                string path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Logs",
-                    "MediaMonitor.Schedule.log"
-                );
-
-                if (!File.Exists(path))
-                {
-                    lblLastReport.Text = "Dernier rapport : aucune information.";
-                    return;
-                }
-
-                // Cherche la dernière ligne contenant "Dernier rapport envoyé"
-                string lastLine = File.ReadLines(path)
-                    .LastOrDefault(l => l.Contains("Dernier rapport envoyé"));
-
-                if (string.IsNullOrWhiteSpace(lastLine))
-                {
-                    lblLastReport.Text = "Dernier rapport : aucune information.";
-                    return;
-                }
-
-                // Retire la date entre crochets
-                int idx = lastLine.IndexOf("] ");
-                if (idx > 0)
-                    lastLine = lastLine.Substring(idx + 2);
-
-                lblLastReport.Text = lastLine;
-            }
-            catch
-            {
-                lblLastReport.Text = "Dernier rapport : erreur de lecture.";
-            }
         }
 
         // ============================================================
@@ -605,15 +512,48 @@ namespace MCEMonitor
             btnDeleteWakeTask.Enabled = exists;
 
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color lightRed = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
-            // Créer = vert quand actif
             btnCreateWakeTask.BackColor = btnCreateWakeTask.Enabled ? lightGreen : defaultColor;
-
-            // Supprimer = rouge quand actif
             btnDeleteWakeTask.BackColor = btnDeleteWakeTask.Enabled ? lightRed : defaultColor;
         }
+
+        private void BtnManageWolMacs_Click(object sender, EventArgs e)
+        {
+            MessageBox.Show(
+                LanguageManager.Get("Wake.WolMacs.NotImplemented") ??
+                "La gestion des adresses MAC autorisées pour WOL n'est pas encore implémentée.",
+                "WakeMonitor",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+        private void BtnSaveOnOff_Click(object sender, EventArgs e)
+        {
+            int hour = (int)numShutdownHour.Value;
+            int minute = (int)numShutdownMinute.Value;
+
+            SaveShutdownConfig(hour, minute);
+
+            MessageBox.Show(
+                LanguageManager.Get("OnOff.ConfigSaved") ??
+                "Configuration enregistrée."
+            );
+
+            // Si une tâche existe déjà, on la met à jour
+            if (TaskSchedulerHelper.ShutdownTaskExists())
+            {
+                string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
+                    ? "sleep"
+                    : "shutdown";
+
+                TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
+            }
+
+            UpdateShutdownTaskStatus();
+        }
+
         // ============================================================
         // STOP MONITOR
         // ============================================================
@@ -682,19 +622,14 @@ namespace MCEMonitor
         {
             bool exists = TaskSchedulerHelper.StopTaskExists();
 
-            // Activer/désactiver les boutons
             btnCreateStopTask.Enabled = !exists;
             btnDeleteStopTask.Enabled = exists;
 
-            // Couleurs
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color lightRed = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
-            // Créer = vert quand actif
             btnCreateStopTask.BackColor = btnCreateStopTask.Enabled ? lightGreen : defaultColor;
-
-            // Supprimer = rouge quand actif
             btnDeleteStopTask.BackColor = btnDeleteStopTask.Enabled ? lightRed : defaultColor;
         }
 
@@ -733,28 +668,21 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnCreateSaveConfig_Click(object sender, EventArgs e)
+        private void SaveShutdownConfig(int hour, int minute)
         {
-            try
-            {
-                SaveShutdownConfig();
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "Shutdown.config"
+            );
 
-                MessageBox.Show(
-                    LanguageManager.Get("Shutdown.ConfigSaved") ?? "Configuration enregistrée.",
-                    "MCEMonitor",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information
-                );
-            }
-            catch (Exception ex)
+            Directory.CreateDirectory(Path.GetDirectoryName(path));
+
+            File.WriteAllLines(path, new[]
             {
-                MessageBox.Show(
-                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
-                    "MCEMonitor",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
-            }
+                $"Hour={hour}",
+                $"Minute={minute}"
+            });
         }
 
         private void UpdateShutdownTaskStatus()
@@ -765,7 +693,7 @@ namespace MCEMonitor
             btnDeleteShutdownTask.Enabled = exists;
 
             Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed   = Color.FromArgb(255, 200, 200);
+            Color lightRed = Color.FromArgb(255, 200, 200);
             Color defaultColor = SystemColors.Control;
 
             btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
@@ -832,40 +760,6 @@ namespace MCEMonitor
                 );
             }
         }
-
-        // ============================================================
-        // ?? MÉTHODES MANQUANTES — AJOUT CORRECTIF
-        // ============================================================
-
-        private void SaveShutdownConfig(int hour, int minute)
-        {
-            string path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "MCEMonitor",
-                "Shutdown.config"
-            );
-
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
-
-            File.WriteAllLines(path, new[]
-            {
-                $"Hour={hour}",
-                $"Minute={minute}"
-            });
-        }
-
-        // ?? MÉTHODE QUI MANQUAIT (corrige l’erreur CS0103)
-        private void SaveShutdownConfig()
-        {
-            int hour = (int)numShutdownHour.Value;
-            int minute = (int)numShutdownMinute.Value;
-
-            SaveShutdownConfig(hour, minute);
-        }
-        // ============================================================
-        // FIN DES MÉTHODES
-        // ============================================================
-
     }
 }
 

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 
 namespace WakeMonitor
 {
@@ -12,6 +13,9 @@ namespace WakeMonitor
         public bool IncludeCause { get; set; } = true;
         public bool IncludeDuration { get; set; } = true;
 
+        // ?? Liste blanche des MAC autorisées pour WOL
+        public List<string> AllowedWolMacs { get; set; } = new();
+
         public static WakeMonitorSettings Load()
         {
             string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
@@ -19,7 +23,6 @@ namespace WakeMonitor
             Directory.CreateDirectory(dir);
 
             string path = Path.Combine(dir, "WakeMonitor.config");
-
 
             var settings = new WakeMonitorSettings();
 
@@ -32,9 +35,9 @@ namespace WakeMonitor
 
                 var parts = line.Split('=');
                 string key = parts[0].Trim();
-                string value = parts[1].Trim().ToLower();
+                string value = parts[1].Trim();
 
-                bool enabled = value == "true";
+                bool enabled = value.Equals("true", StringComparison.OrdinalIgnoreCase);
 
                 switch (key)
                 {
@@ -44,6 +47,12 @@ namespace WakeMonitor
                     case "IncludeUSB": settings.IncludeUSB = enabled; break;
                     case "IncludeCause": settings.IncludeCause = enabled; break;
                     case "IncludeDuration": settings.IncludeDuration = enabled; break;
+
+                    // ?? Lecture de la whitelist MAC
+                    case "AllowedWolMacs":
+                        foreach (var mac in value.Split(';', StringSplitOptions.RemoveEmptyEntries))
+                            settings.AllowedWolMacs.Add(mac.Trim().ToUpper());
+                        break;
                 }
             }
 
