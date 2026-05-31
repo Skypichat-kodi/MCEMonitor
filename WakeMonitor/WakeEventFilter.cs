@@ -5,7 +5,7 @@ namespace WakeMonitor
 {
     public static class WakeEventFilter
     {
-        // ? Ne rien casser : ta méthode reste intacte
+        // Vérifie si l'événement est un vrai réveil Power-Troubleshooter
         public static bool IsRealWakeEvent()
         {
             try
@@ -30,38 +30,34 @@ namespace WakeMonitor
             }
         }
 
-        // ?? Nouvelle méthode : détection tentative WOL
+        // Détection d'une tentative WOL (suspecte ou autorisée)
         public static bool IsWolAttempt()
         {
             try
             {
                 var wake = WakeEventReader.GetLastWakeInfo();
 
-                // Récupère la MAC locale
+                // MAC locale
                 string localMac = NetworkInfo.GetActiveMac();
 
-                // Récupère l'IP source via ARP
+                // IP source via ARP
                 string wolIp = WolIpDetector.GetWolSourceIp(localMac);
 
-                // Récupère la MAC source via ARP
+                // MAC source via ARP
                 string wolMac = ArpResolver.GetMacFromIp(wolIp);
 
-                // ?? Vérifie si la MAC source est autorisée
                 if (!string.IsNullOrWhiteSpace(wolMac))
-                {
-                    var opt = WakeMonitorSettings.Load();
+                    wolMac = wolMac.Replace("-", ":").ToUpper();
 
-                    foreach (var allowed in opt.AllowedWolMacs)
-                    {
-                        if (wolMac.Equals(allowed, StringComparison.OrdinalIgnoreCase))
-                        {
-                            // MAC autorisée ? ce n'est PAS une tentative suspecte
-                            return false;
-                        }
-                    }
-                }
+                // Vérifie whitelist
+                var opt = WakeMonitorSettings.Load();
+                bool isAllowed = opt.AllowedWolMacs.Contains(wolMac);
 
-                // --- Détection WOL classique ---
+                // Si MAC autorisée ? ce n'est PAS suspect
+                if (isAllowed)
+                    return true; // C'est bien un WOL, mais autorisé
+
+                // Détection WOL classique
                 bool networkSource =
                     wake.Cause.Contains("Ethernet", StringComparison.OrdinalIgnoreCase) ||
                     wake.Cause.Contains("Network", StringComparison.OrdinalIgnoreCase) ||
@@ -87,7 +83,7 @@ namespace WakeMonitor
         }
     }
 
-    // ?? Helper pour récupérer la MAC depuis une IP via ARP
+    // Récupère la MAC depuis une IP via ARP
     public static class ArpResolver
     {
         public static string GetMacFromIp(string ip)

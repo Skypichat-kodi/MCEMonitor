@@ -6,6 +6,7 @@ namespace WakeMonitor
 {
     public class WakeMonitorSettings
     {
+        // Options toujours actives (plus de config)
         public bool IncludePublicIP { get; set; } = true;
         public bool IncludeLocalIP { get; set; } = true;
         public bool IncludeMAC { get; set; } = true;
@@ -13,7 +14,7 @@ namespace WakeMonitor
         public bool IncludeCause { get; set; } = true;
         public bool IncludeDuration { get; set; } = true;
 
-        // ?? Liste blanche des MAC autorisées pour WOL
+        // Liste blanche WOL
         public List<string> AllowedWolMacs { get; set; } = new();
 
         public static WakeMonitorSettings Load()
@@ -22,37 +23,18 @@ namespace WakeMonitor
             string dir = Path.Combine(programData, "MCEMonitor");
             Directory.CreateDirectory(dir);
 
-            string path = Path.Combine(dir, "WakeMonitor.config");
-
             var settings = new WakeMonitorSettings();
 
-            if (!File.Exists(path))
-                return settings;
+            // Lecture whitelist
+            string macFile = Path.Combine(dir, "AllowedWolMacs.txt");
 
-            foreach (var line in File.ReadAllLines(path))
+            if (File.Exists(macFile))
             {
-                if (!line.Contains("=")) continue;
-
-                var parts = line.Split('=');
-                string key = parts[0].Trim();
-                string value = parts[1].Trim();
-
-                bool enabled = value.Equals("true", StringComparison.OrdinalIgnoreCase);
-
-                switch (key)
+                foreach (var mac in File.ReadAllLines(macFile))
                 {
-                    case "IncludePublicIP": settings.IncludePublicIP = enabled; break;
-                    case "IncludeLocalIP": settings.IncludeLocalIP = enabled; break;
-                    case "IncludeMAC": settings.IncludeMAC = enabled; break;
-                    case "IncludeUSB": settings.IncludeUSB = enabled; break;
-                    case "IncludeCause": settings.IncludeCause = enabled; break;
-                    case "IncludeDuration": settings.IncludeDuration = enabled; break;
-
-                    // ?? Lecture de la whitelist MAC
-                    case "AllowedWolMacs":
-                        foreach (var mac in value.Split(';', StringSplitOptions.RemoveEmptyEntries))
-                            settings.AllowedWolMacs.Add(mac.Trim().ToUpper());
-                        break;
+                    string clean = mac.Trim().ToUpper();
+                    if (clean.Length > 0)
+                        settings.AllowedWolMacs.Add(clean);
                 }
             }
 

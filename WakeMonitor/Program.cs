@@ -24,60 +24,90 @@ namespace WakeMonitor
                 // Vérification du vrai réveil Power-Troubleshooter
                 if (!WakeEventFilter.IsRealWakeEvent())
                 {
-                    // ?? Détection tentative WOL
+                    // Détection tentative WOL
                     if (WakeEventFilter.IsWolAttempt())
                     {
                         string localMac = NetworkInfo.GetActiveMac();
                         string wolIp = WolIpDetector.GetWolSourceIp(localMac);
                         string wolMac = ArpResolver.GetMacFromIp(wolIp);
 
-                        LogHelper.Write($"? Tentative WOL détectée depuis IP : {wolIp} (MAC : {wolMac})");
-                        WOLLogHelper.WriteBlock("Tentative WOL détectée",
-                            $"IP source : {wolIp}\n" +
-                            $"MAC source : {wolMac}\n" +
-                            $"Machine : {Environment.MachineName}\n" +
-                            $"Utilisateur : {Environment.UserName}\n" +
-                            $"Uptime : {TimeSpan.FromMilliseconds(Environment.TickCount64)}");
-                        var cfg = EmailConfig.Load();
-                        string subject = "WakeMonitor - Tentative Wake-on-LAN détectée";
+                        if (!string.IsNullOrWhiteSpace(wolMac))
+                            wolMac = wolMac.Replace("-", ":").ToUpper();
 
-                        string body =
-                            "<div style='color:red;font-weight:bold;font-size:20px;'>? Tentative Wake-on-LAN détectée</div>" +
-                            "<br><b>IP source probable :</b> " + wolIp +
-                            "<br><b>MAC source probable :</b> " + (wolMac ?? "Inconnue") +
-                            "<br><br><b>Machine :</b> " + Environment.MachineName +
-                            "<br><b>Utilisateur :</b> " + Environment.UserName +
-                            "<br><b>OS :</b> " + Environment.OSVersion +
-                            "<br><b>Uptime :</b> " + TimeSpan.FromMilliseconds(Environment.TickCount64);
+                        var opt = WakeMonitorSettings.Load();
+                        bool isAllowed = opt.AllowedWolMacs.Contains(wolMac);
 
-                        await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
+                        if (isAllowed)
+                        {
+                            // --- WOL autorisé ---
+                            LogHelper.Write($"WOL autorisé depuis {wolMac}");
 
-                        return;
+                            var cfg = EmailConfig.Load();
+                            string subject = "WakeMonitor - Wake-on-LAN autorisé";
+
+                            string body =
+                                "<b>Wake-on-LAN autorisé</b><br><br>" +
+                                $"<b>MAC source :</b> {wolMac}<br>" +
+                                $"<b>IP source :</b> {wolIp}<br>" +
+                                $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                                $"<b>Utilisateur :</b> {Environment.UserName}<br>";
+
+                            await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
+                            return;
+                        }
+                        else
+                        {
+                            // --- Tentative WOL suspecte ---
+                            LogHelper.Write($"? Tentative WOL détectée depuis IP : {wolIp} (MAC : {wolMac})");
+
+                            WOLSuspectLogHelper.WriteBlock("Tentative WOL suspecte",
+                                $"IP source : {wolIp}\n" +
+                                $"MAC source : {wolMac}\n" +
+                                $"Machine : {Environment.MachineName}\n" +
+                                $"Utilisateur : {Environment.UserName}\n" +
+                                $"Uptime : {TimeSpan.FromMilliseconds(Environment.TickCount64)}");
+
+                            WOLLogHelper.WriteBlock("Tentative WOL détectée",
+                                $"IP source : {wolIp}\n" +
+                                $"MAC source : {wolMac}\n" +
+                                $"Machine : {Environment.MachineName}\n" +
+                                $"Utilisateur : {Environment.UserName}\n" +
+                                $"Uptime : {TimeSpan.FromMilliseconds(Environment.TickCount64)}");
+
+                            var cfg = EmailConfig.Load();
+                            string subject = "WakeMonitor - Tentative Wake-on-LAN détectée";
+
+                            string body =
+                                "<div style='color:red;font-weight:bold;font-size:20px;'>? Tentative Wake-on-LAN détectée</div>" +
+                                "<br><b>IP source probable :</b> " + wolIp +
+                                "<br><b>MAC source probable :</b> " + (wolMac ?? "Inconnue") +
+                                "<br><br><b>Machine :</b> " + Environment.MachineName +
+                                "<br><b>Utilisateur :</b> " + Environment.UserName +
+                                "<br><b>OS :</b> " + Environment.OSVersion +
+                                "<br><b>Uptime :</b> " + TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+                            await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
+                            return;
+                        }
                     }
 
                     LogHelper.Write("Événement ignoré : ce n'est pas un réveil Power-Troubleshooter.");
                     return;
                 }
 
+                // --- Réveil normal ---
                 LogHelper.Write("Réveil Power-Troubleshooter détecté.");
 
                 var cfg2 = EmailConfig.Load();
-                var opt = WakeMonitorSettings.Load();
+                var opt2 = WakeMonitorSettings.Load();
                 var wake = WakeEventReader.GetLastWakeInfo();
 
-                string ipLocal   = opt.IncludeLocalIP   ? NetworkInfo.GetActiveIp()                                                                            : "Désactivé";
-                string mac2      = opt.IncludeMAC       ? NetworkInfo.GetActiveMac()                                                                           : "Désactivé";
-                string publicIp  = opt.IncludePublicIP  ? await PublicIP.GetPublicIP()                                                                         : "Désactivé";
-                string usb       = opt.IncludeUSB       ? UsbDeviceDetector.GetLastUsbDevice()                                                                 : "Désactivé";
-                string cause     = opt.IncludeCause     ? (wake.Cause == "Unknown" ? WakeCauseDetector.GetProbableWakeCause() : wake.Cause)                    : "Désactivé";
-                string duration  = opt.IncludeDuration  ? wake.SleepDuration.ToString(@"hh\:mm\:ss")                                                           : "Désactivé";
-
-                if (opt.IncludeLocalIP   && string.IsNullOrWhiteSpace(ipLocal))   ipLocal = "Non disponible";
-                if (opt.IncludeMAC       && string.IsNullOrWhiteSpace(mac2))      mac2 = "Non disponible";
-                if (opt.IncludePublicIP  && string.IsNullOrWhiteSpace(publicIp))  publicIp = "Non disponible";
-                if (opt.IncludeUSB       && string.IsNullOrWhiteSpace(usb))       usb = "Non disponible";
-                if (opt.IncludeCause     && string.IsNullOrWhiteSpace(cause))     cause = "Non disponible";
-                if (opt.IncludeDuration  && string.IsNullOrWhiteSpace(duration))  duration = "Non disponible";
+                string ipLocal   = NetworkInfo.GetActiveIp();
+                string mac2      = NetworkInfo.GetActiveMac();
+                string publicIp  = await PublicIP.GetPublicIP();
+                string usb       = UsbDeviceDetector.GetLastUsbDevice();
+                string cause     = wake.Cause == "Unknown" ? WakeCauseDetector.GetProbableWakeCause() : wake.Cause;
+                string duration  = wake.SleepDuration.ToString(@"hh\:mm\:ss");
 
                 LogHelper.WriteBlock("Infos réveil",
                     $"Réveil : {wake.WakeTime}\n" +
@@ -93,13 +123,6 @@ namespace WakeMonitor
                     $"MAC : {mac2}\n" +
                     $"IP publique : {publicIp}\n"
                 );
-
-                LogHelper.WriteBlock("Diagnostic réseau", NetworkDiagnostics.GetInfo());
-                LogHelper.WriteBlock("Diagnostic USB", UsbDiagnostics.GetInfo());
-                LogHelper.WriteBlock("Événements Kernel", KernelEventDiagnostics.GetInfo());
-                LogHelper.WriteBlock("Drivers", DriverDiagnostics.GetInfo());
-                LogHelper.WriteBlock("Timers système", TimerDiagnostics.GetInfo());
-                LogHelper.WriteBlock("État système", SystemDiagnostics.GetInfo());
 
                 string subject2 = $"WakeMonitor - Réveil détecté ({wake.WakeTime:HH:mm:ss})";
 
@@ -118,20 +141,6 @@ namespace WakeMonitor
                     $"<b>MAC :</b> {mac2}<br>" +
                     $"<b>IP publique :</b> {publicIp}<br>";
 
-                string disabled = "";
-
-                if (!opt.IncludeDuration)  disabled += "- Durée<br>";
-                if (!opt.IncludeCause)     disabled += "- Cause<br>";
-                if (!opt.IncludeUSB)       disabled += "- USB<br>";
-                if (!opt.IncludeLocalIP)   disabled += "- IP locale<br>";
-                if (!opt.IncludeMAC)       disabled += "- MAC<br>";
-                if (!opt.IncludePublicIP)  disabled += "- IP publique<br>";
-
-                if (!string.IsNullOrEmpty(disabled))
-                {
-                    body2 += "<br><b>Options désactivées :</b><br>" + disabled;
-                }
-
                 await EmailSender.SendAsync(cfg2, subject2, body2, isHtml: true);
 
                 LogHelper.Write("Email envoyé avec succès.");
@@ -145,7 +154,7 @@ namespace WakeMonitor
         }
     }
 
-    // ?? Détecteur IP source WOL via ARP
+    // --- Détecteur IP source WOL via ARP ---
     public static class WolIpDetector
     {
         public static string GetWolSourceIp(string targetMac)
