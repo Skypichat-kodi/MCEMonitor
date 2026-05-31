@@ -1,10 +1,12 @@
+using System;
+using System.Drawing;
+using System.Windows.Forms;
+
 namespace MCEMonitor
 {
     partial class MainForm
     {
         private System.ComponentModel.IContainer components = null;
-
-        // === STOP MONITOR ===
 
         protected override void Dispose(bool disposing)
         {
@@ -28,6 +30,13 @@ namespace MCEMonitor
             this.tabStopMonitor = new System.Windows.Forms.TabPage();
             this.tabOnOff = new System.Windows.Forms.TabPage();
             this.tabAbout = new System.Windows.Forms.TabPage();
+            this.logRefreshTimer = new System.Windows.Forms.Timer();
+            this.logRefreshTimer.Interval = 2000; // 2 secondes
+            this.logRefreshTimer.Tick += new System.EventHandler(this.LogRefreshTimer_Tick);
+            this.logRefreshTimer.Start();           
+            this.ResumeLayout(false);
+            this.PerformLayout();
+            
 
             // ============================================================
             // SUSPEND LAYOUT
@@ -150,11 +159,12 @@ namespace MCEMonitor
 
             // TITRE EMAIL
             this.lblEmailTitle.AutoSize = true;
-            this.lblEmailTitle.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.lblEmailTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblEmailTitle.Location = new System.Drawing.Point(20, 60);
             this.lblEmailTitle.Text =
                 LanguageManager.Get("Email.Title") ?? "Configuration Email";
             this.tabEmail.Controls.Add(this.lblEmailTitle);
+
             // ALIGNEMENT DES CHAMPS
             int labelX = 40;
             int labelWidth = 150;
@@ -264,13 +274,13 @@ namespace MCEMonitor
             this.tabEmail.Controls.Add(this.cmbSecurityMode);
 
             // Boutons Email
-            this.btnSaveEmail.Location = new System.Drawing.Point(200, 340);
-            this.btnSaveEmail.Size = new System.Drawing.Size(200, 35);
+            this.btnSaveEmail.Location = new System.Drawing.Point(100, 340);
+            this.btnSaveEmail.Size = new System.Drawing.Size(220, 35);
             this.btnSaveEmail.Text = LanguageManager.Get("Email.SaveConfig") ?? "Enregistrer configuration";
             this.btnSaveEmail.Font = normalFont;
             this.btnSaveEmail.Click += new System.EventHandler(this.BtnSaveEmail_Click);
 
-            this.btnTestEmail.Location = new System.Drawing.Point(410, 340);
+            this.btnTestEmail.Location = new System.Drawing.Point(330, 340);
             this.btnTestEmail.Size = new System.Drawing.Size(200, 35);
             this.btnTestEmail.Text = LanguageManager.Get("Email.Test") ?? "Tester Email";
             this.btnTestEmail.Font = normalFont;
@@ -292,17 +302,16 @@ namespace MCEMonitor
             this.toggleMediaService = new System.Windows.Forms.Panel();
             this.toggleKnob = new System.Windows.Forms.Panel();
             this.lblMediaStatus = new System.Windows.Forms.Label();
+            this.lblNextReport = new System.Windows.Forms.Label();
+            this.lblLastReport = new System.Windows.Forms.Label();
 
             this.btnCreateMediaTask2 = new System.Windows.Forms.Button();
             this.btnDeleteMediaTask2 = new System.Windows.Forms.Button();
             this.btnOpenMediaUI = new System.Windows.Forms.Button();
 
-            // ============================================================
             // GROUPBOX 1 — INFORMATIONS
-            // ============================================================
-
             this.grpMediaInfo.Text = LanguageManager.Get("Media.Info.Title") ?? "À propos de MediaMonitor";
-            this.grpMediaInfo.Font = normalFont;
+            this.grpMediaInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpMediaInfo.Location = new System.Drawing.Point(20, 20);
             this.grpMediaInfo.Size = new System.Drawing.Size(620, 120);
 
@@ -334,19 +343,15 @@ namespace MCEMonitor
 
             this.grpMediaInfo.Controls.Add(this.pnlMediaInfo);
             this.tabMediaMonitor.Controls.Add(this.grpMediaInfo);
-            // ============================================================
+
             // GROUPBOX 2 — AUTOMATISATION & ACTIONS (AVEC TOGGLE)
-            // ============================================================
 
             this.grpMediaActions.Text = LanguageManager.Get("Media.Actions.Title") ?? "Automatisation du rapport";
-            this.grpMediaActions.Font = normalFont;
+            this.grpMediaActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpMediaActions.Location = new System.Drawing.Point(20, 150);
             this.grpMediaActions.Size = new System.Drawing.Size(620, 160);
 
-            // ------------------------------------------------------------
             // TOGGLE SWITCH
-            // ------------------------------------------------------------
-
             this.toggleMediaService.Location = new System.Drawing.Point(20, 34);
             this.toggleMediaService.Size = new System.Drawing.Size(34, 16);
             this.toggleMediaService.BackColor = System.Drawing.Color.LightGray;
@@ -381,33 +386,47 @@ namespace MCEMonitor
             this.lblMediaStatus.Location = new System.Drawing.Point(70, 32);
             this.lblMediaStatus.AutoSize = true;
 
+            // lblNextReport
+            this.lblNextReport = new System.Windows.Forms.Label();
+            this.lblNextReport.AutoSize = true;
+            this.lblNextReport.Font = normalFont;
+            this.lblNextReport.Location = new System.Drawing.Point(300, 32);
+            this.lblNextReport.Text = "";   // ? VIDE
+
+            // lblLastReport
+            this.lblLastReport = new System.Windows.Forms.Label();
+            this.lblLastReport.AutoSize = true;
+            this.lblLastReport.Font = normalFont;
+            this.lblLastReport.Location = new System.Drawing.Point(300, 52);
+            this.lblLastReport.Text = "";   // ? VIDE
+
             this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
             this.toggleKnob.Click += new System.EventHandler(this.toggleMediaService_Click);
 
-            // ------------------------------------------------------------
             // BOUTONS MEDIA MONITOR
-            // ------------------------------------------------------------
 
             this.btnCreateMediaTask2.Text = LanguageManager.Get("Media.Task.Create") ?? "Créer tâche planifiée";
             this.btnCreateMediaTask2.Font = normalFont;
             this.btnCreateMediaTask2.Size = new System.Drawing.Size(180, 32);
-            this.btnCreateMediaTask2.Location = new System.Drawing.Point(20, 70);
+            this.btnCreateMediaTask2.Location = new System.Drawing.Point(30, 100);
             this.btnCreateMediaTask2.Click += new System.EventHandler(this.BtnCreateMediaTask_Click);
 
             this.btnDeleteMediaTask2.Text = LanguageManager.Get("Media.Task.Delete") ?? "Supprimer tâche planifiée";
             this.btnDeleteMediaTask2.Font = normalFont;
             this.btnDeleteMediaTask2.Size = new System.Drawing.Size(180, 32);
-            this.btnDeleteMediaTask2.Location = new System.Drawing.Point(210, 70);
+            this.btnDeleteMediaTask2.Location = new System.Drawing.Point(220, 100);
             this.btnDeleteMediaTask2.Click += new System.EventHandler(this.BtnDeleteMediaTask_Click);
 
             this.btnOpenMediaUI.Text = LanguageManager.Get("Media.UI.Open") ?? "Ouvrir MediaMonitor";
             this.btnOpenMediaUI.Font = normalFont;
             this.btnOpenMediaUI.Size = new System.Drawing.Size(180, 32);
-            this.btnOpenMediaUI.Location = new System.Drawing.Point(400, 70);
+            this.btnOpenMediaUI.Location = new System.Drawing.Point(410, 100);
             this.btnOpenMediaUI.Click += new System.EventHandler(this.BtnOpenUI_Click);
 
             this.grpMediaActions.Controls.Add(this.toggleMediaService);
             this.grpMediaActions.Controls.Add(this.lblMediaStatus);
+            this.grpMediaActions.Controls.Add(this.lblNextReport);
+            this.grpMediaActions.Controls.Add(this.lblLastReport);
             this.grpMediaActions.Controls.Add(this.btnCreateMediaTask2);
             this.grpMediaActions.Controls.Add(this.btnDeleteMediaTask2);
             this.grpMediaActions.Controls.Add(this.btnOpenMediaUI);
@@ -424,6 +443,7 @@ namespace MCEMonitor
             // WAKE MONITOR — CONTENU
             // ============================================================
 
+            this.lblWakeTitle = new System.Windows.Forms.Label();
             this.pnlWakeInfo = new System.Windows.Forms.Panel();
             this.picWakeInfo = new System.Windows.Forms.PictureBox();
             this.lblWakeDescription = new System.Windows.Forms.Label();
@@ -440,11 +460,19 @@ namespace MCEMonitor
             this.btnRunWake = new System.Windows.Forms.Button();
             this.btnCreateWakeTask = new System.Windows.Forms.Button();
             this.btnDeleteWakeTask = new System.Windows.Forms.Button();
+            this.btnManageWolMacs = new System.Windows.Forms.Button();
+
+            // Titre Wake
+            this.lblWakeTitle.Text = "À propos de WakeMonitor";
+            this.lblWakeTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblWakeTitle.AutoSize = true;
+            this.lblWakeTitle.Location = new System.Drawing.Point(15, 10);
+            this.tabWakeMonitor.Controls.Add(this.lblWakeTitle);
 
             // PANEL INFO
             this.pnlWakeInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
             this.pnlWakeInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pnlWakeInfo.Location = new System.Drawing.Point(15, 10);
+            this.pnlWakeInfo.Location = new System.Drawing.Point(15, 45);
             this.pnlWakeInfo.Size = new System.Drawing.Size(640, 55);
 
             this.picWakeInfo.Location = new System.Drawing.Point(10, 10);
@@ -468,9 +496,9 @@ namespace MCEMonitor
 
             // GROUPBOX OPTIONS
             this.grpWakeOptions.Text = LanguageManager.Get("Wake.Options.Title") ?? "Indications à donner dans le mail";
-            this.grpWakeOptions.Location = new System.Drawing.Point(15, 75);
+            this.grpWakeOptions.Location = new System.Drawing.Point(15, 110);
             this.grpWakeOptions.Size = new System.Drawing.Size(400, 200);
-            this.grpWakeOptions.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.grpWakeOptions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
 
             this.chkPublicIP.AutoSize = true;
             this.chkPublicIP.Location = new System.Drawing.Point(15, 30);
@@ -512,17 +540,23 @@ namespace MCEMonitor
             this.tabWakeMonitor.Controls.Add(this.grpWakeOptions);
 
             // BOUTONS WAKE
-            this.btnCreateWakeTask.Location = new System.Drawing.Point(440, 85);
+            this.btnCreateWakeTask.Location = new System.Drawing.Point(440, 120);
             this.btnCreateWakeTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateWakeTask.Text = LanguageManager.Get("Wake.Task.Create") ?? "Créer tâche planifiée";
             this.btnCreateWakeTask.Font = normalFont;
             this.btnCreateWakeTask.Click += new System.EventHandler(this.BtnCreateWakeTask_Click);
 
-            this.btnDeleteWakeTask.Location = new System.Drawing.Point(440, 130);
+            this.btnDeleteWakeTask.Location = new System.Drawing.Point(440, 165);
             this.btnDeleteWakeTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteWakeTask.Text = LanguageManager.Get("Wake.Task.Delete") ?? "Supprimer tâche planifiée";
             this.btnDeleteWakeTask.Font = normalFont;
             this.btnDeleteWakeTask.Click += new System.EventHandler(this.BtnDeleteWakeTask_Click);
+
+            this.btnManageWolMacs.Location = new System.Drawing.Point(440, 210);
+            this.btnManageWolMacs.Size = new System.Drawing.Size(200, 35);
+            this.btnManageWolMacs.Text = "Gérer MAC autorisées";
+            this.btnManageWolMacs.Font = normalFont;
+            this.btnManageWolMacs.Click += new System.EventHandler(this.BtnManageWolMacs_Click);
 
             int wakeButtonY = 340;
 
@@ -542,6 +576,19 @@ namespace MCEMonitor
             this.tabWakeMonitor.Controls.Add(this.btnRunWake);
             this.tabWakeMonitor.Controls.Add(this.btnCreateWakeTask);
             this.tabWakeMonitor.Controls.Add(this.btnDeleteWakeTask);
+            this.tabWakeMonitor.Controls.Add(this.btnManageWolMacs);
+
+            // ============================================================
+            // STOP MONITOR — TITRE
+            // ============================================================
+
+            this.lblStopTitle = new System.Windows.Forms.Label();
+            this.lblStopTitle.AutoSize = true;
+            this.lblStopTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.lblStopTitle.Location = new System.Drawing.Point(15, 5);
+            this.lblStopTitle.Text = "A propos de StopMonitor";
+            this.tabStopMonitor.Controls.Add(this.lblStopTitle);
+
             // ============================================================
             // STOP MONITOR — CONTENU
             // ============================================================
@@ -552,7 +599,7 @@ namespace MCEMonitor
 
             this.pnlStopInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
             this.pnlStopInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
-            this.pnlStopInfo.Location = new System.Drawing.Point(15, 10);
+            this.pnlStopInfo.Location = new System.Drawing.Point(15, 30);   // ? descendu proprement sous le titre
             this.pnlStopInfo.Size = new System.Drawing.Size(640, 55);
 
             this.picStopInfo.Location = new System.Drawing.Point(10, 10);
@@ -572,25 +619,28 @@ namespace MCEMonitor
             this.pnlStopInfo.Controls.Add(this.lblStopDescription);
             this.tabStopMonitor.Controls.Add(this.pnlStopInfo);
 
-            // BOUTONS STOP MONITOR
+            // ============================================================
+            // STOP MONITOR — BOUTONS
+            // ============================================================
+
             this.btnCreateStopTask = new System.Windows.Forms.Button();
             this.btnDeleteStopTask = new System.Windows.Forms.Button();
             this.btnRunStopMonitor = new System.Windows.Forms.Button();
 
             this.btnCreateStopTask.Text = LanguageManager.Get("Stop.Task.Create") ?? "Créer tâche planifiée";
-            this.btnCreateStopTask.Location = new System.Drawing.Point(20, 80);
+            this.btnCreateStopTask.Location = new System.Drawing.Point(20, 100);
             this.btnCreateStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateStopTask.Font = normalFont;
             this.btnCreateStopTask.Click += new System.EventHandler(this.BtnCreateStopTask_Click);
 
             this.btnDeleteStopTask.Text = LanguageManager.Get("Stop.Task.Delete") ?? "Supprimer tâche planifiée";
-            this.btnDeleteStopTask.Location = new System.Drawing.Point(20, 125);
+            this.btnDeleteStopTask.Location = new System.Drawing.Point(20, 145);
             this.btnDeleteStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteStopTask.Font = normalFont;
             this.btnDeleteStopTask.Click += new System.EventHandler(this.BtnDeleteStopTask_Click);
 
             this.btnRunStopMonitor.Text = LanguageManager.Get("Stop.Run") ?? "Envoi d'un mail de test";
-            this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 170);
+            this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 190);
             this.btnRunStopMonitor.Size = new System.Drawing.Size(200, 35);
             this.btnRunStopMonitor.Font = normalFont;
             this.btnRunStopMonitor.Click += new System.EventHandler(this.BtnRunStopMonitor_Click);
@@ -602,14 +652,14 @@ namespace MCEMonitor
             // ============================================================
             // ON / OFF — CONTENU
             // ============================================================
-           
-            // === BLOC D’INFORMATION ON/OFF ===
+
+            // BLOC D’INFORMATION ON/OFF
             this.grpOnOffInfo = new System.Windows.Forms.GroupBox();
             this.lblOnOffInfo = new System.Windows.Forms.Label();
             this.picOnOffInfo = new System.Windows.Forms.PictureBox();
 
             this.grpOnOffInfo.Text = LanguageManager.Get("OnOff.Info.Title") ?? "Information";
-            this.grpOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.grpOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpOnOffInfo.Location = new System.Drawing.Point(15, 10);
             this.grpOnOffInfo.Size = new System.Drawing.Size(640, 120);
 
@@ -634,7 +684,7 @@ namespace MCEMonitor
             this.grpOnOffInfo.Controls.Add(this.lblOnOffInfo);
             this.tabOnOff.Controls.Add(this.grpOnOffInfo);
 
-            // === ARRÊT PROGRAMMÉ ===
+            // ARRÊT PROGRAMMÉ
             this.grpShutdown = new System.Windows.Forms.GroupBox();
             this.lblShutdownHour = new System.Windows.Forms.Label();
             this.numShutdownHour = new System.Windows.Forms.NumericUpDown();
@@ -646,7 +696,7 @@ namespace MCEMonitor
             this.btnDeleteShutdownTask = new System.Windows.Forms.Button();
 
             this.grpShutdown.Text = LanguageManager.Get("Shutdown.Title") ?? "Arrêt programmé";
-            this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpShutdown.Location = new System.Drawing.Point(15, 135);
             this.grpShutdown.Size = new System.Drawing.Size(640, 150);
 
@@ -672,34 +722,34 @@ namespace MCEMonitor
 
             this.lblShutdownType.Text = LanguageManager.Get("Shutdown.Type") ?? "Choisir le type d'arrêt :";
             this.lblShutdownType.Location = new System.Drawing.Point(20, 65);
-            this.lblShutdownType.Size = new System.Drawing.Size(110, 25);
+            this.lblShutdownType.Size = new System.Drawing.Size(150, 25);
             this.lblShutdownType.Font = normalFont;
 
             this.cmbShutdownType.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.cmbShutdownType.Items.AddRange(new object[] { "Arrêt", "Veille" });
-            this.cmbShutdownType.Location = new System.Drawing.Point(150, 65);
+            this.cmbShutdownType.Location = new System.Drawing.Point(180, 65);
             this.cmbShutdownType.Size = new System.Drawing.Size(150, 25);
             this.cmbShutdownType.SelectedIndex = 0;
             this.cmbShutdownType.Font = normalFont;
-            
-this.btnSaveOnOff = new System.Windows.Forms.Button();
-this.btnSaveOnOff.Text = "Sauvegarder";
-this.btnSaveOnOff.Font = normalFont;
-this.btnSaveOnOff.Location = new System.Drawing.Point(20, 100);
-this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
-this.btnSaveOnOff.Click += new System.EventHandler(this.BtnSaveOnOff_Click);
 
-this.grpShutdown.Controls.Add(this.btnSaveOnOff);
+            // Bouton Sauvegarder configuration On/Off
+            this.btnSaveOnOff = new System.Windows.Forms.Button();
+            this.btnSaveOnOff.Text = LanguageManager.Get("OnOff.Save") ?? "Sauvegarder";
+            this.btnSaveOnOff.Font = normalFont;
+            this.btnSaveOnOff.Location = new System.Drawing.Point(10, 100);
+            this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
+            this.btnSaveOnOff.Click += new System.EventHandler(this.BtnSaveOnOff_Click);
 
+            this.grpShutdown.Controls.Add(this.btnSaveOnOff);
 
             this.btnCreateShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Create") ?? "Créer tâche planifiée";
-            this.btnCreateShutdownTask.Location = new System.Drawing.Point(230, 100);
+            this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
             this.btnDeleteShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Delete") ?? "Supprimer tâche planifiée";
-            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(440, 100);
+            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
             this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);
@@ -715,13 +765,12 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
 
             this.tabOnOff.Controls.Add(this.grpShutdown);
 
-
-            // === WOL ===
+            // WOL
             this.grpWOL = new System.Windows.Forms.GroupBox();
             this.lblWOLInfo = new System.Windows.Forms.Label();
 
             this.grpWOL.Text = LanguageManager.Get("WOL.Title") ?? "Démarrage automatique (Wake On Lan)";
-            this.grpWOL.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
+            this.grpWOL.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpWOL.Location = new System.Drawing.Point(15, 290);
             this.grpWOL.Size = new System.Drawing.Size(640, 120);
 
@@ -740,7 +789,7 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
             this.tabOnOff.Controls.Add(this.grpWOL);
 
             // ============================================================
-            // A PROPOS — CONTENU
+            // À PROPOS — CONTENU
             // ============================================================
 
             // PANEL DÉFILANT
@@ -748,12 +797,12 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
             this.pnlAboutScroll.Location = new System.Drawing.Point(10, 10);
             this.pnlAboutScroll.Size = new System.Drawing.Size(620, 400);
             this.pnlAboutScroll.AutoScroll = true;
-            this.pnlAboutScroll.BackColor = Color.FromArgb(245, 245, 245); // optionnel
+            this.pnlAboutScroll.BackColor = Color.FromArgb(245, 245, 245);
 
             // LABEL À L’INTÉRIEUR
             this.lblAbout = new System.Windows.Forms.Label();
-            this.lblAbout.AutoSize = true; // important pour le scroll
-            this.lblAbout.MaximumSize = new System.Drawing.Size(600, 0); // largeur fixe, hauteur auto
+            this.lblAbout.AutoSize = true;
+            this.lblAbout.MaximumSize = new System.Drawing.Size(600, 0);
             this.lblAbout.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblAbout.Text =
                 LanguageManager.Get("About.Text") ??
@@ -832,17 +881,21 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
         private System.Windows.Forms.Panel pnlMediaInfo;
         private System.Windows.Forms.PictureBox picMediaInfo;
         private System.Windows.Forms.Label lblMediaInfo;
+        private System.Windows.Forms.Timer logRefreshTimer;
 
         private System.Windows.Forms.GroupBox grpMediaActions;
         private System.Windows.Forms.Panel toggleMediaService;
         private System.Windows.Forms.Panel toggleKnob;
         private System.Windows.Forms.Label lblMediaStatus;
+        private System.Windows.Forms.Label lblNextReport;
+        private System.Windows.Forms.Label lblLastReport;
         private System.Windows.Forms.Timer mediaServiceTimer;
 
         private System.Windows.Forms.Button btnCreateMediaTask2;
         private System.Windows.Forms.Button btnDeleteMediaTask2;
         private System.Windows.Forms.Button btnOpenMediaUI;
 
+        private System.Windows.Forms.Label lblWakeTitle;
         private System.Windows.Forms.Panel pnlWakeInfo;
         private System.Windows.Forms.PictureBox picWakeInfo;
         private System.Windows.Forms.Label lblWakeDescription;
@@ -857,10 +910,12 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
         private System.Windows.Forms.Button btnRunWake;
         private System.Windows.Forms.Button btnCreateWakeTask;
         private System.Windows.Forms.Button btnDeleteWakeTask;
+        private System.Windows.Forms.Button btnManageWolMacs;
 
         private System.Windows.Forms.Panel pnlStopInfo;
         private System.Windows.Forms.PictureBox picStopInfo;
         private System.Windows.Forms.Label lblStopDescription;
+        private System.Windows.Forms.Button btnSaveOnOff;
         private System.Windows.Forms.Button btnCreateStopTask;
         private System.Windows.Forms.Button btnDeleteStopTask;
         private System.Windows.Forms.Button btnRunStopMonitor;
@@ -878,14 +933,13 @@ this.grpShutdown.Controls.Add(this.btnSaveOnOff);
         private System.Windows.Forms.ComboBox cmbShutdownType;
         private System.Windows.Forms.Button btnCreateShutdownTask;
         private System.Windows.Forms.Button btnDeleteShutdownTask;
-        private System.Windows.Forms.Button btnSaveOnOff;
+        private System.Windows.Forms.Label lblStopTitle;
 
         private System.Windows.Forms.GroupBox grpWOL;
         private System.Windows.Forms.Label lblWOLInfo;
 
         private System.Windows.Forms.Label lblAbout;
         private System.Windows.Forms.Panel pnlAboutScroll;
-
     }
 }
 
