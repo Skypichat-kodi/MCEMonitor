@@ -186,6 +186,7 @@ if %ERROR%==0 (
         echo.
         echo Ouverture du script Inno Setup...
         start "" "%ROOT%\MCEMonitorInstaller.iss"
+        exit /b 0
     )
 
 ) else (
