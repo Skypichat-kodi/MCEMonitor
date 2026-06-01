@@ -21,9 +21,13 @@ namespace MCEMonitor.Utils
                 "WakeMonitor.exe"
             );
 
+            // Déclencheur filtré UNIQUEMENT sur Power-Troubleshooter
+            string query =
+                "\"*[System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1]]\"";
+
             return RunAdmin(
                 "schtasks /Create /TN \"MCEMonitor_Wake\" " +
-                "/SC ONEVENT /EC System /MO \"*[System/EventID=1]\" " +
+                "/SC ONEVENT /EC System /MO " + query + " " +
                 $"/TR \"\\\"{exe}\\\"\" /RU SYSTEM /RL HIGHEST /F"
             );
         }

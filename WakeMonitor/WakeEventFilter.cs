@@ -84,40 +84,5 @@ namespace WakeMonitor
     }
 
     // Récupère la MAC depuis une IP via ARP
-    public static class ArpResolver
-    {
-        public static string GetMacFromIp(string ip)
-        {
-            if (string.IsNullOrWhiteSpace(ip))
-                return null;
-
-            try
-            {
-                var p = new System.Diagnostics.Process();
-                p.StartInfo.FileName = "arp";
-                p.StartInfo.Arguments = "-a " + ip;
-                p.StartInfo.RedirectStandardOutput = true;
-                p.StartInfo.UseShellExecute = false;
-                p.StartInfo.CreateNoWindow = true;
-                p.Start();
-
-                string output = p.StandardOutput.ReadToEnd();
-                p.WaitForExit();
-
-                foreach (var line in output.Split('\n'))
-                {
-                    if (line.Contains(ip))
-                    {
-                        var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                        if (parts.Length >= 2)
-                            return parts[1].Replace("-", ":").ToUpper();
-                    }
-                }
-            }
-            catch { }
-
-            return null;
-        }
-    }
 }
 

@@ -1,88 +1,30 @@
-using System;
-using System.Diagnostics.Eventing.Reader;
+using WakeMonitor;
 
-public static class WakeCauseDetector
+namespace WakeMonitor
 {
-    public static string GetProbableWakeCause()
+    public static class WakeCauseDetector
     {
-        // 1) Vérifier si un périphérique USB s’est reconnecté juste après le réveil
-        string usb = UsbDeviceDetector.GetLastUsbDevice();
-        if (!string.IsNullOrWhiteSpace(usb))
-            return "USB (" + usb + ")";
-
-        // 2) Vérifier Kernel-Power 107 (sortie de veille)
-        string kernelCause = GetKernelPowerCause();
-        if (kernelCause != null)
-            return kernelCause;
-
-        // 3) Vérifier les Wake Timers Windows
-        if (WakeTimerDetector.HasActiveWakeTimer())
-            return "Wake Timer (Windows Update)";
-
-        // 4) Vérifier si un paquet WoL a été reçu
-        if (NetworkDiagnosticsExtensions.WasMagicPacketReceived())
-            return "Wake-on-LAN";
-
-
-        // 5) Vérifier les événements ACPI (GPE / PME / RTC)
-        string acpi = GetAcpiWakeReason();
-        if (acpi != null)
-            return acpi;
-
-        // 6) Si rien trouvé ? bouton power probable
-        return "Bouton d’alimentation (probable)";
-    }
-
-    private static string GetKernelPowerCause()
-    {
-        var query = new EventLogQuery("System", PathType.LogName,
-            "*[System[Provider[@Name='Microsoft-Windows-Kernel-Power'] and (EventID=107)]]")
+        public static WolResult DetectWakeCause(WakeInfo wake, string localMac, WakeMonitorSettings opt)
         {
-            ReverseDirection = true
-        };
+            // Si ce n’est pas un réveil WOL ? normal
+            if (!WakeEventFilter.IsWolAttempt())
+                return WolResult.Normal();
 
-        using var reader = new EventLogReader(query);
-        var evt = reader.ReadEvent();
-        if (evt == null)
-            return null;
-
-        string msg = evt.FormatDescription()?.ToLowerInvariant() ?? "";
-
-        if (msg.Contains("usb"))
-            return "USB";
-        if (msg.Contains("network") || msg.Contains("lan"))
-            return "Wake-on-LAN";
-        if (msg.Contains("power button") || msg.Contains("bouton"))
-            return "Bouton d’alimentation";
-        if (msg.Contains("timer"))
-            return "Wake Timer";
-
-        return null;
-    }
-
-    private static string GetAcpiWakeReason()
-    {
-        var query = new EventLogQuery("System", PathType.LogName,
-            "*[System[Provider[@Name='Microsoft-Windows-Kernel-Boot']]]")
+            // Détection moderne ou legacy
+            return WolDetectionStrategy.Detect(wake, localMac, opt);
+        }
+        public static string GetProbableWakeCause(WakeInfo wake, string localMac, WakeMonitorSettings opt)
         {
-            ReverseDirection = true
-        };
+            var result = DetectWakeCause(wake, localMac, opt);
 
-        using var reader = new EventLogReader(query);
-        var evt = reader.ReadEvent();
-        if (evt == null)
-            return null;
+            if (result == null)
+                return wake.Cause ?? "Inconnue";
 
-        string msg = evt.FormatDescription()?.ToLowerInvariant() ?? "";
+            if (!result.IsWol)
+                return wake.Cause ?? "Réveil normal";
 
-        if (msg.Contains("gpe"))
-            return "ACPI (GPE)";
-        if (msg.Contains("pme"))
-            return "ACPI (PME)";
-        if (msg.Contains("rtc"))
-            return "Réveil RTC (horloge interne)";
-
-        return null;
+            return result.Tag;
+        }
     }
 }
 
