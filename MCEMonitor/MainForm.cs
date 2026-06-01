@@ -337,14 +337,12 @@ private void UpdateNextReportLabel()
                 // Empêcher l'arrêt si MediaMonitor.UI est ouvert
                 if (IsMediaUIRunning())
                 {
-                    MessageBox.Show(
-                        LanguageManager.Get("Media.Service.UIRunning") ??
-                        "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\n" +
-                        "Veuillez fermer MediaMonitor.UI d'abord.",
-                        LanguageManager.Get("Media.Service.InUse") ?? "Service en cours d'utilisation",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Warning
-                    );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Media.Service.UIRunning") ??
+                    "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
+                    LanguageManager.Get("Media.Service.InUse") ?? "Service en cours d'utilisation"
+                );
                     return;
                 }
 
@@ -363,10 +361,12 @@ private void UpdateNextReportLabel()
 
                 if (!File.Exists(servicePath))
                 {
-                    MessageBox.Show(
-                        LanguageManager.Get("Media.Service.NotFound") ??
-                        "MediaMonitor.Service.exe introuvable."
-                    );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Media.Service.NotFound") ??
+                    "MediaMonitor.Service.exe introuvable.",
+                    "Erreur"
+                );
                     return;
                 }
 
@@ -384,8 +384,12 @@ private void UpdateNextReportLabel()
 
                 if (!serviceRunning)
                 {
-                    MessageBox.Show("Le service MediaMonitor.Service n'a pas pu démarrer.");
-                    return;
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Le service MediaMonitor.Service n'a pas pu démarrer.",
+                    "Erreur"
+                );
+                return;
                 }
 
                 // 3. Démarrer le Tray
@@ -548,8 +552,10 @@ private void UpdateNextReportLabel()
             Directory.CreateDirectory(Path.GetDirectoryName(path));
             File.WriteAllLines(path, lines);
 
-            MessageBox.Show(
-                LanguageManager.Get("Wake.ConfigSaved") ?? "Configuration WakeMonitor enregistrée"
+            PopupHelper.ShowBottomPopup(
+                this,
+                LanguageManager.Get("Wake.ConfigSaved") ?? "Configuration WakeMonitor enregistrée",
+                "Information"
             );
         }
 
@@ -579,12 +585,11 @@ private void UpdateNextReportLabel()
 
                 if (!File.Exists(exePath))
                 {
-                    MessageBox.Show(
+                    PopupHelper.ShowBottomPopup(
+                        this,
                         LanguageManager.Get("Wake.ExeNotFound") ??
                         "WakeMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.",
-                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
+                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
                     );
                     return;
                 }
@@ -597,19 +602,20 @@ private void UpdateNextReportLabel()
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
 
-                MessageBox.Show(
-                    LanguageManager.Get("Wake.RunSuccess") ?? "WakeMonitor exécuté"
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Wake.RunSuccess") ?? "WakeMonitor exécuté",
+                    "Information"
                 );
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    (LanguageManager.Get("Wake.RunError") ??
-                    "Impossible d'exécuter WakeMonitor.exe :\n") + ex.Message,
-                    LanguageManager.Get("Error.ProcessStart") ?? "Erreur",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
+              PopupHelper.ShowBottomPopup(
+                  this,
+                  (LanguageManager.Get("Wake.RunError") ??
+                  "Impossible d'exécuter WakeMonitor.exe :\n") + ex.Message,
+                  LanguageManager.Get("Error.ProcessStart") ?? "Erreur"
+              );
             }
         }
 
@@ -639,11 +645,10 @@ private void UpdateNextReportLabel()
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                    this,
                     "Impossible d’ouvrir la gestion des MAC autorisées :\n" + ex.Message,
-                    "Erreur",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
+                    "Erreur"
                 );
             }
         }
@@ -655,9 +660,11 @@ private void UpdateNextReportLabel()
 
             SaveShutdownConfig(hour, minute);
 
-            MessageBox.Show(
+            PopupHelper.ShowBottomPopup(
+                this,
                 LanguageManager.Get("OnOff.ConfigSaved") ??
-                "Configuration enregistrée."
+                "Configuration enregistrée.",
+                "Information"
             );
 
             // Si une tâche existe déjà, on la met à jour
@@ -703,12 +710,11 @@ private void UpdateNextReportLabel()
 
                 if (!File.Exists(exePath))
                 {
-                    MessageBox.Show(
+                    PopupHelper.ShowBottomPopup(
+                        this,
                         LanguageManager.Get("Stop.ExeNotFound") ??
                         "StopMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.",
-                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
+                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
                     );
                     return;
                 }
@@ -721,19 +727,20 @@ private void UpdateNextReportLabel()
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
 
-                MessageBox.Show(
-                    LanguageManager.Get("Stop.RunSuccess") ?? "StopMonitor exécuté"
-                );
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("Stop.RunSuccess") ?? "StopMonitor exécuté",
+                        "Information"
+                    );
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    (LanguageManager.Get("Stop.RunError") ??
-                    "Impossible d'exécuter StopMonitor.exe :\n") + ex.Message,
-                    LanguageManager.Get("Error.ProcessStart") ?? "Erreur",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Error
-                );
+                  PopupHelper.ShowBottomPopup(
+                      this,
+                      (LanguageManager.Get("Stop.RunError") ??
+                      "Impossible d'exécuter StopMonitor.exe :\n") + ex.Message,
+                      LanguageManager.Get("Error.ProcessStart") ?? "Erreur"
+                  );
             }
         }
 
@@ -844,17 +851,21 @@ private void UpdateNextReportLabel()
 
                 SaveShutdownConfig(hour, minute);
 
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                    this,
                     LanguageManager.Get("Shutdown.TaskCreated") ??
-                    "Tâche planifiée créée avec succès."
+                    "Tâche planifiée créée avec succès.",
+                    "Information"
                 );
 
                 UpdateShutdownTaskStatus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
+                    "Erreur"
                 );
             }
         }
@@ -865,17 +876,21 @@ private void UpdateNextReportLabel()
             {
                 TaskSchedulerHelper.DeleteShutdownTask();
 
-                MessageBox.Show(
+                PopupHelper.ShowBottomPopup(
+                    this,
                     LanguageManager.Get("Shutdown.TaskDeleted") ??
-                    "Tâche planifiée supprimée avec succès."
+                    "Tâche planifiée supprimée avec succès.",
+                    "Information"
                 );
 
                 UpdateShutdownTaskStatus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
+                    "Erreur"
                 );
             }
         }
