@@ -185,31 +185,48 @@ namespace MCEMonitor.Utils
 
         public static string CreateStopTask()
         {
-            // Remplacement : StopMonitor.exe au lieu de MCEMonitor.exe
             string exe = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "MCEMonitor",
                 "StopMonitor.exe"
             );
 
-            return RunAdmin(
-                "schtasks /Create /TN \"MCEMonitor_StopMonitor\" " +
+            StringBuilder sb = new StringBuilder();
+
+            // --- Tâche 1 : arrêt du système ---
+            sb.AppendLine(RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_StopMonitor_Shutdown\" " +
                 "/SC ONEVENT /EC System " +
                 "/MO \"*[System[(EventID=1074 or EventID=6006 or EventID=6008)]]\" " +
-                $"/TR \"\\\"{exe}\\\"\" /RU SYSTEM /RL HIGHEST /F"
-            );
+                $"/TR \"\\\"{exe}\\\" shutdown\" /RU SYSTEM /RL HIGHEST /F"
+            ));
+
+            // --- Tâche 2 : démarrage du système ---
+            sb.AppendLine(RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_StopMonitor_Boot\" " +
+                "/SC ONSTART " +
+                $"/TR \"\\\"{exe}\\\" boot\" /RU SYSTEM /RL HIGHEST /F"
+            ));
+
+            return sb.ToString();
         }
 
         public static string DeleteStopTask()
         {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_StopMonitor\" /F");
+            StringBuilder sb = new StringBuilder();
+
+            sb.AppendLine(RunAdmin("schtasks /Delete /TN \"MCEMonitor_StopMonitor_Shutdown\" /F"));
+            sb.AppendLine(RunAdmin("schtasks /Delete /TN \"MCEMonitor_StopMonitor_Boot\" /F"));
+
+            return sb.ToString();
         }
 
         public static bool StopTaskExists()
         {
-            return QueryTask("MCEMonitor_StopMonitor");
+            return
+                QueryTask("MCEMonitor_StopMonitor_Shutdown") ||
+                QueryTask("MCEMonitor_StopMonitor_Boot");
         }
-
 
         // ============================================================
         // OUTILS COMMUNS

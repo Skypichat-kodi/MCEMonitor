@@ -7,45 +7,38 @@ using MimeKit;
 
 namespace StopMonitor
 {
+    public enum EmailStyle
+    {
+        Normal,   // gris
+        Error     // rouge (BSOD)
+    }
+
     public static class EmailSender
     {
         public static async Task SendAsync(
             EmailConfig cfg,
             string subject,
             string body,
-            bool isHtml = false)
+            bool isHtml = false,
+            EmailStyle style = EmailStyle.Normal)
         {
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("StopMonitor", cfg.From));
+
+                // ?? Expéditeur avec nom de machine
+                message.From.Add(new MailboxAddress(
+                    $"StopMonitor – {Environment.MachineName}",
+                    cfg.From
+                ));
+
                 message.To.Add(new MailboxAddress(cfg.To, cfg.To));
                 message.Subject = subject;
 
-                // Si HTML ? on encapsule dans un template propre
+                // Si HTML ? appliquer le template selon le style
                 if (isHtml)
                 {
-                    body = $@"
-<div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:#f5f5f5;padding:20px'>
-    <div style='max-width:650px;margin:auto;background:white;border-radius:8px;padding:20px;
-                box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
-
-        <h2 style='text-align:center;color:#c0392b;margin-top:0'>
-            StopMonitor – Rapport d'arrêt
-        </h2>
-
-        <p style='text-align:center;color:#555;margin-top:5px'>
-            Machine : <b>{Environment.MachineName}</b><br>
-            Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
-        </p>
-
-        {body}
-
-        <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
-            Rapport généré automatiquement par StopMonitor.
-        </p>
-    </div>
-</div>";
+                    body = BuildHtmlTemplate(body, style);
                 }
 
                 message.Body = new TextPart(isHtml ? "html" : "plain")
@@ -84,6 +77,43 @@ namespace StopMonitor
 
                 throw;
             }
+        }
+
+        // ------------------------------------------------------------
+        // TEMPLATES HTML (GRIS + ROUGE CLAIR)
+        // ------------------------------------------------------------
+        private static string BuildHtmlTemplate(string body, EmailStyle style)
+        {
+            string headerColor = style == EmailStyle.Error ? "#c0392b" : "#555";
+
+            string title = style == EmailStyle.Error
+                ? "StopMonitor – Rapport de crash"
+                : "StopMonitor – Rapport d'arrêt";
+
+            // ?? Fond rouge clair pour les mails d’erreur
+            string backgroundColor = style == EmailStyle.Error ? "#c0392b" : "#f5f5f5";
+
+            return $@"
+<div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:{backgroundColor};padding:20px'>
+    <div style='max-width:650px;margin:auto;background:white;border-radius:8px;padding:20px;
+                box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
+
+        <h2 style='text-align:center;color:{headerColor};margin-top:0'>
+            {title}
+        </h2>
+
+        <p style='text-align:center;color:#555;margin-top:5px'>
+            Machine : <b>{Environment.MachineName}</b><br>
+            Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+        </p>
+
+        {body}
+
+        <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
+            Rapport généré automatiquement par StopMonitor.
+        </p>
+    </div>
+</div>";
         }
     }
 }

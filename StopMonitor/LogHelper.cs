@@ -5,6 +5,15 @@ namespace StopMonitor
 {
     public static class LogHelper
     {
+        // Nouveau : nom de fichier dynamique
+        private static string _logFileName = "StopMonitor.log";
+
+        // Nouveau : permet de changer le fichier log selon le mode
+        public static void SetLogFile(string fileName)
+        {
+            _logFileName = fileName;
+        }
+
         private static string GetLogPath()
         {
             // ProgramData + dossier Logs
@@ -13,10 +22,11 @@ namespace StopMonitor
 
             Directory.CreateDirectory(dir);
 
-            return Path.Combine(dir, "StopMonitor.log");
+            // Utilise le nom dynamique
+            return Path.Combine(dir, _logFileName);
         }
 
-        // ?? Nouveau : réinitialisation du fichier
+        // Réinitialisation du fichier
         public static void Clear()
         {
             string path = GetLogPath();

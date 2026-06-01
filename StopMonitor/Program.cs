@@ -6,22 +6,54 @@ namespace StopMonitor
 {
     internal class Program
     {
-        private static Mutex _mutex;   // AJOUT
+        private static Mutex _mutex;
 
-        static async Task Main()
+        static async Task Main(string[] args)
         {
-            // AJOUT : Mutex anti-multi-instance
+            // Mutex anti-multi-instance
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_StopMonitor", out createdNew);
             if (!createdNew)
                 return;
 
-            LogHelper.Write("StopMonitor démarré.");
+            string mode = args.Length > 0 ? args[0].ToLower() : "none";
+
+            // ?? Nouveau : choisir le bon fichier log AVANT d'écrire
+            switch (mode)
+            {
+                case "shutdown":
+                    LogHelper.SetLogFile("StopMonitor_Stop.log");
+                    break;
+
+                case "boot":
+                    LogHelper.SetLogFile("StopMonitor_Boot.log");
+                    break;
+
+                default:
+                    LogHelper.SetLogFile("StopMonitor_Debug.log");
+                    break;
+            }
+
+            LogHelper.Write($"StopMonitor démarré. Mode = {mode}");
 
             try
             {
                 var service = new StopMonitorService();
-                await service.SendShutdownEmail();
+
+                switch (mode)
+                {
+                    case "shutdown":
+                        await service.SendShutdownEmail();
+                        break;
+
+                    case "boot":
+                        await service.SendCrashEmail();
+                        break;
+
+                    default:
+                        LogHelper.Write("Aucun mode spécifié. Rien à faire.");
+                        break;
+                }
             }
             catch (Exception ex)
             {
