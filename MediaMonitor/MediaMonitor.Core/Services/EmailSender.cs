@@ -19,11 +19,17 @@ namespace MediaMonitor.Core.Services
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("MediaMonitor", cfg.From));
+
+                // ?? Expéditeur dynamique avec nom de machine
+                message.From.Add(new MailboxAddress(
+                    $"MediaMonitor – {Environment.MachineName}",
+                    cfg.From
+                ));
+
                 message.To.Add(new MailboxAddress(cfg.To, cfg.To));
                 message.Subject = subject;
 
-                // Si HTML ? on encapsule dans un template propre
+                // Si HTML ? appliquer le template existant
                 if (isHtml)
                 {
                     body = $@"

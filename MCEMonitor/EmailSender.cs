@@ -18,7 +18,13 @@ namespace MCEMonitor
             try
             {
                 var message = new MimeMessage();
-                message.From.Add(new MailboxAddress("MCEMonitor", cfg.From));
+
+                // ?? Expéditeur dynamique avec nom de machine
+                message.From.Add(new MailboxAddress(
+                    $"MCEMonitor – {Environment.MachineName}",
+                    cfg.From
+                ));
+
                 message.To.Add(new MailboxAddress(cfg.To, cfg.To));
                 message.Subject = subject;
 
