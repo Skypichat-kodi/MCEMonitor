@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Linq;
 
 namespace WakeMonitor
 {
@@ -39,16 +40,17 @@ namespace WakeMonitor
                 string publicIp = await PublicIP.GetPublicIP();
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
-                // SUPPRESSION DU DOUBLON :
-                // string localMac = NetworkInfo.GetActiveMac();
-                // var opt = WakeMonitorSettings.Load();
-
-                // On utilise macLocal comme MAC locale
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
                     : wake.Cause;
 
                 string duration = wake.SleepDuration.ToString(@"hh\:mm\:ss");
+
+                // ?? AJOUT : Détection WOL depuis hibernation S4
+                if (cause == "Inconnue" && IsWolFromHibernate())
+                {
+                    cause = "Wake-on-LAN (depuis hibernation S4)";
+                }
 
                 // 2) Analyse WOL via stratégie hybride
                 var wol = WolDetectionStrategy.Detect(wake, macLocal, opt);
@@ -99,6 +101,70 @@ namespace WakeMonitor
             }
 
             LogHelper.Write("WakeMonitor terminé.");
+        }
+
+        // ---------------------------------------------------------
+        // ?? AJOUT : Détection WOL depuis hibernation S4
+        // ---------------------------------------------------------
+
+        private static bool IsWolFromHibernate()
+        {
+            bool armed = WasNetworkWakeArmedBeforeSleep();
+            bool bootNet = IsBootTriggeredByNetwork();
+            return armed && bootNet;
+        }
+
+        private static bool WasNetworkWakeArmedBeforeSleep()
+        {
+            try
+            {
+                var log = new EventLog("System");
+                foreach (EventLogEntry entry in log.Entries.Cast<EventLogEntry>().Reverse())
+                {
+                    if (entry.Source == "Microsoft-Windows-Kernel-Power" &&
+                        entry.Message.Contains("Wake Armed"))
+                    {
+                        if (entry.Message.Contains("Network"))
+                            return true;
+
+                        return false;
+                    }
+                }
+            }
+            catch { }
+
+            return false;
+        }
+
+        private static bool IsBootTriggeredByNetwork()
+        {
+            try
+            {
+                var log = new EventLog("System");
+                foreach (EventLogEntry entry in log.Entries.Cast<EventLogEntry>().Reverse())
+                {
+                    if (entry.InstanceId == 27 || entry.InstanceId == 29 || entry.InstanceId == 30)
+                    {
+                        string msg = entry.Message.ToLower();
+
+                        bool noLocalInput = !msg.Contains("power button") &&
+                                            !msg.Contains("keyboard") &&
+                                            !msg.Contains("mouse") &&
+                                            !msg.Contains("hid");
+
+                        bool networkDriverLoaded = msg.Contains("ndis") ||
+                                                   msg.Contains("realtek") ||
+                                                   msg.Contains("e1r") ||
+                                                   msg.Contains("amdpcie") ||
+                                                   msg.Contains("pci-e");
+
+                        return noLocalInput && networkDriverLoaded;
+                    }
+                }
+            }
+            catch { }
+
+            return false;
         }
     }
 }
