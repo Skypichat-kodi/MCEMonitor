@@ -168,50 +168,50 @@ namespace MCEMonitor
         // ONGLET MEDIA MONITOR
         // ============================================================
 
-private void UpdateNextReportLabel()
-{
-    try
-    {
-        string path = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "MCEMonitor",
-            "Logs",
-            "MediaMonitor.Schedule.log"
-        );
-
-        if (!File.Exists(path))
+        private void UpdateNextReportLabel()
         {
-            lblNextReport.Text = "";
-            return;
+            try
+            {
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs",
+                    "MediaMonitor.Schedule.log"
+                );
+
+                if (!File.Exists(path))
+                {
+                    lblNextReport.Text = "";
+                    return;
+                }
+
+                // On cherche la DERNIÈRE ligne contenant [CODE01]
+                string lastCode01 = File.ReadLines(path)
+                    .Reverse()
+                    .FirstOrDefault(l => l.Contains("[CODE01]"));
+
+                if (string.IsNullOrWhiteSpace(lastCode01))
+                {
+                    lblNextReport.Text = "";
+                    return;
+                }
+
+                // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
+                int idx = lastCode01.IndexOf("] ");
+                if (idx > 0)
+                    lastCode01 = lastCode01.Substring(idx + 2);
+
+                // Retirer le tag [CODE01]
+                lastCode01 = lastCode01.Replace("[CODE01]", "").Trim();
+
+                // Afficher EXACTEMENT ce qui reste
+                lblNextReport.Text = lastCode01;
+            }
+            catch
+            {
+                lblNextReport.Text = "";
+            }
         }
-
-        // On cherche la DERNIÈRE ligne contenant [CODE01]
-        string lastCode01 = File.ReadLines(path)
-            .Reverse()
-            .FirstOrDefault(l => l.Contains("[CODE01]"));
-
-        if (string.IsNullOrWhiteSpace(lastCode01))
-        {
-            lblNextReport.Text = "";
-            return;
-        }
-
-        // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
-        int idx = lastCode01.IndexOf("] ");
-        if (idx > 0)
-            lastCode01 = lastCode01.Substring(idx + 2);
-
-        // Retirer le tag [CODE01]
-        lastCode01 = lastCode01.Replace("[CODE01]", "").Trim();
-
-        // Afficher EXACTEMENT ce qui reste
-        lblNextReport.Text = lastCode01;
-    }
-    catch
-    {
-        lblNextReport.Text = "";
-    }
-}
 
         private void LoadMediaConfig()
         {
