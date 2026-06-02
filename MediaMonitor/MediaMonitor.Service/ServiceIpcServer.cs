@@ -61,20 +61,41 @@ namespace MediaMonitor.Service
                     string command = reader.ReadLine()?.Trim() ?? "";
                     Log("IPC : commande reçue = " + command);
 
-                    // Commande set-logging
+                    // ------------------------------------------------------------
+                    // COMMANDES AVEC ARGUMENTS
+                    // ------------------------------------------------------------
+
+                    // set-logging true/false
                     if (command.StartsWith("set-logging ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetLogging(command, writer, server);
                         continue;
                     }
 
-                    // Commande set-email-enabled
+                    // set-email-enabled true/false
                     if (command.StartsWith("set-email-enabled ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetEmailEnabled(command, writer, server);
                         continue;
                     }
 
+                    // set-web-enabled true/false
+                    if (command.StartsWith("set-web-enabled ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetWebEnabled(command, writer, server);
+                        continue;
+                    }
+
+                    // set-web-port 8081
+                    if (command.StartsWith("set-web-port ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetWebPort(command, writer, server);
+                        continue;
+                    }
+
+                    // ------------------------------------------------------------
+                    // COMMANDES EXACTES (SANS ARGUMENT)
+                    // ------------------------------------------------------------
                     switch (command)
                     {
                         case "shutdown":
@@ -97,9 +118,16 @@ namespace MediaMonitor.Service
                             HandleSendReport(writer, server);
                             break;
 
-                        // ?? Commande manquante ajoutée ici
                         case "get-email-enabled":
                             HandleGetEmailEnabled(writer, server);
+                            break;
+
+                        case "get-web-enabled":
+                            HandleGetWebEnabled(writer, server);
+                            break;
+
+                        case "get-web-port":
+                            HandleGetWebPort(writer, server);
                             break;
 
                         default:
@@ -118,7 +146,11 @@ namespace MediaMonitor.Service
 
             Log("IPC ServerLoop terminé (running = false).");
         }
-        // ?? NOUVELLE MÉTHODE : renvoyer l'état EmailSendingEnabled
+
+        // ------------------------------------------------------------
+        // GETTERS
+        // ------------------------------------------------------------
+
         private void HandleGetEmailEnabled(StreamWriter writer, NamedPipeServerStream server)
         {
             try
@@ -136,7 +168,44 @@ namespace MediaMonitor.Service
             server.Disconnect();
         }
 
-        // Commande : activer/désactiver le log du service
+        private void HandleGetWebEnabled(StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                var settings = WebServerSettings.Load();
+                writer.Write("{\"enabled\":" + (settings.Enabled ? "true" : "false") + "}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"" + ex.Message + "\"}");
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+
+        private void HandleGetWebPort(StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                var settings = WebServerSettings.Load();
+                writer.Write("{\"port\":" + settings.Port + "}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"" + ex.Message + "\"}");
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+
+        // ------------------------------------------------------------
+        // SETTERS
+        // ------------------------------------------------------------
+
         private void HandleSetLogging(string command, StreamWriter writer, NamedPipeServerStream server)
         {
             try
@@ -161,7 +230,6 @@ namespace MediaMonitor.Service
             server.Disconnect();
         }
 
-        // Commande : activer/désactiver l'envoi automatique d'email
         private void HandleSetEmailEnabled(string command, StreamWriter writer, NamedPipeServerStream server)
         {
             try
@@ -173,7 +241,6 @@ namespace MediaMonitor.Service
 
                 Log("IPC : EmailSendingEnabled = " + enable);
 
-                // Sauvegarde persistante
                 SaveEmailSetting();
 
                 writer.Write("{\"status\":\"ok\"}");
@@ -189,35 +256,87 @@ namespace MediaMonitor.Service
             server.Disconnect();
         }
 
-        // Sauvegarde persistante du switch Email
-        private void SaveEmailSetting()
+        private void HandleSetWebEnabled(string command, StreamWriter writer, NamedPipeServerStream server)
         {
             try
             {
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor"
-                );
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                bool enable = parts.Length > 1 && parts[1].Equals("true", StringComparison.OrdinalIgnoreCase);
 
-                Directory.CreateDirectory(folder);
+                var settings = WebServerSettings.Load();
+                settings.Enabled = enable;
+                settings.Save();
 
-                string path = Path.Combine(folder, "MediaMonitor.Service.config");
+                Log("IPC : WebServer Enabled = " + enable);
 
-                File.WriteAllText(path, EmailSendingEnabled ? "EmailEnabled=true" : "EmailEnabled=false");
+                Program.StopWebServer();
+                Program.StartWebServerIfEnabled();
 
-                Log("MediaMonitor.Service.config sauvegardé : " + EmailSendingEnabled);
+                writer.Write("{\"status\":\"ok\"}");
             }
             catch (Exception ex)
             {
-                Log("ERREUR SaveEmailSetting : " + ex);
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-web-enabled : " + ex);
             }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
         }
+
+        private void HandleSetWebPort(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 2 || !int.TryParse(parts[1], out int newPort))
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"invalid port\"}");
+                    return;
+                }
+
+                Log("IPC : WebServer Port = " + newPort);
+
+                // 1. Stopper le serveur actuel
+                Program.StopWebServer();
+
+                // 2. Mettre à jour la règle firewall
+                FirewallHelper.UpdateFirewallRule(newPort);
+
+                // 3. Sauvegarder dans WebServerSettings
+                var settings = WebServerSettings.Load();
+                settings.Port = newPort;
+                settings.Save();
+
+                // 4. Redémarrer le serveur web
+                Program.StartWebServerIfEnabled();
+
+                writer.Write("{\"status\":\"ok\"}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-web-port : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+
+        // ------------------------------------------------------------
+        // COMMANDES EXISTANTES
+        // ------------------------------------------------------------
+
         private void HandleShutdown()
         {
             Log("IPC : commande SHUTDOWN reçue.");
 
             try
             {
+                Program.StopWebServer();
                 _engine.Stop();
                 Log("IPC : moteur arrêté proprement.");
             }
@@ -301,6 +420,37 @@ namespace MediaMonitor.Service
             server.WaitForPipeDrain();
             server.Disconnect();
         }
+
+        // ------------------------------------------------------------
+        // PERSISTENCE
+        // ------------------------------------------------------------
+
+        private void SaveEmailSetting()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string path = Path.Combine(folder, "MediaMonitor.Service.config");
+
+                File.WriteAllText(path, EmailSendingEnabled ? "EmailEnabled=true" : "EmailEnabled=false");
+
+                Log("MediaMonitor.Service.config sauvegardé : " + EmailSendingEnabled);
+            }
+            catch (Exception ex)
+            {
+                Log("ERREUR SaveEmailSetting : " + ex);
+            }
+        }
+
+        // ------------------------------------------------------------
+        // LOG
+        // ------------------------------------------------------------
 
         private void Log(string message)
         {

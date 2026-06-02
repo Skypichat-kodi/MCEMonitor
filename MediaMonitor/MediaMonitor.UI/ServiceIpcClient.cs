@@ -184,7 +184,7 @@ namespace MediaMonitor.UI.Services
         }
 
         // ============================================================
-        // ?? NOUVELLE COMMANDE : LIRE L'ÉTAT EMAIL DU SERVICE
+        // ?? LIRE L'ÉTAT EMAIL DU SERVICE
         // ============================================================
         public static async Task<bool?> GetEmailEnabled()
         {
@@ -202,6 +202,63 @@ namespace MediaMonitor.UI.Services
                 MainWindow.StaticUiLog("ERREUR JSON get-email-enabled : " + ex.Message);
                 return null;
             }
+        }
+        // ============================================================
+        // ?? NOUVEAU : LIRE SI LE SERVEUR WEB EST ACTIVÉ
+        // ============================================================
+        public static async Task<bool> GetWebEnabled()
+        {
+            string? json = await SendCommand("get-web-enabled");
+            if (json == null)
+                return false;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, bool>>(json);
+                return obj != null && obj.ContainsKey("enabled") && obj["enabled"];
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON get-web-enabled : " + ex.Message);
+                return false;
+            }
+        }
+
+        // ============================================================
+        // ?? NOUVEAU : LIRE LE PORT DU SERVEUR WEB
+        // ============================================================
+        public static async Task<int> GetWebPort()
+        {
+            string? json = await SendCommand("get-web-port");
+            if (json == null)
+                return 8081;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+                return obj != null && obj.ContainsKey("port") ? obj["port"] : 8081;
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON get-web-port : " + ex.Message);
+                return 8081;
+            }
+        }
+
+        // ============================================================
+        // ?? NOUVEAU : ACTIVER / DÉSACTIVER LE SERVEUR WEB
+        // ============================================================
+        public static Task SetWebEnabled(bool enabled)
+        {
+            return SendCommand("set-web-enabled " + (enabled ? "true" : "false"));
+        }
+
+        // ============================================================
+        // ?? NOUVEAU : CHANGER LE PORT DU SERVEUR WEB
+        // ============================================================
+        public static Task SetWebPort(int port)
+        {
+            return SendCommand("set-web-port " + port);
         }
     }
 }

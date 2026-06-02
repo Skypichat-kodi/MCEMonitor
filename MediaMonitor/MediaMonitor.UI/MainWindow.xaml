@@ -14,6 +14,8 @@
         <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
         <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
         <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
+        <SolidColorBrush x:Key="WebPanelBackground" Color="#553A8DFF"/>
+
 
         <!-- Style des en-têtes de colonnes -->
         <Style TargetType="DataGridColumnHeader">
@@ -117,14 +119,15 @@
 
     <Grid Background="{StaticResource Win11Background}">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="2*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="3*"/>
+            <RowDefinition Height="Auto"/>   <!-- Boutons -->
+            <RowDefinition Height="Auto"/>   <!-- Serveur Web -->
+            <RowDefinition Height="2*"/>     <!-- Tableau en cours -->
+            <RowDefinition Height="Auto"/>   <!-- Dernière image -->
+            <RowDefinition Height="3*"/>     <!-- Historique -->
         </Grid.RowDefinitions>
 
         <!-- BOUTONS -->
-        <StackPanel Orientation="Horizontal" Margin="10">
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
             <Button Width="150" Margin="5" Click="SendReportNow_Click">
                 <TextBlock Text="Envoyer rapport"/>
             </Button>
@@ -172,8 +175,7 @@
                     </ToggleButton.Style>
                 </ToggleButton>
             </StackPanel>
-
-            <!-- 🔥 NOUVEAU SWITCH : ENVOI EMAIL -->
+            <!-- 🔥 SWITCH EMAIL -->
             <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="25 5 5 5">
                 <TextBlock Text="Envoi du rapport automatique"
                            VerticalAlignment="Center"
@@ -223,9 +225,92 @@
             </StackPanel>
         </StackPanel>
 
+        <!-- 🔥 SERVEUR WEB -->
+        <GroupBox Header="Serveur Web"
+                  Grid.Row="1"
+                  Margin="10"
+                  Padding="10"
+                  Background="{StaticResource WebPanelBackground}"
+                  BorderBrush="{StaticResource Win11Border}"
+                  Foreground="{StaticResource Win11Text}">
+
+            <StackPanel>
+
+                <!-- Switch ON/OFF -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                    <TextBlock Text="Activer le serveur Web"
+                               VerticalAlignment="Center"
+                               Margin="0,0,8,0"/>
+
+                    <ToggleButton x:Name="ToggleWeb"
+                                  Width="40"
+                                  Height="20"
+                                  Checked="ToggleWeb_Checked"
+                                  Unchecked="ToggleWeb_Unchecked">
+
+                        <ToggleButton.Style>
+                            <Style TargetType="ToggleButton">
+                                <Setter Property="Template">
+                                    <Setter.Value>
+                                        <ControlTemplate TargetType="ToggleButton">
+                                            <Grid Width="40" Height="20">
+                                                <Border x:Name="SwitchBackground"
+                                                        CornerRadius="10"
+                                                        Background="#3C3C3C"/>
+                                                <Ellipse x:Name="SwitchThumb"
+                                                         Width="16" Height="16"
+                                                         Margin="2"
+                                                         Fill="#E5E5E5"
+                                                         HorizontalAlignment="Left"/>
+                                            </Grid>
+
+                                            <ControlTemplate.Triggers>
+                                                <Trigger Property="IsChecked" Value="True">
+                                                    <Setter TargetName="SwitchBackground"
+                                                            Property="Background"
+                                                            Value="#4CC2FF"/>
+                                                    <Setter TargetName="SwitchThumb"
+                                                            Property="HorizontalAlignment"
+                                                            Value="Right"/>
+                                                </Trigger>
+                                            </ControlTemplate.Triggers>
+
+                                        </ControlTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                            </Style>
+                        </ToggleButton.Style>
+
+                    </ToggleButton>
+                </StackPanel>
+
+                <!-- Port -->
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
+                    <TextBlock Text="Port :" VerticalAlignment="Center"/>
+
+                    <TextBox x:Name="txtWebPort"
+                             Width="80"
+                             Margin="10,0,0,0"
+                             Background="#1E1E1E"
+                             Foreground="#E5E5E5"
+                             BorderBrush="#3C3C3C"/>
+
+                    <Button Content="Appliquer"
+                            Width="100"
+                            Margin="10,0,0,0"
+                            Click="btnApplyWebPort_Click"/>
+                </StackPanel>
+
+                <!-- Bouton ouvrir -->
+                <Button Content="Ouvrir dans le navigateur"
+                        Width="220"
+                        Click="btnOpenWeb_Click"/>
+            </StackPanel>
+
+        </GroupBox>
         <!-- TABLEAU EN COURS -->
         <DataGrid x:Name="FilesGrid"
-                  Grid.Row="1"
+                  Grid.Row="2"
                   Margin="10"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
@@ -296,14 +381,14 @@
 
         <!-- DERNIERE IMAGE -->
         <TextBlock x:Name="LastImageText"
-                   Grid.Row="2"
+                   Grid.Row="3"
                    Margin="10"
                    FontSize="16"
                    Text="Dernière image ouverte : aucune"/>
 
         <!-- TABLEAU HISTORIQUE -->
         <DataGrid x:Name="HistoryGrid"
-                  Grid.Row="3"
+                  Grid.Row="4"
                   Margin="10"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"

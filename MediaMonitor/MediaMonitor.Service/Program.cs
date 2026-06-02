@@ -10,10 +10,10 @@ namespace MediaMonitor.Service
     {
         private static System.Threading.Timer reportTimer;
         private static Mutex _mutex;
-
         private static (int hour, int minute)? _lastShutdownTime = null;
         private static FileSystemWatcher _shutdownWatcher;
         private static MediaMonitorEngine _engine;
+        private static WebServer _webServer;
 
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
@@ -102,6 +102,8 @@ namespace MediaMonitor.Service
                 ipc = new ServiceIpcServer(_engine);
                 ipc.Start();
                 CoreLog.Write("IPC Server démarré.");
+                // Serveur Web
+                StartWebServerIfEnabled();
             }
             catch (Exception ex)
             {
@@ -191,6 +193,42 @@ namespace MediaMonitor.Service
                 File.WriteAllText(file, string.Empty);
             }
             catch { }
+        }
+
+        internal static void StartWebServerIfEnabled()
+        {
+            try
+            {
+                var settings = WebServerSettings.Load();
+
+                if (!settings.Enabled)
+                {
+                    CoreLog.Write("Serveur Web désactivé (Enabled=false).");
+                    return;
+                }
+
+                _webServer = new WebServer(settings.Port, _engine);
+                _webServer.Start();
+
+                CoreLog.Write($"Serveur Web démarré sur le port {settings.Port}.");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR StartWebServerIfEnabled : " + ex);
+            }
+        }
+
+        internal static void StopWebServer()
+        {
+            try
+            {
+                _webServer?.Stop();
+                _webServer = null;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR StopWebServer : " + ex);
+            }
         }
 
         // ------------------------------------------------------------

@@ -110,9 +110,10 @@ namespace MediaMonitor.UI
                 });
             }
 
+            // 🔥 IMPORTANT : InitializeComponent AVANT TOUT ACCÈS AUX CONTRÔLES
             InitializeComponent();
 
-            // 🔥 Correction : charger l’état email APRÈS que la fenêtre soit chargée
+            // 🔥 Charger l’état email APRÈS chargement de la fenêtre
             Loaded += MainWindow_Loaded;
 
             StaticUiLog = (msg) =>
@@ -132,7 +133,21 @@ namespace MediaMonitor.UI
             _refreshTimer.Start();
 
             _ = RefreshState();
+
+            Loaded += async (_, __) =>
+            {
+                try
+                {
+                    ToggleWeb.IsChecked = await ServiceIpcClient.GetWebEnabled();
+                    txtWebPort.Text = (await ServiceIpcClient.GetWebPort()).ToString();
+                }
+                catch (Exception ex)
+                {
+                    UiLog("Erreur initialisation Serveur Web : " + ex.Message);
+                }
+            };
         }
+
         // 🔥 Nouvelle méthode appelée quand la fenêtre est prête
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -179,6 +194,7 @@ namespace MediaMonitor.UI
             }
             catch { }
         }
+
         private async void ToggleLog_Checked(object sender, RoutedEventArgs e)
         {
             IsLoggingEnabled = true;
@@ -238,6 +254,77 @@ namespace MediaMonitor.UI
             catch (Exception ex)
             {
                 UiLog("Erreur IPC SetEmailSending(false) : " + ex.Message);
+            }
+        }
+
+        // 🔥 HANDLERS SERVEUR WEB
+
+        private async void ToggleWeb_Checked(object sender, RoutedEventArgs e)
+        {
+            UiLog("Serveur Web activé");
+
+            try
+            {
+                await ServiceIpcClient.SetWebEnabled(true);
+                UiLog("Service : serveur web activé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetWebEnabled(true) : " + ex.Message);
+            }
+        }
+
+        private async void ToggleWeb_Unchecked(object sender, RoutedEventArgs e)
+        {
+            UiLog("Serveur Web désactivé");
+
+            try
+            {
+                await ServiceIpcClient.SetWebEnabled(false);
+                UiLog("Service : serveur web désactivé");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetWebEnabled(false) : " + ex.Message);
+            }
+        }
+
+        private async void txtWebPort_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        {
+            if (!int.TryParse(txtWebPort.Text, out int port))
+                return;
+
+            UiLog("Changement du port Web : " + port);
+
+            try
+            {
+                await ServiceIpcClient.SetWebPort(port);
+                UiLog("Service : port web mis à " + port);
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC SetWebPort : " + ex.Message);
+            }
+        }
+
+        private void btnOpenWeb_Click(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(txtWebPort.Text, out int port))
+                return;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = $"http://localhost:{port}/",
+                    UseShellExecute = true
+                });
+
+                UiLog("Ouverture du navigateur sur http://localhost:" + port);
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur ouverture navigateur : " + ex.Message);
             }
         }
 
@@ -329,6 +416,18 @@ namespace MediaMonitor.UI
             {
                 MessageBox.Show("Erreur IPC : " + ex.Message);
             }
+        }
+        private async void btnApplyWebPort_Click(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(txtWebPort.Text, out int port))
+            {
+                MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await ServiceIpcClient.SetWebPort(port);
+
+            MessageBox.Show("Port mis à jour.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
         }
     }
 }
