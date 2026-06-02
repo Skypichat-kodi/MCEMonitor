@@ -40,13 +40,12 @@ namespace WakeMonitor
                 string publicIp = await PublicIP.GetPublicIP();
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
+                // --- NOUVEAU : cause corrigée intelligente ---
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
                     : wake.Cause;
 
-                string duration = wake.SleepDuration.ToString(@"hh\:mm\:ss");
-
-                // ?? AJOUT : Détection WOL depuis hibernation S4
+                // Détection WOL depuis hibernation S4
                 if (cause == "Inconnue" && IsWolFromHibernate())
                 {
                     cause = "Wake-on-LAN (depuis hibernation S4)";
@@ -55,7 +54,20 @@ namespace WakeMonitor
                 // 2) Analyse WOL via stratégie hybride
                 var wol = WolDetectionStrategy.Detect(wake, macLocal, opt);
 
+                // --- NOUVEAU : bloc visuel si Windows a mal classé le réveil ---
+                string wolCorrectionBlock = "";
+                if (wake.IsLikelyWol)
+                {
+                    wolCorrectionBlock = @"
+<div style='background:#e8f4ff;border-left:4px solid #3498db;padding:10px;margin-bottom:15px'>
+    <b>Cause réelle probable :</b> Wake-on-LAN (Magic Packet)<br>
+    <span style='color:#555'>Windows a mal classé la source du réveil.</span>
+</div>";
+                }
+
                 // 3) Log interne
+                string duration = wake.SleepDuration.ToString(@"hh\:mm\:ss");
+
                 LogHelper.WriteBlock("Infos réveil",
                     $"Réveil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
@@ -77,6 +89,7 @@ namespace WakeMonitor
                 // 5) Corps du mail
                 string body =
                     wol.HtmlBlock +
+                    wolCorrectionBlock + // <-- AJOUT ICI
                     "<b>=== Détails du réveil ===</b><br>" +
                     $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
@@ -104,7 +117,7 @@ namespace WakeMonitor
         }
 
         // ---------------------------------------------------------
-        // ?? AJOUT : Détection WOL depuis hibernation S4
+        // Détection WOL depuis hibernation S4
         // ---------------------------------------------------------
 
         private static bool IsWolFromHibernate()
