@@ -7,8 +7,21 @@ public class WakeInfo
     public DateTime SleepTime { get; set; }
     public TimeSpan SleepDuration { get; set; }
 
-    // Cause brute fournie par Windows (Power Button, Unknown, etc.)
-    public string Cause { get; set; } = "Inconnue";
+    // --- NOUVEAU : séparation correcte ---
+    // État précédent : S3 / S4 / S0ix
+    public string SleepState { get; set; } = "Inconnue";
+
+    // Cause réelle du réveil : Power Button / USB / WOL / Timer
+    public string WakeCause { get; set; } = "Inconnue";
+
+    // --- Compatibilité avec ton code existant ---
+    // Ton Program.cs utilise encore "Cause"
+    // ? on le mappe automatiquement sur WakeCause
+    public string Cause
+    {
+        get => WakeCause;
+        set => WakeCause = value;
+    }
 
     // Nombre d'événements dans /lastwake (0 = Windows n'a rien enregistré)
     public int LastWakeCount { get; set; } = -1;
@@ -28,7 +41,7 @@ public class WakeInfo
             if (IsLikelyWol)
                 return "Wake-on-LAN (classification Windows incorrecte)";
 
-            return Cause;
+            return WakeCause;
         }
     }
 }
