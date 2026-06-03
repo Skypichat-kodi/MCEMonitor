@@ -7,6 +7,7 @@ using System.Windows;
 using System.Windows.Threading;
 using MediaMonitor.UI.Services;
 using MediaMonitor.Core.Models;
+using Microsoft.Win32;
 
 namespace MediaMonitor.UI
 {
@@ -20,6 +21,9 @@ namespace MediaMonitor.UI
         private readonly ObservableCollection<MediaUsageItem> _history = new();
 
         private readonly DispatcherTimer _refreshTimer;
+
+        // Empêche RefreshState de se lancer en parallèle
+        private bool _isRefreshing = false;
 
         public MainWindow()
         {
@@ -110,10 +114,10 @@ namespace MediaMonitor.UI
                 });
             }
 
-            // 🔥 IMPORTANT : InitializeComponent AVANT TOUT ACCÈS AUX CONTRÔLES
+            // UI
             InitializeComponent();
 
-            // 🔥 Charger l’état email APRÈS chargement de la fenêtre
+            // Chargement état email
             Loaded += MainWindow_Loaded;
 
             StaticUiLog = (msg) =>
@@ -129,10 +133,10 @@ namespace MediaMonitor.UI
             {
                 Interval = TimeSpan.FromSeconds(5)
             };
-            _refreshTimer.Tick += async (_, __) => await RefreshState();
+            _refreshTimer.Tick += async (_, __) => await RefreshStateSafe();
             _refreshTimer.Start();
 
-            _ = RefreshState();
+            _ = RefreshStateSafe();
 
             Loaded += async (_, __) =>
             {
@@ -146,12 +150,43 @@ namespace MediaMonitor.UI
                     UiLog("Erreur initialisation Serveur Web : " + ex.Message);
                 }
             };
+
+            // Détection sortie de veille
+            SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
         }
 
-        // 🔥 Nouvelle méthode appelée quand la fenêtre est prête
+        // Quand la fenêtre est prête
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
             await LoadEmailSwitch();
+        }
+
+        private void SystemEvents_PowerModeChanged(object? sender, PowerModeChangedEventArgs e)
+        {
+            if (e.Mode == PowerModes.Resume)
+            {
+                StaticUiLog("PC sorti de veille → tentative de reconnexion IPC");
+                _ = HandleResumeAsync();
+            }
+        }
+
+        private async Task HandleResumeAsync()
+        {
+            try
+            {
+                // Laisser le service se réveiller
+                await Task.Delay(1500);
+
+                await RefreshStateSafe();
+                await LoadEmailSwitch();
+
+                // Poke du Dispatcher pour s'assurer qu'il est bien vivant
+                Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
+            }
+            catch (Exception ex)
+            {
+                StaticUiLog("Erreur HandleResumeAsync : " + ex.Message);
+            }
         }
 
         private async Task LoadEmailSwitch()
@@ -257,7 +292,7 @@ namespace MediaMonitor.UI
             }
         }
 
-        // 🔥 HANDLERS SERVEUR WEB
+        // HANDLERS SERVEUR WEB
 
         private async void ToggleWeb_Checked(object sender, RoutedEventArgs e)
         {
@@ -353,6 +388,26 @@ namespace MediaMonitor.UI
             catch { }
         }
 
+        // Wrapper sécurisé pour éviter les appels concurrents
+        private async Task RefreshStateSafe()
+        {
+            if (_isRefreshing)
+            {
+                StaticUiLog("RefreshState ignoré (déjà en cours)");
+                return;
+            }
+
+            _isRefreshing = true;
+            try
+            {
+                await RefreshState();
+            }
+            finally
+            {
+                _isRefreshing = false;
+            }
+        }
+
         private async Task RefreshState()
         {
             StaticUiLog("RefreshState() appelé");
@@ -417,6 +472,7 @@ namespace MediaMonitor.UI
                 MessageBox.Show("Erreur IPC : " + ex.Message);
             }
         }
+
         private async void btnApplyWebPort_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(txtWebPort.Text, out int port))

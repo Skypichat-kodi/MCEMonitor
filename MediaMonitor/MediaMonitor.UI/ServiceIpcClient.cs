@@ -4,6 +4,7 @@ using System.IO;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using MediaMonitor.Core.Models;
 using MediaMonitor.UI;
@@ -20,45 +21,88 @@ namespace MediaMonitor.UI.Services
     {
         private const string PIPE_NAME = "MediaMonitorPipe";
 
+        // Empêche plusieurs appels IPC simultanés
+        private static readonly SemaphoreSlim _ipcLock = new(1, 1);
+
+        // Timeout global pour chaque commande IPC
+        private const int GLOBAL_TIMEOUT_MS = 2000;
+
         private static async Task<string?> SendCommand(string command)
         {
+            await _ipcLock.WaitAsync();
             try
             {
-                MainWindow.StaticUiLog("IPC ? tentative connexion au pipe");
-
-                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut, PipeOptions.None);
-
-                await client.ConnectAsync(1500);
-
-                client.ReadMode = PipeTransmissionMode.Byte;
-
-                MainWindow.StaticUiLog("IPC ? connecté, envoi commande : " + command);
-
-                byte[] cmdBytes = Encoding.UTF8.GetBytes(command + "\n");
-                await client.WriteAsync(cmdBytes, 0, cmdBytes.Length);
-                await client.FlushAsync();
-
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-
-                using var mem = new MemoryStream();
-
-                while ((bytesRead = await client.ReadAsync(buffer, 0, buffer.Length)) > 0)
-                {
-                    mem.Write(buffer, 0, bytesRead);
-                }
-
-                string json = Encoding.UTF8.GetString(mem.ToArray());
-
-                MainWindow.StaticUiLog("IPC ? réponse brute : " + json);
-
-                return json;
+                using var cts = new CancellationTokenSource(GLOBAL_TIMEOUT_MS);
+                return await SendCommandInternal(command, cts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                MainWindow.StaticUiLog($"IPC ? Timeout global sur commande : {command}");
+                return null;
             }
             catch (Exception ex)
             {
                 MainWindow.StaticUiLog("IPC ? ERREUR : " + ex.Message);
                 return null;
             }
+            finally
+            {
+                _ipcLock.Release();
+            }
+        }
+
+        private static async Task<string?> SendCommandInternal(string command, CancellationToken token)
+        {
+            MainWindow.StaticUiLog("IPC ? tentative connexion au pipe");
+
+            using var client = new NamedPipeClientStream(
+                ".",
+                PIPE_NAME,
+                PipeDirection.InOut,
+                PipeOptions.Asynchronous
+            );
+
+            try
+            {
+                await client.ConnectAsync(1500, token);
+            }
+            catch (OperationCanceledException)
+            {
+                MainWindow.StaticUiLog("IPC ? Timeout connexion pipe");
+                return null;
+            }
+
+            if (!client.IsConnected)
+            {
+                MainWindow.StaticUiLog("IPC ? pipe non connecté");
+                return null;
+            }
+
+            client.ReadMode = PipeTransmissionMode.Byte;
+
+            MainWindow.StaticUiLog("IPC ? connecté, envoi commande : " + command);
+
+            byte[] cmdBytes = Encoding.UTF8.GetBytes(command + "\n");
+            await client.WriteAsync(cmdBytes, 0, cmdBytes.Length, token);
+            await client.FlushAsync(token);
+
+            byte[] buffer = new byte[4096];
+            using var mem = new MemoryStream();
+
+            while (true)
+            {
+                int bytesRead = await client.ReadAsync(buffer, 0, buffer.Length, token);
+                if (bytesRead <= 0)
+                    break;
+
+                mem.Write(buffer, 0, bytesRead);
+            }
+
+            string json = Encoding.UTF8.GetString(mem.ToArray());
+
+            MainWindow.StaticUiLog("IPC ? réponse brute : " + json);
+
+            return json;
         }
 
         public static async Task<StateResponse?> GetState()
@@ -138,7 +182,7 @@ namespace MediaMonitor.UI.Services
         }
 
         // ============================================================
-        // ?? ACTIVER / DÉSACTIVER LE LOG DU SERVICE
+        // LOG SERVICE
         // ============================================================
         public static async Task<bool> SetLogging(bool enabled)
         {
@@ -161,7 +205,7 @@ namespace MediaMonitor.UI.Services
         }
 
         // ============================================================
-        // ?? ACTIVER / DÉSACTIVER ENVOI EMAIL
+        // EMAIL
         // ============================================================
         public static async Task<bool> SetEmailSending(bool enabled)
         {
@@ -183,9 +227,6 @@ namespace MediaMonitor.UI.Services
             }
         }
 
-        // ============================================================
-        // ?? LIRE L'ÉTAT EMAIL DU SERVICE
-        // ============================================================
         public static async Task<bool?> GetEmailEnabled()
         {
             string? json = await SendCommand("get-email-enabled");
@@ -203,8 +244,9 @@ namespace MediaMonitor.UI.Services
                 return null;
             }
         }
+
         // ============================================================
-        // ?? NOUVEAU : LIRE SI LE SERVEUR WEB EST ACTIVÉ
+        // WEB SERVER
         // ============================================================
         public static async Task<bool> GetWebEnabled()
         {
@@ -224,9 +266,6 @@ namespace MediaMonitor.UI.Services
             }
         }
 
-        // ============================================================
-        // ?? NOUVEAU : LIRE LE PORT DU SERVEUR WEB
-        // ============================================================
         public static async Task<int> GetWebPort()
         {
             string? json = await SendCommand("get-web-port");
@@ -245,17 +284,11 @@ namespace MediaMonitor.UI.Services
             }
         }
 
-        // ============================================================
-        // ?? NOUVEAU : ACTIVER / DÉSACTIVER LE SERVEUR WEB
-        // ============================================================
         public static Task SetWebEnabled(bool enabled)
         {
             return SendCommand("set-web-enabled " + (enabled ? "true" : "false"));
         }
 
-        // ============================================================
-        // ?? NOUVEAU : CHANGER LE PORT DU SERVEUR WEB
-        // ============================================================
         public static Task SetWebPort(int port)
         {
             return SendCommand("set-web-port " + port);
