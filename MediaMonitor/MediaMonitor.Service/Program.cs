@@ -18,7 +18,7 @@ namespace MediaMonitor.Service
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
 
-        // ? Nouveau : mémorise le dernier CODE02
+        // Dernier statut CODE02
         private static string _lastReportStatus = "[CODE02] Dernier rapport inexistant";
 
         // ------------------------------------------------------------
@@ -91,7 +91,6 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR Engine.Start() : " + ex);
             }
 
-            // ? CODE02 au démarrage
             _lastReportStatus = "[CODE02] Dernier rapport inexistant";
             WriteScheduleLog(_lastReportStatus);
 
@@ -102,7 +101,7 @@ namespace MediaMonitor.Service
                 ipc = new ServiceIpcServer(_engine);
                 ipc.Start();
                 CoreLog.Write("IPC Server démarré.");
-                // Serveur Web
+
                 StartWebServerIfEnabled();
             }
             catch (Exception ex)
@@ -139,7 +138,6 @@ namespace MediaMonitor.Service
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
-
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
         // ------------------------------------------------------------
@@ -195,42 +193,83 @@ namespace MediaMonitor.Service
             catch { }
         }
 
-        internal static void StartWebServerIfEnabled()
+        // ------------------------------------------------------------
+        // CALCUL DE L'HEURE D'ENVOI DU RAPPORT
+        // ------------------------------------------------------------
+        private static DateTime GetReportSendTime()
         {
-            try
-            {
-                var settings = WebServerSettings.Load();
+            var shutdown = LoadShutdownTime();
 
-                if (!settings.Enabled)
+            if (shutdown == null)
+            {
+                WriteScheduleLog("Aucune heure de shutdown — rapport dans 1 minute.");
+                return DateTime.Now.AddMinutes(1);
+            }
+
+            var target = DateTime.Today
+                .AddHours(shutdown.Value.hour)
+                .AddMinutes(shutdown.Value.minute)
+                .AddMinutes(-10);
+
+            if (target < DateTime.Now)
+                target = target.AddDays(1);
+
+            TimeSpan remaining = target - DateTime.Now;
+
+            string msg =
+                $"[CODE01] Prochain envoi du rapport prévu à {target:HH:mm} " +
+                $"(dans {remaining.Hours}h {remaining.Minutes}min)";
+
+            WriteScheduleLog(msg);
+
+            return target;
+        }
+
+        // ------------------------------------------------------------
+        // PROGRAMMATION DU TIMER — VERSION CORRIGÉE
+        // ------------------------------------------------------------
+        private static void ScheduleNextReport(MediaMonitorEngine engine)
+        {
+            // ?? Correction essentielle : empêcher les timers multiples
+            reportTimer?.Dispose();
+            reportTimer = null;
+
+            DateTime sendTime = GetReportSendTime();
+            TimeSpan delay = sendTime - DateTime.Now;
+
+            if (delay.TotalMilliseconds < 0)
+                delay = TimeSpan.FromMinutes(1);
+
+            reportTimer = new System.Threading.Timer(async _ =>
+            {
+                try
                 {
-                    CoreLog.Write("Serveur Web désactivé (Enabled=false).");
-                    return;
+                    if (!ServiceIpcServer.EmailSendingEnabled)
+                    {
+                        WriteScheduleLog("Envoi automatique désactivé — rapport ignoré.");
+                    }
+                    else
+                    {
+                        WriteScheduleLog("Envoi du rapport…");
+
+                        await engine.SendReportEmail();
+
+                        _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+                        WriteScheduleLog(_lastReportStatus);
+
+                        engine.ClearHistory();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
                 }
 
-                _webServer = new WebServer(settings.Port, _engine);
-                _webServer.Start();
+                // ?? Replanification propre (un seul timer actif)
+                ScheduleNextReport(engine);
 
-                CoreLog.Write($"Serveur Web démarré sur le port {settings.Port}.");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR StartWebServerIfEnabled : " + ex);
-            }
+            }, null, delay, Timeout.InfiniteTimeSpan);
         }
-
-        internal static void StopWebServer()
-        {
-            try
-            {
-                _webServer?.Stop();
-                _webServer = null;
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR StopWebServer : " + ex);
-            }
-        }
-
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
@@ -273,84 +312,11 @@ namespace MediaMonitor.Service
         }
 
         // ------------------------------------------------------------
-        // CALCUL DE L'HEURE D'ENVOI DU RAPPORT
-        // ------------------------------------------------------------
-        private static DateTime GetReportSendTime()
-        {
-            var shutdown = LoadShutdownTime();
-
-            if (shutdown == null)
-            {
-                WriteScheduleLog("Aucune heure de shutdown — rapport dans 1 minute.");
-                return DateTime.Now.AddMinutes(1);
-            }
-
-            var target = DateTime.Today
-                .AddHours(shutdown.Value.hour)
-                .AddMinutes(shutdown.Value.minute)
-                .AddMinutes(-10);
-
-            if (target < DateTime.Now)
-                target = target.AddDays(1);
-
-            TimeSpan remaining = target - DateTime.Now;
-
-            string msg =
-                $"[CODE01] Prochain envoi du rapport prévu à {target:HH:mm} " +
-                $"(dans {remaining.Hours}h {remaining.Minutes}min)";
-
-            WriteScheduleLog(msg);
-
-            return target;
-        }
-
-        // ------------------------------------------------------------
-        // PROGRAMMATION DU TIMER
-        // ------------------------------------------------------------
-        private static void ScheduleNextReport(MediaMonitorEngine engine)
-        {
-            DateTime sendTime = GetReportSendTime();
-            TimeSpan delay = sendTime - DateTime.Now;
-
-            if (delay.TotalMilliseconds < 0)
-                delay = TimeSpan.FromMinutes(1);
-
-            reportTimer = new System.Threading.Timer(async _ =>
-            {
-                try
-                {
-                    if (!ServiceIpcServer.EmailSendingEnabled)
-                    {
-                        WriteScheduleLog("Envoi automatique désactivé — rapport ignoré.");
-                    }
-                    else
-                    {
-                        WriteScheduleLog("Envoi du rapport…");
-
-                        await engine.SendReportEmail();
-
-                        // ? Mise à jour du dernier CODE02
-                        _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                        WriteScheduleLog(_lastReportStatus);
-
-                        engine.ClearHistory();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
-                }
-
-                ScheduleNextReport(engine);
-
-            }, null, delay, Timeout.InfiniteTimeSpan);
-        }
-
-        // ------------------------------------------------------------
         // RÉACTION AUX MODIFICATIONS DE Shutdown.config
         // ------------------------------------------------------------
         private static void ShutdownConfigChanged(object sender, FileSystemEventArgs e)
         {
+            // Anti-rebond (évite 2 événements consécutifs)
             if ((DateTime.Now - _lastConfigChange).TotalMilliseconds < 200)
                 return;
 
@@ -376,14 +342,50 @@ namespace MediaMonitor.Service
 
                 WriteScheduleLog($"Shutdown.config chargé : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
 
-                // ? On réécrit le dernier CODE02
+                // Réécrit le dernier CODE02
                 WriteScheduleLog(_lastReportStatus);
 
+                // ?? Replanification propre (grâce au Dispose() dans ScheduleNextReport)
                 ScheduleNextReport(_engine);
             }
             catch (Exception ex)
             {
                 WriteScheduleLog("ERREUR ShutdownConfigChanged : " + ex.Message);
+            }
+        }
+        internal static void StartWebServerIfEnabled()
+        {
+            try
+            {
+                var settings = WebServerSettings.Load();
+
+                if (!settings.Enabled)
+                {
+                    CoreLog.Write("Serveur Web désactivé (Enabled=false).");
+                    return;
+                }
+
+                _webServer = new WebServer(settings.Port, _engine);
+                _webServer.Start();
+
+                CoreLog.Write($"Serveur Web démarré sur le port {settings.Port}.");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR StartWebServerIfEnabled : " + ex);
+            }
+        }
+
+        internal static void StopWebServer()
+        {
+            try
+            {
+                _webServer?.Stop();
+                _webServer = null;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR StopWebServer : " + ex);
             }
         }
     }
