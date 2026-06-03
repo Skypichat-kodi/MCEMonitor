@@ -7,6 +7,9 @@ namespace StopMonitor
 {
     public class StopMonitorService
     {
+        // ------------------------------------------------------------
+        //  LECTURE DES ÉVÉNEMENTS D'ARRÊT (1074 / 6006 / 6008)
+        // ------------------------------------------------------------
         private (DateTime Time, int EventId, string Details) GetLastShutdownEvent()
         {
             string query =
@@ -49,6 +52,86 @@ namespace StopMonitor
             return (record.TimeCreated ?? DateTime.Now, record.Id, sb.ToString());
         }
 
+        // ------------------------------------------------------------
+        //  LECTURE DES ÉVÉNEMENTS DE CRASH (41 / 6008 / 1001)
+        // ------------------------------------------------------------
+        private (DateTime Time, int EventId, string Details) GetLastCrashEvent()
+        {
+            EventRecord latest = null;
+
+            // --- 1) Kernel-Power 41 (journal correct)
+            try
+            {
+                var kpQuery = new EventLogQuery(
+                    "Microsoft-Windows-Kernel-Power/Operational",
+                    PathType.LogName,
+                    "*[System/EventID=41]"
+                )
+                {
+                    ReverseDirection = true
+                };
+
+                using var reader = new EventLogReader(kpQuery);
+                var rec = reader.ReadEvent();
+                if (rec != null)
+                    latest = rec;
+            }
+            catch { }
+
+            // --- 2) 6008 et 1001 dans System
+            try
+            {
+                string sysQuery =
+                    "*[System[(EventID=6008 or EventID=1001)]]";
+
+                var sysLogQuery = new EventLogQuery("System", PathType.LogName, sysQuery)
+                {
+                    ReverseDirection = true
+                };
+
+                using var reader = new EventLogReader(sysLogQuery);
+                var rec = reader.ReadEvent();
+
+                if (rec != null)
+                {
+                    if (latest == null ||
+                        (rec.TimeCreated > latest.TimeCreated))
+                    {
+                        latest = rec;
+                    }
+                }
+            }
+            catch { }
+
+            if (latest == null)
+                return (DateTime.MinValue, 0, "Impossible de déterminer la cause du crash.");
+
+            // --- 3) Construction du message
+            var sb = new StringBuilder();
+
+            switch (latest.Id)
+            {
+                case 41:
+                    sb.AppendLine("Type : Redémarrage brutal (Kernel-Power 41).");
+                    break;
+
+                case 6008:
+                    sb.AppendLine("Type : Arrêt inattendu (EventID 6008).");
+                    break;
+
+                case 1001:
+                    sb.AppendLine("Type : BSOD (BugCheck 1001).");
+                    if (latest.Properties.Count > 0)
+                        sb.AppendLine($"Code : {latest.Properties[0].Value}");
+                    break;
+            }
+
+            return (latest.TimeCreated ?? DateTime.Now, latest.Id, sb.ToString());
+        }
+
+        // ------------------------------------------------------------
+        //  ENVOI EMAIL ARRÊT
+        // ------------------------------------------------------------
         public async Task SendShutdownEmail()
         {
             await Task.Delay(500);
@@ -78,12 +161,14 @@ namespace StopMonitor
                 $"<b>OS :</b> {Environment.OSVersion}<br>" +
                 $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
 
-            // ?? Email GRIS
             await EmailSender.SendAsync(cfg, subject, body, isHtml: true, style: EmailStyle.Normal);
 
             LogHelper.Write("Email envoyé avec succès.");
         }
 
+        // ------------------------------------------------------------
+        //  ENVOI EMAIL CRASH
+        // ------------------------------------------------------------
         public async Task SendCrashEmail()
         {
             await Task.Delay(500);
@@ -113,48 +198,9 @@ namespace StopMonitor
                 $"<b>OS :</b> {Environment.OSVersion}<br>" +
                 $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
 
-            // ?? Email ROUGE (BSOD)
             await EmailSender.SendAsync(cfg, subject, body, isHtml: true, style: EmailStyle.Error);
 
             LogHelper.Write("Email de crash envoyé avec succès.");
-        }
-
-        private (DateTime Time, int EventId, string Details) GetLastCrashEvent()
-        {
-            string query =
-                "*[System[(EventID=41 or EventID=6008 or EventID=1001)]]";
-
-            var logQuery = new EventLogQuery("System", PathType.LogName, query)
-            {
-                ReverseDirection = true
-            };
-
-            using var reader = new EventLogReader(logQuery);
-            var record = reader.ReadEvent();
-
-            if (record == null)
-                return (DateTime.MinValue, 0, "Impossible de déterminer la cause du crash.");
-
-            var sb = new StringBuilder();
-
-            switch (record.Id)
-            {
-                case 41:
-                    sb.AppendLine("Type : Redémarrage brutal (Kernel-Power 41).");
-                    break;
-
-                case 6008:
-                    sb.AppendLine("Type : Arrêt inattendu (EventID 6008).");
-                    break;
-
-                case 1001:
-                    sb.AppendLine("Type : BSOD (BugCheck 1001).");
-                    if (record.Properties.Count > 0)
-                        sb.AppendLine($"Code : {record.Properties[0].Value}");
-                    break;
-            }
-
-            return (record.TimeCreated ?? DateTime.Now, record.Id, sb.ToString());
         }
     }
 }

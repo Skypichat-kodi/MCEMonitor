@@ -18,7 +18,7 @@ namespace StopMonitor
 
             string mode = args.Length > 0 ? args[0].ToLower() : "none";
 
-            // ?? Nouveau : choisir le bon fichier log AVANT d'écrire
+            // Choisir le bon fichier log AVANT d'écrire
             switch (mode)
             {
                 case "shutdown":
@@ -43,10 +43,14 @@ namespace StopMonitor
                 switch (mode)
                 {
                     case "shutdown":
+                        // Petit délai pour laisser Windows écrire les événements 1074/6006/6008
+                        await Task.Delay(1500);
                         await service.SendShutdownEmail();
                         break;
 
                     case "boot":
+                        // Petit délai pour laisser Windows écrire Kernel-Power 41 / BugCheck 1001
+                        await Task.Delay(1500);
                         await service.SendCrashEmail();
                         break;
 

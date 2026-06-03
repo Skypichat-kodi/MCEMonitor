@@ -5,10 +5,10 @@ namespace StopMonitor
 {
     public static class LogHelper
     {
-        // Nouveau : nom de fichier dynamique
+        // Nom de fichier dynamique
         private static string _logFileName = "StopMonitor.log";
 
-        // Nouveau : permet de changer le fichier log selon le mode
+        // Permet de changer le fichier log selon le mode
         public static void SetLogFile(string fileName)
         {
             _logFileName = fileName;
@@ -22,35 +22,58 @@ namespace StopMonitor
 
             Directory.CreateDirectory(dir);
 
-            // Utilise le nom dynamique
             return Path.Combine(dir, _logFileName);
         }
 
-        // Réinitialisation du fichier
+        // Réinitialisation du fichier (sécurisée)
         public static void Clear()
         {
-            string path = GetLogPath();
-            File.WriteAllText(path, string.Empty);
+            try
+            {
+                string path = GetLogPath();
+
+                // Si le fichier existe ? on le vide
+                // S'il n'existe pas ? on le crée vide
+                File.WriteAllText(path, string.Empty);
+            }
+            catch
+            {
+                // On ne casse jamais StopMonitor pour un log
+            }
         }
 
         public static void Write(string message)
         {
-            string path = GetLogPath();
-            string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}";
-            File.AppendAllText(path, line + Environment.NewLine);
+            try
+            {
+                string path = GetLogPath();
+                string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}";
+                File.AppendAllText(path, line + Environment.NewLine);
+            }
+            catch
+            {
+                // Silence en cas d'erreur de log
+            }
         }
 
         public static void WriteBlock(string title, string content)
         {
-            string path = GetLogPath();
-            string block =
-                "\n------------------------------------------------------------\n" +
-                $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {title}\n" +
-                "------------------------------------------------------------\n" +
-                content +
-                "\n------------------------------------------------------------\n";
+            try
+            {
+                string path = GetLogPath();
+                string block =
+                    "\n------------------------------------------------------------\n" +
+                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {title}\n" +
+                    "------------------------------------------------------------\n" +
+                    content +
+                    "\n------------------------------------------------------------\n";
 
-            File.AppendAllText(path, block);
+                File.AppendAllText(path, block);
+            }
+            catch
+            {
+                // Silence en cas d'erreur de log
+            }
         }
     }
 }
