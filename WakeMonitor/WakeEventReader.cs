@@ -27,7 +27,9 @@ public static class WakeEventReader
 
         DateTime wakeTime = evt.TimeCreated ?? DateTime.Now;
         DateTime sleepTime = wakeTime;
-        string source = "Inconnue";
+
+        string sleepState = "Inconnue";   // <-- NOUVEAU
+        string wakeCause  = "Inconnue";   // <-- NOUVEAU
 
         foreach (var raw in lines)
         {
@@ -43,9 +45,17 @@ public static class WakeEventReader
                 if (TryParseDate(l, out var dt))
                     wakeTime = dt.ToLocalTime();
             }
+            else if (l.StartsWith("État de veille", StringComparison.OrdinalIgnoreCase) ||
+                     l.StartsWith("État du système", StringComparison.OrdinalIgnoreCase) ||
+                     l.StartsWith("Sleep State", StringComparison.OrdinalIgnoreCase))
+            {
+                // Exemple : "État de veille : S4"
+                sleepState = l[(l.IndexOf(':') + 1)..].Trim();
+            }
             else if (l.StartsWith("Source de réveil", StringComparison.OrdinalIgnoreCase))
             {
-                source = l[(l.IndexOf(':') + 1)..].Trim();
+                // Exemple : "Source de réveil : Power Button"
+                wakeCause = l[(l.IndexOf(':') + 1)..].Trim();
             }
         }
 
@@ -54,19 +64,24 @@ public static class WakeEventReader
             WakeTime = wakeTime,
             SleepTime = sleepTime,
             SleepDuration = wakeTime - sleepTime,
-            Cause = source
+
+            // --- NOUVEAU : séparation correcte ---
+            SleepState = sleepState,
+            WakeCause  = wakeCause,
+
+            // Compatibilité avec ton code existant :
+            Cause = wakeCause
         };
     }
 
     private static string Clean(string s)
     {
-        // Supprime les caractères invisibles (RTL, LTR, etc.)
         return new string(s.Where(c => !char.IsControl(c) || c == '\n').ToArray())
-            .Replace("\u200E", "") // LRM
-            .Replace("\u200F", "") // RLM
-            .Replace("\u202A", "") // LRE
-            .Replace("\u202B", "") // RLE
-            .Replace("\u202C", "") // PDF
+            .Replace("\u200E", "")
+            .Replace("\u200F", "")
+            .Replace("\u202A", "")
+            .Replace("\u202B", "")
+            .Replace("\u202C", "")
             .Trim();
     }
 

@@ -41,9 +41,12 @@ namespace WakeMonitor
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
                 // --- NOUVEAU : cause corrigée intelligente ---
+                // wake.Cause pointe maintenant vers wake.WakeCause (compatibilité)
+                string causeBrute = wake.WakeCause;
+
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
-                    : wake.Cause;
+                    : causeBrute;
 
                 // Détection WOL depuis hibernation S4
                 if (cause == "Inconnue" && IsWolFromHibernate())
@@ -72,6 +75,7 @@ namespace WakeMonitor
                     $"Réveil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
                     $"Durée : {duration}\n" +
+                    $"État précédent : {wake.SleepState}\n" +   // <-- AJOUT
                     $"Cause : {cause}\n" +
                     $"USB : {usb}\n" +
                     $"Machine : {Environment.MachineName}\n" +
@@ -89,12 +93,13 @@ namespace WakeMonitor
                 // 5) Corps du mail
                 string body =
                     wol.HtmlBlock +
-                    wolCorrectionBlock + // <-- AJOUT ICI
+                    wolCorrectionBlock +
                     "<b>=== Détails du réveil ===</b><br>" +
                     $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
                     $"<b>Durée :</b> {duration}<br>" +
-                    $"<b>Cause :</b> {cause}<br>" +
+                    $"<b>État précédent :</b> {wake.SleepState}<br>" +   // <-- AJOUT
+                    $"<b>Cause du réveil :</b> {cause}<br>" +            // <-- AJOUT (remplace ton ancien "Cause")
                     $"<b>USB :</b> {usb}<br>" +
                     $"<b>Machine :</b> {Environment.MachineName}<br>" +
                     $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
