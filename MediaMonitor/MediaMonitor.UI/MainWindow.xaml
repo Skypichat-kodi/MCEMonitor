@@ -234,80 +234,200 @@
                   BorderBrush="{StaticResource Win11Border}"
                   Foreground="{StaticResource Win11Text}">
 
-            <StackPanel>
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>   <!-- Zone 1 : Configuration -->
+                    <ColumnDefinition Width="*"/>      <!-- Zone 2 : Espace réservé -->
+                    <ColumnDefinition Width="Auto"/>   <!-- Zone 3 : Ouvrir -->
+                </Grid.ColumnDefinitions>
 
-                <!-- Switch ON/OFF -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="Activer le serveur Web"
-                               VerticalAlignment="Center"
-                               Margin="0,0,8,0"/>
+                <!-- ZONE 1 : CONFIGURATION (à gauche) -->
+                <StackPanel Grid.Column="0" Margin="0,0,20,0">
 
-                    <ToggleButton x:Name="ToggleWeb"
-                                  Width="40"
-                                  Height="20"
-                                  Checked="ToggleWeb_Checked"
-                                  Unchecked="ToggleWeb_Unchecked">
+                    <!-- Switch ON/OFF -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Activer le serveur Web"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
 
-                        <ToggleButton.Style>
-                            <Style TargetType="ToggleButton">
-                                <Setter Property="Template">
-                                    <Setter.Value>
-                                        <ControlTemplate TargetType="ToggleButton">
-                                            <Grid Width="40" Height="20">
-                                                <Border x:Name="SwitchBackground"
-                                                        CornerRadius="10"
-                                                        Background="#3C3C3C"/>
-                                                <Ellipse x:Name="SwitchThumb"
-                                                         Width="16" Height="16"
-                                                         Margin="2"
-                                                         Fill="#E5E5E5"
-                                                         HorizontalAlignment="Left"/>
-                                            </Grid>
+                        <ToggleButton x:Name="ToggleWeb"
+                                      Width="40"
+                                      Height="20"
+                                      Checked="ToggleWeb_Checked"
+                                      Unchecked="ToggleWeb_Unchecked">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Grid Width="40" Height="20">
+                                                    <Border x:Name="SwitchBackground"
+                                                            CornerRadius="10"
+                                                            Background="#3C3C3C"/>
+                                                    <Ellipse x:Name="SwitchThumb"
+                                                             Width="16" Height="16"
+                                                             Margin="2"
+                                                             Fill="#E5E5E5"
+                                                             HorizontalAlignment="Left"/>
+                                                </Grid>
 
-                                            <ControlTemplate.Triggers>
-                                                <Trigger Property="IsChecked" Value="True">
-                                                    <Setter TargetName="SwitchBackground"
-                                                            Property="Background"
-                                                            Value="#4CC2FF"/>
-                                                    <Setter TargetName="SwitchThumb"
-                                                            Property="HorizontalAlignment"
-                                                            Value="Right"/>
-                                                </Trigger>
-                                            </ControlTemplate.Triggers>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="SwitchBackground"
+                                                                Property="Background"
+                                                                Value="#4CC2FF"/>
+                                                        <Setter TargetName="SwitchThumb"
+                                                                Property="HorizontalAlignment"
+                                                                Value="Right"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
 
-                                        </ControlTemplate>
-                                    </Setter.Value>
-                                </Setter>
-                            </Style>
-                        </ToggleButton.Style>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
+                    </StackPanel>
 
-                    </ToggleButton>
-                </StackPanel>
+                    <!-- Port (aligné avec Login/Pass) -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="Port :" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="txtWebPort"
+                                 Width="200"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"/>
+                    </StackPanel>
 
-                <!-- Port -->
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10" VerticalAlignment="Center">
-                    <TextBlock Text="Port :" VerticalAlignment="Center"/>
+                    <!-- Login -->
+                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                        <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="txtWebLogin"
+                                 Width="200"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"/>
+                    </StackPanel>
 
-                    <TextBox x:Name="txtWebPort"
-                             Width="80"
-                             Margin="10,0,0,0"
-                             Background="#1E1E1E"
-                             Foreground="#E5E5E5"
-                             BorderBrush="#3C3C3C"/>
+                    <!-- Mot de passe + œil -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>   <!-- Label -->
+                            <ColumnDefinition Width="177"/>   <!-- Champ -->
+                            <ColumnDefinition Width="Auto"/>  <!-- Œil -->
+                        </Grid.ColumnDefinitions>
+
+                        <!-- Label -->
+                        <TextBlock Text="Mot de passe :" 
+                                   Grid.Column="0"
+                                   VerticalAlignment="Center"/>
+
+                        <!-- PasswordBox (masqué) -->
+                        <PasswordBox x:Name="txtWebPassword"
+                                     Grid.Column="1"
+                                     Width="177"
+                                     Background="#1E1E1E"
+                                     Foreground="#E5E5E5"
+                                     BorderBrush="#3C3C3C"
+                                     Visibility="Visible"/>
+
+                        <!-- TextBox (visible quand œil activé) -->
+                        <TextBox x:Name="txtWebPasswordVisible"
+                                 Grid.Column="1"
+                                 Width="177"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"
+                                 Visibility="Collapsed"/>
+
+                        <!-- Bouton œil (version compacte) -->
+                        <Button x:Name="btnShowPassword"
+                                Grid.Column="2"
+                                Width="18"
+                                Height="18"
+                                Margin="6,0,0,0"
+                                Padding="0"
+                                Click="btnShowPassword_Click"
+                                Background="#2D2D30"
+                                BorderBrush="#3C3C3C"
+                                BorderThickness="1"
+                                Cursor="Hand">
+                            <TextBlock Text="👁" FontSize="12" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Button>
+
+                    </Grid>
 
                     <Button Content="Appliquer"
-                            Width="100"
-                            Margin="10,0,0,0"
-                            Click="btnApplyWebPort_Click"/>
+                            Width="150"
+                            Height="24"
+                            Padding="0"
+                            VerticalContentAlignment="Center"
+                            Click="btnApplyWebAll_Click"/>
                 </StackPanel>
 
-                <!-- Bouton ouvrir -->
+<!-- ZONE 2 : Sauvegarde de l'historique -->
+<StackPanel Grid.Column="1"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Margin="20,0,20,0"
+            Orientation="Vertical">
+
+    <TextBlock Text="Garder une sauvegarde :"
+               HorizontalAlignment="Center"
+               Margin="0,0,0,10"/>
+
+    <StackPanel Orientation="Vertical"
+                HorizontalAlignment="Center">
+
+        <CheckBox x:Name="chkNone"
+                  Content="Aucune"
+                  Foreground="#E5E5E5"
+                  Checked="BackupOption_Checked"/>
+
+        <CheckBox x:Name="chk1w"
+                  Content="1 semaine"
+                  Foreground="#E5E5E5"
+                  Checked="BackupOption_Checked"/>
+
+        <CheckBox x:Name="chk2w"
+                  Content="2 semaines"
+                  Foreground="#E5E5E5"
+                  Checked="BackupOption_Checked"/>
+
+        <CheckBox x:Name="chk1m"
+                  Content="1 mois"
+                  Foreground="#E5E5E5"
+                  Checked="BackupOption_Checked"/>
+
+    </StackPanel>
+
+    <Button Content="Ouvrir la sauvegarde"
+            Width="180"
+            Height="24"
+            Padding="0,-1,0,0"
+            VerticalContentAlignment="Center"
+            Click="btnOpenBackup_Click"/>
+</StackPanel>
+
+
+                <!-- ZONE 3 : BOUTON OUVRIR (à droite, en bas) -->
+                <StackPanel Grid.Column="2"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom">
+
                 <Button Content="Ouvrir dans le navigateur"
                         Width="220"
+                        Height="24"
+                        Padding="0"
+                        VerticalContentAlignment="Center"
                         Click="btnOpenWeb_Click"/>
-            </StackPanel>
+                </StackPanel>
+
+            </Grid>
 
         </GroupBox>
+
         <!-- TABLEAU EN COURS -->
         <DataGrid x:Name="FilesGrid"
                   Grid.Row="2"

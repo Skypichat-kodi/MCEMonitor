@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Text;
 
 namespace MediaMonitor.Service
 {
@@ -7,6 +8,9 @@ namespace MediaMonitor.Service
     {
         public bool Enabled { get; set; } = false;
         public int Port { get; set; } = 8081;
+
+        public string Username { get; set; } = "admin";
+        public string Password { get; set; } = "admin";
 
         private static string GetConfigPath()
         {
@@ -32,6 +36,8 @@ namespace MediaMonitor.Service
                     // Valeurs par défaut
                     settings.Enabled = false;
                     settings.Port = 8081;
+                    settings.Username = "admin";
+                    settings.Password = "admin";
                     return settings;
                 }
 
@@ -49,6 +55,16 @@ namespace MediaMonitor.Service
                         if (int.TryParse(line.Split('=')[1].Trim(), out int p))
                             settings.Port = p;
                     }
+
+                    if (line.StartsWith("Username=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        settings.Username = line.Split('=')[1].Trim();
+                    }
+
+                    if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        settings.Password = line.Split('=')[1].Trim();
+                    }
                 }
             }
             catch
@@ -65,11 +81,13 @@ namespace MediaMonitor.Service
             {
                 string path = GetConfigPath();
 
-                string content =
-                    "Enabled=" + (Enabled ? "true" : "false") + Environment.NewLine +
-                    "Port=" + Port;
+                var sb = new StringBuilder();
+                sb.AppendLine("Enabled=" + (Enabled ? "true" : "false"));
+                sb.AppendLine("Port=" + Port);
+                sb.AppendLine("Username=" + Username);
+                sb.AppendLine("Password=" + Password);
 
-                File.WriteAllText(path, content);
+                File.WriteAllText(path, sb.ToString());
             }
             catch
             {

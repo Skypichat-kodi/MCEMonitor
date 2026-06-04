@@ -105,6 +105,10 @@ namespace MediaMonitor.UI.Services
             return json;
         }
 
+        // ============================================================
+        // GETTERS
+        // ============================================================
+
         public static async Task<StateResponse?> GetState()
         {
             string? json = await SendCommand("get-state");
@@ -248,6 +252,7 @@ namespace MediaMonitor.UI.Services
         // ============================================================
         // WEB SERVER
         // ============================================================
+
         public static async Task<bool> GetWebEnabled()
         {
             string? json = await SendCommand("get-web-enabled");
@@ -292,6 +297,30 @@ namespace MediaMonitor.UI.Services
         public static Task SetWebPort(int port)
         {
             return SendCommand("set-web-port " + port);
+        }
+
+        // ============================================================
+        // ?? AJOUT : WEB CREDENTIALS
+        // ============================================================
+
+        public static async Task<bool> SetWebCredentials(string username, string password)
+        {
+            string cmd = $"set-web-credentials {username} {password}";
+
+            string? json = await SendCommand(cmd);
+            if (json == null)
+                return false;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                return obj != null && obj.ContainsKey("status") && obj["status"] == "ok";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON set-web-credentials : " + ex.Message);
+                return false;
+            }
         }
     }
 }

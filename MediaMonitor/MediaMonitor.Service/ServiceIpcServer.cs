@@ -93,6 +93,13 @@ namespace MediaMonitor.Service
                         continue;
                     }
 
+                    // ?? AJOUT : set-web-credentials login password
+                    if (command.StartsWith("set-web-credentials ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetWebCredentials(command, writer, server);
+                        continue;
+                    }
+
                     // ------------------------------------------------------------
                     // COMMANDES EXACTES (SANS ARGUMENT)
                     // ------------------------------------------------------------
@@ -145,6 +152,52 @@ namespace MediaMonitor.Service
             }
 
             Log("IPC ServerLoop terminé (running = false).");
+        }
+
+        // ------------------------------------------------------------
+        // ?? AJOUT : SET WEB CREDENTIALS
+        // ------------------------------------------------------------
+
+        private void HandleSetWebCredentials(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 3)
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"missing parameters\"}");
+                    writer.Flush();
+                    server.WaitForPipeDrain();
+                    server.Disconnect();
+                    return;
+                }
+
+                string username = parts[1];
+                string password = parts[2];
+
+                Log($"IPC : Mise à jour Web Credentials : {username} / (hidden)");
+
+                var settings = WebServerSettings.Load();
+                settings.Username = username;
+                settings.Password = password;
+                settings.Save();
+
+                // Redémarrer le serveur web pour appliquer
+                Program.StopWebServer();
+                Program.StartWebServerIfEnabled();
+
+                writer.Write("{\"status\":\"ok\"}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-web-credentials : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
         }
 
         // ------------------------------------------------------------

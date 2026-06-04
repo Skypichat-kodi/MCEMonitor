@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using MediaMonitor.UI.Services;
 using MediaMonitor.Core.Models;
 using Microsoft.Win32;
+using System.Windows.Controls;
 
 namespace MediaMonitor.UI
 {
@@ -144,6 +145,27 @@ namespace MediaMonitor.UI
                 {
                     ToggleWeb.IsChecked = await ServiceIpcClient.GetWebEnabled();
                     txtWebPort.Text = (await ServiceIpcClient.GetWebPort()).ToString();
+
+                    // 🔵 Chargement des identifiants Web
+                    var settingsPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "MCEMonitor",
+                        "MediaMonitor.Web.config"
+                    );
+
+                    if (File.Exists(settingsPath))
+                    {
+                        foreach (var line in File.ReadAllLines(settingsPath))
+                        {
+                            if (line.StartsWith("Username=", StringComparison.OrdinalIgnoreCase))
+                                txtWebLogin.Text = line.Split('=')[1].Trim();
+
+                            if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
+                                txtWebPassword.Password = line.Split('=')[1].Trim();
+                        }
+
+                        UiLog("Identifiants Web chargés depuis le service");
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -472,19 +494,119 @@ namespace MediaMonitor.UI
                 MessageBox.Show("Erreur IPC : " + ex.Message);
             }
         }
-
-        private async void btnApplyWebPort_Click(object sender, RoutedEventArgs e)
+        private async void btnApplyWebAll_Click(object sender, RoutedEventArgs e)
         {
+            // PORT
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
                 MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            await ServiceIpcClient.SetWebPort(port);
+            // LOGIN / PASSWORD
+            string login = txtWebLogin.Text.Trim();
+            string pass = txtWebPassword.Password.Trim();
 
-            MessageBox.Show("Port mis à jour.", "OK", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
+            {
+                MessageBox.Show("Veuillez entrer un login et un mot de passe.",
+                                "Erreur",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Warning);
+                return;
+            }
+
+            UiLog($"Mise à jour Web : port={port}, login={login}, pass=(hidden)");
+
+            try
+            {
+                await ServiceIpcClient.SetWebPort(port);
+                await ServiceIpcClient.SetWebCredentials(login, pass);
+
+                MessageBox.Show("Paramètres Web mis à jour.",
+                                "OK",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur IPC WebAll : " + ex.Message);
+                MessageBox.Show("Erreur IPC : " + ex.Message,
+                                "Erreur",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
         }
+        private bool _passwordVisible = false;
+
+        private void btnShowPassword_Click(object sender, RoutedEventArgs e)
+        {
+            _passwordVisible = !_passwordVisible;
+
+            if (_passwordVisible)
+            {
+                // Afficher le mot de passe
+                txtWebPasswordVisible.Text = txtWebPassword.Password;
+                txtWebPasswordVisible.Visibility = Visibility.Visible;
+                txtWebPassword.Visibility = Visibility.Collapsed;
+
+                btnShowPassword.Content = "🙈";
+            }
+            else
+            {
+                // Masquer le mot de passe
+                txtWebPassword.Password = txtWebPasswordVisible.Text;
+                txtWebPasswordVisible.Visibility = Visibility.Collapsed;
+                txtWebPassword.Visibility = Visibility.Visible;
+
+                btnShowPassword.Content = "👁";
+            }
+        }
+        private void btnOpenBackup_Click(object sender, RoutedEventArgs e)
+        {
+            if (!int.TryParse(txtWebPort.Text, out int port))
+            {
+                MessageBox.Show("Port Web invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = $"http://localhost:{port}/backup",
+                    UseShellExecute = true
+                });
+
+                UiLog("Ouverture du navigateur sur /backup");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur ouverture /backup : " + ex.Message);
+                MessageBox.Show("Impossible d’ouvrir la page /backup.\n" + ex.Message,
+                                "Erreur",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
+        }
+
+private void BackupOption_Checked(object sender, RoutedEventArgs e)
+{
+    var clicked = sender as CheckBox;
+
+    foreach (var cb in new[] { chkNone, chk1w, chk2w, chk1m })
+    {
+        if (cb != clicked)
+            cb.IsChecked = false;
+    }
+
+    // Ici tu peux gérer la valeur choisie
+    // Exemple :
+    // if (chkNone.IsChecked == true) retention = 0;
+    // if (chk1w.IsChecked == true) retention = 7;
+    // etc.
+}
+                           
     }
 }
 
