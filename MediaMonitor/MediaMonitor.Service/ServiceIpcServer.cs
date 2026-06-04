@@ -18,6 +18,9 @@ namespace MediaMonitor.Service
         // Envoi email activé par défaut (sera écrasé par Program.LoadEmailSetting)
         public static bool EmailSendingEnabled = true;
 
+        // ?? AJOUT : rétention sauvegardée côté service
+        public static int BackupRetentionDays = 0;
+
         public ServiceIpcServer(MediaMonitorEngine engine)
         {
             _engine = engine;
@@ -65,43 +68,45 @@ namespace MediaMonitor.Service
                     // COMMANDES AVEC ARGUMENTS
                     // ------------------------------------------------------------
 
-                    // set-logging true/false
                     if (command.StartsWith("set-logging ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetLogging(command, writer, server);
                         continue;
                     }
 
-                    // set-email-enabled true/false
                     if (command.StartsWith("set-email-enabled ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetEmailEnabled(command, writer, server);
                         continue;
                     }
 
-                    // set-web-enabled true/false
                     if (command.StartsWith("set-web-enabled ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetWebEnabled(command, writer, server);
                         continue;
                     }
 
-                    // set-web-port 8081
                     if (command.StartsWith("set-web-port ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetWebPort(command, writer, server);
                         continue;
                     }
 
-                    // ?? AJOUT : set-web-credentials login password
                     if (command.StartsWith("set-web-credentials ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetWebCredentials(command, writer, server);
                         continue;
                     }
 
+                    // ?? AJOUT : set-backup-retention X
+                    if (command.StartsWith("set-backup-retention ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetBackupRetention(command, writer, server);
+                        continue;
+                    }
+
                     // ------------------------------------------------------------
-                    // COMMANDES EXACTES (SANS ARGUMENT)
+                    // COMMANDES EXACTES
                     // ------------------------------------------------------------
                     switch (command)
                     {
@@ -137,6 +142,11 @@ namespace MediaMonitor.Service
                             HandleGetWebPort(writer, server);
                             break;
 
+                        // ?? AJOUT : get-backup-retention
+                        case "get-backup-retention":
+                            HandleGetBackupRetention(writer, server);
+                            break;
+
                         default:
                             writer.Write("{\"error\":\"unknown command\"}");
                             writer.Flush();
@@ -153,7 +163,6 @@ namespace MediaMonitor.Service
 
             Log("IPC ServerLoop terminé (running = false).");
         }
-
         // ------------------------------------------------------------
         // ?? AJOUT : SET WEB CREDENTIALS
         // ------------------------------------------------------------
@@ -254,7 +263,23 @@ namespace MediaMonitor.Service
             server.WaitForPipeDrain();
             server.Disconnect();
         }
+        private void HandleGetBackupRetention(StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                writer.Write("{\"days\":" + BackupRetentionDays + "}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"" + ex.Message + "\"}");
+                Log("ERREUR get-backup-retention : " + ex);
+            }
 
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+      
         // ------------------------------------------------------------
         // SETTERS
         // ------------------------------------------------------------
@@ -337,7 +362,6 @@ namespace MediaMonitor.Service
             server.WaitForPipeDrain();
             server.Disconnect();
         }
-
         private void HandleSetWebPort(string command, StreamWriter writer, NamedPipeServerStream server)
         {
             try
@@ -378,6 +402,35 @@ namespace MediaMonitor.Service
             server.WaitForPipeDrain();
             server.Disconnect();
         }
+        private void HandleSetBackupRetention(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
+                }
+                else
+                {
+                    BackupRetentionDays = days;
+                    SaveBackupRetention();
+
+                    Log("IPC : BackupRetentionDays = " + days);
+                    writer.Write("{\"status\":\"ok\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-backup-retention : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }      
 
         // ------------------------------------------------------------
         // COMMANDES EXISTANTES
@@ -501,6 +554,49 @@ namespace MediaMonitor.Service
             }
         }
 
+        // ?? AJOUT : PERSISTENCE RÉTENTION
+        public static void LoadBackupRetention()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                string path = Path.Combine(folder, "MediaMonitor.Backup.config");
+
+                if (File.Exists(path))
+                {
+                    string txt = File.ReadAllText(path).Trim();
+                    if (int.TryParse(txt, out int days))
+                        BackupRetentionDays = days;
+                }
+            }
+            catch { }
+        }
+
+        private void SaveBackupRetention()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string path = Path.Combine(folder, "MediaMonitor.Backup.config");
+
+                File.WriteAllText(path, BackupRetentionDays.ToString());
+                Log("BackupRetention sauvegardé : " + BackupRetentionDays);
+            }
+            catch (Exception ex)
+            {
+                Log("ERREUR SaveBackupRetention : " + ex);
+            }
+        }
         // ------------------------------------------------------------
         // LOG
         // ------------------------------------------------------------

@@ -322,6 +322,32 @@ namespace MediaMonitor.UI.Services
                 return false;
             }
         }
+// ============================================================
+// BACKUP RETENTION
+// ============================================================
+
+public static async Task<int> GetBackupRetention()
+{
+    string? json = await SendCommand("get-backup-retention");
+    if (json == null)
+        return 0; // valeur par défaut
+
+    try
+    {
+        var obj = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+        return obj != null && obj.ContainsKey("days") ? obj["days"] : 0;
+    }
+    catch
+    {
+        return 0;
+    }
+}
+
+public static Task SetBackupRetention(int days)
+{
+    return SendCommand("set-backup-retention " + days);
+}
+        
     }
 }
 

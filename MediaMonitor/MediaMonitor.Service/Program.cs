@@ -94,6 +94,9 @@ namespace MediaMonitor.Service
             _lastReportStatus = "[CODE02] Dernier rapport inexistant";
             WriteScheduleLog(_lastReportStatus);
 
+            // ?? AJOUT : charger la rétention AVANT de démarrer l’IPC
+            ServiceIpcServer.LoadBackupRetention();
+
             // IPC
             ServiceIpcServer ipc = null;
             try
@@ -138,6 +141,7 @@ namespace MediaMonitor.Service
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
+
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
         // ------------------------------------------------------------
@@ -230,7 +234,6 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         private static void ScheduleNextReport(MediaMonitorEngine engine)
         {
-            // ?? Correction essentielle : empêcher les timers multiples
             reportTimer?.Dispose();
             reportTimer = null;
 
@@ -265,11 +268,11 @@ namespace MediaMonitor.Service
                     WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
                 }
 
-                // ?? Replanification propre (un seul timer actif)
                 ScheduleNextReport(engine);
 
             }, null, delay, Timeout.InfiniteTimeSpan);
         }
+
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
@@ -316,7 +319,6 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         private static void ShutdownConfigChanged(object sender, FileSystemEventArgs e)
         {
-            // Anti-rebond (évite 2 événements consécutifs)
             if ((DateTime.Now - _lastConfigChange).TotalMilliseconds < 200)
                 return;
 
@@ -342,10 +344,8 @@ namespace MediaMonitor.Service
 
                 WriteScheduleLog($"Shutdown.config chargé : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
 
-                // Réécrit le dernier CODE02
                 WriteScheduleLog(_lastReportStatus);
 
-                // ?? Replanification propre (grâce au Dispose() dans ScheduleNextReport)
                 ScheduleNextReport(_engine);
             }
             catch (Exception ex)
@@ -353,6 +353,7 @@ namespace MediaMonitor.Service
                 WriteScheduleLog("ERREUR ShutdownConfigChanged : " + ex.Message);
             }
         }
+
         internal static void StartWebServerIfEnabled()
         {
             try

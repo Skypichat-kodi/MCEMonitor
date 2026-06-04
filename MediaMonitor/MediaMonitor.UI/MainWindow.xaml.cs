@@ -171,12 +171,29 @@ namespace MediaMonitor.UI
                 {
                     UiLog("Erreur initialisation Serveur Web : " + ex.Message);
                 }
+
+                // 🔵 Chargement rétention
+                try
+                {
+                    int days = await ServiceIpcClient.GetBackupRetention();
+
+                    chkNone.IsChecked = days == 0;
+                    chk1w.IsChecked  = days == 7;
+                    chk2w.IsChecked  = days == 14;
+                    chk1m.IsChecked  = days == 30;
+
+                    UiLog("Rétention chargée : " + days + " jours");
+                }
+                catch (Exception ex)
+                {
+                    UiLog("Erreur chargement rétention : " + ex.Message);
+                }
+
             };
 
             // Détection sortie de veille
             SystemEvents.PowerModeChanged += SystemEvents_PowerModeChanged;
         }
-
         // Quand la fenêtre est prête
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
@@ -330,7 +347,6 @@ namespace MediaMonitor.UI
                 UiLog("Erreur IPC SetWebEnabled(true) : " + ex.Message);
             }
         }
-
         private async void ToggleWeb_Unchecked(object sender, RoutedEventArgs e)
         {
             UiLog("Serveur Web désactivé");
@@ -494,6 +510,7 @@ namespace MediaMonitor.UI
                 MessageBox.Show("Erreur IPC : " + ex.Message);
             }
         }
+
         private async void btnApplyWebAll_Click(object sender, RoutedEventArgs e)
         {
             // PORT
@@ -537,6 +554,7 @@ namespace MediaMonitor.UI
                                 MessageBoxImage.Error);
             }
         }
+
         private bool _passwordVisible = false;
 
         private void btnShowPassword_Click(object sender, RoutedEventArgs e)
@@ -562,6 +580,7 @@ namespace MediaMonitor.UI
                 btnShowPassword.Content = "👁";
             }
         }
+
         private void btnOpenBackup_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
@@ -589,24 +608,26 @@ namespace MediaMonitor.UI
                                 MessageBoxImage.Error);
             }
         }
+        // 🔵 Handler rétention
+        private async void BackupOption_Checked(object sender, RoutedEventArgs e)
+        {
+            var clicked = sender as CheckBox;
 
-private void BackupOption_Checked(object sender, RoutedEventArgs e)
-{
-    var clicked = sender as CheckBox;
+            foreach (var cb in new[] { chkNone, chk1w, chk2w, chk1m })
+            {
+                if (cb != clicked)
+                    cb.IsChecked = false;
+            }
 
-    foreach (var cb in new[] { chkNone, chk1w, chk2w, chk1m })
-    {
-        if (cb != clicked)
-            cb.IsChecked = false;
-    }
+            int retention = 0;
 
-    // Ici tu peux gérer la valeur choisie
-    // Exemple :
-    // if (chkNone.IsChecked == true) retention = 0;
-    // if (chk1w.IsChecked == true) retention = 7;
-    // etc.
-}
-                           
+            if (chk1w.IsChecked == true) retention = 7;
+            if (chk2w.IsChecked == true) retention = 14;
+            if (chk1m.IsChecked == true) retention = 30;
+
+            await ServiceIpcClient.SetBackupRetention(retention);
+            UiLog("Rétention sauvegardée : " + retention + " jours");
+        }
     }
 }
 
