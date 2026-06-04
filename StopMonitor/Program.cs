@@ -34,6 +34,9 @@ namespace StopMonitor
                     break;
             }
 
+            // ?? Vider le log AVANT toute écriture (Option A)
+            LogHelper.Clear();
+
             LogHelper.Write($"StopMonitor démarré. Mode = {mode}");
 
             try
@@ -43,14 +46,14 @@ namespace StopMonitor
                 switch (mode)
                 {
                     case "shutdown":
-                        // Petit délai pour laisser Windows écrire les événements 1074/6006/6008
-                        await Task.Delay(1500);
+                        // Laisser Windows écrire 1074 / 6006 / 6008
+                        await Task.Delay(5000);
                         await service.SendShutdownEmail();
                         break;
 
                     case "boot":
-                        // Petit délai pour laisser Windows écrire Kernel-Power 41 / BugCheck 1001
-                        await Task.Delay(1500);
+                        // Laisser Windows écrire 6005 / 12 / 6009 / 41 / 1001
+                        await Task.Delay(5000);
                         await service.SendCrashEmail();
                         break;
 

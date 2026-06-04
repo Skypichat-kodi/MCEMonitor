@@ -134,7 +134,7 @@ namespace StopMonitor
         // ------------------------------------------------------------
         public async Task SendShutdownEmail()
         {
-            await Task.Delay(500);
+            await Task.Delay(5000);
 
             var cfg = EmailConfig.Load();
             var evt = GetLastShutdownEvent();
@@ -171,7 +171,7 @@ namespace StopMonitor
         // ------------------------------------------------------------
         public async Task SendCrashEmail()
         {
-            await Task.Delay(500);
+            await Task.Delay(5000);
 
             var evt = GetLastCrashEvent();
             var cfg = EmailConfig.Load();
