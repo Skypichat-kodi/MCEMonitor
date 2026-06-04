@@ -16,6 +16,8 @@ public static class SmbOpenFiles
     {
         var result = new List<SmbOpenFile>();
 
+        Process? process = null;
+
         try
         {
             var psi = new ProcessStartInfo
@@ -32,23 +34,31 @@ public static class SmbOpenFiles
                 StandardErrorEncoding = Encoding.UTF8
             };
 
-            var process = Process.Start(psi);
-            if (process == null)
-                return result;
+            process = new Process { StartInfo = psi };
+            process.Start();
 
+            // Lecture complète des flux pour éviter les deadlocks
             string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            string error = process.StandardError.ReadToEnd();
+
+            // Timeout de sécurité : 3 secondes
+            if (!process.WaitForExit(3000))
+            {
+                try { process.Kill(); } catch { }
+                return result;
+            }
 
             if (string.IsNullOrWhiteSpace(output))
                 return result;
 
+            // Un seul objet JSON
             if (output.TrimStart().StartsWith("{"))
             {
                 var item = JsonSerializer.Deserialize<SmbOpenFile>(output);
                 if (item != null)
                     result.Add(item);
             }
-            else
+            else // Tableau JSON
             {
                 var items = JsonSerializer.Deserialize<List<SmbOpenFile>>(output);
                 if (items != null)
@@ -57,6 +67,11 @@ public static class SmbOpenFiles
         }
         catch
         {
+            // On ignore les erreurs ici, comme dans ta version d’origine
+        }
+        finally
+        {
+            process?.Dispose();
         }
 
         return result;
