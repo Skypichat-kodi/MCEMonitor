@@ -40,13 +40,11 @@ namespace WakeMonitor
                 string publicIp = await PublicIP.GetPublicIP();
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
-                // --- NOUVEAU : cause corrigée intelligente ---
-                // wake.Cause pointe maintenant vers wake.WakeCause (compatibilité)
-                string causeBrute = wake.WakeCause;
-
+                // --- Cause corrigée intelligente ---
+                // wake.Cause pointe vers wake.WakeCause via WakeInfo
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
-                    : causeBrute;
+                    : wake.WakeCause;
 
                 // Détection WOL depuis hibernation S4
                 if (cause == "Inconnue" && IsWolFromHibernate())
@@ -54,10 +52,16 @@ namespace WakeMonitor
                     cause = "Wake-on-LAN (depuis hibernation S4)";
                 }
 
+                // Correction HID : Windows ne remplit pas WakeSourceText en S4
+                if ((cause == "Unknown" || cause == "Inconnue") && !string.IsNullOrEmpty(usb))
+                {
+                    cause = "Périphérique USB (probablement HID)";
+                }
+
                 // 2) Analyse WOL via stratégie hybride
                 var wol = WolDetectionStrategy.Detect(wake, macLocal, opt);
 
-                // --- NOUVEAU : bloc visuel si Windows a mal classé le réveil ---
+                // Bloc visuel si Windows a mal classé le réveil
                 string wolCorrectionBlock = "";
                 if (wake.IsLikelyWol)
                 {
@@ -75,7 +79,7 @@ namespace WakeMonitor
                     $"Réveil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
                     $"Durée : {duration}\n" +
-                    $"État précédent : {wake.SleepState}\n" +   // <-- AJOUT
+                    $"État précédent : {wake.SleepState}\n" +
                     $"Cause : {cause}\n" +
                     $"USB : {usb}\n" +
                     $"Machine : {Environment.MachineName}\n" +
@@ -98,8 +102,8 @@ namespace WakeMonitor
                     $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
                     $"<b>Durée :</b> {duration}<br>" +
-                    $"<b>État précédent :</b> {wake.SleepState}<br>" +   // <-- AJOUT
-                    $"<b>Cause du réveil :</b> {cause}<br>" +            // <-- AJOUT (remplace ton ancien "Cause")
+                    $"<b>État précédent :</b> {wake.SleepState}<br>" +
+                    $"<b>Cause du réveil :</b> {cause}<br>" +
                     $"<b>USB :</b> {usb}<br>" +
                     $"<b>Machine :</b> {Environment.MachineName}<br>" +
                     $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
