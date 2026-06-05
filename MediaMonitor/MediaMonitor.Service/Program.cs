@@ -3,10 +3,6 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using MediaMonitor.Core.Services;
-using System.Text.Json;
-using System.Collections.Generic;
-using MediaMonitor.Core.Models;
-using System.Linq;
 
 namespace MediaMonitor.Service
 {
@@ -98,9 +94,6 @@ namespace MediaMonitor.Service
             _lastReportStatus = "[CODE02] Dernier rapport inexistant";
             WriteScheduleLog(_lastReportStatus);
 
-            // ?? AJOUT : charger la rétention AVANT de démarrer l’IPC
-            ServiceIpcServer.LoadBackupRetention();
-
             // IPC
             ServiceIpcServer ipc = null;
             try
@@ -145,7 +138,6 @@ namespace MediaMonitor.Service
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
-
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
         // ------------------------------------------------------------
@@ -238,6 +230,7 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         private static void ScheduleNextReport(MediaMonitorEngine engine)
         {
+            // ?? Correction essentielle : empêcher les timers multiples
             reportTimer?.Dispose();
             reportTimer = null;
 
@@ -264,12 +257,6 @@ namespace MediaMonitor.Service
                         _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
                         WriteScheduleLog(_lastReportStatus);
 
-                        // ? AJOUT : sauvegarde avant purge
-                        SaveHistoryBackup(engine);
-
-                        // ? AJOUT : rétention
-                        CleanupOldBackups();
-
                         engine.ClearHistory();
                     }
                 }
@@ -278,11 +265,11 @@ namespace MediaMonitor.Service
                     WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
                 }
 
+                // ?? Replanification propre (un seul timer actif)
                 ScheduleNextReport(engine);
 
             }, null, delay, Timeout.InfiniteTimeSpan);
         }
-
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
@@ -329,6 +316,7 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         private static void ShutdownConfigChanged(object sender, FileSystemEventArgs e)
         {
+            // Anti-rebond (évite 2 événements consécutifs)
             if ((DateTime.Now - _lastConfigChange).TotalMilliseconds < 200)
                 return;
 
@@ -354,8 +342,10 @@ namespace MediaMonitor.Service
 
                 WriteScheduleLog($"Shutdown.config chargé : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
 
+                // Réécrit le dernier CODE02
                 WriteScheduleLog(_lastReportStatus);
 
+                // ?? Replanification propre (grâce au Dispose() dans ScheduleNextReport)
                 ScheduleNextReport(_engine);
             }
             catch (Exception ex)
@@ -363,7 +353,6 @@ namespace MediaMonitor.Service
                 WriteScheduleLog("ERREUR ShutdownConfigChanged : " + ex.Message);
             }
         }
-
         internal static void StartWebServerIfEnabled()
         {
             try
@@ -399,159 +388,6 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR StopWebServer : " + ex);
             }
         }
-// =============================================================
-//  SAUVEGARDE FUSIONNÉE (Option B : start/end + fusion)
-// =============================================================
-private static void SaveHistoryBackup(MediaMonitorEngine engine)
-{
-    try
-    {
-        string baseFolder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-            "MCEMonitor",
-            "Backups"
-        );
-
-        Directory.CreateDirectory(baseFolder);
-
-        // 1) Charger l'historique RAM du jour
-        var todayItems = engine.GetHistory(); // List<MediaUsageItem>
-
-        // 2) Charger les anciennes sauvegardes encore dans la période
-        int days = ServiceIpcServer.BackupRetentionDays;
-        DateTime limit = DateTime.Now.AddDays(-days);
-
-        var mergedItems = new List<MediaUsageItem>();
-
-        var oldFiles = Directory.GetFiles(baseFolder, "history_*.json");
-
-        foreach (var file in oldFiles)
-        {
-            try
-            {
-                // Extraire la date de fin du fichier
-                // Format attendu : history_YYYY-MM-DD_to_YYYY-MM-DD.json
-                string name = Path.GetFileNameWithoutExtension(file);
-
-                if (!name.Contains("_to_"))
-                    continue;
-
-                string endPart = name.Split("_to_")[1];
-                if (!DateTime.TryParse(endPart, out DateTime endDate))
-                    continue;
-
-                // Garder seulement les fichiers dans la période
-                if (endDate < limit)
-                    continue;
-
-                // Charger le JSON
-                string json = File.ReadAllText(file);
-                var wrapper = JsonSerializer.Deserialize<BackupWrapper>(json);
-
-                if (wrapper?.Items != null)
-                    mergedItems.AddRange(wrapper.Items);
-            }
-            catch { }
-        }
-
-        // 3) Ajouter les items du jour
-        mergedItems.AddRange(todayItems);
-
-        if (mergedItems.Count == 0)
-            return;
-
-        // 4) Calculer start/end
-        DateTime start = mergedItems.Min(i => i.Timestamp).Date;
-        DateTime end = mergedItems.Max(i => i.Timestamp).Date;
-
-        // 5) Construire le wrapper final
-        var finalWrapper = new BackupWrapper
-        {
-            Start = start,
-            End = end,
-            Items = mergedItems.OrderBy(i => i.Timestamp).ToList()
-        };
-
-        // 6) Nom du fichier final
-        string finalFile = Path.Combine(
-            baseFolder,
-            $"history_{start:yyyy-MM-dd}_to_{end:yyyy-MM-dd}.json"
-        );
-
-        // 7) Écrire le fichier fusionné
-        string finalJson = JsonSerializer.Serialize(finalWrapper, new JsonSerializerOptions
-        {
-            WriteIndented = true
-        });
-
-        File.WriteAllText(finalFile, finalJson);
-
-        CoreLog.Write("Sauvegarde fusionnée créée : " + finalFile);
-
-        // 8) Supprimer les anciens fichiers individuels
-        foreach (var file in oldFiles)
-        {
-            try
-            {
-                File.Delete(file);
-            }
-            catch { }
-        }
-    }
-    catch (Exception ex)
-    {
-        CoreLog.Write("ERREUR SaveHistoryBackup : " + ex);
-    }
-}
-
-
-// =============================================================
-//  WRAPPER JSON POUR START/END
-// =============================================================
-private class BackupWrapper
-{
-    public DateTime Start { get; set; }
-    public DateTime End { get; set; }
-    public List<MediaUsageItem> Items { get; set; } = new();
-}
-
-
-        // =============================================================
-        //  RÉTENTION DES SAUVEGARDES
-        // =============================================================
-        private static void CleanupOldBackups()
-        {
-            try
-            {
-                if (ServiceIpcServer.BackupRetentionDays <= 0)
-                    return;
-
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Backups"
-                );
-
-                if (!Directory.Exists(folder))
-                    return;
-
-                var files = Directory.GetFiles(folder, "history_*.json");
-
-                foreach (var f in files)
-                {
-                    if (File.GetCreationTime(f) < DateTime.Now.AddDays(-ServiceIpcServer.BackupRetentionDays))
-                    {
-                        File.Delete(f);
-                        CoreLog.Write("Backup supprimé (rétention) : " + f);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR CleanupOldBackups : " + ex);
-            }
-        }
-        
     }
 }
 

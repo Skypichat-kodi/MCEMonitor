@@ -134,15 +134,7 @@ namespace MediaMonitor.Service
                         break;
 
                     case "/backup":
-                        if (ctx.Request.QueryString["save"] == "1")
-                        {
-                            _engine.SaveHistoryBackup();
-                        }
                         SendHtml(ctx, BuildBackupPage(ctx.Request));
-                        break;
-
-                    case "/download-backup":
-                        SendBackupFile(ctx);
                         break;
 
                     default:
@@ -176,33 +168,6 @@ namespace MediaMonitor.Service
             {
                 return false;
             }
-        }
-
-        private void SendBackupFile(HttpListenerContext ctx)
-        {
-            string folder = @"C:\ProgramData\MCEMonitor\Backups";
-            if (!Directory.Exists(folder))
-            {
-                SendHtml(ctx, "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>");
-                return;
-            }
-
-            var files = Directory.GetFiles(folder, "history_*.json");
-            if (files.Length == 0)
-            {
-                SendHtml(ctx, "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>");
-                return;
-            }
-
-            string lastFile = files.OrderByDescending(f => f).First();
-            byte[] data = File.ReadAllBytes(lastFile);
-
-            ctx.Response.ContentType = "application/json";
-            ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(lastFile)}\"");
-            ctx.Response.ContentLength64 = data.Length;
-
-            ctx.Response.OutputStream.Write(data, 0, data.Length);
-            ctx.Response.OutputStream.Close();
         }
 
         private void SendJson(HttpListenerContext ctx, object data)
@@ -249,17 +214,6 @@ namespace MediaMonitor.Service
             th { background:#222; }
             tr:nth-child(even) { background:#1a1a1a; }
             a { color:#6cf; }
-            .button {
-                display:inline-block;
-                padding:10px 20px;
-                background:#4CAF50;
-                color:white !important;
-                text-decoration:none;
-                border-radius:6px;
-                font-size:16px;
-                font-weight:bold;
-                margin-top:15px;
-            }
             </style>
             <meta http-equiv='refresh' content='5'>
             </head>
@@ -271,11 +225,6 @@ namespace MediaMonitor.Service
             sb.Append($"<p>Heure : <b>{DateTime.Now:HH:mm:ss}</b></p>");
             sb.Append($"<p>Fichiers en cours : <b>{live.Count}</b></p>");
             sb.Append($"<p>Historique total : <b>{history.Count}</b></p>");
-
-            // ?? BOUTON "CONSULTER LA SAUVEGARDE" ??
-            sb.Append("<div style='margin-top:20px; text-align:center;'>");
-            sb.Append("<a class='button' href='/backup'>Consulter la sauvegarde</a>");
-            sb.Append("</div>");
 
             sb.Append("<h2>Lecture en cours</h2>");
             sb.Append("<table><tr><th>Client</th><th>Type</th><th>Nom</th><th>Fichier</th></tr>");
@@ -320,60 +269,11 @@ namespace MediaMonitor.Service
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
             if (!Directory.Exists(folder))
-                return @"
-<html>
-<head>
-<meta charset='UTF-8'>
-<title>MediaMonitor – Sauvegarde</title>
-<style>
-body { background:#111; color:#eee; font-family:Arial; text-align:center; padding-top:50px; }
-h2 { color:#f55; }
-.button {
-    display:inline-block;
-    padding:10px 20px;
-    background:#0078D4;
-    color:white;
-    text-decoration:none;
-    border-radius:6px;
-    font-weight:bold;
-    margin-top:20px;
-}
-</style>
-</head>
-<body>
-<h2>Aucune sauvegarde trouvée.</h2>
-<a class='button' href='/'>Retour</a>
-</body>
-</html>";
+                return "<html><body><h2>Aucune sauvegarde trouvée.</h2></body></html>";
 
             var files = Directory.GetFiles(folder, "history_*.json");
             if (files.Length == 0)
-                return @"
-<html>
-<head>
-<meta charset='UTF-8'>
-<title>MediaMonitor – Sauvegarde</title>
-<style>
-body { background:#111; color:#eee; font-family:Arial; text-align:center; padding-top:50px; }
-h2 { color:#f55; }
-.button {
-    display:inline-block;
-    padding:10px 20px;
-    background:#0078D4;
-    color:white;
-    text-decoration:none;
-    border-radius:6px;
-    font-weight:bold;
-    margin-top:20px;
-}
-</style>
-</head>
-<body>
-<h2>Aucune sauvegarde disponible.</h2>
-<a class='button' href='/'>Retour</a>
-</body>
-</html>";
-
+                return "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>";
 
             string lastFile = files.OrderByDescending(f => f).First();
 
@@ -466,34 +366,8 @@ h2 { color:#f55; }
     <td>{item.Timestamp:yyyy-MM-dd HH:mm}</td>
 </tr>");
             }
-string buttons = @"
-<div style='text-align:center; margin:20px 0;'>
 
-    <a href='/backup?save=1' 
-       style='display:inline-block; padding:10px 20px; background:#4CAF50; 
-              color:white; text-decoration:none; border-radius:6px; 
-              font-weight:bold; margin-right:15px;'>
-        Mettre a jour la sauvegarde
-    </a>
-
-    <a href='/download-backup' 
-       style='display:inline-block; padding:10px 20px; background:#9C27B0; 
-              color:white; text-decoration:none; border-radius:6px; 
-              font-weight:bold; margin-right:15px;'>
-        Télécharger la sauvegarde
-    </a>
-
-    <a href='/' 
-       style='display:inline-block; padding:10px 20px; background:#0078D4; 
-              color:white; text-decoration:none; border-radius:6px; 
-              font-weight:bold;'>
-        Retour
-    </a>
-
-</div>
-";
-
-            string html = buttons + BackupHtmlTemplate
+            string html = BackupHtmlTemplate
                 .Replace("{{TOTAL}}", total.ToString())
                 .Replace("{{AUDIO}}", audio.ToString())
                 .Replace("{{SERIES}}", series.ToString())

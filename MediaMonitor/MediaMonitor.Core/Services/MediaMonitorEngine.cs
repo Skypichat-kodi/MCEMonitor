@@ -7,8 +7,7 @@ using MediaMonitor.Core.Models;
 using System.Text.RegularExpressions;
 using System.Globalization;
 using System.IO;
-using MediaMonitor.Core.Services;
-using System.Text.Json;
+using MediaMonitor.Core.Services;   // ?? pour CoreLog
 
 namespace MediaMonitor.Core.Services
 {
@@ -335,22 +334,6 @@ th { background: #eee; }
             {
                 CoreLog.Write("Erreur envoi email automatique : " + ex.ToString());
             }
-        }
-        
-        public void SaveHistoryBackup()
-        {
-            string folder = @"C:\ProgramData\MCEMonitor\Backups";
-            Directory.CreateDirectory(folder);
-
-            var history = GetHistory();
-            string file = Path.Combine(folder, $"history_{DateTime.Now:yyyyMMdd_HHmmss}.json");
-
-            string json = JsonSerializer.Serialize(history, new JsonSerializerOptions
-            {
-                WriteIndented = true
-            });
-
-            File.WriteAllText(file, json);
         }
 
         // ============================================================
