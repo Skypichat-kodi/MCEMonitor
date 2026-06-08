@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Shutdown.config">

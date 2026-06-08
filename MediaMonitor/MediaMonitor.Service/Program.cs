@@ -3,6 +3,8 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using MediaMonitor.Core.Services;
+using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace MediaMonitor.Service
 {
@@ -20,6 +22,12 @@ namespace MediaMonitor.Service
 
         // Dernier statut CODE02
         private static string _lastReportStatus = "[CODE02] Dernier rapport inexistant";
+
+        private static int LoadRetentionDays()
+        {
+            var settings = WebServerSettings.Load();
+            return settings.RetentionDays;
+        }
 
         // ------------------------------------------------------------
         // LOGGER DÉDIÉ À LA PLANIFICATION
@@ -256,6 +264,60 @@ namespace MediaMonitor.Service
 
                         _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
                         WriteScheduleLog(_lastReportStatus);
+                        
+                        try
+                        {
+                            int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
+
+                            if (retentionDays > 0)
+                            {
+                                string backupDir = Path.Combine(
+                                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                                    "MCEMonitor",
+                                    "Backups"
+                                );
+
+                                Directory.CreateDirectory(backupDir);
+
+                                string backupPath = Path.Combine(backupDir, "history_backup.json");
+
+                                // Charger l'ancien backup s'il existe
+                                BackupFileModel backup = null;
+
+                                if (File.Exists(backupPath))
+                                {
+                                    string oldJson = File.ReadAllText(backupPath);
+                                    backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
+                                }
+
+                                if (backup == null)
+                                    backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
+
+                                // Ajouter le rapport du jour
+                                var todayReport = new DailyReport
+                                {
+                                    Date = DateTime.Now.Date,
+                                    Items = engine.GetHistory()
+                                };
+
+                                // Supprimer un éventuel doublon du même jour
+                                backup.Reports.RemoveAll(r => r.Date == todayReport.Date);
+
+                                backup.Reports.Add(todayReport);
+
+                                // Supprimer les rapports trop anciens
+                                DateTime limit = DateTime.Now.Date.AddDays(-retentionDays);
+                                backup.Reports.RemoveAll(r => r.Date < limit);
+
+                                // Sauvegarder le fichier final
+                                string json = JsonConvert.SerializeObject(backup, Formatting.Indented);
+                                File.WriteAllText(backupPath, json, Encoding.UTF8);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            LogService.WriteError("Erreur lors de la sauvegarde cumulée : " + ex.Message);
+                        }
 
                         engine.ClearHistory();
                     }

@@ -11,6 +11,7 @@ namespace MediaMonitor.Service
 
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
+        public int RetentionDays { get; set; } = 0;
 
         private static string GetConfigPath()
         {
@@ -43,29 +44,26 @@ namespace MediaMonitor.Service
 
                 var lines = File.ReadAllLines(path);
 
-                foreach (var line in lines)
-                {
-                    if (line.StartsWith("Enabled=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        settings.Enabled = line.Split('=')[1].Trim().ToLower() == "true";
-                    }
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("Enabled=", StringComparison.OrdinalIgnoreCase))
+                    settings.Enabled = line.Split('=')[1].Trim().ToLower() == "true";
 
-                    if (line.StartsWith("Port=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        if (int.TryParse(line.Split('=')[1].Trim(), out int p))
-                            settings.Port = p;
-                    }
+                if (line.StartsWith("Port=", StringComparison.OrdinalIgnoreCase))
+                    if (int.TryParse(line.Split('=')[1].Trim(), out int p))
+                        settings.Port = p;
 
-                    if (line.StartsWith("Username=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        settings.Username = line.Split('=')[1].Trim();
-                    }
+                if (line.StartsWith("Username=", StringComparison.OrdinalIgnoreCase))
+                    settings.Username = line.Split('=')[1].Trim();
 
-                    if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        settings.Password = line.Split('=')[1].Trim();
-                    }
-                }
+                if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
+                    settings.Password = line.Split('=')[1].Trim();
+
+                if (line.StartsWith("RetentionDays=", StringComparison.OrdinalIgnoreCase))   // ?? AJOUT
+                    if (int.TryParse(line.Split('=')[1].Trim(), out int r))
+                        settings.RetentionDays = r;
+            }
+
             }
             catch
             {
@@ -86,6 +84,7 @@ namespace MediaMonitor.Service
                 sb.AppendLine("Port=" + Port);
                 sb.AppendLine("Username=" + Username);
                 sb.AppendLine("Password=" + Password);
+                sb.AppendLine("RetentionDays=" + RetentionDays);   // ?? AJOUT
 
                 File.WriteAllText(path, sb.ToString());
             }
@@ -94,6 +93,7 @@ namespace MediaMonitor.Service
                 // On ignore les erreurs pour éviter de planter le service
             }
         }
+
     }
 }
 

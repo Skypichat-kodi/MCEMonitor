@@ -93,10 +93,19 @@ namespace MediaMonitor.Service
                         continue;
                     }
 
-                    // ?? AJOUT : set-web-credentials login password
+                    // set-web-credentials login password
                     if (command.StartsWith("set-web-credentials ", StringComparison.OrdinalIgnoreCase))
                     {
                         HandleSetWebCredentials(command, writer, server);
+                        continue;
+                    }
+
+                    // ------------------------------------------------------------
+                    // AJOUT : set-retention X
+                    // ------------------------------------------------------------
+                    if (command.StartsWith("set-retention ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetRetention(command, writer, server);
                         continue;
                     }
 
@@ -137,6 +146,10 @@ namespace MediaMonitor.Service
                             HandleGetWebPort(writer, server);
                             break;
 
+case "get-retention":
+    HandleGetRetention(writer, server);
+    break;
+
                         default:
                             writer.Write("{\"error\":\"unknown command\"}");
                             writer.Flush();
@@ -153,9 +166,8 @@ namespace MediaMonitor.Service
 
             Log("IPC ServerLoop terminé (running = false).");
         }
-
         // ------------------------------------------------------------
-        // ?? AJOUT : SET WEB CREDENTIALS
+        // SET WEB CREDENTIALS
         // ------------------------------------------------------------
 
         private void HandleSetWebCredentials(string command, StreamWriter writer, NamedPipeServerStream server)
@@ -183,7 +195,6 @@ namespace MediaMonitor.Service
                 settings.Password = password;
                 settings.Save();
 
-                // Redémarrer le serveur web pour appliquer
                 Program.StopWebServer();
                 Program.StartWebServerIfEnabled();
 
@@ -254,6 +265,24 @@ namespace MediaMonitor.Service
             server.WaitForPipeDrain();
             server.Disconnect();
         }
+
+private void HandleGetRetention(StreamWriter writer, NamedPipeServerStream server)
+{
+    try
+    {
+        var settings = WebServerSettings.Load();
+        writer.Write("{\"days\":" + settings.RetentionDays + "}");
+    }
+    catch (Exception ex)
+    {
+        writer.Write("{\"error\":\"" + ex.Message + "\"}");
+        Log("ERREUR get-retention : " + ex);
+    }
+
+    writer.Flush();
+    server.WaitForPipeDrain();
+    server.Disconnect();
+}
 
         // ------------------------------------------------------------
         // SETTERS
@@ -352,18 +381,14 @@ namespace MediaMonitor.Service
 
                 Log("IPC : WebServer Port = " + newPort);
 
-                // 1. Stopper le serveur actuel
                 Program.StopWebServer();
 
-                // 2. Mettre à jour la règle firewall
                 FirewallHelper.UpdateFirewallRule(newPort);
 
-                // 3. Sauvegarder dans WebServerSettings
                 var settings = WebServerSettings.Load();
                 settings.Port = newPort;
                 settings.Save();
 
-                // 4. Redémarrer le serveur web
                 Program.StartWebServerIfEnabled();
 
                 writer.Write("{\"status\":\"ok\"}");
@@ -372,6 +397,41 @@ namespace MediaMonitor.Service
             {
                 writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
                 Log("ERREUR set-web-port : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+
+        // ------------------------------------------------------------
+        // AJOUT : HandleSetRetention
+        // ------------------------------------------------------------
+
+        private void HandleSetRetention(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
+                }
+                else
+                {
+                    var settings = WebServerSettings.Load();
+                    settings.RetentionDays = days;
+                    settings.Save();
+
+                    Log($"IPC : RetentionDays = {days}");
+                    writer.Write("{\"status\":\"ok\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-retention : " + ex);
             }
 
             writer.Flush();

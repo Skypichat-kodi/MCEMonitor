@@ -9,6 +9,8 @@ using MediaMonitor.UI.Services;
 using MediaMonitor.Core.Models;
 using Microsoft.Win32;
 using System.Windows.Controls;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace MediaMonitor.UI
 {
@@ -28,6 +30,22 @@ namespace MediaMonitor.UI
 
         public MainWindow()
         {
+            InitializeComponent();
+
+            // 🔒 Empêche l'exécution directe de MediaMonitor.UI
+            string[] args = Environment.GetCommandLineArgs();
+            if (args.Length < 2 || args[1] != "--from-mcem")
+            {
+                MessageBox.Show(
+                    "MediaMonitor.UI ne peut être lancé que depuis MCEMonitor.",
+                    "Accès refusé",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+                Application.Current.Shutdown();
+                return;
+            }
+
             ResetUiLog();
 
             bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
@@ -116,7 +134,6 @@ namespace MediaMonitor.UI
             }
 
             // UI
-            InitializeComponent();
 
             // Chargement état email
             Loaded += MainWindow_Loaded;
@@ -162,6 +179,17 @@ namespace MediaMonitor.UI
 
                             if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
                                 txtWebPassword.Password = line.Split('=')[1].Trim();
+                                
+                            if (line.StartsWith("RetentionDays=", StringComparison.OrdinalIgnoreCase))
+                            {
+                                if (int.TryParse(line.Split('=')[1].Trim(), out int d))
+                                {
+                                    chkNone.IsChecked = d == 0;
+                                    chk1w.IsChecked   = d == 7;
+                                    chk2w.IsChecked   = d == 14;
+                                    chk1m.IsChecked   = d == 30;
+                                }
+                            }                               
                         }
 
                         UiLog("Identifiants Web chargés depuis le service");
@@ -196,13 +224,11 @@ namespace MediaMonitor.UI
         {
             try
             {
-                // Laisser le service se réveiller
                 await Task.Delay(1500);
 
                 await RefreshStateSafe();
                 await LoadEmailSwitch();
 
-                // Poke du Dispatcher pour s'assurer qu'il est bien vivant
                 Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
             }
             catch (Exception ex)
@@ -346,7 +372,7 @@ namespace MediaMonitor.UI
             }
         }
 
-        private async void txtWebPort_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e)
+        private async void txtWebPort_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
                 return;
@@ -494,16 +520,15 @@ namespace MediaMonitor.UI
                 MessageBox.Show("Erreur IPC : " + ex.Message);
             }
         }
+
         private async void btnApplyWebAll_Click(object sender, RoutedEventArgs e)
         {
-            // PORT
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
                 MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            // LOGIN / PASSWORD
             string login = txtWebLogin.Text.Trim();
             string pass = txtWebPassword.Password.Trim();
 
@@ -537,6 +562,7 @@ namespace MediaMonitor.UI
                                 MessageBoxImage.Error);
             }
         }
+
         private bool _passwordVisible = false;
 
         private void btnShowPassword_Click(object sender, RoutedEventArgs e)
@@ -545,7 +571,6 @@ namespace MediaMonitor.UI
 
             if (_passwordVisible)
             {
-                // Afficher le mot de passe
                 txtWebPasswordVisible.Text = txtWebPassword.Password;
                 txtWebPasswordVisible.Visibility = Visibility.Visible;
                 txtWebPassword.Visibility = Visibility.Collapsed;
@@ -554,7 +579,6 @@ namespace MediaMonitor.UI
             }
             else
             {
-                // Masquer le mot de passe
                 txtWebPassword.Password = txtWebPasswordVisible.Text;
                 txtWebPasswordVisible.Visibility = Visibility.Collapsed;
                 txtWebPassword.Visibility = Visibility.Visible;
@@ -562,6 +586,7 @@ namespace MediaMonitor.UI
                 btnShowPassword.Content = "👁";
             }
         }
+
         private void btnOpenBackup_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
@@ -589,24 +614,55 @@ namespace MediaMonitor.UI
                                 MessageBoxImage.Error);
             }
         }
+        private void BackupOption_Checked(object sender, RoutedEventArgs e)
+        {
+            if (sender is not CheckBox chk)
+                return;
 
-private void BackupOption_Checked(object sender, RoutedEventArgs e)
-{
-    var clicked = sender as CheckBox;
+            chkNone.IsChecked = chk == chkNone;
+            chk1w.IsChecked   = chk == chk1w;
+            chk2w.IsChecked   = chk == chk2w;
+            chk1m.IsChecked   = chk == chk1m;
 
-    foreach (var cb in new[] { chkNone, chk1w, chk2w, chk1m })
-    {
-        if (cb != clicked)
-            cb.IsChecked = false;
-    }
+            int days = chk switch
+            {
+                var c when c == chkNone => 0,
+                var c when c == chk1w   => 7,
+                var c when c == chk2w   => 14,
+                var c when c == chk1m   => 30,
+                _ => 0
+            };
 
-    // Ici tu peux gérer la valeur choisie
-    // Exemple :
-    // if (chkNone.IsChecked == true) retention = 0;
-    // if (chk1w.IsChecked == true) retention = 7;
-    // etc.
-}
-                           
+            SaveRetentionToWebConfig(days);
+        }
+
+        private void SaveRetentionToWebConfig(int days)
+        {
+            string path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "MediaMonitor.Web.config"
+            );
+
+            var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : new List<string>();
+
+            bool found = false;
+
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (lines[i].StartsWith("RetentionDays=", StringComparison.OrdinalIgnoreCase))
+                {
+                    lines[i] = "RetentionDays=" + days;
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found)
+                lines.Add("RetentionDays=" + days);
+
+            File.WriteAllLines(path, lines);
+        }        
     }
 }
 

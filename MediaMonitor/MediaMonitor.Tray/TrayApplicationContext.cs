@@ -33,18 +33,18 @@ namespace MediaMonitor.Tray
             // ------------------------------------------------------------
             // Gestion des clics
             // ------------------------------------------------------------
-            trayIcon.DoubleClick += (s, e) => OpenUI();
+            trayIcon.DoubleClick += (s, e) => OpenMCEMonitor();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenUI();
+                    OpenMCEMonitor();
             };
 
             // ------------------------------------------------------------
             // Menu contextuel
             // ------------------------------------------------------------
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Ouvrir MediaMonitor", null, (s, e) => OpenUI());
+            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
 
             trayIcon.ContextMenuStrip = menu;
@@ -61,41 +61,41 @@ namespace MediaMonitor.Tray
         // ------------------------------------------------------------
         // Ouvrir l’UI
         // ------------------------------------------------------------
-        private void OpenUI()
+private void OpenMCEMonitor()
+{
+    try
+    {
+        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+        string exePath = Path.Combine(programFiles, "MCEMonitor", "MCEMonitor.exe");
+
+        if (!File.Exists(exePath))
         {
-            try
-            {
-                string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-                string uiPath = Path.Combine(programFiles, "MCEMonitor", "MediaMonitor.UI.exe");
-
-                if (!File.Exists(uiPath))
-                {
-                    string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-                    uiPath = Path.Combine(programFilesX86, "MCEMonitor", "MediaMonitor.UI.exe");
-                }
-
-                if (!File.Exists(uiPath))
-                {
-                    MessageBox.Show(
-                        "MediaMonitor.UI.exe est introuvable dans Program Files.",
-                        "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = uiPath,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Impossible d'ouvrir l'UI : " + ex.Message);
-            }
+            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+            exePath = Path.Combine(programFilesX86, "MCEMonitor", "MCEMonitor.exe");
         }
+
+        if (!File.Exists(exePath))
+        {
+            MessageBox.Show(
+                "MCEMonitor.exe est introuvable dans Program Files.",
+                "Erreur",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Error
+            );
+            return;
+        }
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = exePath,
+            UseShellExecute = true
+        });
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+    }
+}
 
         // ------------------------------------------------------------
         // Watchdog : ferme le Tray si le service s'arrête

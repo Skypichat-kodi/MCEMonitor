@@ -271,27 +271,26 @@ namespace MCEMonitor
 
                 if (!File.Exists(uiPath))
                 {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("Media.UI.NotFound") ??
-                    "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
-                    LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
-                );
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
+                        "Erreur"
+                    );
                     return;
                 }
 
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = uiPath,
+                    Arguments = "--from-mcem",
                     UseShellExecute = true
                 });
             }
             catch (Exception ex)
             {
                 PopupHelper.ShowBottomPopup(
-                this,
-                    (LanguageManager.Get("Media.UI.OpenError") ??
-                    "Erreur lors de l'ouverture de MediaMonitor.UI : ") + ex.Message
+                    this,
+                    "Erreur lors de l'ouverture de MediaMonitor.UI : " + ex.Message
                 );
             }
         }

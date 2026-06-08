@@ -322,6 +322,30 @@ namespace MediaMonitor.UI.Services
                 return false;
             }
         }
+        
+        public static async Task<bool> SetRetentionDays(int days)
+        {
+            string? response = await SendCommand($"set-retention {days}");
+            return response != null && response.Contains("\"status\":\"ok\"");
+        }
+
+        public static async Task<int> GetRetentionDays()
+        {
+            string? json = await SendCommand("get-retention");
+
+            if (json == null)
+                return 0;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, int>>(json);
+                return obj != null && obj.ContainsKey("days") ? obj["days"] : 0;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
     }
 }
 
