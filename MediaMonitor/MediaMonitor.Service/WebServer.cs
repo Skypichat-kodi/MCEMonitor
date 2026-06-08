@@ -136,6 +136,18 @@ namespace MediaMonitor.Service
                     case "/backup":
                         SendHtml(ctx, BuildBackupPage(ctx.Request));
                         break;
+                        
+                    case "/download":
+                        DownloadBackup(ctx);
+                        break;
+
+                    case "/purge":
+                        PurgeBackups(ctx);
+                        break;
+
+                    case "/back":
+                        SendHtml(ctx, BuildHomePage());
+                        break;                       
 
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
@@ -278,7 +290,17 @@ namespace MediaMonitor.Service
             string lastFile = files.OrderByDescending(f => f).First();
 
             var json = File.ReadAllText(lastFile);
-            var allItems = JsonSerializer.Deserialize<List<BackupItem>>(json) ?? new List<BackupItem>();
+            BackupFileModel? backup = JsonSerializer.Deserialize<BackupFileModel>(json);
+
+            if (backup == null || backup.Reports == null)
+                return "<html><body><h2>Sauvegarde invalide.</h2></body></html>";
+
+            // Aplatir tous les items de tous les jours
+            var allItems = backup.Reports
+                .Where(r => r.Items != null)
+                .SelectMany(r => r.Items)
+                .ToList();
+
             var items = allItems.ToList();
 
             // Paramètres GET
@@ -363,7 +385,7 @@ namespace MediaMonitor.Service
     <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
     <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
     <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
-    <td>{item.Timestamp:yyyy-MM-dd HH:mm}</td>
+    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
 </tr>");
             }
 
@@ -396,6 +418,19 @@ namespace MediaMonitor.Service
             return html;
         }
 
+        // Modele du fichier cumulatif généré par le service
+        private class BackupFileModel
+        {
+            public int RetentionDays { get; set; }
+            public List<DailyReport> Reports { get; set; } = new();
+        }
+
+        private class DailyReport
+        {
+            public DateTime Date { get; set; }
+            public List<BackupItem> Items { get; set; } = new();
+        }
+
         // Modèle des éléments de sauvegarde
         private class BackupItem
         {
@@ -404,6 +439,40 @@ namespace MediaMonitor.Service
             public string? Nom { get; set; }
             public string? FileName { get; set; }
             public DateTime Timestamp { get; set; }
+        }
+
+        private void DownloadBackup(HttpListenerContext ctx)
+        {
+            string folder = @"C:\ProgramData\MCEMonitor\Backups";
+            var files = Directory.GetFiles(folder, "history_*.json");
+
+            if (files.Length == 0)
+            {
+                SendHtml(ctx, "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>");
+                return;
+            }
+
+            string lastFile = files.OrderByDescending(f => f).First();
+            byte[] data = File.ReadAllBytes(lastFile);
+
+            ctx.Response.ContentType = "application/json";
+            ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(lastFile)}\"");
+            ctx.Response.ContentLength64 = data.Length;
+            ctx.Response.OutputStream.Write(data, 0, data.Length);
+            ctx.Response.OutputStream.Close();
+        }
+
+        private void PurgeBackups(HttpListenerContext ctx)
+        {
+            string folder = @"C:\ProgramData\MCEMonitor\Backups";
+
+            if (Directory.Exists(folder))
+            {
+                foreach (var f in Directory.GetFiles(folder, "history_*.json"))
+                    File.Delete(f);
+            }
+
+            SendHtml(ctx, "<html><body><h2>Toutes les sauvegardes ont été supprimées.</h2><a href='/backup'>Retour</a></body></html>");
         }
 
         private const string BackupHtmlTemplate = @"
@@ -439,6 +508,12 @@ label { margin-right:4px; }
 
 <h1>Historique sauvegardé</h1>
 
+<div style='margin-bottom:20px; display:flex; gap:10px;'>
+    <a href='/download' style='padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;'>Télécharger</a>
+    <a href='/purge' style='padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;'>Purger</a>
+    <a href='/' style='padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;'>Retour</a>
+</div>
+
 <div style='margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;'>
 
     <div>
@@ -472,10 +547,10 @@ label { margin-right:4px; }
     <div>
         <label>Trier :</label>
         <select onchange='location.href=""?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort="" + this.value;'>
-            <option value='date_desc' {{SEL_DATEDESC}}>Date ?</option>
-            <option value='date_asc' {{SEL_DATEASC}}>Date ?</option>
-            <option value='name_asc' {{SEL_NAMEASC}}>Nom A?Z</option>
-            <option value='name_desc' {{SEL_NAMEDESC}}>Nom Z?A</option>
+            <option value='date_desc' {{SEL_DATEDESC}}>Date ¡</option>
+            <option value='date_asc' {{SEL_DATEASC}}>Date ^</option>
+            <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
+            <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
         </select>
     </div>
 
