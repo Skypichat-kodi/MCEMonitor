@@ -48,8 +48,7 @@ Source: "MCEMonitor Ver 1.0\ProgramData\*"; \
 
 [Icons]
 Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"
-Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"
-Name: "{commondesktop}\MediaMonitor UI"; Filename: "{app}\MediaMonitor.UI.exe"; WorkingDir: "{app}"
+Name: "{commondesktop}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; WorkingDir: "{app}"
 
 [Run]
 Filename: "taskkill.exe"; \
