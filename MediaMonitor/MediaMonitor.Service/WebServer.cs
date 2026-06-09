@@ -7,6 +7,8 @@ using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using MediaMonitor.Core.Services;
+using PdfSharp.Pdf;
+using PdfSharp.Drawing;
 
 namespace MediaMonitor.Service
 {
@@ -158,6 +160,29 @@ namespace MediaMonitor.Service
             {
                 CoreLog.Write("WebServer ERROR: " + ex.Message);
             }
+            
+            // ------------------------------------------------------------
+            // Favicon
+            // ------------------------------------------------------------
+            // Alias standard
+            if (ctx.Request.Url.AbsolutePath == "/favicon.ico")
+            {
+                string icoPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.ico";
+
+                if (File.Exists(icoPath))
+                {
+                    byte[] ico = File.ReadAllBytes(icoPath);
+                    ctx.Response.ContentType = "image/x-icon";
+                    ctx.Response.OutputStream.Write(ico, 0, ico.Length);
+                    ctx.Response.Close();
+                    return;
+                }
+
+                ctx.Response.StatusCode = 404;
+                ctx.Response.Close();
+                return;
+            }
+            
         }
 
         // ?? Vérification Basic Auth
@@ -232,12 +257,14 @@ namespace MediaMonitor.Service
             <body>
             <h1>MediaMonitor – Tableau de bord</h1>
             ");
-
+            
+            sb.Append("<div style='margin-bottom:20px; display:flex; gap:10px;'>");
+            sb.Append("<a href='/backup' style='padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;'>Voir le backup</a>");
+            sb.Append("</div>");
             sb.Append($"<p>Serveur : <b>{Environment.MachineName}</b></p>");
             sb.Append($"<p>Heure : <b>{DateTime.Now:HH:mm:ss}</b></p>");
             sb.Append($"<p>Fichiers en cours : <b>{live.Count}</b></p>");
             sb.Append($"<p>Historique total : <b>{history.Count}</b></p>");
-
             sb.Append("<h2>Lecture en cours</h2>");
             sb.Append("<table><tr><th>Client</th><th>Type</th><th>Nom</th><th>Fichier</th></tr>");
 
@@ -281,11 +308,62 @@ namespace MediaMonitor.Service
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
             if (!Directory.Exists(folder))
-                return "<html><body><h2>Aucune sauvegarde trouvée.</h2></body></html>";
+return @"
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>MediaMonitor – Sauvegarde</title>
+<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+<style>
+body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
+h2 { color:#f55; }
+.button {
+    display:inline-block;
+    padding:10px 20px;
+    background:#0078D4;
+    color:white;
+    text-decoration:none;
+    border-radius:6px;
+    font-weight:bold;
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+<h2>Aucune sauvegarde trouvée.</h2>
+<a class='button' href='/'>Retour</a>
+</body>
+</html>";
+
 
             var files = Directory.GetFiles(folder, "history_*.json");
             if (files.Length == 0)
-                return "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>";
+return @"
+<html>
+<head>
+<meta charset='UTF-8'>
+<title>MediaMonitor – Sauvegarde</title>
+<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+<style>
+body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
+h2 { color:#f55; }
+.button {
+    display:inline-block;
+    padding:10px 20px;
+    background:#0078D4;
+    color:white;
+    text-decoration:none;
+    border-radius:6px;
+    font-weight:bold;
+    margin-top:20px;
+}
+</style>
+</head>
+<body>
+<h2>Aucune sauvegarde disponible.</h2>
+<a class='button' href='/'>Retour</a>
+</body>
+</html>";
 
             string lastFile = files.OrderByDescending(f => f).First();
 
@@ -453,12 +531,86 @@ namespace MediaMonitor.Service
             }
 
             string lastFile = files.OrderByDescending(f => f).First();
-            byte[] data = File.ReadAllBytes(lastFile);
+            string json = File.ReadAllText(lastFile);
 
-            ctx.Response.ContentType = "application/json";
-            ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{Path.GetFileName(lastFile)}\"");
-            ctx.Response.ContentLength64 = data.Length;
-            ctx.Response.OutputStream.Write(data, 0, data.Length);
+            BackupFileModel? backup = JsonSerializer.Deserialize<BackupFileModel>(json);
+            if (backup == null || backup.Reports == null)
+            {
+                SendHtml(ctx, "<html><body><h2>Sauvegarde invalide.</h2></body></html>");
+                return;
+            }
+
+            // Aplatir les items
+            var items = backup.Reports
+                .Where(r => r.Items != null)
+                .SelectMany(r => r.Items)
+                .OrderByDescending(i => i.Timestamp)
+                .ToList();
+
+            // --- Génération PDF ---
+            using var doc = new PdfSharp.Pdf.PdfDocument();
+            doc.Info.Title = "Backup MediaMonitor";
+
+            var page = doc.AddPage();
+            var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+            var font = new PdfSharp.Drawing.XFont("Arial", 10);
+
+            double y = 20;
+
+            gfx.DrawString("Historique sauvegardé", 
+                new PdfSharp.Drawing.XFont("Arial", 14, PdfSharp.Drawing.XFontStyle.Bold),
+                PdfSharp.Drawing.XBrushes.Black, 
+                new PdfSharp.Drawing.XPoint(20, y));
+
+            y += 30;
+
+            foreach (var item in items)
+            {
+                string line = $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  {item.MediaType}  |  {item.ClientName}  |  {item.Nom}";
+                gfx.DrawString(line, font, PdfSharp.Drawing.XBrushes.Black, new PdfSharp.Drawing.XPoint(20, y));
+                y += 15;
+
+                if (y > page.Height - 40)
+                {
+                    page = doc.AddPage();
+                    gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+                    y = 20;
+                }
+            }
+
+            using var ms = new MemoryStream();
+            doc.Save(ms);
+            byte[] pdfBytes = ms.ToArray();
+
+            // Déterminer les dates du backup
+            var dates = backup.Reports
+                .Where(r => r.Items != null && r.Items.Count > 0)
+                .Select(r => r.Date)
+                .OrderBy(d => d)
+                .ToList();
+
+            string pdfName;
+
+            if (dates.Count == 1)
+            {
+                // Un seul jour
+                pdfName = $"backup_{dates[0]:yyyy-MM-dd}.pdf";
+            }
+            else if (dates.Count > 1)
+            {
+                // Plage de dates
+                pdfName = $"backup_{dates.First():yyyy-MM-dd}_to_{dates.Last():yyyy-MM-dd}.pdf";
+            }
+            else
+            {
+                // Fallback
+                pdfName = "backup.pdf";
+            }
+
+            // --- Envoi au navigateur ---
+            ctx.Response.ContentType = "application/pdf";
+            ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{pdfName}\"");
+            ctx.Response.OutputStream.Write(pdfBytes, 0, pdfBytes.Length);
             ctx.Response.OutputStream.Close();
         }
 
@@ -481,6 +633,7 @@ namespace MediaMonitor.Service
 <head>
 <meta charset='UTF-8'>
 <title>Historique sauvegardé - MediaMonitor</title>
+<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
 <style>
 body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
 h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
@@ -510,7 +663,13 @@ label { margin-right:4px; }
 
 <div style='margin-bottom:20px; display:flex; gap:10px;'>
     <a href='/download' style='padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;'>Télécharger</a>
-    <a href='/purge' style='padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;'>Purger</a>
+
+    <a href='/purge'
+       onclick='return confirm(""Voulez-vous vraiment supprimer TOUTES les sauvegardes ?"");'
+       style='padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;'>
+       Purger
+    </a>
+
     <a href='/' style='padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;'>Retour</a>
 </div>
 
