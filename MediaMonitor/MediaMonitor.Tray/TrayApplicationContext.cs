@@ -61,41 +61,41 @@ namespace MediaMonitor.Tray
         // ------------------------------------------------------------
         // Ouvrir l’UI
         // ------------------------------------------------------------
-private void OpenMCEMonitor()
-{
-    try
-    {
-        string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-        string exePath = Path.Combine(programFiles, "MCEMonitor", "MCEMonitor.exe");
-
-        if (!File.Exists(exePath))
+        private void OpenMCEMonitor()
         {
-            string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
-            exePath = Path.Combine(programFilesX86, "MCEMonitor", "MCEMonitor.exe");
+            try
+            {
+                string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                string exePath = Path.Combine(programFiles, "MCEMonitor", "MCEMonitor.exe");
+
+                if (!File.Exists(exePath))
+                {
+                    string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                    exePath = Path.Combine(programFilesX86, "MCEMonitor", "MCEMonitor.exe");
+                }
+
+                if (!File.Exists(exePath))
+                {
+                    MessageBox.Show(
+                        "MCEMonitor.exe est introuvable dans Program Files.",
+                        "Erreur",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+            }
         }
-
-        if (!File.Exists(exePath))
-        {
-            MessageBox.Show(
-                "MCEMonitor.exe est introuvable dans Program Files.",
-                "Erreur",
-                MessageBoxButtons.OK,
-                MessageBoxIcon.Error
-            );
-            return;
-        }
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = exePath,
-            UseShellExecute = true
-        });
-    }
-    catch (Exception ex)
-    {
-        MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
-    }
-}
 
         // ------------------------------------------------------------
         // Watchdog : ferme le Tray si le service s'arrête
