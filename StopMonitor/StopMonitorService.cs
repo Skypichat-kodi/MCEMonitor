@@ -15,108 +15,105 @@ namespace StopMonitor
             string query =
                 "*[System[(EventID=1074 or EventID=6006 or EventID=6008)]]";
 
-            var logQuery = new EventLogQuery("System", PathType.LogName, query)
-            {
-                ReverseDirection = true
-            };
+            var logQuery = new EventLogQuery("System", PathType.LogName, query);
 
             using var reader = new EventLogReader(logQuery);
-            var record = reader.ReadEvent();
 
-            if (record == null)
-                return (DateTime.MinValue, 0, "Impossible de déterminer la cause de l'arrêt.");
+            EventRecord latest = null;
+
+            for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
+            {
+                if (latest == null || rec.TimeCreated > latest.TimeCreated)
+                    latest = rec;
+            }
+
+            if (latest == null)
+                return (DateTime.MinValue, 0, "Impossible de determiner la cause de l'arret.");
 
             var sb = new StringBuilder();
 
-            switch (record.Id)
+            switch (latest.Id)
             {
                 case 1074:
-                    sb.AppendLine("Type : Arrêt initié par un utilisateur ou une application.");
-                    if (record.Properties.Count > 0)
-                        sb.AppendLine($"Processus : {record.Properties[0].Value}");
-                    if (record.Properties.Count > 1)
-                        sb.AppendLine($"Utilisateur : {record.Properties[1].Value}");
-                    if (record.Properties.Count > 4)
-                        sb.AppendLine($"Raison : {record.Properties[4].Value}");
+                    sb.AppendLine("Type : Arret initie par un utilisateur ou une application.");
+                    if (latest.Properties.Count > 0)
+                        sb.AppendLine($"Processus : {latest.Properties[0].Value}");
+                    if (latest.Properties.Count > 1)
+                        sb.AppendLine($"Utilisateur : {latest.Properties[1].Value}");
+                    if (latest.Properties.Count > 4)
+                        sb.AppendLine($"Raison : {latest.Properties[4].Value}");
                     break;
 
                 case 6006:
-                    sb.AppendLine("Type : Arrêt propre (Event Log Service stopped).");
+                    sb.AppendLine("Type : Arret propre (Event Log Service stopped).");
                     break;
 
                 case 6008:
-                    sb.AppendLine("Type : Arrêt inattendu (crash, coupure, panne).");
+                    sb.AppendLine("Type : Arret inattendu (crash, coupure, panne).");
                     break;
             }
 
-            return (record.TimeCreated ?? DateTime.Now, record.Id, sb.ToString());
+            return (latest.TimeCreated ?? DateTime.Now, latest.Id, sb.ToString());
         }
 
-        // ------------------------------------------------------------
-        //  LECTURE DES ÉVÉNEMENTS DE CRASH (41 / 6008 / 1001)
-        // ------------------------------------------------------------
+
+                // ------------------------------------------------------------
+                //  LECTURE DES ÉVÉNEMENTS DE CRASH (41 / 6008 / 1001)
+                // ------------------------------------------------------------
         private (DateTime Time, int EventId, string Details) GetLastCrashEvent()
         {
             EventRecord latest = null;
 
-            // --- 1) Kernel-Power 41 (journal correct)
+            // --- 1) Kernel-Power 41
             try
             {
                 var kpQuery = new EventLogQuery(
                     "Microsoft-Windows-Kernel-Power/Operational",
                     PathType.LogName,
                     "*[System/EventID=41]"
-                )
-                {
-                    ReverseDirection = true
-                };
+                );
 
                 using var reader = new EventLogReader(kpQuery);
-                var rec = reader.ReadEvent();
-                if (rec != null)
-                    latest = rec;
+
+                for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
+                {
+                    if (latest == null || rec.TimeCreated > latest.TimeCreated)
+                        latest = rec;
+                }
             }
             catch { }
 
-            // --- 2) 6008 et 1001 dans System
+            // --- 2) 6008 et 1001
             try
             {
                 string sysQuery =
                     "*[System[(EventID=6008 or EventID=1001)]]";
 
-                var sysLogQuery = new EventLogQuery("System", PathType.LogName, sysQuery)
-                {
-                    ReverseDirection = true
-                };
+                var sysLogQuery = new EventLogQuery("System", PathType.LogName, sysQuery);
 
                 using var reader = new EventLogReader(sysLogQuery);
-                var rec = reader.ReadEvent();
 
-                if (rec != null)
+                for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
                 {
-                    if (latest == null ||
-                        (rec.TimeCreated > latest.TimeCreated))
-                    {
+                    if (latest == null || rec.TimeCreated > latest.TimeCreated)
                         latest = rec;
-                    }
                 }
             }
             catch { }
 
             if (latest == null)
-                return (DateTime.MinValue, 0, "Impossible de déterminer la cause du crash.");
+                return (DateTime.MinValue, 0, "Impossible de determiner la cause du crash.");
 
-            // --- 3) Construction du message
             var sb = new StringBuilder();
 
             switch (latest.Id)
             {
                 case 41:
-                    sb.AppendLine("Type : Redémarrage brutal (Kernel-Power 41).");
+                    sb.AppendLine("Type : Redemarrage brutal (Kernel-Power 41).");
                     break;
 
                 case 6008:
-                    sb.AppendLine("Type : Arrêt inattendu (EventID 6008).");
+                    sb.AppendLine("Type : Arret inattendu (EventID 6008).");
                     break;
 
                 case 1001:
