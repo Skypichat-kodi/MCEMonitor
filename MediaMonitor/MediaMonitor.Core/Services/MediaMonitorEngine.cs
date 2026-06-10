@@ -188,9 +188,8 @@ namespace MediaMonitor.Core.Services
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = "Inconnu";
 
-            string ip = match?.ClientIPAddress;
-            if (string.IsNullOrWhiteSpace(ip))
-                ip = "0.0.0.0";
+            // ?? Correction : normalisation IPv6 ? IPv4 si possible
+            string ip = NormalizeIP(match?.ClientIPAddress);
 
             string ext = Path.GetExtension(f.Path).ToLower();
 
@@ -228,6 +227,32 @@ namespace MediaMonitor.Core.Services
                 Saison = saison,
                 Episode = episode
             };
+        }
+
+        // ============================================================
+        //  Normalisation IP (IPv6 ? IPv4 si possible)
+        // ============================================================
+
+        private string NormalizeIP(string? ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip))
+                return "0.0.0.0";
+
+            try
+            {
+                var addr = System.Net.IPAddress.Parse(ip);
+
+                // Si IPv4 mappée dans IPv6 (::ffff:x.x.x.x)
+                if (addr.IsIPv4MappedToIPv6)
+                    return addr.MapToIPv4().ToString();
+
+                // IPv6 pure ? on garde telle quelle
+                return ip;
+            }
+            catch
+            {
+                return ip ?? "0.0.0.0";
+            }
         }
 
         // ============================================================
