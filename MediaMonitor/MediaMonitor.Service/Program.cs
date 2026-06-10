@@ -306,7 +306,7 @@ namespace MediaMonitor.Service
                     WriteScheduleLog("Erreur backup horaire : " + ex.Message);
                 }
 
-            }, null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+            }, null, TimeSpan.FromSeconds(90), Timeout.InfiniteTimeSpan);
         }
 
         public static void RestartBackupTimer()

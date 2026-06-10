@@ -17,6 +17,7 @@ namespace MediaMonitor.Core.Services
         private readonly List<MediaUsageItem> _currentOpen = new();
         private readonly System.Timers.Timer _timer;
         private string _lastImage = "";
+        private int _startupCycles = 0;
 
         private readonly Dictionary<string, DateTime> _openSince = new();
         private readonly object _sync = new();
@@ -34,6 +35,12 @@ namespace MediaMonitor.Core.Services
 
         private void Tick(object? sender, ElapsedEventArgs e)
         {
+            _startupCycles++;
+            if (_startupCycles <= 2)
+            {
+                CoreLog.Write("DEBUG SMB: Ignoré (stabilisation SMB)");
+                return;
+            }        
             try
             {
                 var server = Environment.MachineName;
@@ -45,20 +52,24 @@ namespace MediaMonitor.Core.Services
                 var joined =
                     from f in files
                     let ext = Path.GetExtension(f.Path).ToLower()
-                    where ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".mov" ||
-                          ext == ".ts"  || ext == ".wmv" || ext == ".flv" ||
 
-                          ext == ".mp3" || ext == ".wav" || ext == ".flac" ||
-                          ext == ".aac" || ext == ".ogg" || ext == ".wma"  ||
-                          ext == ".m4a" ||
+                    // Vérification physique : élimine 100% des dossiers SMB
+                    let isRealFile = File.Exists(f.Path)
 
-                          ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
-                          ext == ".gif" || ext == ".bmp"  || ext == ".webp"
+                    where isRealFile
+                          && (ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".mov" ||
+                              ext == ".ts"  || ext == ".wmv" || ext == ".flv" ||
+                              ext == ".mp3" || ext == ".wav" || ext == ".flac" ||
+                              ext == ".aac" || ext == ".ogg" || ext == ".wma"  ||
+                              ext == ".m4a" ||
+                              ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
+                              ext == ".gif" || ext == ".bmp"  || ext == ".webp")
+                          && MediaClassifier.IsMedia(f.Path)
 
-                    where MediaClassifier.IsMedia(f.Path)
                     join s in sessions on f.SessionId equals s.SessionId into gj
                     from match in gj.DefaultIfEmpty()
                     select BuildItem(f, match);
+
 
                 var rawList = joined.ToList();
                 var filtered = new List<MediaUsageItem>();
