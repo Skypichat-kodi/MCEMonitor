@@ -79,7 +79,6 @@ namespace WakeMonitor
                     $"Réveil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
                     $"Durée : {duration}\n" +
-                    $"État précédent : {wake.SleepState}\n" +
                     $"Cause : {cause}\n" +
                     $"USB : {usb}\n" +
                     $"Machine : {Environment.MachineName}\n" +
@@ -102,7 +101,6 @@ namespace WakeMonitor
                     $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
                     $"<b>Durée :</b> {duration}<br>" +
-                    $"<b>État précédent :</b> {wake.SleepState}<br>" +
                     $"<b>Cause du réveil :</b> {cause}<br>" +
                     $"<b>USB :</b> {usb}<br>" +
                     $"<b>Machine :</b> {Environment.MachineName}<br>" +
