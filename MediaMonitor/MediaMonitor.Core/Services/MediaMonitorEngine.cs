@@ -40,6 +40,7 @@ namespace MediaMonitor.Core.Services
 
                 var sessions = SmbSessions.GetSessions(server);
                 var files = SmbOpenFiles.GetOpenFiles(server);
+                CoreLog.Write($"DEBUG SMB: {files.Count} fichiers ouverts détectés.");
 
                 var joined =
                     from f in files
@@ -61,6 +62,7 @@ namespace MediaMonitor.Core.Services
 
                 var rawList = joined.ToList();
                 var filtered = new List<MediaUsageItem>();
+                CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
 
                 foreach (var item in rawList)
                 {
@@ -86,7 +88,7 @@ namespace MediaMonitor.Core.Services
                         "Image" => seconds >= 5,
                         "Serie" => seconds >= 7,
                         "Video" => seconds >= 7,
-                        "Audio" => seconds >= 7,
+                        "Audio" => seconds >= 10,
                         _ => seconds >= 20
                     };
 
@@ -122,6 +124,7 @@ namespace MediaMonitor.Core.Services
 
                             // ?? remplacé LogService ? CoreLog
                             CoreLog.Write($"Nouveau : {item.Path} ({item.ClientName})");
+                            CoreLog.Write($"DEBUG HISTORY: {_history.Count} items dans l'historique.");
                         }
                     }
                 }
@@ -236,6 +239,7 @@ namespace MediaMonitor.Core.Services
         {
             lock (_sync)
                 return new List<MediaUsageItem>(_history);
+                CoreLog.Write($"DEBUG GetHistory: retourne {_history.Count} items.");
         }
 
         // ============================================================

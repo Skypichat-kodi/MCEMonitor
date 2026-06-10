@@ -146,9 +146,9 @@ namespace MediaMonitor.Service
                             HandleGetWebPort(writer, server);
                             break;
 
-case "get-retention":
-    HandleGetRetention(writer, server);
-    break;
+                        case "get-retention":
+                            HandleGetRetention(writer, server);
+                            break;
 
                         default:
                             writer.Write("{\"error\":\"unknown command\"}");
@@ -408,36 +408,41 @@ private void HandleGetRetention(StreamWriter writer, NamedPipeServerStream serve
         // AJOUT : HandleSetRetention
         // ------------------------------------------------------------
 
-        private void HandleSetRetention(string command, StreamWriter writer, NamedPipeServerStream server)
+private void HandleSetRetention(string command, StreamWriter writer, NamedPipeServerStream server)
+{
+    try
+    {
+        string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
         {
-            try
-            {
-                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-                if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
-                {
-                    writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
-                }
-                else
-                {
-                    var settings = WebServerSettings.Load();
-                    settings.RetentionDays = days;
-                    settings.Save();
-
-                    Log($"IPC : RetentionDays = {days}");
-                    writer.Write("{\"status\":\"ok\"}");
-                }
-            }
-            catch (Exception ex)
-            {
-                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
-                Log("ERREUR set-retention : " + ex);
-            }
-
-            writer.Flush();
-            server.WaitForPipeDrain();
-            server.Disconnect();
+            writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
         }
+        else
+        {
+            var settings = WebServerSettings.Load();
+            settings.RetentionDays = days;
+            settings.Save();
+
+            // ?? Redémarrer le timer de sauvegarde
+            Program.RestartBackupTimer();
+
+            Log($"IPC : RetentionDays = {days}");
+
+            // ?? Message amélioré
+            writer.Write("{\"status\":\"ok\",\"message\":\"Rétention mise à jour. Sauvegarde reprogrammée.\"}");
+        }
+    }
+    catch (Exception ex)
+    {
+        writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+        Log("ERREUR set-retention : " + ex);
+    }
+
+    writer.Flush();
+    server.WaitForPipeDrain();
+    server.Disconnect();
+}
 
         // ------------------------------------------------------------
         // COMMANDES EXISTANTES

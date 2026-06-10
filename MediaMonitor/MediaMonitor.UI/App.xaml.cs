@@ -1,16 +1,17 @@
 using System;
 using System.Threading;
 using System.Windows;
+using System.Windows.Media;
+using System.Windows.Interop; 
 
 namespace MediaMonitor.UI
 {
     public partial class App : Application
     {
-        private static Mutex _mutex;   // ← AJOUT
+        private static Mutex _mutex;
 
         protected override void OnStartup(StartupEventArgs e)
         {
-            // ← AJOUT : Mutex anti-multi-instance
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_UI", out createdNew);
 
@@ -26,6 +27,9 @@ namespace MediaMonitor.UI
                 Shutdown();
                 return;
             }
+
+            // PATCH ANTI-ÉCRAN BLANC (VNC / Remote Desktop)
+            RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
             base.OnStartup(e);
         }

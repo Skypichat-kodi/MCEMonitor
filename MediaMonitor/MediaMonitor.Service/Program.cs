@@ -16,6 +16,8 @@ namespace MediaMonitor.Service
         private static FileSystemWatcher _shutdownWatcher;
         private static MediaMonitorEngine _engine;
         private static WebServer _webServer;
+        private static System.Threading.Timer hourlyBackupTimer;
+        private static FileSystemWatcher _webConfigWatcher;
 
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
@@ -29,123 +31,6 @@ namespace MediaMonitor.Service
             return settings.RetentionDays;
         }
 
-        // ------------------------------------------------------------
-        // LOGGER DÉDIÉ À LA PLANIFICATION
-        // ------------------------------------------------------------
-        private static void WriteScheduleLog(string message)
-        {
-            try
-            {
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Logs"
-                );
-
-                Directory.CreateDirectory(folder);
-
-                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
-
-                File.AppendAllText(file,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\r\n"
-                );
-            }
-            catch { }
-        }
-
-        private static void ClearScheduleLog()
-        {
-            try
-            {
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "Logs"
-                );
-
-                Directory.CreateDirectory(folder);
-
-                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
-
-                File.WriteAllText(file, string.Empty);
-            }
-            catch { }
-        }
-
-        static void Main()
-        {
-            bool createdNew;
-            _mutex = new Mutex(true, "Global\\MCEMonitor_Service", out createdNew);
-            if (!createdNew)
-                return;
-
-            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-
-            CoreLog.IsLoggingEnabled = () => ServiceIpcServer.ServiceLoggingEnabled;
-
-            ClearLog();
-            ClearScheduleLog();
-            CoreLog.Write("=== MediaMonitor.Service démarré (SYSTEM) ===");
-
-            _engine = new MediaMonitorEngine();
-
-            try
-            {
-                _engine.Start();
-                CoreLog.Write("Engine.Start() exécuté.");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR Engine.Start() : " + ex);
-            }
-
-            _lastReportStatus = "[CODE02] Dernier rapport inexistant";
-            WriteScheduleLog(_lastReportStatus);
-
-            // IPC
-            ServiceIpcServer ipc = null;
-            try
-            {
-                ipc = new ServiceIpcServer(_engine);
-                ipc.Start();
-                CoreLog.Write("IPC Server démarré.");
-
-                StartWebServerIfEnabled();
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR IPC Start : " + ex);
-            }
-
-            LoadEmailSetting();
-
-            // SURVEILLANCE DE Shutdown.config
-            try
-            {
-                string folder = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor"
-                );
-
-                _shutdownWatcher = new FileSystemWatcher(folder, "Shutdown.config");
-                _shutdownWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
-                _shutdownWatcher.Changed += ShutdownConfigChanged;
-                _shutdownWatcher.Created += ShutdownConfigChanged;
-                _shutdownWatcher.Renamed += ShutdownConfigChanged;
-                _shutdownWatcher.EnableRaisingEvents = true;
-
-                CoreLog.Write("FileSystemWatcher actif sur Shutdown.config");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR FileSystemWatcher : " + ex);
-            }
-
-            ScheduleNextReport(_engine);
-
-            CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
-            Thread.Sleep(Timeout.Infinite);
-        }
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
         // ------------------------------------------------------------
@@ -202,6 +87,49 @@ namespace MediaMonitor.Service
         }
 
         // ------------------------------------------------------------
+        // LOGGER DÉDIÉ À LA PLANIFICATION
+        // ------------------------------------------------------------
+        private static void WriteScheduleLog(string message)
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
+
+                File.AppendAllText(file,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\r\n"
+                );
+            }
+            catch { }
+        }
+
+        private static void ClearScheduleLog()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.Schedule.log");
+
+                File.WriteAllText(file, string.Empty);
+            }
+            catch { }
+        }
+
+        // ------------------------------------------------------------
         // CALCUL DE L'HEURE D'ENVOI DU RAPPORT
         // ------------------------------------------------------------
         private static DateTime GetReportSendTime()
@@ -234,11 +162,12 @@ namespace MediaMonitor.Service
         }
 
         // ------------------------------------------------------------
-        // PROGRAMMATION DU TIMER — VERSION CORRIGÉE
+        // PROGRAMMATION DU TIMER
         // ------------------------------------------------------------
+        private static bool _isSending = false;
+
         private static void ScheduleNextReport(MediaMonitorEngine engine)
         {
-            // ?? Correction essentielle : empêcher les timers multiples
             reportTimer?.Dispose();
             reportTimer = null;
 
@@ -250,6 +179,11 @@ namespace MediaMonitor.Service
 
             reportTimer = new System.Threading.Timer(async _ =>
             {
+                if (_isSending)
+                    return;
+
+                _isSending = true;
+
                 try
                 {
                     if (!ServiceIpcServer.EmailSendingEnabled)
@@ -260,78 +194,163 @@ namespace MediaMonitor.Service
                     {
                         WriteScheduleLog("Envoi du rapport…");
 
+                        // Calculer le prochain envoi AVANT l’envoi
+                        DateTime nextSend = GetReportSendTime();
+
                         await engine.SendReportEmail();
 
                         _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
                         WriteScheduleLog(_lastReportStatus);
-                        
-                        try
-                        {
-                            int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
+                        WriteScheduleLog("DEBUG: Count=" + engine.GetHistory().Count);
 
-                            if (retentionDays > 0)
-                            {
-                                string backupDir = Path.Combine(
-                                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                                    "MCEMonitor",
-                                    "Backups"
-                                );
+                        // Sauvegarde JSON AVANT ClearHistory()
+                        SaveBackup(engine);
 
-                                Directory.CreateDirectory(backupDir);
-
-                                string backupPath = Path.Combine(backupDir, "history_backup.json");
-
-                                // Charger l'ancien backup s'il existe
-                                BackupFileModel backup = null;
-
-                                if (File.Exists(backupPath))
-                                {
-                                    string oldJson = File.ReadAllText(backupPath);
-                                    backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
-                                }
-
-                                if (backup == null)
-                                    backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
-
-                                // Ajouter le rapport du jour
-                                var todayReport = new DailyReport
-                                {
-                                    Date = DateTime.Now.Date,
-                                    Items = engine.GetHistory()
-                                };
-
-                                // Supprimer un éventuel doublon du même jour
-                                backup.Reports.RemoveAll(r => r.Date == todayReport.Date);
-
-                                backup.Reports.Add(todayReport);
-
-                                // Supprimer les rapports trop anciens
-                                DateTime limit = DateTime.Now.Date.AddDays(-retentionDays);
-                                backup.Reports.RemoveAll(r => r.Date < limit);
-
-                                // Sauvegarder le fichier final
-                                string json = JsonConvert.SerializeObject(backup, Formatting.Indented);
-                                File.WriteAllText(backupPath, json, Encoding.UTF8);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            LogService.WriteError("Erreur lors de la sauvegarde cumulée : " + ex.Message);
-                        }
-
+                        // Maintenant seulement on vide l’historique RAM
                         engine.ClearHistory();
+
+                        // Programmer le prochain envoi avec l’heure calculée AVANT
+                        ScheduleNextReport(engine);
                     }
                 }
                 catch (Exception ex)
                 {
                     WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
                 }
-
-                // ?? Replanification propre (un seul timer actif)
-                ScheduleNextReport(engine);
+                finally
+                {
+                    _isSending = false;
+                }
 
             }, null, delay, Timeout.InfiniteTimeSpan);
         }
+
+        private static void SaveBackup(MediaMonitorEngine engine)
+        {
+            try
+            {
+                int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
+
+                if (retentionDays > 0)
+                {
+                    string backupDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "MCEMonitor",
+                        "Backups"
+                    );
+
+                    Directory.CreateDirectory(backupDir);
+
+                    string backupPath = Path.Combine(backupDir, "history_backup.json");
+
+                    // Charger l'ancien backup s'il existe
+                    BackupFileModel backup = null;
+
+                    if (File.Exists(backupPath))
+                    {
+                        string oldJson = File.ReadAllText(backupPath);
+                        backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
+                    }
+
+                    if (backup == null)
+                        backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
+
+                    // Ajouter le rapport du jour
+                    var todayReport = new DailyReport
+                    {
+                        Date = DateTime.Now.Date,
+                        Items = engine.GetHistory()
+                    };
+
+                    // Supprimer un éventuel doublon du même jour
+                    backup.Reports.RemoveAll(r => r.Date == todayReport.Date);
+
+                    backup.Reports.Add(todayReport);
+
+                    // Supprimer les rapports trop anciens
+                    DateTime limit = DateTime.Now.Date.AddDays(-retentionDays);
+                    backup.Reports.RemoveAll(r => r.Date < limit);
+
+                    // Sauvegarder le fichier final
+                    string json = JsonConvert.SerializeObject(backup, Formatting.Indented);
+                    File.WriteAllText(backupPath, json, Encoding.UTF8);
+                }
+            }
+            catch (Exception ex)
+            {
+                LogService.WriteError("Erreur lors de la sauvegarde cumulée : " + ex.Message);
+            }
+        }
+
+        private static void StartHourlyBackup(MediaMonitorEngine engine)
+        {
+            hourlyBackupTimer = new System.Threading.Timer(_ =>
+            {
+                try
+                {
+                    int count = engine.GetHistory().Count;
+
+                    WriteScheduleLog("DEBUG: Count=" + count);
+
+                    SaveBackup(engine);
+
+                    if (count == 0)
+                        WriteScheduleLog("Backup effectué (historique vide pour le moment).");
+                    else
+                        WriteScheduleLog($"Backup effectué ({count} médias).");
+
+                    hourlyBackupTimer.Change(TimeSpan.FromHours(1), Timeout.InfiniteTimeSpan);
+                }
+                catch (Exception ex)
+                {
+                    WriteScheduleLog("Erreur backup horaire : " + ex.Message);
+                }
+
+            }, null, TimeSpan.FromSeconds(30), Timeout.InfiniteTimeSpan);
+        }
+
+        public static void RestartBackupTimer()
+        {
+            try
+            {
+                hourlyBackupTimer?.Dispose();
+                StartHourlyBackup(_engine);
+                WriteScheduleLog("Timer de sauvegarde redémarré suite au changement de rétention.");
+            }
+            catch (Exception ex)
+            {
+                WriteScheduleLog("Erreur RestartBackupTimer : " + ex.Message);
+            }
+        }
+private static DateTime _lastWebConfigChange = DateTime.MinValue;
+private static void WebConfigChanged(object sender, FileSystemEventArgs e)
+{
+    // Anti-rebond : ignore les événements multiples dans les 300 ms
+    if ((DateTime.Now - _lastWebConfigChange).TotalMilliseconds < 300)
+        return;
+
+    _lastWebConfigChange = DateTime.Now;
+
+    try
+    {
+        CoreLog.Write("WebConfigChanged déclenché !");
+        Thread.Sleep(200);
+
+        var settings = WebServerSettings.Load();
+        int days = settings.RetentionDays;
+
+        RestartBackupTimer();
+
+        WriteScheduleLog($"Rétention mise à jour via Web.config : {days} jours");
+        WriteScheduleLog("Timer de sauvegarde reprogrammé suite au changement de rétention.");
+    }
+    catch (Exception ex)
+    {
+        WriteScheduleLog("Erreur WebConfigChanged : " + ex.Message);
+        CoreLog.Write("Erreur WebConfigChanged : " + ex);
+    }
+}
+
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
@@ -378,7 +397,6 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         private static void ShutdownConfigChanged(object sender, FileSystemEventArgs e)
         {
-            // Anti-rebond (évite 2 événements consécutifs)
             if ((DateTime.Now - _lastConfigChange).TotalMilliseconds < 200)
                 return;
 
@@ -404,10 +422,8 @@ namespace MediaMonitor.Service
 
                 WriteScheduleLog($"Shutdown.config chargé : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
 
-                // Réécrit le dernier CODE02
                 WriteScheduleLog(_lastReportStatus);
 
-                // ?? Replanification propre (grâce au Dispose() dans ScheduleNextReport)
                 ScheduleNextReport(_engine);
             }
             catch (Exception ex)
@@ -415,6 +431,7 @@ namespace MediaMonitor.Service
                 WriteScheduleLog("ERREUR ShutdownConfigChanged : " + ex.Message);
             }
         }
+
         internal static void StartWebServerIfEnabled()
         {
             try
@@ -449,6 +466,103 @@ namespace MediaMonitor.Service
             {
                 CoreLog.Write("ERREUR StopWebServer : " + ex);
             }
+        }
+
+        static void Main()
+        {
+            bool createdNew;
+            _mutex = new Mutex(true, "Global\\MCEMonitor_Service", out createdNew);
+            if (!createdNew)
+                return;
+
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            CoreLog.IsLoggingEnabled = () => ServiceIpcServer.ServiceLoggingEnabled;
+
+            ClearLog();
+            ClearScheduleLog();
+            CoreLog.Write("=== MediaMonitor.Service démarré (SYSTEM) ===");
+
+            _engine = new MediaMonitorEngine();
+
+            try
+            {
+                _engine.Start();
+                CoreLog.Write("Engine.Start() exécuté.");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR Engine.Start() : " + ex);
+            }
+
+            _lastReportStatus = "[CODE02] Dernier rapport inexistant";
+            WriteScheduleLog(_lastReportStatus);
+
+            ServiceIpcServer ipc = null;
+            try
+            {
+                ipc = new ServiceIpcServer(_engine);
+                ipc.Start();
+                CoreLog.Write("IPC Server démarré.");
+
+                StartWebServerIfEnabled();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR IPC Start : " + ex);
+            }
+
+            LoadEmailSetting();
+
+            // SURVEILLANCE DE Shutdown.config
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                _shutdownWatcher = new FileSystemWatcher(folder, "Shutdown.config");
+                _shutdownWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+                _shutdownWatcher.Changed += ShutdownConfigChanged;
+                _shutdownWatcher.Created += ShutdownConfigChanged;
+                _shutdownWatcher.Renamed += ShutdownConfigChanged;
+                _shutdownWatcher.EnableRaisingEvents = true;
+
+                CoreLog.Write("FileSystemWatcher actif sur Shutdown.config");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR FileSystemWatcher : " + ex);
+            }
+
+            // SURVEILLANCE DE MediaMonitor.Web.config
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor"
+                );
+
+                _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
+                _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+                _webConfigWatcher.Changed += WebConfigChanged;
+                _webConfigWatcher.Created += WebConfigChanged;
+                _webConfigWatcher.Renamed += WebConfigChanged;
+                _webConfigWatcher.EnableRaisingEvents = true;
+
+                CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.Web.config");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR FileSystemWatcher WebConfig : " + ex);
+            }
+
+            ScheduleNextReport(_engine);
+            StartHourlyBackup(_engine);
+
+            CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
+            Thread.Sleep(Timeout.Infinite);
         }
     }
 }
