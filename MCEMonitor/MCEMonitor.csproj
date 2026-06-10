@@ -8,13 +8,23 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\MediaMonitor.ico</ApplicationIcon>
   </PropertyGroup>
-  
-    <ItemGroup>
+
+  <!-- Inclusion forcée des ressources -->
+  <ItemGroup>
+    <!-- Icône -->
+    <Content Include="Assets\MediaMonitor.ico" CopyToOutputDirectory="Always" />
+
+    <!-- Dossier Languages (JSON) -->
+    <Content Include="Languages\**\*.json" CopyToOutputDirectory="Always" />
+
+    <!-- Autres ressources éventuelles -->
+    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="MailKit" Version="4.16.0" />
-        <Content Include="Assets\MediaMonitor.ico">
-        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
   </ItemGroup>
 </Project>
+
 
 

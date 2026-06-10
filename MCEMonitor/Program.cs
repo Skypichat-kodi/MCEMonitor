@@ -37,17 +37,29 @@ namespace MCEMonitor
                 }
 
                 // ============================================================
-                // GESTION AUTOMATIQUE DE LA LANGUE
+                // GESTION DE LA LANGUE (argument > auto-détection Windows)
                 // ============================================================
 
-                string[] supportedLanguages = { "fr-FR", "en-GB" };
+                string selectedLang = null;
 
-                string windowsLang = CultureInfo.InstalledUICulture.Name;
+                // 1) Argument développeur
+                if (args.Contains("-EN", StringComparer.OrdinalIgnoreCase))
+                    selectedLang = "en-GB";
+                else if (args.Contains("-FR", StringComparer.OrdinalIgnoreCase))
+                    selectedLang = "fr-FR";
 
-                string selectedLang = supportedLanguages.Contains(windowsLang)
-                    ? windowsLang
-                    : "en-GB";
+                // 2) Sinon : auto-détection Windows
+                if (selectedLang == null)
+                {
+                    string[] supportedLanguages = { "fr-FR", "en-GB" };
+                    string windowsLang = CultureInfo.InstalledUICulture.Name;
 
+                    selectedLang = supportedLanguages.Contains(windowsLang)
+                        ? windowsLang
+                        : "en-GB";
+                }
+
+                // 3) Application de la langue
                 Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
                 Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
 
