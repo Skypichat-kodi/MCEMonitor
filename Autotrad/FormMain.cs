@@ -103,8 +103,16 @@ namespace Autotrad
             var row = dataGridView1.Rows[e.RowIndex];
             if (row.DataBoundItem is ScanResult item)
             {
+                if (item.IsMismatch)
+                {
+                    row.DefaultCellStyle.BackColor = System.Drawing.Color.LightPink;
+                    return;
+                }
+
                 if (item.IsTranslated)
+                {
                     row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
+                }
             }
         }
 

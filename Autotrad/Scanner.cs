@@ -27,14 +27,29 @@ namespace Autotrad
                 var m1 = _regexTranslated.Match(line);
                 if (m1.Success)
                 {
+                    string key = m1.Groups[1].Value;
+                    string fallback = m1.Groups[2].Value;
+
+                    bool mismatch = false;
+
+                    // Clé absente du JSON
+                    if (!existingKeys.ContainsKey(key))
+                        mismatch = true;
+
+                    // Valeur JSON ? fallback
+                    else if (existingKeys[key] != fallback)
+                        mismatch = true;
+
                     results.Add(new ScanResult
                     {
                         LineNumber = i + 1,
                         FullLine = line,
-                        Text = m1.Groups[2].Value, // fallback
+                        Text = fallback,
                         Selected = false,
-                        IsTranslated = true
+                        IsTranslated = true,
+                        IsMismatch = mismatch
                     });
+
                     continue;
                 }
 
@@ -44,13 +59,21 @@ namespace Autotrad
                 {
                     string txt = m2.Groups[1].Value;
 
+                    bool isTranslated = existingKeys.Values.Contains(txt);
+                    bool mismatch = false;
+
+                    // Si le texte existe dans JSON ? OK
+                    if (!isTranslated)
+                        mismatch = true;
+
                     results.Add(new ScanResult
                     {
                         LineNumber = i + 1,
                         FullLine = line,
                         Text = txt,
                         Selected = false,
-                        IsTranslated = existingKeys.Values.Contains(txt)
+                        IsTranslated = isTranslated,
+                        IsMismatch = mismatch
                     });
                 }
             }

@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Text.Encodings.Web;
+using System.Text.Unicode;
 
 namespace Autotrad
 {
@@ -77,11 +79,15 @@ namespace Autotrad
             else
                 dict = new Dictionary<string, string>();
 
-            if (!dict.ContainsKey(key))
-                dict[key] = value;
+            dict[key] = value;
 
-            File.WriteAllText(jsonPath,
-                JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true }));
+            var options = new JsonSerializerOptions
+            {
+                WriteIndented = true,
+                Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
+
+            File.WriteAllText(jsonPath, JsonSerializer.Serialize(dict, options));
         }
 
         public static string ExtractLeftPart(string line)

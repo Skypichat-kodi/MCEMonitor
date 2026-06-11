@@ -7,10 +7,12 @@ namespace Autotrad
         public string Text { get; set; } = "";
         public bool Selected { get; set; }
 
-        // ?? Doit être modifiable pour que Scanner.cs puisse l'écrire
+        // Ligne déjà traduite (clé existante ou LanguageManager.Get)
         public bool IsTranslated { get; set; }
 
-        // Aperçu affiché dans la grille
+        // ?? Divergence JSON ? CS
+        public bool IsMismatch { get; set; }
+
         public string Preview => $"{LineNumber}: {FullLine}";
     }
 }
