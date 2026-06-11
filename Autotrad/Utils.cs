@@ -9,7 +9,6 @@ namespace Autotrad
 {
     public static class Utils
     {
-        // ?? Module = nom du fichier .cs
         public static string GetModuleFromFilename(string filePath)
         {
             string file = Path.GetFileNameWithoutExtension(filePath);
@@ -22,10 +21,9 @@ namespace Autotrad
             if (file.Contains("WOL", StringComparison.OrdinalIgnoreCase)) return "WOL";
             if (file.Contains("About", StringComparison.OrdinalIgnoreCase)) return "About";
 
-            return "App"; // fallback propre
+            return "App";
         }
 
-        // ?? Sous-groupes EXACTEMENT comme ton JSON
         private static readonly (string pattern, string key)[] KnownPatterns =
         {
             ("mot de passe", "Password"),
@@ -50,7 +48,6 @@ namespace Autotrad
             ("test", "Run")
         };
 
-        // ?? Génération de clé EXACTEMENT comme ton JSON
         public static string GenerateKeyFromText(string module, string text)
         {
             string lower = text.ToLowerInvariant();
@@ -61,7 +58,6 @@ namespace Autotrad
                     return $"{module}.{key}";
             }
 
-            // fallback propre : Module.Title
             return $"{module}.Title";
         }
 

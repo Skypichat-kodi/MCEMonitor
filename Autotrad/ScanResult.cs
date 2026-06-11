@@ -5,23 +5,13 @@ namespace Autotrad
         public int LineNumber { get; set; }
         public string FullLine { get; set; } = "";
         public string Text { get; set; } = "";
-        public bool Selected { get; set; } = false;
+        public bool Selected { get; set; }
 
-        // Aperçu avec surbrillance non destructive
-        public string Preview
-        {
-            get
-            {
-                if (string.IsNullOrEmpty(Text) || string.IsNullOrEmpty(FullLine))
-                    return FullLine;
+        // ?? Doit être modifiable pour que Scanner.cs puisse l'écrire
+        public bool IsTranslated { get; set; }
 
-                return FullLine.Replace(Text, $"***{Text}***");
-            }
-        }
-
-        // Déjà traduit ?
-        public bool IsTranslated =>
-            FullLine.Contains("LanguageManager.Get(");
+        // Aperçu affiché dans la grille
+        public string Preview => $"{LineNumber}: {FullLine}";
     }
 }
 

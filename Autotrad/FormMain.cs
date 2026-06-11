@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text.Json;
 using System.Windows.Forms;
 
 namespace Autotrad
@@ -10,6 +11,7 @@ namespace Autotrad
     public partial class FormMain : Form
     {
         private string _lastOpenedFile = "";
+        private Dictionary<string, string> _existingKeys = new();
 
         public FormMain()
         {
@@ -25,11 +27,29 @@ namespace Autotrad
             {
                 _lastOpenedFile = dlg.FileName;
 
-                var list = Scanner.ScanFile(dlg.FileName);
+                LoadExistingJsonKeys();
+
+                var list = Scanner.ScanFile(dlg.FileName, _existingKeys);
                 dataGridView1.DataSource = list;
 
                 SetupColumns();
                 FillPreviewColumn();
+            }
+        }
+
+        private void LoadExistingJsonKeys()
+        {
+            string langDir = Path.Combine(AppContext.BaseDirectory, "languages");
+            string frPath = Path.Combine(langDir, "fr-FR.json");
+
+            if (File.Exists(frPath))
+            {
+                var json = File.ReadAllText(frPath);
+                _existingKeys = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+            }
+            else
+            {
+                _existingKeys = new Dictionary<string, string>();
             }
         }
 
@@ -87,6 +107,7 @@ namespace Autotrad
                     row.DefaultCellStyle.BackColor = System.Drawing.Color.LightGreen;
             }
         }
+
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
@@ -100,15 +121,12 @@ namespace Autotrad
 
             int line = item.LineNumber;
 
-            // VS Code
             if (TryOpen("code", $"\"{_lastOpenedFile}\" -g {line}"))
                 return;
 
-            // Notepad++
             if (TryOpen("notepad++", $"\"{_lastOpenedFile}\" -n{line}"))
                 return;
 
-            // Notepad (fallback)
             TryOpen("notepad", $"\"{_lastOpenedFile}\"");
         }
 
@@ -129,6 +147,7 @@ namespace Autotrad
                 return false;
             }
         }
+
         private void btnExport_Click(object sender, EventArgs e)
         {
             if (dataGridView1.DataSource is not List<ScanResult> list)
