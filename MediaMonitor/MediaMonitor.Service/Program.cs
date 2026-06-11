@@ -244,6 +244,7 @@ namespace MediaMonitor.Service
                     string backupPath = Path.Combine(backupDir, "history_backup.json");
 
                     // Charger l'ancien backup s'il existe
+                    // Charger l'ancien backup s'il existe
                     BackupFileModel backup = null;
 
                     if (File.Exists(backupPath))
@@ -255,20 +256,44 @@ namespace MediaMonitor.Service
                     if (backup == null)
                         backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
 
-                    // Ajouter le rapport du jour
-                    var todayReport = new DailyReport
+                    // ------------------------------------------------------------
+                    // ?? INCRÉMENTIEL : fusionner les items du jour
+                    // ------------------------------------------------------------
+                    DateTime today = DateTime.Now.Date;
+
+                    // Chercher le rapport du jour existant
+                    var existing = backup.Reports.FirstOrDefault(r => r.Date == today);
+
+                    if (existing == null)
                     {
-                        Date = DateTime.Now.Date,
-                        Items = engine.GetHistory()
-                    };
+                        // Aucun rapport pour aujourd'hui ? on le crée
+                        existing = new DailyReport
+                        {
+                            Date = today,
+                            Items = new List<MediaUsageItem>()
+                        };
+                        backup.Reports.Add(existing);
+                    }
 
-                    // Supprimer un éventuel doublon du même jour
-                    backup.Reports.RemoveAll(r => r.Date == todayReport.Date);
+                    // Fusionner : ajouter les nouveaux items RAM
+                    var newItems = engine.GetHistory();
 
-                    backup.Reports.Add(todayReport);
+                    // Ajouter uniquement les nouveaux (éviter doublons)
+                    foreach (var item in newItems)
+                    {
+                        bool already = existing.Items.Any(x =>
+                            x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
+                            x.Timestamp == item.Timestamp &&
+                            x.ClientIP == item.ClientIP);
 
-                    // Supprimer les rapports trop anciens
-                    DateTime limit = DateTime.Now.Date.AddDays(-retentionDays);
+                        if (!already)
+                            existing.Items.Add(item);
+                    }
+
+                    // ------------------------------------------------------------
+                    // ?? Rétention glissante : supprimer les jours trop anciens
+                    // ------------------------------------------------------------
+                    DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
 
                     // Sauvegarder le fichier final
@@ -322,34 +347,34 @@ namespace MediaMonitor.Service
                 WriteScheduleLog("Erreur RestartBackupTimer : " + ex.Message);
             }
         }
-private static DateTime _lastWebConfigChange = DateTime.MinValue;
-private static void WebConfigChanged(object sender, FileSystemEventArgs e)
-{
-    // Anti-rebond : ignore les événements multiples dans les 300 ms
-    if ((DateTime.Now - _lastWebConfigChange).TotalMilliseconds < 300)
-        return;
+        private static DateTime _lastWebConfigChange = DateTime.MinValue;
+        private static void WebConfigChanged(object sender, FileSystemEventArgs e)
+        {
+            // Anti-rebond : ignore les événements multiples dans les 300 ms
+            if ((DateTime.Now - _lastWebConfigChange).TotalMilliseconds < 300)
+                return;
 
-    _lastWebConfigChange = DateTime.Now;
+            _lastWebConfigChange = DateTime.Now;
 
-    try
-    {
-        CoreLog.Write("WebConfigChanged déclenché !");
-        Thread.Sleep(200);
+            try
+            {
+                CoreLog.Write("WebConfigChanged déclenché !");
+                Thread.Sleep(200);
 
-        var settings = WebServerSettings.Load();
-        int days = settings.RetentionDays;
+                var settings = WebServerSettings.Load();
+                int days = settings.RetentionDays;
 
-        RestartBackupTimer();
+                RestartBackupTimer();
 
-        WriteScheduleLog($"Rétention mise à jour via Web.config : {days} jours");
-        WriteScheduleLog("Timer de sauvegarde reprogrammé suite au changement de rétention.");
-    }
-    catch (Exception ex)
-    {
-        WriteScheduleLog("Erreur WebConfigChanged : " + ex.Message);
-        CoreLog.Write("Erreur WebConfigChanged : " + ex);
-    }
-}
+                WriteScheduleLog($"Rétention mise à jour via Web.config : {days} jours");
+                WriteScheduleLog("Timer de sauvegarde reprogrammé suite au changement de rétention.");
+            }
+            catch (Exception ex)
+            {
+                WriteScheduleLog("Erreur WebConfigChanged : " + ex.Message);
+                CoreLog.Write("Erreur WebConfigChanged : " + ex);
+            }
+        }
 
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
