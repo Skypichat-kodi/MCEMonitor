@@ -1,13 +1,11 @@
 {
-  "App.Title": "MCEMonitor",
-
+  "App.Title": "Gérer MAC autorisées",
   "Tab.Email": "Email",
   "Tab.MediaMonitor": "Media Monitor",
   "Tab.WakeMonitor": "Wake Monitor",
   "Tab.StopMonitor": "Stop Monitor",
   "Tab.OnOff": "On/Off",
   "Tab.About": "À propos",
-
   "Email.Description": "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.",
   "Email.Title": "Configuration Email",
   "Email.SmtpServer": "Serveur SMTP :",
@@ -20,7 +18,6 @@
   "Email.SecurityMode": "Sécurité :",
   "Email.SaveConfig": "Enregistrer configuration",
   "Email.Test": "Tester Email",
-
   "Media.Info.Title": "À propos de MediaMonitor",
   "Media.Info.Description": "MediaMonitor permet de savoir quels médias sont en cours de lecture ou ont été lus.\nLe processus peut être automatisé selon la période d’activité de la machine.\nUn rapport peut être envoyé automatiquement avant l’arrêt ou manuellement via l’interface.",
   "Media.Actions.Title": "Automatisation du rapport",
@@ -28,7 +25,6 @@
   "Media.Task.Create": "Créer tâche planifiée",
   "Media.Task.Delete": "Supprimer tâche planifiée",
   "Media.UI.Open": "Ouvrir MediaMonitor",
-
   "Wake.Description": "WakeMonitor peut vous remonter des informations qui ont provoqué le réveil de votre machine. Ces informations sont envoyées par mail.",
   "Wake.Options.Title": "Indications à donner dans le mail",
   "Wake.Option.PublicIP": "Inclure IP publique",
@@ -38,25 +34,44 @@
   "Wake.Option.Cause": "Inclure cause",
   "Wake.Option.Duration": "Inclure durée",
   "Wake.Config.Save": "Enregistrer configuration",
-  "Wake.Run": "Envoi Email de test",
+  "Wake.Run": "Envoi d'un mail de test",
   "Wake.Task.Create": "Créer tâche planifiée",
   "Wake.Task.Delete": "Supprimer tâche planifiée",
-
   "Stop.Description": "StopMonitor vous permet de savoir pourquoi votre machine a démarré ou redémarré via une tâche planifiée.",
   "Stop.Task.Create": "Créer tâche planifiée",
   "Stop.Task.Delete": "Supprimer tâche planifiée",
-  "Stop.Run": "Envoi Email de test",
-
+  "Stop.Run": "Envoi d'un mail de test",
   "Shutdown.Title": "Arrêt programmé",
   "Shutdown.Hour": "Heure (0–23) :",
   "Shutdown.Minute": "Minute (0–59) :",
   "Shutdown.Type": "Choisir le type d'arrêt :",
   "Shutdown.Task.Create": "Créer tâche planifiée",
   "Shutdown.Task.Delete": "Supprimer tâche planifiée",
-
   "WOL.Title": "Démarrage automatique (Wake On Lan)",
   "WOL.Description": "Pour démarrer votre machine automatiquement vous devrez utiliser la méthode Wake On Lan.\n\nVous devez activer la fonctionnalité dans le BIOS, mais aussi dans le gestionnaire de périphériques de Windows.\n\nSi vous ne souhaitez pas utiliser WOL, vous devrez démarrer votre machine manuellement.",
-
-  "About.Text": "MCEMonitor\nVersion 1.0\n\nDéveloppé par Christophe.\nOutil de supervision et d'automatisation pour Media Center Edition."
+  "About.Text": "À propos de MCEMonitor",
+  "App.Description": "À propos de WakeMonitor",
+  "Email.ConfigSaved": "Configuration Email enregistrée",
+  "Email.Test.Start": "Démarrage du test SMTP…",
+  "Email.Test.DnsResolve": "Résolution DNS du serveur",
+  "Email.Test.Connecting": "Connexion au serveur SMTP sur le port",
+  "Email.Test.Authenticating": "Authentification…",
+  "Email.Test.AuthSuccess": "Authentification réussie.",
+  "Email.Test.Sending": "Envoi du message de test…",
+  "Email.Test.Success": "Email envoyé avec succès !",
+  "Email.Test.Disconnect": "Déconnexion du serveur.",
+  "Email.Test.Error": "ERREUR : ",
+  "Media.Task.CreateResult": "Résultat création tâche MediaMonitor",
+  "Error.Generic": "Erreur : ",
+  "Media.Task.DeleteResult": "Résultat suppression tâche MediaMonitor",
+  "Media.Service.InUse": "Service en cours d'utilisation",
+  "Wake.ConfigSaved": "Configuration WakeMonitor enregistrée",
+  "Error.FileNotFound": "Erreur",
+  "Wake.RunSuccess": "WakeMonitor exécuté",
+  "Error.ProcessStart": "Erreur",
+  "Stop.RunSuccess": "StopMonitor exécuté",
+  "Shutdown.Error": "Erreur : ",
+  "OnOff.Info.Title": "Information",
+  "OnOff.Save": "Sauvegarder",
+  "Wake.Title": "Fermer"
 }
-
