@@ -5,6 +5,8 @@ using System.Threading;
 using MediaMonitor.Core.Services;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.Linq;
+using MediaMonitor.Core.Models;
 
 namespace MediaMonitor.Service
 {
