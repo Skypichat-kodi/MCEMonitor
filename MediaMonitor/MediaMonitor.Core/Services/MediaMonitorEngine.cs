@@ -18,11 +18,29 @@ namespace MediaMonitor.Core.Services
         private readonly System.Timers.Timer _timer;
         private string _lastImage = "";
         private int _startupCycles = 0;
+        private readonly DateTime _startTime = DateTime.Now;
 
         private readonly Dictionary<string, DateTime> _openSince = new();
         private readonly object _sync = new();
 
         public event Action<List<MediaUsageItem>, string>? OnUpdate;
+
+        public string GetUptime()
+        {
+            TimeSpan up = DateTime.Now - _startTime;
+            return $"{(int)up.TotalHours:00}:{up.Minutes:00}:{up.Seconds:00}";
+        }
+
+        public string GetVersion()
+        {
+            // Tu peux mettre ce que tu veux ici
+            return "1.0.0";
+        }
+
+        public DateTime GetStartTime()
+        {
+            return _startTime;
+        }
 
         public MediaMonitorEngine()
         {

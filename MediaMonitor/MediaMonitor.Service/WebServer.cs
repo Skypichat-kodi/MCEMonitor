@@ -19,6 +19,10 @@ namespace MediaMonitor.Service
         private readonly int _port;
         private Thread _thread;
         private bool _running = false;
+        private long _requestCount = 0;
+        private DateTime _lastRequestTime = DateTime.MinValue;
+        private string _lastRequestIp = "N/A";
+        private string _lastReportStatus = "Aucun rapport envoyé";                
 
         private WebServerSettings _settings;
 
@@ -87,6 +91,9 @@ namespace MediaMonitor.Service
         {
             try
             {
+                _requestCount++;
+                _lastRequestTime = DateTime.Now;
+                _lastRequestIp = ctx.Request.RemoteEndPoint?.ToString() ?? "N/A";           
                 // ?? AUTHENTIFICATION BASIC
                 if (!CheckAuth(ctx))
                 {
@@ -230,71 +237,222 @@ namespace MediaMonitor.Service
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
         }
+        private string GetTypeBadgeClass(string? mediaType)
+        {
+            return (mediaType ?? "").ToLower() switch
+            {
+                "audio" => "type-audio",
+                "serie" => "type-serie",
+                "video" => "type-video",
+                _ => ""
+            };
+        }
 
+        private DateTime GetReportSendTime()
+        {
+            // Placeholder : a adapter si tu as une vraie logique de rapport
+            return DateTime.Today.AddHours(10).AddDays(1);
+        }
+        
+        // ==========================
+        //  PAGE PRINCIPALE
+        // ==========================        
         private string BuildHomePage()
         {
             var live = _engine.GetCurrentOpenFiles();
             var history = _engine.GetHistory();
 
+            int liveCount = live.Count;
+            int historyCount = history.Count;
+            int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));
+
             var sb = new StringBuilder();
 
             sb.Append(@"
-            <html>
-            <head>
-            <meta charset='UTF-8'>
-            <title>MediaMonitor Web</title>
-            <style>
-            body { background:#111; color:#eee; font-family:Arial; }
-            h1 { color:#6cf; }
-            table { width:100%; border-collapse:collapse; margin-top:20px; }
-            th, td { border:1px solid #444; padding:6px; }
-            th { background:#222; }
-            tr:nth-child(even) { background:#1a1a1a; }
-            a { color:#6cf; }
-            </style>
-            <meta http-equiv='refresh' content='5'>
-            </head>
-            <body>
-            <h1>MediaMonitor – Tableau de bord</h1>
-            ");
-            
-            sb.Append("<div style='margin-bottom:20px; display:flex; gap:10px;'>");
-            sb.Append("<a href='/backup' style='padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;'>Voir le backup</a>");
+        <!DOCTYPE html>
+        <html lang='fr'>
+        <head>
+        <meta charset='UTF-8'>
+        <title>MediaMonitor – Tableau de bord</title>
+        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+        <style>
+        body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+        h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+        .container { display:flex; gap:20px; flex-wrap:wrap; }
+        .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
+        .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+        .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
+        .label { color:#ccc; }
+        .value { font-weight:bold; color:#fff; }
+        table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+        th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+        th { background:#2d2d30; color:#fff; }
+        tr:nth-child(even) td { background:#262626; }
+        tr:nth-child(odd) td { background:#1f1f1f; }
+        .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+        .type-audio { background:#007acc; }
+        .type-serie { background:#c586c0; }
+        .type-video { background:#d19a66; }
+        .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
+        .button {
+            padding:6px 12px;
+            background:#007acc;
+            color:white;
+            text-decoration:none;
+            border-radius:4px;
+            font-size:13px;
+        }
+        .button-secondary { background:#444; }
+        .button-danger { background:#cc3300; }
+        .small { font-size:12px; color:#ccc; }
+
+        /* Type = colonne 2 dans le premier tableau */
+        table:nth-of-type(1) td:nth-child(2),
+        table:nth-of-type(1) th:nth-child(2) {
+            text-align: center;
+        }
+
+        /* Type = colonne 3 dans le second tableau */
+        table:nth-of-type(2) td:nth-child(3),
+        table:nth-of-type(2) th:nth-child(3) {
+            text-align: center;
+        }
+
+        td, th {
+            border-right: 1px solid #3c3c3c;
+        }
+
+        td:last-child, th:last-child {
+            border-right: none;
+        }
+        </style>
+        <meta http-equiv='refresh' content='5'>
+        </head>
+        <body>
+        ");
+
+            sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
+
+            sb.Append(@"
+        <div class='button-bar'>
+            <a href='/' class='button button-secondary'>Rafraîchir</a>
+            <a href='/backup' class='button'>Voir le backup</a>
+            <a href='/download' class='button'>Télécharger le backup</a>
+            <a href='/purge' class='button button-danger' onclick='return confirm(""Voulez-vous vraiment supprimer TOUTES les sauvegardes ?"");'>Purger les sauvegardes</a>
+        </div>
+        ");
+
+            sb.Append("<div class='container'>");
+
+            // Statut du service
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>Statut du service</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append($"<div class='label'>Serveur :</div><div class='value'>{WebUtility.HtmlEncode(Environment.MachineName)}</div>");
+            sb.Append($"<div class='label'>Heure actuelle :</div><div class='value'>{DateTime.Now:yyyy-MM-dd HH:mm:ss}</div>");
             sb.Append("</div>");
-            sb.Append($"<p>Serveur : <b>{Environment.MachineName}</b></p>");
-            sb.Append($"<p>Heure : <b>{DateTime.Now:HH:mm:ss}</b></p>");
-            sb.Append($"<p>Fichiers en cours : <b>{live.Count}</b></p>");
-            sb.Append($"<p>Historique total : <b>{history.Count}</b></p>");
-            sb.Append("<h2>Lecture en cours</h2>");
-            sb.Append("<table><tr><th>Client</th><th>Type</th><th>Nom</th><th>Fichier</th></tr>");
+            sb.Append("</div>");
+
+            // Rapports
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>Rapports</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append("<div class='label'>Dernier rapport :</div>");
+            sb.Append($"<div class='value'>{WebUtility.HtmlEncode(_lastReportStatus)}</div>");
+            var next = GetReportSendTime();
+            sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yyyy-MM-dd HH:mm:ss}</div>");
+            sb.Append("</div>");
+            sb.Append("</div>");
+
+            // Lecture en cours
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>Lecture en cours</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append($"<div class='label'>Fichiers ouverts :</div><div class='value'>{liveCount}</div>");
+            sb.Append($"<div class='label'>Utilisateurs actifs :</div><div class='value'>{live.Select(x => x.ClientName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count()}</div>");
+            sb.Append("</div>");
+            sb.Append("</div>");
+
+            // Historique
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>Historique</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append($"<div class='label'>Événements totaux :</div><div class='value'>{historyCount}</div>");
+            sb.Append($"<div class='label'>Sur 24h :</div><div class='value'>{history24h}</div>");
+            if (historyCount > 0)
+            {
+                var last = history.Last();
+                sb.Append("<div class='label'>Dernier événement :</div>");
+                sb.Append($"<div class='value'>{last.Timestamp:HH:mm:ss} – {WebUtility.HtmlEncode(last.MediaType)} ({WebUtility.HtmlEncode(last.ClientName)})</div>");
+            }
+            sb.Append("</div>");
+            sb.Append("</div>");
+
+            // WebServer
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>WebServer</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append($"<div class='label'>Port :</div><div class='value'>{_port}</div>");
+            sb.Append($"<div class='label'>Requetes :</div><div class='value'>{_requestCount}</div>");
+            sb.Append($"<div class='label'>Derniere requete :</div><div class='value'>{(_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss"))}</div>");
+            sb.Append($"<div class='label'>Dernier client :</div><div class='value'>{WebUtility.HtmlEncode(_lastRequestIp)}</div>");
+            sb.Append("</div>");
+            sb.Append("</div>");
+
+            sb.Append("</div>"); // .container
+
+            // === TABLEAU LECTURE EN COURS ===
+            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>Lecture en cours</h2>");
+            sb.Append("<table>");
+            sb.Append("<thead><tr><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
 
             foreach (var item in live)
             {
+                string type = item.MediaType ?? "";
+                string badgeClass = GetTypeBadgeClass(type);
+
                 sb.Append("<tr>");
-                sb.Append($"<td>{item.ClientName}</td>");
-                sb.Append($"<td>{item.MediaType}</td>");
-                sb.Append($"<td>{item.Nom}</td>");
-                sb.Append($"<td>{item.FileName}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(type)}</span></td>");
+                sb.Append($"<td>{item.Saison}</td>");
+                sb.Append($"<td>{item.Episode}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
                 sb.Append("</tr>");
             }
 
-            sb.Append("</table>");
+            if (liveCount == 0)
+                sb.Append("<tr><td colspan='7' class='small'>Aucune lecture en cours.</td></tr>");
 
-            sb.Append("<h2>Historique</h2>");
-            sb.Append("<table><tr><th>Heure</th><th>Client</th><th>Type</th><th>Nom</th><th>Fichier</th></tr>");
+            sb.Append("</tbody></table>");
 
-            foreach (var item in history)
+            // === TABLEAU HISTORIQUE ===
+            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>Historique</h2>");
+            sb.Append("<table>");
+            sb.Append("<thead><tr><th>Heure</th><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
+
+            foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
             {
+                string type = item.MediaType ?? "";
+                string badgeClass = GetTypeBadgeClass(type);
+
                 sb.Append("<tr>");
                 sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
-                sb.Append($"<td>{item.ClientName}</td>");
-                sb.Append($"<td>{item.MediaType}</td>");
-                sb.Append($"<td>{item.Nom}</td>");
-                sb.Append($"<td>{item.FileName}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(type)}</span></td>");
+                sb.Append($"<td>{item.Saison}</td>");
+                sb.Append($"<td>{item.Episode}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
                 sb.Append("</tr>");
             }
 
-            sb.Append("</table>");
+            if (historyCount == 0)
+                sb.Append("<tr><td colspan='8' class='small'>Aucun historique disponible.</td></tr>");
+
+            sb.Append("</tbody></table>");
 
             sb.Append("</body></html>");
 
@@ -302,68 +460,73 @@ namespace MediaMonitor.Service
         }
 
         // ==========================
-        //  PAGE /backup
+        //  PAGE BACKUP SANS FICHIER
         // ==========================
         private string BuildBackupPage(HttpListenerRequest req)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
             if (!Directory.Exists(folder))
-return @"
-<html>
-<head>
-<meta charset='UTF-8'>
-<title>MediaMonitor – Sauvegarde</title>
-<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
-<style>
-body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
-h2 { color:#f55; }
-.button {
-    display:inline-block;
-    padding:10px 20px;
-    background:#0078D4;
-    color:white;
-    text-decoration:none;
-    border-radius:6px;
-    font-weight:bold;
-    margin-top:20px;
-}
-</style>
-</head>
-<body>
-<h2>Aucune sauvegarde trouvée.</h2>
-<a class='button' href='/'>Retour</a>
-</body>
-</html>";
+        return @"
+        <html>
+        <head>
+        <meta charset='UTF-8'>
+        <title>MediaMonitor – Sauvegarde</title>
+        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+        <style>
+        body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
+        h2 { color:#f55; }
+        .button {
+            display:inline-block;
+            padding:10px 20px;
+            background:#0078D4;
+            color:white;
+            text-decoration:none;
+            border-radius:6px;
+            font-weight:bold;
+            margin-top:20px;
+        }
+        
+        </style>
+        </head>
+        <body>
+        <h2>Aucune sauvegarde trouvée.</h2>
+        <a class='button' href='/'>Retour</a>
+        </body>
+        </html>";
 
-
-            var files = Directory.GetFiles(folder, "history_*.json");
-            if (files.Length == 0)
-return @"
-<html>
-<head>
-<meta charset='UTF-8'>
-<title>MediaMonitor – Sauvegarde</title>
-<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
-<style>
-body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
-h2 { color:#f55; }
-.button {
-    display:inline-block;
-    padding:10px 20px;
-    background:#0078D4;
-    color:white;
-    text-decoration:none;
-    border-radius:6px;
-    font-weight:bold;
-    margin-top:20px;
-}
-</style>
-</head>
-<body>
-<h2>Aucune sauvegarde disponible.</h2>
-<a class='button' href='/'>Retour</a>
-</body>
-</html>";
+                    var files = Directory.GetFiles(folder, "history_*.json");
+                    if (files.Length == 0)
+                    
+        
+        // ==========================
+        //  PAGE BACKUP AVEC FICHIER
+        // ==========================                    
+        return @"
+        <html>
+        <head>
+        <meta charset='UTF-8'>
+        <title>MediaMonitor – Sauvegarde</title>
+        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+        <style>
+        body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
+        h2 { color:#f55; }
+        .button {
+            display:inline-block;
+            padding:10px 20px;
+            background:#0078D4;
+            color:white;
+            text-decoration:none;
+            border-radius:6px;
+            font-weight:bold;
+            margin-top:20px;
+        }
+        </style>
+        </head>
+        <body>
+        <h2>Aucune sauvegarde disponible.</h2>
+        <a class='button' href='/'>Retour</a>
+        </body>
+        </html>";
 
             string lastFile = files.OrderByDescending(f => f).First();
 
@@ -459,13 +622,19 @@ h2 { color:#f55; }
                 };
 
                 rows.Append($@"
-<tr>
-    <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
-    <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
-    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
-</tr>");
+        <tr>
+            <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
+            <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
+            <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
+            <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+        </tr>");
             }
+
+            int[] hours = new int[24];
+            foreach (var it in items)
+                hours[it.Timestamp.Hour]++;
+
+            string hoursJson = JsonSerializer.Serialize(hours);
 
             string html = BackupHtmlTemplate
                 .Replace("{{TOTAL}}", total.ToString())
@@ -491,7 +660,8 @@ h2 { color:#f55; }
                 .Replace("{{SEL_DATE_TODAY}}", date == "today" ? "selected" : "")
                 .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
                 .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
-                .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "");
+                .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
+                .Replace("{{HOURS_DATA}}", hoursJson);
 
             return html;
         }
@@ -628,125 +798,207 @@ h2 { color:#f55; }
         }
 
         private const string BackupHtmlTemplate = @"
-<!DOCTYPE html>
-<html lang='fr'>
-<head>
-<meta charset='UTF-8'>
-<title>Historique sauvegardé - MediaMonitor</title>
-<link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
-<style>
-body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
-h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
-.container { display:flex; gap:20px; }
-.groupbox { flex:1; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
-.groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
-.stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
-.label { color:#ccc; }
-.value { font-weight:bold; color:#fff; }
-.listing-header { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
-table { width:100%; border-collapse:collapse; font-size:13px; }
-th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
-th { background:#2d2d30; color:#fff; }
-tr:nth-child(even) td { background:#262626; }
-tr:nth-child(odd) td { background:#1f1f1f; }
-.type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
-.type-audio { background:#007acc; }
-.type-serie { background:#c586c0; }
-.type-video { background:#d19a66; }
-select { background:#2d2d30; color:#e5e5e5; border:1px solid #3c3c3c; border-radius:4px; padding:2px 4px; }
-label { margin-right:4px; }
-</style>
-</head>
-<body>
+        <!DOCTYPE html>
+        <html lang=""fr"">
+        <head>
+        <meta charset=""UTF-8"">
+        <title>Historique sauvegardé - MediaMonitor</title>
+        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
 
-<h1>Historique sauvegardé</h1>
+        <!-- Chart.js -->
+        <script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
 
-<div style='margin-bottom:20px; display:flex; gap:10px;'>
-    <a href='/download' style='padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;'>Télécharger</a>
+        <style>
+            body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+            h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+            .container { display:flex; gap:20px; }
+            .groupbox { flex:1; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
+            .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+            .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
+            .label { color:#ccc; }
+            .value { font-weight:bold; color:#fff; }
+            .listing-header { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
+            table { width:100%; border-collapse:collapse; font-size:13px; }
+            th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+            th { background:#2d2d30; color:#fff; }
+            tr:nth-child(even) td { background:#262626; }
+            tr:nth-child(odd) td { background:#1f1f1f; }
+            .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+            .type-audio { background:#007acc; }
+            .type-serie { background:#c586c0; }
+            .type-video { background:#d19a66; }
+            select { background:#2d2d30; color:#e5e5e5; border:1px solid #3c3c3c; border-radius:4px; padding:2px 4px; }
+            label { margin-right:4px; }
 
-    <a href='/purge'
-       onclick='return confirm(""Voulez-vous vraiment supprimer TOUTES les sauvegardes ?"");'
-       style='padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;'>
-       Purger
-    </a>
+            td, th { border-right: 1px solid #3c3c3c; }
+            td:last-child, th:last-child { border-right: none; }
 
-    <a href='/' style='padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;'>Retour</a>
-</div>
+            td:nth-child(2), th:nth-child(2) { text-align:center; }
+        </style>
 
-<div style='margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;'>
+        </head>
+        <body>
 
-    <div>
-        <label>Filtrer par type :</label>
-        <select onchange='location.href=""?type="" + this.value + ""&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}"";'>
-            <option value='all' {{SEL_ALL}}>Tous</option>
-            <option value='audio' {{SEL_AUDIO}}>Audio</option>
-            <option value='serie' {{SEL_SERIE}}>Séries</option>
-            <option value='video' {{SEL_VIDEO}}>Vidéos</option>
-        </select>
-    </div>
+        <h1>Historique sauvegardé</h1>
 
-    <div>
-        <label>Filtrer par client :</label>
-        <select onchange='location.href=""?type={{FILTER_TYPE}}&client="" + this.value + ""&date={{DATE}}&sort={{SORT}}"";'>
-            {{CLIENT_OPTIONS}}
-        </select>
-    </div>
+        <div style=""margin-bottom:20px; display:flex; gap:10px;"">
+            <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
 
-    <div>
-        <label>Filtrer par date :</label>
-        <select onchange='location.href=""?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date="" + this.value + ""&sort={{SORT}}"";'>
-            <option value='all' {{SEL_DATE_ALL}}>Tout</option>
-            <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
-            <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
-            <option value='7' {{SEL_DATE_7}}>7 jours</option>
-            <option value='30' {{SEL_DATE_30}}>30 jours</option>
-        </select>
-    </div>
+            <a href=""/purge""
+               onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
+               style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
+               Purger
+            </a>
 
-    <div>
-        <label>Trier :</label>
-        <select onchange='location.href=""?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort="" + this.value;'>
-            <option value='date_desc' {{SEL_DATEDESC}}>Date ¡</option>
-            <option value='date_asc' {{SEL_DATEASC}}>Date ^</option>
-            <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
-            <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
-        </select>
-    </div>
+            <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
+        </div>
 
-</div>
+        <div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
 
-<div class='container'>
+            <div>
+                <label>Filtrer par type :</label>
+                <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
+                    <option value='all' {{SEL_ALL}}>Tous</option>
+                    <option value='audio' {{SEL_AUDIO}}>Audio</option>
+                    <option value='serie' {{SEL_SERIE}}>Séries</option>
+                    <option value='video' {{SEL_VIDEO}}>Vidéos</option>
+                </select>
+            </div>
 
-<div class='groupbox'>
-    <div class='groupbox-title'>Statistiques</div>
-    <div class='stats-grid'>
-        <div class='label'>Titres lus :</div><div class='value'>{{TOTAL}}</div>
-        <div class='label'>Audio :</div><div class='value'>{{AUDIO}}</div>
-        <div class='label'>Séries :</div><div class='value'>{{SERIES}}</div>
-        <div class='label'>Vidéos :</div><div class='value'>{{VIDEOS}}</div>
-    </div>
-</div>
+            <div>
+                <label>Filtrer par client :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
+                    {{CLIENT_OPTIONS}}
+                </select>
+            </div>
 
-<div class='groupbox'>
-    <div class='groupbox-title'>Listing des titres</div>
-    <div class='listing-header'>
-        <span>Période : {{PERIOD}}</span>
-        <span>{{COUNT}} élément(s)</span>
-    </div>
-    <table>
-        <thead>
-            <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
-        </thead>
-        <tbody>
-            {{ROWS}}
-        </tbody>
-    </table>
-</div>
+            <div>
+                <label>Filtrer par date :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
+                    <option value='all' {{SEL_DATE_ALL}}>Tout</option>
+                    <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
+                    <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
+                    <option value='7' {{SEL_DATE_7}}>7 jours</option>
+                    <option value='30' {{SEL_DATE_30}}>30 jours</option>
+                </select>
+            </div>
 
-</div>
+            <div>
+                <label>Trier :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
+                    <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
+                    <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
+                    <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
+                    <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
+                </select>
+            </div>
 
-</body>
-</html>";
+        </div>
+
+        <div class=""container"">
+
+            <!-- COLONNE GAUCHE -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Statistiques</div>
+                <div class=""stats-grid"">
+                    <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
+                    <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
+                    <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
+                    <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
+                </div>
+
+                <br>
+
+                <div class=""groupbox-title"">Graphiques</div>
+
+                <div style=""display:flex; gap:15px; align-items:stretch;"">
+
+                    <!-- Bloc Donut -->
+                    <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                        <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                            Répartition par type
+                        </div>
+                        <canvas id=""chartTypes"" height=""160""></canvas>
+                    </div>
+
+                    <!-- Séparateur vertical -->
+                    <div style=""width:1px; background:#3c3c3c;""></div>
+
+                    <!-- Bloc Horaire -->
+                    <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                        <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                            Activité par heure
+                        </div>
+                        <canvas id=""chartHours"" height=""160""></canvas>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- COLONNE DROITE -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Listing des titres</div>
+                <div class=""listing-header"">
+                    <span>Période : {{PERIOD}}</span>
+                    <span>{{COUNT}} élément(s)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>
+                        {{ROWS}}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- SCRIPTS GRAPHIQUES -->
+        <script>
+            const audio = {{AUDIO}};
+            const series = {{SERIES}};
+            const videos = {{VIDEOS}};
+            const hoursData = {{HOURS_DATA}};
+
+            new Chart(document.getElementById('chartTypes'), {
+                type: 'doughnut',
+                data: {
+                    labels: ['Audio', 'Séries', 'Vidéos'],
+                    datasets: [{
+                        data: [audio, series, videos],
+                        backgroundColor: ['#007acc', '#c586c0', '#d19a66']
+                    }]
+                },
+                options: {
+                    plugins: { legend: { labels: { color:'#fff' } } }
+                }
+            });
+
+            new Chart(document.getElementById('chartHours'), {
+                type: 'line',
+                data: {
+                    labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+                    datasets: [{
+                        label: 'Lectures par heure',
+                        data: hoursData,
+                        borderColor: '#4fc3f7',
+                        backgroundColor: 'rgba(79,195,247,0.2)',
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    scales: {
+                        x: { ticks: { color:'#fff' } },
+                        y: { ticks: { color:'#fff' } }
+                    },
+                    plugins: { legend: { labels: { color:'#fff' } } }
+                }
+            });
+        </script>
+
+        </body>
+        </html>";
     }
 }
 
