@@ -9,20 +9,15 @@
     <ApplicationIcon>Assets\MediaMonitor.ico</ApplicationIcon>
   </PropertyGroup>
 
-  <!-- Inclusion forcée des ressources -->
   <ItemGroup>
-    <!-- Icône -->
     <Content Include="Assets\MediaMonitor.ico" CopyToOutputDirectory="Always" />
-
-    <!-- Dossier Languages (JSON) -->
-    <Content Include="Languages\**\*.json" CopyToOutputDirectory="Always" />
-
-    <!-- Autres ressources éventuelles -->
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
   </ItemGroup>
 
+  <!-- Référence vers MediaMonitor.Core -->
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.16.0" />
+    <ProjectReference Include="..\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
 </Project>
 

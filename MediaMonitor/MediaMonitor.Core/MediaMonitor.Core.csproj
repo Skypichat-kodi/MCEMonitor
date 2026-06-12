@@ -9,6 +9,13 @@
   <ItemGroup>
     <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="TagLibSharp" Version="2.3.0" />
+
+    <!-- Dossier Languages (JSON) -->
+    <Content Include="Languages\**\*.json" CopyToOutputDirectory="Always" />
+
+    <!-- Autres ressources éventuelles -->
+    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" /> 
+    
   </ItemGroup>
 
 </Project>
