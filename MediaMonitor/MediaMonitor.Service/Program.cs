@@ -167,6 +167,7 @@ namespace MediaMonitor.Service
         // PROGRAMMATION DU TIMER
         // ------------------------------------------------------------
         private static bool _isSending = false;
+        private static DateTime _lastReportSent = DateTime.MinValue;
 
         private static void ScheduleNextReport(MediaMonitorEngine engine)
         {
@@ -188,6 +189,13 @@ namespace MediaMonitor.Service
 
                 try
                 {
+                    // ?? Protection anti-double envoi : fenêtre de 3 minutes
+                    if (DateTime.Now - _lastReportSent < TimeSpan.FromMinutes(3))
+                    {
+                        WriteScheduleLog("[CODE03] Double envoi évité (fenêtre de sécurité 3 minutes)");
+                        return;
+                    }
+
                     if (!ServiceIpcServer.EmailSendingEnabled)
                     {
                         WriteScheduleLog("Envoi automatique désactivé — rapport ignoré.");
@@ -200,6 +208,9 @@ namespace MediaMonitor.Service
                         DateTime nextSend = GetReportSendTime();
 
                         await engine.SendReportEmail();
+
+                        // ?? Mise à jour de la protection anti-double envoi
+                        _lastReportSent = DateTime.Now;
 
                         _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
                         WriteScheduleLog(_lastReportStatus);
