@@ -5,7 +5,6 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using System.Text.Encodings.Web;
-using System.Text.Unicode;
 
 namespace Autotrad
 {
@@ -26,41 +25,16 @@ namespace Autotrad
             return "App";
         }
 
-        private static readonly (string pattern, string key)[] KnownPatterns =
-        {
-            ("mot de passe", "Password"),
-            ("afficher", "Password.Show"),
-            ("masquer", "Password.Hide"),
-            ("créer tâche", "Task.Create"),
-            ("supprimer tâche", "Task.Delete"),
-            ("inclure ip locale", "Option.LocalIP"),
-            ("inclure ip publique", "Option.PublicIP"),
-            ("inclure mac", "Option.MAC"),
-            ("inclure usb", "Option.USB"),
-            ("inclure cause", "Option.Cause"),
-            ("inclure durée", "Option.Duration"),
-            ("enregistrer configuration", "Config.Save"),
-            ("ouvrir", "UI.Open"),
-            ("service", "Service.Label"),
-            ("heure", "Hour"),
-            ("minute", "Minute"),
-            ("type", "Type"),
-            ("à propos", "Description"),
-            ("description", "Description"),
-            ("test", "Run")
-        };
-
         public static string GenerateKeyFromText(string module, string text)
         {
-            string lower = text.ToLowerInvariant();
+            string cleaned = Regex.Replace(text, @"[^a-zA-Z0-9]+", " ").Trim();
+            cleaned = CultureInfo.InvariantCulture.TextInfo.ToTitleCase(cleaned);
+            cleaned = cleaned.Replace(" ", "");
 
-            foreach (var (pattern, key) in KnownPatterns)
-            {
-                if (lower.Contains(pattern))
-                    return $"{module}.{key}";
-            }
+            if (string.IsNullOrWhiteSpace(cleaned))
+                cleaned = "Text";
 
-            return $"{module}.Title";
+            return $"{module}.{cleaned}";
         }
 
         public static void ReplaceLineInFile(string path, int lineNumber, string newLine)
@@ -81,6 +55,8 @@ namespace Autotrad
 
             dict[key] = value;
 
+            dict = dict.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value);
+
             var options = new JsonSerializerOptions
             {
                 WriteIndented = true,
@@ -93,18 +69,18 @@ namespace Autotrad
         public static string ExtractLeftPart(string line)
         {
             int idx = line.IndexOf('=');
-            return line.Substring(0, idx + 2);
+            return idx < 0 ? line : line.Substring(0, idx + 2);
         }
 
         public static string ExtractKeyFromLine(string line)
         {
-            var m = Regex.Match(line, @"LanguageManager\.Get\(""([^""]+)""");
+            var m = Regex.Match(line, @"LanguageManager\.Get\s*\(\s*""([^""]+)""");
             return m.Success ? m.Groups[1].Value : "";
         }
 
         public static string ExtractFallbackText(string line)
         {
-            var m = Regex.Match(line, @"\?\?\s*""([^""]+)""");
+            var m = Regex.Match(line, @"\?\?\s*""([^""]*)""");
             return m.Success ? m.Groups[1].Value : "";
         }
     }

@@ -38,6 +38,7 @@ if exist "%DEST%\Autotrad.exe" (
     echo.
     echo Lancement de Autotrad...
     start "" "%DEST%\Autotrad.exe"
+pause
     exit /b
 )
 

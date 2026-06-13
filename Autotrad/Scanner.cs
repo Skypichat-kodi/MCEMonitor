@@ -23,7 +23,7 @@ namespace Autotrad
             {
                 string line = lines[i].Trim();
 
-                // 1?? Ligne déjà traduite : LanguageManager.Get("KEY") ?? "fallback"
+                // 1) Déjà traduit : LanguageManager.Get("Key") ?? "Texte"
                 var m1 = _regexTranslated.Match(line);
                 if (m1.Success)
                 {
@@ -32,11 +32,8 @@ namespace Autotrad
 
                     bool mismatch = false;
 
-                    // Clé absente du JSON
                     if (!existingKeys.ContainsKey(key))
                         mismatch = true;
-
-                    // Valeur JSON ? fallback
                     else if (existingKeys[key] != fallback)
                         mismatch = true;
 
@@ -53,18 +50,14 @@ namespace Autotrad
                     continue;
                 }
 
-                // 2?? Ligne simple : this.xxx.Text = "Texte"
+                // 2) Texte brut : this.xxx.Text = "Texte"
                 var m2 = _regexText.Match(line);
                 if (m2.Success)
                 {
                     string txt = m2.Groups[1].Value;
 
                     bool isTranslated = existingKeys.Values.Contains(txt);
-                    bool mismatch = false;
-
-                    // Si le texte existe dans JSON ? OK
-                    if (!isTranslated)
-                        mismatch = true;
+                    bool mismatch = !isTranslated;
 
                     results.Add(new ScanResult
                     {
