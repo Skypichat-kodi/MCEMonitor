@@ -23,130 +23,168 @@ namespace Autotrad
         // ------------------------------
         // Ouvrir un fichier
         // ------------------------------
-        private void OuvrirFichier_Click(object sender, EventArgs e)
-        {
-            using var dlg = new OpenFileDialog();
-            dlg.Filter = "Fichiers C# (*.cs)|*.cs";
+private void OuvrirFichier_Click(object sender, EventArgs e)
+{
+    using var dlg = new OpenFileDialog();
+    dlg.Filter = "Fichiers C# (*.cs)|*.cs";
 
-            if (dlg.ShowDialog() == DialogResult.OK)
-            {
-                _lastOpenedFile = dlg.FileName;
+    if (dlg.ShowDialog() == DialogResult.OK)
+    {
+        _lastOpenedFile = dlg.FileName;
 
-                LoadExistingJsonKeys();
+        LoadExistingJsonKeys();
 
-                var list = Scanner.ScanFile(dlg.FileName, _existingKeys);
-                foreach (var item in list)
-                    item.FilePath = dlg.FileName;
+        var list = Scanner.ScanFile(dlg.FileName, _existingKeys);
+        foreach (var item in list)
+            item.FilePath = dlg.FileName;
 
-                dataGridView1.DataSource = list;
+        // 1?? Colonnes d’abord
+        SetupColumns(isFolderMode: false);
 
-                SetupColumns(isFolderMode: false);
-                FillPreviewColumn();
-            }
-        }
+        // 2?? Puis la source
+        dataGridView1.DataSource = list;
+
+        FillPreviewColumn();
+    }
+}
+
 
         // ------------------------------
         // Ouvrir un dossier
         // ------------------------------
-        private void OuvrirDossier_Click(object sender, EventArgs e)
+private void OuvrirDossier_Click(object sender, EventArgs e)
+{
+    using var dlg = new FolderBrowserDialog();
+
+    if (dlg.ShowDialog() == DialogResult.OK)
+    {
+        string folder = dlg.SelectedPath;
+
+        LoadExistingJsonKeys();
+
+        var allResults = new List<ScanResult>();
+
+        var files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories)
+                             .Where(f => f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
+                                      || f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase));
+
+        foreach (var file in files)
         {
-            using var dlg = new FolderBrowserDialog();
+            var list = Scanner.ScanFile(file, _existingKeys);
 
-            if (dlg.ShowDialog() == DialogResult.OK)
-            {
-                string folder = dlg.SelectedPath;
+            foreach (var item in list)
+                item.FilePath = file;
 
-                LoadExistingJsonKeys();
-
-                var allResults = new List<ScanResult>();
-
-                foreach (var file in Directory.GetFiles(folder, "*.cs", SearchOption.AllDirectories))
-                {
-                    var list = Scanner.ScanFile(file, _existingKeys);
-
-                    foreach (var item in list)
-                        item.FilePath = file;
-
-                    allResults.AddRange(list);
-                }
-
-                dataGridView1.DataSource = allResults
-                    .OrderBy(r => r.FileName)
-                    .ThenBy(r => r.LineNumber)
-                    .ToList();
-
-                SetupColumns(isFolderMode: true);
-                FillPreviewColumn();
-            }
+            allResults.AddRange(list);
         }
 
-        private void LoadExistingJsonKeys()
-        {
-            string langDir = Path.Combine(AppContext.BaseDirectory, "languages");
-            string frPath = Path.Combine(langDir, "fr-FR.json");
+        // 1?? Colonnes d’abord
+        SetupColumns(isFolderMode: true);
 
-            if (File.Exists(frPath))
-            {
-                var json = File.ReadAllText(frPath);
-                _existingKeys = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-            }
-            else
-            {
-                _existingKeys = new Dictionary<string, string>();
-            }
-        }
+        // 2?? Puis la source
+        dataGridView1.DataSource = allResults
+            .OrderBy(r => r.FileName)
+            .ThenBy(r => r.LineNumber)
+            .ToList();
+
+        FillPreviewColumn();
+    }
+}
+
+private void LoadExistingJsonKeys()
+{
+    string langDir = Path.Combine(AppContext.BaseDirectory, "languages");
+    string frPath = Path.Combine(langDir, "fr-FR.json");
+
+    Directory.CreateDirectory(langDir);
+
+    // 1?? Si le fichier n'existe pas ou est vide ? on crée un JSON vide
+    if (!File.Exists(frPath) || new FileInfo(frPath).Length == 0)
+    {
+        _existingKeys = new Dictionary<string, string>();
+        File.WriteAllText(frPath, "{}");
+        return;
+    }
+
+    // 2?? S'il existe et contient quelque chose ? on tente de le lire
+    try
+    {
+        var json = File.ReadAllText(frPath);
+        _existingKeys = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                         ?? new Dictionary<string, string>();
+    }
+    catch (JsonException)
+    {
+        // 3?? Fichier corrompu / pas du JSON valide ? on repart propre
+        _existingKeys = new Dictionary<string, string>();
+        File.WriteAllText(frPath, "{}");
+    }
+}
+
 
         // ------------------------------
         // Colonnes dynamiques
         // ------------------------------
-        private void SetupColumns(bool isFolderMode)
+private void SetupColumns(bool isFolderMode)
+{
+    dataGridView1.AutoGenerateColumns = false;
+    dataGridView1.Columns.Clear();
+
+    // Colonne fichier (mode dossier uniquement)
+    if (isFolderMode)
+    {
+        dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
         {
-            dataGridView1.Columns.Clear();
+            DataPropertyName = "FileName",
+            HeaderText = "Fichier",
+            Width = 150,
+            ReadOnly = true
+        });
+    }
 
-            if (isFolderMode)
-            {
-                dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
-                {
-                    DataPropertyName = "FileName",
-                    HeaderText = "Fichier",
-                    Width = 150,
-                    ReadOnly = true
-                });
-            }
+    // Ligne
+    dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
+    {
+        DataPropertyName = "LineNumber",
+        HeaderText = "Ligne",
+        Width = 60,
+        ReadOnly = true
+    });
 
-            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "LineNumber",
-                HeaderText = "Ligne",
-                Width = 60
-            });
+    // Aperçu
+    var colPreview = new DataGridViewTextBoxColumn
+    {
+        HeaderText = "Aperçu",
+        Name = "Preview",
+        Width = 200,
+        ReadOnly = true,
+        DefaultCellStyle = { WrapMode = DataGridViewTriState.True }
+    };
+    dataGridView1.Columns.Add(colPreview);
 
-            var colPreview = new DataGridViewTextBoxColumn
-            {
-                HeaderText = "Aperçu",
-                Name = "Preview",
-                Width = 350
-            };
-            dataGridView1.Columns.Add(colPreview);
+    // ?? Texte détecté ? colonne qui s’étire
+    var colText = new DataGridViewTextBoxColumn
+    {
+        DataPropertyName = "Text",
+        HeaderText = "Texte détecté",
+        AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+        ReadOnly = true,
+        DefaultCellStyle = { WrapMode = DataGridViewTriState.True }
+    };
+    dataGridView1.Columns.Add(colText);
 
-            dataGridView1.Columns.Add(new DataGridViewTextBoxColumn
-            {
-                DataPropertyName = "Text",
-                HeaderText = "Texte détecté",
-                Width = 200
-            });
+    // Traduire ?
+    var colSelect = new DataGridViewCheckBoxColumn
+    {
+        DataPropertyName = "Selected",
+        HeaderText = "Traduire ?",
+        Name = "Selected",
+        Width = 80
+    };
+    dataGridView1.Columns.Add(colSelect);
 
-            var colSelect = new DataGridViewCheckBoxColumn
-            {
-                DataPropertyName = "Selected",
-                HeaderText = "Traduire ?",
-                Name = "Selected",
-                Width = 80
-            };
-            dataGridView1.Columns.Add(colSelect);
-
-            AddHeaderCheckBox();
-        }
+    AddHeaderCheckBox();
+}
 
         // ------------------------------
         // Case à cocher dans l’en-tête
@@ -299,6 +337,26 @@ namespace Autotrad
 
             MessageBox.Show("Traductions appliquées.");
         }
+private void RefreshView()
+{
+    if (string.IsNullOrEmpty(_lastOpenedFile))
+        return;
+
+    // Mode fichier
+    if (File.Exists(_lastOpenedFile))
+    {
+        OuvrirFichier_Click(null, null);
+        return;
+    }
+
+    // Mode dossier
+    string? folder = Path.GetDirectoryName(_lastOpenedFile);
+    if (folder != null && Directory.Exists(folder))
+    {
+        OuvrirDossier_Click(null, null);
+    }
+}
+        
     }
 }
 

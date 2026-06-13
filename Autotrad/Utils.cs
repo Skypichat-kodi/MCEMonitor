@@ -44,17 +44,36 @@ namespace Autotrad
             File.WriteAllLines(path, lines, Encoding.GetEncoding(1252));
         }
 
+        // ?? VERSION BLINDÉE : ne coupe plus jamais les textes après \n
         public static void AddToJson(string jsonPath, string key, string value)
         {
+            Directory.CreateDirectory(Path.GetDirectoryName(jsonPath)!);
+
             Dictionary<string, string> dict;
 
-            if (File.Exists(jsonPath))
-                dict = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(jsonPath))!;
+            // Charger JSON existant ou repartir propre
+            if (File.Exists(jsonPath) && new FileInfo(jsonPath).Length > 0)
+            {
+                try
+                {
+                    dict = JsonSerializer.Deserialize<Dictionary<string, string>>(
+                        File.ReadAllText(jsonPath)
+                    ) ?? new Dictionary<string, string>();
+                }
+                catch
+                {
+                    dict = new Dictionary<string, string>();
+                }
+            }
             else
+            {
                 dict = new Dictionary<string, string>();
+            }
 
+            // ?? Garder TOUT le texte, même après \n
             dict[key] = value;
 
+            // Tri alphabétique
             dict = dict.OrderBy(k => k.Key).ToDictionary(k => k.Key, v => v.Value);
 
             var options = new JsonSerializerOptions
@@ -66,10 +85,14 @@ namespace Autotrad
             File.WriteAllText(jsonPath, JsonSerializer.Serialize(dict, options));
         }
 
+        // ?? VERSION CORRIGÉE : ne coupe plus jamais après le premier '='
         public static string ExtractLeftPart(string line)
         {
-            int idx = line.IndexOf('=');
-            return idx < 0 ? line : line.Substring(0, idx + 2);
+            var m = Regex.Match(line, @"^(.*?\.Text\s*=\s*)");
+            if (m.Success)
+                return m.Groups[1].Value;
+
+            return line;
         }
 
         public static string ExtractKeyFromLine(string line)
@@ -80,8 +103,29 @@ namespace Autotrad
 
         public static string ExtractFallbackText(string line)
         {
-            var m = Regex.Match(line, @"\?\?\s*""([^""]*)""");
-            return m.Success ? m.Groups[1].Value : "";
+            // Capture toutes les chaînes "..."
+            var matches = Regex.Matches(line, @"""([^""]*)""")
+                .Cast<Match>()
+                .Select(m => m.Groups[1].Value)
+                .ToList();
+
+            if (matches.Count == 0)
+                return "";
+
+            // Si la première chaîne est la clé ? on l’ignore
+            // Exemple : "Wake.RunSuccess"
+            if (matches[0].Contains("."))
+                matches.RemoveAt(0);
+
+            // Recompose le texte final
+            string txt = string.Join("", matches);
+
+            // Remet les vrais \n
+            txt = txt.Replace("\\n", "\n")
+                     .Replace("\\r", "\r")
+                     .Replace("\\t", "\t");
+
+            return txt;
         }
     }
 }
