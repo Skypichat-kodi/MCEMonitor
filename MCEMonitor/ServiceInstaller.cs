@@ -58,7 +58,7 @@ namespace MCEMonitor
 
             if (!File.Exists(servicePath))
             {
-                MessageBox.Show("MediaMonitor.Service.exe introuvable dans ProgramData.");
+                MessageBox.Show(LanguageManager.Get("ServiceInstaller_MediaMonitorServiceexe_introuvable_dans__2fb0") ?? "MediaMonitor.Service.exe introuvable dans ProgramData.");
                 return;
             }
 
