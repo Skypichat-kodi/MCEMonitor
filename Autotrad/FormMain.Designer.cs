@@ -7,132 +7,158 @@ namespace Autotrad
     {
         private System.ComponentModel.IContainer components = null;
 
-        private MenuStrip menuStrip1;
-        private ToolStripMenuItem fichierToolStripMenuItem;
-        private ToolStripMenuItem ouvrirToolStripMenuItem;
+        private Panel topPanel;
+        private Button btnMenuFichier;
+        private Label lblLangFolder;
+        private Button btnChangeLangFolder;
+        private ContextMenuStrip menuFichier;
+
         private DataGridView dataGridView1;
         private Button btnExport;
+
+        // ?? AJOUT
+        private TextBox txtPreview;
 
         protected override void Dispose(bool disposing)
         {
             if (disposing && (components != null))
-            {
                 components.Dispose();
-            }
+
             base.Dispose(disposing);
         }
 
-private void InitializeComponent()
-{
-    this.menuStrip1 = new MenuStrip();
-    this.fichierToolStripMenuItem = new ToolStripMenuItem();
-    this.ouvrirToolStripMenuItem = new ToolStripMenuItem();
-    this.dataGridView1 = new DataGridView();
-    this.btnExport = new Button();
+        private void InitializeComponent()
+        {
+            this.components = new System.ComponentModel.Container();
 
-    // MENU
-    this.menuStrip1.Items.AddRange(new ToolStripItem[] {
-        this.fichierToolStripMenuItem
-    });
+            this.topPanel = new Panel();
+            this.btnMenuFichier = new Button();
+            this.lblLangFolder = new Label();
+            this.btnChangeLangFolder = new Button();
+            this.menuFichier = new ContextMenuStrip(this.components);
 
-    this.fichierToolStripMenuItem.Text = "Fichier";
+            this.dataGridView1 = new DataGridView();
+            this.btnExport = new Button();
 
-    this.ouvrirToolStripMenuItem.Text = "Ouvrir";
+            // ?? AJOUT
+            this.txtPreview = new TextBox();
 
-    var ouvrirFichier = new ToolStripMenuItem();
-    ouvrirFichier.Text = "Ouvrir un fichier…";
-    ouvrirFichier.Click += new EventHandler(this.OuvrirFichier_Click);
+            // ------------------------------
+            // PANEL DU HAUT
+            // ------------------------------
+            this.topPanel.Dock = DockStyle.Top;
+            this.topPanel.Height = 36;
+            this.topPanel.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
+            this.topPanel.Padding = new Padding(8, 6, 8, 6);
 
-    var ouvrirDossier = new ToolStripMenuItem();
-    ouvrirDossier.Text = "Ouvrir un dossier…";
-    ouvrirDossier.Click += new EventHandler(this.OuvrirDossier_Click);
+            // ------------------------------
+            // BOUTON FICHIER
+            // ------------------------------
+            this.btnMenuFichier.Text = "Fichier ?";
+            this.btnMenuFichier.AutoSize = true;
+            this.btnMenuFichier.Location = new System.Drawing.Point(8, 4);
+            this.btnMenuFichier.Click += (s, e) =>
+            {
+                menuFichier.Show(btnMenuFichier, 0, btnMenuFichier.Height);
+            };
 
-    this.ouvrirToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
-        ouvrirFichier,
-        ouvrirDossier
-    });
+            // ------------------------------
+            // LABEL DOSSIER LANGUES
+            // ------------------------------
+            this.lblLangFolder.AutoSize = true;
+            this.lblLangFolder.Location = new System.Drawing.Point(120, 9);
+            this.lblLangFolder.Text = "Dossier langues : (non défini)";
 
-    this.fichierToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
-        this.ouvrirToolStripMenuItem
-    });
+            // ------------------------------
+            // BOUTON CHANGER
+            // ------------------------------
+            this.btnChangeLangFolder.Text = "Changer";
+            this.btnChangeLangFolder.AutoSize = true;
+            this.btnChangeLangFolder.Click += new EventHandler(this.ChoisirDossierLangues_Click);
+            this.btnChangeLangFolder.Location = new System.Drawing.Point(500, 4);
 
-    // DATAGRID
-    this.dataGridView1.Anchor =
-        AnchorStyles.Top |
-        AnchorStyles.Bottom |
-        AnchorStyles.Left |
-        AnchorStyles.Right;
+            // ------------------------------
+            // MENU FICHIER
+            // ------------------------------
+            var ouvrirFichier = new ToolStripMenuItem("Ouvrir un fichier…");
+            ouvrirFichier.Click += new EventHandler(this.OuvrirFichier_Click);
 
-    this.dataGridView1.Location = new System.Drawing.Point(12, 40);
-    this.dataGridView1.Size = new System.Drawing.Size(760, 380);
+            var ouvrirDossier = new ToolStripMenuItem("Ouvrir un dossier…");
+            ouvrirDossier.Click += new EventHandler(this.OuvrirDossier_Click);
 
-    this.dataGridView1.AllowUserToResizeColumns = true;
+            var choisirLangFolder = new ToolStripMenuItem("Choisir dossier langues…");
+            choisirLangFolder.Click += new EventHandler(this.ChoisirDossierLangues_Click);
 
-    // ?? important : pas de ligne vide
-    this.dataGridView1.AllowUserToAddRows = false;
+            this.menuFichier.Items.AddRange(new ToolStripItem[]
+            {
+                ouvrirFichier,
+                ouvrirDossier,
+                choisirLangFolder
+            });
 
-    // ?? important : on garde NOS colonnes, pas celles auto-générées
-    this.dataGridView1.AutoGenerateColumns = false;
+            this.topPanel.Controls.Add(this.btnMenuFichier);
+            this.topPanel.Controls.Add(this.lblLangFolder);
+            this.topPanel.Controls.Add(this.btnChangeLangFolder);
 
-    // Affichage multi-ligne
-    this.dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
-    this.dataGridView1.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
+            // ------------------------------
+            // DATAGRID
+            // ------------------------------
+            this.dataGridView1.Anchor =
+                AnchorStyles.Top |
+                AnchorStyles.Bottom |
+                AnchorStyles.Left |
+                AnchorStyles.Right;
 
-    // Colonnes
-    this.dataGridView1.Columns.Clear();
+            this.dataGridView1.Location = new System.Drawing.Point(12, 50);
+            this.dataGridView1.Size = new System.Drawing.Size(760, 300);
+            this.dataGridView1.AllowUserToResizeColumns = true;
+            this.dataGridView1.AllowUserToAddRows = false;
+            this.dataGridView1.AutoGenerateColumns = false;
+            this.dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
+            this.dataGridView1.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
-    var colFile = new DataGridViewTextBoxColumn();
-    colFile.HeaderText = "Fichier";
-    colFile.Width = 140;
-    colFile.ReadOnly = true;
-    // colFile.DataPropertyName = "File"; // adapte au nom de ta propriété
+            this.dataGridView1.CellDoubleClick += new DataGridViewCellEventHandler(this.dataGridView1_CellDoubleClick);
+            this.dataGridView1.RowPrePaint += new DataGridViewRowPrePaintEventHandler(this.dataGridView1_RowPrePaint);
 
-    var colLine = new DataGridViewTextBoxColumn();
-    colLine.HeaderText = "Ligne";
-    colLine.Width = 60;
-    colLine.ReadOnly = true;
-    // colLine.DataPropertyName = "LineNumber";
+            // ------------------------------
+            // ?? TEXTBOX PREVIEW
+            // ------------------------------
+            this.txtPreview.Multiline = true;
+            this.txtPreview.ReadOnly = true;
+            this.txtPreview.ScrollBars = ScrollBars.Vertical;
+            this.txtPreview.Anchor =
+                AnchorStyles.Left |
+                AnchorStyles.Right |
+                AnchorStyles.Bottom;
 
-    var colPreview = new DataGridViewTextBoxColumn();
-    colPreview.HeaderText = "Aperçu";
-    colPreview.Width = 200;
-    colPreview.ReadOnly = true;
-    // colPreview.DataPropertyName = "Preview";
+            this.txtPreview.Location = new System.Drawing.Point(12, 355);
+            this.txtPreview.Size = new System.Drawing.Size(760, 70);
 
-    var colText = new DataGridViewTextBoxColumn();
-    colText.HeaderText = "Texte détecté";
-    colText.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
-    colText.ReadOnly = true;
-    colText.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
-    // colText.DataPropertyName = "Text";
+            // ------------------------------
+            // BOUTON EXPORT
+            // ------------------------------
+            this.btnExport.Text = "Exporter la sélection";
+            this.btnExport.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            this.btnExport.Location = new System.Drawing.Point(600, 430);
+            this.btnExport.Size = new System.Drawing.Size(160, 32);
 
-    var colTranslate = new DataGridViewCheckBoxColumn();
-    colTranslate.HeaderText = "Traduire ?";
-    colTranslate.Width = 80;
-    // colTranslate.DataPropertyName = "Selected";
+            this.btnExport.BackColor = System.Drawing.Color.FromArgb(0, 160, 0);
+            this.btnExport.ForeColor = System.Drawing.Color.White;
+            this.btnExport.FlatStyle = FlatStyle.Flat;
+            this.btnExport.FlatAppearance.BorderSize = 0;
 
-    this.dataGridView1.Columns.AddRange(new DataGridViewColumn[] {
-        colFile, colLine, colPreview, colText, colTranslate
-    });
+            this.btnExport.Click += new EventHandler(this.btnExport_Click);
 
-    this.dataGridView1.CellDoubleClick += new DataGridViewCellEventHandler(this.dataGridView1_CellDoubleClick);
-    this.dataGridView1.RowPrePaint += new DataGridViewRowPrePaintEventHandler(this.dataGridView1_RowPrePaint);
-
-    // BOUTON EXPORT
-    this.btnExport.Text = "Exporter la sélection";
-    this.btnExport.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-    this.btnExport.Location = new System.Drawing.Point(600, 430);
-    this.btnExport.Click += new EventHandler(this.btnExport_Click);
-
-    // FORM
-    this.ClientSize = new System.Drawing.Size(784, 461);
-    this.Controls.Add(this.dataGridView1);
-    this.Controls.Add(this.btnExport);
-    this.Controls.Add(this.menuStrip1);
-    this.MainMenuStrip = this.menuStrip1;
-    this.Text = "Autotrad - Scanner de traduction";
-}
-
+            // ------------------------------
+            // FORM
+            // ------------------------------
+            this.ClientSize = new System.Drawing.Size(784, 461);
+            this.Controls.Add(this.dataGridView1);
+            this.Controls.Add(this.txtPreview);   // ?? AJOUT
+            this.Controls.Add(this.btnExport);
+            this.Controls.Add(this.topPanel);
+            this.Text = "Autotrad - Scanner de traduction";
+        }
     }
 }
 
