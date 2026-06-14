@@ -154,36 +154,42 @@ namespace Autotrad
         // ---------------------------------------------------------
         //  AJOUT / MISE À JOUR JSON (UTF-8 sans BOM)
         // ---------------------------------------------------------
-        public static void AddToJson(string folder, string fileName, string key, string value)
+public static void AddToJson(string folder, string fileName, string key, string value)
+{
+    string path = Path.Combine(folder, fileName);
+
+    Dictionary<string, string> dict;
+
+    if (File.Exists(path))
+    {
+        try
         {
-            string path = Path.Combine(folder, fileName);
-
-            Dictionary<string, string> dict;
-
-            if (File.Exists(path))
-            {
-                try
-                {
-                    var json = File.ReadAllText(path, Encoding.UTF8);
-                    dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
-                           ?? new Dictionary<string, string>();
-                }
-                catch
-                {
-                    dict = new Dictionary<string, string>();
-                }
-            }
-            else
-            {
-                dict = new Dictionary<string, string>();
-            }
-
-            dict[key] = value;
-
-            File.WriteAllText(path,
-                JsonSerializer.Serialize(dict, new JsonSerializerOptions { WriteIndented = true }),
-                new UTF8Encoding(false)); // UTF-8 sans BOM
+            var json = File.ReadAllText(path, Encoding.UTF8);
+            dict = JsonSerializer.Deserialize<Dictionary<string, string>>(json)
+                   ?? new Dictionary<string, string>();
         }
+        catch
+        {
+            dict = new Dictionary<string, string>();
+        }
+    }
+    else
+    {
+        dict = new Dictionary<string, string>();
+    }
+
+    dict[key] = value;
+
+    var options = new JsonSerializerOptions
+    {
+        WriteIndented = true,
+        Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+    };
+
+    File.WriteAllText(path,
+        JsonSerializer.Serialize(dict, options),
+        new UTF8Encoding(false)); // UTF-8 sans BOM
+}
 
         // ---------------------------------------------------------
         //  EXTRAIRE LA PARTIE GAUCHE D'UNE LIGNE C#
@@ -222,13 +228,33 @@ namespace Autotrad
             if (idx < 0)
                 return "";
 
-            string after = line.Substring(idx + 2).Trim();
+            // Tout ce qui est après "??"
+            string after = line.Substring(idx + 2);
 
-            after = after.TrimEnd(';').Trim();
+            // On coupe avant un éventuel verbatim @"..."
+            int verbIndex = after.IndexOf("@\"");
+            if (verbIndex >= 0)
+                after = after.Substring(0, verbIndex);
 
-            after = after.Trim('"');
+            // On coupe avant un +
+            int plusIndex = after.IndexOf("+");
+            if (plusIndex >= 0)
+                after = after.Substring(0, plusIndex);
 
-            return after;
+            // On ne garde que le PREMIER littéral "..."
+            var m = Regex.Match(after, "\"((?:[^\"\\\\]|\\\\.)*)\"");
+            if (!m.Success)
+                return "";
+
+            string inner = m.Groups[1].Value;
+
+            // Dé-escape C# classique
+            return inner
+                .Replace("\\\"", "\"")
+                .Replace("\\n", "\n")
+                .Replace("\\r", "\r")
+                .Replace("\\t", "\t")
+                .Replace("\\\\", "\\");
         }
     }
 }

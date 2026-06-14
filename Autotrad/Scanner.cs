@@ -96,13 +96,17 @@ namespace Autotrad
                         FilePath = path,
                         LineNumber = entry.LineNumber,
                         FullLine = entry.Raw,
-                        Text = existingKeys[key],
+
+                        // ?? ON GARDE LE TEXTE EXACT DU PROGRAMME
+                        Text = fallback,
+
                         Preview = entry.Preview,
                         Selected = false,
                         IsTranslated = true,
                         IsMissingKey = false,
                         IsMismatch = mismatch
                     });
+
                 }
             }
 
@@ -143,6 +147,7 @@ namespace Autotrad
                             continue;
                         }
 
+                        // Cas : clé existante ? mismatch ?
                         bool mismatch = existingKeys[key] != fallback;
 
                         results.Add(new ScanResult
@@ -153,13 +158,17 @@ namespace Autotrad
                             FilePath = path,
                             LineNumber = entry.LineNumber,
                             FullLine = entry.Raw,
-                            Text = existingKeys[key],
+
+                            // ?? ON GARDE LE TEXTE EXACT DU PROGRAMME
+                            Text = fallback,
+
                             Preview = entry.Preview,
                             Selected = false,
                             IsTranslated = true,
                             IsMissingKey = false,
                             IsMismatch = mismatch
                         });
+
 
                         continue;
                     }

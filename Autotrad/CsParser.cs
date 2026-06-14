@@ -188,7 +188,7 @@ namespace Autotrad
             string expr = lines[index];
             int i = index + 1;
 
-            while (!expr.TrimEnd().EndsWith(";") && i < lines.Length)
+            while (!Regex.IsMatch(expr, @";\s*$") && i < lines.Length)
             {
                 expr += "\n" + lines[i];
                 i++;
@@ -204,7 +204,60 @@ namespace Autotrad
         {
             var list = new List<CsEntry>();
 
-            // Multi-arguments
+            // ---------------------------------------------------------
+            // PATCH : FUSION DES LITTÉRAUX MULTI-LIGNES
+            // ---------------------------------------------------------
+            var allLiterals = Regex.Matches(expr,
+                "\"((?:[^\"\\\\]|\\\\.)*)\"",
+                RegexOptions.Singleline);
+
+            // ? NE PAS fusionner pour les appels (MessageBox.Show, Items.Add, Exception…)
+            if (allLiterals.Count > 1 && !RegexCallWithString.IsMatch(expr))
+            {
+                var sb = new System.Text.StringBuilder();
+
+                foreach (Match m in allLiterals)
+                {
+                    string part = m.Groups[1].Value;
+
+                    if (expr.Contains($"LanguageManager.Get(\"{part}\")"))
+                        continue;
+
+                    part = part
+                        .Replace("\\n", "\n")
+                        .Replace("\\r", "\r")
+                        .Replace("\\t", "\t")
+                        .Replace("\\\"", "\"")
+                        .Replace("\\\\", "\\");
+
+                    part = part.Trim();
+
+                    sb.Append(part);
+                    sb.Append("\n");
+                }
+
+                string merged = sb.ToString().TrimEnd('\n');
+
+                var mKey = RegexKey.Match(expr);
+                string key = mKey.Success ? mKey.Groups["key"].Value : "";
+
+                string preview = expr.Replace("\n", " ").Trim();
+
+                list.Add(new CsEntry
+                {
+                    LineNumber = lineNumber,
+                    Raw = preview,
+                    Key = key,
+                    Fallback = merged,
+                    Preview = preview
+                });
+
+                return list;
+            }
+
+            // ---------------------------------------------------------
+            // Multi-arguments (INCLUS MessageBox.Show)
+            // ---------------------------------------------------------
             if (expr.Contains("MessageBox.Show(") ||
                 expr.Contains("Items.Add(") ||
                 expr.Contains("new Exception(") ||
@@ -232,13 +285,12 @@ namespace Autotrad
             }
 
             // ---------------------------------------------------------
-            // LM.Get + concaténation + limite @"..."
+            // LM.Get + concaténation
             // ---------------------------------------------------------
             if (expr.Contains("LanguageManager.Get(") && expr.Contains("+"))
             {
                 var entries = new List<CsEntry>();
 
-                // 1) LM.Get
                 var mKey = RegexKey.Match(expr);
                 if (mKey.Success)
                 {
@@ -264,7 +316,6 @@ namespace Autotrad
                     });
                 }
 
-                // 2) Autres chaînes AVANT le verbatim @"..."
                 string exprWithoutLM = RegexKey.Replace(expr, "");
                 exprWithoutLM = RegexFallbackStart.Replace(exprWithoutLM, "");
 
@@ -277,7 +328,6 @@ namespace Autotrad
                 foreach (Match m in RegexStringLiteral.Matches(exprWithoutLM))
                     parts.Add(Unescape(m.Groups["text"].Value));
 
-                // ?? Évite la duplication du fallback LM.Get
                 if (parts.Count > 0 && entries.Count > 0)
                 {
                     string fallbackLM = entries[0].Fallback;

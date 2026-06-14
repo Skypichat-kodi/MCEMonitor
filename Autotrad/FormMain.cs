@@ -259,21 +259,21 @@ namespace Autotrad
                     row.Cells["Preview"].Value = item.Preview;
             }
         }
-private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
-{
-    if (e.RowIndex < 0)
-        return;
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
 
-    var col = dataGridView1.Columns[e.ColumnIndex];
-    if (col == null || col.Name != "Selected")
-        return;
+            var col = dataGridView1.Columns[e.ColumnIndex];
+            if (col == null || col.Name != "Selected")
+                return;
 
-    if (dataGridView1.Rows[e.RowIndex].DataBoundItem is ScanResult item)
-    {
-        item.Selected = !item.Selected;
-        dataGridView1.Refresh();
-    }
-}
+            if (dataGridView1.Rows[e.RowIndex].DataBoundItem is ScanResult item)
+            {
+                item.Selected = !item.Selected;
+                dataGridView1.Refresh();
+            }
+        }
         
         // ------------------------------
         // COLORATION
@@ -363,6 +363,9 @@ private void dataGridView1_CellContentClick(object sender, DataGridViewCellEvent
                 {
                     string key = Utils.GenerateKeyFromText(module, item.Text);
 
+                    // ---------------------------------------------------------
+                    // XAML
+                    // ---------------------------------------------------------
                     if (isXaml)
                     {
                         string escapedTag = Utils.EscapeForXamlAttribute(item.Text);
@@ -380,43 +383,72 @@ private void dataGridView1_CellContentClick(object sender, DataGridViewCellEvent
                         );
 
                         Utils.ReplaceLineInFile(item.FilePath, item.LineNumber, newLine);
+
+                        Utils.AddToJson(_langFolder, "fr-FR.json", key, item.Text);
+                        Utils.AddToJson(_langFolder, "en-GB.json", key, "");
+                        continue;
                     }
-                    else
+
+                    // ---------------------------------------------------------
+                    // C# — CAS SPÉCIAL : MessageBox.Show
+                    // ---------------------------------------------------------
+                    if (item.FullLine.Contains("MessageBox.Show("))
                     {
-                        string left = Utils.ExtractLeftPart(item.FullLine);
-                        string escaped = Utils.EscapeForCSharpLiteral(item.Text);
-                        string newLine =
-                            $"{left}LanguageManager.Get(\"{key}\") ?? \"{escaped}\";";
+                        string line = item.FullLine;
+
+                        string newLine = Regex.Replace(
+                            line,
+                            @"""([^""]*)""",
+                            m =>
+                            {
+                                string originalText = m.Groups[1].Value;
+                                if (string.IsNullOrWhiteSpace(originalText))
+                                    return m.Value;
+
+                                string argKey = Utils.GenerateKeyFromText(module, originalText);
+                                string escaped = Utils.EscapeForCSharpLiteral(originalText);
+
+                                // JSON
+                                Utils.AddToJson(_langFolder, "fr-FR.json", argKey, originalText);
+                                Utils.AddToJson(_langFolder, "en-GB.json", argKey, "");
+
+                                return $"LanguageManager.Get(\"{argKey}\") ?? \"{escaped}\"";
+                            }
+                        );
 
                         Utils.ReplaceLineInFile(item.FilePath, item.LineNumber, newLine);
+                        continue;
                     }
+
+                    // ---------------------------------------------------------
+                    // C# — CAS NORMAL : un seul littéral
+                    // ---------------------------------------------------------
+                    string escapedNormal = Utils.EscapeForCSharpLiteral(item.Text);
+
+                    string newLineNormal = Regex.Replace(
+                        item.FullLine,
+                        $"\"{Regex.Escape(item.Text)}\"",
+                        $"LanguageManager.Get(\"{key}\") ?? \"{escapedNormal}\"",
+                        RegexOptions.None
+                    );
+
+                    Utils.ReplaceLineInFile(item.FilePath, item.LineNumber, newLineNormal);
 
                     Utils.AddToJson(_langFolder, "fr-FR.json", key, item.Text);
                     Utils.AddToJson(_langFolder, "en-GB.json", key, "");
                 }
                 else
                 {
+                    // ---------------------------------------------------------
+                    // Mise à jour d'une traduction existante
+                    // ---------------------------------------------------------
                     string key = Utils.ExtractKeyFromLine(item.FullLine);
                     if (string.IsNullOrEmpty(key))
                         continue;
 
-                    string fallback;
+                    string fullText = item.Text;
 
-                    if (isXaml)
-                    {
-                        if (_existingKeys.TryGetValue(key, out var existing) && !string.IsNullOrEmpty(existing))
-                            fallback = existing;
-                        else
-                            fallback = item.Text;
-                    }
-                    else
-                    {
-                        fallback = Utils.ExtractFallbackText(item.FullLine);
-                        if (string.IsNullOrEmpty(fallback))
-                            fallback = item.Text;
-                    }
-
-                    Utils.AddToJson(_langFolder, "fr-FR.json", key, fallback);
+                    Utils.AddToJson(_langFolder, "fr-FR.json", key, fullText);
                     Utils.AddToJson(_langFolder, "en-GB.json", key, "");
                 }
             }
