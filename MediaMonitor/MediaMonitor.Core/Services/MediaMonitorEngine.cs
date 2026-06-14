@@ -355,43 +355,61 @@ th { background: #eee; }
 
         public async Task SendReportEmail()
         {
+            CoreLog.Write("=== Début envoi rapport automatique ===");
+
             try
             {
                 string html = GenerateReportFromHistory();
                 var cfg = EmailConfig.Load();
 
+                CoreLog.Write($"Taille HTML totale : {html.Length} caractères");
+
                 // Découper le HTML en lignes
                 var lignes = html.Split('\n').ToList();
+                CoreLog.Write($"Nombre de lignes HTML détectées : {lignes.Count}");
 
                 // Taille d'un bloc : 200 lignes
                 int blocTaille = 200;
                 int totalBlocs = (int)Math.Ceiling(lignes.Count / (double)blocTaille);
 
+                CoreLog.Write($"Nombre total de blocs prévus : {totalBlocs}");
+
                 for (int i = 0; i < totalBlocs; i++)
                 {
+                    CoreLog.Write($"--- Préparation du bloc {i + 1}/{totalBlocs} ---");
+
                     var bloc = lignes
                         .Skip(i * blocTaille)
                         .Take(blocTaille)
                         .ToList();
+
+                    CoreLog.Write($"Bloc {i + 1} : {bloc.Count} lignes");
 
                     // Ajouter un footer simple
                     bloc.Add($"<br><div style='font-size:12px;color:#888;'>Partie {i + 1} / {totalBlocs}</div>");
 
                     string htmlBloc = string.Join("\n", bloc);
 
+                    CoreLog.Write($"Taille HTML du bloc {i + 1} : {htmlBloc.Length} caractères");
+
                     string sujet = totalBlocs == 1
                         ? "Rapport MediaMonitor"
                         : $"Rapport MediaMonitor (partie {i + 1}/{totalBlocs})";
 
+                    CoreLog.Write($"Sujet du mail : {sujet}");
+                    CoreLog.Write($"Envoi du bloc {i + 1}/{totalBlocs}...");
+
                     await EmailSender.SendAsync(cfg, sujet, htmlBloc, isHtml: true);
 
-                    CoreLog.Write($"Email automatique envoyé : bloc {i + 1}/{totalBlocs}");
+                    CoreLog.Write($"Bloc {i + 1}/{totalBlocs} envoyé avec succès.");
                 }
             }
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur envoi email automatique : " + ex.ToString());
             }
+
+            CoreLog.Write("=== Fin envoi rapport automatique ===");
         }
 
         // ============================================================
