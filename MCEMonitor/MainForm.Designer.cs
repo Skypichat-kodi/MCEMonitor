@@ -554,7 +554,7 @@ this.lblWakeTitle.Text = LanguageManager.Get("App.Description") ?? "À propos de 
 
             this.btnManageWolMacs.Location = new System.Drawing.Point(440, 210);
             this.btnManageWolMacs.Size = new System.Drawing.Size(200, 35);
-this.btnManageWolMacs.Text = LanguageManager.Get("App.Title") ?? "Gérer MAC autorisées";
+this.btnManageWolMacs.Text = LanguageManager.Get("Autorized.Mac") ?? "Gérer MAC autorisées";
             this.btnManageWolMacs.Font = normalFont;
             this.btnManageWolMacs.Click += new System.EventHandler(this.BtnManageWolMacs_Click);
 
@@ -586,7 +586,7 @@ this.btnManageWolMacs.Text = LanguageManager.Get("App.Title") ?? "Gérer MAC auto
             this.lblStopTitle.AutoSize = true;
             this.lblStopTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblStopTitle.Location = new System.Drawing.Point(15, 5);
-this.lblStopTitle.Text = LanguageManager.Get("App.Title") ?? "A propos de StopMonitor";
+this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de StopMonitor";
             this.tabStopMonitor.Controls.Add(this.lblStopTitle);
 
             // ============================================================
