@@ -22,12 +22,25 @@ set ERROR=0
 echo          COMPILATION DES PROJETS
 echo ============================================
 
+call :clean "%ROOT%\MCEMonitor"
 call :build "%ROOT%\MCEMonitor\MCEMonitor.csproj"
+
+call :clean "%ROOT%\MediaMonitor\MediaMonitor.Core"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj"
+
+call :clean "%ROOT%\MediaMonitor\MediaMonitor.Service"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.Service\MediaMonitor.Service.csproj"
+
+call :clean "%ROOT%\MediaMonitor\MediaMonitor.UI"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.UI\MediaMonitor.UI.csproj"
+
+call :clean "%ROOT%\MediaMonitor\MediaMonitor.Tray"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.Tray\MediaMonitor.Tray.csproj"
+
+call :clean "%ROOT%\StopMonitor"
 call :build "%ROOT%\StopMonitor\StopMonitor.csproj"
+
+call :clean "%ROOT%\WakeMonitor"
 call :build "%ROOT%\WakeMonitor\WakeMonitor.csproj"
 
 echo ============================================
