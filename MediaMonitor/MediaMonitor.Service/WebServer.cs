@@ -250,8 +250,37 @@ namespace MediaMonitor.Service
 
         private DateTime GetReportSendTime()
         {
-            // Placeholder : a adapter si tu as une vraie logique de rapport
-            return DateTime.Today.AddHours(10).AddDays(1);
+            string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
+
+            if (!File.Exists(path))
+                return DateTime.MinValue;
+
+            string lastLine = File.ReadLines(path).LastOrDefault(l => l.Contains("Prochain envoi"));
+
+            if (lastLine == null)
+                return DateTime.MinValue;
+
+            // Exemple de ligne :
+            // [2026-06-14 20:19:56] [CODE01] Prochain envoi du rapport prévu à 11:50 (dans 15h 30min)
+
+            int idx = lastLine.IndexOf("prévu à ");
+            if (idx < 0)
+                return DateTime.MinValue;
+
+            string timePart = lastLine.Substring(idx + "prévu à ".Length, 5); // "11:50"
+
+            if (TimeSpan.TryParse(timePart, out var ts))
+            {
+                DateTime next = DateTime.Today.Add(ts);
+
+                // Si l'heure est déjà passée ? demain
+                if (next <= DateTime.Now)
+                    next = next.AddDays(1);
+
+                return next;
+            }
+
+            return DateTime.MinValue;
         }
         
         // ==========================
@@ -812,7 +841,8 @@ namespace MediaMonitor.Service
             body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
             h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
             .container { display:flex; gap:20px; }
-            .groupbox { flex:1; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
+            .groupbox {flex:1; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; position:relative; transition: all 0.8s ease; /* plus lent */}
+            .left-content {transition: opacity 0.6s ease; /* plus lent */}
             .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
             .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
             .label { color:#ccc; }
@@ -832,8 +862,56 @@ namespace MediaMonitor.Service
 
             td, th { border-right: 1px solid #3c3c3c; }
             td:last-child, th:last-child { border-right: none; }
-
             td:nth-child(2), th:nth-child(2) { text-align:center; }
+
+            /* --- COLLAPSIBLE --- */
+
+            /* Colonne gauche normale */
+            #leftColumn {
+                overflow: visible;
+                transition: all 0.6s ease;
+            }
+
+            /* Contenu interne */
+            .left-content {
+                transition: opacity 0.45s ease;
+            }
+
+            /* Colonne repliée */
+            #leftColumn.collapsed {
+                flex: 0 0 40px !important;
+                max-width: 40px !important;
+                min-width: 40px !important;
+                padding: 12px 4px;
+            }
+
+            /* Contenu interne masqué SANS prendre de place */
+            #leftColumn.collapsed .left-content {
+                opacity: 0;
+                height: 0;
+                overflow: hidden;
+                padding: 0;
+                margin: 0;
+            }
+
+            .toggle-btn {
+                position: absolute;
+                top: 10px;
+                right: -18px;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                border: none;
+                background: #444;
+                color: #fff;
+                cursor: pointer;
+                font-size: 18px;
+                line-height: 28px;
+                text-align: center;
+                z-index: 50;
+            }
+
+            .toggle-btn:hover { background:#666; }
         </style>
 
         </head>
@@ -898,40 +976,44 @@ namespace MediaMonitor.Service
         <div class=""container"">
 
             <!-- COLONNE GAUCHE -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Statistiques</div>
-                <div class=""stats-grid"">
-                    <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
-                    <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
-                    <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
-                    <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
-                </div>
+            <div class=""groupbox"" id=""leftColumn"">
+                <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
 
-                <br>
-
-                <div class=""groupbox-title"">Graphiques</div>
-
-                <div style=""display:flex; gap:15px; align-items:stretch;"">
-
-                    <!-- Bloc Donut -->
-                    <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                        <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                            Répartition par type
-                        </div>
-                        <canvas id=""chartTypes"" height=""160""></canvas>
+                <div class=""left-content"">
+                    <div class=""groupbox-title"">Statistiques</div>
+                    <div class=""stats-grid"">
+                        <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
+                        <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
+                        <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
+                        <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
                     </div>
 
-                    <!-- Séparateur vertical -->
-                    <div style=""width:1px; background:#3c3c3c;""></div>
+                    <br>
 
-                    <!-- Bloc Horaire -->
-                    <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                        <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                            Activité par heure
+                    <div class=""groupbox-title"">Graphiques</div>
+
+                    <div style=""display:flex; gap:15px; align-items:stretch;"">
+
+                        <!-- Bloc Donut -->
+                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                Répartition par type
+                            </div>
+                            <canvas id=""chartTypes"" height=""160""></canvas>
                         </div>
-                        <canvas id=""chartHours"" height=""160""></canvas>
-                    </div>
 
+                        <!-- Séparateur vertical -->
+                        <div style=""width:1px; background:#3c3c3c;""></div>
+
+                        <!-- Bloc Horaire -->
+                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                Activité par heure
+                            </div>
+                            <canvas id=""chartHours"" height=""160""></canvas>
+                        </div>
+
+                    </div>
                 </div>
             </div>
 
@@ -997,8 +1079,33 @@ namespace MediaMonitor.Service
             });
         </script>
 
+        <!-- SCRIPT COLLAPSIBLE -->
+        <script>
+            (function () {
+                const btn = document.getElementById('toggleLeft');
+                const leftCol = document.getElementById('leftColumn');
+
+                if (!btn || !leftCol) return;
+
+                let collapsed = false;
+
+                btn.addEventListener('click', () => {
+                    collapsed = !collapsed;
+
+                    if (collapsed) {
+                        leftCol.classList.add('collapsed');
+                        btn.textContent = '>';
+                    } else {
+                        leftCol.classList.remove('collapsed');
+                        btn.textContent = '<';
+                    }
+                });
+            })();
+        </script>
+
         </body>
         </html>";
+
     }
 }
 
