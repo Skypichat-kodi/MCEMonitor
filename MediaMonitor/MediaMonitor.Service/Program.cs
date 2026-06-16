@@ -295,12 +295,24 @@ namespace MediaMonitor.Service
                     foreach (var item in newItems)
                     {
                         bool already = existing.Items.Any(x =>
+                            // Même média
                             x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-                            x.Timestamp == item.Timestamp &&
-                            x.ClientIP == item.ClientIP);
+
+                            // Même client
+                            x.ClientIP.Equals(item.ClientIP, StringComparison.OrdinalIgnoreCase) &&
+
+                            // Timestamp dans une fenêtre de ± 1 minute
+                            (x.Timestamp - item.Timestamp).Duration() <= TimeSpan.FromMinutes(1)
+                        );
 
                         if (!already)
+                        {
                             existing.Items.Add(item);
+                        }
+                        else
+                        {
+                            WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
+                        }
                     }
 
                     // ------------------------------------------------------------
