@@ -22,7 +22,7 @@ namespace MediaMonitor.Service
         private long _requestCount = 0;
         private DateTime _lastRequestTime = DateTime.MinValue;
         private string _lastRequestIp = "N/A";
-        private string _lastReportStatus = "Aucun rapport envoyé";                
+        private string _lastReportStatus = "Aucun rapport envoyé";
 
         private WebServerSettings _settings;
 
@@ -30,7 +30,6 @@ namespace MediaMonitor.Service
         {
             _port = port;
             _engine = engine;
-
             _settings = WebServerSettings.Load();
 
             _listener.Prefixes.Add($"http://+:{port}/");
@@ -93,8 +92,9 @@ namespace MediaMonitor.Service
             {
                 _requestCount++;
                 _lastRequestTime = DateTime.Now;
-                _lastRequestIp = ctx.Request.RemoteEndPoint?.ToString() ?? "N/A";           
-                // ?? AUTHENTIFICATION BASIC
+                _lastRequestIp = ctx.Request.RemoteEndPoint?.ToString() ?? "N/A";
+
+                // Authentification Basic
                 if (!CheckAuth(ctx))
                 {
                     ctx.Response.StatusCode = 401;
@@ -104,6 +104,25 @@ namespace MediaMonitor.Service
                 }
 
                 string path = ctx.Request.Url.AbsolutePath.ToLower();
+
+                // Favicon
+                if (path == "/favicon.ico")
+                {
+                    string icoPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.ico";
+
+                    if (File.Exists(icoPath))
+                    {
+                        byte[] ico = File.ReadAllBytes(icoPath);
+                        ctx.Response.ContentType = "image/x-icon";
+                        ctx.Response.OutputStream.Write(ico, 0, ico.Length);
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
 
                 switch (path)
                 {
@@ -145,7 +164,7 @@ namespace MediaMonitor.Service
                     case "/backup":
                         SendHtml(ctx, BuildBackupPage(ctx.Request));
                         break;
-                        
+
                     case "/download":
                         DownloadBackup(ctx);
                         break;
@@ -156,7 +175,7 @@ namespace MediaMonitor.Service
 
                     case "/back":
                         SendHtml(ctx, BuildHomePage());
-                        break;                       
+                        break;
 
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
@@ -167,32 +186,10 @@ namespace MediaMonitor.Service
             {
                 CoreLog.Write("WebServer ERROR: " + ex.Message);
             }
-            
-            // ------------------------------------------------------------
-            // Favicon
-            // ------------------------------------------------------------
-            // Alias standard
-            if (ctx.Request.Url.AbsolutePath == "/favicon.ico")
-            {
-                string icoPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.ico";
-
-                if (File.Exists(icoPath))
-                {
-                    byte[] ico = File.ReadAllBytes(icoPath);
-                    ctx.Response.ContentType = "image/x-icon";
-                    ctx.Response.OutputStream.Write(ico, 0, ico.Length);
-                    ctx.Response.Close();
-                    return;
-                }
-
-                ctx.Response.StatusCode = 404;
-                ctx.Response.Close();
-                return;
-            }
-            
         }
-
-        // ?? Vérification Basic Auth
+        // ==========================
+        //  AUTHENTIFICATION BASIC
+        // ==========================
         private bool CheckAuth(HttpListenerContext ctx)
         {
             string auth = ctx.Request.Headers["Authorization"];
@@ -205,7 +202,6 @@ namespace MediaMonitor.Service
                 string encoded = auth.Substring("Basic ".Length).Trim();
                 string decoded = Encoding.UTF8.GetString(Convert.FromBase64String(encoded));
 
-                // Format attendu : "username:password"
                 return decoded == $"{_settings.Username}:{_settings.Password}";
             }
             catch
@@ -214,6 +210,9 @@ namespace MediaMonitor.Service
             }
         }
 
+        // ==========================
+        //  ENVOI JSON / HTML
+        // ==========================
         private void SendJson(HttpListenerContext ctx, object data)
         {
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
@@ -237,6 +236,10 @@ namespace MediaMonitor.Service
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
         }
+
+        // ==========================
+        //  BADGE TYPE
+        // ==========================
         private string GetTypeBadgeClass(string? mediaType)
         {
             return (mediaType ?? "").ToLower() switch
@@ -248,6 +251,118 @@ namespace MediaMonitor.Service
             };
         }
 
+        // ==========================
+        //  EXTRACTION / PARSING
+        // ==========================
+        private (string Serie, string Episode) ExtractSerie(string nom)
+        {
+            if (string.IsNullOrWhiteSpace(nom))
+                return ("", "");
+
+            var parts = nom.Split(" - ", 2, StringSplitOptions.TrimEntries);
+
+            if (parts.Length == 2)
+                return (parts[0], parts[1]);
+
+            return (nom, "");
+        }
+
+        private (string Track, string Artiste, string Titre) ExtractAudio(string nom)
+        {
+            if (string.IsNullOrWhiteSpace(nom))
+                return ("", "", "");
+
+            var parts = nom.Split(" - ", 3, StringSplitOptions.TrimEntries);
+
+            if (parts.Length == 3)
+                return (parts[0], parts[1], parts[2]);
+
+            if (parts.Length == 2)
+                return ("", parts[0], parts[1]);
+
+            return ("", "", nom);
+        }
+
+        // ==========================
+        //  STATS AVANCÉES (pour /backup)
+        // ==========================
+        private List<(string Serie, int Count)> GetTopSeries(List<BackupItem> items)
+        {
+            return items
+                .Where(i => (i.MediaType ?? "").Equals("serie", StringComparison.OrdinalIgnoreCase)
+                            && !string.IsNullOrWhiteSpace(i.Nom))
+                .Select(i => ExtractSerie(i.Nom!).Serie)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .GroupBy(s => s)
+                .Select(g => (Serie: g.Key, Count: g.Count()))
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+        }
+
+        private List<(string Artiste, int Count)> GetTopArtistes(List<BackupItem> items)
+        {
+            return items
+                .Where(i => (i.MediaType ?? "").Equals("audio", StringComparison.OrdinalIgnoreCase)
+                            && !string.IsNullOrWhiteSpace(i.Nom))
+                .Select(i => ExtractAudio(i.Nom!).Artiste)
+                .Where(a => !string.IsNullOrWhiteSpace(a))
+                .GroupBy(a => a)
+                .Select(g => (Artiste: g.Key, Count: g.Count()))
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+        }
+
+        private List<(string Client, int Count)> GetTopClientsStats(List<BackupItem> items)
+        {
+            return items
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName))
+                .GroupBy(i => i.ClientName!)
+                .Select(g => (Client: g.Key, Count: g.Count()))
+                .OrderByDescending(x => x.Count)
+                .Take(10)
+                .ToList();
+        }
+
+        private Dictionary<string, List<(string Title, int Count)>> GetTopTitlesPerClient(List<BackupItem> items)
+        {
+            return items
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
+                            && !string.IsNullOrWhiteSpace(i.Nom))
+                .GroupBy(i => i.ClientName!)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.GroupBy(x => x.Nom!)
+                          .Select(x => (Title: x.Key, Count: x.Count()))
+                          .OrderByDescending(x => x.Count)
+                          .Take(5)
+                          .ToList()
+                );
+        }
+        private string GetLastReport()
+        {
+            string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
+
+            if (!File.Exists(path))
+                return "Aucun rapport envoyé";
+
+            var lines = File.ReadLines(path)
+                            .Where(l => l.Contains("[CODE02]"))
+                            .ToList();
+
+            if (lines.Count == 0)
+                return "Aucun rapport envoyé";
+
+            string last = lines.Last();
+
+            int idx = last.IndexOf("[CODE02]") + "[CODE02]".Length;
+            if (idx <= 0 || idx >= last.Length)
+                return "Aucun rapport envoyé";
+
+            return last.Substring(idx).Trim();
+        }
+
         private DateTime GetReportSendTime()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
@@ -255,33 +370,28 @@ namespace MediaMonitor.Service
             if (!File.Exists(path))
                 return DateTime.MinValue;
 
-            string lastLine = File.ReadLines(path).LastOrDefault(l => l.Contains("Prochain envoi"));
+            string lastLine = File.ReadLines(path)
+                                  .LastOrDefault(l => l.Contains("Prochain envoi"));
 
             if (lastLine == null)
                 return DateTime.MinValue;
-
-            // Exemple de ligne :
-            // [2026-06-14 20:19:56] [CODE01] Prochain envoi du rapport prévu à 11:50 (dans 15h 30min)
 
             int idx = lastLine.IndexOf("prévu à ");
             if (idx < 0)
                 return DateTime.MinValue;
 
-            string timePart = lastLine.Substring(idx + "prévu à ".Length, 5); // "11:50"
+            string timePart = lastLine.Substring(idx + "prévu à ".Length, 5);
 
             if (TimeSpan.TryParse(timePart, out var ts))
             {
                 DateTime next = DateTime.Today.Add(ts);
-
-                // Si l'heure est déjà passée ? demain
                 if (next <= DateTime.Now)
                     next = next.AddDays(1);
-
                 return next;
             }
 
             return DateTime.MinValue;
-        }
+        }       
         
         // ==========================
         //  PAGE PRINCIPALE
@@ -489,83 +599,37 @@ namespace MediaMonitor.Service
         }
 
         // ==========================
-        //  PAGE BACKUP SANS FICHIER
+        //  PAGE BACKUP (MODERNE)
         // ==========================
         private string BuildBackupPage(HttpListenerRequest req)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
-            if (!Directory.Exists(folder))
-        return @"
-        <html>
-        <head>
-        <meta charset='UTF-8'>
-        <title>MediaMonitor – Sauvegarde</title>
-        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
-        <style>
-        body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
-        h2 { color:#f55; }
-        .button {
-            display:inline-block;
-            padding:10px 20px;
-            background:#0078D4;
-            color:white;
-            text-decoration:none;
-            border-radius:6px;
-            font-weight:bold;
-            margin-top:20px;
-        }
-        
-        </style>
-        </head>
-        <body>
-        <h2>Aucune sauvegarde trouvée.</h2>
-        <a class='button' href='/'>Retour</a>
-        </body>
-        </html>";
 
-                    var files = Directory.GetFiles(folder, "history_*.json");
-                    if (files.Length == 0)
-                    
-        
-        // ==========================
-        //  PAGE BACKUP AVEC FICHIER
-        // ==========================                    
-        return @"
-        <html>
-        <head>
-        <meta charset='UTF-8'>
-        <title>MediaMonitor – Sauvegarde</title>
-        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
-        <style>
-        body { background:#111; color:#eee; font-family:Segoe UI,Arial; text-align:center; padding-top:50px; }
-        h2 { color:#f55; }
-        .button {
-            display:inline-block;
-            padding:10px 20px;
-            background:#0078D4;
-            color:white;
-            text-decoration:none;
-            border-radius:6px;
-            font-weight:bold;
-            margin-top:20px;
-        }
-        </style>
-        </head>
-        <body>
-        <h2>Aucune sauvegarde disponible.</h2>
-        <a class='button' href='/'>Retour</a>
-        </body>
-        </html>";
+            if (!Directory.Exists(folder))
+            {
+                return "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
+                       "<h2>Aucune sauvegarde trouvée.</h2>" +
+                       "<a href='/' style='color:#4fc3f7;'>Retour</a></body></html>";
+            }
+
+            var files = Directory.GetFiles(folder, "history_*.json");
+
+            if (files.Length == 0)
+            {
+                return "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
+                       "<h2>Aucune sauvegarde disponible.</h2>" +
+                       "<a href='/' style='color:#4fc3f7;'>Retour</a></body></html>";
+            }
 
             string lastFile = files.OrderByDescending(f => f).First();
+            string json = File.ReadAllText(lastFile);
 
-            var json = File.ReadAllText(lastFile);
             BackupFileModel? backup = JsonSerializer.Deserialize<BackupFileModel>(json);
 
             if (backup == null || backup.Reports == null)
                 return "<html><body><h2>Sauvegarde invalide.</h2></body></html>";
 
-            // Aplatir tous les items de tous les jours
+            // Aplatir tous les items
             var allItems = backup.Reports
                 .Where(r => r.Items != null)
                 .SelectMany(r => r.Items)
@@ -615,13 +679,13 @@ namespace MediaMonitor.Service
                 _ => items.OrderByDescending(i => i.Timestamp).ToList()
             };
 
-            // Stats
+            // Stats simples
             int total = items.Count;
             int audio = items.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase));
             int series = items.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase));
             int videos = items.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase));
 
-            // Liste complète des clients (pour le menu)
+            // Liste des clients
             var allClients = allItems
                 .Where(i => !string.IsNullOrWhiteSpace(i.ClientName))
                 .Select(i => i.ClientName!)
@@ -638,7 +702,7 @@ namespace MediaMonitor.Service
                 clientOptions.Append($"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>");
             }
 
-            // Lignes du tableau
+            // Lignes du tableau principal
             var rows = new StringBuilder();
             foreach (var item in items)
             {
@@ -651,20 +715,28 @@ namespace MediaMonitor.Service
                 };
 
                 rows.Append($@"
-        <tr>
-            <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-            <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
-            <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
-            <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
-        </tr>");
+<tr>
+    <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
+    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
+    <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
+    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+</tr>");
             }
 
+            // Activité par heure
             int[] hours = new int[24];
             foreach (var it in items)
                 hours[it.Timestamp.Hour]++;
 
             string hoursJson = JsonSerializer.Serialize(hours);
 
+            // STATISTIQUES AVANCÉES
+            var topSeries = GetTopSeries(allItems);
+            var topArtistes = GetTopArtistes(allItems);
+            var topClients = GetTopClientsStats(allItems);
+            var topTitlesPerClient = GetTopTitlesPerClient(allItems);
+
+            // REMPLISSAGE DU TEMPLATE
             string html = BackupHtmlTemplate
                 .Replace("{{TOTAL}}", total.ToString())
                 .Replace("{{AUDIO}}", audio.ToString())
@@ -676,6 +748,7 @@ namespace MediaMonitor.Service
                 .Replace("{{CLIENT_OPTIONS}}", clientOptions.ToString())
                 .Replace("{{FILTER_TYPE}}", type)
                 .Replace("{{FILTER_CLIENT}}", client)
+                .Replace("{{DATE}}", date)
                 .Replace("{{SORT}}", sort)
                 .Replace("{{SEL_ALL}}", type == "all" ? "selected" : "")
                 .Replace("{{SEL_AUDIO}}", type == "audio" ? "selected" : "")
@@ -690,12 +763,411 @@ namespace MediaMonitor.Service
                 .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
                 .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
                 .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
-                .Replace("{{HOURS_DATA}}", hoursJson);
+                .Replace("{{HOURS_DATA}}", hoursJson)
+                .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
+                .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
+                .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
+                .Replace("{{TOP_TITLES_PER_CLIENT}}", BuildTopTitlesPerClientHtml(topTitlesPerClient));
 
             return html;
         }
+        // ==========================
+        //  TEMPLATE HTML BACKUP
+        // ==========================
+        private const string BackupHtmlTemplate = @"
+<!DOCTYPE html>
+<html lang=""fr"">
+<head>
+<meta charset=""UTF-8"">
+<title>Historique sauvegardé - MediaMonitor</title>
+<link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
 
-        // Modele du fichier cumulatif généré par le service
+<!-- Chart.js -->
+<script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
+
+<style>
+    body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+    h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+    .container { display:flex; gap:20px; }
+
+    .groupbox {
+        flex:1;
+        border:1px solid #3c3c3c;
+        border-radius:6px;
+        background:#252526;
+        padding:12px;
+        position:relative;
+        transition: all 0.8s ease;
+    }
+
+    .left-content { transition: opacity 0.6s ease; }
+    .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+
+    .stats-grid {
+        display:grid;
+        grid-template-columns:auto auto;
+        row-gap:6px;
+        column-gap:12px;
+        font-size:13px;
+    }
+
+    .label { color:#ccc; }
+    .value { font-weight:bold; color:#fff; }
+
+    .listing-header {
+        display:flex;
+        justify-content:space-between;
+        margin-bottom:8px;
+        font-size:13px;
+    }
+
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+    th { background:#2d2d30; color:#fff; }
+    tr:nth-child(even) td { background:#262626; }
+    tr:nth-child(odd) td { background:#1f1f1f; }
+
+    .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+    .type-audio { background:#007acc; }
+    .type-serie { background:#c586c0; }
+    .type-video { background:#d19a66; }
+
+    select {
+        background:#2d2d30;
+        color:#e5e5e5;
+        border:1px solid #3c3c3c;
+        border-radius:4px;
+        padding:2px 4px;
+    }
+
+    label { margin-right:4px; }
+
+    td, th { border-right: 1px solid #3c3c3c; }
+    td:last-child, th:last-child { border-right: none; }
+    td:nth-child(2), th:nth-child(2) { text-align:center; }
+
+    /* --- COLLAPSIBLE --- */
+    #leftColumn {
+        overflow: visible;
+        transition: all 0.6s ease;
+    }
+
+    #leftColumn.collapsed {
+        flex: 0 0 40px !important;
+        max-width: 40px !important;
+        min-width: 40px !important;
+        padding: 12px 4px;
+    }
+
+    #leftColumn.collapsed .left-content {
+        opacity: 0;
+        height: 0;
+        overflow: hidden;
+        padding: 0;
+        margin: 0;
+    }
+
+    .toggle-btn {
+        position: absolute;
+        top: 10px;
+        right: -18px;
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        border: none;
+        background: #444;
+        color: #fff;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 28px;
+        text-align: center;
+        z-index: 50;
+    }
+
+    .toggle-btn:hover { background:#666; }
+</style>
+
+</head>
+<body>
+
+<h1>Historique sauvegardé</h1>
+
+<div style=""margin-bottom:20px; display:flex; gap:10px;"">
+    <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
+
+    <a href=""/purge""
+       onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
+       style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
+       Purger
+    </a>
+
+    <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
+</div>
+
+<!-- FILTRES -->
+<div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
+
+    <div>
+        <label>Filtrer par type :</label>
+        <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
+            <option value='all' {{SEL_ALL}}>Tous</option>
+            <option value='audio' {{SEL_AUDIO}}>Audio</option>
+            <option value='serie' {{SEL_SERIE}}>Séries</option>
+            <option value='video' {{SEL_VIDEO}}>Vidéos</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Filtrer par client :</label>
+        <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
+            {{CLIENT_OPTIONS}}
+        </select>
+    </div>
+
+    <div>
+        <label>Filtrer par date :</label>
+        <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
+            <option value='all' {{SEL_DATE_ALL}}>Tout</option>
+            <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
+            <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
+            <option value='7' {{SEL_DATE_7}}>7 jours</option>
+            <option value='30' {{SEL_DATE_30}}>30 jours</option>
+        </select>
+    </div>
+
+    <div>
+        <label>Trier :</label>
+        <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
+            <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
+            <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
+            <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
+            <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
+        </select>
+    </div>
+
+</div>
+
+<div class=""container"">
+
+    <!-- COLONNE GAUCHE -->
+    <div class=""groupbox"" id=""leftColumn"">
+        <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
+
+        <div class=""left-content"">
+
+            <!-- STATISTIQUES -->
+            <div class=""groupbox-title"">Statistiques</div>
+            <div class=""stats-grid"">
+                <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
+                <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
+                <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
+                <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
+            </div>
+
+            <br>
+
+            <!-- GRAPHIQUES -->
+            <div class=""groupbox-title"">Graphiques</div>
+
+            <div style=""display:flex; gap:15px; align-items:stretch;"">
+
+                <!-- Donut -->
+                <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                    <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                        Répartition par type
+                    </div>
+                    <canvas id=""chartTypes"" height=""160""></canvas>
+                </div>
+
+                <div style=""width:1px; background:#3c3c3c;""></div>
+
+                <!-- Horaire -->
+                <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                    <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                        Activité par heure
+                    </div>
+                    <canvas id=""chartHours"" height=""160""></canvas>
+                </div>
+
+            </div>
+
+            <br>
+
+            <!-- STATISTIQUES AVANCÉES -->
+            <div class=""groupbox-title"">Statistiques avancées</div>
+
+            <!-- TOP SERIES -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Top séries</div>
+                <table>
+                    <thead><tr><th>Série</th><th>Lectures</th></tr></thead>
+                    <tbody>{{TOP_SERIES_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <!-- TOP ARTISTES -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Top artistes</div>
+                <table>
+                    <thead><tr><th>Artiste</th><th>Lectures</th></tr></thead>
+                    <tbody>{{TOP_ARTISTES_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <!-- TOP CLIENTS -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Top clients</div>
+                <table>
+                    <thead><tr><th>Client</th><th>Lectures</th></tr></thead>
+                    <tbody>{{TOP_CLIENTS_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <!-- TOP TITRES PAR CLIENT -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Top titres par client</div>
+                {{TOP_TITLES_PER_CLIENT}}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class=""groupbox"">
+        <div class=""groupbox-title"">Listing des titres</div>
+        <div class=""listing-header"">
+            <span>Période : {{PERIOD}}</span>
+            <span>{{COUNT}} élément(s)</span>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
+            </thead>
+            <tbody>{{ROWS}}</tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- SCRIPTS -->
+<script>
+const audio = {{AUDIO}};
+const series = {{SERIES}};
+const videos = {{VIDEOS}};
+const hoursData = {{HOURS_DATA}};
+
+new Chart(document.getElementById('chartTypes'), {
+    type: 'doughnut',
+    data: {
+        labels: ['Audio', 'Séries', 'Vidéos'],
+        datasets: [{
+            data: [audio, series, videos],
+            backgroundColor: ['#007acc', '#c586c0', '#d19a66']
+        }]
+    },
+    options: {
+        plugins: { legend: { labels: { color:'#fff' } } }
+    }
+});
+
+new Chart(document.getElementById('chartHours'), {
+    type: 'line',
+    data: {
+        labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+        datasets: [{
+            label: 'Lectures par heure',
+            data: hoursData,
+            borderColor: '#4fc3f7',
+            backgroundColor: 'rgba(79,195,247,0.2)',
+            tension: 0.3
+        }]
+    },
+    options: {
+        scales: {
+            x: { ticks: { color:'#fff' } },
+            y: { ticks: { color:'#fff' } }
+        },
+        plugins: { legend: { labels: { color:'#fff' } } }
+    }
+});
+
+// COLLAPSIBLE
+(function () {
+    const btn = document.getElementById('toggleLeft');
+    const leftCol = document.getElementById('leftColumn');
+
+    if (!btn || !leftCol) return;
+
+    let collapsed = false;
+
+    btn.addEventListener('click', () => {
+        collapsed = !collapsed;
+
+        if (collapsed) {
+            leftCol.classList.add('collapsed');
+            btn.textContent = '>';
+        } else {
+            leftCol.classList.remove('collapsed');
+            btn.textContent = '<';
+        }
+    });
+})();
+</script>
+
+</body>
+</html>";
+        // ==========================
+        //  TABLEAUX HTML STATS AVANCÉES
+        // ==========================
+        private string BuildTopSeriesRows(List<(string Serie, int Count)> list)
+        {
+            var sb = new StringBuilder();
+            foreach (var x in list)
+                sb.Append($"<tr><td>{WebUtility.HtmlEncode(x.Serie)}</td><td>{x.Count}</td></tr>");
+            return sb.ToString();
+        }
+
+        private string BuildTopArtistesRows(List<(string Artiste, int Count)> list)
+        {
+            var sb = new StringBuilder();
+            foreach (var x in list)
+                sb.Append($"<tr><td>{WebUtility.HtmlEncode(x.Artiste)}</td><td>{x.Count}</td></tr>");
+            return sb.ToString();
+        }
+
+        private string BuildTopClientsRows(List<(string Client, int Count)> list)
+        {
+            var sb = new StringBuilder();
+            foreach (var x in list)
+                sb.Append($"<tr><td>{WebUtility.HtmlEncode(x.Client)}</td><td>{x.Count}</td></tr>");
+            return sb.ToString();
+        }
+
+        private string BuildTopTitlesPerClientHtml(Dictionary<string, List<(string Title, int Count)>> dict)
+        {
+            var sb = new StringBuilder();
+
+            foreach (var kv in dict)
+            {
+                sb.Append($@"
+<div style='margin-bottom:10px;'>
+    <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(kv.Key)}</div>
+    <table>
+        <thead><tr><th>Titre</th><th>Lectures</th></tr></thead>
+        <tbody>");
+
+                foreach (var t in kv.Value)
+                    sb.Append($"<tr><td>{WebUtility.HtmlEncode(t.Title)}</td><td>{t.Count}</td></tr>");
+
+                sb.Append("</tbody></table></div>");
+            }
+
+            return sb.ToString();
+        }
+
+        // ==========================
+        //  MODELES BACKUP
+        // ==========================
         private class BackupFileModel
         {
             public int RetentionDays { get; set; }
@@ -708,16 +1180,21 @@ namespace MediaMonitor.Service
             public List<BackupItem> Items { get; set; } = new();
         }
 
-        // Modèle des éléments de sauvegarde
         private class BackupItem
         {
             public string? ClientName { get; set; }
             public string? MediaType { get; set; }
             public string? Nom { get; set; }
             public string? FileName { get; set; }
+            public string? Path { get; set; }
+            public int Saison { get; set; }
+            public int Episode { get; set; }
             public DateTime Timestamp { get; set; }
         }
 
+        // ==========================
+        //  DOWNLOAD PDF
+        // ==========================
         private void DownloadBackup(HttpListenerContext ctx)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
@@ -739,40 +1216,38 @@ namespace MediaMonitor.Service
                 return;
             }
 
-            // Aplatir les items
             var items = backup.Reports
                 .Where(r => r.Items != null)
                 .SelectMany(r => r.Items)
                 .OrderByDescending(i => i.Timestamp)
                 .ToList();
 
-            // --- Génération PDF ---
-            using var doc = new PdfSharp.Pdf.PdfDocument();
+            using var doc = new PdfDocument();
             doc.Info.Title = "Backup MediaMonitor";
 
             var page = doc.AddPage();
-            var gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
-            var font = new PdfSharp.Drawing.XFont("Arial", 10);
+            var gfx = XGraphics.FromPdfPage(page);
+            var font = new XFont("Arial", 10);
 
             double y = 20;
 
-            gfx.DrawString("Historique sauvegardé", 
-                new PdfSharp.Drawing.XFont("Arial", 14, PdfSharp.Drawing.XFontStyle.Bold),
-                PdfSharp.Drawing.XBrushes.Black, 
-                new PdfSharp.Drawing.XPoint(20, y));
+            gfx.DrawString("Historique sauvegardé",
+                new XFont("Arial", 14, XFontStyle.Bold),
+                XBrushes.Black,
+                new XPoint(20, y));
 
             y += 30;
 
             foreach (var item in items)
             {
                 string line = $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  {item.MediaType}  |  {item.ClientName}  |  {item.Nom}";
-                gfx.DrawString(line, font, PdfSharp.Drawing.XBrushes.Black, new PdfSharp.Drawing.XPoint(20, y));
+                gfx.DrawString(line, font, XBrushes.Black, new XPoint(20, y));
                 y += 15;
 
                 if (y > page.Height - 40)
                 {
                     page = doc.AddPage();
-                    gfx = PdfSharp.Drawing.XGraphics.FromPdfPage(page);
+                    gfx = XGraphics.FromPdfPage(page);
                     y = 20;
                 }
             }
@@ -781,7 +1256,6 @@ namespace MediaMonitor.Service
             doc.Save(ms);
             byte[] pdfBytes = ms.ToArray();
 
-            // Déterminer les dates du backup
             var dates = backup.Reports
                 .Where(r => r.Items != null && r.Items.Count > 0)
                 .Select(r => r.Date)
@@ -791,28 +1265,21 @@ namespace MediaMonitor.Service
             string pdfName;
 
             if (dates.Count == 1)
-            {
-                // Un seul jour
                 pdfName = $"backup_{dates[0]:yyyy-MM-dd}.pdf";
-            }
             else if (dates.Count > 1)
-            {
-                // Plage de dates
                 pdfName = $"backup_{dates.First():yyyy-MM-dd}_to_{dates.Last():yyyy-MM-dd}.pdf";
-            }
             else
-            {
-                // Fallback
                 pdfName = "backup.pdf";
-            }
 
-            // --- Envoi au navigateur ---
             ctx.Response.ContentType = "application/pdf";
             ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=\"{pdfName}\"");
             ctx.Response.OutputStream.Write(pdfBytes, 0, pdfBytes.Length);
             ctx.Response.OutputStream.Close();
         }
 
+        // ==========================
+        //  PURGE DES BACKUPS
+        // ==========================
         private void PurgeBackups(HttpListenerContext ctx)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
@@ -823,289 +1290,10 @@ namespace MediaMonitor.Service
                     File.Delete(f);
             }
 
-            SendHtml(ctx, "<html><body><h2>Toutes les sauvegardes ont été supprimées.</h2><a href='/backup'>Retour</a></body></html>");
+            SendHtml(ctx,
+                "<html><body><h2>Toutes les sauvegardes ont été supprimées.</h2>" +
+                "<a href='/backup'>Retour</a></body></html>");
         }
-
-        private const string BackupHtmlTemplate = @"
-        <!DOCTYPE html>
-        <html lang=""fr"">
-        <head>
-        <meta charset=""UTF-8"">
-        <title>Historique sauvegardé - MediaMonitor</title>
-        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
-
-        <!-- Chart.js -->
-        <script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
-
-        <style>
-            body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
-            h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
-            .container { display:flex; gap:20px; }
-            .groupbox {flex:1; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; position:relative; transition: all 0.8s ease; /* plus lent */}
-            .left-content {transition: opacity 0.6s ease; /* plus lent */}
-            .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
-            .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
-            .label { color:#ccc; }
-            .value { font-weight:bold; color:#fff; }
-            .listing-header { display:flex; justify-content:space-between; margin-bottom:8px; font-size:13px; }
-            table { width:100%; border-collapse:collapse; font-size:13px; }
-            th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
-            th { background:#2d2d30; color:#fff; }
-            tr:nth-child(even) td { background:#262626; }
-            tr:nth-child(odd) td { background:#1f1f1f; }
-            .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
-            .type-audio { background:#007acc; }
-            .type-serie { background:#c586c0; }
-            .type-video { background:#d19a66; }
-            select { background:#2d2d30; color:#e5e5e5; border:1px solid #3c3c3c; border-radius:4px; padding:2px 4px; }
-            label { margin-right:4px; }
-
-            td, th { border-right: 1px solid #3c3c3c; }
-            td:last-child, th:last-child { border-right: none; }
-            td:nth-child(2), th:nth-child(2) { text-align:center; }
-
-            /* --- COLLAPSIBLE --- */
-
-            /* Colonne gauche normale */
-            #leftColumn {
-                overflow: visible;
-                transition: all 0.6s ease;
-            }
-
-            /* Contenu interne */
-            .left-content {
-                transition: opacity 0.45s ease;
-            }
-
-            /* Colonne repliée */
-            #leftColumn.collapsed {
-                flex: 0 0 40px !important;
-                max-width: 40px !important;
-                min-width: 40px !important;
-                padding: 12px 4px;
-            }
-
-            /* Contenu interne masqué SANS prendre de place */
-            #leftColumn.collapsed .left-content {
-                opacity: 0;
-                height: 0;
-                overflow: hidden;
-                padding: 0;
-                margin: 0;
-            }
-
-            .toggle-btn {
-                position: absolute;
-                top: 10px;
-                right: -18px;
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                border: none;
-                background: #444;
-                color: #fff;
-                cursor: pointer;
-                font-size: 18px;
-                line-height: 28px;
-                text-align: center;
-                z-index: 50;
-            }
-
-            .toggle-btn:hover { background:#666; }
-        </style>
-
-        </head>
-        <body>
-
-        <h1>Historique sauvegardé</h1>
-
-        <div style=""margin-bottom:20px; display:flex; gap:10px;"">
-            <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
-
-            <a href=""/purge""
-               onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
-               style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
-               Purger
-            </a>
-
-            <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
-        </div>
-
-        <div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
-
-            <div>
-                <label>Filtrer par type :</label>
-                <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
-                    <option value='all' {{SEL_ALL}}>Tous</option>
-                    <option value='audio' {{SEL_AUDIO}}>Audio</option>
-                    <option value='serie' {{SEL_SERIE}}>Séries</option>
-                    <option value='video' {{SEL_VIDEO}}>Vidéos</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Filtrer par client :</label>
-                <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
-                    {{CLIENT_OPTIONS}}
-                </select>
-            </div>
-
-            <div>
-                <label>Filtrer par date :</label>
-                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
-                    <option value='all' {{SEL_DATE_ALL}}>Tout</option>
-                    <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
-                    <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
-                    <option value='7' {{SEL_DATE_7}}>7 jours</option>
-                    <option value='30' {{SEL_DATE_30}}>30 jours</option>
-                </select>
-            </div>
-
-            <div>
-                <label>Trier :</label>
-                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
-                    <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
-                    <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
-                    <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
-                    <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
-                </select>
-            </div>
-
-        </div>
-
-        <div class=""container"">
-
-            <!-- COLONNE GAUCHE -->
-            <div class=""groupbox"" id=""leftColumn"">
-                <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
-
-                <div class=""left-content"">
-                    <div class=""groupbox-title"">Statistiques</div>
-                    <div class=""stats-grid"">
-                        <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
-                        <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
-                        <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
-                        <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
-                    </div>
-
-                    <br>
-
-                    <div class=""groupbox-title"">Graphiques</div>
-
-                    <div style=""display:flex; gap:15px; align-items:stretch;"">
-
-                        <!-- Bloc Donut -->
-                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                                Répartition par type
-                            </div>
-                            <canvas id=""chartTypes"" height=""160""></canvas>
-                        </div>
-
-                        <!-- Séparateur vertical -->
-                        <div style=""width:1px; background:#3c3c3c;""></div>
-
-                        <!-- Bloc Horaire -->
-                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                                Activité par heure
-                            </div>
-                            <canvas id=""chartHours"" height=""160""></canvas>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-
-            <!-- COLONNE DROITE -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Listing des titres</div>
-                <div class=""listing-header"">
-                    <span>Période : {{PERIOD}}</span>
-                    <span>{{COUNT}} élément(s)</span>
-                </div>
-                <table>
-                    <thead>
-                        <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
-                    </thead>
-                    <tbody>
-                        {{ROWS}}
-                    </tbody>
-                </table>
-            </div>
-
-        </div>
-
-        <!-- SCRIPTS GRAPHIQUES -->
-        <script>
-            const audio = {{AUDIO}};
-            const series = {{SERIES}};
-            const videos = {{VIDEOS}};
-            const hoursData = {{HOURS_DATA}};
-
-            new Chart(document.getElementById('chartTypes'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Audio', 'Séries', 'Vidéos'],
-                    datasets: [{
-                        data: [audio, series, videos],
-                        backgroundColor: ['#007acc', '#c586c0', '#d19a66']
-                    }]
-                },
-                options: {
-                    plugins: { legend: { labels: { color:'#fff' } } }
-                }
-            });
-
-            new Chart(document.getElementById('chartHours'), {
-                type: 'line',
-                data: {
-                    labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
-                    datasets: [{
-                        label: 'Lectures par heure',
-                        data: hoursData,
-                        borderColor: '#4fc3f7',
-                        backgroundColor: 'rgba(79,195,247,0.2)',
-                        tension: 0.3
-                    }]
-                },
-                options: {
-                    scales: {
-                        x: { ticks: { color:'#fff' } },
-                        y: { ticks: { color:'#fff' } }
-                    },
-                    plugins: { legend: { labels: { color:'#fff' } } }
-                }
-            });
-        </script>
-
-        <!-- SCRIPT COLLAPSIBLE -->
-        <script>
-            (function () {
-                const btn = document.getElementById('toggleLeft');
-                const leftCol = document.getElementById('leftColumn');
-
-                if (!btn || !leftCol) return;
-
-                let collapsed = false;
-
-                btn.addEventListener('click', () => {
-                    collapsed = !collapsed;
-
-                    if (collapsed) {
-                        leftCol.classList.add('collapsed');
-                        btn.textContent = '>';
-                    } else {
-                        leftCol.classList.remove('collapsed');
-                        btn.textContent = '<';
-                    }
-                });
-            })();
-        </script>
-
-        </body>
-        </html>";
-
     }
 }
 
