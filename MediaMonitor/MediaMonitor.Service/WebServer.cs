@@ -325,21 +325,7 @@ namespace MediaMonitor.Service
                 .ToList();
         }
 
-        private Dictionary<string, List<(string Title, int Count)>> GetTopTitlesPerClient(List<BackupItem> items)
-        {
-            return items
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
-                            && !string.IsNullOrWhiteSpace(i.Nom))
-                .GroupBy(i => i.ClientName!)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.GroupBy(x => x.Nom!)
-                          .Select(x => (Title: x.Key, Count: x.Count()))
-                          .OrderByDescending(x => x.Count)
-                          .Take(5)
-                          .ToList()
-                );
-        }
+
         private string GetLastReport()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
@@ -734,7 +720,8 @@ namespace MediaMonitor.Service
             var topSeries = GetTopSeries(allItems);
             var topArtistes = GetTopArtistes(allItems);
             var topClients = GetTopClientsStats(allItems);
-            var topTitlesPerClient = GetTopTitlesPerClient(allItems);
+            var mediaStats = GetMediaStatsPerClient(allItems);
+            var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
 
             // REMPLISSAGE DU TEMPLATE
             string html = BackupHtmlTemplate
@@ -767,7 +754,7 @@ namespace MediaMonitor.Service
                 .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
                 .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
                 .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
-                .Replace("{{TOP_TITLES_PER_CLIENT}}", BuildTopTitlesPerClientHtml(topTitlesPerClient));
+                .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
 
             return html;
         }
@@ -1023,10 +1010,10 @@ namespace MediaMonitor.Service
                 </table>
             </div>
 
-            <!-- TOP TITRES PAR CLIENT -->
+            <!-- TOP MEDIAS PAR CLIENT -->
             <div class=""groupbox"">
-                <div class=""groupbox-title"">Top titres par client</div>
-                {{TOP_TITLES_PER_CLIENT}}
+                <div class=""groupbox-title"">Top médias par client</div>
+                {{TOP_MEDIA_PER_CLIENT}}
             </div>
 
         </div>
@@ -1142,24 +1129,46 @@ new Chart(document.getElementById('chartHours'), {
                 sb.Append($"<tr><td>{WebUtility.HtmlEncode(x.Client)}</td><td>{x.Count}</td></tr>");
             return sb.ToString();
         }
+        
+        private Dictionary<string, (int Audio, int Serie, int Video)> GetMediaStatsPerClient(List<BackupItem> items)
+        {
+            return items
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
+                            && !string.IsNullOrWhiteSpace(i.MediaType))
+                .GroupBy(i => i.ClientName!)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        int audio = g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase));
+                        int serie = g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase));
+                        int video = g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase));
 
-        private string BuildTopTitlesPerClientHtml(Dictionary<string, List<(string Title, int Count)>> dict)
+                        return (Audio: audio, Serie: serie, Video: video);
+                    }
+                );
+        }
+        private string BuildMediaStatsPerClientHtml(Dictionary<string, (int Audio, int Serie, int Video)> dict)
         {
             var sb = new StringBuilder();
 
             foreach (var kv in dict)
             {
+                string client = kv.Key;
+                var stats = kv.Value;
+
                 sb.Append($@"
-<div style='margin-bottom:10px;'>
-    <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(kv.Key)}</div>
-    <table>
-        <thead><tr><th>Titre</th><th>Lectures</th></tr></thead>
-        <tbody>");
-
-                foreach (var t in kv.Value)
-                    sb.Append($"<tr><td>{WebUtility.HtmlEncode(t.Title)}</td><td>{t.Count}</td></tr>");
-
-                sb.Append("</tbody></table></div>");
+        <div style='margin-bottom:10px;'>
+            <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
+            <table>
+                <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
+                <tbody>
+                    <tr><td>Séries</td><td>{stats.Serie}</td></tr>
+                    <tr><td>Audio</td><td>{stats.Audio}</td></tr>
+                    <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
+                </tbody>
+            </table>
+        </div>");
             }
 
             return sb.ToString();
