@@ -325,7 +325,6 @@ namespace MediaMonitor.Service
                 .ToList();
         }
 
-
         private string GetLastReport()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
@@ -333,20 +332,26 @@ namespace MediaMonitor.Service
             if (!File.Exists(path))
                 return "Aucun rapport envoyé";
 
-            var lines = File.ReadLines(path)
-                            .Where(l => l.Contains("[CODE02]"))
-                            .ToList();
+            // On cherche la DERNIÈRE ligne contenant [CODE02]
+            var lastLine = File.ReadLines(path)
+                               .Reverse()
+                               .FirstOrDefault(l => l.Contains("[CODE02]"));
 
-            if (lines.Count == 0)
+            if (lastLine == null)
                 return "Aucun rapport envoyé";
 
-            string last = lines.Last();
+            // Exemple :
+            // [2026-06-17 02:50:03] [CODE02] Rapport envoyé à 2026-06-17 02:50:03
 
-            int idx = last.IndexOf("[CODE02]") + "[CODE02]".Length;
-            if (idx <= 0 || idx >= last.Length)
+            // Extraire la date du timestamp entre les premiers crochets
+            int start = lastLine.IndexOf('[') + 1;
+            int end = lastLine.IndexOf(']');
+            if (start <= 0 || end <= start)
                 return "Aucun rapport envoyé";
 
-            return last.Substring(idx).Trim();
+            string datePart = lastLine.Substring(start, end - start);
+
+            return datePart;
         }
 
         private DateTime GetReportSendTime()
