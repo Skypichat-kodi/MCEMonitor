@@ -12,6 +12,9 @@ namespace MediaMonitor.Service
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
         public int RetentionDays { get; set; } = 0;
+public string DvbViewerUrl { get; set; } = "";
+public string DvbViewerUser { get; set; } = "";
+public string DvbViewerPass { get; set; } = "";
 
         private static string GetConfigPath()
         {
@@ -62,6 +65,16 @@ namespace MediaMonitor.Service
                 if (line.StartsWith("RetentionDays=", StringComparison.OrdinalIgnoreCase))   // ?? AJOUT
                     if (int.TryParse(line.Split('=')[1].Trim(), out int r))
                         settings.RetentionDays = r;
+                        
+                if (line.StartsWith("DvbViewerUrl=", StringComparison.OrdinalIgnoreCase))
+                    settings.DvbViewerUrl = line.Split('=', 2)[1].Trim();
+
+                if (line.StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
+                    settings.DvbViewerUser = line.Split('=', 2)[1].Trim();
+
+                if (line.StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
+                    settings.DvbViewerPass = line.Split('=', 2)[1].Trim();
+                                       
             }
 
             }
@@ -85,6 +98,9 @@ namespace MediaMonitor.Service
                 sb.AppendLine("Username=" + Username);
                 sb.AppendLine("Password=" + Password);
                 sb.AppendLine("RetentionDays=" + RetentionDays);   // ?? AJOUT
+sb.AppendLine("DvbViewerUrl=" + DvbViewerUrl);
+sb.AppendLine("DvbViewerUser=" + DvbViewerUser);
+sb.AppendLine("DvbViewerPass=" + DvbViewerPass);
 
                 File.WriteAllText(path, sb.ToString());
             }

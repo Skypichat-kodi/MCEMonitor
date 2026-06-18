@@ -28,6 +28,9 @@ namespace MediaMonitor.UI
         // Empêche RefreshState de se lancer en parallèle
         private bool _isRefreshing = false;
 
+        // Empêche les handlers de réécrire le config pendant le chargement
+        private bool _loadingConfig = false;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -158,6 +161,8 @@ namespace MediaMonitor.UI
 
             Loaded += async (_, __) =>
             {
+                _loadingConfig = true;
+
                 try
                 {
                     ToggleWeb.IsChecked = await ServiceIpcClient.GetWebEnabled();
@@ -175,29 +180,57 @@ namespace MediaMonitor.UI
                         foreach (var line in File.ReadAllLines(settingsPath))
                         {
                             if (line.StartsWith("Username=", StringComparison.OrdinalIgnoreCase))
-                                txtWebLogin.Text = line.Split('=')[1].Trim();
+                                txtWebLogin.Text = line.Split('=', 2)[1].Trim();
 
                             if (line.StartsWith("Password=", StringComparison.OrdinalIgnoreCase))
-                                txtWebPassword.Password = line.Split('=')[1].Trim();
-                                
+                                txtWebPassword.Password = line.Split('=', 2)[1].Trim();
+
                             if (line.StartsWith("RetentionDays=", StringComparison.OrdinalIgnoreCase))
                             {
-                                if (int.TryParse(line.Split('=')[1].Trim(), out int d))
+                                if (int.TryParse(line.Split('=', 2)[1].Trim(), out int d))
                                 {
                                     chkNone.IsChecked = d == 0;
                                     chk1w.IsChecked   = d == 7;
                                     chk2w.IsChecked   = d == 14;
                                     chk1m.IsChecked   = d == 30;
                                 }
-                            }                               
+                            }
                         }
 
                         UiLog("Identifiants Web chargés depuis le service");
+
+                        // 🔵 Chargement config DVBViewer
+                        string tvPath = settingsPath;
+
+                        if (File.Exists(tvPath))
+                        {
+                            foreach (var line in File.ReadAllLines(tvPath))
+                            {
+                                if (line.StartsWith("DvbViewerUrl=", StringComparison.OrdinalIgnoreCase))
+                                    txtDvbUrl.Text = line.Split('=', 2)[1].Trim();
+
+                                if (line.StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
+                                    txtDvbUser.Text = line.Split('=', 2)[1].Trim();
+
+                                if (line.StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    string pass = line.Split('=', 2)[1].Trim();
+                                    txtDvbPass.Password = pass;
+                                    txtDvbPassVisible.Text = pass;
+                                }
+                            }
+
+                            UiLog("Configuration DVBViewer chargée");
+                        }
                     }
                 }
                 catch (Exception ex)
                 {
                     UiLog("Erreur initialisation Serveur Web : " + ex.Message);
+                }
+                finally
+                {
+                    _loadingConfig = false;
                 }
             };
 
@@ -374,6 +407,9 @@ namespace MediaMonitor.UI
 
         private async void txtWebPort_TextChanged(object sender, TextChangedEventArgs e)
         {
+            if (_loadingConfig)
+                return;
+
             if (!int.TryParse(txtWebPort.Text, out int port))
                 return;
 
@@ -614,8 +650,12 @@ namespace MediaMonitor.UI
                                 MessageBoxImage.Error);
             }
         }
+
         private void BackupOption_Checked(object sender, RoutedEventArgs e)
         {
+            if (_loadingConfig)
+                return;
+
             if (sender is not CheckBox chk)
                 return;
 
@@ -662,7 +702,82 @@ namespace MediaMonitor.UI
                 lines.Add("RetentionDays=" + days);
 
             File.WriteAllLines(path, lines);
-        }        
+        }
+
+        private void btnApplyDvb_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string url = txtDvbUrl.Text.Trim();
+                string user = txtDvbUser.Text.Trim();
+                string pass = (txtDvbPass.Visibility == Visibility.Visible)
+                    ? txtDvbPass.Password
+                    : txtDvbPassVisible.Text;
+
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "MediaMonitor.Web.config"
+                );
+
+                var lines = File.Exists(path)
+                    ? File.ReadAllLines(path).ToList()
+                    : new List<string>();
+
+                bool foundUrl = false;
+                bool foundUser = false;
+                bool foundPass = false;
+
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    if (lines[i].StartsWith("DvbViewerUrl=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = "DvbViewerUrl=" + url;
+                        foundUrl = true;
+                    }
+
+                    if (lines[i].StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = "DvbViewerUser=" + user;
+                        foundUser = true;
+                    }
+
+                    if (lines[i].StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = "DvbViewerPass=" + pass;
+                        foundPass = true;
+                    }
+                }
+
+                if (!foundUrl)  lines.Add("DvbViewerUrl=" + url);
+                if (!foundUser) lines.Add("DvbViewerUser=" + user);
+                if (!foundPass) lines.Add("DvbViewerPass=" + pass);
+
+                File.WriteAllLines(path, lines);
+
+                UiLog("Configuration DVBViewer sauvegardée dans Web.config");
+            }
+            catch (Exception ex)
+            {
+                UiLog("Erreur sauvegarde DVB : " + ex.Message);
+            }
+        }
+
+        private void btnShowDvbPass_Click(object sender, RoutedEventArgs e)
+        {
+            if (txtDvbPass.Visibility == Visibility.Visible)
+            {
+                txtDvbPassVisible.Text = txtDvbPass.Password;
+                txtDvbPass.Visibility = Visibility.Collapsed;
+                txtDvbPassVisible.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                txtDvbPass.Password = txtDvbPassVisible.Text;
+                txtDvbPassVisible.Visibility = Visibility.Collapsed;
+                txtDvbPass.Visibility = Visibility.Visible;
+            }
+        }
     }
 }
 

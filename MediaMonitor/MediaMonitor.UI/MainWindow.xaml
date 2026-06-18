@@ -177,13 +177,14 @@
     </Window.Resources>
 
     <Grid Background="{StaticResource Win11Background}">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Boutons -->
-            <RowDefinition Height="Auto"/>   <!-- Serveur Web -->
-            <RowDefinition Height="2*"/>     <!-- Tableau en cours -->
-            <RowDefinition Height="Auto"/>   <!-- Dernière image -->
-            <RowDefinition Height="3*"/>     <!-- Historique -->
-        </Grid.RowDefinitions>
+<Grid.RowDefinitions>
+    <RowDefinition Height="Auto"/>   <!-- 0 : Boutons -->
+    <RowDefinition Height="Auto"/>   <!-- 1 : Serveur Web -->
+    <RowDefinition Height="Auto"/>   <!-- 2 : Serveur TV -->
+    <RowDefinition Height="2*"/>     <!-- 3 : Tableau en cours -->
+    <RowDefinition Height="Auto"/>   <!-- 4 : Dernière image -->
+    <RowDefinition Height="3*"/>     <!-- 5 : Historique -->
+</Grid.RowDefinitions>
 
         <!-- BOUTONS -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
@@ -524,10 +525,101 @@
 
             </Grid>
         </GroupBox>
+<!-- 🔥 SERVEUR TV -->
+<GroupBox Header="Serveur TV"
+          Grid.Row="2"
+          Margin="10"
+          Padding="10"
+          Background="{StaticResource WebPanelBackground}"
+          BorderBrush="{StaticResource Win11Border}"
+          Foreground="{StaticResource Win11Text}">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- URL -->
+            <RowDefinition Height="Auto"/>  <!-- Login -->
+            <RowDefinition Height="Auto"/>  <!-- Password -->
+            <RowDefinition Height="Auto"/>  <!-- Appliquer -->
+        </Grid.RowDefinitions>
+
+        <!-- URL -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Adresse :" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="txtDvbUrl"
+                     Width="400"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"/>
+        </StackPanel>
+
+        <!-- Login -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="txtDvbUser"
+                     Width="200"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"/>
+        </StackPanel>
+
+        <!-- Password -->
+        <Grid Grid.Row="2" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="177"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Mot de passe :" 
+                       Grid.Column="0"
+                       VerticalAlignment="Center"/>
+
+            <PasswordBox x:Name="txtDvbPass"
+                         Grid.Column="1"
+                         Width="177"
+                         Background="#1E1E1E"
+                         Foreground="#E5E5E5"
+                         BorderBrush="#3C3C3C"
+                         Visibility="Visible"/>
+
+            <TextBox x:Name="txtDvbPassVisible"
+                     Grid.Column="1"
+                     Width="177"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"
+                     Visibility="Collapsed"/>
+
+            <Button x:Name="btnShowDvbPass"
+                    Grid.Column="2"
+                    Width="18"
+                    Height="18"
+                    Margin="6,0,0,0"
+                    Padding="0"
+                    Click="btnShowDvbPass_Click"
+                    Background="#2D2D30"
+                    BorderBrush="#3C3C3C"
+                    BorderThickness="1"
+                    Cursor="Hand">
+                <TextBlock Text="👁" FontSize="12"/>
+            </Button>
+        </Grid>
+
+        <!-- Bouton Appliquer -->
+        <Button Grid.Row="3"
+                Content="Appliquer"
+                Width="150"
+                Height="24"
+                Padding="0"
+                HorizontalAlignment="Left"
+                VerticalContentAlignment="Center"
+                Click="btnApplyDvb_Click"/>
+    </Grid>
+</GroupBox>
 
         <!-- TABLEAU EN COURS -->
         <DataGrid x:Name="FilesGrid"
-                  Grid.Row="2"
+                  Grid.Row="3"
                   Margin="10"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
@@ -598,14 +690,14 @@
 
         <!-- DERNIERE IMAGE -->
         <TextBlock x:Name="LastImageText"
-                   Grid.Row="3"
+                   Grid.Row="4"
                    Margin="10"
                    FontSize="16"
                    Text="Dernière image ouverte : aucune"/>
 
         <!-- TABLEAU HISTORIQUE -->
         <DataGrid x:Name="HistoryGrid"
-                  Grid.Row="4"
+                  Grid.Row="5"
                   Margin="10"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"

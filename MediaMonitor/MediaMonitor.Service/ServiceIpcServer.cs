@@ -109,6 +109,12 @@ namespace MediaMonitor.Service
                         continue;
                     }
 
+                    if (command.StartsWith("set-dvb-config ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        HandleSetDvbConfig(command, writer, server);
+                        continue;
+                    }
+                    
                     // ------------------------------------------------------------
                     // COMMANDES EXACTES (SANS ARGUMENT)
                     // ------------------------------------------------------------
@@ -150,6 +156,11 @@ namespace MediaMonitor.Service
                             HandleGetRetention(writer, server);
                             break;
 
+case "get-dvb-config":
+    HandleGetDvbConfig(writer, server);
+    break;
+                           
+
                         default:
                             writer.Write("{\"error\":\"unknown command\"}");
                             writer.Flush();
@@ -166,6 +177,72 @@ namespace MediaMonitor.Service
 
             Log("IPC ServerLoop terminé (running = false).");
         }
+        
+        // ------------------------------------------------------------
+        // ?? DVBVIEWER : GET CONFIG
+        // ------------------------------------------------------------
+        private void HandleGetDvbConfig(StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                var cfg = WebServerSettings.Load();
+
+                var json = JsonSerializer.Serialize(new
+                {
+                    url = cfg.DvbViewerUrl,
+                    user = cfg.DvbViewerUser,
+                    pass = cfg.DvbViewerPass
+                });
+
+                writer.Write(json);
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"" + ex.Message + "\"}");
+                Log("ERREUR get-dvb-config : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+
+        // ------------------------------------------------------------
+        // ?? DVBVIEWER : SET CONFIG
+        // ------------------------------------------------------------
+        private void HandleSetDvbConfig(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                string payload = command.Substring("set-dvb-config ".Length);
+                string[] parts = payload.Split('|');
+
+                if (parts.Length != 3)
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"invalid parameters\"}");
+                }
+                else
+                {
+                    var cfg = WebServerSettings.Load();
+                    cfg.DvbViewerUrl = parts[0];
+                    cfg.DvbViewerUser = parts[1];
+                    cfg.DvbViewerPass = parts[2];
+                    cfg.Save();
+
+                    writer.Write("{\"status\":\"ok\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-dvb-config : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
+                
         // ------------------------------------------------------------
         // SET WEB CREDENTIALS
         // ------------------------------------------------------------
@@ -266,23 +343,23 @@ namespace MediaMonitor.Service
             server.Disconnect();
         }
 
-private void HandleGetRetention(StreamWriter writer, NamedPipeServerStream server)
-{
-    try
-    {
-        var settings = WebServerSettings.Load();
-        writer.Write("{\"days\":" + settings.RetentionDays + "}");
-    }
-    catch (Exception ex)
-    {
-        writer.Write("{\"error\":\"" + ex.Message + "\"}");
-        Log("ERREUR get-retention : " + ex);
-    }
+        private void HandleGetRetention(StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                var settings = WebServerSettings.Load();
+                writer.Write("{\"days\":" + settings.RetentionDays + "}");
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"" + ex.Message + "\"}");
+                Log("ERREUR get-retention : " + ex);
+            }
 
-    writer.Flush();
-    server.WaitForPipeDrain();
-    server.Disconnect();
-}
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
+        }
 
         // ------------------------------------------------------------
         // SETTERS
@@ -408,41 +485,41 @@ private void HandleGetRetention(StreamWriter writer, NamedPipeServerStream serve
         // AJOUT : HandleSetRetention
         // ------------------------------------------------------------
 
-private void HandleSetRetention(string command, StreamWriter writer, NamedPipeServerStream server)
-{
-    try
-    {
-        string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
+        private void HandleSetRetention(string command, StreamWriter writer, NamedPipeServerStream server)
         {
-            writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
+            try
+            {
+                string[] parts = command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (parts.Length < 2 || !int.TryParse(parts[1], out int days))
+                {
+                    writer.Write("{\"status\":\"error\",\"message\":\"invalid retention\"}");
+                }
+                else
+                {
+                    var settings = WebServerSettings.Load();
+                    settings.RetentionDays = days;
+                    settings.Save();
+
+                    // ?? Redémarrer le timer de sauvegarde
+                    Program.RestartBackupTimer();
+
+                    Log($"IPC : RetentionDays = {days}");
+
+                    // ?? Message amélioré
+                    writer.Write("{\"status\":\"ok\",\"message\":\"Rétention mise à jour. Sauvegarde reprogrammée.\"}");
+                }
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
+                Log("ERREUR set-retention : " + ex);
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
         }
-        else
-        {
-            var settings = WebServerSettings.Load();
-            settings.RetentionDays = days;
-            settings.Save();
-
-            // ?? Redémarrer le timer de sauvegarde
-            Program.RestartBackupTimer();
-
-            Log($"IPC : RetentionDays = {days}");
-
-            // ?? Message amélioré
-            writer.Write("{\"status\":\"ok\",\"message\":\"Rétention mise à jour. Sauvegarde reprogrammée.\"}");
-        }
-    }
-    catch (Exception ex)
-    {
-        writer.Write("{\"status\":\"error\",\"message\":\"" + ex.Message + "\"}");
-        Log("ERREUR set-retention : " + ex);
-    }
-
-    writer.Flush();
-    server.WaitForPipeDrain();
-    server.Disconnect();
-}
 
         // ------------------------------------------------------------
         // COMMANDES EXISTANTES
