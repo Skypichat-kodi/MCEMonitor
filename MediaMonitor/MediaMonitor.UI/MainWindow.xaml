@@ -525,97 +525,108 @@
 
             </Grid>
         </GroupBox>
-<!-- 🔥 SERVEUR TV -->
-<GroupBox Header="Serveur TV"
+<!-- 🔥 SERVEUR TV (repliable) -->
+<Expander Header="Serveur TV"
           Grid.Row="2"
           Margin="10"
-          Padding="10"
+          Padding="0"
+          IsExpanded="False"
           Background="{StaticResource WebPanelBackground}"
+          Foreground="{StaticResource Win11Text}"
           BorderBrush="{StaticResource Win11Border}"
-          Foreground="{StaticResource Win11Text}">
+          BorderThickness="1">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>  <!-- URL -->
-            <RowDefinition Height="Auto"/>  <!-- Login -->
-            <RowDefinition Height="Auto"/>  <!-- Password -->
-            <RowDefinition Height="Auto"/>  <!-- Appliquer -->
-        </Grid.RowDefinitions>
+    <GroupBox Padding="10"
+              Background="{StaticResource WebPanelBackground}"
+              BorderBrush="{StaticResource Win11Border}"
+              Foreground="{StaticResource Win11Text}"
+              Margin="0">
 
-        <!-- URL -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Adresse :" Width="120" VerticalAlignment="Center"/>
-            <TextBox x:Name="txtDvbUrl"
-                     Width="400"
-                     Background="#1E1E1E"
-                     Foreground="#E5E5E5"
-                     BorderBrush="#3C3C3C"/>
-        </StackPanel>
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>  <!-- URL -->
+                <RowDefinition Height="Auto"/>  <!-- Login -->
+                <RowDefinition Height="Auto"/>  <!-- Password -->
+                <RowDefinition Height="Auto"/>  <!-- Appliquer -->
+            </Grid.RowDefinitions>
 
-        <!-- Login -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-            <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
-            <TextBox x:Name="txtDvbUser"
-                     Width="200"
-                     Background="#1E1E1E"
-                     Foreground="#E5E5E5"
-                     BorderBrush="#3C3C3C"/>
-        </StackPanel>
+            <!-- URL -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Adresse :" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtDvbUrl"
+                         Width="400"
+                         Background="#1E1E1E"
+                         Foreground="#E5E5E5"
+                         BorderBrush="#3C3C3C"/>
+            </StackPanel>
 
-        <!-- Password -->
-        <Grid Grid.Row="2" Margin="0,0,0,8">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="120"/>
-                <ColumnDefinition Width="177"/>
-                <ColumnDefinition Width="Auto"/>
-            </Grid.ColumnDefinitions>
+            <!-- Login -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
+                <TextBox x:Name="txtDvbUser"
+                         Width="200"
+                         Background="#1E1E1E"
+                         Foreground="#E5E5E5"
+                         BorderBrush="#3C3C3C"/>
+            </StackPanel>
 
-            <TextBlock Text="Mot de passe :" 
-                       Grid.Column="0"
-                       VerticalAlignment="Center"/>
+            <!-- Password -->
+            <Grid Grid.Row="2" Margin="0,0,0,8">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="177"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-            <PasswordBox x:Name="txtDvbPass"
+                <TextBlock Text="Mot de passe :" 
+                           Grid.Column="0"
+                           VerticalAlignment="Center"/>
+
+                <PasswordBox x:Name="txtDvbPass"
+                             Grid.Column="1"
+                             Width="177"
+                             Background="#1E1E1E"
+                             Foreground="#E5E5E5"
+                             BorderBrush="#3C3C3C"
+                             Visibility="Visible"/>
+
+                <TextBox x:Name="txtDvbPassVisible"
                          Grid.Column="1"
                          Width="177"
                          Background="#1E1E1E"
                          Foreground="#E5E5E5"
                          BorderBrush="#3C3C3C"
-                         Visibility="Visible"/>
+                         Visibility="Collapsed"/>
 
-            <TextBox x:Name="txtDvbPassVisible"
-                     Grid.Column="1"
-                     Width="177"
-                     Background="#1E1E1E"
-                     Foreground="#E5E5E5"
-                     BorderBrush="#3C3C3C"
-                     Visibility="Collapsed"/>
+                <Button x:Name="btnShowDvbPass"
+                        Grid.Column="2"
+                        Width="18"
+                        Height="18"
+                        Margin="6,0,0,0"
+                        Padding="0"
+                        Click="btnShowDvbPass_Click"
+                        Background="#2D2D30"
+                        BorderBrush="#3C3C3C"
+                        BorderThickness="1"
+                        Cursor="Hand">
+                    <TextBlock Text="👁" FontSize="12"/>
+                </Button>
+            </Grid>
 
-            <Button x:Name="btnShowDvbPass"
-                    Grid.Column="2"
-                    Width="18"
-                    Height="18"
-                    Margin="6,0,0,0"
+            <!-- Bouton Appliquer -->
+            <Button Grid.Row="3"
+                    Content="Appliquer"
+                    Width="150"
+                    Height="24"
                     Padding="0"
-                    Click="btnShowDvbPass_Click"
-                    Background="#2D2D30"
-                    BorderBrush="#3C3C3C"
-                    BorderThickness="1"
-                    Cursor="Hand">
-                <TextBlock Text="👁" FontSize="12"/>
-            </Button>
+                    HorizontalAlignment="Left"
+                    VerticalContentAlignment="Center"
+                    Click="btnApplyDvb_Click"/>
         </Grid>
 
-        <!-- Bouton Appliquer -->
-        <Button Grid.Row="3"
-                Content="Appliquer"
-                Width="150"
-                Height="24"
-                Padding="0"
-                HorizontalAlignment="Left"
-                VerticalContentAlignment="Center"
-                Click="btnApplyDvb_Click"/>
-    </Grid>
-</GroupBox>
+    </GroupBox>
+</Expander>
+
 
         <!-- TABLEAU EN COURS -->
         <DataGrid x:Name="FilesGrid"
@@ -639,45 +650,57 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="Client IP" Binding="{Binding ClientName}" Width="100"/>
-                <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Foreground" Value="#E5E5E5"/>
-                            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-                            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+              <DataGridTextColumn Header="Type" Binding="{Binding MediaType}" Width="100">
+                  <DataGridTextColumn.CellStyle>
+                      <Style TargetType="DataGridCell">
+                          <Setter Property="Foreground" Value="#E5E5E5"/>
+                          <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                          <Setter Property="BorderThickness" Value="0 0 1 1"/>
 
-                            <Style.Triggers>
+                          <Style.Triggers>
 
-                                <!-- Série -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Serie">
-                                    <Setter Property="Background" Value="#FF2A3A4A"/>
-                                </DataTrigger>
+                              <!-- Série -->
+                              <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                  <Setter Property="Background" Value="#FF2A3A4A"/>
+                              </DataTrigger>
 
-                                <!-- Vidéo -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Video">
-                                    <Setter Property="Background" Value="#FF3A2A2A"/>
-                                </DataTrigger>
+                              <!-- Vidéo -->
+                              <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                  <Setter Property="Background" Value="#FF3A2A2A"/>
+                              </DataTrigger>
 
-                                <!-- Musique -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Audio">
-                                    <Setter Property="Background" Value="#FF2A4A2A"/>
-                                </DataTrigger>
+                              <!-- Musique -->
+                              <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                  <Setter Property="Background" Value="#FF2A4A2A"/>
+                              </DataTrigger>
 
-                                <!-- Image -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Image">
-                                    <Setter Property="Background" Value="#FF4A4A2A"/>
-                                </DataTrigger>
+                              <!-- Image -->
+                              <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                  <Setter Property="Background" Value="#FF4A4A2A"/>
+                              </DataTrigger>
 
-                                <!-- Sélection -->
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#4CC2FF"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
+                              <!-- 🔴 REC (tous les REC grâce au converter) -->
+                              <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
+                                  <Setter Property="Background" Value="#80FF0000"/>
+                                  <Setter Property="Foreground" Value="White"/>
+                              </DataTrigger>
 
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
+                              <!-- 🟡 TV -->
+                              <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                  <Setter Property="Background" Value="#80FFFF00"/>
+                                  <Setter Property="Foreground" Value="Black"/>
+                              </DataTrigger>
+
+                              <!-- Sélection -->
+                              <Trigger Property="IsSelected" Value="True">
+                                  <Setter Property="Background" Value="#4CC2FF"/>
+                                  <Setter Property="Foreground" Value="Black"/>
+                              </Trigger>
+
+                          </Style.Triggers>
+                      </Style>
+                  </DataGridTextColumn.CellStyle>
+              </DataGridTextColumn>
                 <DataGridTextColumn Header="Nom" Binding="{Binding Nom}" Width="2*"/>
                 <DataGridTextColumn Header="Saison" Binding="{Binding Saison}" Width="60"/>
                 <DataGridTextColumn Header="Episode" Binding="{Binding Episode}" Width="60"/>
@@ -747,6 +770,36 @@
                                 <!-- Image -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Image">
                                     <Setter Property="Background" Value="#FF4A4A2A"/>
+                                </DataTrigger>
+
+                                <!-- 🟡 TV -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                    <Setter Property="Background" Value="#80FFFF00"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </DataTrigger>
+
+                                <!-- 🔴 REC France 2 -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="REC France 2">
+                                    <Setter Property="Background" Value="#80FF0000"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+
+                                <!-- 🔴 REC TF1 -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="REC TF1">
+                                    <Setter Property="Background" Value="#80FF0000"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+
+                                <!-- 🔴 REC Arte -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="REC Arte">
+                                    <Setter Property="Background" Value="#80FF0000"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+
+                                <!-- 🔴 REC (fallback générique si tu ajoutes d'autres chaînes) -->
+                                <DataTrigger Binding="{Binding MediaType}" Value="REC">
+                                    <Setter Property="Background" Value="#80FF0000"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Sélection -->
