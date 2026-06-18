@@ -189,42 +189,35 @@ namespace MediaMonitor.Service
 
                 try
                 {
-                    // ?? Protection anti-double envoi : fenêtre de 3 minutes
-                    if (DateTime.Now - _lastReportSent < TimeSpan.FromMinutes(3))
-                    {
-                        WriteScheduleLog("[CODE03] Double envoi évité (fenêtre de sécurité 3 minutes)");
-                        return;
-                    }
+                // Protection anti-double envoi : fenêtre de 30 secondes
+                if ((DateTime.Now - _lastReportSent) < TimeSpan.FromSeconds(30))
+                {
+                    WriteScheduleLog($"[CODE03] Double envoi évité — last={_lastReportSent:HH:mm:ss}, now={DateTime.Now:HH:mm:ss}");
+                    return;
+                }
+                WriteScheduleLog("Envoi du rapport…");
 
-                    if (!ServiceIpcServer.EmailSendingEnabled)
-                    {
-                        WriteScheduleLog("Envoi automatique désactivé — rapport ignoré.");
-                    }
-                    else
-                    {
-                        WriteScheduleLog("Envoi du rapport…");
+                // Calculer le prochain envoi AVANT l’envoi
+                DateTime nextSend = GetReportSendTime();
 
-                        // Calculer le prochain envoi AVANT l’envoi
-                        DateTime nextSend = GetReportSendTime();
+                // Envoi (pas de bool possible)
+                await engine.SendReportEmail();
 
-                        await engine.SendReportEmail();
+                // Mise à jour anti-doublon
+                _lastReportSent = DateTime.Now;
 
-                        // ?? Mise à jour de la protection anti-double envoi
-                        _lastReportSent = DateTime.Now;
+                _lastReportStatus = $"[CODE02] Rapport envoyé à {_lastReportSent:yyyy-MM-dd HH:mm:ss}";
+                WriteScheduleLog(_lastReportStatus);
+                WriteScheduleLog("DEBUG: Count=" + engine.GetHistory().Count);
 
-                        _lastReportStatus = $"[CODE02] Rapport envoyé à {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
-                        WriteScheduleLog(_lastReportStatus);
-                        WriteScheduleLog("DEBUG: Count=" + engine.GetHistory().Count);
+                // Sauvegarde JSON AVANT ClearHistory()
+                SaveBackup(engine);
 
-                        // Sauvegarde JSON AVANT ClearHistory()
-                        SaveBackup(engine);
+                // Maintenant seulement on vide l’historique RAM
+                engine.ClearHistory();
 
-                        // Maintenant seulement on vide l’historique RAM
-                        engine.ClearHistory();
-
-                        // Programmer le prochain envoi avec l’heure calculée AVANT
-                        ScheduleNextReport(engine);
-                    }
+                // Programmer le prochain envoi
+                ScheduleNextReport(engine);
                 }
                 catch (Exception ex)
                 {
@@ -534,6 +527,11 @@ namespace MediaMonitor.Service
             CoreLog.Write("=== MediaMonitor.Service démarré (SYSTEM) ===");
 
             _engine = new MediaMonitorEngine();
+
+            var cfg = WebServerSettings.Load();
+            _engine.DvbViewerUrl = cfg.DvbViewerUrl;
+            _engine.DvbViewerUser = cfg.DvbViewerUser;
+            _engine.DvbViewerPass = cfg.DvbViewerPass;
 
             try
             {
