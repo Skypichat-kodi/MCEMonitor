@@ -366,15 +366,25 @@ namespace MediaMonitor.Service
                 WriteScheduleLog("Erreur RestartBackupTimer : " + ex.Message);
             }
         }
+
         private static DateTime _lastWebConfigChange = DateTime.MinValue;
-        private static void WebConfigChanged(object sender, FileSystemEventArgs e)
+        
+        private static void WebConfigChanged_Master(object sender, FileSystemEventArgs e)
         {
-            // Anti-rebond : ignore les événements multiples dans les 300 ms
-            if ((DateTime.Now - _lastWebConfigChange).TotalMilliseconds < 300)
+            var now = DateTime.Now;
+
+            // Anti-rebond : si un événement est arrivé il y a moins de 1 seconde, on ignore
+            if ((now - _lastWebConfigChange).TotalMilliseconds < 1000)
                 return;
 
-            _lastWebConfigChange = DateTime.Now;
+            _lastWebConfigChange = now;
 
+            WebConfigChanged_Retention(sender, e);
+            WebConfigChanged_DvbViewer(sender, e);
+        }
+
+        private static void WebConfigChanged_Retention(object sender, FileSystemEventArgs e)
+        {
             try
             {
                 CoreLog.Write("WebConfigChanged déclenché !");
@@ -395,6 +405,46 @@ namespace MediaMonitor.Service
             }
         }
 
+        private static void WebConfigChanged_DvbViewer(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                Thread.Sleep(200);
+
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "MediaMonitor.Web.config"
+                );
+
+                if (!File.Exists(path))
+                    return;
+
+                var lines = File.ReadAllLines(path);
+
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = line.Split('=')[1].Trim();
+                        bool enabled = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+                        if (enabled != _dvbViewerEnabled)
+                        {
+                            _dvbViewerEnabled = enabled;
+                            _engine.DvbViewerEnabled = enabled;
+
+                            CoreLog.Write("DVBViewer RS " + (enabled ? "ACTIVÉ" : "DÉSACTIVÉ") + " via Web.config");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR WebConfigChanged_DvbViewer : " + ex);
+            }
+        }
+        
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
@@ -595,21 +645,15 @@ namespace MediaMonitor.Service
                     "MCEMonitor"
                 );
 
-                _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
-                _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+            _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
+            _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
 
-                // ?? Gestion rétention
-                _webConfigWatcher.Changed += WebConfigChanged;
-                _webConfigWatcher.Created += WebConfigChanged;
-                _webConfigWatcher.Renamed += WebConfigChanged;
+            // ?? Un seul handler maître
+            _webConfigWatcher.Changed += WebConfigChanged_Master;
+            _webConfigWatcher.Created += WebConfigChanged_Master;
+            _webConfigWatcher.Renamed += WebConfigChanged_Master;
 
-                // ?? Gestion switch DVBViewer RS
-                _webConfigWatcher.Changed += WebConfigChanged_DvbViewer;
-                _webConfigWatcher.Created += WebConfigChanged_DvbViewer;
-                _webConfigWatcher.Renamed += WebConfigChanged_DvbViewer;
-
-                _webConfigWatcher.EnableRaisingEvents = true;
-
+            _webConfigWatcher.EnableRaisingEvents = true;
 
                 CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.Web.config");
             }
@@ -623,45 +667,6 @@ namespace MediaMonitor.Service
 
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
-        }
-        private static void WebConfigChanged_DvbViewer(object sender, FileSystemEventArgs e)
-        {
-            try
-            {
-                Thread.Sleep(200); // éviter accès simultané
-
-                string path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "MediaMonitor.Web.config"
-                );
-
-                if (!File.Exists(path))
-                    return;
-
-                var lines = File.ReadAllLines(path);
-
-                foreach (var line in lines)
-                {
-                    if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string value = line.Split('=')[1].Trim();
-                        bool enabled = value.Equals("true", StringComparison.OrdinalIgnoreCase);
-
-                        if (enabled != _dvbViewerEnabled)
-                        {
-                            _dvbViewerEnabled = enabled;
-                            _engine.DvbViewerEnabled = enabled;
-
-                            CoreLog.Write("DVBViewer RS " + (enabled ? "ACTIVÉ" : "DÉSACTIVÉ") + " via Web.config");
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("ERREUR WebConfigChanged_DvbViewer : " + ex);
-            }
         }
     }
 }
