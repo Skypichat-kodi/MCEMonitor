@@ -26,7 +26,7 @@ namespace MCEMonitor
 
             this.ClientSize = new System.Drawing.Size(580, 360);
             this.Controls.Add(this.txtLog);
-            this.Text = "Test SMTP - Détails";
+            this.Text = LanguageManager.Get("SmtpTestForm.Title") ?? "Test SMTP - Détails";
             this.ResumeLayout(false);
             this.PerformLayout();
         }

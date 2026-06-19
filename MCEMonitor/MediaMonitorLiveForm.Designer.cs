@@ -45,7 +45,7 @@ namespace MCEMonitor
             this.Controls.Add(lblNetwork);
             this.Controls.Add(lblDisk);
 
-            this.Text = "MediaMonitor - Temps réel";
+            this.Text = LanguageManager.Get("MediaMonitorForm.Title") ?? "MediaMonitor - Temps réel";
             this.ClientSize = new Size(300, 200);
 
             this.ResumeLayout(false);

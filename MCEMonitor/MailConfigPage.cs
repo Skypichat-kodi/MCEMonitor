@@ -66,23 +66,25 @@ namespace MCEMonitor
             cboSecurity.Items.AddRange(new object[] { "SSL", "STARTTLS", "AUCUN" });
             cboSecurity.SelectedIndex = 0;
 
-            btnSave = new Button
-            {
-                Text = "Enregistrer",
-                Left = 160,
-                Top = 240,
-                Width = 120
-            };
+btnSave = new Button
+{
+    Text = LanguageManager.Get("YourFormName.BtnSave.Text") ?? "Enregistrer",
+    Left = 160,
+    Top = 240,
+    Width = 120
+};
+
             btnSave.Click += (s, e) => SaveConfig();
 
-            btnTest = new Button
-            {
-                Text = "Tester SMTP",
-                Left = 300,
-                Top = 240,
-                Width = 140
-            };
-            btnTest.Click += BtnTest_Click;
+btnTest = new Button
+{
+    Text = LanguageManager.Get("YourFormName.BtnTest.Text") ?? "Tester SMTP",
+    Left = 300,
+    Top = 240,
+    Width = 140
+};
+btnTest.Click += BtnTest_Click;
+
 
             picStatus = new PictureBox
             {
@@ -215,10 +217,11 @@ namespace MCEMonitor
             message.To.Add(new MailboxAddress(cfg.To, cfg.To));
             message.Subject = "Test SMTP - MCEMonitor";
 
-            message.Body = new TextPart("plain")
-            {
-                Text = "Ceci est un email de test envoyé depuis MCEMonitor."
-            };
+message.Body = new TextPart("plain")
+{
+    Text = LanguageManager.Get("EmailTest.Body") ?? "Ceci est un email de test envoyé depuis MCEMonitor."
+};
+
 
             SecureSocketOptions options = SecureSocketOptions.Auto;
 
