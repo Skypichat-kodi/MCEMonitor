@@ -20,6 +20,7 @@ namespace MediaMonitor.Service
         private static WebServer _webServer;
         private static System.Threading.Timer hourlyBackupTimer;
         private static FileSystemWatcher _webConfigWatcher;
+        private static bool _dvbViewerEnabled = false;
 
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
@@ -532,6 +533,8 @@ namespace MediaMonitor.Service
             _engine.DvbViewerUrl = cfg.DvbViewerUrl;
             _engine.DvbViewerUser = cfg.DvbViewerUser;
             _engine.DvbViewerPass = cfg.DvbViewerPass;
+            _dvbViewerEnabled = cfg.DvbViewerSwitch;   // bool déjà dans WebServerSettings
+            CoreLog.Write("DVBViewer RS initial: " + _dvbViewerEnabled);           
 
             try
             {
@@ -594,10 +597,19 @@ namespace MediaMonitor.Service
 
                 _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
                 _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+
+                // ?? Gestion rétention
                 _webConfigWatcher.Changed += WebConfigChanged;
                 _webConfigWatcher.Created += WebConfigChanged;
                 _webConfigWatcher.Renamed += WebConfigChanged;
+
+                // ?? Gestion switch DVBViewer RS
+                _webConfigWatcher.Changed += WebConfigChanged_DvbViewer;
+                _webConfigWatcher.Created += WebConfigChanged_DvbViewer;
+                _webConfigWatcher.Renamed += WebConfigChanged_DvbViewer;
+
                 _webConfigWatcher.EnableRaisingEvents = true;
+
 
                 CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.Web.config");
             }
@@ -611,6 +623,45 @@ namespace MediaMonitor.Service
 
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
+        }
+        private static void WebConfigChanged_DvbViewer(object sender, FileSystemEventArgs e)
+        {
+            try
+            {
+                Thread.Sleep(200); // éviter accès simultané
+
+                string path = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "MediaMonitor.Web.config"
+                );
+
+                if (!File.Exists(path))
+                    return;
+
+                var lines = File.ReadAllLines(path);
+
+                foreach (var line in lines)
+                {
+                    if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = line.Split('=')[1].Trim();
+                        bool enabled = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+                        if (enabled != _dvbViewerEnabled)
+                        {
+                            _dvbViewerEnabled = enabled;
+                            _engine.DvbViewerEnabled = enabled;
+
+                            CoreLog.Write("DVBViewer RS " + (enabled ? "ACTIVÉ" : "DÉSACTIVÉ") + " via Web.config");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ERREUR WebConfigChanged_DvbViewer : " + ex);
+            }
         }
     }
 }

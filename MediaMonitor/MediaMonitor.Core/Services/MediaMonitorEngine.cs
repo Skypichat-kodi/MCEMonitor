@@ -31,6 +31,7 @@ namespace MediaMonitor.Core.Services
         public string DvbViewerUrl { get; set; } = "";
         public string DvbViewerUser { get; set; } = "";
         public string DvbViewerPass { get; set; } = "";
+        public bool DvbViewerEnabled { get; set; } = true;
 
         public string GetUptime()
         {
@@ -139,61 +140,60 @@ namespace MediaMonitor.Core.Services
                         _openSince.Remove(p);
                 }
 
-lock (_sync)
-{
-    _currentOpen.Clear();
-    _currentOpen.AddRange(filtered);
+                lock (_sync)
+                {
+                    _currentOpen.Clear();
+                    _currentOpen.AddRange(filtered);
 
-    // ?? Récupération du cache DVBViewer
-    var dvb = GetCachedDvbViewerStreams();
-    CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
+                    // ?? Récupération du cache DVBViewer
+                    var dvb = GetCachedDvbViewerStreams();
+                    CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
 
-    foreach (var s in dvb)
-    {
-        CoreLog.Write($"DVB: Ajout dans _currentOpen => {s.Client} | {s.Type} | {s.Nom}");
-        _currentOpen.Add(BuildDvbItem(s));
-    }
+                    foreach (var s in dvb)
+                    {
+                        CoreLog.Write($"DVB: Ajout dans _currentOpen => {s.Client} | {s.Type} | {s.Nom}");
+                        _currentOpen.Add(BuildDvbItem(s));
+                    }
 
-    // ?? Historique DVBViewer
-    foreach (var s in dvb)
-    {
-        var dvbItem = BuildDvbItem(s);
+                    // ?? Historique DVBViewer
+                    foreach (var s in dvb)
+                    {
+                        var dvbItem = BuildDvbItem(s);
 
-        // On ne garde que TV et REC
-        if (dvbItem.MediaType == "TV" || dvbItem.MediaType.StartsWith("REC"))
-        {
-            bool isNewDvb = !_history.Any(h =>
-                h.ClientName == dvbItem.ClientName &&
-                h.MediaType == dvbItem.MediaType &&
-                h.Nom == dvbItem.Nom);
+                        // On ne garde que TV et REC
+                        if (dvbItem.MediaType == "TV" || dvbItem.MediaType.StartsWith("REC"))
+                        {
+                            bool isNewDvb = !_history.Any(h =>
+                                h.ClientName == dvbItem.ClientName &&
+                                h.MediaType == dvbItem.MediaType &&
+                                h.Nom == dvbItem.Nom);
 
-            if (isNewDvb)
-            {
-                _history.Add(dvbItem);
-                CoreLog.Write($"DEBUG HISTORY: ajout DVB => {dvbItem.ClientName} | {dvbItem.MediaType} | {dvbItem.Nom}");
-            }
-        }
-    }
+                            if (isNewDvb)
+                            {
+                                _history.Add(dvbItem);
+                                CoreLog.Write($"DEBUG HISTORY: ajout DVB => {dvbItem.ClientName} | {dvbItem.MediaType} | {dvbItem.Nom}");
+                            }
+                        }
+                    }
 
-    // ?? Historique SMB (inchangé)
-    foreach (var item in filtered)
-    {
-        if (item.MediaType == "Image" && item.Path != _lastImage)
-            continue;
+                    // ?? Historique SMB (inchangé)
+                    foreach (var item in filtered)
+                    {
+                        if (item.MediaType == "Image" && item.Path != _lastImage)
+                            continue;
 
-        bool isNew = !_history.Any(h =>
-            h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-            h.ClientIP == item.ClientIP);
+                        bool isNew = !_history.Any(h =>
+                            h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
+                            h.ClientIP == item.ClientIP);
 
-        if (isNew)
-        {
-            _history.Add(item);
-            CoreLog.Write($"Nouveau : {item.Path} ({item.ClientName})");
-            CoreLog.Write($"DEBUG HISTORY: {_history.Count} items dans l'historique.");
-        }
-    }
-}
-
+                        if (isNew)
+                        {
+                            _history.Add(item);
+                            CoreLog.Write($"Nouveau : {item.Path} ({item.ClientName})");
+                            CoreLog.Write($"DEBUG HISTORY: {_history.Count} items dans l'historique.");
+                        }
+                    }
+                }
 
                 foreach (var item in filtered)
                 {
@@ -327,39 +327,39 @@ lock (_sync)
                 CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
             }
         }
-private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
-{
-    // Type propre : REC ou TV
-    string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
-        ? "REC"
-        : "TV";
+        private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
+        {
+            // Type propre : REC ou TV
+            string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
+                ? "REC"
+                : "TV";
 
-    // Extraction du nom de la chaîne
-    // Exemple : "REC France 2" ? "France 2"
-    string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
-        ? s.Type.Substring(3).Trim()
-        : s.Type; // pour TV, s.Type contient déjà la chaîne
+            // Extraction du nom de la chaîne
+            // Exemple : "REC France 2" ? "France 2"
+            string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
+                ? s.Type.Substring(3).Trim()
+                : s.Type; // pour TV, s.Type contient déjà la chaîne
 
-    // Nom final : "France 2 – Complément d’enquête"
-    string nomFinal = !string.IsNullOrWhiteSpace(s.Nom)
-        ? $"{channel} – {s.Nom}"
-        : channel;
+            // Nom final : "France 2 – Complément d’enquête"
+            string nomFinal = !string.IsNullOrWhiteSpace(s.Nom)
+                ? $"{channel} – {s.Nom}"
+                : channel;
 
-    return new MediaUsageItem
-    {
-        SessionId = 0,
-        ClientName = s.Client,
-        ClientIP = "DVB",
-        Path = nomFinal,     // tu peux laisser s.Nom si tu préfères
-        FileName = nomFinal,
-        UNC = "",
-        Timestamp = DateTime.Now,
-        MediaType = mediaType,
-        Nom = nomFinal,
-        Saison = 0,
-        Episode = 0
-    };
-}
+            return new MediaUsageItem
+            {
+                SessionId = 0,
+                ClientName = s.Client,
+                ClientIP = "DVB",
+                Path = nomFinal,     // tu peux laisser s.Nom si tu préfères
+                FileName = nomFinal,
+                UNC = "",
+                Timestamp = DateTime.Now,
+                MediaType = mediaType,
+                Nom = nomFinal,
+                Saison = 0,
+                Episode = 0
+            };
+        }
 
         // ============================================================
         //  GETTERS POUR IPC

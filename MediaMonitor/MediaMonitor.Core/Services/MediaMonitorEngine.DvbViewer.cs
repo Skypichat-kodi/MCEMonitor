@@ -16,6 +16,14 @@ namespace MediaMonitor.Core.Services
         {
             CoreLog.Write("DVB: GetDvbViewerStreamsAsync() appelé");
 
+            // ?? COUPURE IMMÉDIATE SI SWITCH OFF
+        if (!DvbViewerEnabled)
+        {
+            CoreLog.Write("DVB: Fonction DVBViewer RS désactivée ? aucun appel effectué.");
+            return new List<DvbViewerClientStream>();
+        }
+
+
             try
             {
                 // Vérification configuration
