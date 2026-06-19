@@ -34,6 +34,8 @@ namespace MediaMonitor.UI
         public MainWindow()
         {
             InitializeComponent();
+            
+            LoadDvbSettings();
 
             // 🔒 Empêche l'exécution directe de MediaMonitor.UI
             string[] args = Environment.GetCommandLineArgs();
@@ -703,65 +705,125 @@ namespace MediaMonitor.UI
 
             File.WriteAllLines(path, lines);
         }
+private void LoadDvbSettings()
+{
+    string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.Web.config";
 
-        private void btnApplyDvb_Click(object sender, RoutedEventArgs e)
+    if (!File.Exists(configPath))
+        return;
+
+    var lines = File.ReadAllLines(configPath);
+
+    foreach (var line in lines)
+    {
+        if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
         {
-            try
+            string value = line.Split('=')[1].Trim();
+            ToggleDvb.IsChecked = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+}
+private void SaveDvbSwitch()
+{
+    string path = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "MCEMonitor",
+        "MediaMonitor.Web.config"
+    );
+
+    var lines = File.Exists(path)
+        ? File.ReadAllLines(path).ToList()
+        : new List<string>();
+
+    bool found = false;
+    string value = ToggleDvb.IsChecked == true ? "true" : "false";
+
+    for (int i = 0; i < lines.Count; i++)
+    {
+        if (lines[i].StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
+        {
+            lines[i] = "DvbViewerSwitch=" + value;
+            found = true;
+        }
+    }
+
+    if (!found)
+        lines.Add("DvbViewerSwitch=" + value);
+
+    File.WriteAllLines(path, lines);
+}
+        
+private void ToggleDvb_Checked(object sender, RoutedEventArgs e)
+{
+    SaveDvbSwitch();
+}
+
+private void ToggleDvb_Unchecked(object sender, RoutedEventArgs e)
+{
+    SaveDvbSwitch();
+}
+
+
+private void btnApplyDvb_Click(object sender, RoutedEventArgs e)
+{
+    try
+    {
+        string url = txtDvbUrl.Text.Trim();
+        string user = txtDvbUser.Text.Trim();
+        string pass = (txtDvbPass.Visibility == Visibility.Visible)
+            ? txtDvbPass.Password
+            : txtDvbPassVisible.Text;
+
+        string path = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor",
+            "MediaMonitor.Web.config"
+        );
+
+        var lines = File.Exists(path)
+            ? File.ReadAllLines(path).ToList()
+            : new List<string>();
+
+        bool foundUrl = false;
+        bool foundUser = false;
+        bool foundPass = false;
+
+        for (int i = 0; i < lines.Count; i++)
+        {
+            if (lines[i].StartsWith("DvbViewerUrl=", StringComparison.OrdinalIgnoreCase))
             {
-                string url = txtDvbUrl.Text.Trim();
-                string user = txtDvbUser.Text.Trim();
-                string pass = (txtDvbPass.Visibility == Visibility.Visible)
-                    ? txtDvbPass.Password
-                    : txtDvbPassVisible.Text;
-
-                string path = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "MediaMonitor.Web.config"
-                );
-
-                var lines = File.Exists(path)
-                    ? File.ReadAllLines(path).ToList()
-                    : new List<string>();
-
-                bool foundUrl = false;
-                bool foundUser = false;
-                bool foundPass = false;
-
-                for (int i = 0; i < lines.Count; i++)
-                {
-                    if (lines[i].StartsWith("DvbViewerUrl=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        lines[i] = "DvbViewerUrl=" + url;
-                        foundUrl = true;
-                    }
-
-                    if (lines[i].StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        lines[i] = "DvbViewerUser=" + user;
-                        foundUser = true;
-                    }
-
-                    if (lines[i].StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
-                    {
-                        lines[i] = "DvbViewerPass=" + pass;
-                        foundPass = true;
-                    }
-                }
-
-                if (!foundUrl)  lines.Add("DvbViewerUrl=" + url);
-                if (!foundUser) lines.Add("DvbViewerUser=" + user);
-                if (!foundPass) lines.Add("DvbViewerPass=" + pass);
-
-                File.WriteAllLines(path, lines);
-
-                UiLog("Configuration DVBViewer sauvegardée dans Web.config");
+                lines[i] = "DvbViewerUrl=" + url;
+                foundUrl = true;
             }
-            catch (Exception ex)
+
+            if (lines[i].StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
             {
-                UiLog("Erreur sauvegarde DVB : " + ex.Message);
+                lines[i] = "DvbViewerUser=" + user;
+                foundUser = true;
+            }
+
+            if (lines[i].StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
+            {
+                lines[i] = "DvbViewerPass=" + pass;
+                foundPass = true;
             }
         }
+
+        if (!foundUrl)  lines.Add("DvbViewerUrl=" + url);
+        if (!foundUser) lines.Add("DvbViewerUser=" + user);
+        if (!foundPass) lines.Add("DvbViewerPass=" + pass);
+
+        File.WriteAllLines(path, lines);
+
+        UiLog("Configuration DVBViewer sauvegardée dans Web.config");
+    }
+    catch (Exception ex)
+    {
+        UiLog("Erreur sauvegarde DVB : " + ex.Message);
+    }
+}
+
+
 
         private void btnShowDvbPass_Click(object sender, RoutedEventArgs e)
         {

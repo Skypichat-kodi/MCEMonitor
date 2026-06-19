@@ -582,92 +582,151 @@
                             Foreground="{StaticResource Win11Text}"
                             BorderBrush="{StaticResource Win11Border}">
 
-                    <!-- ========================= -->
-                    <!--     ONGLET DVBVIEWER RS   -->
-                    <!-- ========================= -->
-                    <TabItem Header="DVBViewer RS">
-                        <Grid Margin="10">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>  <!-- URL -->
-                                <RowDefinition Height="Auto"/>  <!-- Login -->
-                                <RowDefinition Height="Auto"/>  <!-- Password -->
-                                <RowDefinition Height="Auto"/>  <!-- Appliquer -->
-                            </Grid.RowDefinitions>
+<!-- ========================= -->
+<!--     ONGLET DVBVIEWER RS   -->
+<!-- ========================= -->
+<TabItem Header="DVBViewer RS">
+    <Grid Margin="10">
 
-                            <!-- URL -->
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Adresse des status :" Width="120" VerticalAlignment="Center"/>
-                                <TextBox x:Name="txtDvbUrl"
-                                         Width="400"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"/>
-                            </StackPanel>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>  <!-- Ligne du switch -->
+            <RowDefinition Height="Auto"/>  <!-- URL -->
+            <RowDefinition Height="Auto"/>  <!-- Login -->
+            <RowDefinition Height="Auto"/>  <!-- Password -->
+            <RowDefinition Height="Auto"/>  <!-- Appliquer -->
+        </Grid.RowDefinitions>
 
-                            <!-- Login -->
-                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
-                                <TextBox x:Name="txtDvbUser"
-                                         Width="200"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"/>
-                            </StackPanel>
+        <!-- SWITCH EN HAUT À GAUCHE -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBlock Text="Activer DVBViewer RS"
+                       VerticalAlignment="Center"
+                       Margin="0,0,8,0"/>
 
-                            <!-- Password -->
-                            <Grid Grid.Row="2" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="177"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+            <ToggleButton x:Name="ToggleDvb"
+                          Width="40"
+                          Height="20"
+                          Checked="ToggleDvb_Checked"
+                          Unchecked="ToggleDvb_Unchecked">
 
-                                <TextBlock Text="Mot de passe :" 
-                                           Grid.Column="0"
-                                           VerticalAlignment="Center"/>
+                <ToggleButton.Style>
+                    <Style TargetType="ToggleButton">
+                        <Setter Property="Template">
+                            <Setter.Value>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Grid Width="40" Height="20">
+                                        <Border x:Name="SwitchBackground"
+                                                CornerRadius="10"
+                                                Background="#3C3C3C"/>
+                                        <Ellipse x:Name="SwitchThumb"
+                                                 Width="16" Height="16"
+                                                 Margin="2"
+                                                 Fill="#E5E5E5"
+                                                 HorizontalAlignment="Left"/>
+                                    </Grid>
 
-                                <PasswordBox x:Name="txtDvbPass"
-                                             Grid.Column="1"
-                                             Width="177"
-                                             Background="#1E1E1E"
-                                             Foreground="#E5E5E5"
-                                             BorderBrush="#3C3C3C"
-                                             Visibility="Visible"/>
+                                    <ControlTemplate.Triggers>
 
-                                <TextBox x:Name="txtDvbPassVisible"
-                                         Grid.Column="1"
-                                         Width="177"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         Visibility="Collapsed"/>
+                                        <!-- ON -->
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="SwitchBackground"
+                                                    Property="Background"
+                                                    Value="#4CC2FF"/>
+                                            <Setter TargetName="SwitchThumb"
+                                                    Property="HorizontalAlignment"
+                                                    Value="Right"/>
+                                        </Trigger>
 
-                                <Button x:Name="btnShowDvbPass"
-                                        Grid.Column="2"
-                                        Width="18"
-                                        Height="18"
-                                        Margin="6,0,0,0"
-                                        Padding="0"
-                                        Click="btnShowDvbPass_Click"
-                                        Background="#2D2D30"
-                                        BorderBrush="#3C3C3C"
-                                        BorderThickness="1"
-                                        Cursor="Hand">
-                                    <TextBlock Text="👁" FontSize="12"/>
-                                </Button>
-                            </Grid>
+                                        <!-- HOVER -->
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter TargetName="SwitchBackground"
+                                                    Property="Background"
+                                                    Value="#5DD2FF"/>
+                                        </Trigger>
 
-                            <!-- Bouton Appliquer -->
-                            <Button Grid.Row="3"
-                                    Content="Appliquer"
-                                    Width="150"
-                                    Height="24"
-                                    Padding="0"
-                                    HorizontalAlignment="Left"
-                                    VerticalContentAlignment="Center"
-                                    Click="btnApplyDvb_Click"/>
-                        </Grid>
-                    </TabItem>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </Setter.Value>
+                        </Setter>
+                    </Style>
+                </ToggleButton.Style>
+
+            </ToggleButton>
+        </StackPanel>
+
+        <!-- URL -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Adresse des status :" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="txtDvbUrl"
+                     Width="400"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"/>
+        </StackPanel>
+
+        <!-- Login -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+            <TextBlock Text="Login :" Width="120" VerticalAlignment="Center"/>
+            <TextBox x:Name="txtDvbUser"
+                     Width="200"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"/>
+        </StackPanel>
+
+        <!-- Password -->
+        <Grid Grid.Row="3" Margin="0,0,0,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="120"/>
+                <ColumnDefinition Width="177"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Text="Mot de passe :" 
+                       Grid.Column="0"
+                       VerticalAlignment="Center"/>
+
+            <PasswordBox x:Name="txtDvbPass"
+                         Grid.Column="1"
+                         Width="177"
+                         Background="#1E1E1E"
+                         Foreground="#E5E5E5"
+                         BorderBrush="#3C3C3C"
+                         Visibility="Visible"/>
+
+            <TextBox x:Name="txtDvbPassVisible"
+                     Grid.Column="1"
+                     Width="177"
+                     Background="#1E1E1E"
+                     Foreground="#E5E5E5"
+                     BorderBrush="#3C3C3C"
+                     Visibility="Collapsed"/>
+
+            <Button x:Name="btnShowDvbPass"
+                    Grid.Column="2"
+                    Width="18"
+                    Height="18"
+                    Margin="6,0,0,0"
+                    Padding="0"
+                    Click="btnShowDvbPass_Click"
+                    Background="#2D2D30"
+                    BorderBrush="#3C3C3C"
+                    BorderThickness="1"
+                    Cursor="Hand">
+                <TextBlock Text="👁" FontSize="12"/>
+            </Button>
+        </Grid>
+
+        <!-- Bouton Appliquer -->
+        <Button Grid.Row="4"
+                Content="Appliquer"
+                Width="150"
+                Height="24"
+                Padding="0"
+                HorizontalAlignment="Left"
+                VerticalContentAlignment="Center"
+                Click="btnApplyDvb_Click"/>
+    </Grid>
+</TabItem>
 
                     <!-- ========================= -->
                     <!--       ONGLET MEDIAPORTAL  -->
