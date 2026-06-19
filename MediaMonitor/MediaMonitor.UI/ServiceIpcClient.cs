@@ -352,58 +352,56 @@ public class DvbConfig
                 return 0;
             }
         }
-// ============================================================
-// DVBVIEWER
-// ============================================================
+        // ============================================================
+        // DVBVIEWER
+        // ============================================================
 
-public static DvbConfig GetDvbConfig()
-{
-    // ?? Cette commande est synchrone car utilisée au chargement UI
-    string? json = SendCommand("get-dvb-config").Result;
-    if (json == null)
-        return new DvbConfig();
-
-    try
-    {
-        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-        if (obj == null)
-            return new DvbConfig();
-
-        return new DvbConfig
+        public static DvbConfig GetDvbConfig()
         {
-            url  = obj.ContainsKey("url")  ? obj["url"]  : "",
-            user = obj.ContainsKey("user") ? obj["user"] : "",
-            pass = obj.ContainsKey("pass") ? obj["pass"] : ""
-        };
-    }
-    catch (Exception ex)
-    {
-        MainWindow.StaticUiLog("ERREUR JSON get-dvb-config : " + ex.Message);
-        return new DvbConfig();
-    }
-}
+            // ?? Cette commande est synchrone car utilisée au chargement UI
+            string? json = SendCommand("get-dvb-config").Result;
+            if (json == null)
+                return new DvbConfig();
 
-public static async Task<bool> SetDvbConfig(string url, string user, string pass)
-{
-    string cmd = $"set-dvb-config {url} {user} {pass}";
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                if (obj == null)
+                    return new DvbConfig();
 
-    string? json = await SendCommand(cmd);
-    if (json == null)
-        return false;
+                return new DvbConfig
+                {
+                    url  = obj.ContainsKey("url")  ? obj["url"]  : "",
+                    user = obj.ContainsKey("user") ? obj["user"] : "",
+                    pass = obj.ContainsKey("pass") ? obj["pass"] : ""
+                };
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON get-dvb-config : " + ex.Message);
+                return new DvbConfig();
+            }
+        }
 
-    try
-    {
-        var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
-        return obj != null && obj.ContainsKey("status") && obj["status"] == "ok";
-    }
-    catch (Exception ex)
-    {
-        MainWindow.StaticUiLog("ERREUR JSON set-dvb-config : " + ex.Message);
-        return false;
-    }
-}
-        
-        
+        public static async Task<bool> SetDvbConfig(string url, string user, string pass)
+        {
+            string cmd = $"set-dvb-config {url} {user} {pass}";
+
+            string? json = await SendCommand(cmd);
+            if (json == null)
+                return false;
+
+            try
+            {
+                var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                return obj != null && obj.ContainsKey("status") && obj["status"] == "ok";
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON set-dvb-config : " + ex.Message);
+                return false;
+            }
+        }                
     }
 }
 

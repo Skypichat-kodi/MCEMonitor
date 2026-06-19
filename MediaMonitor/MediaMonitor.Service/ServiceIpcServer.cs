@@ -156,9 +156,9 @@ namespace MediaMonitor.Service
                             HandleGetRetention(writer, server);
                             break;
 
-case "get-dvb-config":
-    HandleGetDvbConfig(writer, server);
-    break;
+                        case "get-dvb-config":
+                            HandleGetDvbConfig(writer, server);
+                            break;
                            
 
                         default:
