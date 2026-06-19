@@ -327,23 +327,39 @@ lock (_sync)
                 CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
             }
         }
-        private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
-        {
-            return new MediaUsageItem
-            {
-                SessionId = 0, // pas SMB
-                ClientName = s.Client,   // ex: "192.168.1.34" ou "DVB-T Tuner/Demod (2)"
-                ClientIP = "DVB",
-                Path = s.Nom,            // le nom du flux
-                FileName = s.Nom,
-                UNC = "",
-                Timestamp = DateTime.Now,
-                MediaType = s.Type,      // "TV" ou "REC F3 Rhône-Alpes"
-                Nom = s.Nom,
-                Saison = 0,
-                Episode = 0
-            };
-        }
+private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
+{
+    // Type propre : REC ou TV
+    string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
+        ? "REC"
+        : "TV";
+
+    // Extraction du nom de la chaîne
+    // Exemple : "REC France 2" ? "France 2"
+    string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
+        ? s.Type.Substring(3).Trim()
+        : s.Type; // pour TV, s.Type contient déjà la chaîne
+
+    // Nom final : "France 2 – Complément d’enquête"
+    string nomFinal = !string.IsNullOrWhiteSpace(s.Nom)
+        ? $"{channel} – {s.Nom}"
+        : channel;
+
+    return new MediaUsageItem
+    {
+        SessionId = 0,
+        ClientName = s.Client,
+        ClientIP = "DVB",
+        Path = nomFinal,     // tu peux laisser s.Nom si tu préfères
+        FileName = nomFinal,
+        UNC = "",
+        Timestamp = DateTime.Now,
+        MediaType = mediaType,
+        Nom = nomFinal,
+        Saison = 0,
+        Episode = 0
+    };
+}
 
         // ============================================================
         //  GETTERS POUR IPC

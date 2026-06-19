@@ -240,16 +240,19 @@ namespace MediaMonitor.Service
         // ==========================
         //  BADGE TYPE
         // ==========================
-        private string GetTypeBadgeClass(string? mediaType)
-        {
-            return (mediaType ?? "").ToLower() switch
-            {
-                "audio" => "type-audio",
-                "serie" => "type-serie",
-                "video" => "type-video",
-                _ => ""
-            };
-        }
+private string GetTypeBadgeClass(string? mediaType)
+{
+    return (mediaType ?? "").ToLower() switch
+    {
+        "audio" => "type-audio",
+        "serie" => "type-serie",
+        "video" => "type-video",
+        "rec"   => "type-rec",
+        "tv"    => "type-tv",
+        _       => ""
+    };
+}
+
 
         // ==========================
         //  EXTRACTION / PARSING
@@ -423,6 +426,9 @@ namespace MediaMonitor.Service
         .type-audio { background:#007acc; }
         .type-serie { background:#c586c0; }
         .type-video { background:#d19a66; }
+.type-rec   { background:#ff4d4d; color:white; }
+.type-tv    { background:#ffe066; color:black; }
+
         .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
         .button {
             padding:6px 12px;
@@ -455,6 +461,18 @@ namespace MediaMonitor.Service
         td:last-child, th:last-child {
             border-right: none;
         }
+
+        /* ?? AJOUT : couleurs REC / TV */
+        .rec-row td {
+            background-color: rgba(255, 0, 0, 0.35) !important;
+            color: white !important;
+        }
+
+        .tv-row td {
+            background-color: rgba(255, 255, 0, 0.35) !important;
+            color: black !important;
+        }
+
         </style>
         <meta http-equiv='refresh' content='5'>
         </head>
@@ -536,21 +554,23 @@ namespace MediaMonitor.Service
             sb.Append("<table>");
             sb.Append("<thead><tr><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
 
-            foreach (var item in live)
-            {
-                string type = item.MediaType ?? "";
-                string badgeClass = GetTypeBadgeClass(type);
+foreach (var item in live)
+{
+    string mediaType = item.MediaType ?? "";
+    string badgeClass = GetTypeBadgeClass(mediaType);
 
-                sb.Append("<tr>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
-                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(type)}</span></td>");
-                sb.Append($"<td>{item.Saison}</td>");
-                sb.Append($"<td>{item.Episode}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-                sb.Append("</tr>");
-            }
+    // Plus de rowClass (on n'utilise plus rec-row / tv-row)
+    sb.Append("<tr>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+    sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
+    sb.Append($"<td>{item.Saison}</td>");
+    sb.Append($"<td>{item.Episode}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+    sb.Append("</tr>");
+}
+
 
             if (liveCount == 0)
                 sb.Append("<tr><td colspan='7' class='small'>Aucune lecture en cours.</td></tr>");
@@ -562,22 +582,23 @@ namespace MediaMonitor.Service
             sb.Append("<table>");
             sb.Append("<thead><tr><th>Heure</th><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
 
-            foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
-            {
-                string type = item.MediaType ?? "";
-                string badgeClass = GetTypeBadgeClass(type);
+foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
+{
+    string mediaType = item.MediaType ?? "";
+    string badgeClass = GetTypeBadgeClass(mediaType);
 
-                sb.Append("<tr>");
-                sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
-                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(type)}</span></td>");
-                sb.Append($"<td>{item.Saison}</td>");
-                sb.Append($"<td>{item.Episode}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-                sb.Append("</tr>");
-            }
+    sb.Append("<tr>");
+    sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+    sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
+    sb.Append($"<td>{item.Saison}</td>");
+    sb.Append($"<td>{item.Episode}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+    sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+    sb.Append("</tr>");
+}
+
 
             if (historyCount == 0)
                 sb.Append("<tr><td colspan='8' class='small'>Aucun historique disponible.</td></tr>");
@@ -634,14 +655,16 @@ namespace MediaMonitor.Service
             string date = req.QueryString["date"]?.ToLower() ?? "all";
             string sort = req.QueryString["sort"]?.ToLower() ?? "date_desc";
 
-            // Filtre type
-            items = type switch
-            {
-                "audio" => items.Where(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)).ToList(),
-                "serie" => items.Where(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)).ToList(),
-                "video" => items.Where(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)).ToList(),
-                _ => items
-            };
+// Filtre type
+items = type switch
+{
+    "audio" => items.Where(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)).ToList(),
+    "serie" => items.Where(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)).ToList(),
+    "video" => items.Where(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)).ToList(),
+    "rec"   => items.Where(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)).ToList(),
+    "tv"    => items.Where(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase)).ToList(),
+    _ => items
+};
 
             // Filtre client
             if (client != "all")
@@ -675,6 +698,8 @@ namespace MediaMonitor.Service
             int audio = items.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase));
             int series = items.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase));
             int videos = items.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase));
+            int recCount = items.Count(i => i.MediaType.Equals("REC", StringComparison.OrdinalIgnoreCase));
+            int tvCount  = items.Count(i => i.MediaType.Equals("TV",  StringComparison.OrdinalIgnoreCase));
 
             // Liste des clients
             var allClients = allItems
@@ -693,26 +718,30 @@ namespace MediaMonitor.Service
                 clientOptions.Append($"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>");
             }
 
-            // Lignes du tableau principal
-            var rows = new StringBuilder();
-            foreach (var item in items)
-            {
-                string badgeClass = item.MediaType?.ToLower() switch
-                {
-                    "audio" => "type-audio",
-                    "serie" => "type-serie",
-                    "video" => "type-video",
-                    _ => ""
-                };
+// Lignes du tableau principal
+var rows = new StringBuilder();
+foreach (var item in items)
+{
+    string mediaType = item.MediaType ?? "";
 
-                rows.Append($@"
+    string badgeClass = mediaType.ToLower() switch
+    {
+        "audio" => "type-audio",
+        "serie" => "type-serie",
+        "video" => "type-video",
+        "rec"   => "type-rec",
+        "tv"    => "type-tv",
+        _       => ""
+    };
+
+    rows.Append($@"
 <tr>
     <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(item.MediaType ?? "")}</span></td>
+    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
     <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
     <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
 </tr>");
-            }
+}
 
             // Activité par heure
             int[] hours = new int[24];
@@ -734,6 +763,8 @@ namespace MediaMonitor.Service
                 .Replace("{{AUDIO}}", audio.ToString())
                 .Replace("{{SERIES}}", series.ToString())
                 .Replace("{{VIDEOS}}", videos.ToString())
+                .Replace("{{REC}}", recCount.ToString())
+                .Replace("{{TV}}", tvCount.ToString())              
                 .Replace("{{COUNT}}", total.ToString())
                 .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
                 .Replace("{{ROWS}}", rows.ToString())
@@ -823,6 +854,8 @@ namespace MediaMonitor.Service
     .type-audio { background:#007acc; }
     .type-serie { background:#c586c0; }
     .type-video { background:#d19a66; }
+.type-rec   { background:#ff4d4d; color:white; }
+.type-tv    { background:#ffe066; color:black; }    
 
     select {
         background:#2d2d30;
@@ -1046,21 +1079,30 @@ namespace MediaMonitor.Service
 const audio = {{AUDIO}};
 const series = {{SERIES}};
 const videos = {{VIDEOS}};
+const rec = {{REC}};
+const tv = {{TV}};
 const hoursData = {{HOURS_DATA}};
 
 new Chart(document.getElementById('chartTypes'), {
     type: 'doughnut',
     data: {
-        labels: ['Audio', 'Séries', 'Vidéos'],
+        labels: ['Audio', 'Séries', 'Vidéos', 'REC', 'TV'],
         datasets: [{
-            data: [audio, series, videos],
-            backgroundColor: ['#007acc', '#c586c0', '#d19a66']
+            data: [audio, series, videos, rec, tv],
+            backgroundColor: [
+                '#007acc',   // audio
+                '#c586c0',   // série
+                '#d19a66',   // vidéo
+                '#ff4d4d',   // REC
+                '#ffe066'    // TV
+            ]
         }]
     },
     options: {
         plugins: { legend: { labels: { color:'#fff' } } }
     }
 });
+
 
 new Chart(document.getElementById('chartHours'), {
     type: 'line',
@@ -1135,49 +1177,69 @@ new Chart(document.getElementById('chartHours'), {
             return sb.ToString();
         }
         
-        private Dictionary<string, (int Audio, int Serie, int Video)> GetMediaStatsPerClient(List<BackupItem> items)
-        {
-            return items
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
-                            && !string.IsNullOrWhiteSpace(i.MediaType))
-                .GroupBy(i => i.ClientName!)
-                .ToDictionary(
-                    g => g.Key,
-                    g =>
-                    {
-                        int audio = g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase));
-                        int serie = g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase));
-                        int video = g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase));
-
-                        return (Audio: audio, Serie: serie, Video: video);
-                    }
-                );
-        }
-        private string BuildMediaStatsPerClientHtml(Dictionary<string, (int Audio, int Serie, int Video)> dict)
-        {
-            var sb = new StringBuilder();
-
-            foreach (var kv in dict)
+private Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> 
+    GetMediaStatsPerClient(List<BackupItem> items)
+{
+    return items
+        .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
+                    && !string.IsNullOrWhiteSpace(i.MediaType))
+        .GroupBy(i => i.ClientName!)
+        .ToDictionary(
+            g => g.Key,
+            g =>
             {
-                string client = kv.Key;
-                var stats = kv.Value;
+                int audio = g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase));
+                int serie = g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase));
+                int video = g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase));
+                int rec   = g.Count(x => x.MediaType.Equals("rec",   StringComparison.OrdinalIgnoreCase));
+                int tv    = g.Count(x => x.MediaType.Equals("tv",    StringComparison.OrdinalIgnoreCase));
 
-                sb.Append($@"
-        <div style='margin-bottom:10px;'>
-            <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
-            <table>
-                <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
-                <tbody>
-                    <tr><td>Séries</td><td>{stats.Serie}</td></tr>
-                    <tr><td>Audio</td><td>{stats.Audio}</td></tr>
-                    <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
-                </tbody>
-            </table>
-        </div>");
+                return (Audio: audio, Serie: serie, Video: video, Rec: rec, Tv: tv);
             }
+        );
+}
 
-            return sb.ToString();
+private string BuildMediaStatsPerClientHtml(
+    Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> dict)
+{
+    var sb = new StringBuilder();
+
+    foreach (var kv in dict)
+    {
+        string client = kv.Key;
+        var stats = kv.Value;
+
+        bool isTuner = client.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase);
+
+        sb.Append($@"
+<div style='margin-bottom:10px;'>
+    <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
+    <table>
+        <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
+        <tbody>");
+
+        if (isTuner)
+        {
+            // Un tuner ne lit que des REC
+            sb.Append($@"<tr><td>REC</td><td>{stats.Rec}</td></tr>");
         }
+        else
+        {
+            // Client normal
+            sb.Append($@"
+            <tr><td>Séries</td><td>{stats.Serie}</td></tr>
+            <tr><td>Audio</td><td>{stats.Audio}</td></tr>
+            <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
+            <tr><td>REC</td><td>{stats.Rec}</td></tr>
+            <tr><td>TV</td><td>{stats.Tv}</td></tr>");
+        }
+
+        sb.Append(@"</tbody></table></div>");
+    }
+
+    return sb.ToString();
+}
+
 
         // ==========================
         //  MODELES BACKUP
