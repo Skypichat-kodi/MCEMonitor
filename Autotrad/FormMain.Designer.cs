@@ -11,12 +11,10 @@ namespace Autotrad
         private Button btnMenuFichier;
         private Label lblLangFolder;
         private Button btnChangeLangFolder;
+        private ComboBox cmbLang;
         private ContextMenuStrip menuFichier;
-
+        private Button btnApply;
         private DataGridView dataGridView1;
-        private Button btnExport;
-
-        // ?? AJOUT
         private TextBox txtPreview;
 
         protected override void Dispose(bool disposing)
@@ -35,12 +33,10 @@ namespace Autotrad
             this.btnMenuFichier = new Button();
             this.lblLangFolder = new Label();
             this.btnChangeLangFolder = new Button();
+            this.cmbLang = new ComboBox();
             this.menuFichier = new ContextMenuStrip(this.components);
-
+            this.btnApply = new Button();
             this.dataGridView1 = new DataGridView();
-            this.btnExport = new Button();
-
-            // ?? AJOUT
             this.txtPreview = new TextBox();
 
             // ------------------------------
@@ -74,8 +70,28 @@ namespace Autotrad
             // ------------------------------
             this.btnChangeLangFolder.Text = "Changer";
             this.btnChangeLangFolder.AutoSize = true;
-            this.btnChangeLangFolder.Click += new EventHandler(this.ChoisirDossierLangues_Click);
             this.btnChangeLangFolder.Location = new System.Drawing.Point(500, 4);
+            this.btnChangeLangFolder.Click += new EventHandler(this.ChoisirDossierLangues_Click);
+
+            // ------------------------------
+            // COMBOBOX LANGUE
+            // ------------------------------
+            this.cmbLang.DropDownStyle = ComboBoxStyle.DropDownList;
+            this.cmbLang.Items.AddRange(new object[]
+            {
+                "Français (fr-FR)",
+                "Anglais (en-GB)",
+                "Allemand (de-DE)",
+                "Espagnol (es-ES)"
+            });
+            this.cmbLang.SelectedIndex = 0;
+            this.cmbLang.Width = 200;
+
+            // Position FIXE + ancrage à droite
+            this.cmbLang.Location = new System.Drawing.Point(1050, 4);
+            this.cmbLang.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+
+            this.cmbLang.SelectedIndexChanged += new EventHandler(this.cmbLang_SelectedIndexChanged);
 
             // ------------------------------
             // MENU FICHIER
@@ -96,67 +112,60 @@ namespace Autotrad
                 choisirLangFolder
             });
 
+            // Ajout des contrôles au panel
             this.topPanel.Controls.Add(this.btnMenuFichier);
             this.topPanel.Controls.Add(this.lblLangFolder);
             this.topPanel.Controls.Add(this.btnChangeLangFolder);
+            this.topPanel.Controls.Add(this.cmbLang);
 
             // ------------------------------
             // DATAGRID
             // ------------------------------
             this.dataGridView1.Anchor =
-                AnchorStyles.Top |
-                AnchorStyles.Bottom |
-                AnchorStyles.Left |
-                AnchorStyles.Right;
+                AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
 
             this.dataGridView1.Location = new System.Drawing.Point(12, 50);
-            this.dataGridView1.Size = new System.Drawing.Size(760, 300);
-            this.dataGridView1.AllowUserToResizeColumns = true;
+            this.dataGridView1.Size = new System.Drawing.Size(1276, 280);
             this.dataGridView1.AllowUserToAddRows = false;
             this.dataGridView1.AutoGenerateColumns = false;
-            this.dataGridView1.DefaultCellStyle.WrapMode = DataGridViewTriState.True;
             this.dataGridView1.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
             this.dataGridView1.CellDoubleClick += new DataGridViewCellEventHandler(this.dataGridView1_CellDoubleClick);
             this.dataGridView1.RowPrePaint += new DataGridViewRowPrePaintEventHandler(this.dataGridView1_RowPrePaint);
 
             // ------------------------------
-            // ?? TEXTBOX PREVIEW
+            // PREVIEW
             // ------------------------------
             this.txtPreview.Multiline = true;
             this.txtPreview.ReadOnly = true;
             this.txtPreview.ScrollBars = ScrollBars.Vertical;
             this.txtPreview.Anchor =
-                AnchorStyles.Left |
-                AnchorStyles.Right |
-                AnchorStyles.Bottom;
+                AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom;
 
-            this.txtPreview.Location = new System.Drawing.Point(12, 355);
-            this.txtPreview.Size = new System.Drawing.Size(760, 70);
+            this.txtPreview.Location = new System.Drawing.Point(12, 335);
+            this.txtPreview.Size = new System.Drawing.Size(1276, 60);
 
             // ------------------------------
-            // BOUTON EXPORT
+            // BOUTON APPLIQUER
             // ------------------------------
-            this.btnExport.Text = "Exporter la sélection";
-            this.btnExport.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-            this.btnExport.Location = new System.Drawing.Point(600, 430);
-            this.btnExport.Size = new System.Drawing.Size(160, 32);
-
-            this.btnExport.BackColor = System.Drawing.Color.FromArgb(0, 160, 0);
-            this.btnExport.ForeColor = System.Drawing.Color.White;
-            this.btnExport.FlatStyle = FlatStyle.Flat;
-            this.btnExport.FlatAppearance.BorderSize = 0;
-
-            this.btnExport.Click += new EventHandler(this.btnExport_Click);
+            this.btnApply.Text = "Appliquer";
+            this.btnApply.Width = 120;
+            this.btnApply.Height = 32;
+            this.btnApply.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
+            this.btnApply.Location = new System.Drawing.Point(
+                1300 - 120 - 20,
+                461 - 32 - 12
+            );
+            this.btnApply.Click += new EventHandler(this.btnApply_Click);
 
             // ------------------------------
             // FORM
             // ------------------------------
-            this.ClientSize = new System.Drawing.Size(784, 461);
+            this.ClientSize = new System.Drawing.Size(1300, 461);
             this.Controls.Add(this.dataGridView1);
-            this.Controls.Add(this.txtPreview);   // ?? AJOUT
-            this.Controls.Add(this.btnExport);
+            this.Controls.Add(this.txtPreview);
             this.Controls.Add(this.topPanel);
+            this.Controls.Add(this.btnApply);
             this.Text = "Autotrad - Scanner de traduction";
         }
     }

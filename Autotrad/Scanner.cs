@@ -12,8 +12,6 @@ namespace Autotrad
         {
             var results = new List<ScanResult>();
 
-            bool jsonIsEmpty = existingKeys.Count == 0;
-
             // ---------------------------------------------------------
             // Détection d’encodage
             // ---------------------------------------------------------
@@ -36,77 +34,28 @@ namespace Autotrad
             {
                 var parsed = CsParser.Parse(lines);
 
-                int subIndex = 0;
-
                 foreach (var entry in parsed)
                 {
-                    string key = entry.Key;
-                    string fallback = entry.Fallback;
-
-                    // Cas : pas de clé ? texte non traduit
-                    if (string.IsNullOrEmpty(key))
-                    {
-                        results.Add(new ScanResult
-                        {
-                            Id = Guid.NewGuid(),
-                            SubIndex = subIndex++,
-
-                            FilePath = path,
-                            LineNumber = entry.LineNumber,
-                            FullLine = entry.Raw,
-                            Text = fallback,
-                            Preview = entry.Preview,
-                            Selected = false,
-                            IsTranslated = false,
-                            IsMissingKey = false,
-                            IsMismatch = false
-                        });
+                    if (string.IsNullOrEmpty(entry.Key))
                         continue;
-                    }
 
-                    // Cas : clé mais JSON vide ou clé absente
-                    if (jsonIsEmpty || !existingKeys.ContainsKey(key))
-                    {
-                        results.Add(new ScanResult
-                        {
-                            Id = Guid.NewGuid(),
-                            SubIndex = subIndex++,
-
-                            FilePath = path,
-                            LineNumber = entry.LineNumber,
-                            FullLine = entry.Raw,
-                            Text = fallback,
-                            Preview = entry.Preview,
-                            Selected = false,
-                            IsTranslated = true,
-                            IsMissingKey = true,
-                            IsMismatch = false
-                        });
-                        continue;
-                    }
-
-                    // Cas : clé existante ? mismatch ?
-                    bool mismatch = existingKeys[key] != fallback;
+                    bool exists = existingKeys.ContainsKey(entry.Key);
 
                     results.Add(new ScanResult
                     {
-                        Id = Guid.NewGuid(),
-                        SubIndex = subIndex++,
-
                         FilePath = path,
                         LineNumber = entry.LineNumber,
                         FullLine = entry.Raw,
+                        Key = entry.Key,
+                        Text = entry.Key,
+                        Preview = entry.Raw.Trim(),
 
-                        // ?? ON GARDE LE TEXTE EXACT DU PROGRAMME
-                        Text = fallback,
+                        // ?? AJOUT ESSENTIEL
+                        JsonValue = exists ? existingKeys[entry.Key] : "",
 
-                        Preview = entry.Preview,
-                        Selected = false,
-                        IsTranslated = true,
-                        IsMissingKey = false,
-                        IsMismatch = mismatch
+                        IsTranslated = exists,
+                        IsMissingKey = !exists
                     });
-
                 }
             }
 
@@ -117,77 +66,24 @@ namespace Autotrad
             {
                 var parsed = XamlParser.Parse(lines);
 
-                int subIndex = 0;
-
                 foreach (var entry in parsed)
                 {
-                    string key = entry.Key;
-                    string fallback = entry.Fallback;
+                    bool exists = existingKeys.ContainsKey(entry.Key);
 
-                    // Cas : déjà traduit
-                    if (entry.IsTranslated)
-                    {
-                        if (jsonIsEmpty || !existingKeys.ContainsKey(key))
-                        {
-                            results.Add(new ScanResult
-                            {
-                                Id = Guid.NewGuid(),
-                                SubIndex = subIndex++,
-
-                                FilePath = path,
-                                LineNumber = entry.LineNumber,
-                                FullLine = entry.Raw,
-                                Text = fallback,
-                                Preview = entry.Preview,
-                                Selected = false,
-                                IsTranslated = true,
-                                IsMissingKey = true,
-                                IsMismatch = false
-                            });
-                            continue;
-                        }
-
-                        // Cas : clé existante ? mismatch ?
-                        bool mismatch = existingKeys[key] != fallback;
-
-                        results.Add(new ScanResult
-                        {
-                            Id = Guid.NewGuid(),
-                            SubIndex = subIndex++,
-
-                            FilePath = path,
-                            LineNumber = entry.LineNumber,
-                            FullLine = entry.Raw,
-
-                            // ?? ON GARDE LE TEXTE EXACT DU PROGRAMME
-                            Text = fallback,
-
-                            Preview = entry.Preview,
-                            Selected = false,
-                            IsTranslated = true,
-                            IsMissingKey = false,
-                            IsMismatch = mismatch
-                        });
-
-
-                        continue;
-                    }
-
-                    // Cas : non traduit
                     results.Add(new ScanResult
                     {
-                        Id = Guid.NewGuid(),
-                        SubIndex = subIndex++,
-
                         FilePath = path,
                         LineNumber = entry.LineNumber,
                         FullLine = entry.Raw,
-                        Text = fallback,
+                        Key = entry.Key,
+                        Text = entry.Key,
                         Preview = entry.Preview,
-                        Selected = false,
-                        IsTranslated = false,
-                        IsMissingKey = false,
-                        IsMismatch = false
+
+                        // ?? AJOUT ESSENTIEL
+                        JsonValue = exists ? existingKeys[entry.Key] : "",
+
+                        IsTranslated = exists,
+                        IsMissingKey = !exists
                     });
                 }
             }
