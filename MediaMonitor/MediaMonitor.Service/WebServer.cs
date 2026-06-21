@@ -343,18 +343,13 @@ private string GetTypeBadgeClass(string? mediaType)
             if (lastLine == null)
                 return "Aucun rapport envoyé";
 
-            // Exemple :
-            // [2026-06-17 02:50:03] [CODE02] Rapport envoyé à 2026-06-17 02:50:03
-
-            // Extraire la date du timestamp entre les premiers crochets
+            // Extraire la date entre les premiers crochets
             int start = lastLine.IndexOf('[') + 1;
             int end = lastLine.IndexOf(']');
             if (start <= 0 || end <= start)
                 return "Aucun rapport envoyé";
 
-            string datePart = lastLine.Substring(start, end - start);
-
-            return datePart;
+            return lastLine.Substring(start, end - start);  // "2026-06-17 02:50:03"
         }
 
         private DateTime GetReportSendTime()
@@ -426,8 +421,8 @@ private string GetTypeBadgeClass(string? mediaType)
         .type-audio { background:#007acc; }
         .type-serie { background:#c586c0; }
         .type-video { background:#d19a66; }
-.type-rec   { background:#ff4d4d; color:white; }
-.type-tv    { background:#ffe066; color:black; }
+        .type-rec   { background:#ff4d4d; color:white; }
+        .type-tv    { background:#ffe066; color:black; }
 
         .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
         .button {
@@ -554,23 +549,22 @@ private string GetTypeBadgeClass(string? mediaType)
             sb.Append("<table>");
             sb.Append("<thead><tr><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
 
-foreach (var item in live)
-{
-    string mediaType = item.MediaType ?? "";
-    string badgeClass = GetTypeBadgeClass(mediaType);
+            foreach (var item in live)
+            {
+                string mediaType = item.MediaType ?? "";
+                string badgeClass = GetTypeBadgeClass(mediaType);
 
-    // Plus de rowClass (on n'utilise plus rec-row / tv-row)
-    sb.Append("<tr>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
-    sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
-    sb.Append($"<td>{item.Saison}</td>");
-    sb.Append($"<td>{item.Episode}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-    sb.Append("</tr>");
-}
-
+                // Plus de rowClass (on n'utilise plus rec-row / tv-row)
+                sb.Append("<tr>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
+                sb.Append($"<td>{item.Saison}</td>");
+                sb.Append($"<td>{item.Episode}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+                sb.Append("</tr>");
+            }
 
             if (liveCount == 0)
                 sb.Append("<tr><td colspan='7' class='small'>Aucune lecture en cours.</td></tr>");
@@ -582,23 +576,22 @@ foreach (var item in live)
             sb.Append("<table>");
             sb.Append("<thead><tr><th>Heure</th><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
 
-foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
-{
-    string mediaType = item.MediaType ?? "";
-    string badgeClass = GetTypeBadgeClass(mediaType);
+            foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
+            {
+                string mediaType = item.MediaType ?? "";
+                string badgeClass = GetTypeBadgeClass(mediaType);
 
-    sb.Append("<tr>");
-    sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
-    sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
-    sb.Append($"<td>{item.Saison}</td>");
-    sb.Append($"<td>{item.Episode}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-    sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-    sb.Append("</tr>");
-}
-
+                sb.Append("<tr>");
+                sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
+                sb.Append($"<td>{item.Saison}</td>");
+                sb.Append($"<td>{item.Episode}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+                sb.Append("</tr>");
+            }
 
             if (historyCount == 0)
                 sb.Append("<tr><td colspan='8' class='small'>Aucun historique disponible.</td></tr>");
@@ -655,16 +648,16 @@ foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
             string date = req.QueryString["date"]?.ToLower() ?? "all";
             string sort = req.QueryString["sort"]?.ToLower() ?? "date_desc";
 
-// Filtre type
-items = type switch
-{
-    "audio" => items.Where(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)).ToList(),
-    "serie" => items.Where(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)).ToList(),
-    "video" => items.Where(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)).ToList(),
-    "rec"   => items.Where(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)).ToList(),
-    "tv"    => items.Where(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase)).ToList(),
-    _ => items
-};
+            // Filtre type
+            items = type switch
+            {
+                "audio" => items.Where(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)).ToList(),
+                "serie" => items.Where(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)).ToList(),
+                "video" => items.Where(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)).ToList(),
+                "rec"   => items.Where(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)).ToList(),
+                "tv"    => items.Where(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase)).ToList(),
+                _ => items
+            };
 
             // Filtre client
             if (client != "all")
@@ -718,30 +711,30 @@ items = type switch
                 clientOptions.Append($"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>");
             }
 
-// Lignes du tableau principal
-var rows = new StringBuilder();
-foreach (var item in items)
-{
-    string mediaType = item.MediaType ?? "";
+            // Lignes du tableau principal
+            var rows = new StringBuilder();
+            foreach (var item in items)
+            {
+                string mediaType = item.MediaType ?? "";
 
-    string badgeClass = mediaType.ToLower() switch
-    {
-        "audio" => "type-audio",
-        "serie" => "type-serie",
-        "video" => "type-video",
-        "rec"   => "type-rec",
-        "tv"    => "type-tv",
-        _       => ""
-    };
+                string badgeClass = mediaType.ToLower() switch
+                {
+                    "audio" => "type-audio",
+                    "serie" => "type-serie",
+                    "video" => "type-video",
+                    "rec"   => "type-rec",
+                    "tv"    => "type-tv",
+                    _       => ""
+                };
 
-    rows.Append($@"
-<tr>
-    <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
-    <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
-    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
-</tr>");
-}
+                rows.Append($@"
+            <tr>
+                <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
+                <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
+                <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
+                <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+            </tr>");
+            }
 
             // Activité par heure
             int[] hours = new int[24];
@@ -798,358 +791,358 @@ foreach (var item in items)
         //  TEMPLATE HTML BACKUP
         // ==========================
         private const string BackupHtmlTemplate = @"
-<!DOCTYPE html>
-<html lang=""fr"">
-<head>
-<meta charset=""UTF-8"">
-<title>Historique sauvegardé - MediaMonitor</title>
-<link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
+        <!DOCTYPE html>
+        <html lang=""fr"">
+        <head>
+        <meta charset=""UTF-8"">
+        <title>Historique sauvegardé - MediaMonitor</title>
+        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
 
-<!-- Chart.js -->
-<script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
+        <!-- Chart.js -->
+        <script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
 
-<style>
-    body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
-    h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
-    .container { display:flex; gap:20px; }
+        <style>
+            body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+            h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+            .container { display:flex; gap:20px; }
 
-    .groupbox {
-        flex:1;
-        border:1px solid #3c3c3c;
-        border-radius:6px;
-        background:#252526;
-        padding:12px;
-        position:relative;
-        transition: all 0.8s ease;
-    }
+            .groupbox {
+                flex:1;
+                border:1px solid #3c3c3c;
+                border-radius:6px;
+                background:#252526;
+                padding:12px;
+                position:relative;
+                transition: all 0.8s ease;
+            }
 
-    .left-content { transition: opacity 0.6s ease; }
-    .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+            .left-content { transition: opacity 0.6s ease; }
+            .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
 
-    .stats-grid {
-        display:grid;
-        grid-template-columns:auto auto;
-        row-gap:6px;
-        column-gap:12px;
-        font-size:13px;
-    }
+            .stats-grid {
+                display:grid;
+                grid-template-columns:auto auto;
+                row-gap:6px;
+                column-gap:12px;
+                font-size:13px;
+            }
 
-    .label { color:#ccc; }
-    .value { font-weight:bold; color:#fff; }
+            .label { color:#ccc; }
+            .value { font-weight:bold; color:#fff; }
 
-    .listing-header {
-        display:flex;
-        justify-content:space-between;
-        margin-bottom:8px;
-        font-size:13px;
-    }
+            .listing-header {
+                display:flex;
+                justify-content:space-between;
+                margin-bottom:8px;
+                font-size:13px;
+            }
 
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
-    th { background:#2d2d30; color:#fff; }
-    tr:nth-child(even) td { background:#262626; }
-    tr:nth-child(odd) td { background:#1f1f1f; }
+            table { width:100%; border-collapse:collapse; font-size:13px; }
+            th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+            th { background:#2d2d30; color:#fff; }
+            tr:nth-child(even) td { background:#262626; }
+            tr:nth-child(odd) td { background:#1f1f1f; }
 
-    .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
-    .type-audio { background:#007acc; }
-    .type-serie { background:#c586c0; }
-    .type-video { background:#d19a66; }
-.type-rec   { background:#ff4d4d; color:white; }
-.type-tv    { background:#ffe066; color:black; }    
+            .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+            .type-audio { background:#007acc; }
+            .type-serie { background:#c586c0; }
+            .type-video { background:#d19a66; }
+        .type-rec   { background:#ff4d4d; color:white; }
+        .type-tv    { background:#ffe066; color:black; }    
 
-    select {
-        background:#2d2d30;
-        color:#e5e5e5;
-        border:1px solid #3c3c3c;
-        border-radius:4px;
-        padding:2px 4px;
-    }
+            select {
+                background:#2d2d30;
+                color:#e5e5e5;
+                border:1px solid #3c3c3c;
+                border-radius:4px;
+                padding:2px 4px;
+            }
 
-    label { margin-right:4px; }
+            label { margin-right:4px; }
 
-    td, th { border-right: 1px solid #3c3c3c; }
-    td:last-child, th:last-child { border-right: none; }
-    td:nth-child(2), th:nth-child(2) { text-align:center; }
+            td, th { border-right: 1px solid #3c3c3c; }
+            td:last-child, th:last-child { border-right: none; }
+            td:nth-child(2), th:nth-child(2) { text-align:center; }
 
-    /* --- COLLAPSIBLE --- */
-    #leftColumn {
-        overflow: visible;
-        transition: all 0.6s ease;
-    }
+            /* --- COLLAPSIBLE --- */
+            #leftColumn {
+                overflow: visible;
+                transition: all 0.6s ease;
+            }
 
-    #leftColumn.collapsed {
-        flex: 0 0 40px !important;
-        max-width: 40px !important;
-        min-width: 40px !important;
-        padding: 12px 4px;
-    }
+            #leftColumn.collapsed {
+                flex: 0 0 40px !important;
+                max-width: 40px !important;
+                min-width: 40px !important;
+                padding: 12px 4px;
+            }
 
-    #leftColumn.collapsed .left-content {
-        opacity: 0;
-        height: 0;
-        overflow: hidden;
-        padding: 0;
-        margin: 0;
-    }
+            #leftColumn.collapsed .left-content {
+                opacity: 0;
+                height: 0;
+                overflow: hidden;
+                padding: 0;
+                margin: 0;
+            }
 
-    .toggle-btn {
-        position: absolute;
-        top: 10px;
-        right: -18px;
-        width: 28px;
-        height: 28px;
-        border-radius: 50%;
-        border: none;
-        background: #444;
-        color: #fff;
-        cursor: pointer;
-        font-size: 18px;
-        line-height: 28px;
-        text-align: center;
-        z-index: 50;
-    }
+            .toggle-btn {
+                position: absolute;
+                top: 10px;
+                right: -18px;
+                width: 28px;
+                height: 28px;
+                border-radius: 50%;
+                border: none;
+                background: #444;
+                color: #fff;
+                cursor: pointer;
+                font-size: 18px;
+                line-height: 28px;
+                text-align: center;
+                z-index: 50;
+            }
 
-    .toggle-btn:hover { background:#666; }
-</style>
+            .toggle-btn:hover { background:#666; }
+        </style>
 
-</head>
-<body>
+        </head>
+        <body>
 
-<h1>Historique sauvegardé</h1>
+        <h1>Historique sauvegardé</h1>
 
-<div style=""margin-bottom:20px; display:flex; gap:10px;"">
-    <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
+        <div style=""margin-bottom:20px; display:flex; gap:10px;"">
+            <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
 
-    <a href=""/purge""
-       onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
-       style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
-       Purger
-    </a>
+            <a href=""/purge""
+               onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
+               style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
+               Purger
+            </a>
 
-    <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
-</div>
+            <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
+        </div>
 
-<!-- FILTRES -->
-<div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
+        <!-- FILTRES -->
+        <div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
 
-    <div>
-        <label>Filtrer par type :</label>
-        <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
-            <option value='all' {{SEL_ALL}}>Tous</option>
-            <option value='audio' {{SEL_AUDIO}}>Audio</option>
-            <option value='serie' {{SEL_SERIE}}>Séries</option>
-            <option value='video' {{SEL_VIDEO}}>Vidéos</option>
-        </select>
-    </div>
-
-    <div>
-        <label>Filtrer par client :</label>
-        <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
-            {{CLIENT_OPTIONS}}
-        </select>
-    </div>
-
-    <div>
-        <label>Filtrer par date :</label>
-        <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
-            <option value='all' {{SEL_DATE_ALL}}>Tout</option>
-            <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
-            <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
-            <option value='7' {{SEL_DATE_7}}>7 jours</option>
-            <option value='30' {{SEL_DATE_30}}>30 jours</option>
-        </select>
-    </div>
-
-    <div>
-        <label>Trier :</label>
-        <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
-            <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
-            <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
-            <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
-            <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
-        </select>
-    </div>
-
-</div>
-
-<div class=""container"">
-
-    <!-- COLONNE GAUCHE -->
-    <div class=""groupbox"" id=""leftColumn"">
-        <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
-
-        <div class=""left-content"">
-
-            <!-- STATISTIQUES -->
-            <div class=""groupbox-title"">Statistiques</div>
-            <div class=""stats-grid"">
-                <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
-                <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
-                <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
-                <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
+            <div>
+                <label>Filtrer par type :</label>
+                <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
+                    <option value='all' {{SEL_ALL}}>Tous</option>
+                    <option value='audio' {{SEL_AUDIO}}>Audio</option>
+                    <option value='serie' {{SEL_SERIE}}>Séries</option>
+                    <option value='video' {{SEL_VIDEO}}>Vidéos</option>
+                </select>
             </div>
 
-            <br>
-
-            <!-- GRAPHIQUES -->
-            <div class=""groupbox-title"">Graphiques</div>
-
-            <div style=""display:flex; gap:15px; align-items:stretch;"">
-
-                <!-- Donut -->
-                <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                    <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                        Répartition par type
-                    </div>
-                    <canvas id=""chartTypes"" height=""160""></canvas>
-                </div>
-
-                <div style=""width:1px; background:#3c3c3c;""></div>
-
-                <!-- Horaire -->
-                <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                    <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                        Activité par heure
-                    </div>
-                    <canvas id=""chartHours"" height=""160""></canvas>
-                </div>
-
+            <div>
+                <label>Filtrer par client :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
+                    {{CLIENT_OPTIONS}}
+                </select>
             </div>
 
-            <br>
-
-            <!-- STATISTIQUES AVANCÉES -->
-            <div class=""groupbox-title"">Statistiques avancées</div>
-
-            <!-- TOP SERIES -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Top séries</div>
-                <table>
-                    <thead><tr><th>Série</th><th>Lectures</th></tr></thead>
-                    <tbody>{{TOP_SERIES_ROWS}}</tbody>
-                </table>
+            <div>
+                <label>Filtrer par date :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
+                    <option value='all' {{SEL_DATE_ALL}}>Tout</option>
+                    <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
+                    <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
+                    <option value='7' {{SEL_DATE_7}}>7 jours</option>
+                    <option value='30' {{SEL_DATE_30}}>30 jours</option>
+                </select>
             </div>
 
-            <!-- TOP ARTISTES -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Top artistes</div>
-                <table>
-                    <thead><tr><th>Artiste</th><th>Lectures</th></tr></thead>
-                    <tbody>{{TOP_ARTISTES_ROWS}}</tbody>
-                </table>
-            </div>
-
-            <!-- TOP CLIENTS -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Top clients</div>
-                <table>
-                    <thead><tr><th>Client</th><th>Lectures</th></tr></thead>
-                    <tbody>{{TOP_CLIENTS_ROWS}}</tbody>
-                </table>
-            </div>
-
-            <!-- TOP MEDIAS PAR CLIENT -->
-            <div class=""groupbox"">
-                <div class=""groupbox-title"">Top médias par client</div>
-                {{TOP_MEDIA_PER_CLIENT}}
+            <div>
+                <label>Trier :</label>
+                <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
+                    <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
+                    <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
+                    <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
+                    <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
+                </select>
             </div>
 
         </div>
-    </div>
 
-    <!-- COLONNE DROITE -->
-    <div class=""groupbox"">
-        <div class=""groupbox-title"">Listing des titres</div>
-        <div class=""listing-header"">
-            <span>Période : {{PERIOD}}</span>
-            <span>{{COUNT}} élément(s)</span>
+        <div class=""container"">
+
+            <!-- COLONNE GAUCHE -->
+            <div class=""groupbox"" id=""leftColumn"">
+                <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
+
+                <div class=""left-content"">
+
+                    <!-- STATISTIQUES -->
+                    <div class=""groupbox-title"">Statistiques</div>
+                    <div class=""stats-grid"">
+                        <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
+                        <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
+                        <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
+                        <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
+                    </div>
+
+                    <br>
+
+                    <!-- GRAPHIQUES -->
+                    <div class=""groupbox-title"">Graphiques</div>
+
+                    <div style=""display:flex; gap:15px; align-items:stretch;"">
+
+                        <!-- Donut -->
+                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                Répartition par type
+                            </div>
+                            <canvas id=""chartTypes"" height=""160""></canvas>
+                        </div>
+
+                        <div style=""width:1px; background:#3c3c3c;""></div>
+
+                        <!-- Horaire -->
+                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                Activité par heure
+                            </div>
+                            <canvas id=""chartHours"" height=""160""></canvas>
+                        </div>
+
+                    </div>
+
+                    <br>
+
+                    <!-- STATISTIQUES AVANCÉES -->
+                    <div class=""groupbox-title"">Statistiques avancées</div>
+
+                    <!-- TOP SERIES -->
+                    <div class=""groupbox"">
+                        <div class=""groupbox-title"">Top séries</div>
+                        <table>
+                            <thead><tr><th>Série</th><th>Lectures</th></tr></thead>
+                            <tbody>{{TOP_SERIES_ROWS}}</tbody>
+                        </table>
+                    </div>
+
+                    <!-- TOP ARTISTES -->
+                    <div class=""groupbox"">
+                        <div class=""groupbox-title"">Top artistes</div>
+                        <table>
+                            <thead><tr><th>Artiste</th><th>Lectures</th></tr></thead>
+                            <tbody>{{TOP_ARTISTES_ROWS}}</tbody>
+                        </table>
+                    </div>
+
+                    <!-- TOP CLIENTS -->
+                    <div class=""groupbox"">
+                        <div class=""groupbox-title"">Top clients</div>
+                        <table>
+                            <thead><tr><th>Client</th><th>Lectures</th></tr></thead>
+                            <tbody>{{TOP_CLIENTS_ROWS}}</tbody>
+                        </table>
+                    </div>
+
+                    <!-- TOP MEDIAS PAR CLIENT -->
+                    <div class=""groupbox"">
+                        <div class=""groupbox-title"">Top médias par client</div>
+                        {{TOP_MEDIA_PER_CLIENT}}
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- COLONNE DROITE -->
+            <div class=""groupbox"">
+                <div class=""groupbox-title"">Listing des titres</div>
+                <div class=""listing-header"">
+                    <span>Période : {{PERIOD}}</span>
+                    <span>{{COUNT}} élément(s)</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
+                    </thead>
+                    <tbody>{{ROWS}}</tbody>
+                </table>
+            </div>
+
         </div>
-        <table>
-            <thead>
-                <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
-            </thead>
-            <tbody>{{ROWS}}</tbody>
-        </table>
-    </div>
 
-</div>
+        <!-- SCRIPTS -->
+        <script>
+        const audio = {{AUDIO}};
+        const series = {{SERIES}};
+        const videos = {{VIDEOS}};
+        const rec = {{REC}};
+        const tv = {{TV}};
+        const hoursData = {{HOURS_DATA}};
 
-<!-- SCRIPTS -->
-<script>
-const audio = {{AUDIO}};
-const series = {{SERIES}};
-const videos = {{VIDEOS}};
-const rec = {{REC}};
-const tv = {{TV}};
-const hoursData = {{HOURS_DATA}};
-
-new Chart(document.getElementById('chartTypes'), {
-    type: 'doughnut',
-    data: {
-        labels: ['Audio', 'Séries', 'Vidéos', 'REC', 'TV'],
-        datasets: [{
-            data: [audio, series, videos, rec, tv],
-            backgroundColor: [
-                '#007acc',   // audio
-                '#c586c0',   // série
-                '#d19a66',   // vidéo
-                '#ff4d4d',   // REC
-                '#ffe066'    // TV
-            ]
-        }]
-    },
-    options: {
-        plugins: { legend: { labels: { color:'#fff' } } }
-    }
-});
+        new Chart(document.getElementById('chartTypes'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Audio', 'Séries', 'Vidéos', 'REC', 'TV'],
+                datasets: [{
+                    data: [audio, series, videos, rec, tv],
+                    backgroundColor: [
+                        '#007acc',   // audio
+                        '#c586c0',   // série
+                        '#d19a66',   // vidéo
+                        '#ff4d4d',   // REC
+                        '#ffe066'    // TV
+                    ]
+                }]
+            },
+            options: {
+                plugins: { legend: { labels: { color:'#fff' } } }
+            }
+        });
 
 
-new Chart(document.getElementById('chartHours'), {
-    type: 'line',
-    data: {
-        labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
-        datasets: [{
-            label: 'Lectures par heure',
-            data: hoursData,
-            borderColor: '#4fc3f7',
-            backgroundColor: 'rgba(79,195,247,0.2)',
-            tension: 0.3
-        }]
-    },
-    options: {
-        scales: {
-            x: { ticks: { color:'#fff' } },
-            y: { ticks: { color:'#fff' } }
-        },
-        plugins: { legend: { labels: { color:'#fff' } } }
-    }
-});
+        new Chart(document.getElementById('chartHours'), {
+            type: 'line',
+            data: {
+                labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+                datasets: [{
+                    label: 'Lectures par heure',
+                    data: hoursData,
+                    borderColor: '#4fc3f7',
+                    backgroundColor: 'rgba(79,195,247,0.2)',
+                    tension: 0.3
+                }]
+            },
+            options: {
+                scales: {
+                    x: { ticks: { color:'#fff' } },
+                    y: { ticks: { color:'#fff' } }
+                },
+                plugins: { legend: { labels: { color:'#fff' } } }
+            }
+        });
 
-// COLLAPSIBLE
-(function () {
-    const btn = document.getElementById('toggleLeft');
-    const leftCol = document.getElementById('leftColumn');
+        // COLLAPSIBLE
+        (function () {
+            const btn = document.getElementById('toggleLeft');
+            const leftCol = document.getElementById('leftColumn');
 
-    if (!btn || !leftCol) return;
+            if (!btn || !leftCol) return;
 
-    let collapsed = false;
+            let collapsed = false;
 
-    btn.addEventListener('click', () => {
-        collapsed = !collapsed;
+            btn.addEventListener('click', () => {
+                collapsed = !collapsed;
 
-        if (collapsed) {
-            leftCol.classList.add('collapsed');
-            btn.textContent = '>';
-        } else {
-            leftCol.classList.remove('collapsed');
-            btn.textContent = '<';
-        }
-    });
-})();
-</script>
+                if (collapsed) {
+                    leftCol.classList.add('collapsed');
+                    btn.textContent = '>';
+                } else {
+                    leftCol.classList.remove('collapsed');
+                    btn.textContent = '<';
+                }
+            });
+        })();
+        </script>
 
-</body>
-</html>";
+        </body>
+        </html>";
         // ==========================
         //  TABLEAUX HTML STATS AVANCÉES
         // ==========================
@@ -1177,69 +1170,68 @@ new Chart(document.getElementById('chartHours'), {
             return sb.ToString();
         }
         
-private Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> 
-    GetMediaStatsPerClient(List<BackupItem> items)
-{
-    return items
-        .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
-                    && !string.IsNullOrWhiteSpace(i.MediaType))
-        .GroupBy(i => i.ClientName!)
-        .ToDictionary(
-            g => g.Key,
-            g =>
+        private Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> 
+            GetMediaStatsPerClient(List<BackupItem> items)
+        {
+            return items
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
+                            && !string.IsNullOrWhiteSpace(i.MediaType))
+                .GroupBy(i => i.ClientName!)
+                .ToDictionary(
+                    g => g.Key,
+                    g =>
+                    {
+                        int audio = g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase));
+                        int serie = g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase));
+                        int video = g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase));
+                        int rec   = g.Count(x => x.MediaType.Equals("rec",   StringComparison.OrdinalIgnoreCase));
+                        int tv    = g.Count(x => x.MediaType.Equals("tv",    StringComparison.OrdinalIgnoreCase));
+
+                        return (Audio: audio, Serie: serie, Video: video, Rec: rec, Tv: tv);
+                    }
+                );
+        }
+
+        private string BuildMediaStatsPerClientHtml(
+            Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> dict)
+        {
+            var sb = new StringBuilder();
+
+            foreach (var kv in dict)
             {
-                int audio = g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase));
-                int serie = g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase));
-                int video = g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase));
-                int rec   = g.Count(x => x.MediaType.Equals("rec",   StringComparison.OrdinalIgnoreCase));
-                int tv    = g.Count(x => x.MediaType.Equals("tv",    StringComparison.OrdinalIgnoreCase));
+                string client = kv.Key;
+                var stats = kv.Value;
 
-                return (Audio: audio, Serie: serie, Video: video, Rec: rec, Tv: tv);
+                bool isTuner = client.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase);
+
+                sb.Append($@"
+        <div style='margin-bottom:10px;'>
+            <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
+            <table>
+                <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
+                <tbody>");
+
+                if (isTuner)
+                {
+                    // Un tuner ne lit que des REC
+                    sb.Append($@"<tr><td>REC</td><td>{stats.Rec}</td></tr>");
+                }
+                else
+                {
+                    // Client normal
+                    sb.Append($@"
+                    <tr><td>Séries</td><td>{stats.Serie}</td></tr>
+                    <tr><td>Audio</td><td>{stats.Audio}</td></tr>
+                    <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
+                    <tr><td>REC</td><td>{stats.Rec}</td></tr>
+                    <tr><td>TV</td><td>{stats.Tv}</td></tr>");
+                }
+
+                sb.Append(@"</tbody></table></div>");
             }
-        );
-}
 
-private string BuildMediaStatsPerClientHtml(
-    Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> dict)
-{
-    var sb = new StringBuilder();
-
-    foreach (var kv in dict)
-    {
-        string client = kv.Key;
-        var stats = kv.Value;
-
-        bool isTuner = client.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase);
-
-        sb.Append($@"
-<div style='margin-bottom:10px;'>
-    <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
-    <table>
-        <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
-        <tbody>");
-
-        if (isTuner)
-        {
-            // Un tuner ne lit que des REC
-            sb.Append($@"<tr><td>REC</td><td>{stats.Rec}</td></tr>");
+            return sb.ToString();
         }
-        else
-        {
-            // Client normal
-            sb.Append($@"
-            <tr><td>Séries</td><td>{stats.Serie}</td></tr>
-            <tr><td>Audio</td><td>{stats.Audio}</td></tr>
-            <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
-            <tr><td>REC</td><td>{stats.Rec}</td></tr>
-            <tr><td>TV</td><td>{stats.Tv}</td></tr>");
-        }
-
-        sb.Append(@"</tbody></table></div>");
-    }
-
-    return sb.ToString();
-}
-
 
         // ==========================
         //  MODELES BACKUP
