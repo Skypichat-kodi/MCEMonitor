@@ -22,7 +22,6 @@ namespace MediaMonitor.Service
         private long _requestCount = 0;
         private DateTime _lastRequestTime = DateTime.MinValue;
         private string _lastRequestIp = "N/A";
-        private string _lastReportStatus = "Aucun rapport envoyé";
 
         private WebServerSettings _settings;
 
@@ -328,30 +327,41 @@ private string GetTypeBadgeClass(string? mediaType)
                 .ToList();
         }
 
-        private string GetLastReport()
+        // =================================
+        //  RECHERCHE DERNIER RAPPORT ENVOYÉ
+        // =================================
+        private DateTime GetLastReportTime()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
 
             if (!File.Exists(path))
-                return "Aucun rapport envoyé";
+                return DateTime.MinValue;
 
-            // On cherche la DERNIÈRE ligne contenant [CODE02]
-            var lastLine = File.ReadLines(path)
-                               .Reverse()
-                               .FirstOrDefault(l => l.Contains("[CODE02]"));
+            // On cherche la DERNIÈRE ligne contenant "Rapport envoyé"
+            string lastLine = File.ReadLines(path)
+                                  .LastOrDefault(l => l.Contains("Rapport envoyé"));
 
             if (lastLine == null)
-                return "Aucun rapport envoyé";
+                return DateTime.MinValue;
 
-            // Extraire la date entre les premiers crochets
-            int start = lastLine.IndexOf('[') + 1;
-            int end = lastLine.IndexOf(']');
-            if (start <= 0 || end <= start)
-                return "Aucun rapport envoyé";
+            // Exemple :
+            // [2026-06-21 11:47:01] [CODE02] Rapport envoyé à 2026-06-21 11:47:01
 
-            return lastLine.Substring(start, end - start);  // "2026-06-17 02:50:03"
+            int idx = lastLine.IndexOf("à ");
+            if (idx < 0)
+                return DateTime.MinValue;
+
+            string datePart = lastLine.Substring(idx + 2).Trim();
+
+            if (DateTime.TryParse(datePart, out var dt))
+                return dt;
+
+            return DateTime.MinValue;
         }
 
+        // =================================
+        //  RECHERCHE PROCHAIN RAPPORT PRÉVU
+        // =================================
         private DateTime GetReportSendTime()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
@@ -500,10 +510,10 @@ private string GetTypeBadgeClass(string? mediaType)
             sb.Append("<div class='groupbox'>");
             sb.Append("<div class='groupbox-title'>Rapports</div>");
             sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>Dernier rapport :</div>");
-            sb.Append($"<div class='value'>{WebUtility.HtmlEncode(_lastReportStatus)}</div>");
-            var next = GetReportSendTime();
-            sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yyyy-MM-dd HH:mm:ss}</div>");
+var lastReport = GetLastReportTime();
+sb.Append($"<div class='label'>Dernier rapport :</div><div class='value'>{(lastReport == DateTime.MinValue ? "Aucun rapport envoyé" : lastReport.ToString("yyyy-MM-dd HH:mm:ss"))}</div>");
+var next = GetReportSendTime();
+sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yyyy-MM-dd HH:mm:ss}</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
