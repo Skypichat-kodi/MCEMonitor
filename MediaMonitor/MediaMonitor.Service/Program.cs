@@ -264,7 +264,7 @@ namespace MediaMonitor.Service
                         backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
 
                     // ------------------------------------------------------------
-                    // ?? INCRÉMENTIEL : fusionner les items du jour
+                    // ?? INCRÉMENTIEL : fusionner les items du jour (version corrigée)
                     // ------------------------------------------------------------
                     DateTime today = DateTime.Now.Date;
 
@@ -273,7 +273,6 @@ namespace MediaMonitor.Service
 
                     if (existing == null)
                     {
-                        // Aucun rapport pour aujourd'hui ? on le crée
                         existing = new DailyReport
                         {
                             Date = today,
@@ -282,32 +281,32 @@ namespace MediaMonitor.Service
                         backup.Reports.Add(existing);
                     }
 
-                    // Fusionner : ajouter les nouveaux items RAM
+                    // Récupérer les items RAM
                     var newItems = engine.GetHistory();
 
-                    // Ajouter uniquement les nouveaux (éviter doublons)
-                    foreach (var item in newItems)
-                    {
-                        bool already = existing.Items.Any(x =>
-                            // Même média
+                    // ?? Filtrer les items RAM déjà présents dans le backup JSON
+                    var filtered = newItems.Where(item =>
+                        !existing.Items.Any(x =>
                             x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-
-                            // Même client
                             x.ClientIP.Equals(item.ClientIP, StringComparison.OrdinalIgnoreCase) &&
-
-                            // Timestamp dans une fenêtre de ± 1 minute
                             (x.Timestamp - item.Timestamp).Duration() <= TimeSpan.FromMinutes(1)
-                        );
+                        )
+                    ).ToList();
 
-                        if (!already)
-                        {
-                            existing.Items.Add(item);
-                        }
-                        else
-                        {
-                            WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
-                        }
+                    // Ajouter uniquement les nouveaux items
+                    foreach (var item in filtered)
+                    {
+                        existing.Items.Add(item);
                     }
+
+                    // ?? Loguer les doublons réels (ceux filtrés)
+                    foreach (var item in newItems.Except(filtered))
+                    {
+                        WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
+                    }
+
+                    // (OPTIONNEL) — Si tu veux loguer combien ont été ajoutés
+                    WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés.");
 
                     // ------------------------------------------------------------
                     // ?? Rétention glissante : supprimer les jours trop anciens
@@ -378,6 +377,8 @@ namespace MediaMonitor.Service
                 return;
 
             _lastWebConfigChange = now;
+            
+            ScheduleNextReport(_engine);
 
             WebConfigChanged_Retention(sender, e);
             WebConfigChanged_DvbViewer(sender, e);
