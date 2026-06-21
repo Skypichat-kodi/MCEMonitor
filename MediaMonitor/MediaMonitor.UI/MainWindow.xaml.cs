@@ -11,6 +11,7 @@ using Microsoft.Win32;
 using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Linq;
+using MediaMonitor.Core.Language;
 
 namespace MediaMonitor.UI
 {
@@ -58,9 +59,12 @@ namespace MediaMonitor.UI
             if (!serviceRunning)
             {
                 var result = MessageBox.Show(
-                    "MediaMonitor.Service n'est pas en cours d'exécution.\n\n" +
-                    "Voulez-vous le démarrer maintenant ?",
-                    "Service non démarré",
+                    (LanguageManager.Get("MediaMonitor.Service n'est pas en cours d'exécution.") 
+                        ?? "MediaMonitor.Service n'est pas en cours d'exécution.") 
+                    + "\n\n" +
+                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?") 
+                        ?? "Voulez-vous le démarrer maintenant ?"),
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning
                 );
@@ -518,9 +522,8 @@ namespace MediaMonitor.UI
                 }
 
                 LastImageText.Text = string.IsNullOrEmpty(state.lastImage)
-                    ? "Dernière image ouverte : aucune"
-                    : "Dernière image ouverte : " + state.lastImage;
-
+                    ? (LanguageManager.Get("Dernière image ouverte : aucune") ?? "Dernière image ouverte : aucune")
+                    : (LanguageManager.Get("Dernière image ouverte :") ?? "Dernière image ouverte :") + " " + state.lastImage;
                 var history = await ServiceIpcClient.GetHistory();
 
                 if (history != null)

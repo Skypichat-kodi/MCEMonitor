@@ -263,37 +263,41 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnOpenUI_Click(object sender, EventArgs e)
+private void BtnOpenUI_Click(object sender, EventArgs e)
+{
+    try
+    {
+        string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MediaMonitor.UI.exe");
+
+        if (!File.Exists(uiPath))
         {
-            try
-            {
-                string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MediaMonitor.UI.exe");
-
-                if (!File.Exists(uiPath))
-                {
-                    PopupHelper.ShowBottomPopup(
-                        this,
-                        "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
-                        "Erreur"
-                    );
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = uiPath,
-                    Arguments = "--from-mcem",
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    "Erreur lors de l'ouverture de MediaMonitor.UI : " + ex.Message
-                );
-            }
+            PopupHelper.ShowBottomPopup(
+                this,
+                "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
+                "Erreur"
+            );
+            return;
         }
+
+        // ?? Récupération de la langue actuellement utilisée par MCEMonitor
+        string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = uiPath,
+            Arguments = $"--from-mcem -lang {lang}",
+            UseShellExecute = true
+        });
+    }
+    catch (Exception ex)
+    {
+        PopupHelper.ShowBottomPopup(
+            this,
+            "Erreur lors de l'ouverture de MediaMonitor.UI : " + ex.Message
+        );
+    }
+}
+
 
         private bool IsMediaServiceRunning()
         {
@@ -314,7 +318,7 @@ namespace MCEMonitor
                 toggleMediaService.BackColor = Color.LimeGreen;
                 toggleKnob.Left = 20;
                 lblMediaStatus.Text =
-                    LanguageManager.Get("Media.Service.Active") ??
+                    LanguageManager.Get("Service MediaMonitor : actif") ??
                     "Service MediaMonitor : actif";
             }
             else
@@ -322,7 +326,7 @@ namespace MCEMonitor
                 toggleMediaService.BackColor = Color.LightGray;
                 toggleKnob.Left = 2;
                 lblMediaStatus.Text =
-                    LanguageManager.Get("Media.Service.Stopped") ??
+                    LanguageManager.Get("Service MediaMonitor : arrêté") ??
                     "Service MediaMonitor : arrêté";
             }
         }

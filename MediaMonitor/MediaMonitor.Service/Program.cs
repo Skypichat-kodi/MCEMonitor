@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
 using MediaMonitor.Core.Models;
+using MediaMonitor.Core.Language;
 
 namespace MediaMonitor.Service
 {
@@ -26,7 +27,8 @@ namespace MediaMonitor.Service
         private static DateTime _lastConfigChange = DateTime.MinValue;
 
         // Dernier statut CODE02
-        private static string _lastReportStatus = "[CODE02] Dernier rapport inexistant";
+        private static string _lastReportStatus =
+            "[CODE02] " + (LanguageManager.Get("Dernier rapport inexistant") ?? "Dernier rapport inexistant");
 
         private static int LoadRetentionDays()
         {
@@ -156,8 +158,12 @@ namespace MediaMonitor.Service
             TimeSpan remaining = target - DateTime.Now;
 
             string msg =
-                $"[CODE01] Prochain envoi du rapport prévu à {target:HH:mm} " +
-                $"(dans {remaining.Hours}h {remaining.Minutes}min)";
+                "[CODE01] " +
+                (LanguageManager.Get("Prochain envoi du rapport prévu à") ?? "Prochain envoi du rapport prévu à")
+                + $" {target:HH:mm} "
+                + "("
+                + (LanguageManager.Get("dans") ?? "dans")
+                + $" {remaining.Hours}h {remaining.Minutes}min)";
 
             WriteScheduleLog(msg);
 
