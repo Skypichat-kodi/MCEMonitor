@@ -4,7 +4,10 @@ using System.Diagnostics;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.Json;
+using System.Net.Http;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace Autotrad
@@ -14,6 +17,11 @@ namespace Autotrad
         private string _lastOpenedFile = "";
         private Dictionary<string, string> _existingKeys = new();
         private string _langFolder = "";
+
+        private string _currentJsonPath = "";
+
+        private static readonly HttpClient http = new HttpClient();
+
         private string ConfigPath => Path.Combine(AppContext.BaseDirectory, "autotrad.config.json");
 
         public FormMain()
@@ -21,23 +29,22 @@ namespace Autotrad
             InitializeComponent();
             LoadConfig();
 
-            // Ajustement largeur initiale
             dataGridView1.Width = this.ClientSize.Width - 24;
             txtPreview.Width = this.ClientSize.Width - 24;
 
-            // Autoriser l'édition (mais on verrouille les colonnes non éditables dans SetupColumns)
             dataGridView1.ReadOnly = false;
             dataGridView1.EditMode = DataGridViewEditMode.EditOnEnter;
             dataGridView1.SelectionMode = DataGridViewSelectionMode.CellSelect;
 
-            // Preview
             txtPreview.Multiline = true;
             txtPreview.ReadOnly = true;
             txtPreview.ScrollBars = ScrollBars.Vertical;
 
             dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
 
-            // Positionner correctement le ComboBox langue
+            // ?? Ajout pour gérer le bouton Trad
+            dataGridView1.CellClick += dataGridView1_CellClick;
+
             cmbLang.Location = new Point(topPanel.Width - cmbLang.Width - 20, 4);
         }
 
@@ -47,9 +54,6 @@ namespace Autotrad
                 txtPreview.Text = dataGridView1.CurrentCell.Value?.ToString();
         }
 
-        // ------------------------------
-        // OUVRIR FICHIER
-        // ------------------------------
         private void OuvrirFichier_Click(object sender, EventArgs e)
         {
             using var dlg = new OpenFileDialog();
@@ -69,9 +73,6 @@ namespace Autotrad
             }
         }
 
-        // ------------------------------
-        // OUVRIR DOSSIER
-        // ------------------------------
         private void OuvrirDossier_Click(object sender, EventArgs e)
         {
             using var dlg = new FolderBrowserDialog();
@@ -82,9 +83,6 @@ namespace Autotrad
             }
         }
 
-        // ------------------------------
-        // CHARGER DOSSIER
-        // ------------------------------
         private void ChargerDossier(string folder)
         {
             _lastOpenedFile = folder;
@@ -115,9 +113,6 @@ namespace Autotrad
             FillPreviewColumn();
         }
 
-        // ------------------------------
-        // CHOIX DE LANGUE
-        // ------------------------------
         private string GetSelectedLangCode()
         {
             if (cmbLang.SelectedItem == null)
@@ -139,6 +134,8 @@ namespace Autotrad
             string path = Path.Combine(_langFolder, $"{lang}.json");
 
             Directory.CreateDirectory(_langFolder);
+
+            _currentJsonPath = path;
 
             if (!File.Exists(path))
             {
@@ -175,9 +172,6 @@ namespace Autotrad
             }
         }
 
-        // ------------------------------
-        // COLONNES
-        // ------------------------------
         private void SetupColumns(bool isFolderMode)
         {
             dataGridView1.AutoGenerateColumns = false;
@@ -224,9 +218,15 @@ namespace Autotrad
             };
             dataGridView1.Columns.Add(colText);
 
-            // ------------------------------
-            // NOUVELLE COLONNE : TRADUCTION JSON
-            // ------------------------------
+            var colTrad = new DataGridViewButtonColumn
+            {
+                HeaderText = "Trad",
+                Text = "Trad",
+                UseColumnTextForButtonValue = true,
+                Width = 60
+            };
+            dataGridView1.Columns.Add(colTrad);
+
             var colJson = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "JsonValue",
@@ -248,9 +248,6 @@ namespace Autotrad
             }
         }
 
-        // ------------------------------
-        // COLORATION
-        // ------------------------------
         private void dataGridView1_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
         {
             var row = dataGridView1.Rows[e.RowIndex];
@@ -272,25 +269,22 @@ namespace Autotrad
             row.DefaultCellStyle.BackColor = Color.White;
         }
 
-        // ------------------------------
-        // SAUVEGARDE JSON
-        // ------------------------------
         private void SaveJson()
         {
-            string lang = GetSelectedLangCode();
-            string path = Path.Combine(_langFolder, $"{lang}.json");
+            if (string.IsNullOrEmpty(_currentJsonPath))
+                return;
 
-            var json = JsonSerializer.Serialize(_existingKeys, new JsonSerializerOptions
+            var options = new JsonSerializerOptions
             {
-                WriteIndented = true
-            });
+                WriteIndented = true,
+                Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
+            };
 
-            File.WriteAllText(path, json);
+            string json = JsonSerializer.Serialize(_existingKeys, options);
+
+            File.WriteAllText(_currentJsonPath, json, new UTF8Encoding(true));
         }
 
-        // ------------------------------
-        // DOUBLE-CLIC : ouvrir fichier à la ligne
-        // ------------------------------
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
@@ -329,9 +323,6 @@ namespace Autotrad
             }
         }
 
-        // ------------------------------
-        // CONFIG
-        // ------------------------------
         private void LoadConfig()
         {
             if (File.Exists(ConfigPath))
@@ -384,6 +375,7 @@ namespace Autotrad
                 MessageBox.Show("Dossier des langues mis à jour.");
             }
         }
+
         private void btnApply_Click(object sender, EventArgs e)
         {
             if (dataGridView1.DataSource is not IEnumerable<ScanResult> list)
@@ -391,22 +383,89 @@ namespace Autotrad
 
             foreach (var item in list)
             {
-                // On ignore les clés vides
                 if (string.IsNullOrWhiteSpace(item.Key))
                     continue;
 
-                // On ignore les traductions vides
                 if (string.IsNullOrWhiteSpace(item.JsonValue))
                     continue;
 
-                // Mise à jour du dictionnaire
                 _existingKeys[item.Key] = item.JsonValue;
             }
 
             SaveJson();
 
+            if (Directory.Exists(_lastOpenedFile))
+            {
+                ChargerDossier(_lastOpenedFile);
+            }
+            else if (File.Exists(_lastOpenedFile))
+            {
+                var refreshed = Scanner.ScanFile(_lastOpenedFile, _existingKeys);
+                SetupColumns(false);
+                dataGridView1.DataSource = refreshed;
+                FillPreviewColumn();
+            }
+
             MessageBox.Show("Modifications appliquées au fichier JSON.", "Succès",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        // ?? MÉTHODE DE TRADUCTION LIBRETRANSLATE
+private async Task<string> TranslateTextAsync(string text, string lang)
+{
+    string target = lang switch
+    {
+        "fr-FR" => "fr",
+        "en-GB" => "en",
+        "de-DE" => "de",
+        "es-ES" => "es",
+        _ => "en"
+    };
+
+    string apiKey = "ta_8ed30e2b2252b02d349477accd1664d9a30f35b1269004c1120d25f2";
+
+    var payload = new
+    {
+        text = text,
+        target_language = target
+    };
+
+    var json = JsonSerializer.Serialize(payload);
+    var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.translateapi.ai/api/v1/translate/");
+    request.Headers.Add("Authorization", $"Bearer {apiKey}");
+    request.Content = content;
+
+    var response = await http.SendAsync(request);
+    string result = await response.Content.ReadAsStringAsync();
+
+    using var doc = JsonDocument.Parse(result);
+    return doc.RootElement.GetProperty("translated_text").GetString();
+}
+
+        // ?? GESTION DU CLIC SUR LE BOUTON TRAD
+        private async void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0)
+                return;
+
+            if (dataGridView1.Columns[e.ColumnIndex] is DataGridViewButtonColumn)
+            {
+                if (dataGridView1.Rows[e.RowIndex].DataBoundItem is ScanResult item)
+                {
+                    string sourceText = item.Text;
+                    string targetLang = GetSelectedLangCode();
+
+                    string translated = await TranslateTextAsync(sourceText, targetLang);
+
+                    if (!string.IsNullOrWhiteSpace(translated))
+                    {
+                        item.JsonValue = translated;
+                        dataGridView1.Refresh();
+                    }
+                }
+            }
         }
     }
 }
