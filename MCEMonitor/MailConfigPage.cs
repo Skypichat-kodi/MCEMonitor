@@ -68,7 +68,7 @@ namespace MCEMonitor
 
 btnSave = new Button
 {
-    Text = LanguageManager.Get("YourFormName.BtnSave.Text") ?? "Enregistrer",
+    Text = LanguageManager.Get("Enregistrer") ?? "Enregistrer",
     Left = 160,
     Top = 240,
     Width = 120
@@ -78,7 +78,7 @@ btnSave = new Button
 
 btnTest = new Button
 {
-    Text = LanguageManager.Get("YourFormName.BtnTest.Text") ?? "Tester SMTP",
+    Text = LanguageManager.Get("Tester SMTP") ?? "Tester SMTP",
     Left = 300,
     Top = 240,
     Width = 140
@@ -216,12 +216,10 @@ btnTest.Click += BtnTest_Click;
             message.From.Add(new MailboxAddress("MCEMonitor", cfg.From));
             message.To.Add(new MailboxAddress(cfg.To, cfg.To));
             message.Subject = "Test SMTP - MCEMonitor";
-
-message.Body = new TextPart("plain")
-{
-    Text = LanguageManager.Get("EmailTest.Body") ?? "Ceci est un email de test envoyé depuis MCEMonitor."
-};
-
+            message.Body = new TextPart("plain")
+            {
+                Text = LanguageManager.Get("Ceci est un email de test envoyé depuis MCEMonitor.") ?? "Ceci est un email de test envoyé depuis MCEMonitor."
+            };
 
             SecureSocketOptions options = SecureSocketOptions.Auto;
 

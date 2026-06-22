@@ -56,7 +56,7 @@ namespace MCEMonitor
             // ============================================================
 
             this.ClientSize = new System.Drawing.Size(700, 470);
-            this.Text = LanguageManager.Get("App.Title") ?? "MCEMonitor";
+            this.Text = LanguageManager.Get("MCEMonitor") ?? "MCEMonitor";
 
             // ============================================================
             // TAB CONTROL
@@ -78,32 +78,32 @@ namespace MCEMonitor
 
             this.tabEmail.Location = new System.Drawing.Point(4, 29);
             this.tabEmail.Size = new System.Drawing.Size(672, 467);
-            this.tabEmail.Text = LanguageManager.Get("Tab.Email") ?? "Email";
+            this.tabEmail.Text = LanguageManager.Get("Email") ?? "Email";
             this.tabEmail.UseVisualStyleBackColor = true;
 
             this.tabMediaMonitor.Location = new System.Drawing.Point(4, 29);
             this.tabMediaMonitor.Size = new System.Drawing.Size(672, 467);
-            this.tabMediaMonitor.Text = LanguageManager.Get("Tab.MediaMonitor") ?? "Media Monitor";
+            this.tabMediaMonitor.Text = LanguageManager.Get("Media Monitor") ?? "Media Monitor";
             this.tabMediaMonitor.UseVisualStyleBackColor = true;
 
             this.tabWakeMonitor.Location = new System.Drawing.Point(4, 29);
             this.tabWakeMonitor.Size = new System.Drawing.Size(672, 467);
-            this.tabWakeMonitor.Text = LanguageManager.Get("Tab.WakeMonitor") ?? "Wake Monitor";
+            this.tabWakeMonitor.Text = LanguageManager.Get("Wake Monitor") ?? "Wake Monitor";
             this.tabWakeMonitor.UseVisualStyleBackColor = true;
 
             this.tabStopMonitor.Location = new System.Drawing.Point(4, 29);
             this.tabStopMonitor.Size = new System.Drawing.Size(672, 467);
-            this.tabStopMonitor.Text = LanguageManager.Get("Tab.StopMonitor") ?? "Stop Monitor";
+            this.tabStopMonitor.Text = LanguageManager.Get("Stop Monitor") ?? "Stop Monitor";
             this.tabStopMonitor.UseVisualStyleBackColor = true;
 
             this.tabOnOff.Location = new System.Drawing.Point(4, 29);
             this.tabOnOff.Size = new System.Drawing.Size(672, 467);
-            this.tabOnOff.Text = LanguageManager.Get("Tab.OnOff") ?? "On/Off";
+            this.tabOnOff.Text = LanguageManager.Get("On/Off") ?? "On/Off";
             this.tabOnOff.UseVisualStyleBackColor = true;
 
             this.tabAbout.Location = new System.Drawing.Point(4, 29);
             this.tabAbout.Size = new System.Drawing.Size(672, 467);
-            this.tabAbout.Text = LanguageManager.Get("Tab.About") ?? "À propos";
+            this.tabAbout.Text = LanguageManager.Get("À propos") ?? "À propos";
             this.tabAbout.UseVisualStyleBackColor = true;
 
             // ============================================================
@@ -150,7 +150,7 @@ namespace MCEMonitor
             this.lblEmailDescription.Size = new System.Drawing.Size(580, 30);
             this.lblEmailDescription.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.lblEmailDescription.Text =
-                LanguageManager.Get("Email.Description") ??
+                LanguageManager.Get("Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.") ??
                 "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.";
 
             this.pnlEmailInfo.Controls.Add(this.picEmailInfo);
@@ -162,7 +162,7 @@ namespace MCEMonitor
             this.lblEmailTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblEmailTitle.Location = new System.Drawing.Point(20, 60);
             this.lblEmailTitle.Text =
-                LanguageManager.Get("Email.Title") ?? "Configuration Email";
+                LanguageManager.Get("Configuration Email") ?? "Configuration Email";
             this.tabEmail.Controls.Add(this.lblEmailTitle);
 
             // ALIGNEMENT DES CHAMPS
@@ -174,7 +174,7 @@ namespace MCEMonitor
             int step = 28;
 
             // Serveur SMTP
-            this.lblSmtpServer.Text = LanguageManager.Get("Email.SmtpServer") ?? "Serveur SMTP :";
+            this.lblSmtpServer.Text = LanguageManager.Get("Serveur SMTP :") ?? "Serveur SMTP :";
             this.lblSmtpServer.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblSmtpServer.Location = new System.Drawing.Point(labelX, y);
             this.lblSmtpServer.Size = new System.Drawing.Size(labelWidth, 20);
@@ -187,7 +187,7 @@ namespace MCEMonitor
             y += step;
 
             // Port
-            this.lblSmtpPort.Text = LanguageManager.Get("Email.Port") ?? "Port :";
+            this.lblSmtpPort.Text = LanguageManager.Get("Port :") ?? "Port :";
             this.lblSmtpPort.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblSmtpPort.Location = new System.Drawing.Point(labelX, y);
             this.lblSmtpPort.Size = new System.Drawing.Size(labelWidth, 20);
@@ -200,7 +200,7 @@ namespace MCEMonitor
             y += step;
 
             // Adresse expéditeur
-            this.lblEmailFrom.Text = LanguageManager.Get("Email.From") ?? "Adresse expéditeur :";
+            this.lblEmailFrom.Text = LanguageManager.Get("Adresse expéditeur :") ?? "Adresse expéditeur :";
             this.lblEmailFrom.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblEmailFrom.Location = new System.Drawing.Point(labelX, y);
             this.lblEmailFrom.Size = new System.Drawing.Size(labelWidth, 20);
@@ -213,7 +213,7 @@ namespace MCEMonitor
             y += step;
 
             // Mot de passe
-            this.lblEmailPassword.Text = LanguageManager.Get("Email.Password") ?? "Mot de passe :";
+            this.lblEmailPassword.Text = LanguageManager.Get("Mot de passe :") ?? "Mot de passe :";
             this.lblEmailPassword.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblEmailPassword.Location = new System.Drawing.Point(labelX, y);
             this.lblEmailPassword.Size = new System.Drawing.Size(labelWidth, 20);
@@ -226,14 +226,14 @@ namespace MCEMonitor
 
             this.btnTogglePassword.Location = new System.Drawing.Point(fieldX + fieldWidth - 80, y - 1);
             this.btnTogglePassword.Size = new System.Drawing.Size(80, 22);
-            this.btnTogglePassword.Text = LanguageManager.Get("Email.Password.Show") ?? "Afficher";
+            this.btnTogglePassword.Text = LanguageManager.Get("Afficher") ?? "Afficher";
             this.btnTogglePassword.Font = normalFont;
             this.btnTogglePassword.Click += new System.EventHandler(this.BtnTogglePassword_Click);
 
             y += step;
 
             // Destinataire
-            this.lblEmailTo.Text = LanguageManager.Get("Email.To") ?? "Destinataire :";
+            this.lblEmailTo.Text = LanguageManager.Get("Destinataire :") ?? "Destinataire :";
             this.lblEmailTo.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblEmailTo.Location = new System.Drawing.Point(labelX, y);
             this.lblEmailTo.Size = new System.Drawing.Size(labelWidth, 20);
@@ -246,7 +246,7 @@ namespace MCEMonitor
             y += step;
 
             // Sécurité
-            this.lblSecurityMode.Text = LanguageManager.Get("Email.SecurityMode") ?? "Sécurité :";
+            this.lblSecurityMode.Text = LanguageManager.Get("Sécurité :") ?? "Sécurité :";
             this.lblSecurityMode.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
             this.lblSecurityMode.Location = new System.Drawing.Point(labelX, y);
             this.lblSecurityMode.Size = new System.Drawing.Size(labelWidth, 20);
@@ -276,13 +276,13 @@ namespace MCEMonitor
             // Boutons Email
             this.btnSaveEmail.Location = new System.Drawing.Point(100, 340);
             this.btnSaveEmail.Size = new System.Drawing.Size(220, 35);
-            this.btnSaveEmail.Text = LanguageManager.Get("Email.SaveConfig") ?? "Enregistrer configuration";
+            this.btnSaveEmail.Text = LanguageManager.Get("Enregistrer configuration") ?? "Enregistrer configuration";
             this.btnSaveEmail.Font = normalFont;
             this.btnSaveEmail.Click += new System.EventHandler(this.BtnSaveEmail_Click);
 
             this.btnTestEmail.Location = new System.Drawing.Point(330, 340);
             this.btnTestEmail.Size = new System.Drawing.Size(200, 35);
-            this.btnTestEmail.Text = LanguageManager.Get("Email.Test") ?? "Tester Email";
+            this.btnTestEmail.Text = LanguageManager.Get("Tester Email") ?? "Tester Email";
             this.btnTestEmail.Font = normalFont;
             this.btnTestEmail.Click += new System.EventHandler(this.BtnTestEmail_Click);
 
@@ -310,7 +310,7 @@ namespace MCEMonitor
             this.btnOpenMediaUI = new System.Windows.Forms.Button();
 
             // GROUPBOX 1 — INFORMATIONS
-            this.grpMediaInfo.Text = LanguageManager.Get("Media.Info.Title") ?? "À propos de MediaMonitor";
+            this.grpMediaInfo.Text = LanguageManager.Get("À propos de MediaMonitor") ?? "À propos de MediaMonitor";
             this.grpMediaInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpMediaInfo.Location = new System.Drawing.Point(20, 20);
             this.grpMediaInfo.Size = new System.Drawing.Size(620, 120);
@@ -346,7 +346,7 @@ namespace MCEMonitor
 
             // GROUPBOX 2 — AUTOMATISATION & ACTIONS (AVEC TOGGLE)
 
-            this.grpMediaActions.Text = LanguageManager.Get("Media.Actions.Title") ?? "Automatisation du rapport";
+            this.grpMediaActions.Text = LanguageManager.Get("Automatisation du rapport") ?? "Automatisation du rapport";
             this.grpMediaActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpMediaActions.Location = new System.Drawing.Point(20, 150);
             this.grpMediaActions.Size = new System.Drawing.Size(620, 160);
@@ -381,7 +381,7 @@ namespace MCEMonitor
 
             this.toggleMediaService.Controls.Add(this.toggleKnob);
 
-            this.lblMediaStatus.Text = LanguageManager.Get("Media.Service.Label") ?? "Service MediaMonitor";
+            this.lblMediaStatus.Text = LanguageManager.Get("Service MediaMonitor") ?? "Service MediaMonitor";
             this.lblMediaStatus.Font = normalFont;
             this.lblMediaStatus.Location = new System.Drawing.Point(70, 32);
             this.lblMediaStatus.AutoSize = true;
@@ -405,19 +405,19 @@ namespace MCEMonitor
 
             // BOUTONS MEDIA MONITOR
 
-            this.btnCreateMediaTask2.Text = LanguageManager.Get("Media.Task.Create") ?? "Créer tâche planifiée";
+            this.btnCreateMediaTask2.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateMediaTask2.Font = normalFont;
             this.btnCreateMediaTask2.Size = new System.Drawing.Size(180, 32);
             this.btnCreateMediaTask2.Location = new System.Drawing.Point(30, 100);
             this.btnCreateMediaTask2.Click += new System.EventHandler(this.BtnCreateMediaTask_Click);
 
-            this.btnDeleteMediaTask2.Text = LanguageManager.Get("Media.Task.Delete") ?? "Supprimer tâche planifiée";
+            this.btnDeleteMediaTask2.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteMediaTask2.Font = normalFont;
             this.btnDeleteMediaTask2.Size = new System.Drawing.Size(180, 32);
             this.btnDeleteMediaTask2.Location = new System.Drawing.Point(220, 100);
             this.btnDeleteMediaTask2.Click += new System.EventHandler(this.BtnDeleteMediaTask_Click);
 
-            this.btnOpenMediaUI.Text = LanguageManager.Get("Media.UI.Open") ?? "Ouvrir MediaMonitor";
+            this.btnOpenMediaUI.Text = LanguageManager.Get("Ouvrir MediaMonitor") ?? "Ouvrir MediaMonitor";
             this.btnOpenMediaUI.Font = normalFont;
             this.btnOpenMediaUI.Size = new System.Drawing.Size(180, 32);
             this.btnOpenMediaUI.Location = new System.Drawing.Point(410, 100);
@@ -463,7 +463,7 @@ namespace MCEMonitor
             this.btnManageWolMacs = new System.Windows.Forms.Button();
 
             // Titre Wake
-this.lblWakeTitle.Text = LanguageManager.Get("App.Description") ?? "À propos de WakeMonitor";
+            this.lblWakeTitle.Text = LanguageManager.Get("À propos de WakeMonitor") ?? "À propos de WakeMonitor";
             this.lblWakeTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblWakeTitle.AutoSize = true;
             this.lblWakeTitle.Location = new System.Drawing.Point(15, 10);
@@ -495,39 +495,39 @@ this.lblWakeTitle.Text = LanguageManager.Get("App.Description") ?? "À propos de 
             this.tabWakeMonitor.Controls.Add(this.pnlWakeInfo);
 
             // GROUPBOX OPTIONS
-            this.grpWakeOptions.Text = LanguageManager.Get("Wake.Options.Title") ?? "Indications à donner dans le mail";
+            this.grpWakeOptions.Text = LanguageManager.Get("Indications à donner dans le mail") ?? "Indications à donner dans le mail";
             this.grpWakeOptions.Location = new System.Drawing.Point(15, 110);
             this.grpWakeOptions.Size = new System.Drawing.Size(400, 200);
             this.grpWakeOptions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
 
             this.chkPublicIP.AutoSize = true;
             this.chkPublicIP.Location = new System.Drawing.Point(15, 30);
-            this.chkPublicIP.Text = LanguageManager.Get("Wake.Option.PublicIP") ?? "Inclure IP publique";
+            this.chkPublicIP.Text = LanguageManager.Get("Inclure IP publique") ?? "Inclure IP publique";
             this.chkPublicIP.Font = normalFont;
 
             this.chkLocalIP.AutoSize = true;
             this.chkLocalIP.Location = new System.Drawing.Point(15, 60);
-            this.chkLocalIP.Text = LanguageManager.Get("Wake.Option.LocalIP") ?? "Inclure IP locale";
+            this.chkLocalIP.Text = LanguageManager.Get("Inclure IP locale") ?? "Inclure IP locale";
             this.chkLocalIP.Font = normalFont;
 
             this.chkMAC.AutoSize = true;
             this.chkMAC.Location = new System.Drawing.Point(15, 90);
-            this.chkMAC.Text = LanguageManager.Get("Wake.Option.MAC") ?? "Inclure MAC";
+            this.chkMAC.Text = LanguageManager.Get("Inclure MAC") ?? "Inclure MAC";
             this.chkMAC.Font = normalFont;
 
             this.chkUSB.AutoSize = true;
             this.chkUSB.Location = new System.Drawing.Point(15, 120);
-            this.chkUSB.Text = LanguageManager.Get("Wake.Option.USB") ?? "Inclure USB";
+            this.chkUSB.Text = LanguageManager.Get("Inclure USB") ?? "Inclure USB";
             this.chkUSB.Font = normalFont;
 
             this.chkCause.AutoSize = true;
             this.chkCause.Location = new System.Drawing.Point(15, 150);
-            this.chkCause.Text = LanguageManager.Get("Wake.Option.Cause") ?? "Inclure cause";
+            this.chkCause.Text = LanguageManager.Get("Inclure cause") ?? "Inclure cause";
             this.chkCause.Font = normalFont;
 
             this.chkDuration.AutoSize = true;
             this.chkDuration.Location = new System.Drawing.Point(15, 180);
-            this.chkDuration.Text = LanguageManager.Get("Wake.Option.Duration") ?? "Inclure durée";
+            this.chkDuration.Text = LanguageManager.Get("Inclure durée") ?? "Inclure durée";
             this.chkDuration.Font = normalFont;
 
             this.grpWakeOptions.Controls.Add(this.chkPublicIP);
@@ -542,19 +542,19 @@ this.lblWakeTitle.Text = LanguageManager.Get("App.Description") ?? "À propos de 
             // BOUTONS WAKE
             this.btnCreateWakeTask.Location = new System.Drawing.Point(440, 120);
             this.btnCreateWakeTask.Size = new System.Drawing.Size(200, 35);
-            this.btnCreateWakeTask.Text = LanguageManager.Get("Wake.Task.Create") ?? "Créer tâche planifiée";
+            this.btnCreateWakeTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateWakeTask.Font = normalFont;
             this.btnCreateWakeTask.Click += new System.EventHandler(this.BtnCreateWakeTask_Click);
 
             this.btnDeleteWakeTask.Location = new System.Drawing.Point(440, 165);
             this.btnDeleteWakeTask.Size = new System.Drawing.Size(200, 35);
-            this.btnDeleteWakeTask.Text = LanguageManager.Get("Wake.Task.Delete") ?? "Supprimer tâche planifiée";
+            this.btnDeleteWakeTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteWakeTask.Font = normalFont;
             this.btnDeleteWakeTask.Click += new System.EventHandler(this.BtnDeleteWakeTask_Click);
 
             this.btnManageWolMacs.Location = new System.Drawing.Point(440, 210);
             this.btnManageWolMacs.Size = new System.Drawing.Size(200, 35);
-this.btnManageWolMacs.Text = LanguageManager.Get("Autorized.Mac") ?? "Gérer MAC autorisées";
+            this.btnManageWolMacs.Text = LanguageManager.Get("Gérer MAC autorisées") ?? "Gérer MAC autorisées";
             this.btnManageWolMacs.Font = normalFont;
             this.btnManageWolMacs.Click += new System.EventHandler(this.BtnManageWolMacs_Click);
 
@@ -562,13 +562,13 @@ this.btnManageWolMacs.Text = LanguageManager.Get("Autorized.Mac") ?? "Gérer MAC 
 
             this.btnSaveWakeConfig.Size = new System.Drawing.Size(200, 35);
             this.btnSaveWakeConfig.Location = new System.Drawing.Point((672 - 200) / 2 - 110, wakeButtonY);
-            this.btnSaveWakeConfig.Text = LanguageManager.Get("Wake.Config.Save") ?? "Enregistrer configuration";
+            this.btnSaveWakeConfig.Text = LanguageManager.Get("Enregistrer configuration") ?? "Enregistrer configuration";
             this.btnSaveWakeConfig.Font = normalFont;
             this.btnSaveWakeConfig.Click += new System.EventHandler(this.BtnSaveWakeConfig_Click);
 
             this.btnRunWake.Size = new System.Drawing.Size(200, 35);
             this.btnRunWake.Location = new System.Drawing.Point((672 - 200) / 2 + 110, wakeButtonY);
-            this.btnRunWake.Text = LanguageManager.Get("Wake.Run") ?? "Envoi d'un mail de test";
+            this.btnRunWake.Text = LanguageManager.Get("Envoi d'un mail de test") ?? "Envoi d'un mail de test";
             this.btnRunWake.Font = normalFont;
             this.btnRunWake.Click += new System.EventHandler(this.BtnRunWake_Click);
 
@@ -586,7 +586,7 @@ this.btnManageWolMacs.Text = LanguageManager.Get("Autorized.Mac") ?? "Gérer MAC 
             this.lblStopTitle.AutoSize = true;
             this.lblStopTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblStopTitle.Location = new System.Drawing.Point(15, 5);
-this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de StopMonitor";
+this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A propos de StopMonitor";
             this.tabStopMonitor.Controls.Add(this.lblStopTitle);
 
             // ============================================================
@@ -627,19 +627,19 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.btnDeleteStopTask = new System.Windows.Forms.Button();
             this.btnRunStopMonitor = new System.Windows.Forms.Button();
 
-            this.btnCreateStopTask.Text = LanguageManager.Get("Stop.Task.Create") ?? "Créer tâche planifiée";
+            this.btnCreateStopTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateStopTask.Location = new System.Drawing.Point(20, 100);
             this.btnCreateStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateStopTask.Font = normalFont;
             this.btnCreateStopTask.Click += new System.EventHandler(this.BtnCreateStopTask_Click);
 
-            this.btnDeleteStopTask.Text = LanguageManager.Get("Stop.Task.Delete") ?? "Supprimer tâche planifiée";
+            this.btnDeleteStopTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteStopTask.Location = new System.Drawing.Point(20, 145);
             this.btnDeleteStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteStopTask.Font = normalFont;
             this.btnDeleteStopTask.Click += new System.EventHandler(this.BtnDeleteStopTask_Click);
 
-            this.btnRunStopMonitor.Text = LanguageManager.Get("Stop.Run") ?? "Envoi d'un mail de test";
+            this.btnRunStopMonitor.Text = LanguageManager.Get("Envoi d'un mail de test") ?? "Envoi d'un mail de test";
             this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 190);
             this.btnRunStopMonitor.Size = new System.Drawing.Size(200, 35);
             this.btnRunStopMonitor.Font = normalFont;
@@ -658,7 +658,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.lblOnOffInfo = new System.Windows.Forms.Label();
             this.picOnOffInfo = new System.Windows.Forms.PictureBox();
 
-            this.grpOnOffInfo.Text = LanguageManager.Get("OnOff.Info.Title") ?? "Information";
+            this.grpOnOffInfo.Text = LanguageManager.Get("Information") ?? "Information";
             this.grpOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpOnOffInfo.Location = new System.Drawing.Point(15, 10);
             this.grpOnOffInfo.Size = new System.Drawing.Size(640, 120);
@@ -695,12 +695,12 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.btnCreateShutdownTask = new System.Windows.Forms.Button();
             this.btnDeleteShutdownTask = new System.Windows.Forms.Button();
 
-            this.grpShutdown.Text = LanguageManager.Get("Shutdown.Title") ?? "Arrêt programmé";
+            this.grpShutdown.Text = LanguageManager.Get("Arrêt programmé") ?? "Arrêt programmé";
             this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpShutdown.Location = new System.Drawing.Point(15, 135);
             this.grpShutdown.Size = new System.Drawing.Size(640, 150);
 
-            this.lblShutdownHour.Text = LanguageManager.Get("Shutdown.Hour") ?? "Heure (0–23) :";
+            this.lblShutdownHour.Text = LanguageManager.Get("Heure (0–23) :") ?? "Heure (0–23) :";
             this.lblShutdownHour.Location = new System.Drawing.Point(20, 35);
             this.lblShutdownHour.Font = normalFont;
 
@@ -710,7 +710,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.numShutdownHour.Width = 60;
             this.numShutdownHour.Font = normalFont;
 
-            this.lblShutdownMinute.Text = LanguageManager.Get("Shutdown.Minute") ?? "Minute (0–59) :";
+            this.lblShutdownMinute.Text = LanguageManager.Get("Minute (0–59) :") ?? "Minute (0–59) :";
             this.lblShutdownMinute.Location = new System.Drawing.Point(230, 35);
             this.lblShutdownMinute.Font = normalFont;
 
@@ -720,7 +720,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.numShutdownMinute.Width = 60;
             this.numShutdownMinute.Font = normalFont;
 
-            this.lblShutdownType.Text = LanguageManager.Get("Shutdown.Type") ?? "Choisir le type d'arrêt :";
+            this.lblShutdownType.Text = LanguageManager.Get("Choisir le type d'arrêt :") ?? "Choisir le type d'arrêt :";
             this.lblShutdownType.Location = new System.Drawing.Point(20, 65);
             this.lblShutdownType.Size = new System.Drawing.Size(150, 25);
             this.lblShutdownType.Font = normalFont;
@@ -734,7 +734,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
 
             // Bouton Sauvegarder configuration On/Off
             this.btnSaveOnOff = new System.Windows.Forms.Button();
-            this.btnSaveOnOff.Text = LanguageManager.Get("OnOff.Save") ?? "Sauvegarder";
+            this.btnSaveOnOff.Text = LanguageManager.Get("Sauvegarder") ?? "Sauvegarder";
             this.btnSaveOnOff.Font = normalFont;
             this.btnSaveOnOff.Location = new System.Drawing.Point(10, 100);
             this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
@@ -742,13 +742,13 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
 
             this.grpShutdown.Controls.Add(this.btnSaveOnOff);
 
-            this.btnCreateShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Create") ?? "Créer tâche planifiée";
+            this.btnCreateShutdownTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
-            this.btnDeleteShutdownTask.Text = LanguageManager.Get("Shutdown.Task.Delete") ?? "Supprimer tâche planifiée";
+            this.btnDeleteShutdownTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
@@ -769,7 +769,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.grpWOL = new System.Windows.Forms.GroupBox();
             this.lblWOLInfo = new System.Windows.Forms.Label();
 
-            this.grpWOL.Text = LanguageManager.Get("WOL.Title") ?? "Démarrage automatique (Wake On Lan)";
+            this.grpWOL.Text = LanguageManager.Get("Démarrage automatique (Wake On Lan)") ?? "Démarrage automatique (Wake On Lan)";
             this.grpWOL.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpWOL.Location = new System.Drawing.Point(15, 290);
             this.grpWOL.Size = new System.Drawing.Size(640, 120);
@@ -805,7 +805,7 @@ this.lblStopTitle.Text = LanguageManager.Get("About.Title") ?? "A propos de Stop
             this.lblAbout.MaximumSize = new System.Drawing.Size(600, 0);
             this.lblAbout.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.lblAbout.Text =
-                (LanguageManager.Get("About.Text") ?? "À propos de MCEMonitor") +
+                (LanguageManager.Get("À propos de MCEMonitor") ?? "À propos de MCEMonitor") +
                 "\n\n" +
                 "----------------------------------------\n" +
                 "LICENCE MIT\n" +

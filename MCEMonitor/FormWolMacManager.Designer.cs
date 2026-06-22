@@ -33,7 +33,7 @@ namespace MCEMonitor
             // 
             // labelTitle
             // 
-            this.labelTitle.Text = LanguageManager.Get("Wake.MacWhitelistTitle") ?? "Adresses MAC autorisées (Whitelist WOL)";
+            this.labelTitle.Text = LanguageManager.Get("Adresses MAC autorisées (Whitelist WOL)") ?? "Adresses MAC autorisées (Whitelist WOL)";
             this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.labelTitle.Location = new System.Drawing.Point(12, 9);
             this.labelTitle.Size = new System.Drawing.Size(350, 23);
@@ -49,7 +49,7 @@ namespace MCEMonitor
             // 
             // labelAdd
             // 
-            this.labelAdd.Text = LanguageManager.Get("Wake.AddMac") ?? "Ajouter une adresse MAC :";
+            this.labelAdd.Text = LanguageManager.Get("Ajouter une adresse MAC :") ?? "Ajouter une adresse MAC :";
             this.labelAdd.Location = new System.Drawing.Point(12, 200);
             this.labelAdd.Size = new System.Drawing.Size(200, 20);
 
@@ -62,7 +62,7 @@ namespace MCEMonitor
             // 
             // btnAdd
             // 
-            this.btnAdd.Text = LanguageManager.Get("Common.Add") ?? "+";
+            this.btnAdd.Text = LanguageManager.Get("+") ?? "+";
             this.btnAdd.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Bold);
             this.btnAdd.Location = new System.Drawing.Point(275, 220);
             this.btnAdd.Size = new System.Drawing.Size(40, 32);
@@ -71,7 +71,7 @@ namespace MCEMonitor
             // 
             // btnRemove
             // 
-            this.btnRemove.Text = LanguageManager.Get("Common.Delete") ?? "Supprimer";
+            this.btnRemove.Text = LanguageManager.Get("Supprimer") ?? "Supprimer";
             this.btnRemove.Location = new System.Drawing.Point(15, 270);
             this.btnRemove.Size = new System.Drawing.Size(120, 30);
             this.btnRemove.Click += new System.EventHandler(this.btnRemove_Click);
@@ -79,7 +79,7 @@ namespace MCEMonitor
             // 
             // btnClose
             // 
-            this.btnClose.Text = LanguageManager.Get("Common.Close") ?? "Fermer";
+            this.btnClose.Text = LanguageManager.Get("Fermer") ?? "Fermer";
             this.btnClose.Location = new System.Drawing.Point(225, 270);
             this.btnClose.Size = new System.Drawing.Size(120, 30);
             this.btnClose.Click += new System.EventHandler(this.btnClose_Click);

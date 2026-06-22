@@ -80,7 +80,7 @@ namespace MCEMonitor
 
             PopupHelper.ShowBottomPopup(
             this,
-                LanguageManager.Get("Email.ConfigSaved") ?? "Configuration Email enregistrée"
+                LanguageManager.Get("Configuration Email enregistrée") ?? "Configuration Email enregistrée"
             );
         }
 
@@ -90,13 +90,13 @@ namespace MCEMonitor
             {
                 txtEmailPassword.PasswordChar = '\0';
                 btnTogglePassword.Text =
-                    LanguageManager.Get("Email.Password.Hide") ?? "Masquer";
+                    LanguageManager.Get("Masquer") ?? "Masquer";
             }
             else
             {
                 txtEmailPassword.PasswordChar = '*';
                 btnTogglePassword.Text =
-                    LanguageManager.Get("Email.Password.Show") ?? "Afficher";
+                    LanguageManager.Get("Afficher") ?? "Afficher";
             }
         }
 
@@ -106,12 +106,12 @@ namespace MCEMonitor
 
             var logForm = new SmtpTestForm();
             logForm.Show();
-            logForm.Log(LanguageManager.Get("Email.Test.Start") ?? "Démarrage du test SMTP…");
+            logForm.Log(LanguageManager.Get("Démarrage du test SMTP…") ?? "Démarrage du test SMTP…");
 
             try
             {
                 logForm.Log(
-                    (LanguageManager.Get("Email.Test.DnsResolve") ?? "Résolution DNS du serveur") +
+                    (LanguageManager.Get("Résolution DNS du serveur") ?? "Résolution DNS du serveur") +
                     $" {cfg.Server}…"
                 );
 
@@ -120,7 +120,7 @@ namespace MCEMonitor
                     logForm.Log($"IP : {addresses[0]}");
 
                 logForm.Log(
-                    (LanguageManager.Get("Email.Test.Connecting") ?? "Connexion au serveur SMTP sur le port") +
+                    (LanguageManager.Get("Connexion au serveur SMTP sur le port") ?? "Connexion au serveur SMTP sur le port") +
                     $" {cfg.Port}…"
                 );
 
@@ -138,11 +138,11 @@ namespace MCEMonitor
                 await client.ConnectAsync(cfg.Server, cfg.Port, options);
                 logForm.Log($"Connexion établie ({options})");
 
-                logForm.Log(LanguageManager.Get("Email.Test.Authenticating") ?? "Authentification…");
+                logForm.Log(LanguageManager.Get("Authentification…") ?? "Authentification…");
                 await client.AuthenticateAsync(cfg.From, cfg.Password);
-                logForm.Log(LanguageManager.Get("Email.Test.AuthSuccess") ?? "Authentification réussie.");
+                logForm.Log(LanguageManager.Get("Authentification réussie.") ?? "Authentification réussie.");
 
-                logForm.Log(LanguageManager.Get("Email.Test.Sending") ?? "Envoi du message de test…");
+                logForm.Log(LanguageManager.Get("Envoi du message de test…") ?? "Envoi du message de test…");
 
                 var msg = new MimeMessage();
                 msg.From.Add(new MailboxAddress("MCEMonitor", cfg.From));
@@ -151,15 +151,15 @@ namespace MCEMonitor
                 msg.Body = new TextPart("plain") { Text = "Ceci est un test SMTP." };
 
                 await client.SendAsync(msg);
-                logForm.Log(LanguageManager.Get("Email.Test.Success") ?? "Email envoyé avec succès !");
+                logForm.Log(LanguageManager.Get("Email envoyé avec succès !") ?? "Email envoyé avec succès !");
 
                 await client.DisconnectAsync(true);
-                logForm.Log(LanguageManager.Get("Email.Test.Disconnect") ?? "Déconnexion du serveur.");
+                logForm.Log(LanguageManager.Get("Déconnexion du serveur.") ?? "Déconnexion du serveur.");
             }
             catch (Exception ex)
             {
                 logForm.Log(
-                    (LanguageManager.Get("Email.Test.Error") ?? "ERREUR : ") + ex.Message
+                    (LanguageManager.Get("ERREUR : ") ?? "ERREUR : ") + ex.Message
                 );
             }
         }
@@ -227,7 +227,7 @@ namespace MCEMonitor
                 PopupHelper.ShowBottomPopup(
                 this,
                     result,
-                    LanguageManager.Get("Media.Task.CreateResult") ?? "Résultat création tâche MediaMonitor"
+                    LanguageManager.Get("Résultat création tâche MediaMonitor") ?? "Résultat création tâche MediaMonitor"
                 );
 
                 UpdateMediaTaskButtons();
@@ -236,7 +236,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                 this,
-                    (LanguageManager.Get("Error.Generic") ?? "Erreur : ") + ex.Message
+                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message
                 );
             }
         }
@@ -249,7 +249,7 @@ namespace MCEMonitor
                 PopupHelper.ShowBottomPopup(
                 this,
                     result,
-                    LanguageManager.Get("Media.Task.DeleteResult") ?? "Résultat suppression tâche MediaMonitor"
+                    LanguageManager.Get("Résultat suppression tâche MediaMonitor") ?? "Résultat suppression tâche MediaMonitor"
                 );
 
                 UpdateMediaTaskButtons();
@@ -258,7 +258,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                 this,
-                    (LanguageManager.Get("Error.Generic") ?? "Erreur : ") + ex.Message
+                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message
                 );
             }
         }
@@ -342,9 +342,9 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("Media.Service.UIRunning") ??
+                    LanguageManager.Get("Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.") ??
                     "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
-                    LanguageManager.Get("Media.Service.InUse") ?? "Service en cours d'utilisation"
+                    LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
                 );
                     return;
                 }
@@ -366,7 +366,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("Media.Service.NotFound") ??
+                    LanguageManager.Get("MediaMonitor.Service.exe introuvable.") ??
                     "MediaMonitor.Service.exe introuvable.",
                     "Erreur"
                 );
@@ -557,7 +557,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             PopupHelper.ShowBottomPopup(
                 this,
-                LanguageManager.Get("Wake.ConfigSaved") ?? "Configuration WakeMonitor enregistrée",
+                LanguageManager.Get("Configuration WakeMonitor enregistrée") ?? "Configuration WakeMonitor enregistrée",
                 "Information"
             );
         }
@@ -590,9 +590,9 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        LanguageManager.Get("Wake.ExeNotFound") ??
+                        LanguageManager.Get("WakeMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.") ??
                         "WakeMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.",
-                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
+                        LanguageManager.Get("Erreur") ?? "Erreur"
                     );
                     return;
                 }
@@ -607,7 +607,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("Wake.RunSuccess") ?? "WakeMonitor exécuté",
+                    LanguageManager.Get("WakeMonitor exécuté") ?? "WakeMonitor exécuté",
                     "Information"
                 );
             }
@@ -615,9 +615,9 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             {
               PopupHelper.ShowBottomPopup(
                   this,
-                  (LanguageManager.Get("Wake.RunError") ??
+                  (LanguageManager.Get("Impossible d'exécuter WakeMonitor.exe : ") ??
                   "Impossible d'exécuter WakeMonitor.exe :\n") + ex.Message,
-                  LanguageManager.Get("Error.ProcessStart") ?? "Erreur"
+                  LanguageManager.Get("Erreur") ?? "Erreur"
               );
             }
         }
@@ -665,7 +665,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             PopupHelper.ShowBottomPopup(
                 this,
-                LanguageManager.Get("OnOff.ConfigSaved") ??
+                LanguageManager.Get("Configuration enregistrée.") ??
                 "Configuration enregistrée.",
                 "Information"
             );
@@ -715,9 +715,9 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        LanguageManager.Get("Stop.ExeNotFound") ??
+                        LanguageManager.Get("StopMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.") ??
                         "StopMonitor.exe est introuvable dans C:\\ProgramData\\MCEMonitor.",
-                        LanguageManager.Get("Error.FileNotFound") ?? "Erreur"
+                        LanguageManager.Get("Erreur") ?? "Erreur"
                     );
                     return;
                 }
@@ -732,7 +732,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
                     PopupHelper.ShowBottomPopup(
                         this,
-                        LanguageManager.Get("Stop.RunSuccess") ?? "StopMonitor exécuté",
+                        LanguageManager.Get("StopMonitor exécuté") ?? "StopMonitor exécuté",
                         "Information"
                     );
             }
@@ -740,9 +740,9 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             {
                   PopupHelper.ShowBottomPopup(
                       this,
-                      (LanguageManager.Get("Stop.RunError") ??
+                      (LanguageManager.Get("Impossible d'exécuter StopMonitor.exe :") ??
                       "Impossible d'exécuter StopMonitor.exe :\n") + ex.Message,
-                      LanguageManager.Get("Error.ProcessStart") ?? "Erreur"
+                      LanguageManager.Get("Erreur") ?? "Erreur"
                   );
             }
         }
@@ -856,7 +856,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("Shutdown.TaskCreated") ??
+                    LanguageManager.Get("Tâche planifiée créée avec succès.") ??
                     "Tâche planifiée créée avec succès.",
                     "Information"
                 );
@@ -867,7 +867,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
+                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message,
                     "Erreur"
                 );
             }
@@ -881,7 +881,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("Shutdown.TaskDeleted") ??
+                    LanguageManager.Get("Tâche planifiée supprimée avec succès.") ??
                     "Tâche planifiée supprimée avec succès.",
                     "Information"
                 );
@@ -892,7 +892,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    (LanguageManager.Get("Shutdown.Error") ?? "Erreur : ") + ex.Message,
+                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message,
                     "Erreur"
                 );
             }

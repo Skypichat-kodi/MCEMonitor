@@ -585,7 +585,7 @@
                     <!-- ========================= -->
                     <!--     ONGLET DVBVIEWER RS   -->
                     <!-- ========================= -->
-                    <TabItem Header="{loc:Tr 'Serveur TV'}">
+                    <TabItem Header="{loc:Tr 'DVBviewer RS'}">
                         <Grid Margin="10">
 
                             <Grid.RowDefinitions>

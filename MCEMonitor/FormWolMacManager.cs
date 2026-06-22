@@ -69,7 +69,7 @@ namespace MCEMonitor
 
             if (string.IsNullOrWhiteSpace(mac))
             {
-                MessageBox.Show(LanguageManager.Get("FormWolMacManager_Veuillez_entrer_une_adresse_MAC_1766") ?? "Veuillez entrer une adresse MAC.");
+                MessageBox.Show(LanguageManager.Get("Veuillez entrer une adresse MAC.") ?? "Veuillez entrer une adresse MAC.");
                 return;
             }
 
@@ -81,13 +81,13 @@ namespace MCEMonitor
 
             if (!IsValidMac(mac))
             {
-                MessageBox.Show(LanguageManager.Get("FormWolMacManager_Format_MAC_invalide_Exemple__AABBCCDDEEF_47ad") ?? "Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF");
+                MessageBox.Show(LanguageManager.Get("Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF") ?? "Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF");
                 return;
             }
 
             if (listBoxMacs.Items.Contains(mac))
             {
-                MessageBox.Show(LanguageManager.Get("FormWolMacManager_Cette_adresse_MAC_est_deja_dans_la_liste_e15b") ?? "Cette adresse MAC est déjà dans la liste.");
+                MessageBox.Show(LanguageManager.Get("Cette adresse MAC est déjà dans la liste.") ?? "Cette adresse MAC est déjà dans la liste.");
                 return;
             }
 
