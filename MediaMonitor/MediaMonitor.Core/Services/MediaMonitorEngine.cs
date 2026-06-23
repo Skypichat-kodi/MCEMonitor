@@ -380,8 +380,21 @@ namespace MediaMonitor.Core.Services
         public List<MediaUsageItem> GetHistory()
         {
             lock (_sync)
-                return new List<MediaUsageItem>(_history);
+            {
+                // ?? Nettoyage des doublons SANS réassigner _history
+                var cleaned = _history
+                    .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom })
+                    .Select(g => g.First())
+                    .ToList();
+
+                // On vide la liste existante et on remet les éléments propres
+                _history.Clear();
+                _history.AddRange(cleaned);
+
                 CoreLog.Write($"DEBUG GetHistory: retourne {_history.Count} items.");
+
+                return new List<MediaUsageItem>(_history);
+            }
         }
         
         public List<DvbViewerClientStream> GetCachedDvbViewerStreams()
