@@ -631,9 +631,53 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             if (files.Length == 0)
             {
-                return "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
-                       "<h2>Aucune sauvegarde disponible.</h2>" +
-                       "<a href='/' style='color:#4fc3f7;'>Retour</a></body></html>";
+                return @"
+            <html>
+            <head>
+                <meta charset='utf-8'>
+                <title>Aucune sauvegarde</title>
+                <style>
+                    body {
+                        background-color: #1e1e1e;
+                        color: #ffffff;
+                        font-family: Segoe UI, Arial, sans-serif;
+                        margin: 0;
+                        padding: 40px;
+                    }
+                    .container {
+                        max-width: 700px;
+                        margin: auto;
+                        background: #2b2b2b;
+                        padding: 25px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px #000;
+                        text-align: center;
+                    }
+                    h2 {
+                        color: #f55;
+                    }
+                    a.btn {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 10px 18px;
+                        background: #444;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }
+                    a.btn:hover {
+                        background: #666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <h2>Aucune sauvegarde disponible.</h2>
+                    <a href='/' class='btn'>Retour</a>
+                </div>
+            </body>
+            </html>";
             }
 
             string lastFile = files.OrderByDescending(f => f).First();
@@ -1280,7 +1324,53 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             if (files.Length == 0)
             {
-                SendHtml(ctx, "<html><body><h2>Aucune sauvegarde disponible.</h2></body></html>");
+                SendHtml(ctx, @"
+            <html>
+            <head>
+                <meta charset='utf-8'>
+                <title>Aucune sauvegarde</title>
+                <style>
+                    body {
+                        background-color: #1e1e1e;
+                        color: #ffffff;
+                        font-family: Segoe UI, Arial, sans-serif;
+                        margin: 0;
+                        padding: 40px;
+                    }
+                    .container {
+                        max-width: 700px;
+                        margin: auto;
+                        background: #2b2b2b;
+                        padding: 25px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px #000;
+                        text-align: center;
+                    }
+                    h2 {
+                        color: #f55;
+                    }
+                    a.btn {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 10px 18px;
+                        background: #444;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }
+                    a.btn:hover {
+                        background: #666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <h2>Aucune sauvegarde disponible.</h2>
+                    <a href='/' class='btn'>Retour</a>
+                </div>
+            </body>
+            </html>");
                 return;
             }
 
@@ -1368,9 +1458,53 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                     File.Delete(f);
             }
 
-            SendHtml(ctx,
-                "<html><body><h2>Toutes les sauvegardes ont été supprimées.</h2>" +
-                "<a href='/backup'>Retour</a></body></html>");
+            SendHtml(ctx, @"
+            <html>
+            <head>
+                <meta charset='utf-8'>
+                <title>Purge des sauvegardes</title>
+                <style>
+                    body {
+                        background-color: #1e1e1e;
+                        color: #ffffff;
+                        font-family: Arial, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .container {
+                        max-width: 700px;
+                        margin: auto;
+                        background: #2b2b2b;
+                        padding: 25px;
+                        border-radius: 8px;
+                        box-shadow: 0 0 10px #000;
+                        text-align: center;
+                    }
+                    h2 {
+                        color: #4fc3f7;
+                    }
+                    a.btn {
+                        display: inline-block;
+                        margin-top: 20px;
+                        padding: 10px 18px;
+                        background: #444;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 5px;
+                        font-weight: bold;
+                    }
+                    a.btn:hover {
+                        background: #666;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class='container'>
+                    <h2>Toutes les sauvegardes ont été supprimées.</h2>
+                    <a href='/backup' class='btn'>Retour</a>
+                </div>
+            </body>
+            </html>");
         }
     }
 }
