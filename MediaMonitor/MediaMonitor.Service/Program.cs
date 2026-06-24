@@ -287,15 +287,21 @@ namespace MediaMonitor.Service
                         backup.Reports.Add(existing);
                     }
 
+                    // ?? Nettoyage des doublons dans le backup JSON AVANT comparaison
+                    existing.Items = existing.Items
+                        .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom })
+                        .Select(g => g.First())
+                        .ToList();
+
                     // Récupérer les items RAM
                     var newItems = engine.GetHistory();
 
-                    // ?? Filtrer les items RAM déjà présents dans le backup JSON
                     var filtered = newItems.Where(item =>
                         !existing.Items.Any(x =>
                             x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
                             x.ClientIP.Equals(item.ClientIP, StringComparison.OrdinalIgnoreCase) &&
-                            (x.Timestamp - item.Timestamp).Duration() <= TimeSpan.FromMinutes(1)
+                            x.Timestamp.ToString("yyyy-MM-dd HH:mm") ==
+                            item.Timestamp.ToString("yyyy-MM-dd HH:mm")
                         )
                     ).ToList();
 
