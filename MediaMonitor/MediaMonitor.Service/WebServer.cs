@@ -632,52 +632,52 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             if (files.Length == 0)
             {
                 return @"
-            <html>
-            <head>
-                <meta charset='utf-8'>
-                <title>Aucune sauvegarde</title>
-                <style>
-                    body {
-                        background-color: #1e1e1e;
-                        color: #ffffff;
-                        font-family: Segoe UI, Arial, sans-serif;
-                        margin: 0;
-                        padding: 40px;
-                    }
-                    .container {
-                        max-width: 700px;
-                        margin: auto;
-                        background: #2b2b2b;
-                        padding: 25px;
-                        border-radius: 8px;
-                        box-shadow: 0 0 10px #000;
-                        text-align: center;
-                    }
-                    h2 {
-                        color: #f55;
-                    }
-                    a.btn {
-                        display: inline-block;
-                        margin-top: 20px;
-                        padding: 10px 18px;
-                        background: #444;
-                        color: white;
-                        text-decoration: none;
-                        border-radius: 5px;
-                        font-weight: bold;
-                    }
-                    a.btn:hover {
-                        background: #666;
-                    }
-                </style>
-            </head>
-            <body>
-                <div class='container'>
-                    <h2>Aucune sauvegarde disponible.</h2>
-                    <a href='/' class='btn'>Retour</a>
-                </div>
-            </body>
-            </html>";
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Aucune sauvegarde</title>
+                    <style>
+                        body {
+                            background-color: #1e1e1e;
+                            color: #ffffff;
+                            font-family: Segoe UI, Arial, sans-serif;
+                            margin: 0;
+                            padding: 40px;
+                        }
+                        .container {
+                            max-width: 700px;
+                            margin: auto;
+                            background: #2b2b2b;
+                            padding: 25px;
+                            border-radius: 8px;
+                            box-shadow: 0 0 10px #000;
+                            text-align: center;
+                        }
+                        h2 {
+                            color: #f55;
+                        }
+                        a.btn {
+                            display: inline-block;
+                            margin-top: 20px;
+                            padding: 10px 18px;
+                            background: #444;
+                            color: white;
+                            text-decoration: none;
+                            border-radius: 5px;
+                            font-weight: bold;
+                        }
+                        a.btn:hover {
+                            background: #666;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <h2>Aucune sauvegarde disponible.</h2>
+                        <a href='/' class='btn'>Retour</a>
+                    </div>
+                </body>
+                </html>";
             }
 
             string lastFile = files.OrderByDescending(f => f).First();
@@ -687,6 +687,16 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             if (backup == null || backup.Reports == null)
                 return "<html><body><h2>Sauvegarde invalide.</h2></body></html>";
+
+            // Fusionner les rapports du même jour pour éviter les doublons visuels
+            backup.Reports = backup.Reports
+                .GroupBy(r => r.Date.Date)
+                .Select(g => new DailyReport
+                {
+                    Date = g.Key,
+                    Items = g.SelectMany(r => r.Items ?? new List<BackupItem>()).ToList()
+                })
+                .ToList();
 
             // Aplatir tous les items
             var allItems = backup.Reports
@@ -782,12 +792,12 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 };
 
                 rows.Append($@"
-            <tr>
-                <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-                <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
-                <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
-                <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
-            </tr>");
+                <tr>
+                    <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
+                    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
+                    <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
+                    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+                </tr>");
             }
 
             // Activité par heure
@@ -811,7 +821,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 .Replace("{{SERIES}}", series.ToString())
                 .Replace("{{VIDEOS}}", videos.ToString())
                 .Replace("{{REC}}", recCount.ToString())
-                .Replace("{{TV}}", tvCount.ToString())              
+                .Replace("{{TV}}", tvCount.ToString())
                 .Replace("{{COUNT}}", total.ToString())
                 .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
                 .Replace("{{ROWS}}", rows.ToString())
@@ -841,6 +851,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             return html;
         }
+
         // ==========================
         //  TEMPLATE HTML BACKUP
         // ==========================

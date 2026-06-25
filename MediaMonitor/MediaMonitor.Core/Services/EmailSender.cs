@@ -81,9 +81,11 @@ namespace MediaMonitor.Core.Services
                 string logPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
+                    "Logs",
                     "email_error.log"
                 );
 
+                // S’assurer que le dossier existe
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
                 File.AppendAllText(logPath,

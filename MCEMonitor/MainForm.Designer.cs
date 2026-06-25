@@ -1,6 +1,7 @@
 using System;
 using System.Drawing;
 using System.Windows.Forms;
+using System.Diagnostics;
 
 namespace MCEMonitor
 {
@@ -35,35 +36,31 @@ namespace MCEMonitor
             this.logRefreshTimer.Tick += new System.EventHandler(this.LogRefreshTimer_Tick);
             this.logRefreshTimer.Start();           
             this.ResumeLayout(false);
-            this.PerformLayout();
-            
+            this.PerformLayout();            
 
             // ============================================================
             // SUSPEND LAYOUT
             // ============================================================
-
             this.tabControl.SuspendLayout();
             this.SuspendLayout();
 
             // ============================================================
             // POLICE NORMALE
             // ============================================================
-
             var normalFont = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Regular);
 
             // ============================================================
             // MAIN WINDOW
             // ============================================================
-
             this.ClientSize = new System.Drawing.Size(700, 470);
             this.Text = LanguageManager.Get("MCEMonitor") ?? "MCEMonitor";
 
             // ============================================================
             // TAB CONTROL
             // ============================================================
-
             this.tabControl.Location = new System.Drawing.Point(10, 10);
             this.tabControl.Size = new System.Drawing.Size(680, 450);
+            this.tabControl.BackColor = Color.FromArgb(165, 42, 42);
 
             this.tabControl.Controls.Add(this.tabEmail);
             this.tabControl.Controls.Add(this.tabMediaMonitor);
@@ -75,7 +72,6 @@ namespace MCEMonitor
             // ============================================================
             // CONFIGURATION DES ONGLETS
             // ============================================================
-
             this.tabEmail.Location = new System.Drawing.Point(4, 29);
             this.tabEmail.Size = new System.Drawing.Size(672, 467);
             this.tabEmail.Text = LanguageManager.Get("Email") ?? "Email";
@@ -109,7 +105,6 @@ namespace MCEMonitor
             // ============================================================
             // EMAIL — PANEL INFO
             // ============================================================
-
             this.pnlEmailInfo = new System.Windows.Forms.Panel();
             this.picEmailInfo = new System.Windows.Forms.PictureBox();
             this.lblEmailDescription = new System.Windows.Forms.Label();
@@ -274,16 +269,33 @@ namespace MCEMonitor
             this.tabEmail.Controls.Add(this.cmbSecurityMode);
 
             // Boutons Email
+            // Bouton Enregistrer
             this.btnSaveEmail.Location = new System.Drawing.Point(100, 340);
             this.btnSaveEmail.Size = new System.Drawing.Size(220, 35);
             this.btnSaveEmail.Text = LanguageManager.Get("Enregistrer configuration") ?? "Enregistrer configuration";
             this.btnSaveEmail.Font = normalFont;
+
+            // Style gris clair moderne
+            this.btnSaveEmail.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnSaveEmail.FlatStyle = FlatStyle.Flat;
+            this.btnSaveEmail.FlatAppearance.BorderSize = 1;
+            this.btnSaveEmail.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
             this.btnSaveEmail.Click += new System.EventHandler(this.BtnSaveEmail_Click);
 
+
+            // Bouton Tester Email
             this.btnTestEmail.Location = new System.Drawing.Point(330, 340);
             this.btnTestEmail.Size = new System.Drawing.Size(200, 35);
             this.btnTestEmail.Text = LanguageManager.Get("Tester Email") ?? "Tester Email";
             this.btnTestEmail.Font = normalFont;
+
+            // Style gris clair moderne
+            this.btnTestEmail.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnTestEmail.FlatStyle = FlatStyle.Flat;
+            this.btnTestEmail.FlatAppearance.BorderSize = 1;
+            this.btnTestEmail.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
             this.btnTestEmail.Click += new System.EventHandler(this.BtnTestEmail_Click);
 
             this.tabEmail.Controls.Add(this.btnSaveEmail);
@@ -292,7 +304,6 @@ namespace MCEMonitor
             // ============================================================
             // MEDIA MONITOR — CONTENU
             // ============================================================
-
             this.grpMediaInfo = new System.Windows.Forms.GroupBox();
             this.pnlMediaInfo = new System.Windows.Forms.Panel();
             this.picMediaInfo = new System.Windows.Forms.PictureBox();
@@ -405,24 +416,49 @@ namespace MCEMonitor
 
             // BOUTONS MEDIA MONITOR
 
+            // Bouton Créer tâche
             this.btnCreateMediaTask2.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateMediaTask2.Font = normalFont;
             this.btnCreateMediaTask2.Size = new System.Drawing.Size(180, 32);
             this.btnCreateMediaTask2.Location = new System.Drawing.Point(30, 100);
             this.btnCreateMediaTask2.Click += new System.EventHandler(this.BtnCreateMediaTask_Click);
 
+            // Style gris clair moderne
+            this.btnCreateMediaTask2.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnCreateMediaTask2.FlatStyle = FlatStyle.Flat;
+            this.btnCreateMediaTask2.FlatAppearance.BorderSize = 1;
+            this.btnCreateMediaTask2.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Supprimer tâche
             this.btnDeleteMediaTask2.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteMediaTask2.Font = normalFont;
             this.btnDeleteMediaTask2.Size = new System.Drawing.Size(180, 32);
             this.btnDeleteMediaTask2.Location = new System.Drawing.Point(220, 100);
             this.btnDeleteMediaTask2.Click += new System.EventHandler(this.BtnDeleteMediaTask_Click);
 
+            // Style gris clair moderne
+            this.btnDeleteMediaTask2.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnDeleteMediaTask2.FlatStyle = FlatStyle.Flat;
+            this.btnDeleteMediaTask2.FlatAppearance.BorderSize = 1;
+            this.btnDeleteMediaTask2.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Ouvrir MediaMonitor UI
             this.btnOpenMediaUI.Text = LanguageManager.Get("Ouvrir MediaMonitor") ?? "Ouvrir MediaMonitor";
             this.btnOpenMediaUI.Font = normalFont;
             this.btnOpenMediaUI.Size = new System.Drawing.Size(180, 32);
             this.btnOpenMediaUI.Location = new System.Drawing.Point(410, 100);
             this.btnOpenMediaUI.Click += new System.EventHandler(this.BtnOpenUI_Click);
 
+            // Style gris clair moderne
+            this.btnOpenMediaUI.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnOpenMediaUI.FlatStyle = FlatStyle.Flat;
+            this.btnOpenMediaUI.FlatAppearance.BorderSize = 1;
+            this.btnOpenMediaUI.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Ajout dans le groupbox
             this.grpMediaActions.Controls.Add(this.toggleMediaService);
             this.grpMediaActions.Controls.Add(this.lblMediaStatus);
             this.grpMediaActions.Controls.Add(this.lblNextReport);
@@ -442,7 +478,6 @@ namespace MCEMonitor
             // ============================================================
             // WAKE MONITOR — CONTENU
             // ============================================================
-
             this.lblWakeTitle = new System.Windows.Forms.Label();
             this.pnlWakeInfo = new System.Windows.Forms.Panel();
             this.picWakeInfo = new System.Windows.Forms.PictureBox();
@@ -540,24 +575,50 @@ namespace MCEMonitor
             this.tabWakeMonitor.Controls.Add(this.grpWakeOptions);
 
             // BOUTONS WAKE
+
+            // Créer tâche
             this.btnCreateWakeTask.Location = new System.Drawing.Point(440, 120);
             this.btnCreateWakeTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateWakeTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateWakeTask.Font = normalFont;
             this.btnCreateWakeTask.Click += new System.EventHandler(this.BtnCreateWakeTask_Click);
 
+            // Style gris clair moderne
+            this.btnCreateWakeTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnCreateWakeTask.FlatStyle = FlatStyle.Flat;
+            this.btnCreateWakeTask.FlatAppearance.BorderSize = 1;
+            this.btnCreateWakeTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Supprimer tâche
             this.btnDeleteWakeTask.Location = new System.Drawing.Point(440, 165);
             this.btnDeleteWakeTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteWakeTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteWakeTask.Font = normalFont;
             this.btnDeleteWakeTask.Click += new System.EventHandler(this.BtnDeleteWakeTask_Click);
 
+            // Style gris clair moderne
+            this.btnDeleteWakeTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnDeleteWakeTask.FlatStyle = FlatStyle.Flat;
+            this.btnDeleteWakeTask.FlatAppearance.BorderSize = 1;
+            this.btnDeleteWakeTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Gérer MAC autorisées
             this.btnManageWolMacs.Location = new System.Drawing.Point(440, 210);
             this.btnManageWolMacs.Size = new System.Drawing.Size(200, 35);
             this.btnManageWolMacs.Text = LanguageManager.Get("Gérer MAC autorisées") ?? "Gérer MAC autorisées";
             this.btnManageWolMacs.Font = normalFont;
             this.btnManageWolMacs.Click += new System.EventHandler(this.BtnManageWolMacs_Click);
 
+            // Style gris clair moderne
+            this.btnManageWolMacs.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnManageWolMacs.FlatStyle = FlatStyle.Flat;
+            this.btnManageWolMacs.FlatAppearance.BorderSize = 1;
+            this.btnManageWolMacs.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Enregistrer configuration
             int wakeButtonY = 340;
 
             this.btnSaveWakeConfig.Size = new System.Drawing.Size(200, 35);
@@ -566,11 +627,25 @@ namespace MCEMonitor
             this.btnSaveWakeConfig.Font = normalFont;
             this.btnSaveWakeConfig.Click += new System.EventHandler(this.BtnSaveWakeConfig_Click);
 
+            // Style gris clair moderne
+            this.btnSaveWakeConfig.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnSaveWakeConfig.FlatStyle = FlatStyle.Flat;
+            this.btnSaveWakeConfig.FlatAppearance.BorderSize = 1;
+            this.btnSaveWakeConfig.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Envoi test
             this.btnRunWake.Size = new System.Drawing.Size(200, 35);
             this.btnRunWake.Location = new System.Drawing.Point((672 - 200) / 2 + 110, wakeButtonY);
             this.btnRunWake.Text = LanguageManager.Get("Envoi d'un mail de test") ?? "Envoi d'un mail de test";
             this.btnRunWake.Font = normalFont;
             this.btnRunWake.Click += new System.EventHandler(this.BtnRunWake_Click);
+
+            // Style gris clair moderne
+            this.btnRunWake.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnRunWake.FlatStyle = FlatStyle.Flat;
+            this.btnRunWake.FlatAppearance.BorderSize = 1;
+            this.btnRunWake.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
 
             this.tabWakeMonitor.Controls.Add(this.btnSaveWakeConfig);
             this.tabWakeMonitor.Controls.Add(this.btnRunWake);
@@ -581,18 +656,16 @@ namespace MCEMonitor
             // ============================================================
             // STOP MONITOR — TITRE
             // ============================================================
-
             this.lblStopTitle = new System.Windows.Forms.Label();
             this.lblStopTitle.AutoSize = true;
             this.lblStopTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblStopTitle.Location = new System.Drawing.Point(15, 5);
-this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A propos de StopMonitor";
+            this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A propos de StopMonitor";
             this.tabStopMonitor.Controls.Add(this.lblStopTitle);
 
             // ============================================================
             // STOP MONITOR — CONTENU
             // ============================================================
-
             this.pnlStopInfo = new System.Windows.Forms.Panel();
             this.picStopInfo = new System.Windows.Forms.PictureBox();
             this.lblStopDescription = new System.Windows.Forms.Label();
@@ -622,28 +695,50 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             // ============================================================
             // STOP MONITOR — BOUTONS
             // ============================================================
-
             this.btnCreateStopTask = new System.Windows.Forms.Button();
             this.btnDeleteStopTask = new System.Windows.Forms.Button();
             this.btnRunStopMonitor = new System.Windows.Forms.Button();
 
+            // Bouton Créer tâche
             this.btnCreateStopTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateStopTask.Location = new System.Drawing.Point(20, 100);
             this.btnCreateStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateStopTask.Font = normalFont;
             this.btnCreateStopTask.Click += new System.EventHandler(this.BtnCreateStopTask_Click);
 
+            // Style gris clair moderne
+            this.btnCreateStopTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnCreateStopTask.FlatStyle = FlatStyle.Flat;
+            this.btnCreateStopTask.FlatAppearance.BorderSize = 1;
+            this.btnCreateStopTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Supprimer tâche
             this.btnDeleteStopTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteStopTask.Location = new System.Drawing.Point(20, 145);
             this.btnDeleteStopTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteStopTask.Font = normalFont;
             this.btnDeleteStopTask.Click += new System.EventHandler(this.BtnDeleteStopTask_Click);
 
+            // Style gris clair moderne
+            this.btnDeleteStopTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnDeleteStopTask.FlatStyle = FlatStyle.Flat;
+            this.btnDeleteStopTask.FlatAppearance.BorderSize = 1;
+            this.btnDeleteStopTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Bouton Envoi d'un mail de test
             this.btnRunStopMonitor.Text = LanguageManager.Get("Envoi d'un mail de test") ?? "Envoi d'un mail de test";
             this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 190);
             this.btnRunStopMonitor.Size = new System.Drawing.Size(200, 35);
             this.btnRunStopMonitor.Font = normalFont;
             this.btnRunStopMonitor.Click += new System.EventHandler(this.BtnRunStopMonitor_Click);
+
+            // Style gris clair moderne
+            this.btnRunStopMonitor.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnRunStopMonitor.FlatStyle = FlatStyle.Flat;
+            this.btnRunStopMonitor.FlatAppearance.BorderSize = 1;
+            this.btnRunStopMonitor.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
 
             this.tabStopMonitor.Controls.Add(this.btnCreateStopTask);
             this.tabStopMonitor.Controls.Add(this.btnDeleteStopTask);
@@ -652,7 +747,6 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             // ============================================================
             // ON / OFF — CONTENU
             // ============================================================
-
             // BLOC D’INFORMATION ON/OFF
             this.grpOnOffInfo = new System.Windows.Forms.GroupBox();
             this.lblOnOffInfo = new System.Windows.Forms.Label();
@@ -732,7 +826,9 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             this.cmbShutdownType.SelectedIndex = 0;
             this.cmbShutdownType.Font = normalFont;
 
+            // ============================================================
             // Bouton Sauvegarder configuration On/Off
+            // ============================================================
             this.btnSaveOnOff = new System.Windows.Forms.Button();
             this.btnSaveOnOff.Text = LanguageManager.Get("Sauvegarder") ?? "Sauvegarder";
             this.btnSaveOnOff.Font = normalFont;
@@ -740,20 +836,48 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
             this.btnSaveOnOff.Click += new System.EventHandler(this.BtnSaveOnOff_Click);
 
+            // Style gris clair moderne
+            this.btnSaveOnOff.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnSaveOnOff.FlatStyle = FlatStyle.Flat;
+            this.btnSaveOnOff.FlatAppearance.BorderSize = 1;
+            this.btnSaveOnOff.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
             this.grpShutdown.Controls.Add(this.btnSaveOnOff);
 
+
+            // ============================================================
+            // Bouton Créer tâche planifiée
+            // ============================================================
             this.btnCreateShutdownTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 100);
             this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnCreateShutdownTask.Font = normalFont;
             this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
 
+            // Style gris clair moderne
+            this.btnCreateShutdownTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnCreateShutdownTask.FlatStyle = FlatStyle.Flat;
+            this.btnCreateShutdownTask.FlatAppearance.BorderSize = 1;
+            this.btnCreateShutdownTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // ============================================================
+            // Bouton Supprimer tâche planifiée
+            // ============================================================
             this.btnDeleteShutdownTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 100);
             this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
             this.btnDeleteShutdownTask.Font = normalFont;
             this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);
 
+            // Style gris clair moderne
+            this.btnDeleteShutdownTask.BackColor = Color.FromArgb(220, 220, 225);
+            this.btnDeleteShutdownTask.FlatStyle = FlatStyle.Flat;
+            this.btnDeleteShutdownTask.FlatAppearance.BorderSize = 1;
+            this.btnDeleteShutdownTask.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
+
+
+            // Ajout des autres contrôles
             this.grpShutdown.Controls.Add(this.lblShutdownHour);
             this.grpShutdown.Controls.Add(this.numShutdownHour);
             this.grpShutdown.Controls.Add(this.lblShutdownMinute);
@@ -791,7 +915,6 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             // ============================================================
             // À PROPOS — CONTENU
             // ============================================================
-
             // PANEL DÉFILANT
             this.pnlAboutScroll = new System.Windows.Forms.Panel();
             this.pnlAboutScroll.Location = new System.Drawing.Point(10, 10);
@@ -832,15 +955,101 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
             AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
             LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
             OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.";
-
+            
             // AJOUTS
             this.pnlAboutScroll.Controls.Add(this.lblAbout);
-            this.tabAbout.Controls.Add(this.pnlAboutScroll);
+            this.tabAbout.Controls.Add(this.pnlAboutScroll); 
+                       
+            // BOUTON : Ouvrir le dossier Logs
+            this.btnOpenLogs = new System.Windows.Forms.Button();
+            this.btnOpenLogs.Text = "Dossier Logs";
+            this.btnOpenLogs.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.btnOpenLogs.Size = new System.Drawing.Size(150, 35);
+            this.btnOpenLogs.Location = new System.Drawing.Point(10, this.lblAbout.Bottom + 20);
+            this.btnOpenLogs.BackColor = Color.FromArgb(60, 60, 60);
+            this.btnOpenLogs.ForeColor = Color.White;
+            this.btnOpenLogs.FlatStyle = FlatStyle.Flat;
+            this.btnOpenLogs.FlatAppearance.BorderSize = 0;
+            
+            // Action du bouton
+            this.btnOpenLogs.Click += (s, e) =>
+            {
+                string logFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                if (!Directory.Exists(logFolder))
+                    Directory.CreateDirectory(logFolder);
+
+                try
+                {
+                    Process.Start("explorer.exe", logFolder);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Impossible d’ouvrir le dossier Logs.\n\n" + ex.Message,
+                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+            // Ajout au panneau défilant
+            this.pnlAboutScroll.Controls.Add(this.btnOpenLogs);
+            // BOUTON : Purger les logs
+            this.btnPurgeLogs = new System.Windows.Forms.Button();
+            this.btnPurgeLogs.Text = "Purger les logs";
+            this.btnPurgeLogs.Font = new System.Drawing.Font("Segoe UI", 10F);
+            this.btnPurgeLogs.Size = new System.Drawing.Size(150, 35);
+
+            // Positionné juste à droite du bouton "Dossier Logs"
+            this.btnPurgeLogs.Location = new System.Drawing.Point(
+                this.btnOpenLogs.Right + 10,
+                this.btnOpenLogs.Top
+            );
+
+            this.btnPurgeLogs.BackColor = Color.FromArgb(120, 40, 40);
+            this.btnPurgeLogs.ForeColor = Color.White;
+            this.btnPurgeLogs.FlatStyle = FlatStyle.Flat;
+            this.btnPurgeLogs.FlatAppearance.BorderSize = 0;
+
+            // Action du bouton
+            this.btnPurgeLogs.Click += (s, e) =>
+            {
+                string logFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                try
+                {
+                    if (Directory.Exists(logFolder))
+                    {
+                        foreach (var file in Directory.GetFiles(logFolder))
+                            File.Delete(file);
+                    }
+                    else
+                    {
+                        Directory.CreateDirectory(logFolder);
+                    }
+
+                    MessageBox.Show("Tous les logs ont été purgés.", "Succès",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Erreur lors de la purge des logs.\n\n" + ex.Message,
+                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            };
+
+            // Ajout au panneau défilant
+            this.pnlAboutScroll.Controls.Add(this.btnPurgeLogs);
 
             // ============================================================
             // FINALISATION DU FORMULAIRE
             // ============================================================
-
             this.Controls.Add(this.tabControl);
 
             this.tabControl.ResumeLayout(false);
@@ -852,7 +1061,6 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
         // ============================================================
         // DÉCLARATIONS DES CONTRÔLES (FIN DU FICHIER)
         // ============================================================
-
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage tabEmail;
         private System.Windows.Forms.TabPage tabMediaMonitor;
@@ -944,6 +1152,8 @@ this.lblStopTitle.Text = LanguageManager.Get("A propos de StopMonitor") ?? "A pr
 
         private System.Windows.Forms.Label lblAbout;
         private System.Windows.Forms.Panel pnlAboutScroll;
+        private System.Windows.Forms.Button btnOpenLogs;
+        private System.Windows.Forms.Button btnPurgeLogs;        
     }
 }
 

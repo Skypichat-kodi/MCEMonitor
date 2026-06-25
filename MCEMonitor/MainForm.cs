@@ -35,6 +35,12 @@ namespace MCEMonitor
             this.StartPosition = FormStartPosition.CenterScreen;                        
 
             this.Icon = new Icon("Assets/MediaMonitor.ico");
+            this.BackColor = Color.FromArgb(200, 200, 210); // gris doux, pas trop foncé
+            // Fond des pages d’onglets en gris clair
+            foreach (TabPage page in tabControl.TabPages)
+            {
+                page.BackColor = Color.FromArgb(235, 235, 240); // gris clair
+            }
 
             LoadEmailConfig();
             LoadMediaConfig();
