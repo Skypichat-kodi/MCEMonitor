@@ -87,6 +87,33 @@ namespace Autotrad
                     });
                 }
             }
+            
+            // ---------------------------------------------------------
+            // 3) Analyse HTML
+            // ---------------------------------------------------------
+            if (path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
+                path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
+            {
+                var parsed = HtmlParser.Parse(lines);
+
+                foreach (var entry in parsed)
+                {
+                    bool exists = existingKeys.ContainsKey(entry.Key);
+
+                    results.Add(new ScanResult
+                    {
+                        FilePath = path,
+                        LineNumber = entry.LineNumber,
+                        FullLine = entry.Raw,
+                        Key = entry.Key,
+                        Text = entry.Key,
+                        Preview = entry.Preview,
+                        JsonValue = exists ? existingKeys[entry.Key] : "",
+                        IsTranslated = exists,
+                        IsMissingKey = !exists
+                    });
+                }
+            }
 
             return results;
         }
