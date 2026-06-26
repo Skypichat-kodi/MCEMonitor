@@ -9,11 +9,34 @@ using System.Collections.Generic;
 using MediaMonitor.Core.Services;
 using PdfSharp.Pdf;
 using PdfSharp.Drawing;
+using System.Text.RegularExpressions;
+using MediaMonitor.Core.Language;
 
 namespace MediaMonitor.Service
 {
     public class WebServer
     {
+        // Regex compilée pour détecter {{tr:...}}
+        private static readonly Regex TrHtmlRegex =
+            new(@"\{\{tr:(.+?)\}\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+        // Fonction de traduction HTML
+        private string TranslateHtml(string html)
+        {
+            if (string.IsNullOrEmpty(html))
+                return html;
+
+            return TrHtmlRegex.Replace(html, match =>
+            {
+                string key = match.Groups[1].Value.Trim();
+
+                // Appel à ton système de traduction existant
+                string translated = LanguageManager.Get(key) ?? key;
+
+                // Si la clé n'existe pas ? on garde la clé brute
+                return string.IsNullOrEmpty(translated) ? key : translated;
+            });
+        }    
         private readonly HttpListener _listener = new();
         private readonly MediaMonitorEngine _engine;
         private readonly int _port;
@@ -239,19 +262,18 @@ namespace MediaMonitor.Service
         // ==========================
         //  BADGE TYPE
         // ==========================
-private string GetTypeBadgeClass(string? mediaType)
-{
-    return (mediaType ?? "").ToLower() switch
-    {
-        "audio" => "type-audio",
-        "serie" => "type-serie",
-        "video" => "type-video",
-        "rec"   => "type-rec",
-        "tv"    => "type-tv",
-        _       => ""
-    };
-}
-
+        private string GetTypeBadgeClass(string? mediaType)
+        {
+            return (mediaType ?? "").ToLower() switch
+            {
+                "audio" => "type-audio",
+                "serie" => "type-serie",
+                "video" => "type-video",
+                "rec"   => "type-rec",
+                "tv"    => "type-tv",
+                _       => ""
+            };
+        }
 
         // ==========================
         //  EXTRACTION / PARSING
@@ -411,7 +433,7 @@ private string GetTypeBadgeClass(string? mediaType)
         <html lang='fr'>
         <head>
         <meta charset='UTF-8'>
-        <title>MediaMonitor – Tableau de bord</title>
+        <title>{{tr:MediaMonitor – Tableau de bord}}</title>
         <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
         <style>
         body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
@@ -487,77 +509,78 @@ private string GetTypeBadgeClass(string? mediaType)
             sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
 
             sb.Append(@"
-        <div class='button-bar'>
-            <a href='/' class='button button-secondary'>Rafraîchir</a>
-            <a href='/backup' class='button'>Voir le backup</a>
-            <a href='/download' class='button'>Télécharger le backup</a>
-            <a href='/purge' class='button button-danger' onclick='return confirm(""Voulez-vous vraiment supprimer TOUTES les sauvegardes ?"");'>Purger les sauvegardes</a>
-        </div>
-        ");
+                    <div class='button-bar'>
+                        <a href='/' class='button button-secondary'>{{tr:Rafraîchir}}</a>
+                        <a href='/backup' class='button'>{{tr:Voir le backup}}</a>
+                        <a href='/download' class='button'>{{tr:Télécharger le backup}}</a>
+                        <a href='/purge' class='button button-danger' onclick='return confirm(""{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?"");'>{{tr:Purger les sauvegardes}}</a>
+                    </div>
+                    ");
 
             sb.Append("<div class='container'>");
 
             // Statut du service
             sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>Statut du service</div>");
+            sb.Append("<div class='groupbox-title'>{{tr:Statut du service}}</div>");
             sb.Append("<div class='stats-grid'>");
-            sb.Append($"<div class='label'>Serveur :</div><div class='value'>{WebUtility.HtmlEncode(Environment.MachineName)}</div>");
-            sb.Append($"<div class='label'>Heure actuelle :</div><div class='value'>{DateTime.Now:yyyy-MM-dd HH:mm:ss}</div>");
+            sb.Append("<div class='label'>{{tr:Serveur}} :</div><div class='value'>" + WebUtility.HtmlEncode(Environment.MachineName) + "</div>");
+            sb.Append("<div class='label'>{{tr:Heure actuelle}} :</div><div class='value'>" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
             // Rapports
             sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>Rapports</div>");
+            sb.Append("<div class='groupbox-title'>{{tr:Rapports}}</div>");
             sb.Append("<div class='stats-grid'>");
-var lastReport = GetLastReportTime();
-sb.Append($"<div class='label'>Dernier rapport :</div><div class='value'>{(lastReport == DateTime.MinValue ? "Aucun rapport envoyé" : lastReport.ToString("yyyy-MM-dd HH:mm:ss"))}</div>");
-var next = GetReportSendTime();
-sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yyyy-MM-dd HH:mm:ss}</div>");
+            var lastReport = GetLastReportTime();
+            sb.Append("<div class='label'>{{tr:Dernier rapport :}}</div><div class='value'>" + (lastReport == DateTime.MinValue ? "{{tr:Aucun rapport envoyé}}" : lastReport.ToString("yyyy-MM-dd HH:mm:ss")) + "</div>");
+            var next = GetReportSendTime();
+            sb.Append("<div class='label'>{{tr:Prochain envoi :}}</div><div class='value'>" + next.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
             // Lecture en cours
             sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>Lecture en cours</div>");
+            sb.Append("<div class='groupbox-title'>{{tr:Lecture en cours}}</div>");
             sb.Append("<div class='stats-grid'>");
-            sb.Append($"<div class='label'>Fichiers ouverts :</div><div class='value'>{liveCount}</div>");
-            sb.Append($"<div class='label'>Utilisateurs actifs :</div><div class='value'>{live.Select(x => x.ClientName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count()}</div>");
+            sb.Append("<div class='label'>{{tr:Fichiers ouverts}} :</div><div class='value'>" + liveCount + "</div>");
+            sb.Append("<div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>" + live.Select(x => x.ClientName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count() + "</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
             // Historique
             sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>Historique</div>");
+            sb.Append("<div class='groupbox-title'>{{tr:Historique}}</div>");
             sb.Append("<div class='stats-grid'>");
-            sb.Append($"<div class='label'>Événements totaux :</div><div class='value'>{historyCount}</div>");
-            sb.Append($"<div class='label'>Sur 24h :</div><div class='value'>{history24h}</div>");
+            sb.Append("<div class='label'>{{tr:Événements totaux}} :</div><div class='value'>" + historyCount + "</div>");
+            sb.Append("<div class='label'>{{tr:Sur 24h}} :</div><div class='value'>" + history24h + "</div>");
             if (historyCount > 0)
             {
                 var last = history.Last();
-                sb.Append("<div class='label'>Dernier événement :</div>");
-                sb.Append($"<div class='value'>{last.Timestamp:HH:mm:ss} – {WebUtility.HtmlEncode(last.MediaType)} ({WebUtility.HtmlEncode(last.ClientName)})</div>");
+                sb.Append("<div class='label'>{{tr:Dernier événement}} :</div>");
+                sb.Append("<div class='value'>" + last.Timestamp.ToString("HH:mm:ss") + " – " + WebUtility.HtmlEncode(last.MediaType) + " (" + WebUtility.HtmlEncode(last.ClientName) + ")</div>");
             }
             sb.Append("</div>");
             sb.Append("</div>");
 
             // WebServer
             sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>WebServer</div>");
+            sb.Append("<div class='groupbox-title'>{{tr:WebServer}}</div>");
             sb.Append("<div class='stats-grid'>");
-            sb.Append($"<div class='label'>Port :</div><div class='value'>{_port}</div>");
-            sb.Append($"<div class='label'>Requetes :</div><div class='value'>{_requestCount}</div>");
-            sb.Append($"<div class='label'>Derniere requete :</div><div class='value'>{(_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss"))}</div>");
-            sb.Append($"<div class='label'>Dernier client :</div><div class='value'>{WebUtility.HtmlEncode(_lastRequestIp)}</div>");
+            sb.Append("<div class='label'>{{tr:Port}} :</div><div class='value'>" + _port + "</div>");
+            sb.Append("<div class='label'>{{tr:Requêtes}} :</div><div class='value'>" + _requestCount + "</div>");
+            sb.Append("<div class='label'>{{tr:Dernière requête}} :</div><div class='value'>" + (_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss")) + "</div>");
+            sb.Append("<div class='label'>{{tr:Dernier client}} :</div><div class='value'>" + WebUtility.HtmlEncode(_lastRequestIp) + "</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
             sb.Append("</div>"); // .container
 
-            // === TABLEAU LECTURE EN COURS ===
-            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>Lecture en cours</h2>");
+
+                        // === TABLEAU LECTURE EN COURS ===
+            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>");
             sb.Append("<table>");
-            sb.Append("<thead><tr><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
+            sb.Append("<thead><tr><th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th></tr></thead><tbody>");
 
             foreach (var item in live)
             {
@@ -582,9 +605,9 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             sb.Append("</tbody></table>");
 
             // === TABLEAU HISTORIQUE ===
-            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>Historique</h2>");
+            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Historique}}</h2>");
             sb.Append("<table>");
-            sb.Append("<thead><tr><th>Heure</th><th>Client</th><th>Type</th><th>Saison</th><th>Épisode</th><th>Nom</th><th>Fichier</th><th>Chemin</th></tr></thead><tbody>");
+            sb.Append("<thead><tr><th>{{tr:Heure}}</th><th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th></tr></thead><tbody>");
 
             foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
             {
@@ -610,7 +633,9 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             sb.Append("</body></html>");
 
-            return sb.ToString();
+            var html = sb.ToString();
+            html = HTMLTranslator.Translate(html);
+            return html;
         }
 
         // ==========================
@@ -623,8 +648,8 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             if (!Directory.Exists(folder))
             {
                 return "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
-                       "<h2>Aucune sauvegarde trouvée.</h2>" +
-                       "<a href='/' style='color:#4fc3f7;'>Retour</a></body></html>";
+                       "<h2>{{tr:Aucune sauvegarde trouvée}}</h2>" +
+                       "<a href='/' style='color:#4fc3f7;'>{{tr:Retour}}</a></body></html>";
             }
 
             var files = Directory.GetFiles(folder, "history_*.json");
@@ -671,12 +696,12 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                         }
                     </style>
                 </head>
-                <body>
-                    <div class='container'>
-                        <h2>Aucune sauvegarde disponible.</h2>
-                        <a href='/' class='btn'>Retour</a>
-                    </div>
-                </body>
+                    <body>
+                        <div class='container'>
+                            <h2>{{tr:Aucune sauvegarde disponible}}</h2>
+                            <a href='/' class='btn'>{{tr:Retour}}</a>
+                        </div>
+                    </body>
                 </html>";
             }
 
@@ -688,7 +713,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             if (backup == null || backup.Reports == null)
                 return "<html><body><h2>Sauvegarde invalide.</h2></body></html>";
 
-            // Fusionner les rapports du même jour pour éviter les doublons visuels
+            // Fusionner les rapports du même jour
             backup.Reports = backup.Reports
                 .GroupBy(r => r.Date.Date)
                 .Select(g => new DailyReport
@@ -698,7 +723,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 })
                 .ToList();
 
-            // Aplatir tous les items
+            // Aplatir
             var allItems = backup.Reports
                 .Where(r => r.Items != null)
                 .SelectMany(r => r.Items)
@@ -814,7 +839,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             var mediaStats = GetMediaStatsPerClient(allItems);
             var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
 
-            // REMPLISSAGE DU TEMPLATE
+            // TEMPLATE FINAL
             string html = BackupHtmlTemplate
                 .Replace("{{TOTAL}}", total.ToString())
                 .Replace("{{AUDIO}}", audio.ToString())
@@ -849,6 +874,9 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
                 .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
 
+            // ??? TRADUCTION APPLIQUÉE APRÈS INJECTION ???
+            html = HTMLTranslator.Translate(html);
+
             return html;
         }
 
@@ -860,7 +888,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
         <html lang=""fr"">
         <head>
         <meta charset=""UTF-8"">
-        <title>Historique sauvegardé - MediaMonitor</title>
+        <title>{{tr:Historique sauvegardé}} - MediaMonitor</title>
         <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
 
         <!-- Chart.js -->
@@ -912,8 +940,8 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             .type-audio { background:#007acc; }
             .type-serie { background:#c586c0; }
             .type-video { background:#d19a66; }
-        .type-rec   { background:#ff4d4d; color:white; }
-        .type-tv    { background:#ffe066; color:black; }    
+            .type-rec   { background:#ff4d4d; color:white; }
+            .type-tv    { background:#ffe066; color:black; }    
 
             select {
                 background:#2d2d30;
@@ -973,58 +1001,62 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
         </head>
         <body>
 
-        <h1>Historique sauvegardé</h1>
+        <h1>{{tr:Historique sauvegardé}}</h1>
 
         <div style=""margin-bottom:20px; display:flex; gap:10px;"">
-            <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">Télécharger</a>
-
-            <a href=""/purge""
-               onclick=""return confirm('Voulez-vous vraiment supprimer TOUTES les sauvegardes ?');""
-               style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
-               Purger
+            <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">
+                {{tr:Télécharger}}
             </a>
 
-            <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">Retour</a>
+            <a href=""/purge""
+               onclick=""return confirm('{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?');""
+               style=""padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;"">
+               {{tr:Purger}}
+            </a>
+
+            <a href=""/"" style=""padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;"">
+                {{tr:Retour}}
+            </a>
         </div>
 
         <!-- FILTRES -->
         <div style=""margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;"">
 
             <div>
-                <label>Filtrer par type :</label>
+                <label>{{tr:Filtrer par type}} :</label>
                 <select onchange=""location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';"">
-                    <option value='all' {{SEL_ALL}}>Tous</option>
-                    <option value='audio' {{SEL_AUDIO}}>Audio</option>
-                    <option value='serie' {{SEL_SERIE}}>Séries</option>
-                    <option value='video' {{SEL_VIDEO}}>Vidéos</option>
+                    <option value='all' {{SEL_ALL}}>{{tr:Tous}}</option>
+                    <option value='audio' {{SEL_AUDIO}}>{{tr:Audio}}</option>
+                    <option value='serie' {{SEL_SERIE}}>{{tr:Séries}}</option>
+                    <option value='video' {{SEL_VIDEO}}>{{tr:Vidéos}}</option>
                 </select>
             </div>
 
             <div>
-                <label>Filtrer par client :</label>
+                <label>{{tr:Filtrer par client}} :</label>
                 <select onchange=""location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';"">
                     {{CLIENT_OPTIONS}}
                 </select>
             </div>
 
             <div>
-                <label>Filtrer par date :</label>
+                <label>{{tr:Filtrer par date}} :</label>
                 <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';"">
-                    <option value='all' {{SEL_DATE_ALL}}>Tout</option>
-                    <option value='today' {{SEL_DATE_TODAY}}>Aujourd’hui</option>
-                    <option value='yesterday' {{SEL_DATE_YESTERDAY}}>Hier</option>
-                    <option value='7' {{SEL_DATE_7}}>7 jours</option>
-                    <option value='30' {{SEL_DATE_30}}>30 jours</option>
+                    <option value='all' {{SEL_DATE_ALL}}>{{tr:Tout}}</option>
+                    <option value='today' {{SEL_DATE_TODAY}}>{{tr:Aujourd’hui}}</option>
+                    <option value='yesterday' {{SEL_DATE_YESTERDAY}}>{{tr:Hier}}</option>
+                    <option value='7' {{SEL_DATE_7}}>{{tr:7 jours}}</option>
+                    <option value='30' {{SEL_DATE_30}}>{{tr:30 jours}}</option>
                 </select>
             </div>
 
             <div>
-                <label>Trier :</label>
+                <label>{{tr:Trier}} :</label>
                 <select onchange=""location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;"">
-                    <option value='date_desc' {{SEL_DATEDESC}}>Date +</option>
-                    <option value='date_asc' {{SEL_DATEASC}}>Date -</option>
-                    <option value='name_asc' {{SEL_NAMEASC}}>Nom (A–Z)</option>
-                    <option value='name_desc' {{SEL_NAMEDESC}}>Nom (Z–A)</option>
+                    <option value='date_desc' {{SEL_DATEDESC}}>{{tr:Date +}}</option>
+                    <option value='date_asc' {{SEL_DATEASC}}>{{tr:Date -}}</option>
+                    <option value='name_asc' {{SEL_NAMEASC}}>{{tr:Nom (A–Z)}}</option>
+                    <option value='name_desc' {{SEL_NAMEDESC}}>{{tr:Nom (Z–A)}}</option>
                 </select>
             </div>
 
@@ -1039,25 +1071,25 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 <div class=""left-content"">
 
                     <!-- STATISTIQUES -->
-                    <div class=""groupbox-title"">Statistiques</div>
+                    <div class=""groupbox-title"">{{tr:Statistiques}}</div>
                     <div class=""stats-grid"">
-                        <div class=""label"">Titres lus :</div><div class=""value"">{{TOTAL}}</div>
-                        <div class=""label"">Audio :</div><div class=""value"">{{AUDIO}}</div>
-                        <div class=""label"">Séries :</div><div class=""value"">{{SERIES}}</div>
-                        <div class=""label"">Vidéos :</div><div class=""value"">{{VIDEOS}}</div>
+                        <div class=""label"">{{tr:Titres lus}} :</div><div class=""value"">{{TOTAL}}</div>
+                        <div class=""label"">{{tr:Audio}} :</div><div class=""value"">{{AUDIO}}</div>
+                        <div class=""label"">{{tr:Séries}} :</div><div class=""value"">{{SERIES}}</div>
+                        <div class=""label"">{{tr:Vidéos}} :</div><div class=""value"">{{VIDEOS}}</div>
                     </div>
 
                     <br>
 
                     <!-- GRAPHIQUES -->
-                    <div class=""groupbox-title"">Graphiques</div>
+                    <div class=""groupbox-title"">{{tr:Graphiques}}</div>
 
                     <div style=""display:flex; gap:15px; align-items:stretch;"">
 
                         <!-- Donut -->
                         <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
                             <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                                Répartition par type
+                                {{tr:Répartition par type}}
                             </div>
                             <canvas id=""chartTypes"" height=""160""></canvas>
                         </div>
@@ -1067,7 +1099,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                         <!-- Horaire -->
                         <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
                             <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                                Activité par heure
+                                {{tr:Activité par heure}}
                             </div>
                             <canvas id=""chartHours"" height=""160""></canvas>
                         </div>
@@ -1077,38 +1109,38 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                     <br>
 
                     <!-- STATISTIQUES AVANCÉES -->
-                    <div class=""groupbox-title"">Statistiques avancées</div>
+                    <div class=""groupbox-title"">{{tr:Statistiques avancées}}</div>
 
                     <!-- TOP SERIES -->
                     <div class=""groupbox"">
-                        <div class=""groupbox-title"">Top séries</div>
+                        <div class=""groupbox-title"">{{tr:Top séries}}</div>
                         <table>
-                            <thead><tr><th>Série</th><th>Lectures</th></tr></thead>
+                            <thead><tr><th>{{tr:Série}}</th><th>{{tr:Lectures}}</th></tr></thead>
                             <tbody>{{TOP_SERIES_ROWS}}</tbody>
                         </table>
                     </div>
 
                     <!-- TOP ARTISTES -->
                     <div class=""groupbox"">
-                        <div class=""groupbox-title"">Top artistes</div>
+                        <div class=""groupbox-title"">{{tr:Top artistes}}</div>
                         <table>
-                            <thead><tr><th>Artiste</th><th>Lectures</th></tr></thead>
+                            <thead><tr><th>{{tr:Artiste}}</th><th>{{tr:Lectures}}</th></tr></thead>
                             <tbody>{{TOP_ARTISTES_ROWS}}</tbody>
                         </table>
                     </div>
 
                     <!-- TOP CLIENTS -->
                     <div class=""groupbox"">
-                        <div class=""groupbox-title"">Top clients</div>
+                        <div class=""groupbox-title"">{{tr:Top clients}}</div>
                         <table>
-                            <thead><tr><th>Client</th><th>Lectures</th></tr></thead>
+                            <thead><tr><th>{{tr:Client}}</th><th>{{tr:Lectures}}</th></tr></thead>
                             <tbody>{{TOP_CLIENTS_ROWS}}</tbody>
                         </table>
                     </div>
 
                     <!-- TOP MEDIAS PAR CLIENT -->
                     <div class=""groupbox"">
-                        <div class=""groupbox-title"">Top médias par client</div>
+                        <div class=""groupbox-title"">{{tr:Top médias par client}}</div>
                         {{TOP_MEDIA_PER_CLIENT}}
                     </div>
 
@@ -1117,14 +1149,19 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             <!-- COLONNE DROITE -->
             <div class=""groupbox"">
-                <div class=""groupbox-title"">Listing des titres</div>
+                <div class=""groupbox-title"">{{tr:Listing des titres}}</div>
                 <div class=""listing-header"">
-                    <span>Période : {{PERIOD}}</span>
-                    <span>{{COUNT}} élément(s)</span>
+                    <span>{{tr:Période}} : {{PERIOD}}</span>
+                    <span>{{COUNT}} {{tr:élément(s)}}</span>
                 </div>
                 <table>
                     <thead>
-                        <tr><th>Titre</th><th>Type</th><th>Client</th><th>Date</th></tr>
+                        <tr>
+                            <th>{{tr:Titre}}</th>
+                            <th>{{tr:Type}}</th>
+                            <th>{{tr:Client}}</th>
+                            <th>{{tr:Date}}</th>
+                        </tr>
                     </thead>
                     <tbody>{{ROWS}}</tbody>
                 </table>
@@ -1160,7 +1197,6 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 plugins: { legend: { labels: { color:'#fff' } } }
             }
         });
-
 
         new Chart(document.getElementById('chartHours'), {
             type: 'line',
@@ -1208,6 +1244,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
         </body>
         </html>";
+
         // ==========================
         //  TABLEAUX HTML STATS AVANCÉES
         // ==========================
@@ -1270,32 +1307,44 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
                 bool isTuner = client.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase);
 
                 sb.Append($@"
-        <div style='margin-bottom:10px;'>
-            <div style='font-weight:bold; margin-bottom:4px;'>{WebUtility.HtmlEncode(client)}</div>
+        <div class='groupbox'>
+            <div class='groupbox-title'>{WebUtility.HtmlEncode(client)}</div>
+
             <table>
-                <thead><tr><th>Type</th><th>Lectures</th></tr></thead>
-                <tbody>");
+                <thead>
+                    <tr>
+                        <th>{{tr:Type}}</th>
+                        <th>{{tr:Lectures}}</th>
+                    </tr>
+                </thead>
+                <tbody>
+        ");
 
                 if (isTuner)
                 {
-                    // Un tuner ne lit que des REC
-                    sb.Append($@"<tr><td>REC</td><td>{stats.Rec}</td></tr>");
+                    sb.Append($@"
+                    <tr><td>REC</td><td>{stats.Rec}</td></tr>
+        ");
                 }
                 else
                 {
-                    // Client normal
                     sb.Append($@"
-                    <tr><td>Séries</td><td>{stats.Serie}</td></tr>
-                    <tr><td>Audio</td><td>{stats.Audio}</td></tr>
-                    <tr><td>Vidéos</td><td>{stats.Video}</td></tr>
+                    <tr><td>{{tr:Séries}}</td><td>{stats.Serie}</td></tr>
+                    <tr><td>{{tr:Audio}}</td><td>{stats.Audio}</td></tr>
+                    <tr><td>{{tr:Vidéos}}</td><td>{stats.Video}</td></tr>
                     <tr><td>REC</td><td>{stats.Rec}</td></tr>
-                    <tr><td>TV</td><td>{stats.Tv}</td></tr>");
+                    <tr><td>TV</td><td>{stats.Tv}</td></tr>
+        ");
                 }
 
-                sb.Append(@"</tbody></table></div>");
+                sb.Append(@"
+                </tbody>
+            </table>
+        </div>
+        ");
             }
 
-            return sb.ToString();
+            return HTMLTranslator.Translate(sb.ToString());
         }
 
         // ==========================
@@ -1339,7 +1388,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             <html>
             <head>
                 <meta charset='utf-8'>
-                <title>Aucune sauvegarde</title>
+                <title>{{tr:Aucune sauvegarde}}</title>
                 <style>
                     body {
                         background-color: #1e1e1e;
@@ -1377,8 +1426,8 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             </head>
             <body>
                 <div class='container'>
-                    <h2>Aucune sauvegarde disponible.</h2>
-                    <a href='/' class='btn'>Retour</a>
+                    <h2>{{tr:Aucune sauvegarde disponible}}</h2>
+                    <a href='/' class='btn'>{{tr:Retour}}</a>
                 </div>
             </body>
             </html>");
@@ -1391,7 +1440,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             BackupFileModel? backup = JsonSerializer.Deserialize<BackupFileModel>(json);
             if (backup == null || backup.Reports == null)
             {
-                SendHtml(ctx, "<html><body><h2>Sauvegarde invalide.</h2></body></html>");
+                SendHtml(ctx, "<html><body><h2>{{tr:Sauvegarde invalide}}</h2></body></html>");
                 return;
             }
 
@@ -1410,7 +1459,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
 
             double y = 20;
 
-            gfx.DrawString("Historique sauvegardé",
+            gfx.DrawString("{{tr:Historique sauvegardé}}",
                 new XFont("Arial", 14, XFontStyle.Bold),
                 XBrushes.Black,
                 new XPoint(20, y));
@@ -1473,7 +1522,7 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             <html>
             <head>
                 <meta charset='utf-8'>
-                <title>Purge des sauvegardes</title>
+                <title>{{tr:Purge des sauvegardes}}</title>
                 <style>
                     body {
                         background-color: #1e1e1e;
@@ -1511,8 +1560,8 @@ sb.Append($"<div class='label'>Prochain envoi :</div><div class='value'>{next:yy
             </head>
             <body>
                 <div class='container'>
-                    <h2>Toutes les sauvegardes ont été supprimées.</h2>
-                    <a href='/backup' class='btn'>Retour</a>
+                    <h2>{{tr:Toutes les sauvegardes ont été supprimées}}</h2>
+                    <a href='/backup' class='btn'>{{tr:Retour}}</a>
                 </div>
             </body>
             </html>");
