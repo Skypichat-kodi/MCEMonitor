@@ -16,7 +16,7 @@ namespace MediaMonitor.Service
 {
     public class WebServer
     {
-        // Regex compilée pour détecter {{tr:...}}
+        // Regex compilée pour détecter {tr}
         private static readonly Regex TrHtmlRegex =
             new(@"\{\{tr:(.+?)\}\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
