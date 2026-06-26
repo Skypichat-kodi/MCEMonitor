@@ -176,12 +176,22 @@ namespace MediaMonitor.Core.Services
                         }
                     }
 
-                    // ?? Historique SMB (inchangé)
+                    // Historique SMB (corrigé)
                     foreach (var item in filtered)
                     {
+                        // Images : on garde seulement la dernière
                         if (item.MediaType == "Image" && item.Path != _lastImage)
                             continue;
 
+                        // Vérifier que le fichier est encore réellement ouvert
+                        bool stillOpen = filtered.Any(o =>
+                            o.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
+                            o.ClientIP == item.ClientIP);
+
+                        if (!stillOpen)
+                            continue;
+
+                        // Anti-doublon historique
                         bool isNew = !_history.Any(h =>
                             h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
                             h.ClientIP == item.ClientIP);
@@ -189,7 +199,7 @@ namespace MediaMonitor.Core.Services
                         if (isNew)
                         {
                             _history.Add(item);
-                            CoreLog.Write($"Nouveau : {item.Path} ({item.ClientName})");
+                            CoreLog.Write($"HISTORY: Ajout réel => {item.Path} ({item.ClientName})");
                             CoreLog.Write($"DEBUG HISTORY: {_history.Count} items dans l'historique.");
                         }
                     }

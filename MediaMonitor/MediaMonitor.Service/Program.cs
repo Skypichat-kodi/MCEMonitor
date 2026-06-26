@@ -287,21 +287,26 @@ namespace MediaMonitor.Service
                         backup.Reports.Add(existing);
                     }
 
-                    // ?? Nettoyage des doublons dans le backup JSON AVANT comparaison
+                    // Nettoyage des doublons dans le backup JSON
                     existing.Items = existing.Items
-                        .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom })
+                        .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom, i.Saison, i.Episode, i.FileName, i.UNC })
                         .Select(g => g.First())
                         .ToList();
 
                     // Récupérer les items RAM
                     var newItems = engine.GetHistory();
 
+                    // Filtrer les nouveaux items (anti-doublons)
                     var filtered = newItems.Where(item =>
                         !existing.Items.Any(x =>
                             x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
                             x.ClientIP.Equals(item.ClientIP, StringComparison.OrdinalIgnoreCase) &&
-                            x.Timestamp.ToString("yyyy-MM-dd HH:mm") ==
-                            item.Timestamp.ToString("yyyy-MM-dd HH:mm")
+                            x.MediaType == item.MediaType &&
+                            x.Nom == item.Nom &&
+                            x.Saison == item.Saison &&
+                            x.Episode == item.Episode &&
+                            x.FileName == item.FileName &&
+                            x.UNC == item.UNC
                         )
                     ).ToList();
 
