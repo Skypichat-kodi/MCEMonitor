@@ -12,6 +12,7 @@ using System.Windows.Controls;
 using System.Collections.Generic;
 using System.Linq;
 using MediaMonitor.Core.Language;
+using System.Threading;
 
 namespace MediaMonitor.UI
 {
@@ -441,7 +442,7 @@ namespace MediaMonitor.UI
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = $"http://localhost:{port}/",
+                    FileName = $"http://localhost:{port}/?lang={Thread.CurrentThread.CurrentUICulture.Name}",
                     UseShellExecute = true
                 });
 
@@ -640,7 +641,7 @@ namespace MediaMonitor.UI
             {
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = $"http://localhost:{port}/backup",
+                    FileName = $"http://localhost:{port}/backup?lang={Thread.CurrentThread.CurrentUICulture.Name}",
                     UseShellExecute = true
                 });
 

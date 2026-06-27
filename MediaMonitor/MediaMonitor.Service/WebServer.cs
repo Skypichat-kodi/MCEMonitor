@@ -125,6 +125,15 @@ namespace MediaMonitor.Service
                     return;
                 }
 
+                // ============================================================
+                // ?? Gestion de la langue 
+                // ============================================================
+                string lang = ctx.Request.QueryString["lang"];
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    LanguageManager.Load(lang);
+                }
+
                 string path = ctx.Request.Url.AbsolutePath.ToLower();
 
                 // Favicon
@@ -209,6 +218,7 @@ namespace MediaMonitor.Service
                 CoreLog.Write("WebServer ERROR: " + ex.Message);
             }
         }
+
         // ==========================
         //  AUTHENTIFICATION BASIC
         // ==========================
@@ -600,7 +610,7 @@ namespace MediaMonitor.Service
             }
 
             if (liveCount == 0)
-                sb.Append("<tr><td colspan='7' class='small'>Aucune lecture en cours.</td></tr>");
+                sb.Append("<tr><td colspan='7' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>");
 
             sb.Append("</tbody></table>");
 
@@ -627,7 +637,7 @@ namespace MediaMonitor.Service
             }
 
             if (historyCount == 0)
-                sb.Append("<tr><td colspan='8' class='small'>Aucun historique disponible.</td></tr>");
+                sb.Append("<tr><td colspan='8' class='small'>{{tr:Aucun historique disponible.}}</td></tr>");
 
             sb.Append("</tbody></table>");
 
@@ -792,13 +802,22 @@ namespace MediaMonitor.Service
                 .ToList();
 
             var clientOptions = new StringBuilder();
-            clientOptions.Append($"<option value='all' {(client == "all" ? "selected" : "")}>Tous</option>");
+
+            string allLabel = LanguageManager.Get("Tous") ?? "Tous";
+
+            clientOptions.Append(
+                $"<option value='all' {(client == "all" ? "selected" : "")}>{allLabel}</option>"
+            );
+
             foreach (var c in allClients)
             {
                 string val = c.ToLower();
                 string selected = (val == client) ? "selected" : "";
-                clientOptions.Append($"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>");
+                clientOptions.Append(
+                    $"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>"
+                );
             }
+
 
             // Lignes du tableau principal
             var rows = new StringBuilder();
@@ -1181,15 +1200,21 @@ namespace MediaMonitor.Service
         new Chart(document.getElementById('chartTypes'), {
             type: 'doughnut',
             data: {
-                labels: ['Audio', 'Séries', 'Vidéos', 'REC', 'TV'],
+                labels: [
+                    '{{tr:Audio}}',
+                    '{{tr:Séries}}',
+                    '{{tr:Vidéos}}',
+                    '{{tr:REC}}',
+                    '{{tr:TV}}'
+                ],
                 datasets: [{
                     data: [audio, series, videos, rec, tv],
                     backgroundColor: [
-                        '#007acc',   // audio
-                        '#c586c0',   // série
-                        '#d19a66',   // vidéo
-                        '#ff4d4d',   // REC
-                        '#ffe066'    // TV
+                        '#007acc',
+                        '#c586c0',
+                        '#d19a66',
+                        '#ff4d4d',
+                        '#ffe066'
                     ]
                 }]
             },
@@ -1203,7 +1228,7 @@ namespace MediaMonitor.Service
             data: {
                 labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
                 datasets: [{
-                    label: 'Lectures par heure',
+                    label: '{{tr:Lectures par heure}}',
                     data: hoursData,
                     borderColor: '#4fc3f7',
                     backgroundColor: 'rgba(79,195,247,0.2)',
@@ -1233,10 +1258,10 @@ namespace MediaMonitor.Service
 
                 if (collapsed) {
                     leftCol.classList.add('collapsed');
-                    btn.textContent = '>';
+                    btn.textContent = '{{tr:>}}';
                 } else {
                     leftCol.classList.remove('collapsed');
-                    btn.textContent = '<';
+                    btn.textContent = '{{tr:<}}';
                 }
             });
         })();

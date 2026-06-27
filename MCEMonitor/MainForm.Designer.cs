@@ -962,7 +962,7 @@ namespace MCEMonitor
                        
             // BOUTON : Ouvrir le dossier Logs
             this.btnOpenLogs = new System.Windows.Forms.Button();
-            this.btnOpenLogs.Text = "Dossier Logs";
+            this.btnOpenLogs.Text = LanguageManager.Get("Dossier Logs") ?? "Dossier Logs";
             this.btnOpenLogs.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnOpenLogs.Size = new System.Drawing.Size(150, 35);
             this.btnOpenLogs.Location = new System.Drawing.Point(10, this.lblAbout.Bottom + 20);
@@ -998,7 +998,7 @@ namespace MCEMonitor
             this.pnlAboutScroll.Controls.Add(this.btnOpenLogs);
             // BOUTON : Purger les logs
             this.btnPurgeLogs = new System.Windows.Forms.Button();
-            this.btnPurgeLogs.Text = "Purger les logs";
+            this.btnPurgeLogs.Text = LanguageManager.Get("Purger les logs") ?? "Purger les logs";
             this.btnPurgeLogs.Font = new System.Drawing.Font("Segoe UI", 10F);
             this.btnPurgeLogs.Size = new System.Drawing.Size(150, 35);
 
@@ -1034,13 +1034,22 @@ namespace MCEMonitor
                         Directory.CreateDirectory(logFolder);
                     }
 
-                    MessageBox.Show("Tous les logs ont été purgés.", "Succès",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    MessageBox.Show(
+                        LanguageManager.Get("Tous les logs ont été purgés.") ?? "Tous les logs ont été purgés.",
+                        LanguageManager.Get("Succès") ?? "Succès",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information
+                    );
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Erreur lors de la purge des logs.\n\n" + ex.Message,
-                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(
+                        (LanguageManager.Get("Erreur lors de la purge des logs.") ?? "Erreur lors de la purge des logs.")
+                        + "\n\n" + ex.Message,
+                        LanguageManager.Get("Erreur") ?? "Erreur",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
                 }
             };
 

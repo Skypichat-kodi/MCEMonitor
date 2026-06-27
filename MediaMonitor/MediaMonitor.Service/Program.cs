@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Linq;
 using MediaMonitor.Core.Models;
 using MediaMonitor.Core.Language;
+using System.Globalization;
+
 
 namespace MediaMonitor.Service
 {
@@ -213,8 +215,12 @@ namespace MediaMonitor.Service
                 // Mise à jour anti-doublon
                 _lastReportSent = DateTime.Now;
 
-                _lastReportStatus = $"[CODE02] Rapport envoyé à {_lastReportSent:yyyy-MM-dd HH:mm:ss}";
+                _lastReportStatus = "[CODE02] " 
+                    + (LanguageManager.Get("Rapport envoyé à") ?? "Rapport envoyé à")
+                    + $" {_lastReportSent:yyyy-MM-dd HH:mm:ss}";
+
                 WriteScheduleLog(_lastReportStatus);
+
                 WriteScheduleLog("DEBUG: Count=" + engine.GetHistory().Count);
 
                 // Sauvegarde JSON AVANT ClearHistory()
@@ -323,7 +329,11 @@ namespace MediaMonitor.Service
                     }
 
                     // (OPTIONNEL) — Si tu veux loguer combien ont été ajoutés
-                    WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés.");
+                    WriteScheduleLog(
+                        (LanguageManager.Get("Backup") ?? "Backup")
+                        + $" : {filtered.Count} "
+                        + (LanguageManager.Get("nouveaux items ajoutés") ?? "nouveaux items ajoutés")
+                    );
 
                     // ------------------------------------------------------------
                     // ?? Rétention glissante : supprimer les jours trop anciens
@@ -355,15 +365,30 @@ namespace MediaMonitor.Service
                     SaveBackup(engine);
 
                     if (count == 0)
-                        WriteScheduleLog("Backup effectué (historique vide pour le moment).");
+                    {
+                        WriteScheduleLog(
+                            LanguageManager.Get("Backup effectué (historique vide pour le moment).")
+                            ?? "Backup effectué (historique vide pour le moment)."
+                        );
+                    }
                     else
-                        WriteScheduleLog($"Backup effectué ({count} médias).");
+                    {
+                        WriteScheduleLog(
+                            (LanguageManager.Get("Backup effectué") ?? "Backup effectué")
+                            + $" ({count} "
+                            + (LanguageManager.Get("médias") ?? "médias")
+                            + ")."
+                        );
+                    }
 
                     hourlyBackupTimer.Change(TimeSpan.FromHours(1), Timeout.InfiniteTimeSpan);
                 }
                 catch (Exception ex)
                 {
-                    WriteScheduleLog("Erreur backup horaire : " + ex.Message);
+                    WriteScheduleLog(
+                        (LanguageManager.Get("Erreur backup horaire") ?? "Erreur backup horaire")
+                        + " : " + ex.Message
+                    );
                 }
 
             }, null, TimeSpan.FromSeconds(90), Timeout.InfiniteTimeSpan);
@@ -413,8 +438,17 @@ namespace MediaMonitor.Service
 
                 RestartBackupTimer();
 
-                WriteScheduleLog($"Rétention mise à jour via Web.config : {days} jours");
-                WriteScheduleLog("Timer de sauvegarde reprogrammé suite au changement de rétention.");
+                WriteScheduleLog(
+                    (LanguageManager.Get("Rétention mise à jour via Web.config") ?? "Rétention mise à jour via Web.config")
+                    + $" : {days} "
+                    + (LanguageManager.Get("jours") ?? "jours")
+                );
+
+                WriteScheduleLog(
+                    LanguageManager.Get("Timer de sauvegarde reprogrammé suite au changement de rétention.") 
+                    ?? "Timer de sauvegarde reprogrammé suite au changement de rétention."
+                );
+
             }
             catch (Exception ex)
             {
@@ -530,13 +564,23 @@ namespace MediaMonitor.Service
                 ClearScheduleLog();
 
                 if (changed)
-                    WriteScheduleLog($"Nouvelle heure détectée : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
+                {
+                    WriteScheduleLog(
+                        (LanguageManager.Get("Nouvelle heure détectée") ?? "Nouvelle heure détectée")
+                        + $" : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}"
+                    );
+                }
 
-                WriteScheduleLog($"Shutdown.config chargé : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}");
+                WriteScheduleLog(
+                    (LanguageManager.Get("Shutdown.config chargé") ?? "Shutdown.config chargé")
+                    + $" : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}"
+                );
 
+                // _lastReportStatus est déjà multilingue
                 WriteScheduleLog(_lastReportStatus);
 
                 ScheduleNextReport(_engine);
+
             }
             catch (Exception ex)
             {
@@ -582,6 +626,26 @@ namespace MediaMonitor.Service
 
         static void Main()
         {
+            // ============================================================
+            // ?? GESTION DE LA LANGUE TRANSMISE PAR MCEMonitor
+            // ============================================================
+
+            string selectedLang = "fr-FR"; // fallback
+
+            // On récupère les arguments du processus courant
+            string[] args = Environment.GetCommandLineArgs();
+
+            int idx = Array.IndexOf(args, "-lang");
+            if (idx >= 0 && idx < args.Length - 1)
+            {
+                selectedLang = args[idx + 1];
+            }
+
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
+            Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
+
+            MediaMonitor.Core.Language.LanguageManager.Load(selectedLang); 
+                   
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_Service", out createdNew);
             if (!createdNew)
@@ -614,7 +678,7 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR Engine.Start() : " + ex);
             }
 
-            _lastReportStatus = "[CODE02] Dernier rapport inexistant";
+            _lastReportStatus = "[CODE02] " + LanguageManager.Get("Dernier rapport inexistant") ?? "Dernier rapport inexistant";
             WriteScheduleLog(_lastReportStatus);
 
             ServiceIpcServer ipc = null;
