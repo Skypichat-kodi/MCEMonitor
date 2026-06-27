@@ -666,11 +666,11 @@ namespace MediaMonitor.Service
 
             if (files.Length == 0)
             {
-                return @"
+                return HTMLTranslator.Translate(@"
                 <html>
                 <head>
                     <meta charset='utf-8'>
-                    <title>Aucune sauvegarde</title>
+                    <title>{{tr:Aucune sauvegarde}}</title>
                     <style>
                         body {
                             background-color: #1e1e1e;
@@ -706,15 +706,15 @@ namespace MediaMonitor.Service
                         }
                     </style>
                 </head>
-                    <body>
-                        <div class='container'>
-                            <h2>{{tr:Aucune sauvegarde disponible}}</h2>
-                            <a href='/' class='btn'>{{tr:Retour}}</a>
-                        </div>
-                    </body>
-                </html>";
+                <body>
+                    <div class='container'>
+                        <h2>{{tr:Aucune sauvegarde disponible}}</h2>
+                        <a href='/' class='btn'>{{tr:Retour}}</a>
+                    </div>
+                </body>
+                </html>");
             }
-
+            
             string lastFile = files.OrderByDescending(f => f).First();
             string json = File.ReadAllText(lastFile);
 
@@ -1409,7 +1409,7 @@ namespace MediaMonitor.Service
 
             if (files.Length == 0)
             {
-                SendHtml(ctx, @"
+                SendHtml(ctx, HTMLTranslator.Translate(@"
             <html>
             <head>
                 <meta charset='utf-8'>
@@ -1455,7 +1455,7 @@ namespace MediaMonitor.Service
                     <a href='/' class='btn'>{{tr:Retour}}</a>
                 </div>
             </body>
-            </html>");
+            </html>"));
                 return;
             }
 
@@ -1530,9 +1530,6 @@ namespace MediaMonitor.Service
             ctx.Response.OutputStream.Close();
         }
 
-        // ==========================
-        //  PURGE DES BACKUPS
-        // ==========================
         private void PurgeBackups(HttpListenerContext ctx)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
@@ -1543,7 +1540,7 @@ namespace MediaMonitor.Service
                     File.Delete(f);
             }
 
-            SendHtml(ctx, @"
+            string html = @"
             <html>
             <head>
                 <meta charset='utf-8'>
@@ -1589,7 +1586,12 @@ namespace MediaMonitor.Service
                     <a href='/backup' class='btn'>{{tr:Retour}}</a>
                 </div>
             </body>
-            </html>");
+            </html>";
+
+            // ?? La ligne magique qui manquait
+            html = HTMLTranslator.Translate(html);
+
+            SendHtml(ctx, html);
         }
     }
 }
