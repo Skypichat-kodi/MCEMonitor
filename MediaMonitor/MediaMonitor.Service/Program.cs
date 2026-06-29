@@ -248,7 +248,7 @@ namespace MediaMonitor.Service
         {
             try
             {
-                _isBackupRunning = true; // ?? Bloque Tick()
+                engine.IsBackupRunning = true; // ?? Bloque Tick()
 
                 int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
 
@@ -367,7 +367,7 @@ namespace MediaMonitor.Service
             }
             finally
             {
-                _isBackupRunning = false; // ?? Débloque Tick()
+                engine.IsBackupRunning = false; // ?? Débloque Tick()
             }
         }
 
