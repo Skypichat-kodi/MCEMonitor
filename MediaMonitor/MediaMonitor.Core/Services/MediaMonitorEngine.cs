@@ -59,224 +59,211 @@ namespace MediaMonitor.Core.Services
         public void Start() => _timer.Start();
         public void Stop() => _timer.Stop();
 
-      private void Tick(object? sender, ElapsedEventArgs e)
-      {
-          // ------------------------------------------------------------
-          // 1) Stabilisation SMB au démarrage (évite les faux positifs)
-          // ------------------------------------------------------------
-          _startupCycles++;
-          if (_startupCycles <= 2)
+          private void Tick(object? sender, ElapsedEventArgs e)
           {
-              CoreLog.Write("DEBUG SMB: Ignoré (stabilisation SMB)");
-              return;
-          }
-
-          try
-          {
-              var server = Environment.MachineName;
-
               // ------------------------------------------------------------
-              // 2) Mise à jour DVBViewer (asynchrone, non bloquant)
+              // 1) Stabilisation SMB au démarrage (évite les faux positifs)
               // ------------------------------------------------------------
-              _ = RefreshDvbViewerAsync();
-
-              // ------------------------------------------------------------
-              // 3) Récupération SMB : sessions + fichiers ouverts
-              // ------------------------------------------------------------
-              var sessions = SmbSessions.GetSessions(server);
-              var files = SmbOpenFiles.GetOpenFiles(server);
-              CoreLog.Write($"DEBUG SMB: {files.Count} fichiers ouverts détectés.");
-
-              // ------------------------------------------------------------
-              // 4) Filtrage des fichiers multimédia valides + jointure SMB
-              // ------------------------------------------------------------
-              var joined =
-                  from f in files
-                  let ext = Path.GetExtension(f.Path).ToLower()
-                  let isRealFile = File.Exists(f.Path)
-                  where isRealFile
-                        && (ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".mov" ||
-                            ext == ".ts"  || ext == ".wmv" || ext == ".flv" ||
-                            ext == ".mp3" || ext == ".wav" || ext == ".flac" ||
-                            ext == ".aac" || ext == ".ogg" || ext == ".wma"  ||
-                            ext == ".m4a" ||
-                            ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
-                            ext == ".gif" || ext == ".bmp"  || ext == ".webp")
-                        && MediaClassifier.IsMedia(f.Path)
-                  join s in sessions on f.SessionId equals s.SessionId into gj
-                  from match in gj.DefaultIfEmpty()
-                  select BuildItem(f, match);
-
-              var rawList = joined.ToList();
-              var filtered = new List<MediaUsageItem>();
-
-              CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
-
-              // ------------------------------------------------------------
-              // 5) Stabilisation temporelle + FILTRE IMAGE FIABLE
-              // ------------------------------------------------------------
-              foreach (var item in rawList)
+              _startupCycles++;
+              if (_startupCycles <= 2)
               {
-                  if (!_openSince.ContainsKey(item.Path))
-                      _openSince[item.Path] = DateTime.Now;
-
-                  double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
-
-                  // --------------------------------------------------------
-                  // ?? FILTRE IMAGE FIABLE
-                  // --------------------------------------------------------
-                  if (item.MediaType == "Image")
-                  {
-                      try
-                      {
-                          long size = new FileInfo(item.Path).Length;
-                          if (size < 200_000)
-                              continue; // miniature ? on ignore
-                      }
-                      catch { }
-
-                      // 1?? Durée minimale élevée (évite Explorer / OneDrive)
-                      if (seconds < 15)
-                          continue;
-
-                      // 2?? Détection de rafale (Explorer ouvre 20 images d’un coup)
-                      int imagesInBurst = rawList.Count(x =>
-                          x.MediaType == "Image" &&
-                          Math.Abs((_openSince[x.Path] - _openSince[item.Path]).TotalSeconds) < 2);
-
-                      if (imagesInBurst > 2)
-                          continue; // rafale ? ignorée
-                  }
-
-                  // --------------------------------------------------------
-                  // Délai minimum pour les autres médias
-                  // --------------------------------------------------------
-                  bool keep = item.MediaType switch
-                  {
-                      "Serie" => seconds >= 7,
-                      "Video" => seconds >= 7,
-                      "Audio" => seconds >= 10,
-                      _ => seconds >= 20
-                  };
-
-                  if (keep)
-                      filtered.Add(item);
+                  CoreLog.Write("DEBUG SMB: Ignoré (stabilisation SMB)");
+                  return;
               }
 
-              // ------------------------------------------------------------
-              // 6) Nettoyage des fichiers fermés (on retire leur timer)
-              // ------------------------------------------------------------
-              var pathsStillOpen = rawList.Select(x => x.Path).ToHashSet();
-              var keys = _openSince.Keys.ToList();
-              foreach (var p in keys)
+              try
               {
-                  if (!pathsStillOpen.Contains(p))
-                      _openSince.Remove(p);
-              }
+                  var server = Environment.MachineName;
 
-              // ------------------------------------------------------------
-              // 7) Section critique : mise à jour des listes internes
-              // ------------------------------------------------------------
-              lock (_sync)
-              {
-                  // -----------------------------
-                  // Mise à jour de "En cours"
-                  // -----------------------------
-                  _currentOpen.Clear();
-                  _currentOpen.AddRange(filtered);
+                  // ------------------------------------------------------------
+                  // 2) Mise à jour DVBViewer (asynchrone, non bloquant)
+                  // ------------------------------------------------------------
+                  _ = RefreshDvbViewerAsync();
 
-                  // -----------------------------
-                  // Ajout des flux DVBViewer
-                  // -----------------------------
-                  var dvb = GetCachedDvbViewerStreams();
-                  CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
+                  // ------------------------------------------------------------
+                  // 3) Récupération SMB : sessions + fichiers ouverts
+                  // ------------------------------------------------------------
+                  var sessions = SmbSessions.GetSessions(server);
+                  var files = SmbOpenFiles.GetOpenFiles(server);
+                  CoreLog.Write($"DEBUG SMB: {files.Count} fichiers ouverts détectés.");
 
-                  foreach (var s in dvb)
+                  // ------------------------------------------------------------
+                  // 4) Filtrage des fichiers multimédia valides + jointure SMB
+                  // ------------------------------------------------------------
+                  var joined =
+                      from f in files
+                      let ext = Path.GetExtension(f.Path).ToLower()
+                      let isRealFile = File.Exists(f.Path)
+                      where isRealFile
+                            && (ext == ".mp4" || ext == ".mkv" || ext == ".avi" || ext == ".mov" ||
+                                ext == ".ts"  || ext == ".wmv" || ext == ".flv" ||
+                                ext == ".mp3" || ext == ".wav" || ext == ".flac" ||
+                                ext == ".aac" || ext == ".ogg" || ext == ".wma"  ||
+                                ext == ".m4a" ||
+                                ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
+                                ext == ".gif" || ext == ".bmp"  || ext == ".webp")
+                            && MediaClassifier.IsMedia(f.Path)
+                      join s in sessions on f.SessionId equals s.SessionId into gj
+                      from match in gj.DefaultIfEmpty()
+                      select BuildItem(f, match);
+
+                  var rawList = joined.ToList();
+                  var filtered = new List<MediaUsageItem>();
+
+                  CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
+
+                  // ------------------------------------------------------------
+                  // 5) Stabilisation temporelle + FILTRE IMAGE FIABLE
+                  // ------------------------------------------------------------
+                  foreach (var item in rawList)
                   {
-                      CoreLog.Write($"DVB: Ajout dans _currentOpen => {s.Client} | {s.Type} | {s.Nom}");
-                      _currentOpen.Add(BuildDvbItem(s));
-                  }
+                      if (!_openSince.ContainsKey(item.Path))
+                          _openSince[item.Path] = DateTime.Now;
 
-                  // -----------------------------
-                  // Historique DVBViewer (TV/REC)
-                  // -----------------------------
-                  foreach (var s in dvb)
-                  {
-                      var dvbItem = BuildDvbItem(s);
+                      double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
 
-                      if (dvbItem.MediaType == "TV" || dvbItem.MediaType.StartsWith("REC"))
+                      // --------------------------------------------------------
+                      // FILTRE IMAGE FIABLE (VERSION PERMISSIVE)
+                      // --------------------------------------------------------
+                      if (item.MediaType == "Image")
                       {
-                          bool isNewDvb = !_history.Any(h =>
-                              h.ClientName == dvbItem.ClientName &&
-                              h.MediaType == dvbItem.MediaType &&
-                              h.Nom == dvbItem.Nom);
-
-                          if (isNewDvb)
+                          try
                           {
-                              _history.Add(dvbItem);
-                              CoreLog.Write($"DEBUG HISTORY: ajout DVB => {dvbItem.ClientName} | {dvbItem.MediaType} | {dvbItem.Nom}");
+                              long size = new FileInfo(item.Path).Length;
+                              if (size < 200_000)
+                                  continue; // miniature ? on ignore
+                          }
+                          catch { }
+
+                          // ?? Version permissive : juste 1 seconde
+                          if (seconds < 1)
+                              continue;
+                      }
+
+                      // --------------------------------------------------------
+                      // Délai minimum pour les autres médias
+                      // --------------------------------------------------------
+                      bool keep = item.MediaType switch
+                      {
+                          "Serie" => seconds >= 7,
+                          "Video" => seconds >= 7,
+                          "Audio" => seconds >= 10,
+                          _ => seconds >= 20
+                      };
+
+                      if (keep)
+                          filtered.Add(item);
+                  }
+
+                  // ------------------------------------------------------------
+                  // 6) Nettoyage des fichiers fermés (on retire leur timer)
+                  // ------------------------------------------------------------
+                  var pathsStillOpen = rawList.Select(x => x.Path).ToHashSet();
+                  var keys = _openSince.Keys.ToList();
+                  foreach (var p in keys)
+                  {
+                      if (!pathsStillOpen.Contains(p))
+                          _openSince.Remove(p);
+                  }
+
+                  // ------------------------------------------------------------
+                  // 7) Section critique : mise à jour des listes internes
+                  // ------------------------------------------------------------
+                  lock (_sync)
+                  {
+                      // -----------------------------
+                      // Mise à jour de "En cours"
+                      // -----------------------------
+                      _currentOpen.Clear();
+                      _currentOpen.AddRange(filtered);
+
+                      // -----------------------------
+                      // Ajout des flux DVBViewer
+                      // -----------------------------
+                      var dvb = GetCachedDvbViewerStreams();
+                      CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
+
+                      foreach (var s in dvb)
+                      {
+                          CoreLog.Write($"DVB: Ajout dans _currentOpen => {s.Client} | {s.Type} | {s.Nom}");
+                          _currentOpen.Add(BuildDvbItem(s));
+                      }
+
+                      // -----------------------------
+                      // Historique DVBViewer (TV/REC)
+                      // -----------------------------
+                      foreach (var s in dvb)
+                      {
+                          var dvbItem = BuildDvbItem(s);
+
+                          if (dvbItem.MediaType == "TV" || dvbItem.MediaType.StartsWith("REC"))
+                          {
+                              bool isNewDvb = !_history.Any(h =>
+                                  h.ClientName == dvbItem.ClientName &&
+                                  h.MediaType == dvbItem.MediaType &&
+                                  h.Nom == dvbItem.Nom);
+
+                              if (isNewDvb)
+                              {
+                                  _history.Add(dvbItem);
+                                  CoreLog.Write($"DEBUG HISTORY: ajout DVB => {dvbItem.ClientName} | {dvbItem.MediaType} | {dvbItem.Nom}");
+                              }
                           }
                       }
+
+                      // ------------------------------------------------------------
+                      // 8) MISE À JOUR FIABLE DE LA DERNIÈRE IMAGE (PERMISSIF)
+                      // ------------------------------------------------------------
+                      foreach (var item in _currentOpen)
+                      {
+                          if (item.MediaType == "Image")
+                              _lastImage = item.Path; // ?? direct, sans tempo
+                      }
+
+                      // ------------------------------------------------------------
+                      // 9) Historique FIABLE (Images + Audio) — VERSION PERMISSIVE
+                      // ------------------------------------------------------------
+                      foreach (var item in _currentOpen)
+                      {
+                          // ?? Images : uniquement la dernière image
+                          if (item.MediaType == "Image")
+                          {
+                              if (item.Path != _lastImage)
+                                  continue;
+                          }
+
+                          // Audio : on garde ton filtre existant
+                          if (item.MediaType == "Audio")
+                          {
+                              double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
+                              if (seconds < 15)
+                                  continue;
+                          }
+
+                          bool isNew = !_history.Any(h =>
+                              h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
+                              h.ClientIP == item.ClientIP &&
+                              h.MediaType == item.MediaType);
+
+                          if (isNew)
+                          {
+                              _history.Add(item);
+                              CoreLog.Write($"HISTORY: Ajout => {item.Path} ({item.ClientName})");
+                          }
+                      }
+
                   }
 
-                  // ------------------------------------------------------------
-                  // ?? 8) MISE À JOUR FIABLE DE LA DERNIÈRE IMAGE
-                  // ------------------------------------------------------------
-                  foreach (var item in _currentOpen)
-                  {
-                      if (item.MediaType == "Image")
-                      {
-                          double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
-
-                          if (seconds >= 15) // même seuil que le filtre
-                              _lastImage = item.Path;
-                      }
-                  }
-
-                  // ------------------------------------------------------------
-                  // ?? 9) Historique FIABLE (Images + Audio)
-                  // ------------------------------------------------------------
-                  foreach (var item in _currentOpen)
-                  {
-                      // ?? Images : on ne garde QUE la dernière image stable
-                      if (item.MediaType == "Image")
-                      {
-                          if (item.Path != _lastImage)
-                              continue;
-                      }
-
-                      // ?? Audio : anti pré-ouverture
-                      if (item.MediaType == "Audio")
-                      {
-                          double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
-                          if (seconds < 15)
-                              continue;
-                      }
-
-                      bool isNew = !_history.Any(h =>
-                          h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-                          h.ClientIP == item.ClientIP &&
-                          h.MediaType == item.MediaType);
-
-                      if (isNew)
-                      {
-                          _history.Add(item);
-                          CoreLog.Write($"HISTORY: Ajout => {item.Path} ({item.ClientName})");
-                      }
-                  }
-              }
-
-            // ------------------------------------------------------------
-            // 10) Envoi de la liste fusionnée à l’interface Web
-            // ------------------------------------------------------------
-            OnUpdate?.Invoke(_currentOpen, _lastImage);
+                // ------------------------------------------------------------
+                // 10) Envoi de la liste fusionnée à l’interface Web
+                // ------------------------------------------------------------
+                OnUpdate?.Invoke(_currentOpen, _lastImage);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("SMB ERROR: " + ex.Message);
+            }
         }
-        catch (Exception ex)
-        {
-            CoreLog.Write("SMB ERROR: " + ex.Message);
-        }
-    }
-
         
         // ============================================================
         //  Nettoyage du nom

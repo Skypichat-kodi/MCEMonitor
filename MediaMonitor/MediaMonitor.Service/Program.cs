@@ -248,6 +248,8 @@ namespace MediaMonitor.Service
         {
             try
             {
+                _isBackupRunning = true; // ?? Bloque Tick()
+
                 int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
 
                 if (retentionDays > 0)
@@ -263,7 +265,6 @@ namespace MediaMonitor.Service
                     string backupPath = Path.Combine(backupDir, "history_backup.json");
 
                     // Charger l'ancien backup s'il existe
-                    // Charger l'ancien backup s'il existe
                     BackupFileModel backup = null;
 
                     if (File.Exists(backupPath))
@@ -276,7 +277,7 @@ namespace MediaMonitor.Service
                         backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
 
                     // ------------------------------------------------------------
-                    // ?? INCRÉMENTIEL : fusionner les items du jour (version corrigée)
+                    // INCRÉMENTIEL : fusionner les items du jour
                     // ------------------------------------------------------------
                     DateTime today = DateTime.Now.Date;
 
@@ -322,13 +323,27 @@ namespace MediaMonitor.Service
                         existing.Items.Add(item);
                     }
 
-                    // ?? Loguer les doublons réels (ceux filtrés)
-                    foreach (var item in newItems.Except(filtered))
+                    // Loguer les doublons réels (version correcte)
+                    foreach (var item in newItems)
                     {
-                        WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
+                        bool isDuplicate = existing.Items.Any(x =>
+                            x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
+                            x.ClientIP == item.ClientIP &&
+                            x.MediaType == item.MediaType &&
+                            x.Nom == item.Nom &&
+                            x.Saison == item.Saison &&
+                            x.Episode == item.Episode &&
+                            x.FileName == item.FileName &&
+                            x.UNC == item.UNC
+                        );
+
+                        if (isDuplicate)
+                        {
+                            WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
+                        }
                     }
 
-                    // (OPTIONNEL) — Si tu veux loguer combien ont été ajoutés
+                    // Log des nouveaux items ajoutés
                     WriteScheduleLog(
                         (LanguageManager.Get("Backup") ?? "Backup")
                         + $" : {filtered.Count} "
@@ -336,7 +351,7 @@ namespace MediaMonitor.Service
                     );
 
                     // ------------------------------------------------------------
-                    // ?? Rétention glissante : supprimer les jours trop anciens
+                    // Rétention glissante : supprimer les jours trop anciens
                     // ------------------------------------------------------------
                     DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
@@ -349,6 +364,10 @@ namespace MediaMonitor.Service
             catch (Exception ex)
             {
                 LogService.WriteError("Erreur lors de la sauvegarde cumulée : " + ex.Message);
+            }
+            finally
+            {
+                _isBackupRunning = false; // ?? Débloque Tick()
             }
         }
 
