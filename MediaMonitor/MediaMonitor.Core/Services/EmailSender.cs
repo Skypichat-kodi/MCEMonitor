@@ -33,26 +33,26 @@ namespace MediaMonitor.Core.Services
                 if (isHtml)
                 {
                     body = $@"
-<div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:#f5f5f5;padding:20px'>
-    <div style='max-width:650px;margin:auto;background:white;border-radius:8px;padding:20px;
-                box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
+                    <div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:#f5f5f5;padding:20px'>
+                        <div style='max-width:650px;margin:auto;background:white;border-radius:8px;padding:20px;
+                                    box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
 
-        <h2 style='text-align:center;color:#2980b9;margin-top:0'>
-            MediaMonitor – Rapport d'activité
-        </h2>
+                            <h2 style='text-align:center;color:#2980b9;margin-top:0'>
+                                MediaMonitor – Rapport d'activité
+                            </h2>
 
-        <p style='text-align:center;color:#555;margin-top:5px'>
-            Machine : <b>{Environment.MachineName}</b><br>
-            Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
-        </p>
+                            <p style='text-align:center;color:#555;margin-top:5px'>
+                                Machine : <b>{Environment.MachineName}</b><br>
+                                Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+                            </p>
 
-        {body}
+                            {body}
 
-        <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
-            Rapport généré automatiquement par MediaMonitor.
-        </p>
-    </div>
-</div>";
+                            <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
+                                Rapport généré automatiquement par MediaMonitor.
+                            </p>
+                        </div>
+                    </div>";
                 }
 
                 message.Body = new TextPart(isHtml ? "html" : "plain")

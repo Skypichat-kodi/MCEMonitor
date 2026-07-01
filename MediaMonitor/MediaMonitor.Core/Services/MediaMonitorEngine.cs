@@ -461,10 +461,6 @@ namespace MediaMonitor.Core.Services
                 return new List<DvbViewerClientStream>(_dvbCache);
         }
 
-        // ============================================================
-        //  RAPPORT + EMAIL
-        // ============================================================
-
         public string GenerateReportFromHistory()
         {
             lock (_sync)
@@ -472,37 +468,68 @@ namespace MediaMonitor.Core.Services
                 if (_history.Count == 0)
                     return "<html><body><h2>Aucun fichier ouvert depuis le démarrage du service.</h2></body></html>";
 
+                // ------------------------------------------------------------
+                // ?? Statistiques
+                // ------------------------------------------------------------
+                int totalMedias = _history.Count;
+                int mediasParPage = 200;
+                int totalPages = (int)Math.Ceiling(totalMedias / (double)mediasParPage);
+
+                var countByType = _history
+                    .GroupBy(i => i.MediaType)
+                    .ToDictionary(g => g.Key, g => g.Count());
+
+                string statsHtml = $@"
+        <div style='padding:15px;background:#eef5fb;border-radius:6px;margin-bottom:20px'>
+            <h3 style='margin:0;color:#2980b9'>Résumé du rapport</h3>
+            <p style='margin:8px 0'>
+                <b>Total médias :</b> {totalMedias}<br>
+                <b>Nombre de pages :</b> {totalPages}<br>
+                <b>Médias par page :</b> {mediasParPage}
+            </p>
+            <ul style='margin:0;padding-left:20px;color:#555'>
+        ";
+
+                foreach (var kv in countByType)
+                    statsHtml += $"<li><b>{kv.Key}</b> : {kv.Value}</li>";
+
+                statsHtml += "</ul></div>";
+
+                // ------------------------------------------------------------
+                // ?? HTML du rapport
+                // ------------------------------------------------------------
                 var html = @"
-<html>
-<head>
-<meta charset='UTF-8'>
-<style>
-body { font-family: Arial; }
-table { border-collapse: collapse; width: 100%; }
-th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-th { background: #eee; }
-</style>
-</head>
-<body>
-<h2>Historique MediaMonitor</h2>
-<table>
-<tr>
-<th>Heure</th>
-<th>Client IP</th>
-<th>Type</th>
-<th>Nom</th>
-<th>Saison</th>
-<th>Episode</th>
-<th>Fichier</th>
-<th>Chemin</th>
-</tr>
-";
+        <html>
+        <head>
+        <meta charset='UTF-8'>
+        <style>
+        body { font-family: Arial; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
+        th { background: #eee; }
+        </style>
+        </head>
+        <body>
+        " + statsHtml + @"
+        <h2>Historique MediaMonitor</h2>
+        <table>
+        <tr>
+        <th>Heure</th>
+        <th>Client IP</th>
+        <th>Type</th>
+        <th>Nom</th>
+        <th>Saison</th>
+        <th>Episode</th>
+        <th>Fichier</th>
+        <th>Chemin</th>
+        </tr>
+        ";
 
                 foreach (var item in _history)
                 {
                     html += "<tr>" +
                       $"<td>{item.Timestamp:HH:mm:ss}</td>" +
-                      $"<td>{item.ClientName}</td>" +   // IP réelle
+                      $"<td>{item.ClientName}</td>" +
                       $"<td>{item.MediaType}</td>" +
                       $"<td>{item.Nom}</td>" +
                       $"<td>{item.Saison}</td>" +
@@ -510,7 +537,6 @@ th { background: #eee; }
                       $"<td>{item.FileName}</td>" +
                       $"<td>{item.Path}</td>" +
                       "</tr>";
-
                 }
 
                 html += "</table></body></html>";
