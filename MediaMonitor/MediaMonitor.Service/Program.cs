@@ -248,7 +248,7 @@ namespace MediaMonitor.Service
         {
             try
             {
-                engine.IsBackupRunning = true; // ?? Bloque Tick()
+                engine.IsBackupRunning = true; // Bloque Tick()
 
                 int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
 
@@ -294,26 +294,26 @@ namespace MediaMonitor.Service
                         backup.Reports.Add(existing);
                     }
 
-                    // Nettoyage des doublons dans le backup JSON
+                    // ------------------------------------------------------------
+                    // ?? Nettoyage des doublons dans le backup JSON (clé stable)
+                    // ------------------------------------------------------------
                     existing.Items = existing.Items
-                        .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom, i.Saison, i.Episode, i.FileName, i.UNC })
+                        .GroupBy(i => new { i.MediaType, i.Nom, i.ClientIP, i.FileName })
                         .Select(g => g.First())
                         .ToList();
 
                     // Récupérer les items RAM
                     var newItems = engine.GetHistory();
 
-                    // Filtrer les nouveaux items (anti-doublons)
+                    // ------------------------------------------------------------
+                    // ?? Filtrer les nouveaux items (anti-doublons stable)
+                    // ------------------------------------------------------------
                     var filtered = newItems.Where(item =>
                         !existing.Items.Any(x =>
-                            x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-                            x.ClientIP.Equals(item.ClientIP, StringComparison.OrdinalIgnoreCase) &&
                             x.MediaType == item.MediaType &&
                             x.Nom == item.Nom &&
-                            x.Saison == item.Saison &&
-                            x.Episode == item.Episode &&
-                            x.FileName == item.FileName &&
-                            x.UNC == item.UNC
+                            x.ClientIP == item.ClientIP &&
+                            x.FileName == item.FileName
                         )
                     ).ToList();
 
@@ -323,18 +323,16 @@ namespace MediaMonitor.Service
                         existing.Items.Add(item);
                     }
 
-                    // Loguer les doublons réels (version correcte)
+                    // ------------------------------------------------------------
+                    // ?? Loguer les doublons réels (clé stable)
+                    // ------------------------------------------------------------
                     foreach (var item in newItems)
                     {
                         bool isDuplicate = existing.Items.Any(x =>
-                            x.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-                            x.ClientIP == item.ClientIP &&
                             x.MediaType == item.MediaType &&
                             x.Nom == item.Nom &&
-                            x.Saison == item.Saison &&
-                            x.Episode == item.Episode &&
-                            x.FileName == item.FileName &&
-                            x.UNC == item.UNC
+                            x.ClientIP == item.ClientIP &&
+                            x.FileName == item.FileName
                         );
 
                         if (isDuplicate)
@@ -351,7 +349,7 @@ namespace MediaMonitor.Service
                     );
 
                     // ------------------------------------------------------------
-                    // Rétention glissante : supprimer les jours trop anciens
+                    // ?? Rétention glissante : supprimer les jours trop anciens
                     // ------------------------------------------------------------
                     DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
@@ -367,7 +365,7 @@ namespace MediaMonitor.Service
             }
             finally
             {
-                engine.IsBackupRunning = false; // ?? Débloque Tick()
+                engine.IsBackupRunning = false; // Débloque Tick()
             }
         }
 
