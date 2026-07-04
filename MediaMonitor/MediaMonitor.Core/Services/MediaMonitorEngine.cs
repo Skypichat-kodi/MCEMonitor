@@ -201,20 +201,22 @@ namespace MediaMonitor.Core.Services
                     // -----------------------------
                     foreach (var s in dvb)
                     {
-                        var dvbItem = BuildDvbItem(s);
+                        var item = BuildDvbItem(s);
 
-                        if (dvbItem.MediaType == "TV" || dvbItem.MediaType.StartsWith("REC"))
+                        bool exists = _currentOpen.Any(x =>
+                            x.ClientName == item.ClientName &&
+                            x.MediaType == item.MediaType &&
+                            x.Nom == item.Nom
+                        );
+
+                        if (!exists)
                         {
-                            bool isNewDvb = !_history.Any(h =>
-                                h.ClientName == dvbItem.ClientName &&
-                                h.MediaType == dvbItem.MediaType &&
-                                h.Nom == dvbItem.Nom);
-
-                            if (isNewDvb)
-                            {
-                                _history.Add(dvbItem);
-                                CoreLog.Write($"DEBUG HISTORY: ajout DVB => {dvbItem.ClientName} | {dvbItem.MediaType} | {dvbItem.Nom}");
-                            }
+                            CoreLog.Write($"DVB: Ajout dans _currentOpen => {item.ClientName} | {item.MediaType} | {item.Nom}");
+                            _currentOpen.Add(item);
+                        }
+                        else
+                        {
+                            CoreLog.Write($"DVB: Doublon ignoré dans _currentOpen => {item.ClientName} | {item.MediaType} | {item.Nom}");
                         }
                     }
 

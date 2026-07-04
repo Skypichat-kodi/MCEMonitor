@@ -24,6 +24,8 @@ namespace MediaMonitor.Service
         private static System.Threading.Timer hourlyBackupTimer;
         private static FileSystemWatcher _webConfigWatcher;
         private static bool _dvbViewerEnabled = false;
+        private static DateTime lastWakeUp = DateTime.MinValue;
+        private static bool isWakeUp = false;        
 
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
@@ -36,7 +38,7 @@ namespace MediaMonitor.Service
         {
             var settings = WebServerSettings.Load();
             return settings.RetentionDays;
-        }
+        }        
 
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
@@ -248,9 +250,26 @@ namespace MediaMonitor.Service
         {
             try
             {
-                engine.IsBackupRunning = true; // Bloque Tick()
+                // ------------------------------------------------------------
+                // ?? Protection : éviter backup pendant 10 sec après sortie de veille
+                // ------------------------------------------------------------
+                if (isWakeUp)
+                {
+                    if ((DateTime.Now - lastWakeUp).TotalSeconds < 10)
+                    {
+                        WriteScheduleLog("[WAKEUP] Backup ignoré (machine vient de sortir de veille).");
+                        return;
+                    }
+                    else
+                    {
+                        isWakeUp = false;
+                        WriteScheduleLog("[WAKEUP] Backup réactivé.");
+                    }
+                }
 
-                int retentionDays = LoadRetentionDays(); // 0, 7, 14, 30
+                engine.IsBackupRunning = true;
+
+                int retentionDays = LoadRetentionDays();
 
                 if (retentionDays > 0)
                 {
@@ -264,24 +283,80 @@ namespace MediaMonitor.Service
 
                     string backupPath = Path.Combine(backupDir, "history_backup.json");
 
-                    // Charger l'ancien backup s'il existe
                     BackupFileModel backup = null;
 
+                    // ------------------------------------------------------------
+                    // ?? Lecture du JSON + détection duplication File.ReadAllText
+                    // ------------------------------------------------------------
                     if (File.Exists(backupPath))
                     {
                         string oldJson = File.ReadAllText(backupPath);
+
+                        // Détection duplication brute (JSON concaténé)
+                        int half = oldJson.Length / 2;
+                        if (oldJson.Length > 100 && oldJson.Substring(0, half) == oldJson.Substring(half))
+                        {
+                            WriteScheduleLog("[CODE05] Duplication détectée dans le JSON (File.ReadAllText). Réparation en cours.");
+                        }
+
                         backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
+
+                        );
+
+                        // ------------------------------------------------------------
+                        // ?? Déduplication globale (entre jours)
+                        // ------------------------------------------------------------
+                        var allItems = backup.Reports
+                            .SelectMany(r => r.Items)
+                            .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode, i.Timestamp })
+                            .Select(g => g.First())
+                            .ToList();
+
+                        int totalBefore = backup.Reports.Sum(r => r.Items.Count);
+                        int totalAfter = allItems.Count;
+
+                        if (totalAfter < totalBefore)
+                        {
+                            WriteScheduleLog($"[CODE07] Réparation globale : {totalBefore - totalAfter} doublons supprimés dans l'ensemble du JSON.");
+                        }
+
+                        // Répartition des items dédupliqués dans leurs jours respectifs
+                        foreach (var report in backup.Reports)
+                        {
+                            report.Items = allItems
+                                .Where(i => report.Date == i.Timestamp.Date)
+                                .ToList();
+                        }
+
+                        // ------------------------------------------------------------
+                        // ?? Réparation automatique du JSON existant (par jour)
+                        // ------------------------------------------------------------
+                        foreach (var report in backup.Reports)
+                        {
+                            int before = report.Items.Count;
+
+                            report.Items = report.Items
+                                .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
+                                .Select(g => g.First())
+                                .ToList();
+
+                            int after = report.Items.Count;
+
+                            if (after < before)
+                            {
+                                WriteScheduleLog($"[CODE06] Réparation JSON : {before - after} doublons supprimés dans le jour {report.Date:yyyy-MM-dd}");
+                            }
+                        }
                     }
 
                     if (backup == null)
                         backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
 
                     // ------------------------------------------------------------
-                    // INCRÉMENTIEL : fusionner les items du jour
+                    // ?? Fusion du jour actuel
                     // ------------------------------------------------------------
                     DateTime today = DateTime.Now.Date;
 
-                    // Chercher le rapport du jour existant
                     var existing = backup.Reports.FirstOrDefault(r => r.Date == today);
 
                     if (existing == null)
@@ -294,67 +369,39 @@ namespace MediaMonitor.Service
                         backup.Reports.Add(existing);
                     }
 
-                    // ------------------------------------------------------------
-                    // ?? Nettoyage des doublons dans le backup JSON (clé stable)
-                    // ------------------------------------------------------------
+                    // Nettoyage du jour actuel
                     existing.Items = existing.Items
-                        .GroupBy(i => new { i.MediaType, i.Nom, i.ClientIP, i.FileName })
+                        .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
                         .Select(g => g.First())
                         .ToList();
 
-                    // Récupérer les items RAM
+                    // Items RAM
                     var newItems = engine.GetHistory();
 
-                    // ------------------------------------------------------------
-                    // ?? Filtrer les nouveaux items (anti-doublons stable)
-                    // ------------------------------------------------------------
+                    // Anti-doublon stable
                     var filtered = newItems.Where(item =>
                         !existing.Items.Any(x =>
+                            x.Path == item.Path &&
+                            x.FileName == item.FileName &&
                             x.MediaType == item.MediaType &&
                             x.Nom == item.Nom &&
-                            x.ClientIP == item.ClientIP &&
-                            x.FileName == item.FileName
+                            x.Saison == item.Saison &&
+                            x.Episode == item.Episode
                         )
                     ).ToList();
 
-                    // Ajouter uniquement les nouveaux items
                     foreach (var item in filtered)
-                    {
                         existing.Items.Add(item);
-                    }
+
+                    WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés");
 
                     // ------------------------------------------------------------
-                    // ?? Loguer les doublons réels (clé stable)
-                    // ------------------------------------------------------------
-                    foreach (var item in newItems)
-                    {
-                        bool isDuplicate = existing.Items.Any(x =>
-                            x.MediaType == item.MediaType &&
-                            x.Nom == item.Nom &&
-                            x.ClientIP == item.ClientIP &&
-                            x.FileName == item.FileName
-                        );
-
-                        if (isDuplicate)
-                        {
-                            WriteScheduleLog($"[CODE04] Doublon ignoré : {item.Path} (client {item.ClientIP}, {item.Timestamp:HH:mm:ss})");
-                        }
-                    }
-
-                    // Log des nouveaux items ajoutés
-                    WriteScheduleLog(
-                        (LanguageManager.Get("Backup") ?? "Backup")
-                        + $" : {filtered.Count} "
-                        + (LanguageManager.Get("nouveaux items ajoutés") ?? "nouveaux items ajoutés")
-                    );
-
-                    // ------------------------------------------------------------
-                    // ?? Rétention glissante : supprimer les jours trop anciens
+                    // ?? Rétention glissante
                     // ------------------------------------------------------------
                     DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
 
-                    // Sauvegarder le fichier final
+                    // Sauvegarde finale
                     string json = JsonConvert.SerializeObject(backup, Formatting.Indented);
                     File.WriteAllText(backupPath, json, Encoding.UTF8);
                 }
@@ -365,7 +412,7 @@ namespace MediaMonitor.Service
             }
             finally
             {
-                engine.IsBackupRunning = false; // Débloque Tick()
+                engine.IsBackupRunning = false;
             }
         }
 
@@ -643,6 +690,16 @@ namespace MediaMonitor.Service
 
         static void Main()
         {
+            Microsoft.Win32.SystemEvents.PowerModeChanged += (s, e) =>
+            {
+                if (e.Mode == Microsoft.Win32.PowerModes.Resume)
+                {
+                    lastWakeUp = DateTime.Now;
+                    isWakeUp = true;
+                    WriteScheduleLog("[WAKEUP] Sortie de veille détectée. Backup suspendu 10 secondes.");
+                }
+            };        
+        
             // ============================================================
             // ?? GESTION DE LA LANGUE TRANSMISE PAR MCEMonitor
             // ============================================================
