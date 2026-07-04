@@ -5,7 +5,7 @@
 
 [Setup]
 AppName=MCEMonitor
-AppVersion=1.3
+AppVersion=1.4
 DefaultDirName={autopf}\MCEMonitor
 DefaultGroupName=MCEMonitor
 OutputDir=Installer
