@@ -314,18 +314,23 @@ namespace MediaMonitor.Core.Services
             int episode = 0;
             string mediaType;
 
-            if (ext == ".jpg" || ext == ".jpeg" || ext == ".png" ||
-                ext == ".gif" || ext == ".bmp" || ext == ".webp")
+            // ?? 1) Détection AUDIO par extension
+            if (ext is ".mp3" or ".flac" or ".wav" or ".aac" or ".ogg" or ".m4a")
+            {
+                mediaType = "Audio";
+            }
+            else if (ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp")
             {
                 mediaType = "Image";
             }
             else
             {
+                // ?? 2) Détection VIDEO ? peut être Film ou Série
                 MediaClassifier.ExtractEpisodeInfo(f.Path, out saison, out episode);
 
                 mediaType = saison > 0 && episode > 0
                     ? "Serie"
-                    : MediaClassifier.GetMediaType(f.Path);
+                    : "Film";
             }
 
             string file = Path.GetFileName(f.Path);

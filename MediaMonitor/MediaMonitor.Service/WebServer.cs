@@ -300,20 +300,26 @@ namespace MediaMonitor.Service
 
             return (nom, "");
         }
-
         private (string Track, string Artiste, string Titre) ExtractAudio(string nom)
         {
             if (string.IsNullOrWhiteSpace(nom))
                 return ("", "", "");
 
-            var parts = nom.Split(" - ", 3, StringSplitOptions.TrimEntries);
+            var parts = nom.Split(" - ", StringSplitOptions.TrimEntries);
 
-            if (parts.Length == 3)
-                return (parts[0], parts[1], parts[2]);
+            // Cas 1 : Track - Artiste - Titre
+            if (parts.Length >= 3 && int.TryParse(parts[0], out _))
+            {
+                return (parts[0], parts[1], string.Join(" - ", parts.Skip(2)));
+            }
 
-            if (parts.Length == 2)
-                return ("", parts[0], parts[1]);
+            // Cas 2 : Artiste - Titre
+            if (parts.Length >= 2)
+            {
+                return ("", parts[0], string.Join(" - ", parts.Skip(1)));
+            }
 
+            // Cas 3 : Titre seul
             return ("", "", nom);
         }
 
@@ -434,7 +440,7 @@ namespace MediaMonitor.Service
 
             int liveCount = live.Count;
             int historyCount = history.Count;
-            int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));
+            int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));            
 
             var sb = new StringBuilder();
 
@@ -444,7 +450,7 @@ namespace MediaMonitor.Service
         <head>
         <meta charset='UTF-8'>
         <title>{{tr:MediaMonitor – Tableau de bord}}</title>
-        <link rel='icon' type='image/x-icon' href='/MediaMonitor.ico'>
+        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
         <style>
         body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
         h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
