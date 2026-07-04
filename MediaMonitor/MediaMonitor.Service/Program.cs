@@ -301,8 +301,6 @@ namespace MediaMonitor.Service
 
                         backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
 
-                        );
-
                         // ------------------------------------------------------------
                         // ?? Déduplication globale (entre jours)
                         // ------------------------------------------------------------
