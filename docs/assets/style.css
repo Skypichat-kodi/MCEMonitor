@@ -36,21 +36,8 @@ nav a:hover {
 }
 
 /* ===========================
-   HERO FULL WIDTH + FLU PROGRESSIF
+   HERO (bannière derrière le texte)
 =========================== */
-
-.hero {
-    position: relative;
-    height: 600px; /* adapté à ta bannière 1920x603 */
-    text-align: center;
-
-    border-top: 4px solid #333;
-    border-bottom: 4px solid #333;
-
-    overflow: hidden;
-}
-
-/* Bannière floue progressive */
 .hero::before {
     content: "";
     position: absolute;
@@ -64,21 +51,20 @@ nav a:hover {
     background-position: center;
     background-repeat: no-repeat;
 
-    filter: blur(12px);
-    transform: scale(1.05); /* évite les bords flous visibles */
-
-    /* Flou progressif : haut net ? bas flou */
-    mask-image: linear-gradient(
-        to bottom,
-        rgba(0,0,0,0) 0%,      /* haut net */
-        rgba(0,0,0,0.15) 30%, /* transition douce */
-        rgba(0,0,0,0.5) 60%,  /* flou moyen */
-        rgba(0,0,0,1) 100%    /* bas flou fort */
-    );
-    mask-size: 100% 100%;
-    mask-repeat: no-repeat;
+    /* Flou léger, propre */
+    filter: blur(4px);
+    transform: scale(1.03); /* évite les bords visibles */
 
     z-index: 0;
+}
+
+.hero {
+    position: relative;
+    padding: 80px 20px;
+    text-align: center;
+
+    border-bottom: 2px solid #333;
+    overflow: hidden;
 }
 
 /* Voile noir pour lisibilité */
@@ -93,12 +79,10 @@ nav a:hover {
     z-index: 1;
 }
 
-/* Contenu centré verticalement */
 .hero-content {
     position: relative;
     z-index: 2;
-
-    height: 100%;
+    min-height: 300px;
     display: flex;
     flex-direction: column;
     justify-content: center;
