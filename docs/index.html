@@ -39,11 +39,9 @@
             const response = await fetch(file);
             const html = await response.text();
 
-            // On crée un conteneur temporaire pour analyser le HTML
             const temp = document.createElement("div");
             temp.innerHTML = html;
 
-            // On récupère le HERO et le contenu
             const hero = temp.querySelector(".hero");
             const features = temp.querySelector(".features");
 
