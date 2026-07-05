@@ -17,7 +17,10 @@
         </nav>
     </header>
 
-    <!-- Zone où le contenu des pages sera chargé -->
+    <!-- HERO FULL WIDTH -->
+    <div id="hero-container"></div>
+
+    <!-- CONTENT LIMITÉ À 1000px -->
     <div id="content"></div>
 
     <footer>
@@ -35,7 +38,22 @@
 
             const response = await fetch(file);
             const html = await response.text();
-            document.getElementById("content").innerHTML = html;
+
+            // On crée un conteneur temporaire pour analyser le HTML
+            const temp = document.createElement("div");
+            temp.innerHTML = html;
+
+            // On récupère le HERO et le contenu
+            const hero = temp.querySelector(".hero");
+            const features = temp.querySelector(".features");
+
+            // HERO FULL WIDTH
+            document.getElementById("hero-container").innerHTML =
+                hero ? hero.outerHTML : "";
+
+            // CONTENT LIMITÉ À 1000px
+            document.getElementById("content").innerHTML =
+                features ? features.outerHTML : html;
         }
 
         window.addEventListener("hashchange", () => {
