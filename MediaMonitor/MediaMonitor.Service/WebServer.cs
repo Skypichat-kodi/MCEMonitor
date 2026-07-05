@@ -1420,6 +1420,7 @@ namespace MediaMonitor.Service
             <head>
                 <meta charset='utf-8'>
                 <title>{{tr:Aucune sauvegarde}}</title>
+                <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
                 <style>
                     body {
                         background-color: #1e1e1e;
@@ -1551,6 +1552,7 @@ namespace MediaMonitor.Service
             <head>
                 <meta charset='utf-8'>
                 <title>{{tr:Purge des sauvegardes}}</title>
+                <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
                 <style>
                     body {
                         background-color: #1e1e1e;
