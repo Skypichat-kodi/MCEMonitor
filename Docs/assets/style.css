@@ -1,0 +1,65 @@
+body {
+    background: #111;
+    color: #eee;
+    font-family: Segoe UI, Arial, sans-serif;
+    margin: 0;
+}
+
+header {
+    background: #1c1c1c;
+    padding: 20px;
+    text-align: center;
+    border-bottom: 2px solid #333;
+}
+
+header h1 {
+    margin: 0;
+    color: #4fc3f7;
+}
+
+nav a {
+    margin: 0 15px;
+    color: #ccc;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+nav a:hover {
+    color: #4fc3f7;
+}
+
+.hero {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 12px 20px;
+    background: #4fc3f7;
+    color: #000;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.features ul {
+    max-width: 600px;
+    margin: auto;
+    padding: 20px;
+}
+
+.gallery img {
+    width: 300px;
+    margin: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px #000;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    background: #1c1c1c;
+    margin-top: 40px;
+}
+
