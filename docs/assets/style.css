@@ -51,8 +51,17 @@ nav a:hover {
     background-position: center;
     background-repeat: no-repeat;
 
-    filter: blur(8px); /* intensité du flou */
-    transform: scale(1.05); /* évite les bords visibles après flou */
+    filter: blur(12px); /* intensité du flou */
+    transform: scale(1.05); /* évite les bords visibles */
+
+    /* Dégradé progressif : haut net, bas flou */
+    mask-image: linear-gradient(to bottom, 
+        rgba(0,0,0,0) 0%,      /* haut net */
+        rgba(0,0,0,0.3) 40%,   /* transition douce */
+        rgba(0,0,0,1) 100%     /* bas flou */
+    );
+    mask-size: 100% 100%;
+    mask-repeat: no-repeat;
 
     z-index: 0;
 }
@@ -118,8 +127,6 @@ nav a:hover {
     max-width: 1000px;
     margin: auto;
 
-    border-top: 1px solid #333;
-    border-bottom: 1px solid #333;
 }
 
 /* ===========================
