@@ -10,36 +10,42 @@
     <header class="header">
         <h1>MCEMonitor</h1>
         <nav>
-            <a href="index.html">Accueil</a>
-            <a href="downloads.html">Téléchargements</a>
-            <a href="docs.html">Documentation</a>
-            <a href="screenshots.html">Captures</a>
+            <a href="#home">Accueil</a>
+            <a href="#downloads">Téléchargements</a>
+            <a href="#docs">Documentation</a>
+            <a href="#screenshots">Captures</a>
         </nav>
     </header>
 
-    <section class="hero">
-        <div class="hero-content">
-            <h2>Surveillez l’activité multimédia de votre réseau Windows</h2>
-            <p>MCEMonitor est un logiciel permettant de consulter les mouvements d’un réseau local via les partages Samba, ainsi que les serveurs TV tels que DVBViewer. Il doit être installé sur la machine qui distribue les fichiers, c’est-à-dire celle qui possède les partages. Le logiciel fonctionne uniquement sous Windows (minimum Windows 10 64 bits).</p>
-            <a class="btn" href="downloads.html">Télécharger</a>
-        </div>
-    </section>
-
-    <section class="features">
-        <h2>Fonctionnalités principales</h2>
-        <div class="cards">
-            <div class="card">Envoyer un rapport journalier des mouvements multimédia : audio, vidéo, images, fichiers TS…</div>
-            <div class="card">Éteindre ou mettre en veille la machine à une heure précise.</div>
-            <div class="card">Envoyer un mail en cas de réveil, d’arrêt ou de plantage.</div>
-            <div class="card">Fournir un serveur Web intégré, consultable de n’importe où, protégé par mot de passe.</div>
-            <div class="card">Conserver une trace des fichiers ouverts sur 7, 14 ou 30 jours, avec une rétention glissante.</div>
-            <div class="card">Générer et télécharger des rapports au format PDF.</div>
-        </div>
-    </section>
+    <!-- Zone où le contenu des pages sera chargé -->
+    <div id="content"></div>
 
     <footer>
         <p>© 2026 MCEMonitor – Projet open-source</p>
     </footer>
+
+    <script>
+        async function loadPage(page) {
+            const file = {
+                home: "pages/home.html",
+                downloads: "pages/downloads.html",
+                docs: "pages/docs.html",
+                screenshots: "pages/screenshots.html"
+            }[page] || "pages/home.html";
+
+            const response = await fetch(file);
+            const html = await response.text();
+            document.getElementById("content").innerHTML = html;
+        }
+
+        // Charge la page selon l’ancre (#downloads, #docs, etc.)
+        window.addEventListener("hashchange", () => {
+            loadPage(location.hash.substring(1));
+        });
+
+        // Charge la page d’accueil au démarrage
+        loadPage(location.hash.substring(1) || "home");
+    </script>
 </body>
 </html>
 
