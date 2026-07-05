@@ -22,6 +22,35 @@ body {
 .header h1 {
     margin: 0;
     color: #4fc3f7;
+    font-size: 42px;
+    font-weight: 900;
+    letter-spacing: 2px;
+
+    /* Glow léger */
+    text-shadow:
+        0 0 8px rgba(79,195,247,0.6),
+        0 0 16px rgba(79,195,247,0.4);
+
+    /* Animation */
+    opacity: 0;
+    transform: translateY(-10px);
+    animation: titleFadeIn 1.2s ease-out forwards;
+}
+
+/* Animation keyframes */
+@keyframes titleFadeIn {
+    0% {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    60% {
+        opacity: 1;
+        transform: translateY(3px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 nav a {
