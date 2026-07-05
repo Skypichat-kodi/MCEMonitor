@@ -36,52 +36,39 @@ nav a:hover {
 }
 
 /* ===========================
-   HERO + BANNIÈRE DERRIÈRE
+   HERO (bannière derrière le texte)
 =========================== */
 .hero {
-    position: relative;            /* permet de placer la bannière derrière */
+    position: relative;
     padding: 80px 20px;
     text-align: center;
-    background: transparent;       /* important */
-    border-bottom: 1px solid #333;
-    overflow: hidden;              /* évite les débordements */
-}
 
-/* Bannière derrière le hero */
-.banner {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 220px;
+    /* BANNIÈRE EN FOND DU HERO */
     background-image: url('../assets/images/banner.png');
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    z-index: -1;                   /* derrière le hero */
-    animation: bannerFade 1.2s ease-out forwards;
+
+    border-bottom: 2px solid #333; /* ligne de séparation */
 }
 
-/* Animation fade-in */
-@keyframes bannerFade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-/* ===========================
-   CONTENT
-=========================== */
-#content {
-    padding: 40px 20px;
-    max-width: 1000px;
-    margin: auto;
-    position: relative;
+/* Voile pour lisibilité */
+.hero::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.35);
     z-index: 1;
 }
 
-/* ===========================
-   HERO TEXT
-=========================== */
+.hero-content {
+    position: relative;
+    z-index: 2; /* au-dessus de la bannière */
+}
+
 .hero h2 {
     font-size: 32px;
     margin-bottom: 20px;
@@ -102,6 +89,18 @@ nav a:hover {
     border-radius: 6px;
     text-decoration: none;
     font-weight: bold;
+}
+
+/* ===========================
+   CONTENT (avec lignes de séparation)
+=========================== */
+#content {
+    padding: 40px 20px;
+    max-width: 1000px;
+    margin: auto;
+
+    border-top: 2px solid #333;   /* ligne de séparation */
+    border-bottom: 2px solid #333;/* ligne de séparation */
 }
 
 /* ===========================
