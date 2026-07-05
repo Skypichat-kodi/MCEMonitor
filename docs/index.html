@@ -38,26 +38,11 @@
             document.getElementById("content").innerHTML = html;
         }
 
-        // Charge la page selon l’ancre (#downloads, #docs, etc.)
         window.addEventListener("hashchange", () => {
             loadPage(location.hash.substring(1));
         });
 
-        // Charge la page d’accueil au démarrage
         loadPage(location.hash.substring(1) || "home");
-        
-        document.addEventListener("click", function(e) {
-            if (e.target.tagName === "IMG" && e.target.closest(".card")) {
-                const viewer = document.getElementById("img-viewer");
-                const viewerImg = document.getElementById("viewer-img");
-                viewerImg.src = e.target.src;
-                viewer.style.display = "flex";
-            }
-        });
-
-        document.getElementById("img-viewer").addEventListener("click", function() {
-            this.style.display = "none";
-        });        
     </script>
 </body>
 </html>
