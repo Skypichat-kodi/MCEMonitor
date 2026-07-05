@@ -450,7 +450,7 @@ namespace MediaMonitor.Service
         <head>
         <meta charset='UTF-8'>
         <title>{{tr:MediaMonitor – Tableau de bord}}</title>
-        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
+        <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
         <style>
         body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
         h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
@@ -663,9 +663,12 @@ namespace MediaMonitor.Service
 
             if (!Directory.Exists(folder))
             {
-                return "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
-                       "<h2>{{tr:Aucune sauvegarde trouvée}}</h2>" +
-                       "<a href='/' style='color:#4fc3f7;'>{{tr:Retour}}</a></body></html>";
+                string translated =
+                    "<html><body style='background:#111; color:#eee; font-family:Segoe UI; padding:40px;'>" +
+                    "<h2>{{tr:Aucune sauvegarde trouvée}}</h2>" +
+                    "<a href='/' style='color:#4fc3f7;'>{{tr:Retour}}</a></body></html>";
+
+                    return HTMLTranslator.Translate(translated);
             }
 
             var files = Directory.GetFiles(folder, "history_*.json");
@@ -914,7 +917,7 @@ namespace MediaMonitor.Service
         <head>
         <meta charset=""UTF-8"">
         <title>{{tr:Historique sauvegardé}} - MediaMonitor</title>
-        <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
+        <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
 
         <!-- Chart.js -->
         <script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
@@ -1420,7 +1423,7 @@ namespace MediaMonitor.Service
             <head>
                 <meta charset='utf-8'>
                 <title>{{tr:Aucune sauvegarde}}</title>
-                <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
+                <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
                 <style>
                     body {
                         background-color: #1e1e1e;
@@ -1491,7 +1494,9 @@ namespace MediaMonitor.Service
 
             double y = 20;
 
-            gfx.DrawString("{{tr:Historique sauvegardé}}",
+            string title = HTMLTranslator.Translate("{{tr:Historique sauvegardé}}");
+
+            gfx.DrawString(title,
                 new XFont("Arial", 14, XFontStyle.Bold),
                 XBrushes.Black,
                 new XPoint(20, y));
@@ -1552,7 +1557,7 @@ namespace MediaMonitor.Service
             <head>
                 <meta charset='utf-8'>
                 <title>{{tr:Purge des sauvegardes}}</title>
-                <link rel=""icon"" type=""image/x-icon"" href=""/MediaMonitor.ico"">
+                <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
                 <style>
                     body {
                         background-color: #1e1e1e;

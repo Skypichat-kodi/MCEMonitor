@@ -359,12 +359,44 @@ namespace MediaMonitor.Service
 
                     if (existing == null)
                     {
-                        existing = new DailyReport
+                        // Items RAM
+                        var ramItems = engine.GetHistory();
+
+                        if (ramItems.Count > 0)
                         {
-                            Date = today,
-                            Items = new List<MediaUsageItem>()
-                        };
-                        backup.Reports.Add(existing);
+                            existing = new DailyReport
+                            {
+                                Date = today,
+                                Items = ramItems.ToList()
+                            };
+
+                            backup.Reports.Add(existing);
+                        }
+                        else
+                        {
+                            WriteScheduleLog("Backup : aucun média aujourd'hui, jour non créé.");
+                        }
+                    }
+                    else
+                    {
+                        // Jour existant ? fusion normale
+                        var ramItems = engine.GetHistory();
+
+                        var newFilteredItems = ramItems.Where(item =>
+                            !existing.Items.Any(x =>
+                                x.Path == item.Path &&
+                                x.FileName == item.FileName &&
+                                x.MediaType == item.MediaType &&
+                                x.Nom == item.Nom &&
+                                x.Saison == item.Saison &&
+                                x.Episode == item.Episode
+                            )
+                        ).ToList();
+
+                        foreach (var item in newFilteredItems)
+                            existing.Items.Add(item);
+
+                        WriteScheduleLog($"Backup : {newFilteredItems.Count} nouveaux items ajoutés");
                     }
 
                     // Nettoyage du jour actuel
