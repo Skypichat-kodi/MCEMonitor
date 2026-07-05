@@ -1,3 +1,6 @@
+/* ===========================
+   GLOBAL
+=========================== */
 body {
     background: #111;
     color: #eee;
@@ -6,7 +9,9 @@ body {
     padding: 0;
 }
 
-/* HEADER */
+/* ===========================
+   HEADER
+=========================== */
 .header {
     background: #1c1c1c;
     padding: 20px;
@@ -30,6 +35,15 @@ nav a:hover {
     color: #4fc3f7;
 }
 
+/* ===========================
+   CONTENT + BANNIÈRE
+=========================== */
+#content {
+    position: relative;              /* indispensable pour la bannière */
+    min-height: calc(100vh - 160px); /* hauteur écran - header - footer */
+    z-index: 1;
+}
+
 #content::before {
     content: "";
     position: absolute;
@@ -37,16 +51,16 @@ nav a:hover {
     left: 0;
     width: 100%;
     height: 180px; /* hauteur fixe de la bannière */
-    background-image: url('../assets/images/banner.png'); /* ton image */
+    background-image: url('../assets/images/banner.png');
     background-size: cover;
-    height: 180px;
     background-repeat: no-repeat;
     background-position: center;
-    z-index: -1;
+    z-index: -1; /* derrière le contenu mais visible */
 }
 
-
-/* HERO */
+/* ===========================
+   HERO
+=========================== */
 .hero {
     padding: 80px 20px;
     text-align: center;
@@ -76,11 +90,23 @@ nav a:hover {
     font-weight: bold;
 }
 
-/* FEATURES */
+/* ===========================
+   FEATURES / GALERIE
+=========================== */
 .features {
     padding: 40px;
     max-width: 900px;
     margin: auto;
+}
+
+.gallery-title {
+    margin-top: 40px;
+    margin-bottom: 10px;
+    font-size: 24px;
+    color: #4fc3f7;
+    text-align: left;
+    border-left: 4px solid #4fc3f7;
+    padding-left: 10px;
 }
 
 .cards {
@@ -98,7 +124,39 @@ nav a:hover {
     border: 1px solid #333;
 }
 
-/* FOOTER */
+.card img {
+    width: 100%;
+    border-radius: 6px;
+    cursor: zoom-in;
+}
+
+/* ===========================
+   VIEWER (ZOOM IMAGES)
+=========================== */
+.viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.viewer img {
+    max-width: 95%;
+    max-height: 95%;
+    border-radius: 8px;
+    box-shadow: 0 0 20px #000;
+    cursor: zoom-out;
+}
+
+/* ===========================
+   FOOTER
+=========================== */
 footer {
     text-align: center;
     padding: 20px;
