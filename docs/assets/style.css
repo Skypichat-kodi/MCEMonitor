@@ -41,7 +41,14 @@ nav a:hover {
 #content {
     position: relative;
     min-height: calc(100vh - 160px);
+    padding-top: 180px; /* espace réservé pour la bannière */
     z-index: 1;
+}
+
+/* Animation fade-in */
+@keyframes bannerFade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 #content::before {
@@ -56,6 +63,9 @@ nav a:hover {
     background-repeat: no-repeat;
     background-position: center;
     z-index: -1;
+
+    opacity: 0;
+    animation: bannerFade 1.2s ease-out forwards;
 }
 
 /* ===========================
