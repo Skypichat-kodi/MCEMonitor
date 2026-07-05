@@ -49,7 +49,7 @@ nav a:hover {
     background-position: center;
     background-repeat: no-repeat;
 
-    border-bottom: 2px solid #333; /* ligne de séparation */
+    border-bottom: 2px solid #333;
     overflow: hidden;
 }
 
@@ -67,7 +67,7 @@ nav a:hover {
 
 .hero-content {
     position: relative;
-    z-index: 2; /* au-dessus de la bannière */
+    z-index: 2;
 }
 
 .hero h2 {
