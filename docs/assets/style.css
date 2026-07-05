@@ -130,6 +130,10 @@ nav a:hover {
     margin: auto;
 }
 
+.features > h2 {
+    text-align: center;
+}
+
 .gallery-title {
     margin-top: 40px;
     margin-bottom: 10px;
@@ -194,7 +198,19 @@ nav a:hover {
 footer {
     text-align: center;
     padding: 20px;
-    background: #1c1c1c;
-    margin-top: 40px;
+
+    /* Dégradé bleu électrique */
+    background: linear-gradient(
+        to right,
+        #0a0f1a 0%,      /* noir bleuté */
+        #003b6f 25%,     /* bleu profond */
+        #00aaff 50%,     /* bleu électrique */
+        #003b6f 75%,     /* bleu profond */
+        #0a0f1a 100%     /* noir bleuté */
+    );
+
+    border-top: 2px solid #333;
+    color: #eee;
 }
+
 
