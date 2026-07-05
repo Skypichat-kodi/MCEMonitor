@@ -68,6 +68,11 @@ nav a:hover {
 .hero-content {
     position: relative;
     z-index: 2;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .hero h2 {
