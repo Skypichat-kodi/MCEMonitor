@@ -23,6 +23,13 @@
     <!-- CONTENT LIMITÉ À 1000px -->
     <div id="content"></div>
 
+    <!-- VIEWER PREMIUM -->
+    <div class="viewer" id="viewer">
+        <img id="viewer-img" src="" alt="">
+        <button id="viewer-prev" class="viewer-nav">⟨</button>
+        <button id="viewer-next" class="viewer-nav">⟩</button>
+    </div>
+
     <footer>
         <p>© 2026 MCEMonitor – Projet open-source</p>
     </footer>
@@ -52,6 +59,9 @@
             // CONTENT LIMITÉ À 1000px
             document.getElementById("content").innerHTML =
                 features ? features.outerHTML : html;
+
+            // Met à jour la liste des images pour le viewer
+            updateGalleryImages();
         }
 
         window.addEventListener("hashchange", () => {
@@ -59,6 +69,71 @@
         });
 
         loadPage(location.hash.substring(1) || "home");
+
+        // ===========================
+        // VIEWER PREMIUM
+        // ===========================
+
+        let galleryImages = [];
+        let currentIndex = 0;
+
+        function updateGalleryImages() {
+            galleryImages = Array.from(document.querySelectorAll(".card img"));
+        }
+
+        // Ouvrir le viewer
+        document.addEventListener("click", function(e) {
+            if (e.target.tagName === "IMG" && e.target.closest(".card")) {
+                currentIndex = galleryImages.indexOf(e.target);
+
+                const viewer = document.getElementById("viewer");
+                const viewerImg = document.getElementById("viewer-img");
+
+                viewerImg.src = e.target.src;
+                viewer.style.display = "flex";
+
+                viewerImg.classList.add("zoom-in");
+                setTimeout(() => viewerImg.classList.remove("zoom-in"), 300);
+            }
+        });
+
+        // Fermer le viewer
+        document.getElementById("viewer").addEventListener("click", function(e) {
+            if (e.target.id === "viewer") {
+                this.style.display = "none";
+            }
+        });
+
+        // Navigation ← →
+        document.getElementById("viewer-prev").addEventListener("click", function(e) {
+            e.stopPropagation();
+            currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+            document.getElementById("viewer-img").src = galleryImages[currentIndex].src;
+        });
+
+        document.getElementById("viewer-next").addEventListener("click", function(e) {
+            e.stopPropagation();
+            currentIndex = (currentIndex + 1) % galleryImages.length;
+            document.getElementById("viewer-img").src = galleryImages[currentIndex].src;
+        });
+
+        // Navigation clavier
+        document.addEventListener("keydown", function(e) {
+            const viewer = document.getElementById("viewer");
+            if (viewer.style.display !== "flex") return;
+
+            if (e.key === "ArrowLeft") {
+                currentIndex = (currentIndex - 1 + galleryImages.length) % galleryImages.length;
+                document.getElementById("viewer-img").src = galleryImages[currentIndex].src;
+            }
+            if (e.key === "ArrowRight") {
+                currentIndex = (currentIndex + 1) % galleryImages.length;
+                document.getElementById("viewer-img").src = galleryImages[currentIndex].src;
+            }
+            if (e.key === "Escape") {
+                viewer.style.display = "none";
+            }
+        });
     </script>
 </body>
 </html>
