@@ -305,5 +305,10 @@
   "Lectures par heure": "Lectures par heure",
   ">": ">",
   "<": "<",
-  "Aucune lecture en cours.": "Aucune lecture en cours."
+  "Aucune lecture en cours.": "Aucune lecture en cours.",
+  "Dossier Logs": "Dossier Logs",
+  "Purger les logs": "Purger les logs",
+  "Tous les logs ont été purgés.": "Tous les logs ont été supprimés.",
+  "Succès": "Succès",
+  "Erreur lors de la purge des logs.": "Erreur lors de la purge des logs."
 }
