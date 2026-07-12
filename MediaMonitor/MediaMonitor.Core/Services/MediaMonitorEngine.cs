@@ -42,7 +42,6 @@ namespace MediaMonitor.Core.Services
 
         public string GetVersion()
         {
-            // Tu peux mettre ce que tu veux ici
             return "1.0.0";
         }
 
@@ -109,6 +108,59 @@ namespace MediaMonitor.Core.Services
                     select BuildItem(f, match);
 
                 var rawList = joined.ToList();
+
+                // ------------------------------------------------------------
+                // 4 bis) Résolution DNS sur ClientName (si c'est une IP)
+                // ------------------------------------------------------------
+                foreach (var item in rawList)
+                {
+                    try
+                    {
+                        if (System.Net.IPAddress.TryParse(item.ClientName, out _))
+                        {
+                            var entry = System.Net.Dns.GetHostEntry(item.ClientName);
+
+                            string display = entry.HostName;
+
+                            if (!string.IsNullOrWhiteSpace(display))
+                            {
+                                // ? suppression suffixes DNS
+                                display = display
+                                    .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
+                                    .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
+                                    .Replace(".lan", "", StringComparison.OrdinalIgnoreCase);
+
+                                // ? majuscules
+                                display = display.ToUpperInvariant();
+
+                                item.ClientDisplay = display;
+                            }
+                            else
+                            {
+                                item.ClientDisplay = item.ClientName.ToUpperInvariant();
+                            }
+                        }
+                        else
+                        {
+                            // Pas une IP ? SMB/Username
+                            string display = item.ClientName;
+
+                            display = display
+                                .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
+                                .ToUpperInvariant();
+
+                            item.ClientDisplay = display;
+                        }
+                    }
+                    catch
+                    {
+                        // DNS échoue ? fallback IP brute en majuscules
+                        item.ClientDisplay = item.ClientName.ToUpperInvariant();
+                    }
+                }
+
                 var filtered = new List<MediaUsageItem>();
 
                 CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
@@ -123,16 +175,13 @@ namespace MediaMonitor.Core.Services
 
                     double seconds = (DateTime.Now - _openSince[item.Path]).TotalSeconds;
 
-                    // --------------------------------------------------------
-                    // FILTRE IMAGE FIABLE (VERSION PERMISSIVE)
-                    // --------------------------------------------------------
                     if (item.MediaType == "Image")
                     {
                         try
                         {
                             long size = new FileInfo(item.Path).Length;
                             if (size < 200_000)
-                                continue; // miniature ? on ignore
+                                continue;
                         }
                         catch { }
 
@@ -140,9 +189,6 @@ namespace MediaMonitor.Core.Services
                             continue;
                     }
 
-                    // --------------------------------------------------------
-                    // Délai minimum pour les autres médias
-                    // --------------------------------------------------------
                     bool keep = item.MediaType switch
                     {
                         "Serie" => seconds >= 7,
@@ -156,7 +202,7 @@ namespace MediaMonitor.Core.Services
                 }
 
                 // ------------------------------------------------------------
-                // 6) Nettoyage des fichiers fermés (on retire leur timer)
+                // 6) Nettoyage des fichiers fermés
                 // ------------------------------------------------------------
                 var pathsStillOpen = rawList.Select(x => x.Path).ToHashSet();
                 var keys = _openSince.Keys.ToList();
@@ -171,34 +217,24 @@ namespace MediaMonitor.Core.Services
                 // ------------------------------------------------------------
                 lock (_sync)
                 {
-                    // ?????? AJOUT DU BLOCAGE BACKUP ??????
                     if (IsBackupRunning)
                     {
                         CoreLog.Write("DEBUG BACKUP: Tick ignoré (backup en cours)");
                         return;
                     }
 
-                    // -----------------------------
-                    // Mise à jour de "En cours"
-                    // -----------------------------
                     _currentOpen.Clear();
                     _currentOpen.AddRange(filtered);
 
-                    // -----------------------------
-                    // Ajout des flux DVBViewer
-                    // -----------------------------
+                    // DVBViewer
                     var dvb = GetCachedDvbViewerStreams();
                     CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
 
                     foreach (var s in dvb)
                     {
-                        CoreLog.Write($"DVB: Ajout dans _currentOpen => {s.Client} | {s.Type} | {s.Nom}");
                         _currentOpen.Add(BuildDvbItem(s));
                     }
 
-                    // -----------------------------
-                    // Historique DVBViewer (TV/REC)
-                    // -----------------------------
                     foreach (var s in dvb)
                     {
                         var item = BuildDvbItem(s);
@@ -210,18 +246,11 @@ namespace MediaMonitor.Core.Services
                         );
 
                         if (!exists)
-                        {
-                            CoreLog.Write($"DVB: Ajout dans _currentOpen => {item.ClientName} | {item.MediaType} | {item.Nom}");
                             _currentOpen.Add(item);
-                        }
-                        else
-                        {
-                            CoreLog.Write($"DVB: Doublon ignoré dans _currentOpen => {item.ClientName} | {item.MediaType} | {item.Nom}");
-                        }
                     }
 
                     // ------------------------------------------------------------
-                    // 8) MISE À JOUR FIABLE DE LA DERNIÈRE IMAGE (PERMISSIF)
+                    // 8) Dernière image
                     // ------------------------------------------------------------
                     foreach (var item in _currentOpen)
                     {
@@ -230,7 +259,7 @@ namespace MediaMonitor.Core.Services
                     }
 
                     // ------------------------------------------------------------
-                    // 9) Historique FIABLE (Images + Audio) — VERSION PERMISSIVE
+                    // 9) Historique FIABLE
                     // ------------------------------------------------------------
                     foreach (var item in _currentOpen)
                     {
@@ -249,19 +278,18 @@ namespace MediaMonitor.Core.Services
 
                         bool isNew = !_history.Any(h =>
                             h.Path.Equals(item.Path, StringComparison.OrdinalIgnoreCase) &&
-                            h.ClientIP == item.ClientIP &&
                             h.MediaType == item.MediaType);
 
                         if (isNew)
                         {
                             _history.Add(item);
-                            CoreLog.Write($"HISTORY: Ajout => {item.Path} ({item.ClientName})");
+                            CoreLog.Write($"HISTORY: Ajout => {item.Path} ({item.ClientDisplay})");
                         }
                     }
                 }
 
                 // ------------------------------------------------------------
-                // 10) Envoi de la liste fusionnée à l’interface Web
+                // 10) Envoi à l’interface Web
                 // ------------------------------------------------------------
                 OnUpdate?.Invoke(_currentOpen, _lastImage);
             }
@@ -270,7 +298,7 @@ namespace MediaMonitor.Core.Services
                 CoreLog.Write("SMB ERROR: " + ex.Message);
             }
         }
-        
+
         // ============================================================
         //  Nettoyage du nom
         // ============================================================
@@ -299,14 +327,12 @@ namespace MediaMonitor.Core.Services
 
         private MediaUsageItem BuildItem(SmbOpenFile f, SmbSession? match)
         {
+            // IP brute renvoyée par Windows SMB
             string clientName = match?.ClientComputerName;
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = match?.Username;
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = "Inconnu";
-
-            // ?? Correction : normalisation IPv6 ? IPv4 si possible
-            string ip = NormalizeIP(match?.ClientIPAddress);
 
             string ext = Path.GetExtension(f.Path).ToLower();
 
@@ -314,7 +340,6 @@ namespace MediaMonitor.Core.Services
             int episode = 0;
             string mediaType;
 
-            // ?? 1) Détection AUDIO par extension
             if (ext is ".mp3" or ".flac" or ".wav" or ".aac" or ".ogg" or ".m4a")
             {
                 mediaType = "Audio";
@@ -325,7 +350,6 @@ namespace MediaMonitor.Core.Services
             }
             else
             {
-                // ?? 2) Détection VIDEO ? peut être Film ou Série
                 MediaClassifier.ExtractEpisodeInfo(f.Path, out saison, out episode);
 
                 mediaType = saison > 0 && episode > 0
@@ -338,8 +362,13 @@ namespace MediaMonitor.Core.Services
             return new MediaUsageItem
             {
                 SessionId = (uint)f.SessionId,
+
+                // ? ClientName = IP brute SMB
                 ClientName = clientName,
-                ClientIP = ip,
+
+                // ? ClientDisplay = sera remplacé par DNS dans Tick()
+                ClientDisplay = clientName,
+
                 Path = f.Path,
                 FileName = file,
                 UNC = PathTools.ToUNC(f.Path),
@@ -352,7 +381,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ============================================================
-        //  Normalisation IP (IPv6 ? IPv4 si possible)
+        //  Normalisation IP
         // ============================================================
 
         private string NormalizeIP(string? ip)
@@ -364,11 +393,9 @@ namespace MediaMonitor.Core.Services
             {
                 var addr = System.Net.IPAddress.Parse(ip);
 
-                // Si IPv4 mappée dans IPv6 (::ffff:x.x.x.x)
                 if (addr.IsIPv4MappedToIPv6)
                     return addr.MapToIPv4().ToString();
 
-                // IPv6 pure ? on garde telle quelle
                 return ip;
             }
             catch
@@ -376,6 +403,7 @@ namespace MediaMonitor.Core.Services
                 return ip ?? "0.0.0.0";
             }
         }
+
         private async Task RefreshDvbViewerAsync()
         {
             try
@@ -392,30 +420,100 @@ namespace MediaMonitor.Core.Services
                 CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
             }
         }
+
         private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
         {
-            // Type propre : REC ou TV
             string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
                 ? "REC"
                 : "TV";
 
-            // Extraction du nom de la chaîne
-            // Exemple : "REC France 2" ? "France 2"
             string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
                 ? s.Type.Substring(3).Trim()
-                : s.Type; // pour TV, s.Type contient déjà la chaîne
+                : s.Type;
 
-            // Nom final : "France 2 – Complément d’enquête"
             string nomFinal = !string.IsNullOrWhiteSpace(s.Nom)
                 ? $"{channel} – {s.Nom}"
                 : channel;
 
+            string clientRaw = s.Client;
+            string resolvedIp = clientRaw;
+            string display = clientRaw;
+
+            // ------------------------------------------------------------
+            // 1) Si Client est une IP ? DNS ? IP résolue
+            // ------------------------------------------------------------
+            if (System.Net.IPAddress.TryParse(clientRaw, out _))
+            {
+                try
+                {
+                    var entry = System.Net.Dns.GetHostEntry(clientRaw);
+
+                    var ip = entry.AddressList
+                        .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+                    if (ip != null)
+                        resolvedIp = ip.ToString();
+
+                    display = entry.HostName;
+                }
+                catch
+                {
+                    resolvedIp = clientRaw;
+                    display = clientRaw;
+                }
+            }
+            else
+            {
+                // ------------------------------------------------------------
+                // 2) Si Client est un hostname ? DNS ? IP
+                // ------------------------------------------------------------
+                try
+                {
+                    var entry = System.Net.Dns.GetHostEntry(clientRaw);
+
+                    var ip = entry.AddressList
+                        .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+
+                    if (ip != null)
+                        resolvedIp = ip.ToString();
+
+                    display = entry.HostName;
+                }
+                catch
+                {
+                    // ------------------------------------------------------------
+                    // 3) Si Client est un nom arbitraire ? tentative via SMB
+                    // ------------------------------------------------------------
+                    var smb = _currentOpen.FirstOrDefault(x =>
+                        x.ClientDisplay.Contains(clientRaw, StringComparison.OrdinalIgnoreCase));
+
+                    if (smb != null)
+                        resolvedIp = smb.ClientName;
+
+                    display = clientRaw;
+                }
+            }
+
+            // ------------------------------------------------------------
+            // 4) Nettoyage du nom (ClientDisplay)
+            // ------------------------------------------------------------
+            display = display
+                .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
+                .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
+                .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
+                .ToUpperInvariant();
+
             return new MediaUsageItem
             {
                 SessionId = 0,
-                ClientName = s.Client,
-                ClientIP = "DVB",
-                Path = nomFinal,     // tu peux laisser s.Nom si tu préfères
+
+                // ? IP brute ou résolue
+                ClientName = resolvedIp,
+
+                // ? Nom propre en MAJUSCULE
+                ClientDisplay = display,
+
+                Path = nomFinal,
                 FileName = nomFinal,
                 UNC = "",
                 Timestamp = DateTime.Now,
@@ -446,13 +544,11 @@ namespace MediaMonitor.Core.Services
         {
             lock (_sync)
             {
-                // ?? Nettoyage des doublons SANS réassigner _history
                 var cleaned = _history
-                    .GroupBy(i => new { i.Path, i.ClientIP, i.MediaType, i.Nom })
+                    .GroupBy(i => new { i.Path, i.MediaType, i.Nom })
                     .Select(g => g.First())
                     .ToList();
 
-                // On vide la liste existante et on remet les éléments propres
                 _history.Clear();
                 _history.AddRange(cleaned);
 
@@ -461,7 +557,7 @@ namespace MediaMonitor.Core.Services
                 return new List<MediaUsageItem>(_history);
             }
         }
-        
+
         public List<DvbViewerClientStream> GetCachedDvbViewerStreams()
         {
             lock (_dvbLock)
@@ -475,9 +571,6 @@ namespace MediaMonitor.Core.Services
                 if (_history.Count == 0)
                     return "<html><body><h2>Aucun fichier ouvert depuis le démarrage du service.</h2></body></html>";
 
-                // ------------------------------------------------------------
-                // ?? Statistiques
-                // ------------------------------------------------------------
                 int totalMedias = _history.Count;
                 int mediasParPage = 200;
                 int totalPages = (int)Math.Ceiling(totalMedias / (double)mediasParPage);
@@ -502,9 +595,6 @@ namespace MediaMonitor.Core.Services
 
                 statsHtml += "</ul></div>";
 
-                // ------------------------------------------------------------
-                // ?? HTML du rapport
-                // ------------------------------------------------------------
                 var html = @"
         <html>
         <head>
@@ -522,7 +612,7 @@ namespace MediaMonitor.Core.Services
         <table>
         <tr>
         <th>Heure</th>
-        <th>Client IP</th>
+        <th>Client</th>
         <th>Type</th>
         <th>Nom</th>
         <th>Saison</th>
@@ -536,7 +626,7 @@ namespace MediaMonitor.Core.Services
                 {
                     html += "<tr>" +
                       $"<td>{item.Timestamp:HH:mm:ss}</td>" +
-                      $"<td>{item.ClientName}</td>" +
+                      $"<td>{item.ClientDisplay}</td>" +   // ? Correction
                       $"<td>{item.MediaType}</td>" +
                       $"<td>{item.Nom}</td>" +
                       $"<td>{item.Saison}</td>" +
@@ -562,11 +652,9 @@ namespace MediaMonitor.Core.Services
 
                 CoreLog.Write($"Taille HTML totale : {html.Length} caractères");
 
-                // Découper le HTML en lignes
                 var lignes = html.Split('\n').ToList();
                 CoreLog.Write($"Nombre de lignes HTML détectées : {lignes.Count}");
 
-                // Taille d'un bloc : 200 lignes
                 int blocTaille = 200;
                 int totalBlocs = (int)Math.Ceiling(lignes.Count / (double)blocTaille);
 
@@ -583,7 +671,6 @@ namespace MediaMonitor.Core.Services
 
                     CoreLog.Write($"Bloc {i + 1} : {bloc.Count} lignes");
 
-                    // Ajouter un footer simple
                     bloc.Add($"<br><div style='font-size:12px;color:#888;'>Partie {i + 1} / {totalBlocs}</div>");
 
                     string htmlBloc = string.Join("\n", bloc);
@@ -626,4 +713,3 @@ namespace MediaMonitor.Core.Services
         }
     }
 }
-

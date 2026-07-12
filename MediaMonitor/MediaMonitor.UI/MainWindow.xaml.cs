@@ -518,7 +518,7 @@ namespace MediaMonitor.UI
                 _items.Clear();
                 foreach (var item in state.openFiles)
                 {
-                    StaticUiLog("Ajout item : " + item.ClientName + " | " + item.FileName);
+                    StaticUiLog("Ajout item : " + item.ClientDisplay + " | " + item.FileName);
                     _items.Add(item);
                 }
 
@@ -534,7 +534,7 @@ namespace MediaMonitor.UI
                     _history.Clear();
                     foreach (var h in history)
                     {
-                        StaticUiLog("Ajout historique : " + h.ClientName + " | " + h.FileName);
+                        StaticUiLog("Ajout historique : " + h.ClientDisplay + " | " + h.FileName);
                         _history.Add(h);
                     }
                 }

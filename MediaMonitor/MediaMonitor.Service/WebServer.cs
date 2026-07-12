@@ -357,8 +357,8 @@ namespace MediaMonitor.Service
         private List<(string Client, int Count)> GetTopClientsStats(List<BackupItem> items)
         {
             return items
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName))
-                .GroupBy(i => i.ClientName!)
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
+                .GroupBy(i => i.ClientDisplay!)
                 .Select(g => (Client: g.Key, Count: g.Count()))
                 .OrderByDescending(x => x.Count)
                 .Take(10)
@@ -560,7 +560,7 @@ namespace MediaMonitor.Service
             sb.Append("<div class='groupbox-title'>{{tr:Lecture en cours}}</div>");
             sb.Append("<div class='stats-grid'>");
             sb.Append("<div class='label'>{{tr:Fichiers ouverts}} :</div><div class='value'>" + liveCount + "</div>");
-            sb.Append("<div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>" + live.Select(x => x.ClientName).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count() + "</div>");
+            sb.Append("<div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>" + live.Select(x => x.ClientDisplay).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count() + "</div>");
             sb.Append("</div>");
             sb.Append("</div>");
 
@@ -574,7 +574,7 @@ namespace MediaMonitor.Service
             {
                 var last = history.Last();
                 sb.Append("<div class='label'>{{tr:Dernier événement}} :</div>");
-                sb.Append("<div class='value'>" + last.Timestamp.ToString("HH:mm:ss") + " – " + WebUtility.HtmlEncode(last.MediaType) + " (" + WebUtility.HtmlEncode(last.ClientName) + ")</div>");
+                sb.Append("<div class='value'>" + last.Timestamp.ToString("HH:mm:ss") + " – " + WebUtility.HtmlEncode(last.MediaType) + " (" + WebUtility.HtmlEncode(last.ClientDisplay) + ")</div>");
             }
             sb.Append("</div>");
             sb.Append("</div>");
@@ -605,7 +605,7 @@ namespace MediaMonitor.Service
 
                 // Plus de rowClass (on n'utilise plus rec-row / tv-row)
                 sb.Append("<tr>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
                 sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
                 sb.Append($"<td>{item.Saison}</td>");
                 sb.Append($"<td>{item.Episode}</td>");
@@ -632,7 +632,7 @@ namespace MediaMonitor.Service
 
                 sb.Append("<tr>");
                 sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
                 sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
                 sb.Append($"<td>{item.Saison}</td>");
                 sb.Append($"<td>{item.Episode}</td>");
@@ -770,8 +770,8 @@ namespace MediaMonitor.Service
             // Filtre client
             if (client != "all")
             {
-                items = items.Where(i => i.ClientName != null &&
-                                         i.ClientName.Equals(client, StringComparison.OrdinalIgnoreCase)).ToList();
+            items = items.Where(i => i.ClientDisplay != null &&
+                                     i.ClientDisplay.Equals(client, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
             // Filtre date
@@ -804,8 +804,8 @@ namespace MediaMonitor.Service
 
             // Liste des clients
             var allClients = allItems
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName))
-                .Select(i => i.ClientName!)
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
+                .Select(i => i.ClientDisplay!)
                 .Distinct()
                 .OrderBy(n => n)
                 .ToList();
@@ -848,7 +848,7 @@ namespace MediaMonitor.Service
                 <tr>
                     <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
                     <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
-                    <td>{WebUtility.HtmlEncode(item.ClientName ?? "")}</td>
+                    <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
                     <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
                 </tr>");
             }
@@ -1310,9 +1310,9 @@ namespace MediaMonitor.Service
             GetMediaStatsPerClient(List<BackupItem> items)
         {
             return items
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientName)
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay)
                             && !string.IsNullOrWhiteSpace(i.MediaType))
-                .GroupBy(i => i.ClientName!)
+                .GroupBy(i => i.ClientDisplay!)
                 .ToDictionary(
                     g => g.Key,
                     g =>
@@ -1398,7 +1398,7 @@ namespace MediaMonitor.Service
 
         private class BackupItem
         {
-            public string? ClientName { get; set; }
+            public string? ClientDisplay { get; set; }
             public string? MediaType { get; set; }
             public string? Nom { get; set; }
             public string? FileName { get; set; }
@@ -1505,7 +1505,7 @@ namespace MediaMonitor.Service
 
             foreach (var item in items)
             {
-                string line = $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  {item.MediaType}  |  {item.ClientName}  |  {item.Nom}";
+                string line = $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  {item.MediaType}  |  {item.ClientDisplay}  |  {item.Nom}";
                 gfx.DrawString(line, font, XBrushes.Black, new XPoint(20, y));
                 y += 15;
 

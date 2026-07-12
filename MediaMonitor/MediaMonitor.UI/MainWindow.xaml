@@ -769,7 +769,7 @@
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
 
-                <DataGridTextColumn Header="{loc:Tr 'Client IP'}" Binding="{Binding ClientName}" Width="100"/>
+                <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
 
                 <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
                     <DataGridTextColumn.CellStyle>
@@ -865,7 +865,7 @@
                     Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
                     Width="150"/>
 
-                <DataGridTextColumn Header="{loc:Tr 'Client IP'}" Binding="{Binding ClientName}" Width="100"/>
+                <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
 
                 <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
                     <DataGridTextColumn.CellStyle>

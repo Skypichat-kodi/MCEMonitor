@@ -16,13 +16,12 @@ namespace MediaMonitor.Core.Services
 <h1>Rapport de lecture du serveur</h1>
 <p>Fichiers lus dans les dernières 24 heures : " + recent.Count + @"</p>
 <table border='1'>
-<tr><th>Client</th><th>IP</th><th>Nom</th><th>Saison</th><th>Épisode</th><th>Fichier</th><th>Heure</th></tr>";
+<tr><th>Client</th><th>Nom</th><th>Saison</th><th>Épisode</th><th>Fichier</th><th>Heure</th></tr>";
 
             foreach (var item in recent)
             {
                 html += "<tr>" +
-                        "<td>" + item.ClientName + "</td>" +
-                        "<td>" + item.ClientIP + "</td>" +
+                        "<td>" + item.ClientDisplay + "</td>" +
                         "<td>" + item.Nom + "</td>" +
                         "<td>" + item.Saison + "</td>" +
                         "<td>" + item.Episode + "</td>" +
