@@ -900,12 +900,10 @@ namespace MediaMonitor.UI
             if (fullInfo == null)
             {
                 MessageBox.Show(
-                    $"Réponse invalide du serveur.\n\n" +
-                    $"Chemin envoyé : {path}\n" +
-                    $"Réponse brute : {json}",
-                    "Erreur IPC",
+                    "Aucune information disponible pour ce fichier.",
+                    "Information",
                     MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    MessageBoxImage.Information);
                 return;
             }
 
