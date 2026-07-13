@@ -401,7 +401,29 @@ public class DvbConfig
                 MainWindow.StaticUiLog("ERREUR JSON set-dvb-config : " + ex.Message);
                 return false;
             }
-        }                
+        }
+
+        public static async Task<MediaUsageItem?> GetFileInfoAsync(string path)
+        {
+            string? json = await SendCommand($"get-file-info {path}");
+            if (json == null)
+                return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<MediaUsageItem>(json);
+            }
+            catch (Exception ex)
+            {
+                MainWindow.StaticUiLog("ERREUR JSON get-file-info : " + ex.Message);
+                return null;
+            }
+        }
+
+        public static Task<string?> SendRaw(string command)
+        {
+            return SendCommand(command);
+        }
     }
 }
 

@@ -7,18 +7,33 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.16.0" />
-    <PackageReference Include="TagLibSharp" Version="2.3.0" />
+      <PackageReference Include="MailKit" Version="4.16.0" />
 
-    <Content Include="Languages\**\*.json" CopyToOutputDirectory="Always" />
-    <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" /> 
+      <Content Include="Languages\**\*.json" CopyToOutputDirectory="Always" />
+      <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+
+      <PackageReference Include="WindowsAPICodePack" Version="8.0.9" />
+      <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
   </ItemGroup>
 
-  <!-- OBLIGATOIRE pour utiliser MarkupExtension en .NET 8 -->
+  <!-- Obligatoire pour WPF -->
   <ItemGroup>
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
   </ItemGroup>
 
-</Project>
+  <!-- Référence locale à TagLibSharp.dll -->
+  <ItemGroup>
+    <Reference Include="TagLibSharp">
+      <HintPath>Libs\TagLibSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
 
+  <!-- ⭐ COPIE AUTOMATIQUE DU DOSSIER FFMPEG ⭐ -->
+  <ItemGroup>
+    <Content Include="ffmpeg\**\*">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+</Project>
 

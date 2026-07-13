@@ -210,6 +210,36 @@
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="10,4"/>
         </Style>
+        <Style x:Key="InfoButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#333"/>
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="11">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>        
     </Window.Resources>
 
     <Grid Background="{StaticResource Win11Background}">
@@ -800,7 +830,7 @@
                                     <Setter Property="Background" Value="#FF4A4A2A"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC (converter) -->
+                                <!-- 🔴 REC -->
                                 <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
@@ -823,7 +853,23 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
+                <!-- NOM -->
                 <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
+
+                <!-- ⭐ ICÔNE INFO -->
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="i"
+                                    Width="22" Height="22"
+                                    Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Path}"
+                                    Style="{StaticResource InfoButtonStyle}"
+                                    ToolTip="Informations sur ce fichier"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="{loc:Tr 'Saison'}" Binding="{Binding Saison}" Width="60"/>
                 <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
                 <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
@@ -862,8 +908,8 @@
                 </DataGridTemplateColumn>
 
                 <DataGridTextColumn Header="{loc:Tr 'Heure'}"
-                    Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
-                    Width="150"/>
+                                    Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
+                                    Width="150"/>
 
                 <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
 
@@ -902,25 +948,23 @@
                                     <Setter Property="Foreground" Value="Black"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC France 2 -->
+                                <!-- 🔴 REC (chaînes spécifiques) -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="REC France 2">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC TF1 -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="REC TF1">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC Arte -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="REC Arte">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC (fallback générique) -->
+                                <!-- 🔴 REC fallback -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="REC">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
@@ -937,7 +981,23 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
+                <!-- NOM -->
                 <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
+
+                <!-- ⭐ ICÔNE INFO -->
+                <DataGridTemplateColumn Header="" Width="40">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Button Content="i"
+                                    Width="22" Height="22"
+                                    Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                    CommandParameter="{Binding Path}"
+                                    Style="{StaticResource InfoButtonStyle}"
+                                    ToolTip="Informations sur ce fichier"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
                 <DataGridTextColumn Header="{loc:Tr 'Saison'}" Binding="{Binding Saison}" Width="60"/>
                 <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
                 <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>

@@ -2,10 +2,7 @@ public class MediaUsageItem
 {
     public uint SessionId { get; set; }
 
-    // IP brute renvoyée par Windows SMB (ex: "192.168.1.19")
     public string ClientName { get; set; } = "";
-
-    // Nom DNS résolu (ex: "serveur-mce.home")
     public string ClientDisplay { get; set; } = "";
 
     public string Path { get; set; } = "";
@@ -15,10 +12,33 @@ public class MediaUsageItem
     public string MediaType { get; set; } = "";
     public string Nom { get; set; } = "";
 
+    // Séries
     public int Saison { get; set; }
     public int Episode { get; set; }
 
+    // Ajout pour les séries
+    public string SeriesName { get; set; } = "";
+    public string EpisodeName { get; set; } = "";
+
     public DateTime Timestamp { get; set; }
+
+    // Durée en secondes
+    public double Duration { get; set; }
+
+    // Tags ID3 (musique)
+    public string Title { get; set; } = "";
+    public string Artist { get; set; } = "";
+    public string Album { get; set; } = "";
+    public int Year { get; set; }
+    public int Track { get; set; }
+    public string Genre { get; set; } = "";
+
+    // Miniature (cover ou thumbnail vidéo)
+    public byte[]? AlbumArt { get; set; }
+
+    // Codecs vidéo/audio
+    public string VideoCodec { get; set; } = "";
+    public string AudioCodec { get; set; } = "";
 
     public string IconPath
     {

@@ -10,7 +10,6 @@ using MediaMonitor.Core.Models;
 using MediaMonitor.Core.Language;
 using System.Globalization;
 
-
 namespace MediaMonitor.Service
 {
     internal static class Program

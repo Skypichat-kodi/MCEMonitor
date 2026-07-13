@@ -72,20 +72,21 @@ namespace MediaMonitor.Service
                         continue;
                     }
 
-                    // set-email-enabled true/false
-                    if (command.StartsWith("set-email-enabled ", StringComparison.OrdinalIgnoreCase))
+                    // ...
+
+                    if (command.StartsWith("set-dvb-config ", StringComparison.OrdinalIgnoreCase))
                     {
-                        HandleSetEmailEnabled(command, writer, server);
+                        HandleSetDvbConfig(command, writer, server);
                         continue;
                     }
 
-                    // set-web-enabled true/false
-                    if (command.StartsWith("set-web-enabled ", StringComparison.OrdinalIgnoreCase))
+                    // ?? AJOUT : get-file-info <path>
+                    if (command.StartsWith("get-file-info ", StringComparison.OrdinalIgnoreCase))
                     {
-                        HandleSetWebEnabled(command, writer, server);
+                        HandleGetFileInfo(command, writer, server);
                         continue;
                     }
-
+                    
                     // set-web-port 8081
                     if (command.StartsWith("set-web-port ", StringComparison.OrdinalIgnoreCase))
                     {
@@ -159,8 +160,7 @@ namespace MediaMonitor.Service
                         case "get-dvb-config":
                             HandleGetDvbConfig(writer, server);
                             break;
-                           
-
+                        
                         default:
                             writer.Write("{\"error\":\"unknown command\"}");
                             writer.Flush();
@@ -670,6 +670,38 @@ namespace MediaMonitor.Service
                 );
             }
             catch { }
+        }
+        
+        private void HandleGetFileInfo(string command, StreamWriter writer, NamedPipeServerStream server)
+        {
+            try
+            {
+                // command = "get-file-info Z:\...\fichier.mp3"
+                string path = command.Substring("get-file-info".Length).Trim();
+
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    writer.Write("{\"error\":\"empty path\",\"command\":\"" + command + "\"}");
+                }
+                else if (!File.Exists(path))
+                {
+                    writer.Write("{\"error\":\"file not found\",\"path\":\"" + path + "\",\"command\":\"" + command + "\"}");
+                }
+                else
+                {
+                    var info = FileAnalyzer.Analyze(path);
+                    string json = JsonSerializer.Serialize(info);
+                    writer.Write(json);
+                }
+            }
+            catch (Exception ex)
+            {
+                writer.Write("{\"error\":\"exception\",\"message\":\"" + ex.Message + "\"}");
+            }
+
+            writer.Flush();
+            server.WaitForPipeDrain();
+            server.Disconnect();
         }
     }
 }

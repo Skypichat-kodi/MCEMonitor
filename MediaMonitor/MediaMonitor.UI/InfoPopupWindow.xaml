@@ -1,0 +1,184 @@
+<Window x:Class="MediaMonitor.UI.InfoPopupWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Informations sur le fichier"
+        Width="540"
+        SizeToContent="Height"
+        MinHeight="620"
+        WindowStartupLocation="CenterOwner"
+        Background="#1A1A1A"
+        Foreground="White"
+        ResizeMode="NoResize">
+
+    <Window.Resources>
+
+        <!-- Ombre -->
+        <DropShadowEffect x:Key="DropShadow"
+                          Color="#000000"
+                          BlurRadius="18"
+                          ShadowDepth="0"
+                          Opacity="0.6"/>
+
+        <!-- Animation d'apparition de la vignette -->
+        <Storyboard x:Key="ThumbAppearAnimation">
+            <DoubleAnimation Storyboard.TargetProperty="Opacity"
+                             From="0" To="1"
+                             Duration="0:0:0.25"
+                             FillBehavior="HoldEnd"/>
+
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleX)"
+                             From="0.95" To="1.0"
+                             Duration="0:0:0.25"/>
+
+            <DoubleAnimation Storyboard.TargetProperty="(UIElement.RenderTransform).(ScaleTransform.ScaleY)"
+                             From="0.95" To="1.0"
+                             Duration="0:0:0.25"/>
+        </Storyboard>
+
+    </Window.Resources>
+
+    <Grid Margin="25">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Titre + icône -->
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+
+            <!-- Icône -->
+            <Border Width="40" Height="40"
+                    Background="#2196F3"
+                    CornerRadius="8"
+                    Margin="0,0,12,0"
+                    Opacity="0.9">
+                <Image x:Name="IconType"
+                       Width="24" Height="24"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+            </Border>
+
+            <!-- Zone de défilement -->
+            <Grid x:Name="TitleScrollContainer"
+                  Width="400" Height="30"
+                  ClipToBounds="True">
+
+                <TextBlock x:Name="TitleText"
+                           FontSize="22"
+                           FontWeight="Bold"
+                           Foreground="#42A5F5"
+                           TextWrapping="NoWrap"
+                           VerticalAlignment="Center">
+                    <TextBlock.RenderTransform>
+                        <TranslateTransform x:Name="TitleScrollTransform" X="0"/>
+                    </TextBlock.RenderTransform>
+                </TextBlock>
+
+            </Grid>
+
+        </StackPanel>
+
+        <!-- Miniature vidéo / audio -->
+        <Grid Grid.Row="2"
+              HorizontalAlignment="Left"
+              Margin="0,10,0,10">
+
+            <Border x:Name="AlbumArtBorder"
+                    Width="260" Height="146"
+                    Background="#2A2A2A"
+                    CornerRadius="10"
+                    ClipToBounds="True"
+                    BorderBrush="#2196F3"
+                    BorderThickness="2"
+                    SnapsToDevicePixels="True"
+                    Effect="{DynamicResource DropShadow}"
+                    Opacity="0">
+
+                <Border.RenderTransform>
+                    <ScaleTransform ScaleX="1" ScaleY="1"/>
+                </Border.RenderTransform>
+
+                <Grid>
+                    <Image x:Name="AlbumArtImage"
+                           Stretch="UniformToFill"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           Loaded="AlbumArtImage_Loaded"/>
+
+                    <!-- Overlay Play -->
+                    <Border x:Name="VideoOverlay"
+                            Visibility="Collapsed"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Width="60" Height="60"
+                            Background="#80000000"
+                            CornerRadius="30">
+                        <TextBlock Text="▶"
+                                   FontSize="30"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Foreground="White"
+                                   FontWeight="Bold"/>
+                    </Border>
+                </Grid>
+
+            </Border>
+        </Grid>
+
+        <!-- Infos -->
+        <StackPanel Grid.Row="4" Orientation="Vertical" Margin="0,10,0,0">
+
+            <TextBlock Text="Chemin :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="PathText" Margin="0,0,0,10" TextWrapping="Wrap"/>
+
+            <TextBlock Text="Type :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="TypeText" Margin="0,0,0,10"/>
+
+            <TextBlock Text="Taille :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="SizeText" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="DurationLabel" Text="Durée :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="DurationText" Margin="0,0,0,10"/>
+
+            <!-- Bloc vidéo -->
+            <TextBlock x:Name="SeriesLabel" Text="Série :" FontWeight="Bold" Foreground="#42A5F5" Visibility="Collapsed"/>
+            <TextBlock x:Name="SeriesText" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <TextBlock x:Name="SeasonEpisodeLabel" Text="Saison / Épisode :" FontWeight="Bold" Foreground="#42A5F5" Visibility="Collapsed"/>
+            <TextBlock x:Name="SeasonEpisodeText" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <TextBlock x:Name="EpisodeLabel" Text="Titre de l'épisode :" FontWeight="Bold" Foreground="#42A5F5" Visibility="Collapsed"/>
+            <TextBlock x:Name="EpisodeText" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <TextBlock x:Name="VideoCodecLabel" Text="Codec vidéo :" FontWeight="Bold" Foreground="#42A5F5" Visibility="Collapsed"/>
+            <TextBlock x:Name="VideoCodecText" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <TextBlock x:Name="AudioCodecLabel" Text="Codec audio :" FontWeight="Bold" Foreground="#42A5F5" Visibility="Collapsed"/>
+            <TextBlock x:Name="AudioCodecText" Margin="0,0,0,10" Visibility="Collapsed"/>
+
+            <!-- Bloc audio -->
+            <TextBlock x:Name="Id3TitleLabel" Text="Titre :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Title" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="Id3ArtistLabel" Text="Artiste :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Artist" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="Id3AlbumLabel" Text="Album :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Album" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="Id3YearLabel" Text="Année :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Year" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="Id3TrackLabel" Text="Piste :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Track" Margin="0,0,0,10"/>
+
+            <TextBlock x:Name="Id3GenreLabel" Text="Genre :" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="Id3Genre" Margin="0,0,0,10"/>
+
+        </StackPanel>
+    </Grid>
+</Window>
+

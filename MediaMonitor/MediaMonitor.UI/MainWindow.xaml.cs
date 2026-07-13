@@ -13,6 +13,9 @@ using System.Collections.Generic;
 using System.Linq;
 using MediaMonitor.Core.Language;
 using System.Threading;
+using MediaMonitor.UI;
+using System.Windows.Input;
+using System.Text.Json;
 
 namespace MediaMonitor.UI
 {
@@ -36,6 +39,8 @@ namespace MediaMonitor.UI
         public MainWindow()
         {
             InitializeComponent();
+            
+            DataContext = this;
             
             LoadDvbSettings();
 
@@ -842,6 +847,92 @@ namespace MediaMonitor.UI
                 txtDvbPass.Visibility = Visibility.Visible;
             }
         }
+
+        public async void ShowInfoPopup(MediaUsageItem info)
+        {
+            string path = info.Path;
+
+            // JSON brut du serveur
+            string? json = await ServiceIpcClient.SendRaw($"get-file-info {path}");
+
+            if (json == null)
+            {
+                MessageBox.Show(
+                    $"Impossible d'obtenir les informations du fichier.\n\n" +
+                    $"Chemin envoyé : {path}\n" +
+                    $"Réponse du serveur : <null>",
+                    "Erreur IPC",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            // Si le serveur renvoie un JSON d'erreur
+            if (json.Contains("\"error\""))
+            {
+                MessageBox.Show(
+                    $"Erreur renvoyée par le serveur :\n\n{json}",
+                    "Erreur IPC",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            MediaUsageItem? fullInfo = null;
+
+            try
+            {
+                fullInfo = JsonSerializer.Deserialize<MediaUsageItem>(json);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Impossible d'analyser la réponse du serveur.\n\n" +
+                    $"Chemin envoyé : {path}\n" +
+                    $"Réponse brute : {json}\n\n" +
+                    $"Erreur de désérialisation : {ex.Message}",
+                    "Erreur JSON",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            if (fullInfo == null)
+            {
+                MessageBox.Show(
+                    $"Réponse invalide du serveur.\n\n" +
+                    $"Chemin envoyé : {path}\n" +
+                    $"Réponse brute : {json}",
+                    "Erreur IPC",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+                return;
+            }
+
+            var popup = new InfoPopupWindow(fullInfo);
+            popup.Owner = this;
+            popup.ShowDialog();
+        }
+        
+        // ⭐ Commande pour le bouton "i"
+        public ICommand ShowInfoCommand => new RelayCommand<string>(ShowInfo);
+
+        // ⭐ Méthode appelée par la commande
+        private async void ShowInfo(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            try
+            {
+                var info = await ServiceIpcClient.GetFileInfoAsync(path);
+                ShowInfoPopup(info);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur lors de l'analyse du fichier : " + ex.Message);
+            }
+        }                
     }
 }
 
