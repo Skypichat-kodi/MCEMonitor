@@ -208,84 +208,87 @@ namespace MediaMonitor.Service
                         SendHtml(ctx, BuildHomePage());
                         break;
 
-                case "/info":
-                {
-                    ctx.Response.ContentEncoding = Encoding.UTF8;
-                    ctx.Response.ContentType = "text/html; charset=utf-8";
-
-                    // 1. Lire le paramètre "path"
-                    string filePath = ctx.Request.QueryString["path"];
-                    filePath = WebUtility.UrlDecode(filePath);
-
-                    // 2. Analyser le fichier
-                    var info = FileAnalyzer.Analyze(filePath);
-
-                    // 3. Charger le template UTF-8
-                    string templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
-                    string html = File.ReadAllText(templatePath, Encoding.UTF8);
-
-                    // 4. Champs simples
-                    html = html.Replace("{{FileName}}", WebUtility.HtmlEncode(info.FileName));
-                    html = html.Replace("{{Title}}", WebUtility.HtmlEncode(info.Title ?? info.FileName));
-                    html = html.Replace("{{Path}}", WebUtility.HtmlEncode(info.Path));
-                    html = html.Replace("{{MediaType}}", WebUtility.HtmlEncode(info.MediaType));
-
-                    // Taille
-                    var fi = new FileInfo(info.Path);
-                    html = html.Replace("{{SizeMB}}", (fi.Length / 1024.0 / 1024.0).ToString("F2"));
-
-                    // Durée
-                    string durationText = info.Duration > 0
-                        ? TimeSpan.FromSeconds(info.Duration).ToString(@"hh\:mm\:ss")
-                        : "—";
-                    html = html.Replace("{{DurationText}}", durationText);
-
-                    // Miniature (image par défaut si rien)
-                    string coverBase64;
-
-                    if (info.AlbumArt != null && info.AlbumArt.Length > 0)
+                    case "/info":
                     {
-                        coverBase64 = "data:image/jpeg;base64," + Convert.ToBase64String(info.AlbumArt);
+                        ctx.Response.ContentEncoding = Encoding.UTF8;
+                        ctx.Response.ContentType = "text/html; charset=utf-8";
+
+                        // 1. Lire le paramètre "path"
+                        string filePath = ctx.Request.QueryString["path"];
+                        filePath = WebUtility.UrlDecode(filePath);
+
+                        // 2. Analyser le fichier
+                        var info = FileAnalyzer.Analyze(filePath);
+
+                        // 3. Charger le template UTF-8
+                        string templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
+                        string html = File.ReadAllText(templatePath, Encoding.UTF8);
+
+                        // 4. Champs simples
+                        html = html.Replace("{{FileName}}", WebUtility.HtmlEncode(info.FileName));
+                        html = html.Replace("{{Title}}", WebUtility.HtmlEncode(info.Title ?? info.FileName));
+                        html = html.Replace("{{Path}}", WebUtility.HtmlEncode(info.Path));
+                        html = html.Replace("{{MediaType}}", WebUtility.HtmlEncode(info.MediaType));
+
+                        // Taille
+                        var fi = new FileInfo(info.Path);
+                        html = html.Replace("{{SizeMB}}", (fi.Length / 1024.0 / 1024.0).ToString("F2"));
+
+                        // Durée
+                        string durationText = info.Duration > 0
+                            ? TimeSpan.FromSeconds(info.Duration).ToString(@"hh\:mm\:ss")
+                            : "—";
+                        html = html.Replace("{{DurationText}}", durationText);
+
+                        // Miniature (image par défaut si rien)
+                        string coverBase64;
+
+                        if (info.AlbumArt != null && info.AlbumArt.Length > 0)
+                        {
+                            coverBase64 = "data:image/jpeg;base64," + Convert.ToBase64String(info.AlbumArt);
+                        }
+                        else
+                        {
+                            string defaultCoverPath = Path.Combine(AppContext.BaseDirectory, "Templates", "default-cover.png");
+                            byte[] defaultBytes = File.ReadAllBytes(defaultCoverPath);
+                            coverBase64 = "data:image/png;base64," + Convert.ToBase64String(defaultBytes);
+                        }
+
+                        html = html.Replace("{{AlbumArtBase64}}", coverBase64);
+
+                        // Vidéo
+                        html = html.Replace("{{SeriesName}}", WebUtility.HtmlEncode(info.SeriesName ?? ""));
+                        html = html.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(info.EpisodeName ?? ""));
+                        html = html.Replace("{{Saison}}", info.Saison.ToString());
+                        html = html.Replace("{{Episode}}", info.Episode.ToString());
+                        html = html.Replace("{{VideoCodec}}", WebUtility.HtmlEncode(info.VideoCodec ?? ""));
+                        html = html.Replace("{{AudioCodec}}", WebUtility.HtmlEncode(info.AudioCodec ?? ""));
+
+                        // Audio
+                        html = html.Replace("{{TitleTag}}", WebUtility.HtmlEncode(info.Title ?? ""));
+                        html = html.Replace("{{Artist}}", WebUtility.HtmlEncode(info.Artist ?? ""));
+                        html = html.Replace("{{Album}}", WebUtility.HtmlEncode(info.Album ?? ""));
+                        html = html.Replace("{{Year}}", info.Year > 0 ? info.Year.ToString() : "—");
+                        html = html.Replace("{{Track}}", info.Track > 0 ? info.Track.ToString() : "—");
+                        html = html.Replace("{{Genre}}", WebUtility.HtmlEncode(info.Genre ?? ""));
+
+                        // 5. Blocs conditionnels Mustache
+                        html = ApplyConditional(html, "IfDuration", info.Duration > 0);
+                        html = ApplyConditional(html, "IfVideo", info.MediaType == "Video");
+                        html = ApplyConditional(html, "IfAudio", info.MediaType == "Audio");
+                        html = ApplyConditional(html, "IfSeries", !string.IsNullOrEmpty(info.SeriesName));
+                        html = ApplyConditional(html, "IfSeasonEpisode", info.Saison > 0 || info.Episode > 0);
+                        html = ApplyConditional(html, "IfEpisodeName", !string.IsNullOrEmpty(info.EpisodeName));
+                        html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
+                        html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
+
+                        // ??? AJOUT ESSENTIEL POUR LA TRADUCTION HTML ???
+                        html = HTMLTranslator.Translate(html);
+
+                        // 6. Envoyer la page remplie
+                        SendHtml(ctx, html);
+                        break;
                     }
-                    else
-                    {
-                        string defaultCoverPath = Path.Combine(AppContext.BaseDirectory, "Templates", "default-cover.png");
-                        byte[] defaultBytes = File.ReadAllBytes(defaultCoverPath);
-                        coverBase64 = "data:image/png;base64," + Convert.ToBase64String(defaultBytes);
-                    }
-
-                    html = html.Replace("{{AlbumArtBase64}}", coverBase64);
-
-                    // Vidéo
-                    html = html.Replace("{{SeriesName}}", WebUtility.HtmlEncode(info.SeriesName ?? ""));
-                    html = html.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(info.EpisodeName ?? ""));
-                    html = html.Replace("{{Saison}}", info.Saison.ToString());
-                    html = html.Replace("{{Episode}}", info.Episode.ToString());
-                    html = html.Replace("{{VideoCodec}}", WebUtility.HtmlEncode(info.VideoCodec ?? ""));
-                    html = html.Replace("{{AudioCodec}}", WebUtility.HtmlEncode(info.AudioCodec ?? ""));
-
-                    // Audio
-                    html = html.Replace("{{TitleTag}}", WebUtility.HtmlEncode(info.Title ?? ""));
-                    html = html.Replace("{{Artist}}", WebUtility.HtmlEncode(info.Artist ?? ""));
-                    html = html.Replace("{{Album}}", WebUtility.HtmlEncode(info.Album ?? ""));
-                    html = html.Replace("{{Year}}", info.Year > 0 ? info.Year.ToString() : "—");
-                    html = html.Replace("{{Track}}", info.Track > 0 ? info.Track.ToString() : "—");
-                    html = html.Replace("{{Genre}}", WebUtility.HtmlEncode(info.Genre ?? ""));
-
-                    // 5. Blocs conditionnels Mustache
-                    html = ApplyConditional(html, "IfDuration", info.Duration > 0);
-                    html = ApplyConditional(html, "IfVideo", info.MediaType == "Video");
-                    html = ApplyConditional(html, "IfAudio", info.MediaType == "Audio");
-                    html = ApplyConditional(html, "IfSeries", !string.IsNullOrEmpty(info.SeriesName));
-                    html = ApplyConditional(html, "IfSeasonEpisode", info.Saison > 0 || info.Episode > 0);
-                    html = ApplyConditional(html, "IfEpisodeName", !string.IsNullOrEmpty(info.EpisodeName));
-                    html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
-                    html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
-
-                    // 6. Envoyer la page remplie
-                    SendHtml(ctx, html);
-                    break;
-                }
 
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);

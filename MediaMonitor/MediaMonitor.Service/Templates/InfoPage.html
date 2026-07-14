@@ -5,7 +5,6 @@
 <title>{{FileName}}</title>
 
 <style>
-
 /* === OVERLAY === */
 #overlay {
     position: fixed;
@@ -102,7 +101,6 @@
     color: #4fc3f7;
     font-size: 16px;
 }
-
 </style>
 
 </head>
@@ -120,88 +118,88 @@
 
         <!-- MINIATURE -->
         {{#IfVideo}}
-        <img id="albumArt" src="{{AlbumArtBase64}}" alt="cover">
+        <img id="albumArt" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
         {{/IfVideo}}
 
         {{#IfAudio}}
-        <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="cover">
+        <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
         {{/IfAudio}}
 
         <div id="infoBody">
 
             <div class="info-section">
-                <span class="info-label">Chemin :</span><br>{{Path}}
+                <span class="info-label">{{tr:Chemin}} :</span><br>{{Path}}
             </div>
 
             <div class="info-section">
-                <span class="info-label">Type :</span> {{MediaType}}
+                <span class="info-label">{{tr:Type}} :</span> {{MediaType}}
             </div>
 
             <div class="info-section">
-                <span class="info-label">Taille :</span> {{SizeMB}} Mo
+                <span class="info-label">{{tr:Taille}} :</span> {{SizeMB}} Mo
             </div>
 
             {{#IfDuration}}
             <div class="info-section">
-                <span class="info-label">Durée :</span> {{DurationText}}
+                <span class="info-label">{{tr:Durée}} :</span> {{DurationText}}
             </div>
             {{/IfDuration}}
 
             {{#IfVideo}}
                 {{#IfSeries}}
                 <div class="info-section">
-                    <span class="info-label">Série :</span> {{SeriesName}}
+                    <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
                 </div>
                 {{/IfSeries}}
 
                 {{#IfSeasonEpisode}}
                 <div class="info-section">
-                    <span class="info-label">Saison/Épisode :</span> {{Saison}}x{{Episode}}
+                    <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
                 </div>
                 {{/IfSeasonEpisode}}
 
                 {{#IfEpisodeName}}
                 <div class="info-section">
-                    <span class="info-label">Épisode :</span> {{EpisodeName}}
+                    <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
                 </div>
                 {{/IfEpisodeName}}
 
                 {{#IfVideoCodec}}
                 <div class="info-section">
-                    <span class="info-label">Codec vidéo :</span> {{VideoCodec}}
+                    <span class="info-label">{{tr:Codec vidéo}} :</span> {{VideoCodec}}
                 </div>
                 {{/IfVideoCodec}}
 
                 {{#IfAudioCodec}}
                 <div class="info-section">
-                    <span class="info-label">Codec audio :</span> {{AudioCodec}}
+                    <span class="info-label">{{tr:Codec audio}} :</span> {{AudioCodec}}
                 </div>
                 {{/IfAudioCodec}}
             {{/IfVideo}}
 
             {{#IfAudio}}
                 <div class="info-section">
-                    <span class="info-label">Titre :</span> {{TitleTag}}
+                    <span class="info-label">{{tr:Titre}} :</span> {{TitleTag}}
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Artiste :</span> {{Artist}}
+                    <span class="info-label">{{tr:Artiste}} :</span> {{Artist}}
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Album :</span> {{Album}}
+                    <span class="info-label">{{tr:Album}} :</span> {{Album}}
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Année :</span> {{Year}}
+                    <span class="info-label">{{tr:Année}} :</span> {{Year}}
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Piste :</span> {{Track}}
+                    <span class="info-label">{{tr:Piste}} :</span> {{Track}}
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Genre :</span> {{Genre}}
+                    <span class="info-label">{{tr:Genre}} :</span> {{Genre}}
                 </div>
             {{/IfAudio}}
 
