@@ -959,12 +959,18 @@ namespace MediaMonitor.Service
                     _       => ""
                 };
 
-                rows.Append($@"
+            rows.Append($@"
                 <tr>
                     <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
                     <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
                     <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
                     <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+                    <td style='text-align:right;'>
+                        <a class='info-btn'
+                           href='#'
+                           data-path='{WebUtility.HtmlEncode(item.Path)}'
+                           onclick='openInfo(this.dataset.path)'>I</a>
+                    </td>
                 </tr>");
             }
 
@@ -1139,6 +1145,25 @@ namespace MediaMonitor.Service
             }
 
             .toggle-btn:hover { background:#666; }
+            
+            .info-btn {
+                display: inline-flex;
+                justify-content: center;
+                align-items: center;
+                width: 28px;
+                height: 28px;
+                background: #3498db;
+                color: white;
+                border-radius: 50%;
+                text-decoration: none;
+                font-weight: bold;
+                font-family: Arial, sans-serif;
+                transition: background 0.2s;
+            }
+
+            .info-btn:hover {
+                background: #217dbb;
+            }            
         </style>
 
         </head>
@@ -1391,8 +1416,28 @@ namespace MediaMonitor.Service
         })();
         </script>
 
+        <!-- Overlay Info -->
+        <div id=""infoOverlayContainer""></div>
+
+        <script>
+            function openInfo(path) {
+                refreshEnabled = false;
+
+                fetch('/info?path=' + encodeURIComponent(path))
+                    .then(r => r.text())
+                    .then(html => {
+                        document.getElementById('infoOverlayContainer').innerHTML = html;
+                });
+            }
+
+            function closeOverlay() {
+                window.location.reload();
+            }
+        </script>
+
         </body>
         </html>";
+
 
         // ==========================
         //  TABLEAUX HTML STATS AVANCÉES
