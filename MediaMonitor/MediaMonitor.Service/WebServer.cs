@@ -1727,23 +1727,33 @@ namespace MediaMonitor.Service
             string start = "{{#" + tag + "}}";
             string end = "{{/" + tag + "}}";
 
-            int i1 = html.IndexOf(start, StringComparison.Ordinal);
-            int i2 = html.IndexOf(end, StringComparison.Ordinal);
-
-            if (i1 < 0 || i2 < 0)
-                return html;
-
-            string block = html.Substring(i1, i2 + end.Length - i1);
-
-            if (condition)
+            while (true)
             {
-                string inner = block.Replace(start, "").Replace(end, "");
-                return html.Replace(block, inner);
+                int i1 = html.IndexOf(start, StringComparison.Ordinal);
+                if (i1 < 0) break;
+
+                int i2 = html.IndexOf(end, i1, StringComparison.Ordinal);
+                if (i2 < 0) break;
+
+                int blockEnd = i2 + end.Length;
+
+                // Bloc complet incluant les balises
+                string block = html.Substring(i1, blockEnd - i1);
+
+                if (condition)
+                {
+                    // Contenu interne (sans les balises)
+                    string inner = html.Substring(i1 + start.Length, i2 - (i1 + start.Length));
+                    html = html.Replace(block, inner);
+                }
+                else
+                {
+                    // On supprime tout le bloc
+                    html = html.Replace(block, "");
+                }
             }
-            else
-            {
-                return html.Replace(block, "");
-            }
+
+            return html;
         }
     }
 }

@@ -5,11 +5,12 @@
 <title>{{FileName}}</title>
 
 <style>
+
 /* === OVERLAY === */
 #overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.65);
+    background: rgba(0,0,0,0.70);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -21,14 +22,15 @@
 /* === POPUP === */
 #overlayContent {
     position: relative;
-    background: #1e1e1e;
-    padding: 25px;
+    background: #121212;
+    padding: 28px;
     border-radius: 12px;
-    width: 560px;
+    width: 600px;
     max-height: 85vh;
     overflow-y: auto;
-    box-shadow: 0 0 25px #000;
+    box-shadow: 0 0 35px rgba(0,0,0,0.8);
     animation: popupFade 0.25s ease-out;
+    border: 1px solid #0d47a1;
 }
 
 @keyframes popupFade {
@@ -43,37 +45,42 @@
     right: 16px;
     font-size: 22px;
     cursor: pointer;
+    color: #90caf9;
     opacity: 0.8;
+    user-select: none;
 }
 #closeX:hover { opacity: 1; }
 
-/* === TITLE SCROLL === */
+/* === TITRE === */
 #titleScrollContainer {
     overflow: hidden;
     white-space: nowrap;
     width: 100%;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
 }
 
 #titleText {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: bold;
-    color: #4fc3f7;
+    color: #42a5f5;
+    display: inline-block;
     position: relative;
     left: 0;
     transition: left 4s ease-in-out;
 }
 
-/* === MINIATURES === */
-.video-thumb {
+/* === IMAGE === */
+#albumArt {
     width: 260px;
     height: 146px;
     border-radius: 10px;
     object-fit: cover;
-    margin-bottom: 15px;
-    border: 2px solid #4fc3f7;
+    margin-bottom: 20px;
+    border: 2px solid #42a5f5;
+    box-shadow: 0 0 18px rgba(0,0,0,0.6);
 }
 
+/* Miniature audio (carrée) */
 .audio-thumb {
     width: 120px;
     height: 120px;
@@ -81,17 +88,21 @@
     object-fit: cover;
     margin-bottom: 15px;
     border: 2px solid #4fc3f7;
+    box-shadow: 0 0 18px rgba(0,0,0,0.6);
 }
 
 /* === SECTIONS === */
 .info-section {
     margin-bottom: 15px;
+    font-size: 15px;
 }
 
 .info-label {
     font-weight: bold;
     color: #4fc3f7;
+    font-size: 16px;
 }
+
 </style>
 
 </head>
@@ -107,12 +118,11 @@
             <div id="titleText">{{Title}}</div>
         </div>
 
-        <!-- MINIATURE VIDÉO -->
+        <!-- MINIATURE -->
         {{#IfVideo}}
-        <img class="video-thumb" src="{{AlbumArtBase64}}" alt="cover">
+        <img id="albumArt" src="{{AlbumArtBase64}}" alt="cover">
         {{/IfVideo}}
 
-        <!-- MINIATURE AUDIO -->
         {{#IfAudio}}
         <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="cover">
         {{/IfAudio}}
@@ -137,7 +147,6 @@
             </div>
             {{/IfDuration}}
 
-            <!-- VIDÉO -->
             {{#IfVideo}}
                 {{#IfSeries}}
                 <div class="info-section">
@@ -170,7 +179,6 @@
                 {{/IfAudioCodec}}
             {{/IfVideo}}
 
-            <!-- AUDIO -->
             {{#IfAudio}}
                 <div class="info-section">
                     <span class="info-label">Titre :</span> {{TitleTag}}
@@ -205,7 +213,10 @@
 <script>
 function closeOverlay() {
     document.getElementById('overlay').remove();
-    resumeRefresh();
+
+    if (window.parent && window.parent.refreshEnabled !== undefined) {
+        window.parent.refreshEnabled = true;
+    }
 }
 
 // Défilement du titre
