@@ -27,6 +27,7 @@ public class MediaUsageItem
 
     // Tags ID3 (musique)
     public string Title { get; set; } = "";
+    public string TitleTag { get; set; } = "";
     public string Artist { get; set; } = "";
     public string Album { get; set; } = "";
     public int Year { get; set; }
@@ -54,5 +55,33 @@ public class MediaUsageItem
             };
         }
     }
+
+    // ============================================================
+    // ?? AJOUTS POUR LA VERSION WEB (HTML) — SANS IMPACT WPF ??
+    // ============================================================
+
+    // Taille en Mo (calculée dans BuildInfoPageFromPost)
+    public double SizeMB { get; set; }
+
+    // Durée formatée mm:ss
+    public string DurationText =>
+        Duration > 0 ? TimeSpan.FromSeconds(Duration).ToString(@"mm\:ss") : "";
+
+    // Miniature encodée en Base64 pour HTML
+    public string AlbumArtBase64 =>
+        AlbumArt != null
+            ? "data:image/jpeg;base64," + Convert.ToBase64String(AlbumArt)
+            : "/default-cover.png";
+
+    // Flags pour les blocs conditionnels HTML
+    public bool IsVideo => MediaType == "Video";
+    public bool IsAudio => MediaType == "Audio";
+
+    public bool HasDuration => Duration > 0;
+    public bool HasSeries => !string.IsNullOrWhiteSpace(SeriesName);
+    public bool HasSeasonEpisode => Saison > 0 && Episode > 0;
+    public bool HasEpisodeName => !string.IsNullOrWhiteSpace(EpisodeName);
+    public bool HasVideoCodec => !string.IsNullOrWhiteSpace(VideoCodec);
+    public bool HasAudioCodec => !string.IsNullOrWhiteSpace(AudioCodec);
 }
 

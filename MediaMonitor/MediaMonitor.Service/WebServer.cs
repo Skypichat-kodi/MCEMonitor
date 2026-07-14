@@ -208,6 +208,14 @@ namespace MediaMonitor.Service
                         SendHtml(ctx, BuildHomePage());
                         break;
 
+                    case "/info":
+                    {
+                        string templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
+                        string html = File.ReadAllText(templatePath, Encoding.UTF8);
+                        SendHtml(ctx, html);
+                        break;
+                    }
+
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                         break;
@@ -430,96 +438,123 @@ namespace MediaMonitor.Service
             return DateTime.MinValue;
         }       
         
-        // ==========================
-        //  PAGE PRINCIPALE
-        // ==========================        
-        private string BuildHomePage()
-        {
-            var live = _engine.GetCurrentOpenFiles();
-            var history = _engine.GetHistory();
+          // ==========================
+          //  PAGE PRINCIPALE
+          // ==========================        
+          private string BuildHomePage()
+          {
+              var live = _engine.GetCurrentOpenFiles();
+              var history = _engine.GetHistory();
 
-            int liveCount = live.Count;
-            int historyCount = history.Count;
-            int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));            
+              int liveCount = live.Count;
+              int historyCount = history.Count;
+              int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));            
 
-            var sb = new StringBuilder();
+              var sb = new StringBuilder();
 
-            sb.Append(@"
-        <!DOCTYPE html>
-        <html lang='fr'>
-        <head>
-        <meta charset='UTF-8'>
-        <title>{{tr:MediaMonitor – Tableau de bord}}</title>
-        <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
-        <style>
-        body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
-        h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
-        .container { display:flex; gap:20px; flex-wrap:wrap; }
-        .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
-        .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
-        .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
-        .label { color:#ccc; }
-        .value { font-weight:bold; color:#fff; }
-        table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-        th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
-        th { background:#2d2d30; color:#fff; }
-        tr:nth-child(even) td { background:#262626; }
-        tr:nth-child(odd) td { background:#1f1f1f; }
-        .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
-        .type-audio { background:#007acc; }
-        .type-serie { background:#c586c0; }
-        .type-video { background:#d19a66; }
-        .type-rec   { background:#ff4d4d; color:white; }
-        .type-tv    { background:#ffe066; color:black; }
+              sb.Append(@"
+          <!DOCTYPE html>
+          <html lang='fr'>
+          <head>
+          <meta charset='UTF-8'>
+          <title>{{tr:MediaMonitor – Tableau de bord}}</title>
+          <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
+          <style>
+          body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+          h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+          .container { display:flex; gap:20px; flex-wrap:wrap; }
+          .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
+          .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+          .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
+          .label { color:#ccc; }
+          .value { font-weight:bold; color:#fff; }
+          table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+          th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+          th { background:#2d2d30; color:#fff; }
+          tr:nth-child(even) td { background:#262626; }
+          tr:nth-child(odd) td { background:#1f1f1f; }
+          .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+          .type-audio { background:#007acc; }
+          .type-serie { background:#c586c0; }
+          .type-video { background:#d19a66; }
+          .type-rec   { background:#ff4d4d; color:white; }
+          .type-tv    { background:#ffe066; color:black; }
 
-        .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
-        .button {
-            padding:6px 12px;
-            background:#007acc;
-            color:white;
-            text-decoration:none;
-            border-radius:4px;
-            font-size:13px;
-        }
-        .button-secondary { background:#444; }
-        .button-danger { background:#cc3300; }
-        .small { font-size:12px; color:#ccc; }
+          .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
+          .button {
+              padding:6px 12px;
+              background:#007acc;
+              color:white;
+              text-decoration:none;
+              border-radius:4px;
+              font-size:13px;
+          }
+          .button-secondary { background:#444; }
+          .button-danger { background:#cc3300; }
+          .small { font-size:12px; color:#ccc; }
 
-        /* Type = colonne 2 dans le premier tableau */
-        table:nth-of-type(1) td:nth-child(2),
-        table:nth-of-type(1) th:nth-child(2) {
-            text-align: center;
-        }
+          table:nth-of-type(1) td:nth-child(2),
+          table:nth-of-type(1) th:nth-child(2) {
+              text-align: center;
+          }
 
-        /* Type = colonne 3 dans le second tableau */
-        table:nth-of-type(2) td:nth-child(3),
-        table:nth-of-type(2) th:nth-child(3) {
-            text-align: center;
-        }
+          table:nth-of-type(2) td:nth-child(3),
+          table:nth-of-type(2) th:nth-child(3) {
+              text-align: center;
+          }
 
-        td, th {
-            border-right: 1px solid #3c3c3c;
-        }
+          td, th {
+              border-right: 1px solid #3c3c3c;
+          }
 
-        td:last-child, th:last-child {
-            border-right: none;
-        }
+          td:last-child, th:last-child {
+              border-right: none;
+          }
 
-        /* ?? AJOUT : couleurs REC / TV */
-        .rec-row td {
-            background-color: rgba(255, 0, 0, 0.35) !important;
-            color: white !important;
-        }
+          .rec-row td {
+              background-color: rgba(255, 0, 0, 0.35) !important;
+              color: white !important;
+          }
 
-        .tv-row td {
+          .tv-row td {
             background-color: rgba(255, 255, 0, 0.35) !important;
             color: black !important;
         }
 
+        .info-btn {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 28px;
+            height: 28px;
+            background: #3498db;
+            color: white;
+            border-radius: 50%;
+            text-decoration: none;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+            transition: background 0.2s;
+        }
+
+        .info-btn:hover {
+            background: #217dbb;
+        }
         </style>
-        <meta http-equiv='refresh' content='5'>
-        </head>
-        <body>
+        ");
+
+            sb.Append("<div id='infoOverlayContainer'></div>");
+
+            sb.Append(@"
+        <script>
+        let refreshEnabled = true;
+
+        function autoRefresh() {
+            if (refreshEnabled) {
+                window.location.reload();
+            }
+        }
+        setInterval(autoRefresh, 5000);
+        </script>
         ");
 
             sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
@@ -579,21 +614,9 @@ namespace MediaMonitor.Service
             sb.Append("</div>");
             sb.Append("</div>");
 
-            // WebServer
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:WebServer}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>{{tr:Port}} :</div><div class='value'>" + _port + "</div>");
-            sb.Append("<div class='label'>{{tr:Requêtes}} :</div><div class='value'>" + _requestCount + "</div>");
-            sb.Append("<div class='label'>{{tr:Dernière requête}} :</div><div class='value'>" + (_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss")) + "</div>");
-            sb.Append("<div class='label'>{{tr:Dernier client}} :</div><div class='value'>" + WebUtility.HtmlEncode(_lastRequestIp) + "</div>");
-            sb.Append("</div>");
-            sb.Append("</div>");
-
             sb.Append("</div>"); // .container
 
-
-                        // === TABLEAU LECTURE EN COURS ===
+            // === TABLEAU LECTURE EN COURS ===
             sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>");
             sb.Append("<table>");
             sb.Append("<thead><tr><th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th></tr></thead><tbody>");
@@ -603,7 +626,6 @@ namespace MediaMonitor.Service
                 string mediaType = item.MediaType ?? "";
                 string badgeClass = GetTypeBadgeClass(mediaType);
 
-                // Plus de rowClass (on n'utilise plus rec-row / tv-row)
                 sb.Append("<tr>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
                 sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
@@ -612,6 +634,7 @@ namespace MediaMonitor.Service
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+                sb.Append($"<td><a class=\"info-btn\" href=\"#\" onclick=\"openInfo('{WebUtility.HtmlEncode(item.Path)}')\">I</a></td>");
                 sb.Append("</tr>");
             }
 
@@ -639,6 +662,7 @@ namespace MediaMonitor.Service
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+                sb.Append($"<td><a class=\"info-btn\" href=\"#\" onclick=\"openInfo('{WebUtility.HtmlEncode(item.Path)}')\">I</a></td>");
                 sb.Append("</tr>");
             }
 
@@ -646,6 +670,26 @@ namespace MediaMonitor.Service
                 sb.Append("<tr><td colspan='8' class='small'>{{tr:Aucun historique disponible.}}</td></tr>");
 
             sb.Append("</tbody></table>");
+
+            // === SCRIPT FINAL UNIQUE ===
+            sb.Append("</tbody></table>");
+
+            sb.Append(@"
+            <script>
+                function openInfo(path) {
+                    refreshEnabled = false;
+
+                    fetch('/info?path=' + encodeURIComponent(path))
+                        .then(r => r.text())
+                        .then(html => {
+                        document.getElementById('infoOverlayContainer').innerHTML = html;
+                });
+                }
+                    function closeOverlay() {
+                        window.location.reload();
+                }              
+            </script>
+            ");
 
             sb.Append("</body></html>");
 

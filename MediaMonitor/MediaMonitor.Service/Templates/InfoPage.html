@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{FileName}}</title>
+
+<style>
+
+/* === OVERLAY GLOBAL (isolé, ne touche pas la page principale) === */
+#overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999;
+    font-family: Arial, sans-serif;
+    color: #fff;
+}
+
+/* === FENÊTRE POPUP === */
+#overlayContent {
+    position: relative;
+    background: #1e1e1e;
+    padding: 25px;
+    border-radius: 10px;
+    width: 600px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 0 25px #000;
+    animation: popupFade 0.25s ease-out;
+}
+
+@keyframes popupFade {
+    from { opacity: 0; transform: scale(0.95); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+/* === CROIX DE FERMETURE (ASCII SAFE) === */
+#closeX {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 22px;
+    cursor: pointer;
+    color: #fff;
+    opacity: 0.8;
+    user-select: none;
+}
+
+#closeX:hover {
+    opacity: 1;
+}
+
+/* === TITRE AVEC SCROLL === */
+h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 22px;
+}
+
+#titleScrollContainer {
+    overflow: hidden;
+    white-space: nowrap;
+    width: 100%;
+}
+
+#titleText {
+    display: inline-block;
+    position: relative;
+    left: 0;
+    transition: left 4s ease-in-out;
+}
+
+/* === IMAGE === */
+#albumArt {
+    width: 260px;
+    height: 146px;
+    border-radius: 6px;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+/* === SECTIONS === */
+.info-section {
+    margin-bottom: 15px;
+}
+
+.info-label {
+    font-weight: bold;
+    color: #4fc3f7;
+}
+
+</style>
+
+</head>
+<body>
+
+<div id="overlay">
+    <div id="overlayContent">
+
+        <!-- CROIX DE FERMETURE -->
+        <div id="closeX" onclick="closeOverlay()">&#10006;</div>
+
+        <div id="titleScrollContainer">
+            <h2 id="titleText">{{Title}}</h2>
+        </div>
+
+        <img id="albumArt" src="{{AlbumArtBase64}}" alt="cover">
+
+        <div id="infoBody">
+
+            <div class="info-section">
+                <span class="info-label">Chemin :</span><br>{{Path}}
+            </div>
+
+            <div class="info-section">
+                <span class="info-label">Type :</span> {{MediaType}}
+            </div>
+
+            <div class="info-section">
+                <span class="info-label">Taille :</span> {{SizeMB}} Mo
+            </div>
+
+            {{#IfDuration}}
+            <div class="info-section">
+                <span class="info-label">Durée :</span> {{DurationText}}
+            </div>
+            {{/IfDuration}}
+
+            {{#IfVideo}}
+                {{#IfSeries}}
+                <div class="info-section">
+                    <span class="info-label">Série :</span> {{SeriesName}}
+                </div>
+                {{/IfSeries}}
+
+                {{#IfSeasonEpisode}}
+                <div class="info-section">
+                    <span class="info-label">Saison/Épisode :</span> {{Saison}}x{{Episode}}
+                </div>
+                {{/IfSeasonEpisode}}
+
+                {{#IfEpisodeName}}
+                <div class="info-section">
+                    <span class="info-label">Épisode :</span> {{EpisodeName}}
+                </div>
+                {{/IfEpisodeName}}
+
+                {{#IfVideoCodec}}
+                <div class="info-section">
+                    <span class="info-label">Codec vidéo :</span> {{VideoCodec}}
+                </div>
+                {{/IfVideoCodec}}
+
+                {{#IfAudioCodec}}
+                <div class="info-section">
+                    <span class="info-label">Codec audio :</span> {{AudioCodec}}
+                </div>
+                {{/IfAudioCodec}}
+            {{/IfVideo}}
+
+            {{#IfAudio}}
+                <div class="info-section">
+                    <span class="info-label">Titre :</span> {{TitleTag}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">Artiste :</span> {{Artist}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">Album :</span> {{Album}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">Année :</span> {{Year}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">Piste :</span> {{Track}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">Genre :</span> {{Genre}}
+                </div>
+            {{/IfAudio}}
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+function closeOverlay() {
+    window.location.reload();
+}
+
+// Animation du titre
+(function() {
+    const text = document.getElementById('titleText');
+    const container = document.getElementById('titleScrollContainer');
+
+    const textWidth = text.scrollWidth;
+    const containerWidth = container.clientWidth;
+
+    if (textWidth > containerWidth) {
+        setTimeout(() => {
+            text.style.left = `-${textWidth - containerWidth}px`;
+        }, 300);
+    }
+})();
+</script>
+
+</body>
+</html>
+
