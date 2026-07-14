@@ -93,7 +93,9 @@ namespace Autotrad
             var files = Directory.GetFiles(folder, "*.*", SearchOption.AllDirectories)
                 .Where(f =>
                     (f.EndsWith(".cs", StringComparison.OrdinalIgnoreCase)
-                     || f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+                     || f.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase)
+                     || f.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+                     || f.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
                     && !f.Contains(@"\bin\", StringComparison.OrdinalIgnoreCase)
                     && !f.Contains(@"\obj\", StringComparison.OrdinalIgnoreCase)
                 );
