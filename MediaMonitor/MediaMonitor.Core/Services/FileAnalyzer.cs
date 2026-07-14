@@ -134,15 +134,48 @@ namespace MediaMonitor.Core.Services
                 Arguments = $"-v quiet -print_format json -show_streams -show_format \"{path}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 
-            using var proc = Process.Start(psi);
-            string json = proc!.StandardOutput.ReadToEnd();
-            proc.WaitForExit();
+            using var proc = new Process();
+            proc.StartInfo = psi;
 
-            var doc = JsonSerializer.Deserialize<FfprobeResult>(json);
-            return (doc!.format, doc.streams ?? Array.Empty<StreamInfo>());
+            proc.Start();
+
+            // Timeout robuste (machines lentes)
+            if (!proc.WaitForExit(5000)) // 5 secondes
+            {
+                try { proc.Kill(); } catch { }
+                throw new Exception("ffprobe timeout");
+            }
+
+            string output = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+
+            // Si ffprobe n'a rien retourné ? retry
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                // Petit retry automatique
+                Thread.Sleep(150);
+
+                using var proc2 = Process.Start(psi);
+                if (!proc2.WaitForExit(5000))
+                {
+                    try { proc2.Kill(); } catch { }
+                    throw new Exception("ffprobe timeout (retry)");
+                }
+
+                output = proc2.StandardOutput.ReadToEnd();
+                error = proc2.StandardError.ReadToEnd();
+
+                if (string.IsNullOrWhiteSpace(output))
+                    throw new Exception("ffprobe returned empty output");
+            }
+
+            var doc = JsonSerializer.Deserialize<FfprobeResult>(output);
+
+            return (doc?.format, doc?.streams ?? Array.Empty<StreamInfo>());
         }
 
         // ---------------------------
@@ -162,7 +195,10 @@ namespace MediaMonitor.Core.Services
             };
 
             using var proc = Process.Start(psi);
-            proc!.WaitForExit();
+            if (!proc.WaitForExit(5000))
+            {
+                try { proc.Kill(); } catch { }
+            }
         }
 
         // ---------------------------
