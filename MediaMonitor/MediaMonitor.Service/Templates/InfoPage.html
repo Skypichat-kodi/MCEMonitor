@@ -5,8 +5,7 @@
 <title>{{FileName}}</title>
 
 <style>
-
-/* === OVERLAY GLOBAL (isolé, ne touche pas la page principale) === */
+/* === OVERLAY === */
 #overlay {
     position: fixed;
     inset: 0;
@@ -19,13 +18,13 @@
     color: #fff;
 }
 
-/* === FENÊTRE POPUP === */
+/* === POPUP === */
 #overlayContent {
     position: relative;
     background: #1e1e1e;
     padding: 25px;
-    border-radius: 10px;
-    width: 600px;
+    border-radius: 12px;
+    width: 560px;
     max-height: 85vh;
     overflow-y: auto;
     box-shadow: 0 0 25px #000;
@@ -37,49 +36,51 @@
     to   { opacity: 1; transform: scale(1); }
 }
 
-/* === CROIX DE FERMETURE (ASCII SAFE) === */
+/* === CLOSE BUTTON === */
 #closeX {
     position: absolute;
     top: 12px;
     right: 16px;
     font-size: 22px;
     cursor: pointer;
-    color: #fff;
     opacity: 0.8;
-    user-select: none;
 }
+#closeX:hover { opacity: 1; }
 
-#closeX:hover {
-    opacity: 1;
-}
-
-/* === TITRE AVEC SCROLL === */
-h2 {
-    margin-top: 0;
-    margin-bottom: 15px;
-    font-size: 22px;
-}
-
+/* === TITLE SCROLL === */
 #titleScrollContainer {
     overflow: hidden;
     white-space: nowrap;
     width: 100%;
+    margin-bottom: 15px;
 }
 
 #titleText {
-    display: inline-block;
+    font-size: 22px;
+    font-weight: bold;
+    color: #4fc3f7;
     position: relative;
     left: 0;
     transition: left 4s ease-in-out;
 }
 
-/* === IMAGE === */
-#albumArt {
+/* === MINIATURES === */
+.video-thumb {
     width: 260px;
     height: 146px;
-    border-radius: 6px;
+    border-radius: 10px;
     object-fit: cover;
     margin-bottom: 15px;
+    border: 2px solid #4fc3f7;
+}
+
+.audio-thumb {
+    width: 120px;
+    height: 120px;
+    border-radius: 10px;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 2px solid #4fc3f7;
 }
 
 /* === SECTIONS === */
@@ -91,7 +92,6 @@ h2 {
     font-weight: bold;
     color: #4fc3f7;
 }
-
 </style>
 
 </head>
@@ -100,14 +100,22 @@ h2 {
 <div id="overlay">
     <div id="overlayContent">
 
-        <!-- CROIX DE FERMETURE -->
         <div id="closeX" onclick="closeOverlay()">&#10006;</div>
 
+        <!-- TITRE -->
         <div id="titleScrollContainer">
-            <h2 id="titleText">{{Title}}</h2>
+            <div id="titleText">{{Title}}</div>
         </div>
 
-        <img id="albumArt" src="{{AlbumArtBase64}}" alt="cover">
+        <!-- MINIATURE VIDÃ‰O -->
+        {{#IfVideo}}
+        <img class="video-thumb" src="{{AlbumArtBase64}}" alt="cover">
+        {{/IfVideo}}
+
+        <!-- MINIATURE AUDIO -->
+        {{#IfAudio}}
+        <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="cover">
+        {{/IfAudio}}
 
         <div id="infoBody">
 
@@ -125,32 +133,33 @@ h2 {
 
             {{#IfDuration}}
             <div class="info-section">
-                <span class="info-label">Durée :</span> {{DurationText}}
+                <span class="info-label">DurÃ©e :</span> {{DurationText}}
             </div>
             {{/IfDuration}}
 
+            <!-- VIDÃ‰O -->
             {{#IfVideo}}
                 {{#IfSeries}}
                 <div class="info-section">
-                    <span class="info-label">Série :</span> {{SeriesName}}
+                    <span class="info-label">SÃ©rie :</span> {{SeriesName}}
                 </div>
                 {{/IfSeries}}
 
                 {{#IfSeasonEpisode}}
                 <div class="info-section">
-                    <span class="info-label">Saison/Épisode :</span> {{Saison}}x{{Episode}}
+                    <span class="info-label">Saison/Ã‰pisode :</span> {{Saison}}x{{Episode}}
                 </div>
                 {{/IfSeasonEpisode}}
 
                 {{#IfEpisodeName}}
                 <div class="info-section">
-                    <span class="info-label">Épisode :</span> {{EpisodeName}}
+                    <span class="info-label">Ã‰pisode :</span> {{EpisodeName}}
                 </div>
                 {{/IfEpisodeName}}
 
                 {{#IfVideoCodec}}
                 <div class="info-section">
-                    <span class="info-label">Codec vidéo :</span> {{VideoCodec}}
+                    <span class="info-label">Codec vidÃ©o :</span> {{VideoCodec}}
                 </div>
                 {{/IfVideoCodec}}
 
@@ -161,6 +170,7 @@ h2 {
                 {{/IfAudioCodec}}
             {{/IfVideo}}
 
+            <!-- AUDIO -->
             {{#IfAudio}}
                 <div class="info-section">
                     <span class="info-label">Titre :</span> {{TitleTag}}
@@ -175,7 +185,7 @@ h2 {
                 </div>
 
                 <div class="info-section">
-                    <span class="info-label">Année :</span> {{Year}}
+                    <span class="info-label">AnnÃ©e :</span> {{Year}}
                 </div>
 
                 <div class="info-section">
@@ -194,10 +204,11 @@ h2 {
 
 <script>
 function closeOverlay() {
-    window.location.reload();
+    document.getElementById('overlay').remove();
+    resumeRefresh();
 }
 
-// Animation du titre
+// DÃ©filement du titre
 (function() {
     const text = document.getElementById('titleText');
     const container = document.getElementById('titleScrollContainer');
