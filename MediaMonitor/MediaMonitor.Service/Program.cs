@@ -24,20 +24,23 @@ namespace MediaMonitor.Service
         private static FileSystemWatcher _webConfigWatcher;
         private static bool _dvbViewerEnabled = false;
         private static DateTime lastWakeUp = DateTime.MinValue;
-        private static bool isWakeUp = false;        
+        private static bool isWakeUp = false;
+
+        // Nouveau scheduler
+        private static ReportScheduler _reportScheduler;
 
         // Anti-rebond
         private static DateTime _lastConfigChange = DateTime.MinValue;
 
         // Dernier statut CODE02
-        private static string _lastReportStatus =
+        internal static string _lastReportStatus =
             "[CODE02] " + (LanguageManager.Get("Dernier rapport inexistant") ?? "Dernier rapport inexistant");
 
         private static int LoadRetentionDays()
         {
             var settings = WebServerSettings.Load();
             return settings.RetentionDays;
-        }        
+        }
 
         // ------------------------------------------------------------
         // CHARGEMENT DU SWITCH EMAIL
@@ -97,7 +100,7 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         // LOGGER DÉDIÉ À LA PLANIFICATION
         // ------------------------------------------------------------
-        private static void WriteScheduleLog(string message)
+        internal static void WriteScheduleLog(string message)
         {
             try
             {
@@ -172,86 +175,13 @@ namespace MediaMonitor.Service
 
             return target;
         }
-
         // ------------------------------------------------------------
-        // PROGRAMMATION DU TIMER
+        // SAUVEGARDE BACKUP
         // ------------------------------------------------------------
-        private static bool _isSending = false;
-        private static DateTime _lastReportSent = DateTime.MinValue;
-
-        private static void ScheduleNextReport(MediaMonitorEngine engine)
-        {
-            reportTimer?.Dispose();
-            reportTimer = null;
-
-            DateTime sendTime = GetReportSendTime();
-            TimeSpan delay = sendTime - DateTime.Now;
-
-            if (delay.TotalMilliseconds < 0)
-                delay = TimeSpan.FromMinutes(1);
-
-            reportTimer = new System.Threading.Timer(async _ =>
-            {
-                if (_isSending)
-                    return;
-
-                _isSending = true;
-
-                try
-                {
-                // Protection anti-double envoi : fenêtre de 30 secondes
-                if ((DateTime.Now - _lastReportSent) < TimeSpan.FromSeconds(30))
-                {
-                    WriteScheduleLog($"[CODE03] Double envoi évité — last={_lastReportSent:HH:mm:ss}, now={DateTime.Now:HH:mm:ss}");
-                    return;
-                }
-                WriteScheduleLog("Envoi du rapport…");
-
-                // Calculer le prochain envoi AVANT l’envoi
-                DateTime nextSend = GetReportSendTime();
-
-                // Envoi (pas de bool possible)
-                await engine.SendReportEmail();
-
-                // Mise à jour anti-doublon
-                _lastReportSent = DateTime.Now;
-
-                _lastReportStatus = "[CODE02] " 
-                    + (LanguageManager.Get("Rapport envoyé à") ?? "Rapport envoyé à")
-                    + $" {_lastReportSent:yyyy-MM-dd HH:mm:ss}";
-
-                WriteScheduleLog(_lastReportStatus);
-
-                WriteScheduleLog("DEBUG: Count=" + engine.GetHistory().Count);
-
-                // Sauvegarde JSON AVANT ClearHistory()
-                SaveBackup(engine);
-
-                // Maintenant seulement on vide l’historique RAM
-                engine.ClearHistory();
-
-                // Programmer le prochain envoi
-                ScheduleNextReport(engine);
-                }
-                catch (Exception ex)
-                {
-                    WriteScheduleLog("ERREUR SendReportEmail : " + ex.Message);
-                }
-                finally
-                {
-                    _isSending = false;
-                }
-
-            }, null, delay, Timeout.InfiniteTimeSpan);
-        }
-
-        private static void SaveBackup(MediaMonitorEngine engine)
+        internal static void SaveBackup(MediaMonitorEngine engine)
         {
             try
             {
-                // ------------------------------------------------------------
-                // ?? Protection : éviter backup pendant 10 sec après sortie de veille
-                // ------------------------------------------------------------
                 if (isWakeUp)
                 {
                     if ((DateTime.Now - lastWakeUp).TotalSeconds < 10)
@@ -284,14 +214,10 @@ namespace MediaMonitor.Service
 
                     BackupFileModel backup = null;
 
-                    // ------------------------------------------------------------
-                    // ?? Lecture du JSON + détection duplication File.ReadAllText
-                    // ------------------------------------------------------------
                     if (File.Exists(backupPath))
                     {
                         string oldJson = File.ReadAllText(backupPath);
 
-                        // Détection duplication brute (JSON concaténé)
                         int half = oldJson.Length / 2;
                         if (oldJson.Length > 100 && oldJson.Substring(0, half) == oldJson.Substring(half))
                         {
@@ -300,9 +226,6 @@ namespace MediaMonitor.Service
 
                         backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
 
-                        // ------------------------------------------------------------
-                        // ?? Déduplication globale (entre jours)
-                        // ------------------------------------------------------------
                         var allItems = backup.Reports
                             .SelectMany(r => r.Items)
                             .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode, i.Timestamp })
@@ -317,7 +240,6 @@ namespace MediaMonitor.Service
                             WriteScheduleLog($"[CODE07] Réparation globale : {totalBefore - totalAfter} doublons supprimés dans l'ensemble du JSON.");
                         }
 
-                        // Répartition des items dédupliqués dans leurs jours respectifs
                         foreach (var report in backup.Reports)
                         {
                             report.Items = allItems
@@ -325,9 +247,6 @@ namespace MediaMonitor.Service
                                 .ToList();
                         }
 
-                        // ------------------------------------------------------------
-                        // ?? Réparation automatique du JSON existant (par jour)
-                        // ------------------------------------------------------------
                         foreach (var report in backup.Reports)
                         {
                             int before = report.Items.Count;
@@ -349,16 +268,12 @@ namespace MediaMonitor.Service
                     if (backup == null)
                         backup = new BackupFileModel { RetentionDays = retentionDays, Reports = new List<DailyReport>() };
 
-                    // ------------------------------------------------------------
-                    // ?? Fusion du jour actuel
-                    // ------------------------------------------------------------
                     DateTime today = DateTime.Now.Date;
 
                     var existing = backup.Reports.FirstOrDefault(r => r.Date == today);
 
                     if (existing == null)
                     {
-                        // Items RAM
                         var ramItems = engine.GetHistory();
 
                         if (ramItems.Count > 0)
@@ -378,7 +293,6 @@ namespace MediaMonitor.Service
                     }
                     else
                     {
-                        // Jour existant ? fusion normale
                         var ramItems = engine.GetHistory();
 
                         var newFilteredItems = ramItems.Where(item =>
@@ -398,16 +312,13 @@ namespace MediaMonitor.Service
                         WriteScheduleLog($"Backup : {newFilteredItems.Count} nouveaux items ajoutés");
                     }
 
-                    // Nettoyage du jour actuel
                     existing.Items = existing.Items
                         .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
                         .Select(g => g.First())
                         .ToList();
 
-                    // Items RAM
                     var newItems = engine.GetHistory();
 
-                    // Anti-doublon stable
                     var filtered = newItems.Where(item =>
                         !existing.Items.Any(x =>
                             x.Path == item.Path &&
@@ -424,13 +335,9 @@ namespace MediaMonitor.Service
 
                     WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés");
 
-                    // ------------------------------------------------------------
-                    // ?? Rétention glissante
-                    // ------------------------------------------------------------
                     DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
 
-                    // Sauvegarde finale
                     string json = JsonConvert.SerializeObject(backup, Formatting.Indented);
                     File.WriteAllText(backupPath, json, Encoding.UTF8);
                 }
@@ -444,7 +351,6 @@ namespace MediaMonitor.Service
                 engine.IsBackupRunning = false;
             }
         }
-
         private static void StartHourlyBackup(MediaMonitorEngine engine)
         {
             hourlyBackupTimer = new System.Threading.Timer(_ =>
@@ -502,18 +408,18 @@ namespace MediaMonitor.Service
         }
 
         private static DateTime _lastWebConfigChange = DateTime.MinValue;
-        
+
         private static void WebConfigChanged_Master(object sender, FileSystemEventArgs e)
         {
             var now = DateTime.Now;
 
-            // Anti-rebond : si un événement est arrivé il y a moins de 1 seconde, on ignore
             if ((now - _lastWebConfigChange).TotalMilliseconds < 1000)
                 return;
 
             _lastWebConfigChange = now;
-            
-            ScheduleNextReport(_engine);
+
+            // ?? Remplacement minimal
+            _reportScheduler?.OnShutdownConfigChanged();
 
             WebConfigChanged_Retention(sender, e);
             WebConfigChanged_DvbViewer(sender, e);
@@ -589,11 +495,11 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR WebConfigChanged_DvbViewer : " + ex);
             }
         }
-        
+
         // ------------------------------------------------------------
         // CHARGEMENT DE L'HEURE DE SHUTDOWN
         // ------------------------------------------------------------
-        private static (int hour, int minute)? LoadShutdownTime()
+        internal static (int hour, int minute)? LoadShutdownTime()
         {
             try
             {
@@ -630,7 +536,6 @@ namespace MediaMonitor.Service
                 return null;
             }
         }
-
         // ------------------------------------------------------------
         // RÉACTION AUX MODIFICATIONS DE Shutdown.config
         // ------------------------------------------------------------
@@ -669,11 +574,10 @@ namespace MediaMonitor.Service
                     + $" : {_lastShutdownTime.Value.hour:D2}:{_lastShutdownTime.Value.minute:D2}"
                 );
 
-                // _lastReportStatus est déjà multilingue
                 WriteScheduleLog(_lastReportStatus);
 
-                ScheduleNextReport(_engine);
-
+                // ?? Remplacement minimal
+                _reportScheduler?.OnShutdownConfigChanged();
             }
             catch (Exception ex)
             {
@@ -726,16 +630,18 @@ namespace MediaMonitor.Service
                     lastWakeUp = DateTime.Now;
                     isWakeUp = true;
                     WriteScheduleLog("[WAKEUP] Sortie de veille détectée. Backup suspendu 10 secondes.");
+
+                    // ?? Ajout minimal
+                    _reportScheduler?.OnWakeUp();
                 }
-            };        
-        
+            };
+
             // ============================================================
             // ?? GESTION DE LA LANGUE TRANSMISE PAR MCEMonitor
             // ============================================================
 
             string selectedLang = "fr-FR"; // fallback
 
-            // On récupère les arguments du processus courant
             string[] args = Environment.GetCommandLineArgs();
 
             int idx = Array.IndexOf(args, "-lang");
@@ -747,8 +653,8 @@ namespace MediaMonitor.Service
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
             Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
 
-            MediaMonitor.Core.Language.LanguageManager.Load(selectedLang); 
-                   
+            MediaMonitor.Core.Language.LanguageManager.Load(selectedLang);
+
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_Service", out createdNew);
             if (!createdNew)
@@ -769,7 +675,7 @@ namespace MediaMonitor.Service
             _engine.DvbViewerUser = cfg.DvbViewerUser;
             _engine.DvbViewerPass = cfg.DvbViewerPass;
             _dvbViewerEnabled = cfg.DvbViewerSwitch;   // bool déjà dans WebServerSettings
-            CoreLog.Write("DVBViewer RS initial: " + _dvbViewerEnabled);           
+            CoreLog.Write("DVBViewer RS initial: " + _dvbViewerEnabled);
 
             try
             {
@@ -830,15 +736,14 @@ namespace MediaMonitor.Service
                     "MCEMonitor"
                 );
 
-            _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
-            _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
+                _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config");
+                _webConfigWatcher.NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime;
 
-            // ?? Un seul handler maître
-            _webConfigWatcher.Changed += WebConfigChanged_Master;
-            _webConfigWatcher.Created += WebConfigChanged_Master;
-            _webConfigWatcher.Renamed += WebConfigChanged_Master;
+                _webConfigWatcher.Changed += WebConfigChanged_Master;
+                _webConfigWatcher.Created += WebConfigChanged_Master;
+                _webConfigWatcher.Renamed += WebConfigChanged_Master;
 
-            _webConfigWatcher.EnableRaisingEvents = true;
+                _webConfigWatcher.EnableRaisingEvents = true;
 
                 CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.Web.config");
             }
@@ -847,7 +752,10 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR FileSystemWatcher WebConfig : " + ex);
             }
 
-            ScheduleNextReport(_engine);
+            // ?? Remplacement minimal
+            _reportScheduler = new ReportScheduler(_engine);
+            _reportScheduler.Start();
+
             StartHourlyBackup(_engine);
 
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
