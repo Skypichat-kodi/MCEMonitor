@@ -354,7 +354,7 @@ namespace MediaMonitor.Core.Services
 
                 mediaType = saison > 0 && episode > 0
                     ? "Serie"
-                    : "Film";
+                    : MediaClassifier.GetMediaType(f.Path);
             }
 
             string file = Path.GetFileName(f.Path);
