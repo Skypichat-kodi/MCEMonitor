@@ -865,7 +865,7 @@
                                     Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                     CommandParameter="{Binding Path}"
                                     Style="{StaticResource InfoButtonStyle}"
-                                    ToolTip="Informations sur ce fichier"/>
+                                    ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
