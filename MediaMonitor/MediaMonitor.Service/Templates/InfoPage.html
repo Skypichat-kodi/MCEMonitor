@@ -101,6 +101,20 @@
     color: #4fc3f7;
     font-size: 16px;
 }
+
+/* === BOUTON PLUS === */
+.plus-btn {
+    padding: 8px 14px;
+    border-radius: 6px;
+    background: #2979ff;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+.plus-btn:hover {
+    background: #5393ff;
+}
 </style>
 
 </head>
@@ -175,6 +189,12 @@
                     <span class="info-label">{{tr:Codec audio}} :</span> {{AudioCodec}}
                 </div>
                 {{/IfAudioCodec}}
+
+                <!-- BOUTON TMDB -->
+                <button class="plus-btn" onclick="openTmdb('{{Title}}')">
+                    {{tr:Plus}}...
+                </button>
+
             {{/IfVideo}}
 
             {{#IfAudio}}
@@ -201,6 +221,12 @@
                 <div class="info-section">
                     <span class="info-label">{{tr:Genre}} :</span> {{Genre}}
                 </div>
+
+                <!-- BOUTON THEAUDIODB -->
+                <button class="plus-btn" onclick="openAudioDb('{{TitleTag}}', '{{Artist}}')">
+                    {{tr:Plus}}...
+                </button>
+
             {{/IfAudio}}
 
         </div>
@@ -231,6 +257,17 @@ function closeOverlay() {
         }, 300);
     }
 })();
+
+/* === TMDB / AUDIO DB === */
+function openTmdb(title) {
+    const q = encodeURIComponent(title);
+    window.open("https://www.themoviedb.org/search?query=" + q, "_blank");
+}
+
+function openAudioDb(title, artist) {
+    const t = encodeURIComponent(title);
+    window.open("https://www.theaudiodb.com/search.php?track=" + t, "_blank");
+}
 </script>
 
 </body>
