@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
 using TagLib;
+using System.Text.RegularExpressions;
 
 namespace MediaMonitor.Core.Services
 {
@@ -134,48 +135,15 @@ namespace MediaMonitor.Core.Services
                 Arguments = $"-v quiet -print_format json -show_streams -show_format \"{path}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 
-            using var proc = new Process();
-            proc.StartInfo = psi;
+            using var proc = Process.Start(psi);
+            string json = proc!.StandardOutput.ReadToEnd();
+            proc.WaitForExit();
 
-            proc.Start();
-
-            // Timeout robuste (machines lentes)
-            if (!proc.WaitForExit(5000)) // 5 secondes
-            {
-                try { proc.Kill(); } catch { }
-                throw new Exception("ffprobe timeout");
-            }
-
-            string output = proc.StandardOutput.ReadToEnd();
-            string error = proc.StandardError.ReadToEnd();
-
-            // Si ffprobe n'a rien retourné ? retry
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                // Petit retry automatique
-                Thread.Sleep(150);
-
-                using var proc2 = Process.Start(psi);
-                if (!proc2.WaitForExit(5000))
-                {
-                    try { proc2.Kill(); } catch { }
-                    throw new Exception("ffprobe timeout (retry)");
-                }
-
-                output = proc2.StandardOutput.ReadToEnd();
-                error = proc2.StandardError.ReadToEnd();
-
-                if (string.IsNullOrWhiteSpace(output))
-                    throw new Exception("ffprobe returned empty output");
-            }
-
-            var doc = JsonSerializer.Deserialize<FfprobeResult>(output);
-
-            return (doc?.format, doc?.streams ?? Array.Empty<StreamInfo>());
+            var doc = JsonSerializer.Deserialize<FfprobeResult>(json);
+            return (doc!.format, doc.streams ?? Array.Empty<StreamInfo>());
         }
 
         // ---------------------------
@@ -195,10 +163,7 @@ namespace MediaMonitor.Core.Services
             };
 
             using var proc = Process.Start(psi);
-            if (!proc.WaitForExit(5000))
-            {
-                try { proc.Kill(); } catch { }
-            }
+            proc!.WaitForExit();
         }
 
         // ---------------------------
@@ -227,25 +192,38 @@ namespace MediaMonitor.Core.Services
         private static void ParseSeriesInfo(string fileName, MediaUsageItem item)
         {
             var name = Path.GetFileNameWithoutExtension(fileName);
-            var parts = name.Split(" - ", StringSplitOptions.RemoveEmptyEntries);
+
+            // On cherche directement "NNxMM" dans tout le nom
+            var match = Regex.Match(
+                name,
+                @"(?<saison>\d{1,2})x(?<episode>\d{1,2})",
+                RegexOptions.IgnoreCase
+            );
+
+            if (!match.Success)
+            {
+                // Pas de motif saison/épisode ? on garde le nom complet comme titre
+                item.EpisodeName = name;
+                return;
+            }
+
+            // Saison / épisode
+            item.Saison = int.Parse(match.Groups["saison"].Value);
+            item.Episode = int.Parse(match.Groups["episode"].Value);
+
+            // On découpe sur " - " pour récupérer série et titre,
+            // mais en se basant sur la position du motif trouvé.
+            // Exemple : "Série - 01x06 - Titre"
+            var parts = name.Split(new[] { " - " }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length >= 3)
             {
-                item.SeriesName = parts[0].Trim();      // Série
-                var se = parts[1].Trim();               // 01x06
-                item.EpisodeName = parts[2].Trim();     // Titre épisode
-
-                var seParts = se.Split('x');
-                if (seParts.Length == 2 &&
-                    int.TryParse(seParts[0], out int s) &&
-                    int.TryParse(seParts[1], out int e))
-                {
-                    item.Saison = s;
-                    item.Episode = e;
-                }
+                item.SeriesName = parts[0].Trim();      // "Knight Rider le retour de K2000"
+                item.EpisodeName = parts[2].Trim();     // "Le robot tueur"
             }
             else
             {
+                // Si le split ne correspond pas exactement, on met au moins le titre
                 item.EpisodeName = name;
             }
         }

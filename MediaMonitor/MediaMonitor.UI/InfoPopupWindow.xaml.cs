@@ -16,19 +16,14 @@ namespace MediaMonitor.UI
             InitializeComponent();
             _info = info;
 
+            // On attend le rendu complet pour éviter les NaN / crash
             Loaded += InfoPopupWindow_Loaded;
-            ContentRendered += InfoPopupWindow_ContentRendered; // <-- Ajout essentiel
         }
 
         private void InfoPopupWindow_Loaded(object sender, RoutedEventArgs e)
         {
             LoadInfo();
-            // SafeStartTitleScroll();  <-- SupprimÃ© ici
-        }
-
-        private void InfoPopupWindow_ContentRendered(object sender, EventArgs e)
-        {
-            SafeStartTitleScroll(); // <-- DÃ©filement aprÃ¨s rendu complet
+            SafeStartTitleScroll();
         }
 
         private static readonly BitmapImage DefaultCover =
@@ -36,7 +31,7 @@ namespace MediaMonitor.UI
 
         private void LoadInfo()
         {
-            // === TITRE ===
+            // Titre
             if (_info.MediaType == "Video" && !string.IsNullOrEmpty(_info.EpisodeName))
             {
                 TitleText.Text = _info.EpisodeName;
@@ -52,11 +47,7 @@ namespace MediaMonitor.UI
                 TitleText.Text = _info.FileName;
             }
 
-            // === CHEMIN & TYPE ===
-            PathText.Text = _info.Path;
-            TypeText.Text = _info.MediaType;
-
-            // === TAILLE ===
+            // Taille
             try
             {
                 var fi = new FileInfo(_info.Path);
@@ -64,10 +55,10 @@ namespace MediaMonitor.UI
             }
             catch
             {
-                SizeText.Text = "â€”";
+                SizeText.Text = "—";
             }
 
-            // === ICÃ”NE ===
+            // Icône
             try
             {
                 IconType.Source = new BitmapImage(new Uri(_info.IconPath));
@@ -77,7 +68,7 @@ namespace MediaMonitor.UI
                 IconType.Source = null;
             }
 
-            // === DURÃ‰E ===
+            // Durée
             if (_info.Duration > 0)
             {
                 DurationLabel.Visibility = Visibility.Visible;
@@ -90,7 +81,7 @@ namespace MediaMonitor.UI
                 DurationText.Visibility = Visibility.Collapsed;
             }
 
-            // === VIDÃ‰O ===
+            // --- VIDÉO ---
             if (_info.MediaType == "Video")
             {
                 if (!string.IsNullOrEmpty(_info.SeriesName))
@@ -142,7 +133,7 @@ namespace MediaMonitor.UI
                 Id3GenreLabel.Visibility = Visibility.Collapsed;
                 Id3Genre.Visibility = Visibility.Collapsed;
 
-                // Miniature vidÃ©o
+                // Miniature vidéo 16:9 bord-à-bord
                 AlbumArtBorder.Width = 260;
                 AlbumArtBorder.Height = 146;
                 AlbumArtImage.Stretch = Stretch.UniformToFill;
@@ -150,7 +141,7 @@ namespace MediaMonitor.UI
             }
             else
             {
-                // === AUDIO ===
+                // --- AUDIO ---
                 Id3TitleLabel.Visibility = Visibility.Visible;
                 Id3Title.Visibility = Visibility.Visible;
                 Id3ArtistLabel.Visibility = Visibility.Visible;
@@ -164,12 +155,12 @@ namespace MediaMonitor.UI
                 Id3GenreLabel.Visibility = Visibility.Visible;
                 Id3Genre.Visibility = Visibility.Visible;
 
-                Id3Title.Text = string.IsNullOrEmpty(_info.Title) ? "â€”" : _info.Title;
-                Id3Artist.Text = string.IsNullOrEmpty(_info.Artist) ? "â€”" : _info.Artist;
-                Id3Album.Text = string.IsNullOrEmpty(_info.Album) ? "â€”" : _info.Album;
-                Id3Year.Text = _info.Year > 0 ? _info.Year.ToString() : "â€”";
-                Id3Track.Text = _info.Track > 0 ? _info.Track.ToString() : "â€”";
-                Id3Genre.Text = string.IsNullOrEmpty(_info.Genre) ? "â€”" : _info.Genre;
+                Id3Title.Text = string.IsNullOrEmpty(_info.Title) ? "—" : _info.Title;
+                Id3Artist.Text = string.IsNullOrEmpty(_info.Artist) ? "—" : _info.Artist;
+                Id3Album.Text = string.IsNullOrEmpty(_info.Album) ? "—" : _info.Album;
+                Id3Year.Text = _info.Year > 0 ? _info.Year.ToString() : "—";
+                Id3Track.Text = _info.Track > 0 ? _info.Track.ToString() : "—";
+                Id3Genre.Text = string.IsNullOrEmpty(_info.Genre) ? "—" : _info.Genre;
 
                 // Miniature audio
                 AlbumArtBorder.Width = 120;
@@ -178,7 +169,7 @@ namespace MediaMonitor.UI
                 VideoOverlay.Visibility = Visibility.Collapsed;
             }
 
-            // === MINIATURE ===
+            // Miniature
             if (_info.AlbumArt != null && _info.AlbumArt.Length > 0)
             {
                 using var ms = new MemoryStream(_info.AlbumArt);
@@ -193,9 +184,13 @@ namespace MediaMonitor.UI
             {
                 AlbumArtImage.Source = DefaultCover;
             }
+
+            // === CHEMIN & TYPE ===
+            PathText.Text = _info.Path;
+            TypeText.Text = _info.MediaType;
         }
 
-        // Animation vignette
+        // Animation vignette (fade + zoom)
         private void AlbumArtImage_Loaded(object sender, RoutedEventArgs e)
         {
             try
@@ -206,7 +201,7 @@ namespace MediaMonitor.UI
             catch { }
         }
 
-        // DÃ©filement intelligent du titre
+        // Défilement intelligent du titre (100% stable)
         private void SafeStartTitleScroll()
         {
             if (TitleText == null || TitleScrollContainer == null)
@@ -218,9 +213,11 @@ namespace MediaMonitor.UI
             double textWidth = TitleText.ActualWidth;
             double containerWidth = TitleScrollContainer.ActualWidth;
 
+            // Sécurité anti-NaN
             if (double.IsNaN(textWidth) || double.IsNaN(containerWidth))
                 return;
 
+            // Si le texte tient ? pas d'animation
             if (textWidth <= containerWidth)
             {
                 TitleScrollTransform.X = 0;
@@ -228,6 +225,8 @@ namespace MediaMonitor.UI
             }
 
             double overflow = textWidth - containerWidth;
+
+            // Sécurité anti-valeurs négatives
             if (overflow <= 0)
                 return;
 
