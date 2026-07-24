@@ -128,6 +128,13 @@ namespace MediaMonitor.Service
                         Program.SaveBackup(_engine);
                         _engine.ClearHistory();
 
+                        // Empêcher un deuxième rapport le même jour
+                        if (_lastReportSent.Date == DateTime.Now.Date)
+                        {
+                            Write("Rapport déjà envoyé aujourd'hui ? pas de reprogrammation.");
+                            return;
+                        }
+
                         ScheduleNext();
                     }
                     catch (Exception ex)
