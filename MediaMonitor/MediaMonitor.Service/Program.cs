@@ -333,7 +333,7 @@ namespace MediaMonitor.Service
                     foreach (var item in filtered)
                         existing.Items.Add(item);
 
-                    WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés");
+                    WriteScheduleLog($"Backup : {filtered.Count} nouveaux items ajoutés sans doublon");
 
                     DateTime limit = today.AddDays(-retentionDays);
                     backup.Reports.RemoveAll(r => r.Date < limit);
