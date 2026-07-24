@@ -121,6 +121,18 @@ namespace MediaMonitor.Core.Services
             {
                 // Si ffmpeg plante, pas de miniature.
             }
+            
+            // Définition du titre pour la popup Webserver
+            if (!string.IsNullOrEmpty(item.EpisodeName))
+            {
+                // Série
+                item.Title = item.EpisodeName;
+            }
+            else
+            {
+                // Film ou vidéo simple
+                item.Title = Path.GetFileNameWithoutExtension(item.FileName);
+            }
         }
 
         // ---------------------------
