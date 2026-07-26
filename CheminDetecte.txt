@@ -5,3 +5,4 @@ MediaMonitor\MediaMonitor.Tray\bin\Release\net8.0-windows
 StopMonitor\bin\Release\net8.0
 WakeMonitor\bin\Release\net8.0
 MediaMonitor\MediaMonitor.Service\bin\Release\net8.0-windows
+MediaMonitor\MediaMonitor.Languages\bin\Release\net8.0
