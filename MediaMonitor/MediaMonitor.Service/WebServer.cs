@@ -688,6 +688,17 @@ namespace MediaMonitor.Service
             sb.Append("</div>");
             sb.Append("</div>");
 
+            // WebServer
+            sb.Append("<div class='groupbox'>");
+            sb.Append("<div class='groupbox-title'>{{tr:WebServer}}</div>");
+            sb.Append("<div class='stats-grid'>");
+            sb.Append("<div class='label'>{{tr:Port}} :</div><div class='value'>" + _port + "</div>");
+            sb.Append("<div class='label'>{{tr:Requêtes}} :</div><div class='value'>" + _requestCount + "</div>");
+            sb.Append("<div class='label'>{{tr:Dernière requête}} :</div><div class='value'>" + (_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss")) + "</div>");
+            sb.Append("<div class='label'>{{tr:Dernier client}} :</div><div class='value'>" + WebUtility.HtmlEncode(_lastRequestIp) + "</div>");
+            sb.Append("</div>");
+            sb.Append("</div>");
+            
             sb.Append("</div>"); // .container
 
             // === TABLEAU LECTURE EN COURS ===
