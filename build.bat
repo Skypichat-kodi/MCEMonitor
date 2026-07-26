@@ -34,6 +34,9 @@ call :build "%ROOT%\MediaMonitor\MediaMonitor.Service\MediaMonitor.Service.cspro
 call :clean "%ROOT%\MediaMonitor\MediaMonitor.UI"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.UI\MediaMonitor.UI.csproj"
 
+call :clean "%ROOT%\MediaMonitor\MediaMonitor.Languages"
+call :build "%ROOT%\MediaMonitor\MediaMonitor.Languages\MediaMonitor.Languages.csproj"
+
 call :clean "%ROOT%\MediaMonitor\MediaMonitor.Tray"
 call :build "%ROOT%\MediaMonitor\MediaMonitor.Tray\MediaMonitor.Tray.csproj"
 
@@ -76,6 +79,7 @@ call :ProcessOne "MediaMonitor\MediaMonitor.Tray\bin\Release" "%output%" "%DEST_
 call :ProcessOne "StopMonitor\bin\Release" "%output%" "%DEST_APPDATA%"
 call :ProcessOne "WakeMonitor\bin\Release" "%output%" "%DEST_APPDATA%"
 call :ProcessOne "MediaMonitor\MediaMonitor.Service\bin\Release" "%output%" "%DEST_APPDATA%"
+call :ProcessOne "MediaMonitor\MediaMonitor.Languages\bin\Release" "%output%" "%DEST_APPDATA%"
 
 goto :finalMessage
 
