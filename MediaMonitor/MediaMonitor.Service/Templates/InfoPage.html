@@ -160,6 +160,7 @@
             {{/IfDuration}}
 
             {{#IfVideo}}
+
                 {{#IfSeries}}
                 <div class="info-section">
                     <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
@@ -190,10 +191,19 @@
                 </div>
                 {{/IfAudioCodec}}
 
-                <!-- BOUTON TMDB -->
-                <button class="plus-btn" onclick="openTmdb('{{Title}}')">
+                <!-- TMDB SERIES -->
+                {{#IfSeries}}
+                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
                     {{tr:Plus}}...
                 </button>
+                {{/IfSeries}}
+
+                <!-- TMDB FILMS -->
+                {{#IfMovie}}
+                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+                    {{tr:Plus}}...
+                </button>
+                {{/IfMovie}}
 
             {{/IfVideo}}
 
@@ -222,8 +232,8 @@
                     <span class="info-label">{{tr:Genre}} :</span> {{Genre}}
                 </div>
 
-                <!-- BOUTON THEAUDIODB -->
-                <button class="plus-btn" onclick="openAudioDb('{{TitleTag}}', '{{Artist}}')">
+                <!-- DISCOGS -->
+                <button class="plus-btn" onclick="openDiscogs('{{TitleTag}}', '{{Artist}}')">
                     {{tr:Plus}}...
                 </button>
 
@@ -258,15 +268,22 @@ function closeOverlay() {
     }
 })();
 
-/* === TMDB / AUDIO DB === */
-function openTmdb(title) {
+/* === TMDB FILMS === */
+function openTmdbMovie(title) {
     const q = encodeURIComponent(title);
     window.open("https://www.themoviedb.org/search?query=" + q, "_blank");
 }
 
-function openAudioDb(title, artist) {
-    const t = encodeURIComponent(title);
-    window.open("https://www.theaudiodb.com/search.php?track=" + t, "_blank");
+/* === TMDB SERIES === */
+function openTmdbSeries(seriesName) {
+    const q = encodeURIComponent(seriesName);
+    window.open("https://www.themoviedb.org/search?query=" + q, "_blank");
+}
+
+/* === DISCOGS MUSIQUE === */
+function openDiscogs(title, artist) {
+    const q = encodeURIComponent(title + " " + artist);
+    window.open("https://www.discogs.com/search/?q=" + q + "&type=all", "_blank");
 }
 </script>
 

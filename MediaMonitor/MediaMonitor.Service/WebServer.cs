@@ -277,6 +277,7 @@ namespace MediaMonitor.Service
                         html = ApplyConditional(html, "IfVideo", info.MediaType == "Video");
                         html = ApplyConditional(html, "IfAudio", info.MediaType == "Audio");
                         html = ApplyConditional(html, "IfSeries", !string.IsNullOrEmpty(info.SeriesName));
+                        html = ApplyConditional(html, "IfMovie", info.MediaType == "Video" && string.IsNullOrEmpty(info.SeriesName));
                         html = ApplyConditional(html, "IfSeasonEpisode", info.Saison > 0 || info.Episode > 0);
                         html = ApplyConditional(html, "IfEpisodeName", !string.IsNullOrEmpty(info.EpisodeName));
                         html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
@@ -767,13 +768,31 @@ namespace MediaMonitor.Service
                     fetch('/info?path=' + encodeURIComponent(path))
                         .then(r => r.text())
                         .then(html => {
-                        document.getElementById('infoOverlayContainer').innerHTML = html;
-                });
+
+                            const container = document.getElementById('infoOverlayContainer');
+                            container.innerHTML = html;
+
+                            // Exécuter les scripts du popup
+                            const scripts = container.querySelectorAll('script');
+                            scripts.forEach(oldScript => {
+                                const newScript = document.createElement('script');
+
+                                if (oldScript.src) {
+                                    newScript.src = oldScript.src;
+                                } else {
+                                    newScript.textContent = oldScript.textContent;
+                                }
+
+                                document.body.appendChild(newScript);
+                            });
+                        });
                 }
-                    function closeOverlay() {
-                        window.location.reload();
-                }              
+
+                function closeOverlay() {
+                    window.location.reload();
+                }
             </script>
+            </body></html>
             ");
 
             sb.Append("</body></html>");
@@ -1440,8 +1459,24 @@ namespace MediaMonitor.Service
                 fetch('/info?path=' + encodeURIComponent(path))
                     .then(r => r.text())
                     .then(html => {
-                        document.getElementById('infoOverlayContainer').innerHTML = html;
-                });
+
+                        const container = document.getElementById('infoOverlayContainer');
+                        container.innerHTML = html;
+
+                        // Exécuter les scripts du popup (TMDB, AudioDB, scroll, closeOverlay)
+                        const scripts = container.querySelectorAll('script');
+                        scripts.forEach(oldScript => {
+                            const newScript = document.createElement('script');
+
+                            if (oldScript.src) {
+                                newScript.src = oldScript.src;
+                            } else {
+                                newScript.textContent = oldScript.textContent;
+                            }
+
+                            document.body.appendChild(newScript);
+                        });
+                    });
             }
 
             function closeOverlay() {
