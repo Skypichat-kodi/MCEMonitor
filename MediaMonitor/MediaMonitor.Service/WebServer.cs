@@ -154,7 +154,7 @@ namespace MediaMonitor.Service
                     ctx.Response.Close();
                     return;
                 }
-
+    
                 switch (path)
                 {
                     case "/":
@@ -220,11 +220,31 @@ namespace MediaMonitor.Service
                         // 2. Analyser le fichier
                         var info = FileAnalyzer.Analyze(filePath);
 
+                        // ============================================================
+                        //    Détermination de l'icône selon le type de média (Base64)
+                        // ============================================================
+
+                        string iconBasePath = Path.Combine(AppContext.BaseDirectory, "Resources", "Icons");
+                        string iconFile = info.MediaType switch
+                        {
+                            "Audio" => "webicon_audio.png",
+                            "Video" => "webicon_video.png",
+                            "Image" => "webicon_image.png",
+                            _ => "icon_file.png"
+                        };
+
+                        string iconFullPath = Path.Combine(iconBasePath, iconFile);
+
+                        // Charger l'icône et la convertir en Base64
+                        byte[] iconBytes = File.ReadAllBytes(iconFullPath);
+                        string iconBase64 = "data:image/png;base64," + Convert.ToBase64String(iconBytes);
+
                         // 3. Charger le template UTF-8
                         string templatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
                         string html = File.ReadAllText(templatePath, Encoding.UTF8);
 
                         // 4. Champs simples
+                        html = html.Replace("{{IconPath}}", iconBase64);
                         html = html.Replace("{{FileName}}", WebUtility.HtmlEncode(info.FileName));
                         html = html.Replace("{{Title}}", WebUtility.HtmlEncode(info.Title ?? info.FileName));
                         html = html.Replace("{{Path}}", WebUtility.HtmlEncode(info.Path));
@@ -283,14 +303,34 @@ namespace MediaMonitor.Service
                         html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
                         html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
 
-                        // ??? AJOUT ESSENTIEL POUR LA TRADUCTION HTML ???
+                        // Traduction
                         html = HTMLTranslator.Translate(html);
 
                         // 6. Envoyer la page remplie
                         SendHtml(ctx, html);
                         break;
                     }
+                    
+                    if (path.StartsWith("/resources/icons/"))
+                    {
+                        string fileName = Path.GetFileName(path);
 
+                        string fullPath = Path.Combine(@"C:\ProgramData\MCEMonitor\Resources\Icons", fileName);
+
+                        if (File.Exists(fullPath))
+                        {
+                            byte[] bytes = File.ReadAllBytes(fullPath);
+                            ctx.Response.ContentType = "image/png";
+                            ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                            ctx.Response.Close();
+                            return;
+                        }
+
+                        ctx.Response.StatusCode = 404;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                         break;

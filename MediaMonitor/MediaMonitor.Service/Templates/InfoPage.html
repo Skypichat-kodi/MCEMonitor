@@ -50,12 +50,24 @@
 }
 #closeX:hover { opacity: 1; }
 
+#mediaIcon {
+    width: 32px;      
+    height: 32px;
+    vertical-align: middle;
+    margin-right: 10px;
+    filter: drop-shadow(0 0 4px #42a5f5);
+}
+
 /* === TITRE === */
 #titleScrollContainer {
     overflow: hidden;
     white-space: nowrap;
     width: 100%;
     margin-bottom: 20px;
+
+    display: flex;           
+    align-items: center;        
+    gap: 10px;                  
 }
 
 #titleText {
@@ -124,9 +136,10 @@
     <div id="overlayContent">
 
         <div id="closeX" onclick="closeOverlay()">&#10006;</div>
-
+ 
         <!-- TITRE -->
         <div id="titleScrollContainer">
+            <img id="mediaIcon" src="{{IconPath}}" alt="Type">
             <div id="titleText">{{Title}}</div>
         </div>
 

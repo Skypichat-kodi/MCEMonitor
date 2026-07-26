@@ -11,14 +11,17 @@
   <ItemGroup>
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
-      <Resource Include="Resources\Icons\icon_image.png" />
-      <Resource Include="Resources\Icons\icon_video.png" />
-      <Resource Include="Resources\Icons\icon_audio.png" />
-      <Resource Include="Resources\Icons\icon_serie.png" />
-      <Resource Include="Resources\Images\default-cover.png" />
+    <Content Include="Resources\Icons\*.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
+  <ItemGroup>
+    <Content Include="Resources\Images\default-cover.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>    
 
 </Project>
 
