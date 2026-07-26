@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.IO;
-using System.Text.Json; 
+using System.Text.Json;
 
 namespace MediaMonitor.Core.Language
 {
@@ -14,22 +13,30 @@ namespace MediaMonitor.Core.Language
         private static string _currentLanguage = "en-GB";
 
         /// <summary>
-        /// Charge un fichier de langue JSON (ex: fr-FR.json)
+        /// Charge un fichier de langue JSON depuis ProgramData
         /// </summary>
         public static void Load(string languageCode)
         {
             try
             {
-                string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Languages");
+                // C:\ProgramData\MCEMonitor\Languages
+                string basePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Languages"
+                );
+
+                // Chemin du fichier demandé
                 string filePath = Path.Combine(basePath, $"{languageCode}.json");
 
+                // Fallback automatique si le fichier n'existe pas
                 if (!File.Exists(filePath))
                 {
-                    // Fallback automatique
                     languageCode = "en-GB";
                     filePath = Path.Combine(basePath, "en-GB.json");
                 }
 
+                // Lecture du JSON
                 string json = File.ReadAllText(filePath);
                 _translations = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
 
@@ -37,7 +44,7 @@ namespace MediaMonitor.Core.Language
             }
             catch
             {
-                // En cas d'erreur ? fallback en anglais
+                // Fallback en cas d'erreur
                 _translations = new Dictionary<string, string>();
                 _currentLanguage = "en-GB";
             }
@@ -54,7 +61,7 @@ namespace MediaMonitor.Core.Language
             if (_translations.TryGetValue(key, out string value))
                 return value;
 
-            return null; // Laisse le fallback A2 du Designer gérer
+            return null;
         }
 
         /// <summary>
