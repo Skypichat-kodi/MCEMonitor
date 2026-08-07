@@ -852,7 +852,17 @@ namespace MediaMonitor.UI
         {
             string path = info.Path;
 
-            // JSON brut du serveur
+            // ⭐ Si pas d’extension → analyse locale → pas d’IPC
+            if (string.IsNullOrEmpty(System.IO.Path.GetExtension(path)))
+            {
+                // On utilise directement l'info déjà fournie
+                var popup = new InfoPopupWindow(info);
+                popup.Owner = this;
+                popup.ShowDialog();
+                return;
+            }
+
+            // ⭐ Sinon → analyse complète via IPC
             string? json = await ServiceIpcClient.SendRaw($"get-file-info {path}");
 
             if (json == null)
@@ -867,7 +877,6 @@ namespace MediaMonitor.UI
                 return;
             }
 
-            // Si le serveur renvoie un JSON d'erreur
             if (json.Contains("\"error\""))
             {
                 MessageBox.Show(
@@ -909,11 +918,11 @@ namespace MediaMonitor.UI
                 return;
             }
 
-            var popup = new InfoPopupWindow(fullInfo);
-            popup.Owner = this;
-            popup.ShowDialog();
+            var popup2 = new InfoPopupWindow(fullInfo);
+            popup2.Owner = this;
+            popup2.ShowDialog();
         }
-        
+                
         // ⭐ Commande pour le bouton "i"
         public ICommand ShowInfoCommand => new RelayCommand<string>(ShowInfo);
 
@@ -923,6 +932,15 @@ namespace MediaMonitor.UI
             if (string.IsNullOrWhiteSpace(path))
                 return;
 
+            // ⭐ Si le "path" n'a PAS d'extension → ce n'est PAS un fichier → analyse locale
+            if (string.IsNullOrEmpty(System.IO.Path.GetExtension(path)))
+            {
+                var info = MediaMonitor.Core.Services.FileAnalyzer.Analyze(path);
+                ShowInfoPopup(info);
+                return;
+            }
+
+            // ⭐ Sinon → analyse complète via IPC
             try
             {
                 var info = await ServiceIpcClient.GetFileInfoAsync(path);
@@ -932,7 +950,7 @@ namespace MediaMonitor.UI
             {
                 MessageBox.Show("Erreur lors de l'analyse du fichier : " + ex.Message);
             }
-        }                
+        }              
     }
 }
 

@@ -20,6 +20,11 @@ public class MediaUsageItem
     public string SeriesName { get; set; } = "";
     public string EpisodeName { get; set; } = "";
 
+    // Programme TV
+    public string Channel { get; set; } = "";
+    public string Country { get; set; } = "";
+    public string AgeRating { get; set; } = "";
+    
     public DateTime Timestamp { get; set; }
 
     // Durée en secondes
