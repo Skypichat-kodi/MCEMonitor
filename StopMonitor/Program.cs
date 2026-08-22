@@ -10,7 +10,7 @@ namespace StopMonitor
 
         static async Task Main(string[] args)
         {
-            // Mutex anti-multi-instance
+            // Anti multi-instance
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_StopMonitor", out createdNew);
             if (!createdNew)
@@ -18,11 +18,10 @@ namespace StopMonitor
 
             string mode = args.Length > 0 ? args[0].ToLower() : "none";
 
-            // Choisir le bon fichier log AVANT d'écrire
             switch (mode)
             {
                 case "shutdown":
-                    LogHelper.SetLogFile("StopMonitor_Stop.log");
+                    LogHelper.SetLogFile("StopMonitor_Shutdown.log");
                     break;
 
                 case "boot":
@@ -34,9 +33,7 @@ namespace StopMonitor
                     break;
             }
 
-            // ?? Vider le log AVANT toute écriture (Option A)
             LogHelper.Clear();
-
             LogHelper.Write($"StopMonitor démarré. Mode = {mode}");
 
             try
@@ -46,19 +43,15 @@ namespace StopMonitor
                 switch (mode)
                 {
                     case "shutdown":
-                        // Laisser Windows écrire 1074 / 6006 / 6008
-                        await Task.Delay(5000);
-                        await service.SendShutdownEmail();
+                        await service.ProcessShutdownAsync();
                         break;
 
                     case "boot":
-                        // Laisser Windows écrire 6005 / 12 / 6009 / 41 / 1001
-                        await Task.Delay(5000);
-                        await service.SendCrashEmail();
+                        await service.ProcessBootAsync();
                         break;
 
                     default:
-                        LogHelper.Write("Aucun mode spécifié. Rien à faire.");
+                        LogHelper.Write("Aucun mode spécifié.");
                         break;
                 }
             }
@@ -71,4 +64,3 @@ namespace StopMonitor
         }
     }
 }
-

@@ -1,80 +1,69 @@
 using System;
 using System.IO;
+using System.Text;
 
 namespace StopMonitor
 {
     public static class LogHelper
     {
-        // Nom de fichier dynamique
-        private static string _logFileName = "StopMonitor.log";
+        private static string _logFile = "";
 
-        // Permet de changer le fichier log selon le mode
+        // ------------------------------------------------------------
+        //  DÉFINIR LE FICHIER DE LOG
+        // ------------------------------------------------------------
         public static void SetLogFile(string fileName)
         {
-            _logFileName = fileName;
+            string baseDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "Logs"
+            );
+
+            Directory.CreateDirectory(baseDir);
+
+            _logFile = Path.Combine(baseDir, fileName);
         }
 
-        private static string GetLogPath()
-        {
-            // ProgramData + dossier Logs
-            string programData = Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData);
-            string dir = Path.Combine(programData, "MCEMonitor", "Logs");
-
-            Directory.CreateDirectory(dir);
-
-            return Path.Combine(dir, _logFileName);
-        }
-
-        // Réinitialisation du fichier (sécurisée)
+        // ------------------------------------------------------------
+        //  EFFACER LE LOG AU DÉMARRAGE
+        // ------------------------------------------------------------
         public static void Clear()
         {
-            try
-            {
-                string path = GetLogPath();
-
-                // Si le fichier existe ? on le vide
-                // S'il n'existe pas ? on le crée vide
-                File.WriteAllText(path, string.Empty);
-            }
-            catch
-            {
-                // On ne casse jamais StopMonitor pour un log
-            }
+            if (!string.IsNullOrEmpty(_logFile) && File.Exists(_logFile))
+                File.Delete(_logFile);
         }
 
-        public static void Write(string message)
+        // ------------------------------------------------------------
+        //  ÉCRITURE SIMPLE
+        // ------------------------------------------------------------
+        public static void Write(string text)
         {
-            try
-            {
-                string path = GetLogPath();
-                string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {message}";
-                File.AppendAllText(path, line + Environment.NewLine);
-            }
-            catch
-            {
-                // Silence en cas d'erreur de log
-            }
+            if (string.IsNullOrEmpty(_logFile))
+                return;
+
+            string line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {text}{Environment.NewLine}";
+            File.AppendAllText(_logFile, line, Encoding.UTF8);
         }
 
+        // ------------------------------------------------------------
+        //  ÉCRITURE D’UN BLOC MULTI-LIGNES
+        // ------------------------------------------------------------
         public static void WriteBlock(string title, string content)
         {
-            try
-            {
-                string path = GetLogPath();
-                string block =
-                    "\n------------------------------------------------------------\n" +
-                    $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} | {title}\n" +
-                    "------------------------------------------------------------\n" +
-                    content +
-                    "\n------------------------------------------------------------\n";
+            if (string.IsNullOrEmpty(_logFile))
+                return;
 
-                File.AppendAllText(path, block);
-            }
-            catch
-            {
-                // Silence en cas d'erreur de log
-            }
+            var sb = new StringBuilder();
+
+            sb.AppendLine();
+            sb.AppendLine("------------------------------------------------------------");
+            sb.AppendLine($"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {title}");
+            sb.AppendLine("------------------------------------------------------------");
+            sb.AppendLine(content);
+            sb.AppendLine("------------------------------------------------------------");
+            sb.AppendLine();
+
+            File.AppendAllText(_logFile, sb.ToString(), Encoding.UTF8);
         }
     }
 }
-

@@ -1,213 +1,119 @@
 using System;
-using System.Diagnostics.Eventing.Reader;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace StopMonitor
 {
     public class StopMonitorService
     {
+        private readonly ShutdownDetector _shutdownDetector = new ShutdownDetector();
+        private readonly BootDetector _bootDetector = new BootDetector();
+
         // ------------------------------------------------------------
-        //  LECTURE DES ÉVÉNEMENTS D'ARRÊT (1074 / 6006 / 6008)
+        //  TRAITEMENT MODE SHUTDOWN
         // ------------------------------------------------------------
-        private (DateTime Time, int EventId, string Details) GetLastShutdownEvent()
+        public async Task ProcessShutdownAsync()
         {
-            string query =
-                "*[System[(EventID=1074 or EventID=6006 or EventID=6008)]]";
+            LogHelper.Write("Analyse des evenements d'arret...");
 
-            var logQuery = new EventLogQuery("System", PathType.LogName, query);
-            using var reader = new EventLogReader(logQuery);
+            var result = _shutdownDetector.DetectShutdown();
 
-            DateTime limit = DateTime.Now.AddMinutes(-5);
-            EventRecord latest = null;
-
-            for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
+            if (!result.ShouldSendEmail)
             {
-                if (rec.TimeCreated < limit)
-                    continue;
-
-                if (latest == null || rec.TimeCreated > latest.TimeCreated)
-                    latest = rec;
+                LogHelper.Write("Aucun arret necessitant un email.");
+                return;
             }
 
-            if (latest == null)
-                return (DateTime.MinValue, 0, "Aucun événement récent (<5 min).");
-
-            var sb = new StringBuilder();
-
-            switch (latest.Id)
-            {
-                case 1074:
-                    sb.AppendLine("Type : Arrêt initié par un utilisateur ou une application.");
-                    if (latest.Properties.Count > 0)
-                        sb.AppendLine($"Processus : {latest.Properties[0].Value}");
-                    if (latest.Properties.Count > 1)
-                        sb.AppendLine($"Utilisateur : {latest.Properties[1].Value}");
-                    if (latest.Properties.Count > 4)
-                        sb.AppendLine($"Raison : {latest.Properties[4].Value}");
-                    break;
-
-                case 6006:
-                    sb.AppendLine("Type : Arrêt propre (Event Log Service stopped).");
-                    break;
-
-                case 6008:
-                    sb.AppendLine("Type : Arrêt inattendu (crash, coupure, panne).");
-                    break;
-            }
-
-            return (latest.TimeCreated ?? DateTime.Now, latest.Id, sb.ToString());
-        }
-
-                // ------------------------------------------------------------
-                //  LECTURE DES ÉVÉNEMENTS DE CRASH (41 / 6008 / 1001)
-                // ------------------------------------------------------------
-        private (DateTime Time, int EventId, string Details) GetLastCrashEvent()
-        {
-            DateTime limit = DateTime.Now.AddMinutes(-5);
-            EventRecord latest = null;
-
-            // 1) Kernel-Power 41
-            try
-            {
-                var kpQuery = new EventLogQuery(
-                    "Microsoft-Windows-Kernel-Power/Operational",
-                    PathType.LogName,
-                    "*[System/EventID=41]"
-                );
-
-                using var reader = new EventLogReader(kpQuery);
-
-                for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
-                {
-                    if (rec.TimeCreated < limit)
-                        continue;
-
-                    if (latest == null || rec.TimeCreated > latest.TimeCreated)
-                        latest = rec;
-                }
-            }
-            catch { }
-
-            // 2) 6008 / 1001
-            try
-            {
-                string sysQuery =
-                    "*[System[(EventID=6008 or EventID=1001)]]";
-
-                var sysLogQuery = new EventLogQuery("System", PathType.LogName, sysQuery);
-
-                using var reader = new EventLogReader(sysLogQuery);
-
-                for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
-                {
-                    if (rec.TimeCreated < limit)
-                        continue;
-
-                    if (latest == null || rec.TimeCreated > latest.TimeCreated)
-                        latest = rec;
-                }
-            }
-            catch { }
-
-            if (latest == null)
-                return (DateTime.MinValue, 0, "Aucun crash récent (<5 min).");
-
-            var sb = new StringBuilder();
-
-            switch (latest.Id)
-            {
-                case 41:
-                    sb.AppendLine("Type : Redémarrage brutal (Kernel-Power 41).");
-                    break;
-
-                case 6008:
-                    sb.AppendLine("Type : Arrêt inattendu (EventID 6008).");
-                    break;
-
-                case 1001:
-                    sb.AppendLine("Type : BSOD (BugCheck 1001).");
-                    if (latest.Properties.Count > 0)
-                        sb.AppendLine($"Code : {latest.Properties[0].Value}");
-                    break;
-            }
-
-            return (latest.TimeCreated ?? DateTime.Now, latest.Id, sb.ToString());
-        }
-
-        // ------------------------------------------------------------
-        //  ENVOI EMAIL ARRÊT
-        // ------------------------------------------------------------
-        public async Task SendShutdownEmail()
-        {
-            await Task.Delay(5000);
+            LogHelper.Write($"Arret detecte : {result.Type}");
 
             var cfg = EmailConfig.Load();
-            var evt = GetLastShutdownEvent();
 
-            LogHelper.WriteBlock("Infos arrêt",
-                $"Date : {evt.Time}\n" +
-                $"EventID : {evt.EventId}\n" +
-                $"{evt.Details}\n" +
+            string subject = result.Type switch
+            {
+                ShutdownType.User => "StopMonitor – Arret utilisateur detecte",
+                ShutdownType.WindowsUpdate => "StopMonitor – Arret Windows Update detecte",
+                ShutdownType.WindowsUpdateRestart => "StopMonitor – Redemarrage Windows Update detecte",
+                _ => "StopMonitor – Arret detecte"
+            };
+
+            string body =
+                $"<b>{result.Description}</b><br><br>" +
+                $"<b>Date :</b> {result.Time}<br>" +
+                $"<b>EventID :</b> {result.EventId}<br>" +
+                $"<b>Details :</b><br>{result.Details.Replace("\n", "<br>")}<br><br>" +
+                $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                $"<b>OS :</b> {Environment.OSVersion}<br>" +
+                $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
+
+            LogHelper.WriteBlock("Infos arret",
+                $"Type : {result.Type}\n" +
+                $"Date : {result.Time}\n" +
+                $"EventID : {result.EventId}\n" +
+                $"{result.Details}\n" +
                 $"Machine : {Environment.MachineName}\n" +
                 $"Utilisateur : {Environment.UserName}\n" +
                 $"OS : {Environment.OSVersion}\n" +
                 $"Uptime : {TimeSpan.FromMilliseconds(Environment.TickCount64)}\n"
             );
-
-            string subject = $"StopMonitor - Arrêt détecté ({evt.Time:HH:mm:ss})";
-
-            string body =
-                $"<b>Arrêt détecté</b><br><br>" +
-                $"<b>Date :</b> {evt.Time}<br>" +
-                $"<b>EventID :</b> {evt.EventId}<br>" +
-                $"<b>Détails :</b><br>{evt.Details.Replace("\n", "<br>")}<br><br>" +
-                $"<b>Machine :</b> {Environment.MachineName}<br>" +
-                $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
-                $"<b>OS :</b> {Environment.OSVersion}<br>" +
-                $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
 
             await EmailSender.SendAsync(cfg, subject, body, isHtml: true, style: EmailStyle.Normal);
 
-            LogHelper.Write("Email envoyé avec succès.");
+            LogHelper.Write("Email d'arret envoye avec succes.");
         }
 
         // ------------------------------------------------------------
-        //  ENVOI EMAIL CRASH
+        //  TRAITEMENT MODE BOOT
         // ------------------------------------------------------------
-        public async Task SendCrashEmail()
+        public async Task ProcessBootAsync()
         {
-            await Task.Delay(5000);
+            LogHelper.Write("Analyse des evenements de demarrage...");
 
-            var evt = GetLastCrashEvent();
+            var result = _bootDetector.DetectBoot();
+
+            LogHelper.Write($"Demarrage detecte : {result.Type}");
+
             var cfg = EmailConfig.Load();
 
-            LogHelper.WriteBlock("Infos crash",
-                $"Date : {evt.Time}\n" +
-                $"EventID : {evt.EventId}\n" +
-                $"{evt.Details}\n" +
+            string subject = result.Type switch
+            {
+                BootType.Crash => "StopMonitor – Crash detecte",
+                BootType.PowerLoss => "StopMonitor – Coupure electrique detectee",
+                BootType.Normal => "StopMonitor – Demarrage normal",
+                _ => "StopMonitor – Demarrage de la machine"
+            };
+
+            EmailStyle style = result.Type switch
+            {
+                BootType.Crash => EmailStyle.Error,
+                BootType.PowerLoss => EmailStyle.Error,
+                BootType.Normal => EmailStyle.Success,
+                _ => EmailStyle.Normal
+            };
+
+            string body =
+                $"<b>{result.Description}</b><br><br>" +
+                $"<b>Date :</b> {result.Time}<br>" +
+                $"<b>EventID :</b> {result.EventId}<br>" +
+                $"<b>Details :</b><br>{result.Details.Replace("\n", "<br>")}<br><br>" +
+                $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                $"<b>OS :</b> {Environment.OSVersion}<br>" +
+                $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
+
+            LogHelper.WriteBlock("Infos demarrage",
+                $"Type : {result.Type}\n" +
+                $"Date : {result.Time}\n" +
+                $"EventID : {result.EventId}\n" +
+                $"{result.Details}\n" +
                 $"Machine : {Environment.MachineName}\n" +
                 $"Utilisateur : {Environment.UserName}\n" +
                 $"OS : {Environment.OSVersion}\n" +
                 $"Uptime : {TimeSpan.FromMilliseconds(Environment.TickCount64)}\n"
             );
 
-            string subject = $"StopMonitor - Crash détecté ({evt.Time:HH:mm:ss})";
+            await EmailSender.SendAsync(cfg, subject, body, isHtml: true, style: style);
 
-            string body =
-                $"<b>Crash détecté</b><br><br>" +
-                $"<b>Date :</b> {evt.Time}<br>" +
-                $"<b>EventID :</b> {evt.EventId}<br>" +
-                $"<b>Détails :</b><br>{evt.Details.Replace("\n", "<br>")}<br><br>" +
-                $"<b>Machine :</b> {Environment.MachineName}<br>" +
-                $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
-                $"<b>OS :</b> {Environment.OSVersion}<br>" +
-                $"<b>Uptime :</b> {TimeSpan.FromMilliseconds(Environment.TickCount64)}<br>";
-
-            await EmailSender.SendAsync(cfg, subject, body, isHtml: true, style: EmailStyle.Error);
-
-            LogHelper.Write("Email de crash envoyé avec succès.");
+            LogHelper.Write("Email de demarrage envoye avec succes.");
         }
     }
 }
-

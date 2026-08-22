@@ -9,8 +9,9 @@ namespace StopMonitor
 {
     public enum EmailStyle
     {
-        Normal,   // gris
-        Error     // rouge (BSOD)
+        Normal,   // gris (arrêts)
+        Error,    // rouge (crash / coupure électrique)
+        Success   // vert (démarrage normal)
     }
 
     public static class EmailSender
@@ -26,7 +27,7 @@ namespace StopMonitor
             {
                 var message = new MimeMessage();
 
-                // ?? Expéditeur avec nom de machine
+                // Expéditeur avec nom de machine
                 message.From.Add(new MailboxAddress(
                     $"StopMonitor – {Environment.MachineName}",
                     cfg.From
@@ -35,7 +36,7 @@ namespace StopMonitor
                 message.To.Add(new MailboxAddress(cfg.To, cfg.To));
                 message.Subject = subject;
 
-                // Si HTML ? appliquer le template selon le style
+                // Template HTML selon style
                 if (isHtml)
                 {
                     body = BuildHtmlTemplate(body, style);
@@ -71,7 +72,6 @@ namespace StopMonitor
                     "email_error.log"
                 );
 
-                // S’assurer que le dossier existe
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
                 File.AppendAllText(logPath,
@@ -82,18 +82,26 @@ namespace StopMonitor
         }
 
         // ------------------------------------------------------------
-        // TEMPLATES HTML (GRIS + ROUGE CLAIR)
+        //  TEMPLATES HTML (GRIS / ROUGE / VERT)
         // ------------------------------------------------------------
         private static string BuildHtmlTemplate(string body, EmailStyle style)
         {
-            string headerColor = style == EmailStyle.Error ? "#c0392b" : "#555";
+            string headerColor = style switch
+            {
+                EmailStyle.Error => "#c0392b",   // rouge
+                EmailStyle.Success => "#27ae60", // vert
+                _ => "#555"                      // gris
+            };
 
-            string title = style == EmailStyle.Error
-                ? "StopMonitor – Rapport de crash"
-                : "StopMonitor – Rapport d'arrêt";
+            string title = style switch
+            {
+                EmailStyle.Error => "StopMonitor – Alerte",
+                EmailStyle.Success => "StopMonitor – Démarrage normal",
+                _ => "StopMonitor – Rapport"
+            };
 
-            // ?? Fond rouge clair pour les mails d’erreur
-            string backgroundColor = style == EmailStyle.Error ? "#c0392b" : "#f5f5f5";
+            // Fond neutre (V1 / R1)
+            string backgroundColor = "#f5f5f5";
 
             return $@"
 <div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:{backgroundColor};padding:20px'>
@@ -119,4 +127,3 @@ namespace StopMonitor
         }
     }
 }
-
