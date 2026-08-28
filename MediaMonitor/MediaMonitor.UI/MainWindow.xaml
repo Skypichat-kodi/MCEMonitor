@@ -853,10 +853,15 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
+                <!-- ⭐ NOUVELLE COLONNE CANAL -->
+                <DataGridTextColumn Header="{loc:Tr 'Canal'}"
+                                    Binding="{Binding Channel}"
+                                    Width="120"/>
+
                 <!-- NOM -->
                 <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
 
-                <!-- ⭐ ICÔNE INFO -->
+                <!-- ICÔNE INFO -->
                 <DataGridTemplateColumn Header="" Width="40">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
@@ -981,10 +986,15 @@
                     </DataGridTextColumn.CellStyle>
                 </DataGridTextColumn>
 
+                <!-- ⭐ NOUVELLE COLONNE CANAL -->
+                <DataGridTextColumn Header="{loc:Tr 'Canal'}"
+                                    Binding="{Binding Channel}"
+                                    Width="120"/>
+
                 <!-- NOM -->
                 <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
 
-                <!-- ⭐ ICÔNE INFO -->
+                <!-- ICÔNE INFO -->
                 <DataGridTemplateColumn Header="" Width="40">
                     <DataGridTemplateColumn.CellTemplate>
                         <DataTemplate>
