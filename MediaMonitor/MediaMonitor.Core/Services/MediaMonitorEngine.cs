@@ -421,7 +421,10 @@ namespace MediaMonitor.Core.Services
                 CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
             }
         }
-
+        
+        // ============================================================
+        //  OBTENTION DES INFOS EPG DVBVIEWER
+        // ============================================================
         private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
         {
             // Type cohérent avec WebServer
@@ -516,69 +519,60 @@ namespace MediaMonitor.Core.Services
                 Channel = channel   // ? AJOUT ESSENTIEL
             };
         }
-
-private string CleanTvTitle(string nom, out int saison, out int episode)
-{
-    saison = 0;
-    episode = 0;
-
-    if (string.IsNullOrWhiteSpace(nom))
-        return "";
-
-    // --- 1) Si Saison/Episode est présent, on traite ce cas en priorité ---
-    var mClassic = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
-    if (mClassic.Success)
-    {
-        saison = int.Parse(mClassic.Groups[1].Value);
-        episode = int.Parse(mClassic.Groups[2].Value);
-
-        int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
-        if (idx > 0)
-            return nom.Substring(0, idx).Trim();
-
-        return nom.Trim();
-    }
-
-    // --- 2) Pas de Saison/Episode ? on applique TA règle ---
-    // Trouver le premier "-" ou ":" (le plus proche du début)
-    int idxDash = nom.IndexOf(" - ");
-    int idxColon = nom.IndexOf(':');
-
-    int cutPos = -1;
-
-    if (idxDash >= 0 && idxColon >= 0)
-        cutPos = Math.Min(idxDash, idxColon);
-    else if (idxDash >= 0)
-        cutPos = idxDash;
-    else if (idxColon >= 0)
-        cutPos = idxColon;
-
-    string titre = cutPos > 0 ? nom.Substring(0, cutPos) : nom;
-
-    // --- 3) Remplacer les caractères spéciaux par une virgule ---
-    var sb = new StringBuilder();
-    foreach (char c in titre)
-    {
-        // autorisés : lettres, chiffres, espace, &, ', :
-        if (char.IsLetterOrDigit(c) || c == ' ' || c == '&' || c == '\'' || c == ':')
+        
+        // ============================================================
+        //  FILTRAGE DES TITRES TV
+        // ============================================================
+        private string CleanTvTitle(string nom, out int saison, out int episode)
         {
-            sb.Append(c);
-        }
-        else
-        {
-            // caractère spécial ? virgule
-            sb.Append(", ");
-        }
-    }
+            saison = 0;
+            episode = 0;
 
-    // Nettoyage
-    string cleaned = sb.ToString();
-    cleaned = Regex.Replace(cleaned, @"\s*,\s*,\s*", ", ");
-    cleaned = Regex.Replace(cleaned, @"\s{2,}", " ").Trim();
-    cleaned = cleaned.Trim(' ', ',');
+            if (string.IsNullOrWhiteSpace(nom))
+                return "";
 
-    return cleaned;
-}
+            // --- RÈGLE 1 : Saison / Episode ---
+            var mClassic = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
+            if (mClassic.Success)
+            {
+                saison = int.Parse(mClassic.Groups[1].Value);
+                episode = int.Parse(mClassic.Groups[2].Value);
+
+                int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
+                if (idx > 0)
+                    return nom.Substring(0, idx).Trim();
+
+                return nom.Trim();
+            }
+
+            // --- RÈGLE 2 : Pas de Saison/Episode ? couper au premier "-" ---
+            int idxDash = nom.IndexOf(" - ");
+            string titre = idxDash > 0 ? nom.Substring(0, idxDash) : nom;
+
+            // --- Remplacer les caractères spéciaux par une virgule ---
+            var sb = new StringBuilder();
+            foreach (char c in titre)
+            {
+                // autorisés : lettres, chiffres, espace, &, ', :
+                if (char.IsLetterOrDigit(c) || c == ' ' || c == '&' || c == '\'' || c == ':')
+                {
+                    sb.Append(c);
+                }
+                else
+                {
+                    // caractère spécial ? virgule
+                    sb.Append(", ");
+                }
+            }
+
+            // Nettoyage
+            string cleaned = sb.ToString();
+            cleaned = Regex.Replace(cleaned, @"\s*,\s*,\s*", ", ");
+            cleaned = Regex.Replace(cleaned, @"\s{2,}", " ").Trim();
+            cleaned = cleaned.Trim(' ', ',');
+
+            return cleaned;
+        }
 
         // ============================================================
         //  GETTERS POUR IPC
