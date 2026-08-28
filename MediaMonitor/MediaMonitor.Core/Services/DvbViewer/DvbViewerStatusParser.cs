@@ -45,60 +45,59 @@ namespace MediaMonitor.Core.DvbViewer
         // ---------------------------------------------------------
         // TUNERS ACTIFS
         // ---------------------------------------------------------
-private static List<DvbTunerInfo> ParseActiveTuners(string html)
-{
-    var list = new List<DvbTunerInfo>();
-
-    // Match les headers de tuner
-    var tunerRegex = new Regex(
-        @"<th[^>]*colspan=""4""[^>]*>(.*?)</th>",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-    var matches = tunerRegex.Matches(html);
-
-    // Match toutes les lignes <tr class="even"> (enregistrements)
-    var trRegex = new Regex(
-        @"<tr class=""even""[^>]*>(.*?)</tr>",
-        RegexOptions.Singleline | RegexOptions.IgnoreCase);
-
-    var trMatches = trRegex.Matches(html);
-
-    foreach (Match tr in trMatches)
-    {
-        int trIndex = tr.Index;
-
-        // Trouver le tuner le plus proche au-dessus
-        Match bestTuner = null;
-
-        foreach (Match tuner in matches)
+        private static List<DvbTunerInfo> ParseActiveTuners(string html)
         {
-            if (tuner.Index < trIndex)
-                bestTuner = tuner;
+            var list = new List<DvbTunerInfo>();
+
+            // Match les headers de tuner
+            var tunerRegex = new Regex(
+                @"<th[^>]*colspan=""4""[^>]*>(.*?)</th>",
+                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+            var matches = tunerRegex.Matches(html);
+
+            // Match toutes les lignes <tr class="even"> (enregistrements)
+            var trRegex = new Regex(
+                @"<tr class=""even""[^>]*>(.*?)</tr>",
+                RegexOptions.Singleline | RegexOptions.IgnoreCase);
+
+            var trMatches = trRegex.Matches(html);
+
+            foreach (Match tr in trMatches)
+            {
+                int trIndex = tr.Index;
+
+                // Trouver le tuner le plus proche au-dessus
+                Match bestTuner = null;
+
+                foreach (Match tuner in matches)
+                {
+                    if (tuner.Index < trIndex)
+                        bestTuner = tuner;
+                }
+
+                if (bestTuner == null)
+                    continue;
+
+                string tunerName = Strip(bestTuner.Groups[1].Value);
+                string trHtml = tr.Value;
+
+                string channel = Extract(trHtml, @"<td[^>]*colspan=""2""[^>]*class=""top""[^>]*>(.*?)</td>");
+                string title   = Extract(trHtml, @"<td[^>]*class=""top""[^>]*>(.*?)</td>", 2);
+
+                if (string.IsNullOrWhiteSpace(channel))
+                    continue;
+
+                list.Add(new DvbTunerInfo
+                {
+                    TunerName = tunerName,
+                    Channel   = channel,
+                    Title     = title
+                });
+            }
+
+            return list;
         }
-
-        if (bestTuner == null)
-            continue;
-
-        string tunerName = Strip(bestTuner.Groups[1].Value);
-        string trHtml = tr.Value;
-
-        string channel = Extract(trHtml, @"<td[^>]*colspan=""2""[^>]*class=""top""[^>]*>(.*?)</td>");
-        string title   = Extract(trHtml, @"<td[^>]*class=""top""[^>]*>(.*?)</td>", 2);
-
-        if (string.IsNullOrWhiteSpace(channel))
-            continue;
-
-        list.Add(new DvbTunerInfo
-        {
-            TunerName = tunerName,
-            Channel   = channel,
-            Title     = title
-        });
-    }
-
-    return list;
-}
-
 
         // ---------------------------------------------------------
         // CLIENTS LIVE TV

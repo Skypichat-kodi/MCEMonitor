@@ -745,19 +745,35 @@ namespace MediaMonitor.Service
             // === TABLEAU LECTURE EN COURS ===
             sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>");
             sb.Append("<table>");
-            sb.Append("<thead><tr><th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th></tr></thead><tbody>");
+            sb.Append("<thead><tr>");
+            sb.Append("<th>{{tr:Client}}</th>");
+            sb.Append("<th>{{tr:Type}}</th>");
+            sb.Append("<th>{{tr:Canal}}</th>");
+            sb.Append("<th>{{tr:Saison}}</th>");
+            sb.Append("<th>{{tr:Épisode}}</th>");
+            sb.Append("<th>{{tr:Nom}}</th>");
+            sb.Append("<th>{{tr:Fichier}}</th>");
+            sb.Append("<th>{{tr:Chemin}}</th>");
+            sb.Append("<th>{{tr:Info}}</th>");
+            sb.Append("</tr></thead><tbody>");
 
             foreach (var item in live)
             {
                 string mediaType = item.MediaType ?? "";
                 string badgeClass = GetTypeBadgeClass(mediaType);
 
+                string canal = item.Channel ?? "";
+                string titreAffiche = item.Nom ?? "";
+                int saisonAffiche = item.Saison;
+                int episodeAffiche = item.Episode;
+
                 sb.Append("<tr>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
-                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
-                sb.Append($"<td>{item.Saison}</td>");
-                sb.Append($"<td>{item.Episode}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
+                sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
+                sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
                 sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
@@ -765,27 +781,44 @@ namespace MediaMonitor.Service
             }
 
             if (liveCount == 0)
-                sb.Append("<tr><td colspan='7' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>");
+                sb.Append("<tr><td colspan='9' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>");
 
             sb.Append("</tbody></table>");
 
             // === TABLEAU HISTORIQUE ===
             sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Historique}}</h2>");
             sb.Append("<table>");
-            sb.Append("<thead><tr><th>{{tr:Heure}}</th><th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th></tr></thead><tbody>");
+            sb.Append("<thead><tr>");
+            sb.Append("<th>{{tr:Heure}}</th>");
+            sb.Append("<th>{{tr:Client}}</th>");
+            sb.Append("<th>{{tr:Type}}</th>");
+            sb.Append("<th>{{tr:Canal}}</th>");
+            sb.Append("<th>{{tr:Saison}}</th>");
+            sb.Append("<th>{{tr:Épisode}}</th>");
+            sb.Append("<th>{{tr:Nom}}</th>");
+            sb.Append("<th>{{tr:Fichier}}</th>");
+            sb.Append("<th>{{tr:Chemin}}</th>");
+            sb.Append("<th>{{tr:Info}}</th>");
+            sb.Append("</tr></thead><tbody>");
 
             foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
             {
                 string mediaType = item.MediaType ?? "";
                 string badgeClass = GetTypeBadgeClass(mediaType);
 
+                string canal = item.Channel ?? "";
+                string titreAffiche = item.Nom ?? "";
+                int saisonAffiche = item.Saison;
+                int episodeAffiche = item.Episode;
+
                 sb.Append("<tr>");
                 sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
-                sb.Append($"<td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>");
-                sb.Append($"<td>{item.Saison}</td>");
-                sb.Append($"<td>{item.Episode}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>");
+                sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
+                sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
+                sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
+                sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
                 sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
                 sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
@@ -793,7 +826,7 @@ namespace MediaMonitor.Service
             }
 
             if (historyCount == 0)
-                sb.Append("<tr><td colspan='8' class='small'>{{tr:Aucun historique disponible.}}</td></tr>");
+                sb.Append("<tr><td colspan='10' class='small'>{{tr:Aucun événement.}}</td></tr>");
 
             sb.Append("</tbody></table>");
 
@@ -1015,9 +1048,9 @@ namespace MediaMonitor.Service
                 );
             }
 
-
             // Lignes du tableau principal
             var rows = new StringBuilder();
+
             foreach (var item in items)
             {
                 string mediaType = item.MediaType ?? "";
@@ -1032,19 +1065,41 @@ namespace MediaMonitor.Service
                     _       => ""
                 };
 
-            rows.Append($@"
-                <tr>
-                    <td>{WebUtility.HtmlEncode(item.Nom ?? "")}</td>
-                    <td><span class='type-badge {badgeClass}'>{WebUtility.HtmlEncode(mediaType)}</span></td>
-                    <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
-                    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
-                    <td style='text-align:right;'>
-                        <a class='info-btn'
-                           href='#'
-                           data-path='{WebUtility.HtmlEncode(item.Path)}'
-                           onclick='openInfo(this.dataset.path)'>I</a>
-                    </td>
-                </tr>");
+                // Canal fourni par le moteur
+                string canal = item.Channel ?? "";
+
+                // Titre propre fourni par le moteur
+                string titreAffiche = item.Nom ?? "";
+
+                // Saison / Épisode fournis par le moteur
+                int saisonAffiche = item.Saison;
+                int episodeAffiche = item.Episode;
+
+                rows.Append($@"
+                    <tr>
+                        <td style=""text-align:center;"">
+                            <span class=""type-badge {badgeClass}"">{WebUtility.HtmlEncode(mediaType)}</span>
+                        </td>
+
+                        <td style=""text-align:left;"">
+                            {WebUtility.HtmlEncode(titreAffiche)}
+                        </td>
+
+                        <td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>
+                        <td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>
+
+                        <td>{WebUtility.HtmlEncode(canal)}</td>
+                        <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
+
+                        <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+
+                        <td style=""text-align:right;"">
+                            <a class=""info-btn""
+                               href=""#""
+                               data-path=""{WebUtility.HtmlEncode(item.Path)}""
+                               onclick=""openInfo(this.dataset.path)"">I</a>
+                        </td>
+                    </tr>");
             }
 
             // Activité par heure
@@ -1398,16 +1453,19 @@ namespace MediaMonitor.Service
                 <table>
                     <thead>
                         <tr>
-                            <th>{{tr:Titre}}</th>
                             <th>{{tr:Type}}</th>
+                            <th>{{tr:Titre}}</th>
+                            <th>{{tr:Saison}}</th>
+                            <th>{{tr:Épisode}}</th>
+                            <th>{{tr:Canal}}</th>
                             <th>{{tr:Client}}</th>
                             <th>{{tr:Date}}</th>
+                            <th>{{tr:Info}}</th>
                         </tr>
                     </thead>
                     <tbody>{{ROWS}}</tbody>
                 </table>
             </div>
-
         </div>
 
         <!-- SCRIPTS -->
@@ -1655,6 +1713,7 @@ namespace MediaMonitor.Service
             public int Saison { get; set; }
             public int Episode { get; set; }
             public DateTime Timestamp { get; set; }
+            public string? Channel { get; set; }
         }
 
         // ==========================
@@ -1754,7 +1813,27 @@ namespace MediaMonitor.Service
 
             foreach (var item in items)
             {
-                string line = $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  {item.MediaType}  |  {item.ClientDisplay}  |  {item.Nom}";
+                string mediaType = item.MediaType ?? "";
+
+                // Canal fourni par le moteur
+                string canal = item.Channel ?? "";
+
+                // Titre propre fourni par le moteur
+                string titreAffiche = item.Nom ?? "";
+
+                // Saison / Épisode fournis par le moteur
+                int saisonAffiche = item.Saison;
+                int episodeAffiche = item.Episode;
+
+                // Ligne PDF propre et complète
+                string line =
+                    $"{item.Timestamp:dd/MM/yyyy HH:mm}  |  " +
+                    $"{mediaType}  |  " +
+                    $"{canal}  |  " +
+                    $"{titreAffiche}  " +
+                    $"{(saisonAffiche > 0 ? $"S{saisonAffiche}" : "")}" +
+                    $"{(episodeAffiche > 0 ? $"E{episodeAffiche}" : "")}";
+
                 gfx.DrawString(line, font, XBrushes.Black, new XPoint(20, y));
                 y += 15;
 

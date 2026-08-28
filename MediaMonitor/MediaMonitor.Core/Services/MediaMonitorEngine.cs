@@ -423,31 +423,36 @@ namespace MediaMonitor.Core.Services
 
         private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
         {
+            // Type cohérent avec WebServer
             string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
-                ? "REC"
-                : "TV";
+                ? "rec"
+                : "tv";
 
+            // Canal DVBViewer
             string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
                 ? s.Type.Substring(3).Trim()
-                : s.Type;
+                : s.Type.Trim();
 
-            string nomFinal = !string.IsNullOrWhiteSpace(s.Nom)
-                ? $"{channel} – {s.Nom}"
+            // Titre brut DVBViewer
+            string titreBrut = !string.IsNullOrWhiteSpace(s.Nom)
+                ? s.Nom
                 : channel;
 
+            // Nettoyage + extraction Saison/Episode
+            string titrePropre = CleanTvTitle(titreBrut, out int saison, out int episode);
+
+            string nomFinal = titrePropre;
+
+            // Résolution IP / ClientDisplay (inchangé)
             string clientRaw = s.Client;
             string resolvedIp = clientRaw;
             string display = clientRaw;
 
-            // ------------------------------------------------------------
-            // 1) Si Client est une IP ? DNS ? IP résolue
-            // ------------------------------------------------------------
             if (System.Net.IPAddress.TryParse(clientRaw, out _))
             {
                 try
                 {
                     var entry = System.Net.Dns.GetHostEntry(clientRaw);
-
                     var ip = entry.AddressList
                         .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 
@@ -464,13 +469,9 @@ namespace MediaMonitor.Core.Services
             }
             else
             {
-                // ------------------------------------------------------------
-                // 2) Si Client est un hostname ? DNS ? IP
-                // ------------------------------------------------------------
                 try
                 {
                     var entry = System.Net.Dns.GetHostEntry(clientRaw);
-
                     var ip = entry.AddressList
                         .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
 
@@ -481,9 +482,6 @@ namespace MediaMonitor.Core.Services
                 }
                 catch
                 {
-                    // ------------------------------------------------------------
-                    // 3) Si Client est un nom arbitraire ? tentative via SMB
-                    // ------------------------------------------------------------
                     var smb = _currentOpen.FirstOrDefault(x =>
                         x.ClientDisplay.Contains(clientRaw, StringComparison.OrdinalIgnoreCase));
 
@@ -494,35 +492,102 @@ namespace MediaMonitor.Core.Services
                 }
             }
 
-            // ------------------------------------------------------------
-            // 4) Nettoyage du nom (ClientDisplay)
-            // ------------------------------------------------------------
             display = display
                 .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
                 .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
                 .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
                 .ToUpperInvariant();
 
+            // *** VERSION CORRECTE ***
             return new MediaUsageItem
             {
                 SessionId = 0,
-
-                // ? IP brute ou résolue
                 ClientName = resolvedIp,
-
-                // ? Nom propre en MAJUSCULE
                 ClientDisplay = display,
-
                 Path = nomFinal,
                 FileName = nomFinal,
                 UNC = "",
                 Timestamp = DateTime.Now,
                 MediaType = mediaType,
                 Nom = nomFinal,
-                Saison = 0,
-                Episode = 0
+                Saison = saison,
+                Episode = episode,
+                Channel = channel   // ? AJOUT ESSENTIEL
             };
         }
+
+private string CleanTvTitle(string nom, out int saison, out int episode)
+{
+    saison = 0;
+    episode = 0;
+
+    if (string.IsNullOrWhiteSpace(nom))
+        return "";
+
+    // --- 0) Formats France TV avec "¦" ---
+    if (nom.Contains("¦"))
+    {
+        var parts = nom.Split('¦');
+        string titrePrincipal = parts[0].Trim();
+        string reste = parts.Length > 1 ? parts[1].Trim() : "";
+
+        // On ne garde que la première ligne après "¦"
+        // (certains flux sont sur 2 lignes : titre + "Journal, France, 0+")
+        var lignes = reste.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+        string ligneEpisode = lignes.Length > 0 ? lignes[0].Trim() : reste;
+
+        // Exemple ligneEpisode :
+        // - "Emission du 28 août 2026 - Journal, Journal, France, 0+"
+        // - "Burger Quiz - S03 EP16 avec Muri... - Jeu, Jeu, France, 2018, 0+"
+
+        // 0.1) Saison + Episode : "Sxx EPyy"
+        var mSE = Regex.Match(ligneEpisode, @"S(\d+)\s*EP(\d+)", RegexOptions.IgnoreCase);
+        if (mSE.Success)
+        {
+            saison = int.Parse(mSE.Groups[1].Value);
+            episode = int.Parse(mSE.Groups[2].Value);
+        }
+        else
+        {
+            // 0.2) Saison X / Episode Y (ancien format)
+            var mClassic = Regex.Match(ligneEpisode, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
+            if (mClassic.Success)
+            {
+                saison = int.Parse(mClassic.Groups[1].Value);
+                episode = int.Parse(mClassic.Groups[2].Value);
+            }
+            else
+            {
+                // 0.3) Saison X seule
+                var mSaison = Regex.Match(ligneEpisode, @"Saison\s+(\d+)", RegexOptions.IgnoreCase);
+                if (mSaison.Success)
+                    saison = int.Parse(mSaison.Groups[1].Value);
+            }
+        }
+
+        // On retourne toujours le titre principal (avant "¦")
+        return titrePrincipal;
+    }
+
+    // --- 1) Format classique "Saison X / Episode Y" ---
+    var match = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
+    if (match.Success)
+    {
+        saison = int.Parse(match.Groups[1].Value);
+        episode = int.Parse(match.Groups[2].Value);
+    }
+
+    // --- 2) Extraire le titre AVANT " - Saison" ---
+    int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
+    if (idx > 0)
+        nom = nom.Substring(0, idx).Trim();
+
+    // --- 3) Supprimer un éventuel " - " final ---
+    if (nom.EndsWith(" -"))
+        nom = nom.Substring(0, nom.Length - 2).Trim();
+
+    return nom;
+}
 
         // ============================================================
         //  GETTERS POUR IPC
