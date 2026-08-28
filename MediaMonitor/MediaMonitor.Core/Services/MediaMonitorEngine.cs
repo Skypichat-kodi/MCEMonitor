@@ -9,6 +9,7 @@ using System.Globalization;
 using System.IO;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Core.DvbViewer;
+using System.Text;
 
 namespace MediaMonitor.Core.Services
 {
@@ -524,69 +525,59 @@ private string CleanTvTitle(string nom, out int saison, out int episode)
     if (string.IsNullOrWhiteSpace(nom))
         return "";
 
-    // --- 0) Formats France TV avec "¦" ---
-    if (nom.Contains("¦"))
+    // --- 1) Si Saison/Episode est présent, on traite ce cas en priorité ---
+    var mClassic = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
+    if (mClassic.Success)
     {
-        var parts = nom.Split('¦');
-        string titrePrincipal = parts[0].Trim();
-        string reste = parts.Length > 1 ? parts[1].Trim() : "";
+        saison = int.Parse(mClassic.Groups[1].Value);
+        episode = int.Parse(mClassic.Groups[2].Value);
 
-        // On ne garde que la première ligne après "¦"
-        // (certains flux sont sur 2 lignes : titre + "Journal, France, 0+")
-        var lignes = reste.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-        string ligneEpisode = lignes.Length > 0 ? lignes[0].Trim() : reste;
+        int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
+        if (idx > 0)
+            return nom.Substring(0, idx).Trim();
 
-        // Exemple ligneEpisode :
-        // - "Emission du 28 août 2026 - Journal, Journal, France, 0+"
-        // - "Burger Quiz - S03 EP16 avec Muri... - Jeu, Jeu, France, 2018, 0+"
+        return nom.Trim();
+    }
 
-        // 0.1) Saison + Episode : "Sxx EPyy"
-        var mSE = Regex.Match(ligneEpisode, @"S(\d+)\s*EP(\d+)", RegexOptions.IgnoreCase);
-        if (mSE.Success)
+    // --- 2) Pas de Saison/Episode ? on applique TA règle ---
+    // Trouver le premier "-" ou ":" (le plus proche du début)
+    int idxDash = nom.IndexOf(" - ");
+    int idxColon = nom.IndexOf(':');
+
+    int cutPos = -1;
+
+    if (idxDash >= 0 && idxColon >= 0)
+        cutPos = Math.Min(idxDash, idxColon);
+    else if (idxDash >= 0)
+        cutPos = idxDash;
+    else if (idxColon >= 0)
+        cutPos = idxColon;
+
+    string titre = cutPos > 0 ? nom.Substring(0, cutPos) : nom;
+
+    // --- 3) Remplacer les caractères spéciaux par une virgule ---
+    var sb = new StringBuilder();
+    foreach (char c in titre)
+    {
+        // autorisés : lettres, chiffres, espace, &, ', :
+        if (char.IsLetterOrDigit(c) || c == ' ' || c == '&' || c == '\'' || c == ':')
         {
-            saison = int.Parse(mSE.Groups[1].Value);
-            episode = int.Parse(mSE.Groups[2].Value);
+            sb.Append(c);
         }
         else
         {
-            // 0.2) Saison X / Episode Y (ancien format)
-            var mClassic = Regex.Match(ligneEpisode, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
-            if (mClassic.Success)
-            {
-                saison = int.Parse(mClassic.Groups[1].Value);
-                episode = int.Parse(mClassic.Groups[2].Value);
-            }
-            else
-            {
-                // 0.3) Saison X seule
-                var mSaison = Regex.Match(ligneEpisode, @"Saison\s+(\d+)", RegexOptions.IgnoreCase);
-                if (mSaison.Success)
-                    saison = int.Parse(mSaison.Groups[1].Value);
-            }
+            // caractère spécial ? virgule
+            sb.Append(", ");
         }
-
-        // On retourne toujours le titre principal (avant "¦")
-        return titrePrincipal;
     }
 
-    // --- 1) Format classique "Saison X / Episode Y" ---
-    var match = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
-    if (match.Success)
-    {
-        saison = int.Parse(match.Groups[1].Value);
-        episode = int.Parse(match.Groups[2].Value);
-    }
+    // Nettoyage
+    string cleaned = sb.ToString();
+    cleaned = Regex.Replace(cleaned, @"\s*,\s*,\s*", ", ");
+    cleaned = Regex.Replace(cleaned, @"\s{2,}", " ").Trim();
+    cleaned = cleaned.Trim(' ', ',');
 
-    // --- 2) Extraire le titre AVANT " - Saison" ---
-    int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
-    if (idx > 0)
-        nom = nom.Substring(0, idx).Trim();
-
-    // --- 3) Supprimer un éventuel " - " final ---
-    if (nom.EndsWith(" -"))
-        nom = nom.Substring(0, nom.Length - 2).Trim();
-
-    return nom;
+    return cleaned;
 }
 
         // ============================================================
