@@ -1468,7 +1468,7 @@ namespace MediaMonitor.Service
             </div>
         </div>
 
-        <!-- SCRIPTS -->
+        <!-- SCRIPTS DU TABLEAU GAUCHE-->
         <script>
         const audio = {{AUDIO}};
         const series = {{SERIES}};
@@ -1477,6 +1477,16 @@ namespace MediaMonitor.Service
         const tv = {{TV}};
         const hoursData = {{HOURS_DATA}};
 
+        // --- Couleurs globales réutilisables ---
+        const colors = {
+            audio: '#007acc',
+            series: '#c586c0',
+            video: '#d19a66',
+            rec:   '#ff4d4d',
+            tv:    '#ffe066'
+        };
+
+        // --- DONUT ---
         new Chart(document.getElementById('chartTypes'), {
             type: 'doughnut',
             data: {
@@ -1490,11 +1500,11 @@ namespace MediaMonitor.Service
                 datasets: [{
                     data: [audio, series, videos, rec, tv],
                     backgroundColor: [
-                        '#007acc',
-                        '#c586c0',
-                        '#d19a66',
-                        '#ff4d4d',
-                        '#ffe066'
+                        colors.audio,
+                        colors.series,
+                        colors.video,
+                        colors.rec,
+                        colors.tv
                     ]
                 }]
             },
@@ -1503,17 +1513,48 @@ namespace MediaMonitor.Service
             }
         });
 
+        // --- ACTIVITÉ PAR HEURE ---
         new Chart(document.getElementById('chartHours'), {
             type: 'line',
             data: {
                 labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
-                datasets: [{
-                    label: '{{tr:Lectures par heure}}',
-                    data: hoursData,
-                    borderColor: '#4fc3f7',
-                    backgroundColor: 'rgba(79,195,247,0.2)',
-                    tension: 0.3
-                }]
+                datasets: [
+                    {
+                        label: '{{tr:Audio}}',
+                        data: hoursData.map((v,i) => v > 0 ? audio : 0),
+                        borderColor: colors.audio,
+                        backgroundColor: 'rgba(0,122,204,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: '{{tr:Séries}}',
+                        data: hoursData.map((v,i) => v > 0 ? series : 0),
+                        borderColor: colors.series,
+                        backgroundColor: 'rgba(197,134,192,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: '{{tr:Vidéos}}',
+                        data: hoursData.map((v,i) => v > 0 ? videos : 0),
+                        borderColor: colors.video,
+                        backgroundColor: 'rgba(209,154,102,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'REC',
+                        data: hoursData.map((v,i) => v > 0 ? rec : 0),
+                        borderColor: colors.rec,
+                        backgroundColor: 'rgba(255,77,77,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'TV',
+                        data: hoursData.map((v,i) => v > 0 ? tv : 0),
+                        borderColor: colors.tv,
+                        backgroundColor: 'rgba(255,224,102,0.25)',
+                        tension: 0.3
+                    }
+                ]
             },
             options: {
                 scales: {
