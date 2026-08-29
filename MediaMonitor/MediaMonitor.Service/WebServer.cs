@@ -16,6 +16,10 @@ namespace MediaMonitor.Service
 {
     public class WebServer
     {
+        // ======================================================================
+        //  TRADUCTION HTML VIA REGEX {tr:...}
+        // ======================================================================
+                
         // Regex compilée pour détecter {tr}
         private static readonly Regex TrHtmlRegex =
             new(@"\{\{tr:(.+?)\}\}", RegexOptions.Compiled | RegexOptions.IgnoreCase);
@@ -36,7 +40,12 @@ namespace MediaMonitor.Service
                 // Si la clé n'existe pas ? on garde la clé brute
                 return string.IsNullOrEmpty(translated) ? key : translated;
             });
-        }    
+        }
+
+        // ======================================================================
+        //  CHAMPS PRIVÉS DU SERVEUR WEB
+        // ======================================================================
+
         private readonly HttpListener _listener = new();
         private readonly MediaMonitorEngine _engine;
         private readonly int _port;
@@ -45,6 +54,10 @@ namespace MediaMonitor.Service
         private long _requestCount = 0;
         private DateTime _lastRequestTime = DateTime.MinValue;
         private string _lastRequestIp = "N/A";
+
+        // ======================================================================
+        //  CONSTRUCTEUR + GESTION DU DÉMARRAGE DU SERVEUR
+        // ======================================================================
 
         private WebServerSettings _settings;
 
@@ -79,6 +92,10 @@ namespace MediaMonitor.Service
 
             CoreLog.Write($"WebServer démarré sur http://localhost:{_port}/");
         }
+
+        // ======================================================================
+        //  ARRÊT DU SERVEUR + BOUCLE PRINCIPALE + ROUTAGE DES REQUÊTES
+        // ======================================================================
 
         public void Stop()
         {
@@ -154,7 +171,7 @@ namespace MediaMonitor.Service
                     ctx.Response.Close();
                     return;
                 }
-    
+
                 switch (path)
                 {
                     case "/":
@@ -310,7 +327,7 @@ namespace MediaMonitor.Service
                         SendHtml(ctx, html);
                         break;
                     }
-                    
+
                     if (path.StartsWith("/resources/icons/"))
                     {
                         string fileName = Path.GetFileName(path);
@@ -330,7 +347,7 @@ namespace MediaMonitor.Service
                         ctx.Response.Close();
                         return;
                     }
-                    
+
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                         break;
@@ -553,87 +570,88 @@ namespace MediaMonitor.Service
             return DateTime.MinValue;
         }       
         
-          // ==========================
-          //  PAGE PRINCIPALE
-          // ==========================        
-          private string BuildHomePage()
-          {
-              var live = _engine.GetCurrentOpenFiles();
-              var history = _engine.GetHistory();
+        // ======================================================================
+        //  PAGE PRINCIPALE – TEMPLATE HTML + CSS
+        // ======================================================================
 
-              int liveCount = live.Count;
-              int historyCount = history.Count;
-              int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));            
+        private string BuildHomePage()
+        {
+            var live = _engine.GetCurrentOpenFiles();
+            var history = _engine.GetHistory();
 
-              var sb = new StringBuilder();
+            int liveCount = live.Count;
+            int historyCount = history.Count;
+            int history24h = history.Count(h => h.Timestamp >= DateTime.Now.AddHours(-24));            
 
-              sb.Append(@"
-          <!DOCTYPE html>
-          <html lang='fr'>
-          <head>
-          <meta charset='UTF-8'>
-          <title>{{tr:MediaMonitor – Tableau de bord}}</title>
-          <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
-          <style>
-          body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
-          h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
-          .container { display:flex; gap:20px; flex-wrap:wrap; }
-          .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
-          .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
-          .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
-          .label { color:#ccc; }
-          .value { font-weight:bold; color:#fff; }
-          table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
-          th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
-          th { background:#2d2d30; color:#fff; }
-          tr:nth-child(even) td { background:#262626; }
-          tr:nth-child(odd) td { background:#1f1f1f; }
-          .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
-          .type-audio { background:#007acc; }
-          .type-serie { background:#c586c0; }
-          .type-video { background:#d19a66; }
-          .type-rec   { background:#ff4d4d; color:white; }
-          .type-tv    { background:#ffe066; color:black; }
+            var sb = new StringBuilder();
 
-          .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
-          .button {
-              padding:6px 12px;
-              background:#007acc;
-              color:white;
-              text-decoration:none;
-              border-radius:4px;
-              font-size:13px;
-          }
-          .button-secondary { background:#444; }
-          .button-danger { background:#cc3300; }
-          .small { font-size:12px; color:#ccc; }
+            sb.Append(@"
+        <!DOCTYPE html>
+        <html lang='fr'>
+        <head>
+        <meta charset='UTF-8'>
+        <title>{{tr:MediaMonitor – Tableau de bord}}</title>
+        <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
+        <style>
+        body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+        h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+        .container { display:flex; gap:20px; flex-wrap:wrap; }
+        .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
+        .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+        .stats-grid { display:grid; grid-template-columns:auto auto; row-gap:6px; column-gap:12px; font-size:13px; }
+        .label { color:#ccc; }
+        .value { font-weight:bold; color:#fff; }
+        table { width:100%; border-collapse:collapse; font-size:13px; margin-top:10px; }
+        th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+        th { background:#2d2d30; color:#fff; }
+        tr:nth-child(even) td { background:#262626; }
+        tr:nth-child(odd) td { background:#1f1f1f; }
+        .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+        .type-audio { background:#007acc; }
+        .type-serie { background:#c586c0; }
+        .type-video { background:#d19a66; }
+        .type-rec   { background:#ff4d4d; color:white; }
+        .type-tv    { background:#ffe066; color:black; }
 
-          table:nth-of-type(1) td:nth-child(2),
-          table:nth-of-type(1) th:nth-child(2) {
-              text-align: center;
-          }
+        .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
+        .button {
+            padding:6px 12px;
+            background:#007acc;
+            color:white;
+            text-decoration:none;
+            border-radius:4px;
+            font-size:13px;
+        }
+        .button-secondary { background:#444; }
+        .button-danger { background:#cc3300; }
+        .small { font-size:12px; color:#ccc; }
 
-          table:nth-of-type(2) td:nth-child(3),
-          table:nth-of-type(2) th:nth-child(3) {
-              text-align: center;
-          }
+        table:nth-of-type(1) td:nth-child(2),
+        table:nth-of-type(1) th:nth-child(2) {
+            text-align: center;
+        }
 
-          td, th {
-              border-right: 1px solid #3c3c3c;
-          }
+        table:nth-of-type(2) td:nth-child(3),
+        table:nth-of-type(2) th:nth-child(3) {
+            text-align: center;
+        }
 
-          td:last-child, th:last-child {
-              border-right: none;
-          }
+        td, th {
+            border-right: 1px solid #3c3c3c;
+        }
 
-          .rec-row td {
-              background-color: rgba(255, 0, 0, 0.35) !important;
-              color: white !important;
-          }
+        td:last-child, th:last-child {
+            border-right: none;
+        }
 
-          .tv-row td {
-            background-color: rgba(255, 255, 0, 0.35) !important;
-            color: black !important;
+        .rec-row td {
+            background-color: rgba(255, 0, 0, 0.35) !important;
+            color: white !important;
+        }
+
+        .tv-row td {
+          background-color: rgba(255, 255, 0, 0.35) !important;
+          color: black !important;
         }
 
         .info-btn {
@@ -657,9 +675,13 @@ namespace MediaMonitor.Service
         </style>
         ");
 
-            sb.Append("<div id='infoOverlayContainer'></div>");
+        // ======================================================================
+        //  PAGE PRINCIPALE – OVERLAY + AUTO-REFRESH + BARRE D’ACTIONS + STATISTIQUES
+        // ======================================================================
 
-            sb.Append(@"
+        sb.Append("<div id='infoOverlayContainer'></div>");
+
+        sb.Append(@"
         <script>
         let refreshEnabled = true;
 
@@ -672,212 +694,221 @@ namespace MediaMonitor.Service
         </script>
         ");
 
-            sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
+        sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
 
-            sb.Append(@"
-                    <div class='button-bar'>
-                        <a href='/' class='button button-secondary'>{{tr:Rafraîchir}}</a>
-                        <a href='/backup' class='button'>{{tr:Voir le backup}}</a>
-                        <a href='/download' class='button'>{{tr:Télécharger le backup}}</a>
-                        <a href='/purge' class='button button-danger' onclick='return confirm(""{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?"");'>{{tr:Purger les sauvegardes}}</a>
-                    </div>
-                    ");
+        sb.Append(@"
+                <div class='button-bar'>
+                    <a href='/' class='button button-secondary'>{{tr:Rafraîchir}}</a>
+                    <a href='/backup' class='button'>{{tr:Voir le backup}}</a>
+                    <a href='/download' class='button'>{{tr:Télécharger le backup}}</a>
+                    <a href='/purge' class='button button-danger' onclick='return confirm(""{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?"");'>{{tr:Purger les sauvegardes}}</a>
+                </div>
+                ");
 
-            sb.Append("<div class='container'>");
+        sb.Append("<div class='container'>");
 
-            // Statut du service
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:Statut du service}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>{{tr:Serveur}} :</div><div class='value'>" + WebUtility.HtmlEncode(Environment.MachineName) + "</div>");
-            sb.Append("<div class='label'>{{tr:Heure actuelle}} :</div><div class='value'>" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
-            sb.Append("</div>");
-            sb.Append("</div>");
+        // Statut du service
+        sb.Append("<div class='groupbox'>");
+        sb.Append("<div class='groupbox-title'>{{tr:Statut du service}}</div>");
+        sb.Append("<div class='stats-grid'>");
+        sb.Append("<div class='label'>{{tr:Serveur}} :</div><div class='value'>" + WebUtility.HtmlEncode(Environment.MachineName) + "</div>");
+        sb.Append("<div class='label'>{{tr:Heure actuelle}} :</div><div class='value'>" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
+        sb.Append("</div>");
+        sb.Append("</div>");
 
-            // Rapports
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:Rapports}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            var lastReport = GetLastReportTime();
-            sb.Append("<div class='label'>{{tr:Dernier rapport :}}</div><div class='value'>" + (lastReport == DateTime.MinValue ? "{{tr:Aucun rapport envoyé}}" : lastReport.ToString("yyyy-MM-dd HH:mm:ss")) + "</div>");
-            var next = GetReportSendTime();
-            sb.Append("<div class='label'>{{tr:Prochain envoi :}}</div><div class='value'>" + next.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
-            sb.Append("</div>");
-            sb.Append("</div>");
+        // Rapports
+        sb.Append("<div class='groupbox'>");
+        sb.Append("<div class='groupbox-title'>{{tr:Rapports}}</div>");
+        sb.Append("<div class='stats-grid'>");
+        var lastReport = GetLastReportTime();
+        sb.Append("<div class='label'>{{tr:Dernier rapport :}}</div><div class='value'>" + (lastReport == DateTime.MinValue ? "{{tr:Aucun rapport envoyé}}" : lastReport.ToString("yyyy-MM-dd HH:mm:ss")) + "</div>");
+        var next = GetReportSendTime();
+        sb.Append("<div class='label'>{{tr:Prochain envoi :}}</div><div class='value'>" + next.ToString("yyyy-MM-dd HH:mm:ss") + "</div>");
+        sb.Append("</div>");
+        sb.Append("</div>");
 
-            // Lecture en cours
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:Lecture en cours}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>{{tr:Fichiers ouverts}} :</div><div class='value'>" + liveCount + "</div>");
-            sb.Append("<div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>" + live.Select(x => x.ClientDisplay).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count() + "</div>");
-            sb.Append("</div>");
-            sb.Append("</div>");
+        // Lecture en cours
+        sb.Append("<div class='groupbox'>");
+        sb.Append("<div class='groupbox-title'>{{tr:Lecture en cours}}</div>");
+        sb.Append("<div class='stats-grid'>");
+        sb.Append("<div class='label'>{{tr:Fichiers ouverts}} :</div><div class='value'>" + liveCount + "</div>");
+        sb.Append("<div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>" + live.Select(x => x.ClientDisplay).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().Count() + "</div>");
+        sb.Append("</div>");
+        sb.Append("</div>");
 
-            // Historique
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:Historique}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>{{tr:Événements totaux}} :</div><div class='value'>" + historyCount + "</div>");
-            sb.Append("<div class='label'>{{tr:Sur 24h}} :</div><div class='value'>" + history24h + "</div>");
-            if (historyCount > 0)
-            {
-                var last = history.Last();
-                sb.Append("<div class='label'>{{tr:Dernier événement}} :</div>");
-                sb.Append("<div class='value'>" + last.Timestamp.ToString("HH:mm:ss") + " – " + WebUtility.HtmlEncode(last.MediaType) + " (" + WebUtility.HtmlEncode(last.ClientDisplay) + ")</div>");
-            }
-            sb.Append("</div>");
-            sb.Append("</div>");
+        // Historique
+        sb.Append("<div class='groupbox'>");
+        sb.Append("<div class='groupbox-title'>{{tr:Historique}}</div>");
+        sb.Append("<div class='stats-grid'>");
+        sb.Append("<div class='label'>{{tr:Événements totaux}} :</div><div class='value'>" + historyCount + "</div>");
+        sb.Append("<div class='label'>{{tr:Sur 24h}} :</div><div class='value'>" + history24h + "</div>");
+        if (historyCount > 0)
+        {
+            var last = history.Last();
+            sb.Append("<div class='label'>{{tr:Dernier événement}} :</div>");
+            sb.Append("<div class='value'>" + last.Timestamp.ToString("HH:mm:ss") + " – " + WebUtility.HtmlEncode(last.MediaType) + " (" + WebUtility.HtmlEncode(last.ClientDisplay) + ")</div>");
+        }
+        sb.Append("</div>");
+        sb.Append("</div>");
 
-            // WebServer
-            sb.Append("<div class='groupbox'>");
-            sb.Append("<div class='groupbox-title'>{{tr:WebServer}}</div>");
-            sb.Append("<div class='stats-grid'>");
-            sb.Append("<div class='label'>{{tr:Port}} :</div><div class='value'>" + _port + "</div>");
-            sb.Append("<div class='label'>{{tr:Requêtes}} :</div><div class='value'>" + _requestCount + "</div>");
-            sb.Append("<div class='label'>{{tr:Dernière requête}} :</div><div class='value'>" + (_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss")) + "</div>");
-            sb.Append("<div class='label'>{{tr:Dernier client}} :</div><div class='value'>" + WebUtility.HtmlEncode(_lastRequestIp) + "</div>");
-            sb.Append("</div>");
-            sb.Append("</div>");
-            
-            sb.Append("</div>"); // .container
+        // WebServer
+        sb.Append("<div class='groupbox'>");
+        sb.Append("<div class='groupbox-title'>{{tr:WebServer}}</div>");
+        sb.Append("<div class='stats-grid'>");
+        sb.Append("<div class='label'>{{tr:Port}} :</div><div class='value'>" + _port + "</div>");
+        sb.Append("<div class='label'>{{tr:Requêtes}} :</div><div class='value'>" + _requestCount + "</div>");
+        sb.Append("<div class='label'>{{tr:Dernière requête}} :</div><div class='value'>" + (_lastRequestTime == DateTime.MinValue ? "N/A" : _lastRequestTime.ToString("HH:mm:ss")) + "</div>");
+        sb.Append("<div class='label'>{{tr:Dernier client}} :</div><div class='value'>" + WebUtility.HtmlEncode(_lastRequestIp) + "</div>");
+        sb.Append("</div>");
+        sb.Append("</div>");
 
-            // === TABLEAU LECTURE EN COURS ===
-            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>");
-            sb.Append("<table>");
-            sb.Append("<thead><tr>");
-            sb.Append("<th>{{tr:Client}}</th>");
-            sb.Append("<th>{{tr:Type}}</th>");
-            sb.Append("<th>{{tr:Canal}}</th>");
-            sb.Append("<th>{{tr:Saison}}</th>");
-            sb.Append("<th>{{tr:Épisode}}</th>");
-            sb.Append("<th>{{tr:Nom}}</th>");
-            sb.Append("<th>{{tr:Fichier}}</th>");
-            sb.Append("<th>{{tr:Chemin}}</th>");
-            sb.Append("<th>{{tr:Info}}</th>");
-            sb.Append("</tr></thead><tbody>");
+        sb.Append("</div>"); // .container
 
-            foreach (var item in live)
-            {
-                string mediaType = item.MediaType ?? "";
-                string badgeClass = GetTypeBadgeClass(mediaType);
+        // === TABLEAU LECTURE EN COURS ===
+        sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>");
+        sb.Append("<table>");
+        sb.Append("<thead><tr>");
+        sb.Append("<th>{{tr:Client}}</th>");
+        sb.Append("<th>{{tr:Type}}</th>");
+        sb.Append("<th>{{tr:Canal}}</th>");
+        sb.Append("<th>{{tr:Saison}}</th>");
+        sb.Append("<th>{{tr:Épisode}}</th>");
+        sb.Append("<th>{{tr:Nom}}</th>");
+        sb.Append("<th>{{tr:Fichier}}</th>");
+        sb.Append("<th>{{tr:Chemin}}</th>");
+        sb.Append("<th>{{tr:Info}}</th>");
+        sb.Append("</tr></thead><tbody>");
 
-                string canal = item.Channel ?? "";
-                string titreAffiche = item.Nom ?? "";
-                int saisonAffiche = item.Saison;
-                int episodeAffiche = item.Episode;
+        // ======================================================================
+        //  TABLEAU LECTURE EN COURS + TABLEAU HISTORIQUE
+        // ======================================================================
 
-                sb.Append("<tr>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
-                sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
-                sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
-                sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-                sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
-                sb.Append("</tr>");
-            }
+        foreach (var item in live)
+        {
+            string mediaType = item.MediaType ?? "";
+            string badgeClass = GetTypeBadgeClass(mediaType);
 
-            if (liveCount == 0)
-                sb.Append("<tr><td colspan='9' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>");
+            string canal = item.Channel ?? "";
+            string titreAffiche = item.Nom ?? "";
+            int saisonAffiche = item.Saison;
+            int episodeAffiche = item.Episode;
 
-            sb.Append("</tbody></table>");
-
-            // === TABLEAU HISTORIQUE ===
-            sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Historique}}</h2>");
-            sb.Append("<table>");
-            sb.Append("<thead><tr>");
-            sb.Append("<th>{{tr:Heure}}</th>");
-            sb.Append("<th>{{tr:Client}}</th>");
-            sb.Append("<th>{{tr:Type}}</th>");
-            sb.Append("<th>{{tr:Canal}}</th>");
-            sb.Append("<th>{{tr:Saison}}</th>");
-            sb.Append("<th>{{tr:Épisode}}</th>");
-            sb.Append("<th>{{tr:Nom}}</th>");
-            sb.Append("<th>{{tr:Fichier}}</th>");
-            sb.Append("<th>{{tr:Chemin}}</th>");
-            sb.Append("<th>{{tr:Info}}</th>");
-            sb.Append("</tr></thead><tbody>");
-
-            foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
-            {
-                string mediaType = item.MediaType ?? "";
-                string badgeClass = GetTypeBadgeClass(mediaType);
-
-                string canal = item.Channel ?? "";
-                string titreAffiche = item.Nom ?? "";
-                int saisonAffiche = item.Saison;
-                int episodeAffiche = item.Episode;
-
-                sb.Append("<tr>");
-                sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
-                sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
-                sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
-                sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
-                sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
-                sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
-                sb.Append("</tr>");
-            }
-
-            if (historyCount == 0)
-                sb.Append("<tr><td colspan='10' class='small'>{{tr:Aucun événement.}}</td></tr>");
-
-            sb.Append("</tbody></table>");
-
-            // === SCRIPT FINAL UNIQUE ===
-            sb.Append("</tbody></table>");
-
-            sb.Append(@"
-            <script>
-                function openInfo(path) {
-                    refreshEnabled = false;
-
-                    fetch('/info?path=' + encodeURIComponent(path))
-                        .then(r => r.text())
-                        .then(html => {
-
-                            const container = document.getElementById('infoOverlayContainer');
-                            container.innerHTML = html;
-
-                            // Exécuter les scripts du popup
-                            const scripts = container.querySelectorAll('script');
-                            scripts.forEach(oldScript => {
-                                const newScript = document.createElement('script');
-
-                                if (oldScript.src) {
-                                    newScript.src = oldScript.src;
-                                } else {
-                                    newScript.textContent = oldScript.textContent;
-                                }
-
-                                document.body.appendChild(newScript);
-                            });
-                        });
-                }
-
-                function closeOverlay() {
-                    window.location.reload();
-                }
-            </script>
-            </body></html>
-            ");
-
-            sb.Append("</body></html>");
-
-            var html = sb.ToString();
-            html = HTMLTranslator.Translate(html);
-            return html;
+            sb.Append("<tr>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
+            sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
+            sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
+            sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+            sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
+            sb.Append("</tr>");
         }
 
-        // ==========================
-        //  PAGE BACKUP (MODERNE)
-        // ==========================
+        if (liveCount == 0)
+            sb.Append("<tr><td colspan='9' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>");
+
+        sb.Append("</tbody></table>");
+
+        // === TABLEAU HISTORIQUE ===
+        sb.Append("<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Historique}}</h2>");
+        sb.Append("<table>");
+        sb.Append("<thead><tr>");
+        sb.Append("<th>{{tr:Heure}}</th>");
+        sb.Append("<th>{{tr:Client}}</th>");
+        sb.Append("<th>{{tr:Type}}</th>");
+        sb.Append("<th>{{tr:Canal}}</th>");
+        sb.Append("<th>{{tr:Saison}}</th>");
+        sb.Append("<th>{{tr:Épisode}}</th>");
+        sb.Append("<th>{{tr:Nom}}</th>");
+        sb.Append("<th>{{tr:Fichier}}</th>");
+        sb.Append("<th>{{tr:Chemin}}</th>");
+        sb.Append("<th>{{tr:Info}}</th>");
+        sb.Append("</tr></thead><tbody>");
+
+        foreach (var item in history.OrderByDescending(h => h.Timestamp).Take(200))
+        {
+            string mediaType = item.MediaType ?? "";
+            string badgeClass = GetTypeBadgeClass(mediaType);
+
+            string canal = item.Channel ?? "";
+            string titreAffiche = item.Nom ?? "";
+            int saisonAffiche = item.Saison;
+            int episodeAffiche = item.Episode;
+
+            sb.Append("<tr>");
+            sb.Append($"<td>{item.Timestamp:HH:mm:ss}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>");
+            sb.Append($"<td><span class=\"type-badge {badgeClass}\">{WebUtility.HtmlEncode(mediaType)}</span></td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(canal)}</td>");
+            sb.Append($"<td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>");
+            sb.Append($"<td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(titreAffiche)}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.FileName ?? "")}</td>");
+            sb.Append($"<td>{WebUtility.HtmlEncode(item.Path ?? "")}</td>");
+            sb.Append($"<td><a class=\"info-btn\" href=\"#\" data-path=\"{WebUtility.HtmlEncode(item.Path)}\" onclick=\"openInfo(this.dataset.path)\">I</a></td>");
+            sb.Append("</tr>");
+        }
+
+        if (historyCount == 0)
+            sb.Append("<tr><td colspan='10' class='small'>{{tr:Aucun événement.}}</td></tr>");
+
+        sb.Append("</tbody></table>");
+
+        // === SCRIPT FINAL UNIQUE ===
+        sb.Append("</tbody></table>");
+
+        // ======================================================================
+        //  SCRIPT POPUP INFO + FERMETURE + TRADUCTION + RETOUR HTML
+        // ======================================================================
+
+        sb.Append(@"
+                    <script>
+                        function openInfo(path) {
+                            refreshEnabled = false;
+
+                            fetch('/info?path=' + encodeURIComponent(path))
+                                .then(r => r.text())
+                                .then(html => {
+
+                                    const container = document.getElementById('infoOverlayContainer');
+                                    container.innerHTML = html;
+
+                                    // Exécuter les scripts du popup
+                                    const scripts = container.querySelectorAll('script');
+                                    scripts.forEach(oldScript => {
+                                        const newScript = document.createElement('script');
+
+                                        if (oldScript.src) {
+                                            newScript.src = oldScript.src;
+                                        } else {
+                                            newScript.textContent = oldScript.textContent;
+                                        }
+
+                                        document.body.appendChild(newScript);
+                                    });
+                                });
+                        }
+
+                        function closeOverlay() {
+                            window.location.reload();
+                        }
+                    </script>
+                    </body></html>
+                    ");
+
+        sb.Append("</body></html>");
+
+        var html = sb.ToString();
+        html = HTMLTranslator.Translate(html);
+        return html;
+        }
+
+        // ======================================================================
+        //  PAGE BACKUP (MODERNE) – CHARGEMENT, FILTRES, TRI, STATISTIQUES
+        // ======================================================================
+
         private string BuildBackupPage(HttpListenerRequest req)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
@@ -991,8 +1022,8 @@ namespace MediaMonitor.Service
             // Filtre client
             if (client != "all")
             {
-            items = items.Where(i => i.ClientDisplay != null &&
-                                     i.ClientDisplay.Equals(client, StringComparison.OrdinalIgnoreCase)).ToList();
+                items = items.Where(i => i.ClientDisplay != null &&
+                                         i.ClientDisplay.Equals(client, StringComparison.OrdinalIgnoreCase)).ToList();
             }
 
             // Filtre date
@@ -1023,138 +1054,142 @@ namespace MediaMonitor.Service
             int recCount = items.Count(i => i.MediaType.Equals("REC", StringComparison.OrdinalIgnoreCase));
             int tvCount  = items.Count(i => i.MediaType.Equals("TV",  StringComparison.OrdinalIgnoreCase));
 
-            // Liste des clients
-            var allClients = allItems
-                .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
-                .Select(i => i.ClientDisplay!)
-                .Distinct()
-                .OrderBy(n => n)
-                .ToList();
+        // ======================================================================
+        //  PAGE BACKUP (MODERNE) – LISTE CLIENTS + TABLEAU + STATISTIQUES + TEMPLATE FINAL
+        // ======================================================================
 
-            var clientOptions = new StringBuilder();
+        // Liste des clients
+        var allClients = allItems
+            .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
+            .Select(i => i.ClientDisplay!)
+            .Distinct()
+            .OrderBy(n => n)
+            .ToList();
 
-            string allLabel = LanguageManager.Get("Tous") ?? "Tous";
+        var clientOptions = new StringBuilder();
 
+        string allLabel = LanguageManager.Get("Tous") ?? "Tous";
+
+        clientOptions.Append(
+            $"<option value='all' {(client == "all" ? "selected" : "")}>{allLabel}</option>"
+        );
+
+        foreach (var c in allClients)
+        {
+            string val = c.ToLower();
+            string selected = (val == client) ? "selected" : "";
             clientOptions.Append(
-                $"<option value='all' {(client == "all" ? "selected" : "")}>{allLabel}</option>"
+                $"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>"
             );
+        }
 
-            foreach (var c in allClients)
+        // Lignes du tableau principal
+        var rows = new StringBuilder();
+
+        foreach (var item in items)
+        {
+            string mediaType = item.MediaType ?? "";
+
+            string badgeClass = mediaType.ToLower() switch
             {
-                string val = c.ToLower();
-                string selected = (val == client) ? "selected" : "";
-                clientOptions.Append(
-                    $"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>"
-                );
-            }
+                "audio" => "type-audio",
+                "serie" => "type-serie",
+                "video" => "type-video",
+                "rec"   => "type-rec",
+                "tv"    => "type-tv",
+                _       => ""
+            };
 
-            // Lignes du tableau principal
-            var rows = new StringBuilder();
+            // Canal fourni par le moteur
+            string canal = item.Channel ?? "";
 
-            foreach (var item in items)
-            {
-                string mediaType = item.MediaType ?? "";
+            // Titre propre fourni par le moteur
+            string titreAffiche = item.Nom ?? "";
 
-                string badgeClass = mediaType.ToLower() switch
-                {
-                    "audio" => "type-audio",
-                    "serie" => "type-serie",
-                    "video" => "type-video",
-                    "rec"   => "type-rec",
-                    "tv"    => "type-tv",
-                    _       => ""
-                };
+            // Saison / Épisode fournis par le moteur
+            int saisonAffiche = item.Saison;
+            int episodeAffiche = item.Episode;
 
-                // Canal fourni par le moteur
-                string canal = item.Channel ?? "";
+            rows.Append($@"
+                <tr>
+                    <td style=""text-align:center;"">
+                        <span class=""type-badge {badgeClass}"">{WebUtility.HtmlEncode(mediaType)}</span>
+                    </td>
 
-                // Titre propre fourni par le moteur
-                string titreAffiche = item.Nom ?? "";
+                    <td style=""text-align:left;"">
+                        {WebUtility.HtmlEncode(titreAffiche)}
+                    </td>
 
-                // Saison / Épisode fournis par le moteur
-                int saisonAffiche = item.Saison;
-                int episodeAffiche = item.Episode;
+                    <td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>
+                    <td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>
 
-                rows.Append($@"
-                    <tr>
-                        <td style=""text-align:center;"">
-                            <span class=""type-badge {badgeClass}"">{WebUtility.HtmlEncode(mediaType)}</span>
-                        </td>
+                    <td>{WebUtility.HtmlEncode(canal)}</td>
+                    <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
 
-                        <td style=""text-align:left;"">
-                            {WebUtility.HtmlEncode(titreAffiche)}
-                        </td>
+                    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
 
-                        <td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>
-                        <td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>
+                    <td style=""text-align:right;"">
+                        <a class=""info-btn""
+                           href=""#""
+                           data-path=""{WebUtility.HtmlEncode(item.Path)}""
+                           onclick=""openInfo(this.dataset.path)"">I</a>
+                    </td>
+                </tr>");
+        }
 
-                        <td>{WebUtility.HtmlEncode(canal)}</td>
-                        <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
+        // Activité par heure
+        int[] hours = new int[24];
+        foreach (var it in items)
+            hours[it.Timestamp.Hour]++;
 
-                        <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+        string hoursJson = JsonSerializer.Serialize(hours);
 
-                        <td style=""text-align:right;"">
-                            <a class=""info-btn""
-                               href=""#""
-                               data-path=""{WebUtility.HtmlEncode(item.Path)}""
-                               onclick=""openInfo(this.dataset.path)"">I</a>
-                        </td>
-                    </tr>");
-            }
+        // STATISTIQUES AVANCÉES
+        var topSeries = GetTopSeries(allItems);
+        var topArtistes = GetTopArtistes(allItems);
+        var topClients = GetTopClientsStats(allItems);
+        var mediaStats = GetMediaStatsPerClient(allItems);
+        var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
 
-            // Activité par heure
-            int[] hours = new int[24];
-            foreach (var it in items)
-                hours[it.Timestamp.Hour]++;
+        // TEMPLATE FINAL
+        string html = BackupHtmlTemplate
+            .Replace("{{TOTAL}}", total.ToString())
+            .Replace("{{AUDIO}}", audio.ToString())
+            .Replace("{{SERIES}}", series.ToString())
+            .Replace("{{VIDEOS}}", videos.ToString())
+            .Replace("{{REC}}", recCount.ToString())
+            .Replace("{{TV}}", tvCount.ToString())
+            .Replace("{{COUNT}}", total.ToString())
+            .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
+            .Replace("{{ROWS}}", rows.ToString())
+            .Replace("{{CLIENT_OPTIONS}}", clientOptions.ToString())
+            .Replace("{{FILTER_TYPE}}", type)
+            .Replace("{{FILTER_CLIENT}}", client)
+            .Replace("{{DATE}}", date)
+            .Replace("{{SORT}}", sort)
+            .Replace("{{SEL_ALL}}", type == "all" ? "selected" : "")
+            .Replace("{{SEL_AUDIO}}", type == "audio" ? "selected" : "")
+            .Replace("{{SEL_SERIE}}", type == "serie" ? "selected" : "")
+            .Replace("{{SEL_VIDEO}}", type == "video" ? "selected" : "")
+            .Replace("{{SEL_DATEDESC}}", sort == "date_desc" ? "selected" : "")
+            .Replace("{{SEL_DATEASC}}", sort == "date_asc" ? "selected" : "")
+            .Replace("{{SEL_NAMEASC}}", sort == "name_asc" ? "selected" : "")
+            .Replace("{{SEL_NAMEDESC}}", sort == "name_desc" ? "selected" : "")
+            .Replace("{{SEL_DATE_ALL}}", date == "all" ? "selected" : "")
+            .Replace("{{SEL_DATE_TODAY}}", date == "today" ? "selected" : "")
+            .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
+            .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
+            .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
+            .Replace("{{HOURS_DATA}}", hoursJson)
+            .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
+            .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
+            .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
+            .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
 
-            string hoursJson = JsonSerializer.Serialize(hours);
+        // ??? TRADUCTION APPLIQUÉE APRÈS INJECTION ???
+        html = HTMLTranslator.Translate(html);
 
-            // STATISTIQUES AVANCÉES
-            var topSeries = GetTopSeries(allItems);
-            var topArtistes = GetTopArtistes(allItems);
-            var topClients = GetTopClientsStats(allItems);
-            var mediaStats = GetMediaStatsPerClient(allItems);
-            var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
-
-            // TEMPLATE FINAL
-            string html = BackupHtmlTemplate
-                .Replace("{{TOTAL}}", total.ToString())
-                .Replace("{{AUDIO}}", audio.ToString())
-                .Replace("{{SERIES}}", series.ToString())
-                .Replace("{{VIDEOS}}", videos.ToString())
-                .Replace("{{REC}}", recCount.ToString())
-                .Replace("{{TV}}", tvCount.ToString())
-                .Replace("{{COUNT}}", total.ToString())
-                .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
-                .Replace("{{ROWS}}", rows.ToString())
-                .Replace("{{CLIENT_OPTIONS}}", clientOptions.ToString())
-                .Replace("{{FILTER_TYPE}}", type)
-                .Replace("{{FILTER_CLIENT}}", client)
-                .Replace("{{DATE}}", date)
-                .Replace("{{SORT}}", sort)
-                .Replace("{{SEL_ALL}}", type == "all" ? "selected" : "")
-                .Replace("{{SEL_AUDIO}}", type == "audio" ? "selected" : "")
-                .Replace("{{SEL_SERIE}}", type == "serie" ? "selected" : "")
-                .Replace("{{SEL_VIDEO}}", type == "video" ? "selected" : "")
-                .Replace("{{SEL_DATEDESC}}", sort == "date_desc" ? "selected" : "")
-                .Replace("{{SEL_DATEASC}}", sort == "date_asc" ? "selected" : "")
-                .Replace("{{SEL_NAMEASC}}", sort == "name_asc" ? "selected" : "")
-                .Replace("{{SEL_NAMEDESC}}", sort == "name_desc" ? "selected" : "")
-                .Replace("{{SEL_DATE_ALL}}", date == "all" ? "selected" : "")
-                .Replace("{{SEL_DATE_TODAY}}", date == "today" ? "selected" : "")
-                .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
-                .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
-                .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
-                .Replace("{{HOURS_DATA}}", hoursJson)
-                .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
-                .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
-                .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
-                .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
-
-            // ??? TRADUCTION APPLIQUÉE APRÈS INJECTION ???
-            html = HTMLTranslator.Translate(html);
-
-            return html;
+        return html;
         }
 
         // ==========================
@@ -1297,6 +1332,10 @@ namespace MediaMonitor.Service
         </head>
         <body>
 
+        <!-- ====================================================================== -->
+        <!--  BACKUP – BARRE D’ACTIONS + FILTRES -->
+        <!-- ====================================================================== -->
+
         <h1>{{tr:Historique sauvegardé}}</h1>
 
         <div style=""margin-bottom:20px; display:flex; gap:10px;"">
@@ -1357,6 +1396,10 @@ namespace MediaMonitor.Service
             </div>
 
         </div>
+
+        <!-- ====================================================================== -->
+        <!--  BACKUP – BARRE D’ACTIONS + FILTRES -->
+        <!-- ====================================================================== -->
 
         <div class=""container"">
 
@@ -1467,6 +1510,10 @@ namespace MediaMonitor.Service
                 </table>
             </div>
         </div>
+
+        <!-- ====================================================================== -->
+        <!--  BACKUP – SCRIPTS (DONUT + ACTIVITÉ PAR HEURE + COLLAPSIBLE) -->
+        <!-- ====================================================================== -->
 
         <!-- SCRIPTS DU TABLEAU GAUCHE-->
         <script>
@@ -1588,6 +1635,9 @@ namespace MediaMonitor.Service
         })();
         </script>
 
+        <!-- ====================================================================== -->
+        <!--  BACKUP – OVERLAY INFO + TABLEAUX HTML STATS AVANCÉES -->
+        <!-- ====================================================================== -->
         <!-- Overlay Info -->
         <div id=""infoOverlayContainer""></div>
 
@@ -1676,6 +1726,10 @@ namespace MediaMonitor.Service
                 );
         }
 
+        // ======================================================================
+        //  BACKUP – TABLEAU PAR CLIENT (HTML)
+        // ======================================================================
+
         private string BuildMediaStatsPerClientHtml(
             Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> dict)
         {
@@ -1756,6 +1810,10 @@ namespace MediaMonitor.Service
             public DateTime Timestamp { get; set; }
             public string? Channel { get; set; }
         }
+
+        // ======================================================================
+        //  DOWNLOAD PDF – GÉNÉRATION DU PDF DE BACKUP
+        // ======================================================================
 
         // ==========================
         //  DOWNLOAD PDF
@@ -1911,6 +1969,10 @@ namespace MediaMonitor.Service
             ctx.Response.OutputStream.Close();
         }
 
+        // ======================================================================
+        //  BACKUP – PURGE DES SAUVEGARDES + CONDITIONS HTML
+        // ======================================================================
+
         private void PurgeBackups(HttpListenerContext ctx)
         {
             string folder = @"C:\ProgramData\MCEMonitor\Backups";
@@ -2011,4 +2073,3 @@ namespace MediaMonitor.Service
         }
     }
 }
-
