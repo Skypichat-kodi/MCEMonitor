@@ -920,7 +920,7 @@ namespace MediaMonitor.Service
                     "<h2>{{tr:Aucune sauvegarde trouvée}}</h2>" +
                     "<a href='/' style='color:#4fc3f7;'>{{tr:Retour}}</a></body></html>";
 
-                    return HTMLTranslator.Translate(translated);
+                return HTMLTranslator.Translate(translated);
             }
 
             var files = Directory.GetFiles(folder, "history_*.json");
@@ -975,7 +975,7 @@ namespace MediaMonitor.Service
                 </body>
                 </html>");
             }
-            
+
             string lastFile = files.OrderByDescending(f => f).First();
             string json = File.ReadAllText(lastFile);
 
@@ -1054,142 +1054,172 @@ namespace MediaMonitor.Service
             int recCount = items.Count(i => i.MediaType.Equals("REC", StringComparison.OrdinalIgnoreCase));
             int tvCount  = items.Count(i => i.MediaType.Equals("TV",  StringComparison.OrdinalIgnoreCase));
 
-        // ======================================================================
-        //  PAGE BACKUP (MODERNE) – LISTE CLIENTS + TABLEAU + STATISTIQUES + TEMPLATE FINAL
-        // ======================================================================
+            // ======================================================================
+            //  PAGE BACKUP (MODERNE) – LISTE CLIENTS + TABLEAU + STATISTIQUES
+            // ======================================================================
 
-        // Liste des clients
-        var allClients = allItems
-            .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
-            .Select(i => i.ClientDisplay!)
-            .Distinct()
-            .OrderBy(n => n)
-            .ToList();
+            // Liste des clients
+            var allClients = allItems
+                .Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay))
+                .Select(i => i.ClientDisplay!)
+                .Distinct()
+                .OrderBy(n => n)
+                .ToList();
 
-        var clientOptions = new StringBuilder();
+            var clientOptions = new StringBuilder();
 
-        string allLabel = LanguageManager.Get("Tous") ?? "Tous";
+            string allLabel = LanguageManager.Get("Tous") ?? "Tous";
 
-        clientOptions.Append(
-            $"<option value='all' {(client == "all" ? "selected" : "")}>{allLabel}</option>"
-        );
-
-        foreach (var c in allClients)
-        {
-            string val = c.ToLower();
-            string selected = (val == client) ? "selected" : "";
             clientOptions.Append(
-                $"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>"
+                $"<option value='all' {(client == "all" ? "selected" : "")}>{allLabel}</option>"
             );
-        }
 
-        // Lignes du tableau principal
-        var rows = new StringBuilder();
-
-        foreach (var item in items)
-        {
-            string mediaType = item.MediaType ?? "";
-
-            string badgeClass = mediaType.ToLower() switch
+            foreach (var c in allClients)
             {
-                "audio" => "type-audio",
-                "serie" => "type-serie",
-                "video" => "type-video",
-                "rec"   => "type-rec",
-                "tv"    => "type-tv",
-                _       => ""
-            };
+                string val = c.ToLower();
+                string selected = (val == client) ? "selected" : "";
+                clientOptions.Append(
+                    $"<option value='{WebUtility.HtmlEncode(val)}' {selected}>{WebUtility.HtmlEncode(c)}</option>"
+                );
+            }
 
-            // Canal fourni par le moteur
-            string canal = item.Channel ?? "";
+            // Lignes du tableau principal
+            var rows = new StringBuilder();
 
-            // Titre propre fourni par le moteur
-            string titreAffiche = item.Nom ?? "";
+            foreach (var item in items)
+            {
+                string mediaType = item.MediaType ?? "";
 
-            // Saison / Épisode fournis par le moteur
-            int saisonAffiche = item.Saison;
-            int episodeAffiche = item.Episode;
+                string badgeClass = mediaType.ToLower() switch
+                {
+                    "audio" => "type-audio",
+                    "serie" => "type-serie",
+                    "video" => "type-video",
+                    "rec"   => "type-rec",
+                    "tv"    => "type-tv",
+                    _       => ""
+                };
 
-            rows.Append($@"
-                <tr>
-                    <td style=""text-align:center;"">
-                        <span class=""type-badge {badgeClass}"">{WebUtility.HtmlEncode(mediaType)}</span>
-                    </td>
+                string canal = item.Channel ?? "";
+                string titreAffiche = item.Nom ?? "";
+                int saisonAffiche = item.Saison;
+                int episodeAffiche = item.Episode;
 
-                    <td style=""text-align:left;"">
-                        {WebUtility.HtmlEncode(titreAffiche)}
-                    </td>
+                rows.Append($@"
+                    <tr>
+                        <td style=""text-align:center;"">
+                            <span class=""type-badge {badgeClass}"">{WebUtility.HtmlEncode(mediaType)}</span>
+                        </td>
 
-                    <td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>
-                    <td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>
+                        <td style=""text-align:left;"">
+                            {WebUtility.HtmlEncode(titreAffiche)}
+                        </td>
 
-                    <td>{WebUtility.HtmlEncode(canal)}</td>
-                    <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
+                        <td>{(saisonAffiche > 0 ? saisonAffiche.ToString() : "")}</td>
+                        <td>{(episodeAffiche > 0 ? episodeAffiche.ToString() : "")}</td>
 
-                    <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
+                        <td>{WebUtility.HtmlEncode(canal)}</td>
+                        <td>{WebUtility.HtmlEncode(item.ClientDisplay ?? "")}</td>
 
-                    <td style=""text-align:right;"">
-                        <a class=""info-btn""
-                           href=""#""
-                           data-path=""{WebUtility.HtmlEncode(item.Path)}""
-                           onclick=""openInfo(this.dataset.path)"">I</a>
-                    </td>
-                </tr>");
-        }
+                        <td>{item.Timestamp:dd/MM/yyyy HH:mm}</td>
 
-        // Activité par heure
-        int[] hours = new int[24];
-        foreach (var it in items)
-            hours[it.Timestamp.Hour]++;
+                        <td style=""text-align:right;"">
+                            <a class=""info-btn""
+                               href=""#""
+                               data-path=""{WebUtility.HtmlEncode(item.Path)}""
+                               onclick=""openInfo(this.dataset.path)"">I</a>
+                        </td>
+                    </tr>");
+            }
 
-        string hoursJson = JsonSerializer.Serialize(hours);
+            // Activité par heure
+            int[] hours = new int[24];
+            foreach (var it in items)
+                hours[it.Timestamp.Hour]++;
 
-        // STATISTIQUES AVANCÉES
-        var topSeries = GetTopSeries(allItems);
-        var topArtistes = GetTopArtistes(allItems);
-        var topClients = GetTopClientsStats(allItems);
-        var mediaStats = GetMediaStatsPerClient(allItems);
-        var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
+            // Activité par heure — séparée par type
+            int[] hoursAudio = new int[24];
+            int[] hoursSeries = new int[24];
+            int[] hoursVideo = new int[24];
+            int[] hoursRec = new int[24];
+            int[] hoursTv = new int[24];
 
-        // TEMPLATE FINAL
-        string html = BackupHtmlTemplate
-            .Replace("{{TOTAL}}", total.ToString())
-            .Replace("{{AUDIO}}", audio.ToString())
-            .Replace("{{SERIES}}", series.ToString())
-            .Replace("{{VIDEOS}}", videos.ToString())
-            .Replace("{{REC}}", recCount.ToString())
-            .Replace("{{TV}}", tvCount.ToString())
-            .Replace("{{COUNT}}", total.ToString())
-            .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
-            .Replace("{{ROWS}}", rows.ToString())
-            .Replace("{{CLIENT_OPTIONS}}", clientOptions.ToString())
-            .Replace("{{FILTER_TYPE}}", type)
-            .Replace("{{FILTER_CLIENT}}", client)
-            .Replace("{{DATE}}", date)
-            .Replace("{{SORT}}", sort)
-            .Replace("{{SEL_ALL}}", type == "all" ? "selected" : "")
-            .Replace("{{SEL_AUDIO}}", type == "audio" ? "selected" : "")
-            .Replace("{{SEL_SERIE}}", type == "serie" ? "selected" : "")
-            .Replace("{{SEL_VIDEO}}", type == "video" ? "selected" : "")
-            .Replace("{{SEL_DATEDESC}}", sort == "date_desc" ? "selected" : "")
-            .Replace("{{SEL_DATEASC}}", sort == "date_asc" ? "selected" : "")
-            .Replace("{{SEL_NAMEASC}}", sort == "name_asc" ? "selected" : "")
-            .Replace("{{SEL_NAMEDESC}}", sort == "name_desc" ? "selected" : "")
-            .Replace("{{SEL_DATE_ALL}}", date == "all" ? "selected" : "")
-            .Replace("{{SEL_DATE_TODAY}}", date == "today" ? "selected" : "")
-            .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
-            .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
-            .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
-            .Replace("{{HOURS_DATA}}", hoursJson)
-            .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
-            .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
-            .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
-            .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
+            foreach (var it in items)
+            {
+                int h = it.Timestamp.Hour;
 
-        // ??? TRADUCTION APPLIQUÉE APRÈS INJECTION ???
-        html = HTMLTranslator.Translate(html);
+                switch ((it.MediaType ?? "").ToLowerInvariant())
+                {
+                    case "audio": hoursAudio[h]++; break;
+                    case "serie": hoursSeries[h]++; break;
+                    case "video": hoursVideo[h]++; break;
+                    case "rec":   hoursRec[h]++; break;
+                    case "tv":    hoursTv[h]++; break;
+                }
+            }
 
-        return html;
+            // Construction du tableau structuré pour le graphique
+            var hoursData = new object[24];
+
+            for (int h = 0; h < 24; h++)
+            {
+                hoursData[h] = new {
+                    audio = hoursAudio[h],
+                    serie = hoursSeries[h],
+                    video = hoursVideo[h],
+                    rec   = hoursRec[h],
+                    tv    = hoursTv[h]
+                };
+            }
+
+            string hoursJson = JsonSerializer.Serialize(hoursData);
+
+            // STATISTIQUES AVANCÉES
+            var topSeries = GetTopSeries(allItems);
+            var topArtistes = GetTopArtistes(allItems);
+            var topClients = GetTopClientsStats(allItems);
+            var mediaStats = GetMediaStatsPerClient(allItems);
+            var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
+
+            // TEMPLATE FINAL
+            string html = BackupHtmlTemplate
+                .Replace("{{TOTAL}}", total.ToString())
+                .Replace("{{AUDIO}}", audio.ToString())
+                .Replace("{{SERIES}}", series.ToString())
+                .Replace("{{VIDEOS}}", videos.ToString())
+                .Replace("{{REC}}", recCount.ToString())
+                .Replace("{{TV}}", tvCount.ToString())
+                .Replace("{{COUNT}}", total.ToString())
+                .Replace("{{PERIOD}}", WebUtility.HtmlEncode(Path.GetFileNameWithoutExtension(lastFile)))
+                .Replace("{{ROWS}}", rows.ToString())
+                .Replace("{{CLIENT_OPTIONS}}", clientOptions.ToString())
+                .Replace("{{FILTER_TYPE}}", type)
+                .Replace("{{FILTER_CLIENT}}", client)
+                .Replace("{{DATE}}", date)
+                .Replace("{{SORT}}", sort)
+                .Replace("{{SEL_ALL}}", type == "all" ? "selected" : "")
+                .Replace("{{SEL_AUDIO}}", type == "audio" ? "selected" : "")
+                .Replace("{{SEL_SERIE}}", type == "serie" ? "selected" : "")
+                .Replace("{{SEL_VIDEO}}", type == "video" ? "selected" : "")
+                .Replace("{{SEL_DATEDESC}}", sort == "date_desc" ? "selected" : "")
+                .Replace("{{SEL_DATEASC}}", sort == "date_asc" ? "selected" : "")
+                .Replace("{{SEL_NAMEASC}}", sort == "name_asc" ? "selected" : "")
+                .Replace("{{SEL_NAMEDESC}}", sort == "name_desc" ? "selected" : "")
+                .Replace("{{SEL_DATE_ALL}}", date == "all" ? "selected" : "")
+                .Replace("{{SEL_DATE_TODAY}}", date == "today" ? "selected" : "")
+                .Replace("{{SEL_DATE_YESTERDAY}}", date == "yesterday" ? "selected" : "")
+                .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
+                .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
+                .Replace("{{HOURS_DATA}}", hoursJson)
+                .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
+                .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
+                .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
+                .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
+
+            // Traduction
+            html = HTMLTranslator.Translate(html);
+
+            return html;
         }
 
         // ==========================
@@ -1560,57 +1590,58 @@ namespace MediaMonitor.Service
             }
         });
 
-        // --- ACTIVITÉ PAR HEURE ---
-        new Chart(document.getElementById('chartHours'), {
-            type: 'line',
-            data: {
-                labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
-                datasets: [
-                    {
-                        label: '{{tr:Audio}}',
-                        data: hoursData.map((v,i) => v > 0 ? audio : 0),
-                        borderColor: colors.audio,
-                        backgroundColor: 'rgba(0,122,204,0.25)',
-                        tension: 0.3
-                    },
-                    {
-                        label: '{{tr:Séries}}',
-                        data: hoursData.map((v,i) => v > 0 ? series : 0),
-                        borderColor: colors.series,
-                        backgroundColor: 'rgba(197,134,192,0.25)',
-                        tension: 0.3
-                    },
-                    {
-                        label: '{{tr:Vidéos}}',
-                        data: hoursData.map((v,i) => v > 0 ? videos : 0),
-                        borderColor: colors.video,
-                        backgroundColor: 'rgba(209,154,102,0.25)',
-                        tension: 0.3
-                    },
-                    {
-                        label: 'REC',
-                        data: hoursData.map((v,i) => v > 0 ? rec : 0),
-                        borderColor: colors.rec,
-                        backgroundColor: 'rgba(255,77,77,0.25)',
-                        tension: 0.3
-                    },
-                    {
-                        label: 'TV',
-                        data: hoursData.map((v,i) => v > 0 ? tv : 0),
-                        borderColor: colors.tv,
-                        backgroundColor: 'rgba(255,224,102,0.25)',
-                        tension: 0.3
-                    }
-                ]
+// --- ACTIVITÉ PAR HEURE ---
+new Chart(document.getElementById('chartHours'), {
+    type: 'line',
+    data: {
+        labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+        datasets: [
+            {
+                label: '{{tr:Audio}}',
+                data: hoursData.map(h => h.audio ?? 0),
+                borderColor: colors.audio,
+                backgroundColor: 'rgba(0,122,204,0.25)',
+                tension: 0.3
             },
-            options: {
-                scales: {
-                    x: { ticks: { color:'#fff' } },
-                    y: { ticks: { color:'#fff' } }
-                },
-                plugins: { legend: { labels: { color:'#fff' } } }
+            {
+                label: '{{tr:Séries}}',
+                data: hoursData.map(h => h.serie ?? 0),
+                borderColor: colors.series,
+                backgroundColor: 'rgba(197,134,192,0.25)',
+                tension: 0.3
+            },
+            {
+                label: '{{tr:Vidéos}}',
+                data: hoursData.map(h => h.video ?? 0),
+                borderColor: colors.video,
+                backgroundColor: 'rgba(209,154,102,0.25)',
+                tension: 0.3
+            },
+            {
+                label: 'REC',
+                data: hoursData.map(h => h.rec ?? 0),
+                borderColor: colors.rec,
+                backgroundColor: 'rgba(255,77,77,0.25)',
+                tension: 0.3
+            },
+            {
+                label: 'TV',
+                data: hoursData.map(h => h.tv ?? 0),
+                borderColor: colors.tv,
+                backgroundColor: 'rgba(255,224,102,0.25)',
+                tension: 0.3
             }
-        });
+        ]
+    },
+    options: {
+        scales: {
+            x: { ticks: { color:'#fff' } },
+            y: { ticks: { color:'#fff' } }
+        },
+        plugins: { legend: { labels: { color:'#fff' } } }
+    }
+});
+
 
         // COLLAPSIBLE
         (function () {
