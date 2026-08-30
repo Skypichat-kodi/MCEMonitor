@@ -233,11 +233,6 @@ namespace MediaMonitor.Core.Services
 
                     foreach (var s in dvb)
                     {
-                        _currentOpen.Add(BuildDvbItem(s));
-                    }
-
-                    foreach (var s in dvb)
-                    {
                         var item = BuildDvbItem(s);
 
                         bool exists = _currentOpen.Any(x =>
@@ -377,7 +372,8 @@ namespace MediaMonitor.Core.Services
                 MediaType = mediaType,
                 Nom = CleanEpisodeName(file),
                 Saison = saison,
-                Episode = episode
+                Episode = episode,
+                Channel = ""
             };
         }
 
@@ -516,7 +512,7 @@ namespace MediaMonitor.Core.Services
                 Nom = nomFinal,
                 Saison = saison,
                 Episode = episode,
-                Channel = channel   // ? AJOUT ESSENTIEL
+                Channel = channel 
             };
         }
         

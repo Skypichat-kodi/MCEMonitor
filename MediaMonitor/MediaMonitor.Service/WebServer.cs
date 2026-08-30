@@ -1174,6 +1174,35 @@ namespace MediaMonitor.Service
 
             string hoursJson = JsonSerializer.Serialize(hoursData);
 
+// --- STATISTIQUES PAR CLIENT POUR LE GRAPHIQUE ---
+
+// On exclut les tuners DVB-T qui polluent les graphiques
+var filteredClients = allClients
+    .Where(c => !c.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase))
+    .ToList();
+
+var clientMediaData = new List<object>();
+
+foreach (var clientName in filteredClients)
+{
+    // IMPORTANT : utiliser "items" (médias filtrés par date/type/client)
+    var clientItems = items.Where(i =>
+        i.ClientDisplay != null &&
+        i.ClientDisplay.Equals(clientName, StringComparison.OrdinalIgnoreCase)
+    );
+
+    clientMediaData.Add(new {
+        client = clientName,
+        audio = clientItems.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)),
+        serie = clientItems.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)),
+        video = clientItems.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)),
+        rec   = clientItems.Count(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)),
+        tv    = clientItems.Count(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase))
+    });
+}
+
+string clientMediaJson = JsonSerializer.Serialize(clientMediaData);
+
             // STATISTIQUES AVANCÉES
             var topSeries = GetTopSeries(allItems);
             var topArtistes = GetTopArtistes(allItems);
@@ -1211,6 +1240,7 @@ namespace MediaMonitor.Service
                 .Replace("{{SEL_DATE_7}}", date == "7" ? "selected" : "")
                 .Replace("{{SEL_DATE_30}}", date == "30" ? "selected" : "")
                 .Replace("{{HOURS_DATA}}", hoursJson)
+                .Replace("{{CLIENT_MEDIA_DATA}}", clientMediaJson)
                 .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
                 .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
                 .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
@@ -1298,6 +1328,54 @@ namespace MediaMonitor.Service
             td, th { border-right: 1px solid #3c3c3c; }
             td:last-child, th:last-child { border-right: none; }
             td:nth-child(2), th:nth-child(2) { text-align:center; }
+
+            const clientData = {{CLIENT_MEDIA_DATA}};
+
+            const labels = clientData.map(c => c.client);
+
+            new Chart(document.getElementById('chartClients'), {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '{{tr:Audio}}',
+                            data: clientData.map(c => c.audio),
+                            backgroundColor: colors.audio
+                        },
+                        {
+                            label: '{{tr:Séries}}',
+                            data: clientData.map(c => c.serie),
+                            backgroundColor: colors.series
+                        },
+                        {
+                            label: '{{tr:Vidéos}}',
+                            data: clientData.map(c => c.video),
+                            backgroundColor: colors.video
+                        },
+                        {
+                            label: 'REC',
+                            data: clientData.map(c => c.rec),
+                            backgroundColor: colors.rec
+                        },
+                        {
+                            label: 'TV',
+                            data: clientData.map(c => c.tv),
+                            backgroundColor: colors.tv
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { ticks: { color:'#fff' } },
+                        y: { ticks: { color:'#fff' } }
+                    },
+                    plugins: {
+                        legend: { labels: { color:'#fff' } }
+                    }
+                }
+            });
 
             /* --- COLLAPSIBLE --- */
             #leftColumn {
@@ -1465,12 +1543,25 @@ namespace MediaMonitor.Service
 
                         <div style=""width:1px; background:#3c3c3c;""></div>
 
-                        <!-- Horaire -->
-                        <div style=""flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
-                            <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
-                                {{tr:Activité par heure}}
+                        <!-- Colonne droite : Horaire + Jauges -->
+                        <div style=""flex:1; display:flex; flex-direction:column; gap:15px;"">
+
+                            <!-- Horaire -->
+                            <div style=""background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                                <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                    {{tr:Activité par heure}}
+                                </div>
+                                <canvas id=""chartHours"" height=""160""></canvas>
                             </div>
-                            <canvas id=""chartHours"" height=""160""></canvas>
+
+                            <!-- Jauges par client -->
+                            <div style=""background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;"">
+                                <div style=""text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;"">
+                                    {{tr:Médias par client}}
+                                </div>
+                                <canvas id=""chartClients"" height=""160""></canvas>
+                            </div>
+
                         </div>
 
                     </div>
@@ -1590,58 +1681,123 @@ namespace MediaMonitor.Service
             }
         });
 
-// --- ACTIVITÉ PAR HEURE ---
-new Chart(document.getElementById('chartHours'), {
-    type: 'line',
+        // --- ACTIVITÉ PAR HEURE ---
+        new Chart(document.getElementById('chartHours'), {
+            type: 'line',
+            data: {
+                labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+                datasets: [
+                    {
+                        label: '{{tr:Audio}}',
+                        data: hoursData.map(h => h.audio ?? 0),
+                        borderColor: colors.audio,
+                        backgroundColor: 'rgba(0,122,204,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: '{{tr:Séries}}',
+                        data: hoursData.map(h => h.serie ?? 0),
+                        borderColor: colors.series,
+                        backgroundColor: 'rgba(197,134,192,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: '{{tr:Vidéos}}',
+                        data: hoursData.map(h => h.video ?? 0),
+                        borderColor: colors.video,
+                        backgroundColor: 'rgba(209,154,102,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'REC',
+                        data: hoursData.map(h => h.rec ?? 0),
+                        borderColor: colors.rec,
+                        backgroundColor: 'rgba(255,77,77,0.25)',
+                        tension: 0.3
+                    },
+                    {
+                        label: 'TV',
+                        data: hoursData.map(h => h.tv ?? 0),
+                        borderColor: colors.tv,
+                        backgroundColor: 'rgba(255,224,102,0.25)',
+                        tension: 0.3
+                    }
+                ]
+            },
+            options: {
+                scales: {
+                    x: { ticks: { color:'#fff' } },
+                    y: { ticks: { color:'#fff' } }
+                },
+                plugins: { legend: { labels: { color:'#fff' } } }
+            }
+        });
+
+// --- MÉDIAS PAR CLIENT (barres fines groupées) ---
+const clientData = {{CLIENT_MEDIA_DATA}};
+console.log(""CLIENT DATA:"", clientData);
+
+const clientLabels = clientData.map(c => c.client);
+
+new Chart(document.getElementById(""chartClients""), {
+    type: ""bar"",
     data: {
-        labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+        labels: clientLabels,
         datasets: [
             {
-                label: '{{tr:Audio}}',
-                data: hoursData.map(h => h.audio ?? 0),
-                borderColor: colors.audio,
-                backgroundColor: 'rgba(0,122,204,0.25)',
-                tension: 0.3
+                label: ""{{tr:Audio}}"",
+                data: clientData.map(c => c.audio),
+                backgroundColor: colors.audio,
+                barThickness: 12,
+                maxBarThickness: 12
             },
             {
-                label: '{{tr:Séries}}',
-                data: hoursData.map(h => h.serie ?? 0),
-                borderColor: colors.series,
-                backgroundColor: 'rgba(197,134,192,0.25)',
-                tension: 0.3
+                label: ""{{tr:Séries}}"",
+                data: clientData.map(c => c.serie),
+                backgroundColor: colors.series,
+                barThickness: 12,
+                maxBarThickness: 12
             },
             {
-                label: '{{tr:Vidéos}}',
-                data: hoursData.map(h => h.video ?? 0),
-                borderColor: colors.video,
-                backgroundColor: 'rgba(209,154,102,0.25)',
-                tension: 0.3
+                label: ""{{tr:Vidéos}}"",
+                data: clientData.map(c => c.video),
+                backgroundColor: colors.video,
+                barThickness: 12,
+                maxBarThickness: 12
             },
             {
-                label: 'REC',
-                data: hoursData.map(h => h.rec ?? 0),
-                borderColor: colors.rec,
-                backgroundColor: 'rgba(255,77,77,0.25)',
-                tension: 0.3
+                label: ""REC"",
+                data: clientData.map(c => c.rec),
+                backgroundColor: colors.rec,
+                barThickness: 12,
+                maxBarThickness: 12
             },
             {
-                label: 'TV',
-                data: hoursData.map(h => h.tv ?? 0),
-                borderColor: colors.tv,
-                backgroundColor: 'rgba(255,224,102,0.25)',
-                tension: 0.3
+                label: ""TV"",
+                data: clientData.map(c => c.tv),
+                backgroundColor: colors.tv,
+                barThickness: 12,
+                maxBarThickness: 12
             }
         ]
     },
     options: {
+        responsive: true,
         scales: {
-            x: { ticks: { color:'#fff' } },
-            y: { ticks: { color:'#fff' } }
+            x: {
+                ticks: { color: ""#fff"" },
+                categoryPercentage: 0.55,
+                barPercentage: 0.55
+            },
+            y: {
+                ticks: { color: ""#fff"" }
+            }
         },
-        plugins: { legend: { labels: { color:'#fff' } } }
+        plugins: {
+            legend: { labels: { color: ""#fff"" } }
+        }
     }
 });
-
 
         // COLLAPSIBLE
         (function () {
