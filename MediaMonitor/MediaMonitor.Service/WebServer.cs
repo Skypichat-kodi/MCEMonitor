@@ -1174,34 +1174,34 @@ namespace MediaMonitor.Service
 
             string hoursJson = JsonSerializer.Serialize(hoursData);
 
-// --- STATISTIQUES PAR CLIENT POUR LE GRAPHIQUE ---
+            // --- STATISTIQUES PAR CLIENT POUR LE GRAPHIQUE ---
 
-// On exclut les tuners DVB-T qui polluent les graphiques
-var filteredClients = allClients
-    .Where(c => !c.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase))
-    .ToList();
+            // On exclut les tuners DVB-T qui polluent les graphiques
+            var filteredClients = allClients
+                .Where(c => !c.StartsWith("DVB-T", StringComparison.OrdinalIgnoreCase))
+                .ToList();
 
-var clientMediaData = new List<object>();
+            var clientMediaData = new List<object>();
 
-foreach (var clientName in filteredClients)
-{
-    // IMPORTANT : utiliser "items" (médias filtrés par date/type/client)
-    var clientItems = items.Where(i =>
-        i.ClientDisplay != null &&
-        i.ClientDisplay.Equals(clientName, StringComparison.OrdinalIgnoreCase)
-    );
+            foreach (var clientName in filteredClients)
+            {
+                // IMPORTANT : utiliser "items" (médias filtrés par date/type/client)
+                var clientItems = items.Where(i =>
+                    i.ClientDisplay != null &&
+                    i.ClientDisplay.Equals(clientName, StringComparison.OrdinalIgnoreCase)
+                );
 
-    clientMediaData.Add(new {
-        client = clientName,
-        audio = clientItems.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)),
-        serie = clientItems.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)),
-        video = clientItems.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)),
-        rec   = clientItems.Count(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)),
-        tv    = clientItems.Count(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase))
-    });
-}
+                clientMediaData.Add(new {
+                    client = clientName,
+                    audio = clientItems.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)),
+                    serie = clientItems.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)),
+                    video = clientItems.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)),
+                    rec   = clientItems.Count(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)),
+                    tv    = clientItems.Count(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase))
+                });
+            }
 
-string clientMediaJson = JsonSerializer.Serialize(clientMediaData);
+            string clientMediaJson = JsonSerializer.Serialize(clientMediaData);
 
             // STATISTIQUES AVANCÉES
             var topSeries = GetTopSeries(allItems);
@@ -1733,71 +1733,71 @@ string clientMediaJson = JsonSerializer.Serialize(clientMediaData);
             }
         });
 
-// --- MÉDIAS PAR CLIENT (barres fines groupées) ---
-const clientData = {{CLIENT_MEDIA_DATA}};
-console.log(""CLIENT DATA:"", clientData);
+        // --- MÉDIAS PAR CLIENT (barres fines groupées) ---
+        const clientData = {{CLIENT_MEDIA_DATA}};
+        console.log(""CLIENT DATA:"", clientData);
 
-const clientLabels = clientData.map(c => c.client);
+        const clientLabels = clientData.map(c => c.client);
 
-new Chart(document.getElementById(""chartClients""), {
-    type: ""bar"",
-    data: {
-        labels: clientLabels,
-        datasets: [
-            {
-                label: ""{{tr:Audio}}"",
-                data: clientData.map(c => c.audio),
-                backgroundColor: colors.audio,
-                barThickness: 12,
-                maxBarThickness: 12
+        new Chart(document.getElementById(""chartClients""), {
+            type: ""bar"",
+            data: {
+                labels: clientLabels,
+                datasets: [
+                    {
+                        label: ""{{tr:Audio}}"",
+                        data: clientData.map(c => c.audio),
+                        backgroundColor: colors.audio,
+                        barThickness: 12,
+                        maxBarThickness: 12
+                    },
+                    {
+                        label: ""{{tr:Séries}}"",
+                        data: clientData.map(c => c.serie),
+                        backgroundColor: colors.series,
+                        barThickness: 12,
+                        maxBarThickness: 12
+                    },
+                    {
+                        label: ""{{tr:Vidéos}}"",
+                        data: clientData.map(c => c.video),
+                        backgroundColor: colors.video,
+                        barThickness: 12,
+                        maxBarThickness: 12
+                    },
+                    {
+                        label: ""REC"",
+                        data: clientData.map(c => c.rec),
+                        backgroundColor: colors.rec,
+                        barThickness: 12,
+                        maxBarThickness: 12
+                    },
+                    {
+                        label: ""TV"",
+                        data: clientData.map(c => c.tv),
+                        backgroundColor: colors.tv,
+                        barThickness: 12,
+                        maxBarThickness: 12
+                    }
+                ]
             },
-            {
-                label: ""{{tr:Séries}}"",
-                data: clientData.map(c => c.serie),
-                backgroundColor: colors.series,
-                barThickness: 12,
-                maxBarThickness: 12
-            },
-            {
-                label: ""{{tr:Vidéos}}"",
-                data: clientData.map(c => c.video),
-                backgroundColor: colors.video,
-                barThickness: 12,
-                maxBarThickness: 12
-            },
-            {
-                label: ""REC"",
-                data: clientData.map(c => c.rec),
-                backgroundColor: colors.rec,
-                barThickness: 12,
-                maxBarThickness: 12
-            },
-            {
-                label: ""TV"",
-                data: clientData.map(c => c.tv),
-                backgroundColor: colors.tv,
-                barThickness: 12,
-                maxBarThickness: 12
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        ticks: { color: ""#fff"" },
+                        categoryPercentage: 0.55,
+                        barPercentage: 0.55
+                    },
+                    y: {
+                        ticks: { color: ""#fff"" }
+                    }
+                },
+                plugins: {
+                    legend: { labels: { color: ""#fff"" } }
+                }
             }
-        ]
-    },
-    options: {
-        responsive: true,
-        scales: {
-            x: {
-                ticks: { color: ""#fff"" },
-                categoryPercentage: 0.55,
-                barPercentage: 0.55
-            },
-            y: {
-                ticks: { color: ""#fff"" }
-            }
-        },
-        plugins: {
-            legend: { labels: { color: ""#fff"" } }
-        }
-    }
-});
+        });
 
         // COLLAPSIBLE
         (function () {
