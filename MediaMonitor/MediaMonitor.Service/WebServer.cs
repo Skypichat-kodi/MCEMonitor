@@ -234,6 +234,65 @@ namespace MediaMonitor.Service
                         string filePath = ctx.Request.QueryString["path"];
                         filePath = WebUtility.UrlDecode(filePath);
 
+                        if (string.IsNullOrWhiteSpace(filePath))
+                        {
+                            SendHtml(ctx, "<html><body><h2>Chemin invalide.</h2></body></html>");
+                            break;
+                        }
+
+                        // ?? LOGIQUE REC — identique à l’UI WPF ??
+                        if (string.IsNullOrEmpty(System.IO.Path.GetExtension(filePath)))
+                        {
+                            // Analyse REC locale
+                            var rec = FileAnalyzer.Analyze(filePath);
+
+                            // Charger template
+                            string recTemplatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
+                            string recHtml = File.ReadAllText(recTemplatePath, Encoding.UTF8);
+
+                            // Icône REC
+                            string recIconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Icons", "webicon_serie.png");
+                            string recIconBase64 = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(recIconPath));
+                            recHtml = recHtml.Replace("{{IconPath}}", recIconBase64);
+
+                            // Champs REC
+                            recHtml = recHtml.Replace("{{FileName}}", WebUtility.HtmlEncode(rec.Nom));
+                            recHtml = recHtml.Replace("{{Title}}", WebUtility.HtmlEncode(rec.Nom));
+                            recHtml = recHtml.Replace("{{Channel}}", WebUtility.HtmlEncode(rec.Channel));
+                            recHtml = recHtml.Replace("{{Path}}", WebUtility.HtmlEncode(rec.Path));
+                            recHtml = recHtml.Replace("{{MediaType}}", "REC");
+
+                            // Durée REC
+                            string recDurationText = rec.Duration > 0
+                                ? TimeSpan.FromSeconds(rec.Duration).ToString(@"hh\:mm\:ss")
+                                : "—";
+                            recHtml = recHtml.Replace("{{RecDuration}}", recDurationText);
+
+                            // Champs vidéo/série
+                            recHtml = recHtml.Replace("{{SeriesName}}", WebUtility.HtmlEncode(rec.SeriesName ?? ""));
+                            recHtml = recHtml.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(rec.EpisodeName ?? ""));
+                            recHtml = recHtml.Replace("{{Saison}}", rec.Saison.ToString());
+                            recHtml = recHtml.Replace("{{Episode}}", rec.Episode.ToString());
+
+                            // ?? Conditions Mustache pour REC ??
+                            recHtml = ApplyConditional(recHtml, "IfRec", true);
+                            recHtml = ApplyConditional(recHtml, "IfFile", false);
+                            recHtml = ApplyConditional(recHtml, "IfVideo", false);
+                            recHtml = ApplyConditional(recHtml, "IfAudio", false);
+
+                            recHtml = ApplyConditional(recHtml, "IfSeries", !string.IsNullOrEmpty(rec.SeriesName));
+                            recHtml = ApplyConditional(recHtml, "IfSeasonEpisode", rec.Saison > 0 || rec.Episode > 0);
+                            recHtml = ApplyConditional(recHtml, "IfEpisodeName", !string.IsNullOrEmpty(rec.EpisodeName));
+
+                            // Traduction
+                            recHtml = HTMLTranslator.Translate(recHtml);
+
+                            SendHtml(ctx, recHtml);
+                            break;
+                        }
+
+                        // ?? FICHIERS NORMAUX — TON CODE ORIGINAL ??
+
                         // 2. Analyser le fichier
                         var info = FileAnalyzer.Analyze(filePath);
 
@@ -291,34 +350,35 @@ namespace MediaMonitor.Service
                             coverBase64 = "data:image/png;base64," + Convert.ToBase64String(defaultBytes);
                         }
 
-                        html = html.Replace("{{AlbumArtBase64}}", coverBase64);
+                    html = html.Replace("{{AlbumArtBase64}}", coverBase64);
 
-                        // Vidéo
-                        html = html.Replace("{{SeriesName}}", WebUtility.HtmlEncode(info.SeriesName ?? ""));
-                        html = html.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(info.EpisodeName ?? ""));
-                        html = html.Replace("{{Saison}}", info.Saison.ToString());
-                        html = html.Replace("{{Episode}}", info.Episode.ToString());
-                        html = html.Replace("{{VideoCodec}}", WebUtility.HtmlEncode(info.VideoCodec ?? ""));
-                        html = html.Replace("{{AudioCodec}}", WebUtility.HtmlEncode(info.AudioCodec ?? ""));
+                    // Vidéo
+                    html = html.Replace("{{SeriesName}}", WebUtility.HtmlEncode(info.SeriesName ?? ""));
+                    html = html.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(info.EpisodeName ?? ""));
+                    html = html.Replace("{{Saison}}", info.Saison.ToString());
+                    html = html.Replace("{{Episode}}", info.Episode.ToString());
+                    html = html.Replace("{{VideoCodec}}", WebUtility.HtmlEncode(info.VideoCodec ?? ""));
+                    html = html.Replace("{{AudioCodec}}", WebUtility.HtmlEncode(info.AudioCodec ?? ""));
 
-                        // Audio
-                        html = html.Replace("{{TitleTag}}", WebUtility.HtmlEncode(info.Title ?? ""));
-                        html = html.Replace("{{Artist}}", WebUtility.HtmlEncode(info.Artist ?? ""));
-                        html = html.Replace("{{Album}}", WebUtility.HtmlEncode(info.Album ?? ""));
-                        html = html.Replace("{{Year}}", info.Year > 0 ? info.Year.ToString() : "—");
-                        html = html.Replace("{{Track}}", info.Track > 0 ? info.Track.ToString() : "—");
-                        html = html.Replace("{{Genre}}", WebUtility.HtmlEncode(info.Genre ?? ""));
+                    // Audio
+                    html = html.Replace("{{TitleTag}}", WebUtility.HtmlEncode(info.Title ?? ""));
+                    html = html.Replace("{{Artist}}", WebUtility.HtmlEncode(info.Artist ?? ""));
+                    html = html.Replace("{{Album}}", WebUtility.HtmlEncode(info.Album ?? ""));
+                    html = html.Replace("{{Year}}", info.Year > 0 ? info.Year.ToString() : "—");
+                    html = html.Replace("{{Track}}", info.Track > 0 ? info.Track.ToString() : "—");
+                    html = html.Replace("{{Genre}}", WebUtility.HtmlEncode(info.Genre ?? ""));
 
-                        // 5. Blocs conditionnels Mustache
-                        html = ApplyConditional(html, "IfDuration", info.Duration > 0);
-                        html = ApplyConditional(html, "IfVideo", info.MediaType == "Video");
-                        html = ApplyConditional(html, "IfAudio", info.MediaType == "Audio");
-                        html = ApplyConditional(html, "IfSeries", !string.IsNullOrEmpty(info.SeriesName));
-                        html = ApplyConditional(html, "IfMovie", info.MediaType == "Video" && string.IsNullOrEmpty(info.SeriesName));
-                        html = ApplyConditional(html, "IfSeasonEpisode", info.Saison > 0 || info.Episode > 0);
-                        html = ApplyConditional(html, "IfEpisodeName", !string.IsNullOrEmpty(info.EpisodeName));
-                        html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
-                        html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
+                    // 5. Blocs conditionnels Mustache
+                    html = ApplyConditional(html, "IfDuration", info.Duration > 0);
+                    html = ApplyConditional(html, "IfVideo", info.MediaType == "Video");
+                    html = ApplyConditional(html, "IfAudio", info.MediaType == "Audio");
+                    html = ApplyConditional(html, "IfSeries", !string.IsNullOrEmpty(info.SeriesName));
+                    html = ApplyConditional(html, "IfMovie", info.MediaType == "Video" && string.IsNullOrEmpty(info.SeriesName));
+                    html = ApplyConditional(html, "IfSeasonEpisode", info.Saison > 0 || info.Episode > 0);
+                    html = ApplyConditional(html, "IfEpisodeName", !string.IsNullOrEmpty(info.EpisodeName));
+                    html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
+                    html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
+                    html = ApplyConditional(html, "IfRec", false);
 
                         // Traduction
                         html = HTMLTranslator.Translate(html);

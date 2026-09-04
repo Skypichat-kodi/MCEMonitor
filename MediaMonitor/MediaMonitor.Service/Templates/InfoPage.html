@@ -252,6 +252,49 @@
 
             {{/IfAudio}}
 
+            {{#IfRec}}
+
+                <div class="info-section">
+                    <span class="info-label">{{tr:Chaîne}} :</span> {{Channel}}
+                </div>
+
+                <div class="info-section">
+                    <span class="info-label">{{tr:Durée}} :</span> {{RecDuration}}
+                </div>
+
+                {{#IfSeries}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
+                </div>
+                {{/IfSeries}}
+
+                {{#IfSeasonEpisode}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
+                </div>
+                {{/IfSeasonEpisode}}
+
+                {{#IfEpisodeName}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
+                </div>
+                {{/IfEpisodeName}}
+
+                {{#IfSeries}}
+                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
+                    {{tr:Plus}}...
+                </button>
+                {{/IfSeries}}
+
+                {{#IfMovie}}
+                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+                    {{tr:Plus}}...
+                </button>
+                {{/IfMovie}}
+
+            {{/IfRec}}
+
+
         </div>
 
     </div>
