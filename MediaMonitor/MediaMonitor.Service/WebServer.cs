@@ -274,15 +274,21 @@ namespace MediaMonitor.Service
                             recHtml = recHtml.Replace("{{Saison}}", rec.Saison.ToString());
                             recHtml = recHtml.Replace("{{Episode}}", rec.Episode.ToString());
 
-                            // ?? Conditions Mustache pour REC ??
+                            // REC
                             recHtml = ApplyConditional(recHtml, "IfRec", true);
                             recHtml = ApplyConditional(recHtml, "IfFile", false);
                             recHtml = ApplyConditional(recHtml, "IfVideo", false);
                             recHtml = ApplyConditional(recHtml, "IfAudio", false);
 
                             recHtml = ApplyConditional(recHtml, "IfSeries", !string.IsNullOrEmpty(rec.SeriesName));
+                            recHtml = ApplyConditional(recHtml, "IfMovie", string.IsNullOrEmpty(rec.SeriesName));
                             recHtml = ApplyConditional(recHtml, "IfSeasonEpisode", rec.Saison > 0 || rec.Episode > 0);
                             recHtml = ApplyConditional(recHtml, "IfEpisodeName", !string.IsNullOrEmpty(rec.EpisodeName));
+
+                            recHtml = ApplyConditional(recHtml, "IfDuration", rec.Duration > 0);
+                            recHtml = ApplyConditional(recHtml, "IfVideoCodec", false);
+                            recHtml = ApplyConditional(recHtml, "IfAudioCodec", false);
+
 
                             // Traduction
                             recHtml = HTMLTranslator.Translate(recHtml);
@@ -379,6 +385,7 @@ namespace MediaMonitor.Service
                     html = ApplyConditional(html, "IfVideoCodec", !string.IsNullOrEmpty(info.VideoCodec));
                     html = ApplyConditional(html, "IfAudioCodec", !string.IsNullOrEmpty(info.AudioCodec));
                     html = ApplyConditional(html, "IfRec", false);
+                    html = ApplyConditional(html, "IfFile", true);
 
                         // Traduction
                         html = HTMLTranslator.Translate(html);

@@ -162,9 +162,11 @@
                 <span class="info-label">{{tr:Type}} :</span> {{MediaType}}
             </div>
 
+            {{#IfFile}}
             <div class="info-section">
                 <span class="info-label">{{tr:Taille}} :</span> {{SizeMB}} Mo
             </div>
+            {{/IfFile}}
 
             {{#IfDuration}}
             <div class="info-section">
