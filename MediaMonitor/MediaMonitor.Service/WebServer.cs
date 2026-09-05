@@ -244,8 +244,10 @@ namespace MediaMonitor.Service
                         if (string.IsNullOrEmpty(System.IO.Path.GetExtension(filePath)))
                         {
                             // Analyse REC locale
-                            var rec = FileAnalyzer.Analyze(filePath);
-
+                            var rec = _engine.FindRecByPath(filePath);
+                            if (rec == null)
+                                rec = FileAnalyzer.Analyze(filePath);
+                            
                             // Charger template
                             string recTemplatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
                             string recHtml = File.ReadAllText(recTemplatePath, Encoding.UTF8);
@@ -296,8 +298,6 @@ namespace MediaMonitor.Service
                             SendHtml(ctx, recHtml);
                             break;
                         }
-
-                        // ?? FICHIERS NORMAUX — TON CODE ORIGINAL ??
 
                         // 2. Analyser le fichier
                         var info = FileAnalyzer.Analyze(filePath);

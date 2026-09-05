@@ -570,6 +570,24 @@ namespace MediaMonitor.Core.Services
             return cleaned;
         }
 
+        public MediaUsageItem? FindRecByPath(string key)
+        {
+            // REC en cours
+            var live = _currentOpen.FirstOrDefault(x =>
+                x.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase) &&
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+
+            if (live != null)
+                return live;
+
+            // REC terminés
+            var hist = _history.FirstOrDefault(x =>
+                x.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase) &&
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+
+            return hist;
+        }
+
         // ============================================================
         //  GETTERS POUR IPC
         // ============================================================
