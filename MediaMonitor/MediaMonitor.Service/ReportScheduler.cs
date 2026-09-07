@@ -12,6 +12,10 @@ namespace MediaMonitor.Service
         private DateTime _lastReportSent = DateTime.MinValue;
         private bool _isSending = false;
 
+        // Ajout pour HomePageRenderer
+        public static DateTime LastReportTime { get; private set; } = DateTime.MinValue;
+        public static DateTime NextReportTime { get; private set; } = DateTime.MinValue;
+
         public ReportScheduler(MediaMonitorEngine engine)
         {
             _engine = engine;
@@ -53,7 +57,8 @@ namespace MediaMonitor.Service
             if (shutdown == null)
             {
                 Write("Aucune heure de shutdown ? envoi dans 1 minute");
-                return DateTime.Now.AddMinutes(1);
+                NextReportTime = DateTime.Now.AddMinutes(1);
+                return NextReportTime;
             }
 
             var target = DateTime.Today
@@ -66,8 +71,10 @@ namespace MediaMonitor.Service
 
             var remaining = target - DateTime.Now;
 
+            NextReportTime = target;
+
             Write($"Prochain envoi prévu à {target:HH:mm} (dans {remaining.Hours}h {remaining.Minutes}min)");
-            
+
             Program.WriteScheduleLog(
                 "[CODE01] " +
                 (LanguageManager.Get("Prochain envoi du rapport prévu à") ?? "Prochain envoi du rapport prévu à") +
@@ -116,6 +123,7 @@ namespace MediaMonitor.Service
                         await _engine.SendReportEmail();
 
                         _lastReportSent = DateTime.Now;
+                        LastReportTime = _lastReportSent; // MAJ pour HomePageRenderer
 
                         Program._lastReportStatus = "[CODE02] " +
                             (LanguageManager.Get("Rapport envoyé à") ?? "Rapport envoyé à") +
@@ -163,4 +171,3 @@ namespace MediaMonitor.Service
         }
     }
 }
-
