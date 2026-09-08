@@ -923,34 +923,33 @@ namespace MediaMonitor.UI
             popup2.ShowDialog();
         }
                 
-        // ⭐ Commande pour le bouton "i"
-        public ICommand ShowInfoCommand => new RelayCommand<string>(ShowInfo);
+        public ICommand ShowInfoCommand => new RelayCommand<MediaUsageItem>(ShowInfo);
 
-        // ⭐ Méthode appelée par la commande
-        private async void ShowInfo(string path)
+        private async void ShowInfo(MediaUsageItem info)
         {
-            if (string.IsNullOrWhiteSpace(path))
+            if (info == null)
                 return;
 
-            // ⭐ Si le "path" n'a PAS d'extension → ce n'est PAS un fichier → analyse locale
+            string path = info.Path;
+
+            // Pas d’extension → on affiche ce qu’on a déjà
             if (string.IsNullOrEmpty(System.IO.Path.GetExtension(path)))
             {
-                var info = MediaMonitor.Core.Services.FileAnalyzer.Analyze(path);
                 ShowInfoPopup(info);
                 return;
             }
 
-            // ⭐ Sinon → analyse complète via IPC
+            // Extension → IPC
             try
             {
-                var info = await ServiceIpcClient.GetFileInfoAsync(path);
-                ShowInfoPopup(info);
+                var fullInfo = await ServiceIpcClient.GetFileInfoAsync(path);
+                ShowInfoPopup(fullInfo);
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Erreur lors de l'analyse du fichier : " + ex.Message);
             }
-        }              
+        }
     }
 }
 

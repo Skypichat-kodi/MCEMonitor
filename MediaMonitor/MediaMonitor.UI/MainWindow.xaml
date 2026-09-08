@@ -868,7 +868,7 @@
                             <Button Content="i"
                                     Width="22" Height="22"
                                     Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding Path}"
+                                    CommandParameter="{Binding}"
                                     Style="{StaticResource InfoButtonStyle}"
                                     ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
                         </DataTemplate>
@@ -1001,7 +1001,7 @@
                             <Button Content="i"
                                     Width="22" Height="22"
                                     Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding Path}"
+                                    CommandParameter="{Binding}"
                                     Style="{StaticResource InfoButtonStyle}"
                                     ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
                         </DataTemplate>
