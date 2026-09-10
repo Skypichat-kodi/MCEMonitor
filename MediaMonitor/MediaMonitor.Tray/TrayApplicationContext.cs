@@ -15,13 +15,18 @@ namespace MediaMonitor.Tray
 
         public TrayApplicationContext()
         {
+            // On ne crée PAS le NotifyIcon ici.
+            // On laisse Program.cs vérifier que le service tourne.
+            InitializeTray();
+        }
+
+        private void InitializeTray()
+        {
             // ------------------------------------------------------------
-            // Chargement de l'icône
+            // Chargement de l'icône (chemin fiable Windows 10/11)
             // ------------------------------------------------------------
-            string iconPath = Path.Combine(
-                AppDomain.CurrentDomain.BaseDirectory,
-                "MediaMonitor.ico"
-            );
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            string iconPath = Path.Combine(exeDir, "MediaMonitor.ico");
 
             trayIcon = new NotifyIcon()
             {
@@ -107,6 +112,7 @@ namespace MediaMonitor.Tray
             if (!serviceRunning)
             {
                 trayIcon.Visible = false;
+                trayIcon.Dispose();
                 Application.Exit();
             }
         }
@@ -147,4 +153,3 @@ namespace MediaMonitor.Tray
         }
     }
 }
-

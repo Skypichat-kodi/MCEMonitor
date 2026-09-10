@@ -15,12 +15,12 @@ namespace MediaMonitor.Tray
         {
             bool createdNew;
 
-            // ?? Mutex global pour empêcher plusieurs instances du Tray
+            // Mutex global pour empêcher plusieurs instances du Tray
             _mutex = new Mutex(true, "Global\\MediaMonitor_Tray", out createdNew);
 
             if (!createdNew)
             {
-                // Une instance existe déjà ? on quitte proprement
+                // Une instance existe déjà ? on quitte immédiatement
                 return;
             }
 
@@ -29,20 +29,20 @@ namespace MediaMonitor.Tray
 
             try
             {
-                // Vérifier si le service tourne
+                // Vérifier si le service tourne AVANT de créer le Tray
                 bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Any();
 
                 if (!serviceRunning)
                 {
-                    // Le Tray ne doit pas être visible si le service n'est pas actif
+                    // Ne pas créer de NotifyIcon ? évite les icônes fantômes Windows 11
                     return;
                 }
 
+                // OK ? on lance le Tray (qui créera l'icône proprement)
                 Application.Run(new TrayApplicationContext());
             }
             catch (Exception ex)
             {
-                // ?? On ne casse jamais le Tray, ni l'UI
                 MessageBox.Show(
                     "Erreur dans MediaMonitor.Tray : " + ex.Message,
                     "Erreur",
@@ -53,4 +53,3 @@ namespace MediaMonitor.Tray
         }
     }
 }
-
