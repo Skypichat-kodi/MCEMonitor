@@ -17,6 +17,17 @@ namespace MediaMonitor.Core.Services
     {
         private readonly List<MediaUsageItem> _history = new();
         private readonly List<MediaUsageItem> _currentOpen = new();
+        private readonly List<MediaUsageItem> _historyBackup = new();
+
+        public void LoadBackup(List<MediaUsageItem> items)
+        {
+            _historyBackup.Clear();
+            if (items != null)
+                _historyBackup.AddRange(items);
+        }
+
+        public IReadOnlyList<MediaUsageItem> GetBackup() => _historyBackup;
+        
         private readonly System.Timers.Timer _timer;
         private string _lastImage = "";
         private int _startupCycles = 0;
@@ -570,22 +581,56 @@ namespace MediaMonitor.Core.Services
             return cleaned;
         }
 
+        public MediaUsageItem? FindByPath(string key)
+        {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+
+            // LIVE
+            var live = _currentOpen.FirstOrDefault(x =>
+                x.Path.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (live != null) return live;
+
+            // HISTORY
+            var hist = _history.FirstOrDefault(x =>
+                x.Path.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (hist != null) return hist;
+
+            // BACKUP
+            var backup = _historyBackup.FirstOrDefault(x =>
+                x.Path.Equals(key, StringComparison.OrdinalIgnoreCase) ||
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (backup != null) return backup;
+
+            return null;
+        }
+
         public MediaUsageItem? FindRecByPath(string key)
         {
+            if (string.IsNullOrWhiteSpace(key))
+                return null;
+
             // REC en cours
             var live = _currentOpen.FirstOrDefault(x =>
                 x.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase) &&
                 x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (live != null) return live;
 
-            if (live != null)
-                return live;
-
-            // REC terminés
+            // REC terminés (RAM)
             var hist = _history.FirstOrDefault(x =>
                 x.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase) &&
                 x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (hist != null) return hist;
 
-            return hist;
+            // REC en backup
+            var backup = _historyBackup.FirstOrDefault(x =>
+                x.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase) &&
+                x.Nom.Equals(key, StringComparison.OrdinalIgnoreCase));
+            if (backup != null) return backup;
+
+            return null;
         }
 
         // ============================================================
