@@ -81,6 +81,68 @@ namespace MediaMonitor.UI
                 DurationText.Visibility = Visibility.Collapsed;
             }
 
+            // --- REC ---
+            if (_info.MediaType.Equals("Rec", StringComparison.OrdinalIgnoreCase))
+            {
+                // Miniature REC (style vidéo)
+                AlbumArtBorder.Width = 260;
+                AlbumArtBorder.Height = 146;
+                AlbumArtImage.Stretch = Stretch.UniformToFill;
+                VideoOverlay.Visibility = Visibility.Collapsed;
+
+                // Chaîne
+                SeriesLabel.Visibility = Visibility.Visible;
+                SeriesText.Visibility = Visibility.Visible;
+                SeriesLabel.Text = "Chaîne :";
+                SeriesText.Text = string.IsNullOrEmpty(_info.Channel) ? "—" : _info.Channel;
+
+                // Durée REC ? masquée (tu ne veux plus l'afficher)
+                DurationLabel.Visibility = Visibility.Collapsed;
+                DurationText.Visibility = Visibility.Collapsed;
+
+                // Série
+                if (!string.IsNullOrEmpty(_info.SeriesName))
+                {
+                    EpisodeLabel.Visibility = Visibility.Visible;
+                    EpisodeText.Visibility = Visibility.Visible;
+                    EpisodeLabel.Text = "Série :";
+                    EpisodeText.Text = _info.SeriesName;
+                }
+
+                // Saison / Épisode
+                if (_info.Saison > 0 || _info.Episode > 0)
+                {
+                    SeasonEpisodeLabel.Visibility = Visibility.Visible;
+                    SeasonEpisodeText.Visibility = Visibility.Visible;
+                    SeasonEpisodeText.Text = $"{_info.Saison:00}x{_info.Episode:00}";
+                }
+
+                // Nom d’épisode
+                if (!string.IsNullOrEmpty(_info.EpisodeName))
+                {
+                    VideoCodecLabel.Visibility = Visibility.Visible;
+                    VideoCodecText.Visibility = Visibility.Visible;
+                    VideoCodecLabel.Text = "Épisode :";
+                    VideoCodecText.Text = _info.EpisodeName;
+                }
+
+                // Masquer les tags audio
+                Id3TitleLabel.Visibility = Visibility.Collapsed;
+                Id3Title.Visibility = Visibility.Collapsed;
+                Id3ArtistLabel.Visibility = Visibility.Collapsed;
+                Id3Artist.Visibility = Visibility.Collapsed;
+                Id3AlbumLabel.Visibility = Visibility.Collapsed;
+                Id3Album.Visibility = Visibility.Collapsed;
+                Id3YearLabel.Visibility = Visibility.Collapsed;
+                Id3Year.Visibility = Visibility.Collapsed;
+                Id3TrackLabel.Visibility = Visibility.Collapsed;
+                Id3Track.Visibility = Visibility.Collapsed;
+                Id3GenreLabel.Visibility = Visibility.Collapsed;
+                Id3Genre.Visibility = Visibility.Collapsed;
+
+                return; // IMPORTANT : ne pas passer dans le bloc audio
+            }
+
             // --- VIDÉO ---
             if (_info.MediaType == "Video")
             {
