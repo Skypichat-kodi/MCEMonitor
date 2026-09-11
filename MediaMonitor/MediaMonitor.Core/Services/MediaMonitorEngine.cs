@@ -449,8 +449,8 @@ namespace MediaMonitor.Core.Services
                 ? s.Nom
                 : channel;
 
-            // Nettoyage + extraction Saison/Episode
-            string titrePropre = CleanTvTitle(titreBrut, out int saison, out int episode);
+            // Nettoyage + extraction Saison/Episode + SeriesName/EpisodeName
+            string titrePropre = CleanTvTitle(titreBrut, out int saison, out int episode, out string seriesName, out string episodeName);
 
             string nomFinal = titrePropre;
 
@@ -509,13 +509,15 @@ namespace MediaMonitor.Core.Services
                 .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
                 .ToUpperInvariant();
 
-            // *** VERSION CORRECTE ***
             return new MediaUsageItem
             {
                 SessionId = 0,
                 ClientName = resolvedIp,
                 ClientDisplay = display,
-                Path = nomFinal,
+
+                // ? REC ? pas de chemin
+                Path = mediaType == "rec" ? "" : nomFinal,
+
                 FileName = nomFinal,
                 UNC = "",
                 Timestamp = DateTime.Now,
@@ -523,60 +525,95 @@ namespace MediaMonitor.Core.Services
                 Nom = nomFinal,
                 Saison = saison,
                 Episode = episode,
-                Channel = channel 
+                Channel = channel,
+
+                // ? Ajout des champs série/épisode
+                SeriesName = seriesName,
+                EpisodeName = episodeName
             };
         }
-        
+                
         // ============================================================
-        //  FILTRAGE DES TITRES TV
+        //  PARSING COMPLET DES TITRES TV DVBVIEWER
         // ============================================================
-        private string CleanTvTitle(string nom, out int saison, out int episode)
+        private string CleanTvTitle(string nom, out int saison, out int episode, out string seriesName, out string episodeName)
         {
             saison = 0;
             episode = 0;
+            seriesName = "";
+            episodeName = "";
 
             if (string.IsNullOrWhiteSpace(nom))
                 return "";
 
+            string work = nom.Trim();
+
             // --- RÈGLE 1 : Saison / Episode ---
-            var mClassic = Regex.Match(nom, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
+            var mClassic = Regex.Match(work, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
             if (mClassic.Success)
             {
                 saison = int.Parse(mClassic.Groups[1].Value);
                 episode = int.Parse(mClassic.Groups[2].Value);
 
-                int idx = nom.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
-                if (idx > 0)
-                    return nom.Substring(0, idx).Trim();
+                // SeriesName = avant " - Saison"
+                int idxSeason = work.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
+                if (idxSeason > 0)
+                    seriesName = work.Substring(0, idxSeason).Trim();
+                else
+                    seriesName = work;
 
-                return nom.Trim();
+                // EpisodeName = après le dernier " : "
+                int idxColon = work.LastIndexOf(" : ");
+                if (idxColon > 0)
+                {
+                    episodeName = work.Substring(idxColon + 3).Trim();
+
+                    // couper les tags éventuels
+                    int idxDashEp = episodeName.IndexOf(" - ");
+                    if (idxDashEp > 0)
+                        episodeName = episodeName.Substring(0, idxDashEp).Trim();
+                }
+
+                // le titre propre = SeriesName
+                return seriesName;
             }
 
-            // --- RÈGLE 2 : Pas de Saison/Episode ? couper au premier "-" ---
-            int idxDash = nom.IndexOf(" - ");
-            string titre = idxDash > 0 ? nom.Substring(0, idxDash) : nom;
+            // --- RÈGLE 2 : Série sans Saison/Episode mais avec " : " ---
+            int idxColonSimple = work.IndexOf(" : ");
+            if (idxColonSimple > 0)
+            {
+                seriesName = work.Substring(0, idxColonSimple).Trim();
+                episodeName = work.Substring(idxColonSimple + 3).Trim();
 
-            // --- Remplacer les caractères spéciaux par une virgule ---
+                int idxDashEp = episodeName.IndexOf(" - ");
+                if (idxDashEp > 0)
+                    episodeName = episodeName.Substring(0, idxDashEp).Trim();
+
+                return seriesName;
+            }
+
+            // --- RÈGLE 3 : Film / Doc / Mag / autres ---
+            int idxDash = work.IndexOf(" - ");
+            string titre = idxDash > 0 ? work.Substring(0, idxDash) : work;
+
+            // Remplacer les caractères spéciaux par une virgule
             var sb = new StringBuilder();
             foreach (char c in titre)
             {
-                // autorisés : lettres, chiffres, espace, &, ', :
                 if (char.IsLetterOrDigit(c) || c == ' ' || c == '&' || c == '\'' || c == ':')
-                {
                     sb.Append(c);
-                }
                 else
-                {
-                    // caractère spécial ? virgule
                     sb.Append(", ");
-                }
             }
 
-            // Nettoyage
             string cleaned = sb.ToString();
             cleaned = Regex.Replace(cleaned, @"\s*,\s*,\s*", ", ");
             cleaned = Regex.Replace(cleaned, @"\s{2,}", " ").Trim();
             cleaned = cleaned.Trim(' ', ',');
+
+            // film/doc ? pas de seriesName/episodeName
+            seriesName = "";
+            episodeName = "";
 
             return cleaned;
         }

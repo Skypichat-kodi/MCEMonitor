@@ -248,44 +248,51 @@
 
             {{/IfAudio}}
 
-            {{#IfRec}}
+{{#IfRec}}
 
-                <div class="info-section">
-                    <span class="info-label">{{tr:Chaîne}} :</span> {{Channel}}
-                </div>
+    <!-- Chaîne -->
+    <div class="info-section">
+        <span class="info-label">{{tr:Chaîne}} :</span> {{Channel}}
+    </div>
 
-                {{#IfSeries}}
-                <div class="info-section">
-                    <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
-                </div>
-                {{/IfSeries}}
+    <!-- REC SÉRIE -->
+    {{#IfRecSerie}}
+    <div class="info-section">
+        <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
+    </div>
+    {{/IfRecSerie}}
 
-                {{#IfSeasonEpisode}}
-                <div class="info-section">
-                    <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
-                </div>
-                {{/IfSeasonEpisode}}
+    {{#IfRecEpisode}}
+    <div class="info-section">
+        <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
+    </div>
+    {{/IfRecEpisode}}
 
-                {{#IfEpisodeName}}
-                <div class="info-section">
-                    <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
-                </div>
-                {{/IfEpisodeName}}
+    {{#IfRecSeasonEpisode}}
+    <div class="info-section">
+        <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
+    </div>
+    {{/IfRecSeasonEpisode}}
 
-                {{#IfSeries}}
-                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
-                    {{tr:Plus}}...
-                </button>
-                {{/IfSeries}}
+    <!-- TMDB pour les séries -->
+    {{#IfRecSerie}}
+    <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
+        {{tr:Plus}}...
+    </button>
+    {{/IfRecSerie}}
 
-                {{#IfMovie}}
-                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
-                    {{tr:Plus}}...
-                </button>
-                {{/IfMovie}}
+    <!-- REC FILM -->
+    {{#IfRecMovie}}
+    <div class="info-section">
+        <span class="info-label">{{tr:Titre}} :</span> {{Title}}
+    </div>
 
-            {{/IfRec}}
+    <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+        {{tr:Plus}}...
+    </button>
+    {{/IfRecMovie}}
 
+{{/IfRec}}
 
         </div>
 

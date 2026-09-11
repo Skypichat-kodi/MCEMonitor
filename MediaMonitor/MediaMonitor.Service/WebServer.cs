@@ -243,52 +243,57 @@ namespace MediaMonitor.Service
                         // ============================================================
                         if (string.IsNullOrEmpty(Path.GetExtension(filePath)))
                         {
-                            {
-                                var rec = _engine.FindRecByPath(filePath);
+                            var rec = _engine.FindRecByPath(filePath);
 
-                                if (rec == null)
-                                    rec = FileAnalyzer.Analyze(filePath);
+                            if (rec == null)
+                                rec = FileAnalyzer.Analyze(filePath);
 
-                                string recTemplatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
-                                string recHtml = File.ReadAllText(recTemplatePath, Encoding.UTF8);
+                            string recTemplatePath = Path.Combine(AppContext.BaseDirectory, "Templates", "InfoPage.html");
+                            string recHtml = File.ReadAllText(recTemplatePath, Encoding.UTF8);
 
-                                string recIconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Icons", "webicon_serie.png");
-                                string recIconBase64 = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(recIconPath));
-                                recHtml = recHtml.Replace("{{IconPath}}", recIconBase64);
+                            // Icône REC
+                            string recIconPath = Path.Combine(AppContext.BaseDirectory, "Resources", "Icons", "webicon_serie.png");
+                            string recIconBase64 = "data:image/png;base64," + Convert.ToBase64String(File.ReadAllBytes(recIconPath));
+                            recHtml = recHtml.Replace("{{IconPath}}", recIconBase64);
 
-                                recHtml = recHtml.Replace("{{FileName}}", WebUtility.HtmlEncode(rec.Nom));
-                                recHtml = recHtml.Replace("{{Title}}", WebUtility.HtmlEncode(rec.Nom));
-                                recHtml = recHtml.Replace("{{Channel}}", WebUtility.HtmlEncode(rec.Channel));
-                                recHtml = recHtml.Replace("{{Path}}", WebUtility.HtmlEncode(rec.Path));
-                                recHtml = recHtml.Replace("{{MediaType}}", "REC");
+                            // Champs généraux
+                            recHtml = recHtml.Replace("{{FileName}}", WebUtility.HtmlEncode(rec.Nom));
+                            recHtml = recHtml.Replace("{{Title}}", WebUtility.HtmlEncode(rec.Nom));
+                            recHtml = recHtml.Replace("{{Channel}}", WebUtility.HtmlEncode(rec.Channel));
+                            recHtml = recHtml.Replace("{{Path}}", WebUtility.HtmlEncode(rec.Path));
+                            recHtml = recHtml.Replace("{{MediaType}}", "REC");
 
-                                string recDurationText = rec.Duration > 0
-                                    ? TimeSpan.FromSeconds(rec.Duration).ToString(@"hh\:mm\:ss")
-                                    : "—";
-                                recHtml = recHtml.Replace("{{RecDuration}}", recDurationText);
+                            // Durée
+                            string recDurationText = rec.Duration > 0
+                                ? TimeSpan.FromSeconds(rec.Duration).ToString(@"hh\:mm\:ss")
+                                : "—";
+                            recHtml = recHtml.Replace("{{RecDuration}}", recDurationText);
 
-                                recHtml = recHtml.Replace("{{SeriesName}}", WebUtility.HtmlEncode(rec.SeriesName ?? ""));
-                                recHtml = recHtml.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(rec.EpisodeName ?? ""));
-                                recHtml = recHtml.Replace("{{Saison}}", rec.Saison.ToString());
-                                recHtml = recHtml.Replace("{{Episode}}", rec.Episode.ToString());
+                            // Champs DVBViewer (inchangés)
+                            recHtml = recHtml.Replace("{{SeriesName}}", WebUtility.HtmlEncode(rec.SeriesName ?? ""));
+                            recHtml = recHtml.Replace("{{EpisodeName}}", WebUtility.HtmlEncode(rec.EpisodeName ?? ""));
+                            recHtml = recHtml.Replace("{{Saison}}", rec.Saison.ToString());
+                            recHtml = recHtml.Replace("{{Episode}}", rec.Episode.ToString());
 
-                                recHtml = ApplyConditional(recHtml, "IfRec", true);
-                                recHtml = ApplyConditional(recHtml, "IfFile", false);
-                                recHtml = ApplyConditional(recHtml, "IfVideo", false);
-                                recHtml = ApplyConditional(recHtml, "IfAudio", false);
+                            // === Flags REC ===
+                            recHtml = ApplyConditional(recHtml, "IfRec", true);
+                            recHtml = ApplyConditional(recHtml, "IfFile", false);
+                            recHtml = ApplyConditional(recHtml, "IfVideo", false);
+                            recHtml = ApplyConditional(recHtml, "IfAudio", false);
 
-                                recHtml = ApplyConditional(recHtml, "IfSeries", !string.IsNullOrEmpty(rec.SeriesName));
-                                recHtml = ApplyConditional(recHtml, "IfMovie", string.IsNullOrEmpty(rec.SeriesName));
-                                recHtml = ApplyConditional(recHtml, "IfSeasonEpisode", rec.Saison > 0 || rec.Episode > 0);
-                                recHtml = ApplyConditional(recHtml, "IfEpisodeName", !string.IsNullOrEmpty(rec.EpisodeName));
+                            // === Flags spécifiques REC (séparés des fichiers) ===
+                            recHtml = ApplyConditional(recHtml, "IfRecSerie", !string.IsNullOrEmpty(rec.SeriesName));
+                            recHtml = ApplyConditional(recHtml, "IfRecMovie", string.IsNullOrEmpty(rec.SeriesName));
+                            recHtml = ApplyConditional(recHtml, "IfRecEpisode", !string.IsNullOrEmpty(rec.EpisodeName));
+                            recHtml = ApplyConditional(recHtml, "IfRecSeasonEpisode", rec.Saison > 0 || rec.Episode > 0);
 
-                                recHtml = ApplyConditional(recHtml, "IfDuration", rec.Duration > 0);
+                            // Durée
+                            recHtml = ApplyConditional(recHtml, "IfDuration", rec.Duration > 0);
 
-                                recHtml = HTMLTranslator.Translate(recHtml);
+                            recHtml = HTMLTranslator.Translate(recHtml);
 
-                                SendHtml(ctx, recHtml);
-                                break;
-                            }
+                            SendHtml(ctx, recHtml);
+                            break;
                         }
 
                         // ============================================================
