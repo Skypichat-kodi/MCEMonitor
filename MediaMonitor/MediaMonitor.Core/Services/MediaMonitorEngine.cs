@@ -468,7 +468,7 @@ namespace MediaMonitor.Core.Services
                     string encodedChannel = Uri.EscapeDataString(channel);
 
                     // URL finale
-                    channelLogo = $"{baseLogoUrl}/Logos/{encodedChannel}.png";
+                    channelLogo = $"{baseLogoUrl}/Logos/{encodedChannel}.png?height=200";
                 }
             }
             catch
