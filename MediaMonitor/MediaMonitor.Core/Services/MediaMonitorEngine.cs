@@ -34,6 +34,9 @@ namespace MediaMonitor.Core.Services
         private readonly DateTime _startTime = DateTime.Now;
         private readonly object _dvbLock = new();
         private List<DvbViewerClientStream> _dvbCache = new();
+        
+        private string _dvbBaseUrl = "";
+        
         private System.Timers.Timer? _dvbTimer;
 
         private readonly Dictionary<string, DateTime> _openSince = new();
@@ -240,11 +243,10 @@ namespace MediaMonitor.Core.Services
 
                     // DVBViewer
                     var dvb = GetCachedDvbViewerStreams();
-                    CoreLog.Write($"DVB: {dvb.Count} flux récupérés du cache");
 
-                    foreach (var s in dvb)
+                    foreach (var s in dvb.Streams)
                     {
-                        var item = BuildDvbItem(s);
+                        var item = BuildDvbItem(s, dvb.BaseUrl);
 
                         bool exists = _currentOpen.Any(x =>
                             x.ClientName == item.ClientName &&
@@ -416,12 +418,15 @@ namespace MediaMonitor.Core.Services
         {
             try
             {
-                var streams = await GetDvbViewerStreamsAsync();
+                var result = await GetDvbViewerStreamsAsync();
 
                 lock (_dvbLock)
-                    _dvbCache = streams;
+                {
+                    _dvbCache = result.Streams;
+                    _dvbBaseUrl = result.BaseUrl;
+                }
 
-                CoreLog.Write($"DVBViewer: cache mis à jour ({streams.Count} lignes).");
+                CoreLog.Write($"DVBViewer: cache mis à jour ({result.Streams.Count} lignes).");
             }
             catch (Exception ex)
             {
@@ -432,7 +437,7 @@ namespace MediaMonitor.Core.Services
         // ============================================================
         //  OBTENTION DES INFOS EPG DVBVIEWER
         // ============================================================
-        private MediaUsageItem BuildDvbItem(DvbViewerClientStream s)
+        private MediaUsageItem BuildDvbItem(DvbViewerClientStream s, string dvbBaseUrl)
         {
             // Type cohérent avec WebServer
             string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
@@ -443,6 +448,33 @@ namespace MediaMonitor.Core.Services
             string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
                 ? s.Type.Substring(3).Trim()
                 : s.Type.Trim();
+
+            // Flag : afficher le logo à la place de la miniature
+            bool ifChannelLogo = mediaType == "rec" || mediaType == "tv";
+
+            // Construction de l'URL du logo du canal
+            string channelLogo = "";
+            try
+            {
+                if (!string.IsNullOrWhiteSpace(dvbBaseUrl))
+                {
+                    // Base URL sans /status.html
+                    string baseLogoUrl = dvbBaseUrl;
+                    int idx = baseLogoUrl.IndexOf("/status.html", StringComparison.OrdinalIgnoreCase);
+                    if (idx > 0)
+                        baseLogoUrl = baseLogoUrl.Substring(0, idx);
+
+                    // Encodage du nom du canal
+                    string encodedChannel = Uri.EscapeDataString(channel);
+
+                    // URL finale
+                    channelLogo = $"{baseLogoUrl}/Logos/{encodedChannel}.png";
+                }
+            }
+            catch
+            {
+                channelLogo = "";
+            }
 
             // Titre brut DVBViewer
             string titreBrut = !string.IsNullOrWhiteSpace(s.Nom)
@@ -514,9 +546,7 @@ namespace MediaMonitor.Core.Services
                 SessionId = 0,
                 ClientName = resolvedIp,
                 ClientDisplay = display,
-
-                // ? REC ? pas de chemin
-                Path = mediaType == "rec" ? "" : nomFinal,
+                Path = nomFinal,
 
                 FileName = nomFinal,
                 UNC = "",
@@ -527,9 +557,12 @@ namespace MediaMonitor.Core.Services
                 Episode = episode,
                 Channel = channel,
 
-                // ? Ajout des champs série/épisode
                 SeriesName = seriesName,
-                EpisodeName = episodeName
+                EpisodeName = episodeName,
+
+                // ? Correction : virgule manquante
+                IfChannelLogo = ifChannelLogo,
+                ChannelLogo = channelLogo
             };
         }
                 
@@ -704,10 +737,10 @@ namespace MediaMonitor.Core.Services
             }
         }
 
-        public List<DvbViewerClientStream> GetCachedDvbViewerStreams()
+        public (string BaseUrl, List<DvbViewerClientStream> Streams) GetCachedDvbViewerStreams()
         {
             lock (_dvbLock)
-                return new List<DvbViewerClientStream>(_dvbCache);
+                return (_dvbBaseUrl, new List<DvbViewerClientStream>(_dvbCache));
         }
 
         public string GenerateReportFromHistory()

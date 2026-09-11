@@ -260,6 +260,7 @@ namespace MediaMonitor.Service
                             recHtml = recHtml.Replace("{{FileName}}", WebUtility.HtmlEncode(rec.Nom));
                             recHtml = recHtml.Replace("{{Title}}", WebUtility.HtmlEncode(rec.Nom));
                             recHtml = recHtml.Replace("{{Channel}}", WebUtility.HtmlEncode(rec.Channel));
+                            recHtml = recHtml.Replace("{{ChannelLogo}}", WebUtility.HtmlEncode(rec.ChannelLogo ?? ""));
                             recHtml = recHtml.Replace("{{Path}}", WebUtility.HtmlEncode(rec.Path));
                             recHtml = recHtml.Replace("{{MediaType}}", "REC");
 
@@ -415,6 +416,7 @@ namespace MediaMonitor.Service
                                 html = html.Replace("{{Saison}}", infoItem.Saison.ToString());
                                 html = html.Replace("{{Episode}}", infoItem.Episode.ToString());
                                 html = html.Replace("{{Channel}}", WebUtility.HtmlEncode(infoItem.Channel ?? ""));
+                                html = html.Replace("{{ChannelLogo}}", WebUtility.HtmlEncode(infoItem.ChannelLogo ?? ""));
 
                                 html = ApplyConditional(html, "IfRec", infoItem.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase));
                                 html = ApplyConditional(html, "IfFile", false);

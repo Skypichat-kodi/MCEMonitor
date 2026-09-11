@@ -147,6 +147,10 @@
         {{#IfVideo}}
         <img id="albumArt" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
         {{/IfVideo}}
+        
+        {{#IfRec}}
+        <img id="albumArt" src="{{ChannelLogo}}" alt="{{Channel}}">
+        {{/IfRec}}
 
         {{#IfAudio}}
         <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
@@ -154,9 +158,11 @@
 
         <div id="infoBody">
 
+            {{#IfFile}}
             <div class="info-section">
-                <span class="info-label">{{tr:Chemin}} :</span><br>{{Path}}
+                <span class="info-label">{{tr:Chemin}} :</span> {{Path}}
             </div>
+            {{/IfFile}}
 
             <div class="info-section">
                 <span class="info-label">{{tr:Type}} :</span> {{MediaType}}
@@ -248,51 +254,51 @@
 
             {{/IfAudio}}
 
-{{#IfRec}}
+            {{#IfRec}}
 
-    <!-- Chaîne -->
-    <div class="info-section">
-        <span class="info-label">{{tr:Chaîne}} :</span> {{Channel}}
-    </div>
+                <!-- Chaîne -->
+                <div class="info-section">
+                    <span class="info-label">{{tr:Chaîne}} :</span> {{Channel}}
+                </div>
 
-    <!-- REC SÉRIE -->
-    {{#IfRecSerie}}
-    <div class="info-section">
-        <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
-    </div>
-    {{/IfRecSerie}}
+                <!-- REC SÉRIE -->
+                {{#IfRecSerie}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Série}} :</span> {{SeriesName}}
+                </div>
+                {{/IfRecSerie}}
 
-    {{#IfRecEpisode}}
-    <div class="info-section">
-        <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
-    </div>
-    {{/IfRecEpisode}}
+                {{#IfRecEpisode}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Épisode}} :</span> {{EpisodeName}}
+                </div>
+                {{/IfRecEpisode}}
 
-    {{#IfRecSeasonEpisode}}
-    <div class="info-section">
-        <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
-    </div>
-    {{/IfRecSeasonEpisode}}
+                {{#IfRecSeasonEpisode}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Saison}} / {{tr:Épisode}} :</span> {{Saison}}x{{Episode}}
+                </div>
+                {{/IfRecSeasonEpisode}}
 
-    <!-- TMDB pour les séries -->
-    {{#IfRecSerie}}
-    <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
-        {{tr:Plus}}...
-    </button>
-    {{/IfRecSerie}}
+                <!-- TMDB pour les séries -->
+                {{#IfRecSerie}}
+                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
+                    {{tr:Plus}}...
+                </button>
+                {{/IfRecSerie}}
 
-    <!-- REC FILM -->
-    {{#IfRecMovie}}
-    <div class="info-section">
-        <span class="info-label">{{tr:Titre}} :</span> {{Title}}
-    </div>
+                <!-- REC FILM -->
+                {{#IfRecMovie}}
+                <div class="info-section">
+                    <span class="info-label">{{tr:Titre}} :</span> {{Title}}
+                </div>
 
-    <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
-        {{tr:Plus}}...
-    </button>
-    {{/IfRecMovie}}
+                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+                    {{tr:Plus}}...
+                </button>
+                {{/IfRecMovie}}
 
-{{/IfRec}}
+            {{/IfRec}}
 
         </div>
 

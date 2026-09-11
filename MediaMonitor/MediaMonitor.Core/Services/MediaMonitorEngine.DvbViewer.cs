@@ -12,31 +12,27 @@ namespace MediaMonitor.Core.Services
         /// - 1 ligne par enregistrement en cours
         /// - 1 ligne par client LiveTV
         /// </summary>
-        public async Task<List<DvbViewerClientStream>> GetDvbViewerStreamsAsync()
+        public async Task<(string BaseUrl, List<DvbViewerClientStream> Streams)> GetDvbViewerStreamsAsync()
         {
             CoreLog.Write("DVB: GetDvbViewerStreamsAsync() appelé");
 
-            // ?? COUPURE IMMÉDIATE SI SWITCH OFF
-        if (!DvbViewerEnabled)
-        {
-            CoreLog.Write("DVB: Fonction DVBViewer RS désactivée ? aucun appel effectué.");
-            return new List<DvbViewerClientStream>();
-        }
-
+            if (!DvbViewerEnabled)
+            {
+                CoreLog.Write("DVB: Fonction DVBViewer RS désactivée ? aucun appel effectué.");
+                return ("", new List<DvbViewerClientStream>());
+            }
 
             try
             {
-                // Vérification configuration
                 if (string.IsNullOrWhiteSpace(DvbViewerUrl))
                 {
                     CoreLog.Write("DVB: URL non configurée.");
-                    return new List<DvbViewerClientStream>();
+                    return ("", new List<DvbViewerClientStream>());
                 }
 
                 CoreLog.Write($"DVB: URL brute = '{DvbViewerUrl}'");
                 CoreLog.Write($"DVB: User = '{DvbViewerUser}'");
 
-                // Nettoyage URL
                 string baseUrl = DvbViewerUrl.Trim();
 
                 if (!baseUrl.Contains("status.html"))
@@ -49,7 +45,6 @@ namespace MediaMonitor.Core.Services
 
                 CoreLog.Write($"DVB: URL finale = '{baseUrl}'");
 
-                // Création client
                 var client = new DvbViewerStatusClient(
                     baseUrl,
                     DvbViewerUser,
@@ -57,8 +52,6 @@ namespace MediaMonitor.Core.Services
                 );
 
                 CoreLog.Write("DVB: Appel client.GetClientStreamsAsync()...");
-
-                // Appel HTTP + parsing
                 var streams = await client.GetClientStreamsAsync();
 
                 CoreLog.Write($"DVB: {streams.Count} flux trouvés");
@@ -66,12 +59,13 @@ namespace MediaMonitor.Core.Services
                 foreach (var s in streams)
                     CoreLog.Write($"DVB: Flux => {s.Client} | {s.Type} | {s.Nom}");
 
-                return streams;
+                // ? IMPORTANT : on renvoie l’URL que NOUS avons construite
+                return (baseUrl, streams);
             }
             catch (Exception ex)
             {
                 CoreLog.Write("DVB ERROR: " + ex.ToString());
-                return new List<DvbViewerClientStream>();
+                return ("", new List<DvbViewerClientStream>());
             }
         }
     }
