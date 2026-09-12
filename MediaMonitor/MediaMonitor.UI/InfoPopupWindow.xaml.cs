@@ -4,6 +4,9 @@ using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Media.Imaging;
+using System.Net;
+using System.Net.Http;
+using System.Threading.Tasks;
 
 namespace MediaMonitor.UI
 {
@@ -83,12 +86,12 @@ namespace MediaMonitor.UI
 
             // --- REC ---
             if (_info.MediaType.Equals("Rec", StringComparison.OrdinalIgnoreCase))
-            {
-                // Miniature REC (style vidéo)
-                AlbumArtBorder.Width = 260;
-                AlbumArtBorder.Height = 146;
-                AlbumArtImage.Stretch = Stretch.UniformToFill;
-                VideoOverlay.Visibility = Visibility.Collapsed;
+            {   
+                // Miniature logo
+                AlbumArtBorder.Width = 180;
+                AlbumArtBorder.Height = 100;
+                AlbumArtBorder.BorderThickness = new Thickness(0);
+                AlbumArtImage.Stretch = Stretch.Uniform;
 
                 // Chaîne
                 SeriesLabel.Visibility = Visibility.Visible;
@@ -139,8 +142,30 @@ namespace MediaMonitor.UI
                 Id3Track.Visibility = Visibility.Collapsed;
                 Id3GenreLabel.Visibility = Visibility.Collapsed;
                 Id3Genre.Visibility = Visibility.Collapsed;
+                
+                // Masquer chemin
+                PathLabel.Visibility = Visibility.Collapsed;
+                PathText.Visibility = Visibility.Collapsed;
 
-                return; // IMPORTANT : ne pas passer dans le bloc audio
+                // Masquer type
+                TypeLabel.Visibility = Visibility.Collapsed;
+                TypeText.Visibility = Visibility.Collapsed;
+
+                // Masquer taille
+                SizeLabel.Visibility = Visibility.Collapsed;
+                SizeText.Visibility = Visibility.Collapsed;
+
+                if (_info.IfChannelLogo &&
+                    !string.IsNullOrWhiteSpace(_info.ChannelLogo))
+                {
+                    LoadChannelLogo();
+                }
+                else
+                {
+                    AlbumArtImage.Source = DefaultCover;
+                }
+
+                return;
             }
 
             // --- VIDÉO ---
@@ -304,6 +329,60 @@ namespace MediaMonitor.UI
 
             TitleScrollTransform.BeginAnimation(TranslateTransform.XProperty, anim);
         }
+        
+private void LoadChannelLogo()
+{
+    try
+    {
+        string dvbUser = "";
+        string dvbPass = "";
+
+        string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.Web.config";
+
+        if (File.Exists(configPath))
+        {
+            var lines = File.ReadAllLines(configPath);
+
+            foreach (var line in lines)
+            {
+                if (line.StartsWith("DvbViewerUser=", StringComparison.OrdinalIgnoreCase))
+                    dvbUser = line.Split('=', 2)[1].Trim();
+
+                if (line.StartsWith("DvbViewerPass=", StringComparison.OrdinalIgnoreCase))
+                    dvbPass = line.Split('=', 2)[1].Trim();
+            }
+        }
+
+        var handler = new HttpClientHandler
+        {
+            Credentials = new NetworkCredential(
+                dvbUser,
+                dvbPass)
+        };
+
+        using var http = new HttpClient(handler);
+
+        byte[] bytes = http
+            .GetByteArrayAsync(_info.ChannelLogo)
+            .GetAwaiter()
+            .GetResult();
+
+        using var ms = new MemoryStream(bytes);
+
+        AlbumArtImage.Source = BitmapFrame.Create(
+            ms,
+            BitmapCreateOptions.IgnoreImageCache,
+            BitmapCacheOption.OnLoad);
+    }
+    catch (Exception ex)
+    {
+        MessageBox.Show(
+            "Erreur chargement logo DVBViewer\n\n" +
+            ex.ToString());
+
+        AlbumArtImage.Source = DefaultCover;
+    }
+}        
     }
 }
 

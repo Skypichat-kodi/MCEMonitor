@@ -855,7 +855,7 @@ namespace MediaMonitor.UI
             // ⭐ Si pas d’extension → analyse locale → pas d’IPC
             if (string.IsNullOrEmpty(System.IO.Path.GetExtension(path)))
             {
-                // On utilise directement l'info déjà fournie
+                // On utilise directement l'info déjà fournie             
                 var popup = new InfoPopupWindow(info);
                 popup.Owner = this;
                 popup.ShowDialog();

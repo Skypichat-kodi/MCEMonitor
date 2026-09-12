@@ -132,13 +132,13 @@
         <!-- Infos -->
         <StackPanel Grid.Row="4" Orientation="Vertical" Margin="0,10,0,0">
 
-            <TextBlock Text="{loc:Tr 'Chemin :'}" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="PathLabel" Text="{loc:Tr 'Chemin :'}" FontWeight="Bold" Foreground="#42A5F5"/>
             <TextBlock x:Name="PathText" Margin="0,0,0,10" TextWrapping="Wrap"/>
 
-            <TextBlock Text="{loc:Tr 'Type :'}" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="TypeLabel" Text="{loc:Tr 'Type :'}" FontWeight="Bold" Foreground="#42A5F5"/>
             <TextBlock x:Name="TypeText" Margin="0,0,0,10"/>
 
-            <TextBlock Text="{loc:Tr 'Taille :'}" FontWeight="Bold" Foreground="#42A5F5"/>
+            <TextBlock x:Name="SizeLabel" Text="{loc:Tr 'Taille :'}" FontWeight="Bold" Foreground="#42A5F5"/>
             <TextBlock x:Name="SizeText" Margin="0,0,0,10"/>
 
             <TextBlock x:Name="DurationLabel" Text="{loc:Tr 'Durée :'}" FontWeight="Bold" Foreground="#42A5F5"/>
