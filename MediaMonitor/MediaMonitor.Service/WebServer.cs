@@ -1,5 +1,6 @@
 using System;
 using System.Net;
+using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading;
@@ -225,6 +226,10 @@ namespace MediaMonitor.Service
                         SendHtml(ctx, BuildHomePage());
                         break;
 
+case "/logo":
+    ServeLogoAsync(ctx).GetAwaiter().GetResult();
+    break;
+    
                     case "/info":
                     {
                         ctx.Response.ContentEncoding = Encoding.UTF8;
@@ -1465,6 +1470,55 @@ namespace MediaMonitor.Service
             return html;
         }
 
+        private async System.Threading.Tasks.Task ServeLogoAsync(HttpListenerContext ctx)
+        {
+            try
+            {
+                string channel = ctx.Request.QueryString["channel"];
+
+                if (string.IsNullOrWhiteSpace(channel))
+                {
+                    ctx.Response.StatusCode = 400;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                var settings = WebServerSettings.Load();
+
+                string encoded = Uri.EscapeDataString(channel);
+
+                string baseUrl = settings.DvbViewerUrl;
+                baseUrl = baseUrl.Replace("/status.html?aktion=status", "");
+
+                string logoUrl = $"{baseUrl}/Logos/{encoded}.png?height=200";
+
+                var handler = new HttpClientHandler
+                {
+                    Credentials = new NetworkCredential(
+                        settings.DvbViewerUser,
+                        settings.DvbViewerPass)
+                };
+
+                using var http = new HttpClient(handler);
+
+                byte[] bytes = await http.GetByteArrayAsync(logoUrl);
+
+                ctx.Response.ContentType = "image/png";
+                ctx.Response.ContentLength64 = bytes.Length;
+
+                await ctx.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);
+
+                ctx.Response.Close();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("LOGO ERROR: " + ex.Message);
+
+                ctx.Response.StatusCode = 404;
+                ctx.Response.Close();
+            }
+        }
+              
         // ==========================
         //  TEMPLATE HTML BACKUP
         // ==========================
