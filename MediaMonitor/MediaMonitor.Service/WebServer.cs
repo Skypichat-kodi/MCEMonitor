@@ -561,7 +561,6 @@ namespace MediaMonitor.Service
                             break;
                         }
                     }
-
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                         break;
@@ -1601,7 +1600,7 @@ namespace MediaMonitor.Service
 
             .banner-logo {
                 position: fixed;
-                top: 10px;
+                top: 30px;
                 right: 20px;
                 height: 100px;
                 width: auto;
@@ -1771,7 +1770,33 @@ namespace MediaMonitor.Service
 
             .info-btn:hover {
                 background: #217dbb;
-            }            
+            } 
+            
+        #leftColumn {
+            position: relative;
+        }
+
+        .collapsed-label {
+            display: none;
+        }
+
+        #leftColumn.collapsed .collapsed-label {
+            display: block;
+
+            position: absolute;
+            top: 280px;
+            left: 8px;
+
+            transform: rotate(-90deg);
+            transform-origin: left top;
+
+            white-space: nowrap;
+            font-weight: bold;
+            font-size: 20px;
+            color: #ccc;
+
+            pointer-events: none;
+        }                       
         </style>
 
         </head>
@@ -1853,7 +1878,11 @@ namespace MediaMonitor.Service
 
             <!-- COLONNE GAUCHE -->
             <div class=""groupbox"" id=""leftColumn"">
-                <button class=""toggle-btn"" id=""toggleLeft"">&lt;</button>
+                <button class=""toggle-btn"" id=""toggleLeft"">&lt;&lt;</button>
+
+                <div class=""collapsed-label"">
+                    {{tr:STATISTIQUES AVANCÉES}}
+                </div>
 
                 <div class=""left-content"">
 
@@ -2140,26 +2169,29 @@ namespace MediaMonitor.Service
         });
 
         // COLLAPSIBLE
-        (function () {
-            const btn = document.getElementById('toggleLeft');
-            const leftCol = document.getElementById('leftColumn');
+(function () {
+    const btn = document.getElementById('toggleLeft');
+    const leftCol = document.getElementById('leftColumn');
 
-            if (!btn || !leftCol) return;
+    if (!btn || !leftCol) return;
 
-            let collapsed = false;
+    let collapsed = true;
 
-            btn.addEventListener('click', () => {
-                collapsed = !collapsed;
+    leftCol.classList.add('collapsed');
+    btn.textContent = '>';
 
-                if (collapsed) {
-                    leftCol.classList.add('collapsed');
-                    btn.textContent = '{{tr:>}}';
-                } else {
-                    leftCol.classList.remove('collapsed');
-                    btn.textContent = '{{tr:<}}';
-                }
-            });
-        })();
+    btn.addEventListener('click', () => {
+        collapsed = !collapsed;
+
+        if (collapsed) {
+            leftCol.classList.add('collapsed');
+            btn.textContent = '>';
+        } else {
+            leftCol.classList.remove('collapsed');
+            btn.textContent = '<';
+        }
+    });
+})();
         </script>
 
         <!-- ====================================================================== -->
