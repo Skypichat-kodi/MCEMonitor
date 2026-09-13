@@ -1474,6 +1474,7 @@ namespace MediaMonitor.Service
             var topClients = GetTopClientsStats(allItems);
             var mediaStats = GetMediaStatsPerClient(allItems);
             var mediaStatsHtml = BuildMediaStatsPerClientHtml(mediaStats);
+            var settings = WebServerSettings.Load();
 
             // TEMPLATE FINAL
             string html = BackupHtmlTemplate
@@ -1509,7 +1510,8 @@ namespace MediaMonitor.Service
                 .Replace("{{TOP_SERIES_ROWS}}", BuildTopSeriesRows(topSeries))
                 .Replace("{{TOP_ARTISTES_ROWS}}", BuildTopArtistesRows(topArtistes))
                 .Replace("{{TOP_CLIENTS_ROWS}}", BuildTopClientsRows(topClients))
-                .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml);
+                .Replace("{{TOP_MEDIA_PER_CLIENT}}", mediaStatsHtml)
+                .Replace("{{RETENTION_DAYS}}", settings.RetentionDays.ToString());
 
             // Traduction
             html = HTMLTranslator.Translate(html);
@@ -1806,10 +1808,7 @@ namespace MediaMonitor.Service
         <!--  BACKUP – BARRE D’ACTIONS + FILTRES -->
         <!-- ====================================================================== -->
 
-        <div class='header'>
-            <h1>{{tr:HISTORIQUE}}</h1>
-            <img class='banner-logo' src='/Resources/Images/banner-logo.png'/>
-        </div>
+        <h1>{{tr:HISTORIQUE SUR}} {{RETENTION_DAYS}} {{tr:JOURS}}</h1>
 
         <div style=""margin-bottom:20px; display:flex; gap:10px;"">
             <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">
@@ -2169,29 +2168,29 @@ namespace MediaMonitor.Service
         });
 
         // COLLAPSIBLE
-(function () {
-    const btn = document.getElementById('toggleLeft');
-    const leftCol = document.getElementById('leftColumn');
+        (function () {
+            const btn = document.getElementById('toggleLeft');
+            const leftCol = document.getElementById('leftColumn');
 
-    if (!btn || !leftCol) return;
+            if (!btn || !leftCol) return;
 
-    let collapsed = true;
+            let collapsed = true;
 
-    leftCol.classList.add('collapsed');
-    btn.textContent = '>';
-
-    btn.addEventListener('click', () => {
-        collapsed = !collapsed;
-
-        if (collapsed) {
             leftCol.classList.add('collapsed');
             btn.textContent = '>';
-        } else {
-            leftCol.classList.remove('collapsed');
-            btn.textContent = '<';
-        }
-    });
-})();
+
+            btn.addEventListener('click', () => {
+                collapsed = !collapsed;
+
+                if (collapsed) {
+                    leftCol.classList.add('collapsed');
+                    btn.textContent = '>';
+                } else {
+                    leftCol.classList.remove('collapsed');
+                    btn.textContent = '<';
+                }
+            });
+        })();
         </script>
 
         <!-- ====================================================================== -->
