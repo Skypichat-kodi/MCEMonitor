@@ -242,30 +242,15 @@
         </Style>        
     </Window.Resources>
 
-<Grid>
-
+    <Grid Background="{StaticResource Win11Background}">
     <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="2*"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="3*"/>
+        <RowDefinition Height="Auto"/>   <!-- 0 : Boutons -->
+        <RowDefinition Height="Auto"/>   <!-- 1 : Serveur Web -->
+        <RowDefinition Height="Auto"/>   <!-- 2 : Serveur TV -->
+        <RowDefinition Height="2*"/>     <!-- 3 : Tableau en cours -->
+        <RowDefinition Height="Auto"/>   <!-- 4 : Dernière image -->
+        <RowDefinition Height="3*"/>     <!-- 5 : Historique -->
     </Grid.RowDefinitions>
-
-    <!-- Fond sombre -->
-    <Rectangle Fill="#1E1E1E"
-               Grid.RowSpan="6"/>
-
-    <!-- Overlay -->
-    <Rectangle Grid.RowSpan="6">
-        <Rectangle.Fill>
-            <ImageBrush ImageSource="Resources/Images/Ui-background.png"
-                        Stretch="Fill"/>
-        </Rectangle.Fill>
-    </Rectangle>
-
-    <!-- puis le reste de ton contenu -->
 
         <!-- BOUTONS -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
