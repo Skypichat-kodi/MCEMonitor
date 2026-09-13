@@ -173,6 +173,50 @@ namespace MediaMonitor.Service
                     return;
                 }
 
+                if (path.StartsWith("/resources/icons/"))
+                {
+                    string fileName = Path.GetFileName(path);
+
+                    string fullPath = Path.Combine(@"C:\ProgramData\MCEMonitor\Resources\Icons", fileName);
+
+                    if (File.Exists(fullPath))
+                    {
+                        byte[] bytes = File.ReadAllBytes(fullPath);
+                        ctx.Response.ContentType = "image/png";
+                        ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                if (path.StartsWith("/resources/images/"))
+                {
+                    string fileName = Path.GetFileName(path);
+
+                    string fullPath =
+                        Path.Combine(
+                            @"C:\ProgramData\MCEMonitor\Resources\Images",
+                            fileName);
+
+                    if (File.Exists(fullPath))
+                    {
+                        byte[] bytes = File.ReadAllBytes(fullPath);
+
+                        ctx.Response.ContentType = "image/png";
+                        ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+                
                 switch (path)
                 {
                     case "/":
@@ -226,9 +270,9 @@ namespace MediaMonitor.Service
                         SendHtml(ctx, BuildHomePage());
                         break;
 
-case "/logo":
-    ServeLogoAsync(ctx).GetAwaiter().GetResult();
-    break;
+                    case "/logo":
+                        ServeLogoAsync(ctx).GetAwaiter().GetResult();
+                        break;
     
                     case "/info":
                     {
@@ -518,26 +562,6 @@ case "/logo":
                         }
                     }
 
-                    if (path.StartsWith("/resources/icons/"))
-                    {
-                        string fileName = Path.GetFileName(path);
-
-                        string fullPath = Path.Combine(@"C:\ProgramData\MCEMonitor\Resources\Icons", fileName);
-
-                        if (File.Exists(fullPath))
-                        {
-                            byte[] bytes = File.ReadAllBytes(fullPath);
-                            ctx.Response.ContentType = "image/png";
-                            ctx.Response.OutputStream.Write(bytes, 0, bytes.Length);
-                            ctx.Response.Close();
-                            return;
-                        }
-
-                        ctx.Response.StatusCode = 404;
-                        ctx.Response.Close();
-                        return;
-                    }
-
                     default:
                         SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                         break;
@@ -809,7 +833,17 @@ case "/logo":
         <title>{{tr:MediaMonitor – Tableau de bord}}</title>
         <link rel=""icon"" type=""image/x-icon"" href=""/favicon.ico"">
         <style>
-        body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+        body {
+            margin:0;
+            padding:20px;
+            font-family:Segoe UI,Arial;
+            background-color:#1e1e1e;
+            background-image:url('/Resources/Images/Web-background.png');
+            background-size:cover;
+            background-position:center;
+            background-repeat:no-repeat;
+            color:#e5e5e5;
+        }
         h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
         .container { display:flex; gap:20px; flex-wrap:wrap; }
         .groupbox { flex:1; min-width:260px; border:1px solid #3c3c3c; border-radius:6px; background:#252526; padding:12px; }
@@ -828,6 +862,15 @@ case "/logo":
         .type-video { background:#d19a66; }
         .type-rec   { background:#ff4d4d; color:white; }
         .type-tv    { background:#ffe066; color:black; }
+
+        .banner-logo {
+            position: fixed;
+            top: 10px;
+            right: 20px;
+            height: 100px;
+            width: auto;
+            z-index: 1000;
+        }
 
         .button-bar { margin-bottom:20px; display:flex; gap:10px; flex-wrap:wrap; }
         .button {
@@ -910,8 +953,13 @@ case "/logo":
         </script>
         ");
 
-        sb.Append("<h1>MediaMonitor – Tableau de bord</h1>");
-
+        sb.Append(@"
+        <div class='header'>
+            <h1>{{tr:TABLEAU DE BORD}}</h1>
+            <img class='banner-logo' src='/Resources/Images/banner-logo.png'/>
+        </div>
+        ");
+        
         sb.Append(@"
                 <div class='button-bar'>
                     <a href='/' class='button button-secondary'>{{tr:Rafraîchir}}</a>
@@ -1534,10 +1582,32 @@ case "/logo":
         <script src=""https://cdn.jsdelivr.net/npm/chart.js""></script>
 
         <style>
-            body { margin:0; padding:20px; font-family:Segoe UI,Arial; background:#1e1e1e; color:#e5e5e5; }
+            body {
+                margin:0;
+                padding:20px;
+                font-family:Segoe UI,Arial;
+                background-color:#1e1e1e;
+                background-image:url('/Resources/Images/Web-background.png');
+                background-size:cover;
+                background-position:center;
+                background-repeat:no-repeat;
+                background-attachment:fixed;
+
+                color:#e5e5e5;
+            }
+            
             h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
             .container { display:flex; gap:20px; }
 
+            .banner-logo {
+                position: fixed;
+                top: 10px;
+                right: 20px;
+                height: 100px;
+                width: auto;
+                z-index: 1000;
+            }
+        
             .groupbox {
                 flex:1;
                 border:1px solid #3c3c3c;
@@ -1711,7 +1781,10 @@ case "/logo":
         <!--  BACKUP – BARRE D’ACTIONS + FILTRES -->
         <!-- ====================================================================== -->
 
-        <h1>{{tr:Historique sauvegardé}}</h1>
+        <div class='header'>
+            <h1>{{tr:HISTORIQUE}}</h1>
+            <img class='banner-logo' src='/Resources/Images/banner-logo.png'/>
+        </div>
 
         <div style=""margin-bottom:20px; display:flex; gap:10px;"">
             <a href=""/download"" style=""padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;"">
