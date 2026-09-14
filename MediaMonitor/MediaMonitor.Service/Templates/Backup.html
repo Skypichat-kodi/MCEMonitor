@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{tr:Historique sauvegardé}} - MediaMonitor</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    body {
+        margin:0; padding:20px;
+        font-family:Segoe UI,Arial;
+        background-color:#1e1e1e;
+        background-image:url('/Resources/Images/Web-background.png');
+        background-size:cover; background-position:center;
+        background-repeat:no-repeat; background-attachment:fixed;
+        color:#e5e5e5;
+    }
+    h1 { margin:0 0 20px 0; font-size:20px; color:#fff; }
+    .container { display:flex; gap:20px; }
+
+    .banner-logo {
+        position: absolute;
+        top: 30px; right: 20px;
+        height: 100px; width: auto; z-index: 1000;
+    }
+
+    .groupbox {
+        flex:1; border:1px solid #3c3c3c; border-radius:6px;
+        background:#252526; padding:12px;
+        position:relative; transition: all 0.8s ease;
+    }
+    .left-content { transition: opacity 0.6s ease; }
+    .groupbox-title { font-weight:bold; margin-bottom:10px; color:#fff; }
+
+    .stats-grid {
+        display:grid; grid-template-columns:auto auto;
+        row-gap:6px; column-gap:12px; font-size:13px;
+    }
+    .label { color:#ccc; }
+    .value { font-weight:bold; color:#fff; }
+
+    .listing-header {
+        display:flex; justify-content:space-between;
+        margin-bottom:8px; font-size:13px;
+    }
+
+    table { width:100%; border-collapse:collapse; font-size:13px; }
+    th, td { padding:4px 6px; border-bottom:1px solid #3c3c3c; }
+    th { background:#2d2d30; color:#fff; }
+    tr:nth-child(even) td { background:#262626; }
+    tr:nth-child(odd) td { background:#1f1f1f; }
+
+    .type-badge { padding:1px 6px; border-radius:10px; font-size:11px; color:#fff; }
+    .type-audio { background:#007acc; }
+    .type-serie { background:#c586c0; }
+    .type-video { background:#d19a66; }
+    .type-rec   { background:#ff4d4d; color:white; }
+    .type-tv    { background:#ffe066; color:black; }
+
+    select {
+        background:#2d2d30; color:#e5e5e5;
+        border:1px solid #3c3c3c; border-radius:4px;
+        padding:2px 4px;
+    }
+    label { margin-right:4px; }
+
+    td, th { border-right: 1px solid #3c3c3c; }
+    td:last-child, th:last-child { border-right: none; }
+    td:nth-child(2), th:nth-child(2) { text-align:center; }
+
+    #leftColumn { overflow: visible; transition: all 0.6s ease; position: relative; }
+    #leftColumn.collapsed {
+        flex: 0 0 40px !important;
+        max-width: 40px !important;
+        min-width: 40px !important;
+        padding: 12px 4px;
+    }
+    #leftColumn.collapsed .left-content {
+        opacity: 0; height: 0; overflow: hidden; padding: 0; margin: 0;
+    }
+
+    .toggle-btn {
+        position: absolute; top: 10px; right: -18px;
+        width: 28px; height: 28px; border-radius: 50%;
+        border: none; background: #444; color: #fff;
+        cursor: pointer; font-size: 18px; line-height: 28px;
+        text-align: center; z-index: 50;
+    }
+    .toggle-btn:hover { background:#666; }
+
+    .info-btn {
+        display: inline-flex; justify-content: center; align-items: center;
+        width: 28px; height: 28px; background: #3498db; color: white;
+        border-radius: 50%; text-decoration: none; font-weight: bold;
+        font-family: Arial, sans-serif; transition: background 0.2s;
+    }
+    .info-btn:hover { background: #217dbb; }
+
+    .collapsed-label { display: none; }
+    #leftColumn.collapsed .collapsed-label {
+        display: block;
+        position: absolute; top: 280px; left: 8px;
+        transform: rotate(-90deg);
+        transform-origin: left top;
+        white-space: nowrap;
+        font-weight: bold; font-size: 20px; color: #ccc;
+        pointer-events: none;
+    }
+</style>
+</head>
+<body>
+
+<div class='header'>
+    <h1>{{tr:HISTORIQUE SUR}} {{RETENTION_DAYS}} {{tr:JOURS}}</h1>
+    <img class='banner-logo' src='/Resources/Images/banner-logo.png'/>
+</div>
+
+<div style="margin-bottom:20px; display:flex; gap:10px;">
+    <a href="/download" style="padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;">
+        {{tr:Télécharger}}
+    </a>
+    <a href="/purge"
+       onclick="return confirm('{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?');"
+       style="padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;">
+       {{tr:Purger}}
+    </a>
+    <a href="/" style="padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;">
+        {{tr:Retour}}
+    </a>
+</div>
+
+<div style="margin-bottom:15px; display:flex; gap:20px; flex-wrap:wrap;">
+
+    <div>
+        <label>{{tr:Filtrer par type}} :</label>
+        <select onchange="location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';">
+            <option value='all' {{SEL_ALL}}>{{tr:Tous}}</option>
+            <option value='audio' {{SEL_AUDIO}}>{{tr:Audio}}</option>
+            <option value='serie' {{SEL_SERIE}}>{{tr:Séries}}</option>
+            <option value='video' {{SEL_VIDEO}}>{{tr:Vidéos}}</option>
+        </select>
+    </div>
+
+    <div>
+        <label>{{tr:Filtrer par client}} :</label>
+        <select onchange="location.href='?type={{FILTER_TYPE}}&client=' + this.value + '&date={{DATE}}&sort={{SORT}}';">
+            {{CLIENT_OPTIONS}}
+        </select>
+    </div>
+
+    <div>
+        <label>{{tr:Filtrer par date}} :</label>
+        <select onchange="location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date=' + this.value + '&sort={{SORT}}';">
+            <option value='all' {{SEL_DATE_ALL}}>{{tr:Tout}}</option>
+            <option value='today' {{SEL_DATE_TODAY}}>{{tr:Aujourd’hui}}</option>
+            <option value='yesterday' {{SEL_DATE_YESTERDAY}}>{{tr:Hier}}</option>
+            <option value='7' {{SEL_DATE_7}}>{{tr:7 jours}}</option>
+            <option value='30' {{SEL_DATE_30}}>{{tr:30 jours}}</option>
+        </select>
+    </div>
+
+    <div>
+        <label>{{tr:Trier}} :</label>
+        <select onchange="location.href='?type={{FILTER_TYPE}}&client={{FILTER_CLIENT}}&date={{DATE}}&sort=' + this.value;">
+            <option value='date_desc' {{SEL_DATEDESC}}>{{tr:Date +}}</option>
+            <option value='date_asc' {{SEL_DATEASC}}>{{tr:Date -}}</option>
+            <option value='name_asc' {{SEL_NAMEASC}}>{{tr:Nom (A–Z)}}</option>
+            <option value='name_desc' {{SEL_NAMEDESC}}>{{tr:Nom (Z–A)}}</option>
+        </select>
+    </div>
+
+</div>
+
+<div class="container">
+
+    <!-- COLONNE GAUCHE -->
+    <div class="groupbox" id="leftColumn">
+        <button class="toggle-btn" id="toggleLeft">&lt;&lt;</button>
+
+        <div class="collapsed-label">{{tr:STATISTIQUES AVANCÉES}}</div>
+
+        <div class="left-content">
+
+            <div class="groupbox-title">{{tr:Statistiques}}</div>
+            <div class="stats-grid">
+                <div class="label">{{tr:Titres lus}} :</div><div class="value">{{TOTAL}}</div>
+                <div class="label">{{tr:Audio}} :</div><div class="value">{{AUDIO}}</div>
+                <div class="label">{{tr:Séries}} :</div><div class="value">{{SERIES}}</div>
+                <div class="label">{{tr:Vidéos}} :</div><div class="value">{{VIDEOS}}</div>
+            </div>
+
+            <br>
+
+            <div class="groupbox-title">{{tr:Graphiques}}</div>
+
+            <div style="display:flex; gap:15px; align-items:stretch;">
+                <div style="flex:1; background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;">
+                    <div style="text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;">
+                        {{tr:Répartition par type}}
+                    </div>
+                    <canvas id="chartTypes" height="160"></canvas>
+                </div>
+
+                <div style="width:1px; background:#3c3c3c;"></div>
+
+                <div style="flex:1; display:flex; flex-direction:column; gap:15px;">
+                    <div style="background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;">
+                        <div style="text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;">
+                            {{tr:Activité par heure}}
+                        </div>
+                        <canvas id="chartHours" height="160"></canvas>
+                    </div>
+
+                    <div style="background:#2b2b2b; border:1px solid #3c3c3c; border-radius:6px; padding:10px;">
+                        <div style="text-align:center; font-weight:bold; margin-bottom:8px; color:#fff;">
+                            {{tr:Médias par client}}
+                        </div>
+                        <canvas id="chartClients" height="160"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <br>
+
+            <div class="groupbox-title">{{tr:Statistiques avancées}}</div>
+
+            <div class="groupbox">
+                <div class="groupbox-title">{{tr:Top séries}}</div>
+                <table>
+                    <thead><tr><th>{{tr:Série}}</th><th>{{tr:Lectures}}</th></tr></thead>
+                    <tbody>{{TOP_SERIES_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <div class="groupbox">
+                <div class="groupbox-title">{{tr:Top artistes}}</div>
+                <table>
+                    <thead><tr><th>{{tr:Artiste}}</th><th>{{tr:Lectures}}</th></tr></thead>
+                    <tbody>{{TOP_ARTISTES_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <div class="groupbox">
+                <div class="groupbox-title">{{tr:Top clients}}</div>
+                <table>
+                    <thead><tr><th>{{tr:Client}}</th><th>{{tr:Lectures}}</th></tr></thead>
+                    <tbody>{{TOP_CLIENTS_ROWS}}</tbody>
+                </table>
+            </div>
+
+            <div class="groupbox">
+                <div class="groupbox-title">{{tr:Top médias par client}}</div>
+                {{TOP_MEDIA_PER_CLIENT}}
+            </div>
+
+        </div>
+    </div>
+
+    <!-- COLONNE DROITE -->
+    <div class="groupbox">
+        <div class="groupbox-title">{{tr:Listing des titres}}</div>
+        <div class="listing-header">
+            <span>{{tr:Période}} : {{PERIOD}}</span>
+            <span>{{COUNT}} {{tr:élément(s)}}</span>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>{{tr:Type}}</th>
+                    <th>{{tr:Titre}}</th>
+                    <th>{{tr:Saison}}</th>
+                    <th>{{tr:Épisode}}</th>
+                    <th>{{tr:Canal}}</th>
+                    <th>{{tr:Client}}</th>
+                    <th>{{tr:Date}}</th>
+                    <th>{{tr:Info}}</th>
+                </tr>
+            </thead>
+            <tbody>{{ROWS}}</tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+const audio = {{AUDIO}};
+const series = {{SERIES}};
+const videos = {{VIDEOS}};
+const rec = {{REC}};
+const tv = {{TV}};
+const hoursData = {{HOURS_DATA}};
+
+const colors = {
+    audio: '#007acc',
+    series: '#c586c0',
+    video: '#d19a66',
+    rec:   '#ff4d4d',
+    tv:    '#ffe066'
+};
+
+new Chart(document.getElementById('chartTypes'), {
+    type: 'doughnut',
+    data: {
+        labels: ['{{tr:Audio}}','{{tr:Séries}}','{{tr:Vidéos}}','{{tr:REC}}','{{tr:TV}}'],
+        datasets: [{
+            data: [audio, series, videos, rec, tv],
+            backgroundColor: [colors.audio, colors.series, colors.video, colors.rec, colors.tv]
+        }]
+    },
+    options: { plugins: { legend: { labels: { color:'#fff' } } } }
+});
+
+new Chart(document.getElementById('chartHours'), {
+    type: 'line',
+    data: {
+        labels: [...Array(24).keys()].map(h => (h<10?'0':'') + h + 'h'),
+        datasets: [
+            { label:'{{tr:Audio}}',  data:hoursData.map(h=>h.audio??0), borderColor:colors.audio,  backgroundColor:'rgba(0,122,204,0.25)',  tension:0.3 },
+            { label:'{{tr:Séries}}', data:hoursData.map(h=>h.serie??0), borderColor:colors.series, backgroundColor:'rgba(197,134,192,0.25)',tension:0.3 },
+            { label:'{{tr:Vidéos}}', data:hoursData.map(h=>h.video??0), borderColor:colors.video,  backgroundColor:'rgba(209,154,102,0.25)',tension:0.3 },
+            { label:'REC',           data:hoursData.map(h=>h.rec??0),   borderColor:colors.rec,    backgroundColor:'rgba(255,77,77,0.25)',  tension:0.3 },
+            { label:'TV',            data:hoursData.map(h=>h.tv??0),    borderColor:colors.tv,     backgroundColor:'rgba(255,224,102,0.25)',tension:0.3 }
+        ]
+    },
+    options: {
+        scales: { x:{ticks:{color:'#fff'}}, y:{ticks:{color:'#fff'}} },
+        plugins: { legend: { labels: { color:'#fff' } } }
+    }
+});
+
+const clientData = {{CLIENT_MEDIA_DATA}};
+console.log("CLIENT DATA:", clientData);
+
+new Chart(document.getElementById("chartClients"), {
+    type: "bar",
+    data: {
+        labels: clientData.map(c => c.client),
+        datasets: [
+            { label:"{{tr:Audio}}",  data:clientData.map(c=>c.audio), backgroundColor:colors.audio,  barThickness:12, maxBarThickness:12 },
+            { label:"{{tr:Séries}}", data:clientData.map(c=>c.serie), backgroundColor:colors.series, barThickness:12, maxBarThickness:12 },
+            { label:"{{tr:Vidéos}}", data:clientData.map(c=>c.video), backgroundColor:colors.video,  barThickness:12, maxBarThickness:12 },
+            { label:"REC",           data:clientData.map(c=>c.rec),   backgroundColor:colors.rec,    barThickness:12, maxBarThickness:12 },
+            { label:"TV",            data:clientData.map(c=>c.tv),    backgroundColor:colors.tv,     barThickness:12, maxBarThickness:12 }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            x: { ticks:{color:"#fff"}, categoryPercentage:0.55, barPercentage:0.55 },
+            y: { ticks:{color:"#fff"} }
+        },
+        plugins: { legend: { labels: { color:"#fff" } } }
+    }
+});
+
+(function () {
+    const btn = document.getElementById('toggleLeft');
+    const leftCol = document.getElementById('leftColumn');
+    if (!btn || !leftCol) return;
+    let collapsed = true;
+    leftCol.classList.add('collapsed');
+    btn.textContent = '>';
+    btn.addEventListener('click', () => {
+        collapsed = !collapsed;
+        if (collapsed) { leftCol.classList.add('collapsed'); btn.textContent = '>'; }
+        else { leftCol.classList.remove('collapsed'); btn.textContent = '<'; }
+    });
+})();
+</script>
+
+<div id="infoOverlayContainer"></div>
+
+<script>
+function openInfo(path) {
+    refreshEnabled = false;
+    fetch('/info?path=' + encodeURIComponent(path))
+        .then(r => r.text())
+        .then(html => {
+            const container = document.getElementById('infoOverlayContainer');
+            container.innerHTML = html;
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) newScript.src = oldScript.src;
+                else newScript.textContent = oldScript.textContent;
+                document.body.appendChild(newScript);
+            });
+        });
+}
+function closeOverlay() { window.location.reload(); }
+</script>
+</body>
+</html>

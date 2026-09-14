@@ -1,0 +1,23 @@
+<div class='groupbox'>
+    <div class='groupbox-title'>{{ClientName}}</div>
+    <table>
+        <thead>
+            <tr>
+                <th>{{tr:Type}}</th>
+                <th>{{tr:Lectures}}</th>
+            </tr>
+        </thead>
+        <tbody>
+        {{#IfIsTuner}}
+            <tr><td>REC</td><td>{{Rec}}</td></tr>
+        {{/IfIsTuner}}
+        {{#IfNotTuner}}
+            <tr><td>{{tr:Séries}}</td><td>{{Serie}}</td></tr>
+            <tr><td>{{tr:Audio}}</td><td>{{Audio}}</td></tr>
+            <tr><td>{{tr:Vidéos}}</td><td>{{Video}}</td></tr>
+            <tr><td>REC</td><td>{{Rec}}</td></tr>
+            <tr><td>TV</td><td>{{Tv}}</td></tr>
+        {{/IfNotTuner}}
+        </tbody>
+    </table>
+</div>

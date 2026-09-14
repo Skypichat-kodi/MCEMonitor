@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang='fr'>
+<head>
+<meta charset='UTF-8'>
+<title>{{tr:MediaMonitor – Tableau de bord}}</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<style>
+    body {
+        margin:0; padding:20px;
+        font-family:Segoe UI,Arial;
+        background-color:#1e1e1e;
+        background-image:url('/Resources/Images/Web-background.png');
+        background-size:cover; background-position:center; background-repeat:no-repeat;
+        color:#e5e5e5;
+    }
+    h1 { 
+        margin:0 0 20px 0;
+         font-size:20px; 
+         color:#fff; 
+    }
+    .container {
+         display:flex; gap:20px; 
+         flex-wrap:wrap; 
+    }
+    .groupbox {
+         flex:1; min-width:260px; 
+         border:1px solid #3c3c3c; 
+         border-radius:6px; 
+         background:#252526; 
+         padding:12px; 
+    }
+    .groupbox-title {
+         font-weight:bold; 
+         margin-bottom:10px; 
+         color:#fff; 
+    }
+    .stats-grid { 
+        display:grid; 
+        grid-template-columns:auto auto; 
+        row-gap:6px; 
+        column-gap:12px; 
+        font-size:13px; 
+    }
+    .label { color:#ccc; }
+    .value { 
+        font-weight:bold; 
+        color:#fff; 
+    }
+    table { 
+        width:100%; 
+        border-collapse:collapse; 
+        font-size:13px; 
+        margin-top:10px; 
+    }
+    th, td { 
+        padding:4px 6px; 
+        border-bottom:1px solid #3c3c3c; 
+    }
+    th { 
+        background:#2d2d30; 
+        color:#fff; 
+    }
+    tr:nth-child(even) td { background:#262626; }
+    tr:nth-child(odd) td { background:#1f1f1f; }
+    .type-badge { 
+        padding:1px 6px; 
+        border-radius:10px; 
+        font-size:11px; 
+        color:#fff; 
+    }
+    .type-audio { background:#007acc; }
+    .type-serie { background:#c586c0; }
+    .type-video { background:#d19a66; }
+    .type-rec { 
+        background:#ff4d4d; 
+        color:white; 
+    }
+    .type-tv { 
+        background:#ffe066; 
+        color:black; 
+    }
+    .banner-logo { 
+        position: absolute;
+        top: 10px; 
+        right: 20px; 
+        height: 100px; 
+        width: auto; 
+        z-index: 1000; 
+    }
+    .button-bar { 
+        margin-bottom:20px; 
+        display:flex; 
+        gap:10px; 
+        flex-wrap:wrap; 
+    }
+    .button { 
+        padding:6px 12px; 
+        background:#007acc; 
+        color:white; 
+        text-decoration:none; 
+        border-radius:4px; 
+        font-size:13px; 
+    }
+    .button-secondary { background:#444; }
+    .button-danger { background:#cc3300; }
+    .small { 
+        font-size:12px; 
+        color:#ccc; 
+    }
+    table:nth-of-type(1) td:nth-child(2),
+    table:nth-of-type(1) th:nth-child(2) { text-align: center; }
+    table:nth-of-type(2) td:nth-child(3),
+    table:nth-of-type(2) th:nth-child(3) { text-align: center; }
+    td, th { border-right: 1px solid #3c3c3c; }
+    td:last-child, th:last-child { border-right: none; }
+    .rec-row td { 
+        background-color: rgba(255, 0, 0, 0.35) !important; 
+        color: white !important; 
+    }
+    .tv-row td  { 
+        background-color: rgba(255, 255, 0, 0.35) !important; 
+        color: black !important; 
+    }
+    .info-btn {
+        display: inline-flex; justify-content: center; align-items: center;
+        width: 28px; height: 28px; background: #3498db; color: white;
+        border-radius: 50%; text-decoration: none; font-weight: bold;
+        font-family: Arial, sans-serif; transition: background 0.2s;
+    }
+    .info-btn:hover { background: #217dbb; }
+</style>
+</head>
+<body>
+
+<div id='infoOverlayContainer'></div>
+
+<script>
+let refreshEnabled = true;
+function autoRefresh() { if (refreshEnabled) window.location.reload(); }
+setInterval(autoRefresh, 5000);
+</script>
+
+<div class='header'>
+    <h1>{{tr:TABLEAU DE BORD}}</h1>
+    <img class='banner-logo' src='/Resources/Images/banner-logo.png'/>
+</div>
+
+<div class='button-bar'>
+    <a href='/' class='button button-secondary'>{{tr:Rafraîchir}}</a>
+    <a href='/backup' class='button'>{{tr:Voir le backup}}</a>
+    <a href='/download' class='button'>{{tr:Télécharger le backup}}</a>
+    <a href='/purge' class='button button-danger' onclick='return confirm("{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?");'>{{tr:Purger les sauvegardes}}</a>
+</div>
+
+<div class='container'>
+
+    <div class='groupbox'>
+        <div class='groupbox-title'>{{tr:Statut du service}}</div>
+        <div class='stats-grid'>
+            <div class='label'>{{tr:Serveur}} :</div><div class='value'>{{MachineName}}</div>
+            <div class='label'>{{tr:Heure actuelle}} :</div><div class='value'>{{CurrentTime}}</div>
+        </div>
+    </div>
+
+    <div class='groupbox'>
+        <div class='groupbox-title'>{{tr:Rapports}}</div>
+        <div class='stats-grid'>
+            <div class='label'>{{tr:Dernier rapport :}}</div>
+            <div class='value'>
+                {{#IfHasReport}}{{LastReport}}{{/IfHasReport}}
+                {{#IfNoReport}}{{tr:Aucun rapport envoyé}}{{/IfNoReport}}
+            </div>
+            <div class='label'>{{tr:Prochain envoi :}}</div><div class='value'>{{NextReport}}</div>
+        </div>
+    </div>
+
+    <div class='groupbox'>
+        <div class='groupbox-title'>{{tr:Lecture en cours}}</div>
+        <div class='stats-grid'>
+            <div class='label'>{{tr:Fichiers ouverts}} :</div><div class='value'>{{LiveCount}}</div>
+            <div class='label'>{{tr:Utilisateurs actifs}} :</div><div class='value'>{{ActiveUsers}}</div>
+        </div>
+    </div>
+
+    <div class='groupbox'>
+        <div class='groupbox-title'>{{tr:Historique}}</div>
+        <div class='stats-grid'>
+            <div class='label'>{{tr:Événements totaux}} :</div><div class='value'>{{HistoryCount}}</div>
+            <div class='label'>{{tr:Sur 24h}} :</div><div class='value'>{{History24h}}</div>
+            {{#IfHasHistory}}
+            <div class='label'>{{tr:Dernier événement}} :</div>
+            <div class='value'>{{LastEvent}}</div>
+            {{/IfHasHistory}}
+        </div>
+    </div>
+
+    <div class='groupbox'>
+        <div class='groupbox-title'>{{tr:WebServer}}</div>
+        <div class='stats-grid'>
+            <div class='label'>{{tr:Port}} :</div><div class='value'>{{Port}}</div>
+            <div class='label'>{{tr:Requêtes}} :</div><div class='value'>{{RequestCount}}</div>
+            <div class='label'>{{tr:Dernière requête}} :</div><div class='value'>{{LastRequestTime}}</div>
+            <div class='label'>{{tr:Dernier client}} :</div><div class='value'>{{LastRequestIp}}</div>
+        </div>
+    </div>
+
+</div>
+
+<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Lecture en cours}}</h2>
+<table>
+<thead><tr>
+<th>{{tr:Client}}</th><th>{{tr:Type}}</th><th>{{tr:Canal}}</th>
+<th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th><th>{{tr:Nom}}</th>
+<th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th><th>{{tr:Info}}</th>
+</tr></thead>
+<tbody>
+{{#for:LiveItems}}
+<tr>
+<td>{{ClientDisplay}}</td>
+<td><span class="type-badge {{BadgeClass}}">{{MediaType}}</span></td>
+<td>{{Channel}}</td>
+<td>{{Saison}}</td>
+<td>{{Episode}}</td>
+<td>{{Nom}}</td>
+<td>{{FileName}}</td>
+<td>{{Path}}</td>
+<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(this.dataset.path)">I</a></td>
+</tr>
+{{/for:LiveItems}}
+{{#IfNoLive}}
+<tr><td colspan='9' class='small'>{{tr:Aucune lecture en cours.}}</td></tr>
+{{/IfNoLive}}
+</tbody></table>
+
+<h2 style='margin-top:25px; font-size:16px; color:#fff;'>{{tr:Historique depuis le démarrage du service}}</h2>
+<table>
+<thead><tr>
+<th>{{tr:Heure}}</th><th>{{tr:Client}}</th><th>{{tr:Type}}</th>
+<th>{{tr:Canal}}</th><th>{{tr:Saison}}</th><th>{{tr:Épisode}}</th>
+<th>{{tr:Nom}}</th><th>{{tr:Fichier}}</th><th>{{tr:Chemin}}</th><th>{{tr:Info}}</th>
+</tr></thead>
+<tbody>
+{{#for:HistoryItems}}
+<tr>
+<td>{{Time}}</td>
+<td>{{ClientDisplay}}</td>
+<td><span class="type-badge {{BadgeClass}}">{{MediaType}}</span></td>
+<td>{{Channel}}</td>
+<td>{{Saison}}</td>
+<td>{{Episode}}</td>
+<td>{{Nom}}</td>
+<td>{{FileName}}</td>
+<td>{{Path}}</td>
+<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(this.dataset.path)">I</a></td>
+</tr>
+{{/for:HistoryItems}}
+{{#IfNoHistory}}
+<tr><td colspan='10' class='small'>{{tr:Aucun événement.}}</td></tr>
+{{/IfNoHistory}}
+</tbody></table>
+
+<script>
+function openInfo(path) {
+    refreshEnabled = false;
+    fetch('/info?path=' + encodeURIComponent(path))
+        .then(r => r.text())
+        .then(html => {
+            const container = document.getElementById('infoOverlayContainer');
+            container.innerHTML = html;
+            const scripts = container.querySelectorAll('script');
+            scripts.forEach(oldScript => {
+                const newScript = document.createElement('script');
+                if (oldScript.src) newScript.src = oldScript.src;
+                else newScript.textContent = oldScript.textContent;
+                document.body.appendChild(newScript);
+            });
+        });
+}
+function closeOverlay() { window.location.reload(); }
+</script>
+</body></html>

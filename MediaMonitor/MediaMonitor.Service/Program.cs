@@ -9,6 +9,7 @@ using System.Linq;
 using MediaMonitor.Core.Models;
 using MediaMonitor.Core.Language;
 using System.Globalization;
+using MediaMonitor.Service.Web.Models;
 
 namespace MediaMonitor.Service
 {
