@@ -10,6 +10,7 @@ using System.IO;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Core.DvbViewer;
 using System.Text;
+using MediaMonitor.Core.Services.Engine;
 
 namespace MediaMonitor.Core.Services
 {
@@ -27,16 +28,16 @@ namespace MediaMonitor.Core.Services
         }
 
         public IReadOnlyList<MediaUsageItem> GetBackup() => _historyBackup;
-        
+
         private readonly System.Timers.Timer _timer;
         private string _lastImage = "";
         private int _startupCycles = 0;
         private readonly DateTime _startTime = DateTime.Now;
         private readonly object _dvbLock = new();
         private List<DvbViewerClientStream> _dvbCache = new();
-        
+
         private string _dvbBaseUrl = "";
-        
+
         private System.Timers.Timer? _dvbTimer;
 
         private readonly Dictionary<string, DateTime> _openSince = new();
@@ -173,7 +174,7 @@ namespace MediaMonitor.Core.Services
                         item.ClientDisplay = item.ClientName.ToUpperInvariant();
                     }
                 }
-                
+
                 var filtered = new List<MediaUsageItem>();
 
                 // ------------------------------------------------------------
@@ -296,7 +297,7 @@ namespace MediaMonitor.Core.Services
                 }
 
                 // ------------------------------------------------------------
-                // 10) Envoi à l’interface Web
+                // 10) Envoi à l'interface Web
                 // ------------------------------------------------------------
                 OnUpdate?.Invoke(_currentOpen, _lastImage);
             }
@@ -307,30 +308,8 @@ namespace MediaMonitor.Core.Services
         }
 
         // ============================================================
-        //  Nettoyage du nom
+        //  Construction d'un item depuis une entrée SMB
         // ============================================================
-
-        private string CleanEpisodeName(string fileName)
-        {
-            string name = Path.GetFileNameWithoutExtension(fileName);
-
-            name = Regex.Replace(name, @"\b(S?\d{1,2}[xE]\d{1,2})\b", "", RegexOptions.IgnoreCase);
-
-            name = name.Replace("  ", " ");
-            name = name.Replace(" -  - ", " - ");
-            name = name.Replace(" -  ", " - ");
-            name = name.Replace("  - ", " - ");
-            name = name.Replace("-  -", "-");
-            name = name.Replace("- -", "-");
-
-            name = Regex.Replace(name, @"\s*-\s*", " - ");
-
-            name = name.Trim();
-            name = name.ToLower();
-            name = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(name);
-
-            return name;
-        }
 
         private MediaUsageItem BuildItem(SmbOpenFile f, SmbSession? match)
         {
@@ -369,28 +348,24 @@ namespace MediaMonitor.Core.Services
             return new MediaUsageItem
             {
                 SessionId = (uint)f.SessionId,
-
-                // ? ClientName = IP brute SMB
                 ClientName = clientName,
-
-                // ? ClientDisplay = sera remplacé par DNS dans Tick()
                 ClientDisplay = clientName,
-
                 Path = f.Path,
                 FileName = file,
                 UNC = PathTools.ToUNC(f.Path),
                 Timestamp = DateTime.Now,
                 MediaType = mediaType,
-                Nom = CleanEpisodeName(file),
+                Nom = MediaNaming.CleanEpisodeName(file),
                 Saison = saison,
                 Episode = episode,
                 Channel = ""
             };
         }
-        
+
         // ============================================================
-        //  OBTENTION DES INFOS EPG DVBVIEWER
+        //  Construction d'un item depuis un flux DVBViewer
         // ============================================================
+
         private MediaUsageItem BuildDvbItem(DvbViewerClientStream s, string dvbBaseUrl)
         {
             // Type cohérent avec WebServer
@@ -412,16 +387,13 @@ namespace MediaMonitor.Core.Services
             {
                 if (!string.IsNullOrWhiteSpace(dvbBaseUrl))
                 {
-                    // Base URL sans /status.html
                     string baseLogoUrl = dvbBaseUrl;
                     int idx = baseLogoUrl.IndexOf("/status.html", StringComparison.OrdinalIgnoreCase);
                     if (idx > 0)
                         baseLogoUrl = baseLogoUrl.Substring(0, idx);
 
-                    // Encodage du nom du canal
                     string encodedChannel = Uri.EscapeDataString(channel);
 
-                    // URL finale
                     channelLogo = $"{baseLogoUrl}/Logos/{encodedChannel}.png?height=200";
                 }
             }
@@ -436,7 +408,13 @@ namespace MediaMonitor.Core.Services
                 : channel;
 
             // Nettoyage + extraction Saison/Episode + SeriesName/EpisodeName
-            string titrePropre = CleanTvTitle(titreBrut, out int saison, out int episode, out string seriesName, out string episodeName);
+            var parsed = TvTitleParser.Parse(titreBrut);
+
+            string titrePropre = parsed.CleanTitle;
+            int saison = parsed.Saison;
+            int episode = parsed.Episode;
+            string seriesName = parsed.SeriesName;
+            string episodeName = parsed.EpisodeName;
 
             string nomFinal = titrePropre;
 
@@ -456,7 +434,6 @@ namespace MediaMonitor.Core.Services
             }
             else
             {
-                // Échec DNS : on garde le comportement actuel
                 if (System.Net.IPAddress.TryParse(clientRaw, out _))
                 {
                     resolvedIp = clientRaw;
@@ -479,14 +456,13 @@ namespace MediaMonitor.Core.Services
                 .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
                 .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
                 .ToUpperInvariant();
-                
+
             return new MediaUsageItem
             {
                 SessionId = 0,
                 ClientName = resolvedIp,
                 ClientDisplay = display,
                 Path = nomFinal,
-
                 FileName = nomFinal,
                 UNC = "",
                 Timestamp = DateTime.Now,
@@ -495,99 +471,11 @@ namespace MediaMonitor.Core.Services
                 Saison = saison,
                 Episode = episode,
                 Channel = channel,
-
                 SeriesName = seriesName,
                 EpisodeName = episodeName,
-
-                // ? Correction : virgule manquante
                 IfChannelLogo = ifChannelLogo,
                 ChannelLogo = channelLogo
             };
-        }
-                
-        // ============================================================
-        //  PARSING COMPLET DES TITRES TV DVBVIEWER
-        // ============================================================
-        private string CleanTvTitle(string nom, out int saison, out int episode, out string seriesName, out string episodeName)
-        {
-            saison = 0;
-            episode = 0;
-            seriesName = "";
-            episodeName = "";
-
-            if (string.IsNullOrWhiteSpace(nom))
-                return "";
-
-            string work = nom.Trim();
-
-            // --- RÈGLE 1 : Saison / Episode ---
-            var mClassic = Regex.Match(work, @"Saison\s+(\d+)\s*/\s*Episode\s+(\d+)", RegexOptions.IgnoreCase);
-            if (mClassic.Success)
-            {
-                saison = int.Parse(mClassic.Groups[1].Value);
-                episode = int.Parse(mClassic.Groups[2].Value);
-
-                // SeriesName = avant " - Saison"
-                int idxSeason = work.IndexOf(" - Saison", StringComparison.OrdinalIgnoreCase);
-                if (idxSeason > 0)
-                    seriesName = work.Substring(0, idxSeason).Trim();
-                else
-                    seriesName = work;
-
-                // EpisodeName = après le dernier " : "
-                int idxColon = work.LastIndexOf(" : ");
-                if (idxColon > 0)
-                {
-                    episodeName = work.Substring(idxColon + 3).Trim();
-
-                    // couper les tags éventuels
-                    int idxDashEp = episodeName.IndexOf(" - ");
-                    if (idxDashEp > 0)
-                        episodeName = episodeName.Substring(0, idxDashEp).Trim();
-                }
-
-                // le titre propre = SeriesName
-                return seriesName;
-            }
-
-            // --- RÈGLE 2 : Série sans Saison/Episode mais avec " : " ---
-            int idxColonSimple = work.IndexOf(" : ");
-            if (idxColonSimple > 0)
-            {
-                seriesName = work.Substring(0, idxColonSimple).Trim();
-                episodeName = work.Substring(idxColonSimple + 3).Trim();
-
-                int idxDashEp = episodeName.IndexOf(" - ");
-                if (idxDashEp > 0)
-                    episodeName = episodeName.Substring(0, idxDashEp).Trim();
-
-                return seriesName;
-            }
-
-            // --- RÈGLE 3 : Film / Doc / Mag / autres ---
-            int idxDash = work.IndexOf(" - ");
-            string titre = idxDash > 0 ? work.Substring(0, idxDash) : work;
-
-            // Remplacer les caractères spéciaux par une virgule
-            var sb = new StringBuilder();
-            foreach (char c in titre)
-            {
-                if (char.IsLetterOrDigit(c) || c == ' ' || c == '&' || c == '\'' || c == ':')
-                    sb.Append(c);
-                else
-                    sb.Append(", ");
-            }
-
-            string cleaned = sb.ToString();
-            cleaned = Regex.Replace(cleaned, @"\s*,\s*,\s*", ", ");
-            cleaned = Regex.Replace(cleaned, @"\s{2,}", " ").Trim();
-            cleaned = cleaned.Trim(' ', ',');
-
-            // film/doc ? pas de seriesName/episodeName
-            seriesName = "";
-            episodeName = "";
-
-            return cleaned;
         }
 
         public MediaUsageItem? FindByPath(string key)
