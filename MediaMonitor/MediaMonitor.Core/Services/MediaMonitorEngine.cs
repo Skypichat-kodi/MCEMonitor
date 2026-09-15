@@ -123,7 +123,7 @@ namespace MediaMonitor.Core.Services
                           && MediaClassifier.IsMedia(f.Path)
                     join s in sessions on f.SessionId equals s.SessionId into gj
                     from match in gj.DefaultIfEmpty()
-                    select BuildItem(f, match);
+                    select MediaItemFactory.BuildItem(f, match);
 
                 var rawList = joined.ToList();
 
@@ -245,7 +245,7 @@ namespace MediaMonitor.Core.Services
 
                     foreach (var s in dvb.Streams)
                     {
-                        var item = BuildDvbItem(s, dvb.BaseUrl);
+                        var item = MediaItemFactory.BuildDvbItem(s, dvb.BaseUrl, _currentOpen);
 
                         bool exists = _currentOpen.Any(x =>
                             x.ClientName == item.ClientName &&
@@ -305,177 +305,6 @@ namespace MediaMonitor.Core.Services
             {
                 CoreLog.Write("SMB ERROR: " + ex.Message);
             }
-        }
-
-        // ============================================================
-        //  Construction d'un item depuis une entrée SMB
-        // ============================================================
-
-        private MediaUsageItem BuildItem(SmbOpenFile f, SmbSession? match)
-        {
-            // IP brute renvoyée par Windows SMB
-            string clientName = match?.ClientComputerName;
-            if (string.IsNullOrWhiteSpace(clientName))
-                clientName = match?.Username;
-            if (string.IsNullOrWhiteSpace(clientName))
-                clientName = "Inconnu";
-
-            string ext = Path.GetExtension(f.Path).ToLower();
-
-            int saison = 0;
-            int episode = 0;
-            string mediaType;
-
-            if (ext is ".mp3" or ".flac" or ".wav" or ".aac" or ".ogg" or ".m4a")
-            {
-                mediaType = "Audio";
-            }
-            else if (ext is ".jpg" or ".jpeg" or ".png" or ".gif" or ".bmp" or ".webp")
-            {
-                mediaType = "Image";
-            }
-            else
-            {
-                MediaClassifier.ExtractEpisodeInfo(f.Path, out saison, out episode);
-
-                mediaType = saison > 0 && episode > 0
-                    ? "Serie"
-                    : MediaClassifier.GetMediaType(f.Path);
-            }
-
-            string file = Path.GetFileName(f.Path);
-
-            return new MediaUsageItem
-            {
-                SessionId = (uint)f.SessionId,
-                ClientName = clientName,
-                ClientDisplay = clientName,
-                Path = f.Path,
-                FileName = file,
-                UNC = PathTools.ToUNC(f.Path),
-                Timestamp = DateTime.Now,
-                MediaType = mediaType,
-                Nom = MediaNaming.CleanEpisodeName(file),
-                Saison = saison,
-                Episode = episode,
-                Channel = ""
-            };
-        }
-
-        // ============================================================
-        //  Construction d'un item depuis un flux DVBViewer
-        // ============================================================
-
-        private MediaUsageItem BuildDvbItem(DvbViewerClientStream s, string dvbBaseUrl)
-        {
-            // Type cohérent avec WebServer
-            string mediaType = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
-                ? "rec"
-                : "tv";
-
-            // Canal DVBViewer
-            string channel = s.Type.StartsWith("REC", StringComparison.OrdinalIgnoreCase)
-                ? s.Type.Substring(3).Trim()
-                : s.Type.Trim();
-
-            // Flag : afficher le logo à la place de la miniature
-            bool ifChannelLogo = mediaType == "rec" || mediaType == "tv";
-
-            // Construction de l'URL du logo du canal
-            string channelLogo = "";
-            try
-            {
-                if (!string.IsNullOrWhiteSpace(dvbBaseUrl))
-                {
-                    string baseLogoUrl = dvbBaseUrl;
-                    int idx = baseLogoUrl.IndexOf("/status.html", StringComparison.OrdinalIgnoreCase);
-                    if (idx > 0)
-                        baseLogoUrl = baseLogoUrl.Substring(0, idx);
-
-                    string encodedChannel = Uri.EscapeDataString(channel);
-
-                    channelLogo = $"{baseLogoUrl}/Logos/{encodedChannel}.png?height=200";
-                }
-            }
-            catch
-            {
-                channelLogo = "";
-            }
-
-            // Titre brut DVBViewer
-            string titreBrut = !string.IsNullOrWhiteSpace(s.Nom)
-                ? s.Nom
-                : channel;
-
-            // Nettoyage + extraction Saison/Episode + SeriesName/EpisodeName
-            var parsed = TvTitleParser.Parse(titreBrut);
-
-            string titrePropre = parsed.CleanTitle;
-            int saison = parsed.Saison;
-            int episode = parsed.Episode;
-            string seriesName = parsed.SeriesName;
-            string episodeName = parsed.EpisodeName;
-
-            string nomFinal = titrePropre;
-
-            // Résolution IP / ClientDisplay (avec cache)
-            string clientRaw = s.Client;
-            string resolvedIp = clientRaw;
-            string display = clientRaw;
-
-            var (hostName, ipResolved, success) = DnsResolver.Resolve(clientRaw);
-
-            if (success)
-            {
-                if (!string.IsNullOrWhiteSpace(ipResolved))
-                    resolvedIp = ipResolved;
-
-                display = hostName;
-            }
-            else
-            {
-                if (System.Net.IPAddress.TryParse(clientRaw, out _))
-                {
-                    resolvedIp = clientRaw;
-                    display = clientRaw;
-                }
-                else
-                {
-                    var smb = _currentOpen.FirstOrDefault(x =>
-                        x.ClientDisplay.Contains(clientRaw, StringComparison.OrdinalIgnoreCase));
-
-                    if (smb != null)
-                        resolvedIp = smb.ClientName;
-
-                    display = clientRaw;
-                }
-            }
-
-            display = display
-                .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
-                .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
-                .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
-                .ToUpperInvariant();
-
-            return new MediaUsageItem
-            {
-                SessionId = 0,
-                ClientName = resolvedIp,
-                ClientDisplay = display,
-                Path = nomFinal,
-                FileName = nomFinal,
-                UNC = "",
-                Timestamp = DateTime.Now,
-                MediaType = mediaType,
-                Nom = nomFinal,
-                Saison = saison,
-                Episode = episode,
-                Channel = channel,
-                SeriesName = seriesName,
-                EpisodeName = episodeName,
-                IfChannelLogo = ifChannelLogo,
-                ChannelLogo = channelLogo
-            };
         }
 
         public MediaUsageItem? FindByPath(string key)
