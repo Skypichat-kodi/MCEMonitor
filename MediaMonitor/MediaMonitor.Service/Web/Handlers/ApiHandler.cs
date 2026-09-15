@@ -1,5 +1,6 @@
 using System;
 using MediaMonitor.Service.Web;
+using MediaMonitor.Service.Web.Reports;
 
 namespace MediaMonitor.Service.Web.Handlers
 {
@@ -24,7 +25,8 @@ namespace MediaMonitor.Service.Web.Handlers
             });
 
         public void Report(HandlerContext ctx)
-            => HttpWriter.WriteHtml(ctx.Http, ctx.Engine.GenerateReportFromHistory());
+            => HttpWriter.WriteHtml(ctx.Http,
+                MediaMonitor.Service.Web.Reports.ReportHtmlBuilder.Build(ctx.Engine.GetHistory()));
 
         public void Clear(HandlerContext ctx)
         {

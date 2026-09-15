@@ -57,7 +57,9 @@ namespace MediaMonitor.Core.Services
 
         public string GetVersion()
         {
-            return "1.0.0";
+            var asm = System.Reflection.Assembly.GetExecutingAssembly();
+            var ver = asm.GetName().Version;
+            return ver?.ToString() ?? "1.0.0.0";
         }
 
         public DateTime GetStartTime()
@@ -125,7 +127,7 @@ namespace MediaMonitor.Core.Services
                 var rawList = joined.ToList();
 
                 // ------------------------------------------------------------
-                // 4 bis) Résolution DNS sur ClientName (si c'est une IP)
+                // 4 bis) Résolution DNS sur ClientName (avec cache)
                 // ------------------------------------------------------------
                 foreach (var item in rawList)
                 {
@@ -133,19 +135,17 @@ namespace MediaMonitor.Core.Services
                     {
                         if (System.Net.IPAddress.TryParse(item.ClientName, out _))
                         {
-                            var entry = System.Net.Dns.GetHostEntry(item.ClientName);
+                            var (hostName, _, success) = DnsResolver.Resolve(item.ClientName);
 
-                            string display = entry.HostName;
+                            string display = success ? hostName : "";
 
                             if (!string.IsNullOrWhiteSpace(display))
                             {
-                                // ? suppression suffixes DNS
                                 display = display
                                     .Replace(".home", "", StringComparison.OrdinalIgnoreCase)
                                     .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
                                     .Replace(".lan", "", StringComparison.OrdinalIgnoreCase);
 
-                                // ? majuscules
                                 display = display.ToUpperInvariant();
 
                                 item.ClientDisplay = display;
@@ -157,7 +157,6 @@ namespace MediaMonitor.Core.Services
                         }
                         else
                         {
-                            // Pas une IP ? SMB/Username
                             string display = item.ClientName;
 
                             display = display
@@ -171,14 +170,11 @@ namespace MediaMonitor.Core.Services
                     }
                     catch
                     {
-                        // DNS échoue ? fallback IP brute en majuscules
                         item.ClientDisplay = item.ClientName.ToUpperInvariant();
                     }
                 }
-
+                
                 var filtered = new List<MediaUsageItem>();
-
-                CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
 
                 // ------------------------------------------------------------
                 // 5) Stabilisation temporelle + FILTRE IMAGE FIABLE
@@ -215,6 +211,8 @@ namespace MediaMonitor.Core.Services
                     if (keep)
                         filtered.Add(item);
                 }
+
+                CoreLog.Write($"DEBUG FILTER: {rawList.Count} bruts, {filtered.Count} après filtrage.");
 
                 // ------------------------------------------------------------
                 // 6) Nettoyage des fichiers fermés
@@ -389,50 +387,6 @@ namespace MediaMonitor.Core.Services
                 Channel = ""
             };
         }
-
-        // ============================================================
-        //  Normalisation IP
-        // ============================================================
-
-        private string NormalizeIP(string? ip)
-        {
-            if (string.IsNullOrWhiteSpace(ip))
-                return "0.0.0.0";
-
-            try
-            {
-                var addr = System.Net.IPAddress.Parse(ip);
-
-                if (addr.IsIPv4MappedToIPv6)
-                    return addr.MapToIPv4().ToString();
-
-                return ip;
-            }
-            catch
-            {
-                return ip ?? "0.0.0.0";
-            }
-        }
-
-        private async Task RefreshDvbViewerAsync()
-        {
-            try
-            {
-                var result = await GetDvbViewerStreamsAsync();
-
-                lock (_dvbLock)
-                {
-                    _dvbCache = result.Streams;
-                    _dvbBaseUrl = result.BaseUrl;
-                }
-
-                CoreLog.Write($"DVBViewer: cache mis à jour ({result.Streams.Count} lignes).");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
-            }
-        }
         
         // ============================================================
         //  OBTENTION DES INFOS EPG DVBVIEWER
@@ -486,44 +440,29 @@ namespace MediaMonitor.Core.Services
 
             string nomFinal = titrePropre;
 
-            // Résolution IP / ClientDisplay (inchangé)
+            // Résolution IP / ClientDisplay (avec cache)
             string clientRaw = s.Client;
             string resolvedIp = clientRaw;
             string display = clientRaw;
 
-            if (System.Net.IPAddress.TryParse(clientRaw, out _))
+            var (hostName, ipResolved, success) = DnsResolver.Resolve(clientRaw);
+
+            if (success)
             {
-                try
-                {
-                    var entry = System.Net.Dns.GetHostEntry(clientRaw);
-                    var ip = entry.AddressList
-                        .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
+                if (!string.IsNullOrWhiteSpace(ipResolved))
+                    resolvedIp = ipResolved;
 
-                    if (ip != null)
-                        resolvedIp = ip.ToString();
-
-                    display = entry.HostName;
-                }
-                catch
+                display = hostName;
+            }
+            else
+            {
+                // Échec DNS : on garde le comportement actuel
+                if (System.Net.IPAddress.TryParse(clientRaw, out _))
                 {
                     resolvedIp = clientRaw;
                     display = clientRaw;
                 }
-            }
-            else
-            {
-                try
-                {
-                    var entry = System.Net.Dns.GetHostEntry(clientRaw);
-                    var ip = entry.AddressList
-                        .FirstOrDefault(a => a.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork);
-
-                    if (ip != null)
-                        resolvedIp = ip.ToString();
-
-                    display = entry.HostName;
-                }
-                catch
+                else
                 {
                     var smb = _currentOpen.FirstOrDefault(x =>
                         x.ClientDisplay.Contains(clientRaw, StringComparison.OrdinalIgnoreCase));
@@ -540,7 +479,7 @@ namespace MediaMonitor.Core.Services
                 .Replace(".local", "", StringComparison.OrdinalIgnoreCase)
                 .Replace(".lan", "", StringComparison.OrdinalIgnoreCase)
                 .ToUpperInvariant();
-
+                
             return new MediaUsageItem
             {
                 SessionId = 0,
@@ -741,139 +680,6 @@ namespace MediaMonitor.Core.Services
         {
             lock (_dvbLock)
                 return (_dvbBaseUrl, new List<DvbViewerClientStream>(_dvbCache));
-        }
-
-        public string GenerateReportFromHistory()
-        {
-            lock (_sync)
-            {
-                if (_history.Count == 0)
-                    return "<html><body><h2>Aucun fichier ouvert depuis le démarrage du service.</h2></body></html>";
-
-                int totalMedias = _history.Count;
-                int mediasParPage = 200;
-                int totalPages = (int)Math.Ceiling(totalMedias / (double)mediasParPage);
-
-                var countByType = _history
-                    .GroupBy(i => i.MediaType)
-                    .ToDictionary(g => g.Key, g => g.Count());
-
-                string statsHtml = $@"
-        <div style='padding:15px;background:#eef5fb;border-radius:6px;margin-bottom:20px'>
-            <h3 style='margin:0;color:#2980b9'>Résumé du rapport</h3>
-            <p style='margin:8px 0'>
-                <b>Total médias :</b> {totalMedias}<br>
-                <b>Nombre de pages :</b> {totalPages}<br>
-                <b>Médias par page :</b> {mediasParPage}
-            </p>
-            <ul style='margin:0;padding-left:20px;color:#555'>
-        ";
-
-                foreach (var kv in countByType)
-                    statsHtml += $"<li><b>{kv.Key}</b> : {kv.Value}</li>";
-
-                statsHtml += "</ul></div>";
-
-                var html = @"
-        <html>
-        <head>
-        <meta charset='UTF-8'>
-        <style>
-        body { font-family: Arial; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ccc; padding: 6px; text-align: left; }
-        th { background: #eee; }
-        </style>
-        </head>
-        <body>
-        " + statsHtml + @"
-        <h2>Historique MediaMonitor</h2>
-        <table>
-        <tr>
-        <th>Heure</th>
-        <th>Client</th>
-        <th>Type</th>
-        <th>Nom</th>
-        <th>Saison</th>
-        <th>Episode</th>
-        <th>Fichier</th>
-        <th>Chemin</th>
-        </tr>
-        ";
-
-                foreach (var item in _history)
-                {
-                    html += "<tr>" +
-                      $"<td>{item.Timestamp:HH:mm:ss}</td>" +
-                      $"<td>{item.ClientDisplay}</td>" +   // ? Correction
-                      $"<td>{item.MediaType}</td>" +
-                      $"<td>{item.Nom}</td>" +
-                      $"<td>{item.Saison}</td>" +
-                      $"<td>{item.Episode}</td>" +
-                      $"<td>{item.FileName}</td>" +
-                      $"<td>{item.Path}</td>" +
-                      "</tr>";
-                }
-
-                html += "</table></body></html>";
-                return html;
-            }
-        }
-
-        public async Task SendReportEmail()
-        {
-            CoreLog.Write("=== Début envoi rapport automatique ===");
-
-            try
-            {
-                string html = GenerateReportFromHistory();
-                var cfg = EmailConfig.Load();
-
-                CoreLog.Write($"Taille HTML totale : {html.Length} caractères");
-
-                var lignes = html.Split('\n').ToList();
-                CoreLog.Write($"Nombre de lignes HTML détectées : {lignes.Count}");
-
-                int blocTaille = 200;
-                int totalBlocs = (int)Math.Ceiling(lignes.Count / (double)blocTaille);
-
-                CoreLog.Write($"Nombre total de blocs prévus : {totalBlocs}");
-
-                for (int i = 0; i < totalBlocs; i++)
-                {
-                    CoreLog.Write($"--- Préparation du bloc {i + 1}/{totalBlocs} ---");
-
-                    var bloc = lignes
-                        .Skip(i * blocTaille)
-                        .Take(blocTaille)
-                        .ToList();
-
-                    CoreLog.Write($"Bloc {i + 1} : {bloc.Count} lignes");
-
-                    bloc.Add($"<br><div style='font-size:12px;color:#888;'>Partie {i + 1} / {totalBlocs}</div>");
-
-                    string htmlBloc = string.Join("\n", bloc);
-
-                    CoreLog.Write($"Taille HTML du bloc {i + 1} : {htmlBloc.Length} caractères");
-
-                    string sujet = totalBlocs == 1
-                        ? "Rapport MediaMonitor"
-                        : $"Rapport MediaMonitor (partie {i + 1}/{totalBlocs})";
-
-                    CoreLog.Write($"Sujet du mail : {sujet}");
-                    CoreLog.Write($"Envoi du bloc {i + 1}/{totalBlocs}...");
-
-                    await EmailSender.SendAsync(cfg, sujet, htmlBloc, isHtml: true);
-
-                    CoreLog.Write($"Bloc {i + 1}/{totalBlocs} envoyé avec succès.");
-                }
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("Erreur envoi email automatique : " + ex.ToString());
-            }
-
-            CoreLog.Write("=== Fin envoi rapport automatique ===");
         }
 
         // ============================================================

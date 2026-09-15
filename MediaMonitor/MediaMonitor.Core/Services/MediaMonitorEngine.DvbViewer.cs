@@ -68,6 +68,29 @@ namespace MediaMonitor.Core.Services
                 return ("", new List<DvbViewerClientStream>());
             }
         }
+                
+        /// <summary>
+        /// Rafraîchit le cache DVBViewer (appelé depuis Tick()).
+        /// </summary>
+        private async Task RefreshDvbViewerAsync()
+        {
+            try
+            {
+                var result = await GetDvbViewerStreamsAsync();
+
+                lock (_dvbLock)
+                {
+                    _dvbCache = result.Streams;
+                    _dvbBaseUrl = result.BaseUrl;
+                }
+
+                CoreLog.Write($"DVBViewer: cache mis r jour ({result.Streams.Count} lignes).");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("DVBViewer refresh ERROR: " + ex.Message);
+            }
+        }        
     }
 }
 

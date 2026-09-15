@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using MediaMonitor.Core.Language;
 using MediaMonitor.Core.Services;
+using MediaMonitor.Service.Reports;
 
 namespace MediaMonitor.Service
 {
@@ -120,7 +121,7 @@ namespace MediaMonitor.Service
 
                         Write("Envoi du rapport…");
 
-                        await _engine.SendReportEmail();
+                        await EmailReportSender.SendAsync(_engine.GetHistory());
 
                         _lastReportSent = DateTime.Now;
                         LastReportTime = _lastReportSent; // MAJ pour HomePageRenderer

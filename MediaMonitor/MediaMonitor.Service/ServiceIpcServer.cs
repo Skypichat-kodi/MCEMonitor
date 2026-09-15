@@ -4,6 +4,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Threading;
 using MediaMonitor.Core.Services;
+using MediaMonitor.Service.Reports;
 
 namespace MediaMonitor.Service
 {
@@ -577,7 +578,7 @@ namespace MediaMonitor.Service
 
         private void HandleGetReport(StreamWriter writer, NamedPipeServerStream server)
         {
-            string html = _engine.GenerateReportFromHistory();
+            string html = MediaMonitor.Service.Web.Reports.ReportHtmlBuilder.Build(_engine.GetHistory());
             string json = JsonSerializer.Serialize(new { report = html });
 
             Log("JSON envoyé (get-report) : " + json);
@@ -600,7 +601,7 @@ namespace MediaMonitor.Service
                 }
                 else
                 {
-                    _engine.SendReportEmail().Wait();
+                    EmailReportSender.SendAsync(_engine.GetHistory()).Wait();
                     writer.Write("{\"status\":\"ok\"}");
                     Log("IPC : send-report exécuté.");
                 }
