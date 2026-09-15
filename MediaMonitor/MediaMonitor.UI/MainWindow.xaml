@@ -963,29 +963,13 @@
                                 </DataTrigger>
 
                                 <!-- 🟡 TV -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                <DataTrigger Binding="{Binding MediaType}" Value="tv">
                                     <Setter Property="Background" Value="#80FFFF00"/>
                                     <Setter Property="Foreground" Value="Black"/>
                                 </DataTrigger>
 
-                                <!-- 🔴 REC (chaînes spécifiques) -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="REC France 2">
-                                    <Setter Property="Background" Value="#80FF0000"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <DataTrigger Binding="{Binding MediaType}" Value="REC TF1">
-                                    <Setter Property="Background" Value="#80FF0000"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <DataTrigger Binding="{Binding MediaType}" Value="REC Arte">
-                                    <Setter Property="Background" Value="#80FF0000"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- 🔴 REC fallback -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="REC">
+                                <!-- 🔴 REC -->
+                                <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
                                     <Setter Property="Background" Value="#80FF0000"/>
                                     <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
