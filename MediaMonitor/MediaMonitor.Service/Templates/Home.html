@@ -170,7 +170,11 @@ setInterval(autoRefresh, 5000);
                 {{#IfHasReport}}{{LastReport}}{{/IfHasReport}}
                 {{#IfNoReport}}{{tr:Aucun rapport envoyé}}{{/IfNoReport}}
             </div>
-            <div class='label'>{{tr:Prochain envoi :}}</div><div class='value'>{{NextReport}}</div>
+            <div class='label'>{{tr:Prochain envoi :}}</div>
+            <div class='value'>
+                {{#IfHasNextReport}}{{NextReport}}{{/IfHasNextReport}}
+                {{#IfNoNextReport}}{{tr:Non programmé}}{{/IfNoNextReport}}
+            </div>
         </div>
     </div>
 

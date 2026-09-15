@@ -44,7 +44,12 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["LastReport"]  = lastReport == DateTime.MinValue
                                   ? ""
                                   : lastReport.ToString("yyyy-MM-dd HH:mm:ss"),
-                ["NextReport"]  = nextReport.ToString("yyyy-MM-dd HH:mm:ss"),
+
+                ["IfHasNextReport"] = nextReport != DateTime.MinValue,
+                ["IfNoNextReport"]  = nextReport == DateTime.MinValue,
+                ["NextReport"]      = nextReport == DateTime.MinValue
+                      ? ""
+                      : nextReport.ToString("yyyy-MM-dd HH:mm:ss"),
 
                 // Bloc lecture
                 ["LiveCount"]        = liveCount,
@@ -98,20 +103,26 @@ namespace MediaMonitor.Service.Web.Handlers
             return ViewRenderer.Render("Home.html", model);
         }
 
-        // --- Déplacés depuis WebServer (inchangés) ---
         private DateTime GetLastReportTime()
         {
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
             if (!File.Exists(path)) return DateTime.MinValue;
 
-            string lastLine = File.ReadLines(path).LastOrDefault(l => l.Contains("Rapport envoyé"));
+            // Nouveau format : "[CODE02]|2026-09-15 20:10:08"
+            string lastLine = File.ReadLines(path)
+                .LastOrDefault(l => l.Contains("[CODE02]|"));
             if (lastLine == null) return DateTime.MinValue;
 
-            int idx = lastLine.IndexOf("à ");
+            int idx = lastLine.IndexOf("[CODE02]|");
             if (idx < 0) return DateTime.MinValue;
 
-            return DateTime.TryParse(lastLine.Substring(idx + 2).Trim(), out var dt)
-                ? dt : DateTime.MinValue;
+            string value = lastLine.Substring(idx + "[CODE02]|".Length).Trim();
+
+            // "AUCUN" ? pas de rapport
+            if (value.Equals("AUCUN", StringComparison.OrdinalIgnoreCase))
+                return DateTime.MinValue;
+
+            return DateTime.TryParse(value, out var dt) ? dt : DateTime.MinValue;
         }
 
         private DateTime GetReportSendTime()
@@ -119,13 +130,22 @@ namespace MediaMonitor.Service.Web.Handlers
             string path = @"C:\ProgramData\MCEMonitor\Logs\MediaMonitor.Schedule.log";
             if (!File.Exists(path)) return DateTime.MinValue;
 
-            string lastLine = File.ReadLines(path).LastOrDefault(l => l.Contains("Prochain envoi"));
+            // Nouveau format : "[CODE01]|11:50|15h 39min"
+            string lastLine = File.ReadLines(path)
+                .LastOrDefault(l => l.Contains("[CODE01]|"));
             if (lastLine == null) return DateTime.MinValue;
 
-            int idx = lastLine.IndexOf("prévu à ");
+            int idx = lastLine.IndexOf("[CODE01]|");
             if (idx < 0) return DateTime.MinValue;
 
-            string timePart = lastLine.Substring(idx + "prévu à ".Length, 5);
+            string value = lastLine.Substring(idx + "[CODE01]|".Length).Trim();
+
+            // value = "11:50|15h 39min"
+            var parts = value.Split('|');
+            if (parts.Length == 0) return DateTime.MinValue;
+
+            string timePart = parts[0]; // "11:50"
+
             if (TimeSpan.TryParse(timePart, out var ts))
             {
                 DateTime next = DateTime.Today.Add(ts);
