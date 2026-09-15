@@ -173,7 +173,45 @@ namespace MCEMonitor
         // ============================================================
         // ONGLET MEDIA MONITOR
         // ============================================================
+        /// <summary>
+        /// Traduit une ligne de log contenant un code (CODE01, CODE02).
+        /// Format attendu : "[CODE0X]|valeur1|valeur2|..."
+        /// </summary>
+        private string TranslateStatusCode(string rawLine)
+        {
+            if (string.IsNullOrWhiteSpace(rawLine))
+                return "";
 
+            // CODE01 : prochain envoi — "[CODE01]|19:47|2h 15min"
+            if (rawLine.StartsWith("[CODE01]|"))
+            {
+                var parts = rawLine.Substring("[CODE01]|".Length).Split('|');
+                string heure = parts.Length > 0 ? parts[0] : "";
+                string dans  = parts.Length > 1 ? parts[1] : "";
+
+                string label = LanguageManager.Get("Prochain envoi du rapport prévu à") 
+                               ?? "Prochain envoi du rapport prévu à";
+                string labelDans = LanguageManager.Get("dans") ?? "dans";
+
+                return $"{label} {heure} ({labelDans} {dans})";
+            }
+
+            // CODE02 : dernier rapport — "[CODE02]|AUCUN" ou "[CODE02]|2026-05-28 11:47:01"
+            if (rawLine.StartsWith("[CODE02]|"))
+            {
+                string value = rawLine.Substring("[CODE02]|".Length).Trim();
+
+                if (value == "AUCUN")
+                    return LanguageManager.Get("Aucun rapport envoyé") ?? "Aucun rapport envoyé";
+
+                string label = LanguageManager.Get("Rapport envoyé à") ?? "Rapport envoyé à";
+                return $"{label} {value}";
+            }
+
+            // Fallback : afficher brut (anciens logs, autres codes)
+            return rawLine;
+        }
+        
         private void UpdateNextReportLabel()
         {
             try
@@ -207,11 +245,8 @@ namespace MCEMonitor
                 if (idx > 0)
                     lastCode01 = lastCode01.Substring(idx + 2);
 
-                // Retirer le tag [CODE01]
-                lastCode01 = lastCode01.Replace("[CODE01]", "").Trim();
-
-                // Afficher EXACTEMENT ce qui reste
-                lblNextReport.Text = lastCode01;
+                // Parser et traduire le code
+                lblNextReport.Text = TranslateStatusCode(lastCode01);
             }
             catch
             {
@@ -486,11 +521,8 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 if (idx > 0)
                     lastCode02 = lastCode02.Substring(idx + 2);
 
-                // Retirer le tag [CODE02]
-                lastCode02 = lastCode02.Replace("[CODE02]", "").Trim();
-
-                // Afficher EXACTEMENT ce qui reste
-                lblLastReport.Text = lastCode02;
+                // Parser et traduire le code
+                lblLastReport.Text = TranslateStatusCode(lastCode02);
             }
             catch
             {

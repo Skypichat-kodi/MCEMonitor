@@ -74,15 +74,8 @@ namespace MediaMonitor.Service
 
             NextReportTime = target;
 
-            Write($"Prochain envoi prévu à {target:HH:mm} (dans {remaining.Hours}h {remaining.Minutes}min)");
-
             Program.WriteScheduleLog(
-                "[CODE01] " +
-                (LanguageManager.Get("Prochain envoi du rapport prévu à") ?? "Prochain envoi du rapport prévu à") +
-                $" {target:HH:mm} " +
-                "(" +
-                (LanguageManager.Get("dans") ?? "dans") +
-                $" {remaining.Hours}h {remaining.Minutes}min)"
+                "[CODE01]|" + $"{target:HH:mm}|{remaining.Hours}h {remaining.Minutes}min"
             );
 
             return target;
@@ -126,9 +119,7 @@ namespace MediaMonitor.Service
                         _lastReportSent = DateTime.Now;
                         LastReportTime = _lastReportSent; // MAJ pour HomePageRenderer
 
-                        Program._lastReportStatus = "[CODE02] " +
-                            (LanguageManager.Get("Rapport envoyé à") ?? "Rapport envoyé à") +
-                            $" {_lastReportSent:yyyy-MM-dd HH:mm:ss}";
+                        Program._lastReportStatus = "[CODE02]|" + _lastReportSent.ToString("yyyy-MM-dd HH:mm:ss");
 
                         Write(Program._lastReportStatus);
 

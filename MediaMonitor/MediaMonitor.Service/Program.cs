@@ -34,8 +34,7 @@ namespace MediaMonitor.Service
         private static DateTime _lastConfigChange = DateTime.MinValue;
 
         // Dernier statut CODE02
-        internal static string _lastReportStatus =
-            "[CODE02] " + (LanguageManager.Get("Dernier rapport inexistant") ?? "Dernier rapport inexistant");
+        internal static string _lastReportStatus = "[CODE02]|AUCUN";
 
         private static int LoadRetentionDays()
         {
@@ -164,15 +163,9 @@ namespace MediaMonitor.Service
 
             TimeSpan remaining = target - DateTime.Now;
 
-            string msg =
-                "[CODE01] " +
-                (LanguageManager.Get("Prochain envoi du rapport prévu à") ?? "Prochain envoi du rapport prévu à")
-                + $" {target:HH:mm} "
-                + "("
-                + (LanguageManager.Get("dans") ?? "dans")
-                + $" {remaining.Hours}h {remaining.Minutes}min)";
-
-            WriteScheduleLog(msg);
+            WriteScheduleLog(
+                "[CODE01]|" + $"{target:HH:mm}|{remaining.Hours}h {remaining.Minutes}min"
+            );
 
             return target;
         }
@@ -688,7 +681,7 @@ namespace MediaMonitor.Service
                 CoreLog.Write("ERREUR Engine.Start() : " + ex);
             }
 
-            _lastReportStatus = "[CODE02] " + LanguageManager.Get("Dernier rapport inexistant") ?? "Dernier rapport inexistant";
+            _lastReportStatus = "[CODE02]|AUCUN";
             WriteScheduleLog(_lastReportStatus);
 
             ServiceIpcServer ipc = null;
