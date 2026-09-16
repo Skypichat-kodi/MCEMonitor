@@ -60,7 +60,7 @@ namespace MCEMonitor
             // ============================================================
             this.tabControl.Location = new System.Drawing.Point(10, 10);
             this.tabControl.Size = new System.Drawing.Size(680, 450);
-            this.tabControl.BackColor = Color.FromArgb(165, 42, 42);
+            this.tabControl.BackColor = Color.White;
 
             this.tabControl.Controls.Add(this.tabEmail);
             this.tabControl.Controls.Add(this.tabMediaMonitor);

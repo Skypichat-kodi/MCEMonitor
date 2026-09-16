@@ -39,7 +39,7 @@ namespace MCEMonitor
             // Fond des pages d’onglets en gris clair
             foreach (TabPage page in tabControl.TabPages)
             {
-                page.BackColor = Color.FromArgb(235, 235, 240); // gris clair
+                page.BackColor = Color.White;
             }
 
             LoadEmailConfig();
