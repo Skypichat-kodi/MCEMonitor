@@ -119,9 +119,9 @@ namespace MediaMonitor.Service
                         _lastReportSent = DateTime.Now;
                         LastReportTime = _lastReportSent; // MAJ pour HomePageRenderer
 
-                        Program._lastReportStatus = "[CODE02]|" + _lastReportSent.ToString("yyyy-MM-dd HH:mm:ss");
+                        Program.LastReportStatus = "[CODE02]|" + _lastReportSent.ToString("yyyy-MM-dd HH:mm:ss");
 
-                        Write(Program._lastReportStatus);
+                        Write(Program.LastReportStatus);
 
                         Write("DEBUG: Count=" + _engine.GetHistory().Count);
 

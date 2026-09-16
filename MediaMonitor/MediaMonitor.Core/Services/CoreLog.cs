@@ -37,6 +37,30 @@ namespace MediaMonitor.Core.Services
                 // Jamais casser le moteur pour un log
             }
         }
+
+        /// <summary>
+        /// Vide le fichier de log du service.
+        /// </summary>
+        public static void Clear()
+        {
+            try
+            {
+                string folder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs"
+                );
+
+                Directory.CreateDirectory(folder);
+
+                string file = Path.Combine(folder, "MediaMonitor.Service.log");
+
+                File.WriteAllText(file, string.Empty);
+            }
+            catch
+            {
+                // Jamais casser le moteur pour un log
+            }
+        }
     }
 }
-

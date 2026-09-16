@@ -84,7 +84,7 @@ namespace MediaMonitor.Core.Services
                     _dvbBaseUrl = result.BaseUrl;
                 }
 
-                CoreLog.Write($"DVBViewer: cache mis r jour ({result.Streams.Count} lignes).");
+                CoreLog.Write($"DVBViewer: cache mis à jour ({result.Streams.Count} lignes).");
             }
             catch (Exception ex)
             {
