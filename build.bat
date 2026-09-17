@@ -24,6 +24,16 @@ mkdir "%DEST_APPDATA%"
 
 set ERROR=0
 
+REM --- Arrêter les services en cours (pour éviter les verrous) ---
+echo.
+echo Arrêt des services en cours...
+taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
+taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
+taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
+taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
+taskkill /IM MCEMonitor.exe /F >nul 2>&1
+echo OK
+
 echo.
 echo          PUBLISH DES PROJETS
 echo ============================================
