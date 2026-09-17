@@ -44,6 +44,7 @@ namespace MCEMonitor
 
             LoadEmailConfig();
             LoadMediaConfig();
+            LoadRomMonitorConfig();
             LoadWakeConfig();
             UpdateWakeTaskStatus();
             LoadShutdownConfig();
@@ -935,6 +936,238 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                 );
             }
         }
-    }
+        
+        // ============================================================
+        // ROM MONITOR
+        // ============================================================
+
+        private void LoadRomMonitorConfig()
+        {
+            UpdateRomMonitorToggle();
+            UpdateRomTaskButtons();
+            _ = LoadRomMonitorSettingsAsync();
+        }
+
+        private async System.Threading.Tasks.Task LoadRomMonitorSettingsAsync()
+        {
+            var cfg = await RomMonitorIpcClient.GetConfig();
+
+            if (cfg == null)
+                return;
+
+            // On applique les valeurs du service, mais on respecte les minimums locaux
+            numRomInterval.Value = Math.Max(numRomInterval.Minimum, Math.Min(numRomInterval.Maximum, cfg.interval));
+            numRomWarnPct.Value = Math.Max(numRomWarnPct.Minimum, Math.Min(numRomWarnPct.Maximum, cfg.diskSpaceWarnPercent));
+            numRomCritPct.Value = Math.Max(numRomCritPct.Minimum, Math.Min(numRomCritPct.Maximum, cfg.diskSpaceCriticalPercent));
+            numRomWarnGo.Value = Math.Max(numRomWarnGo.Minimum, Math.Min(numRomWarnGo.Maximum, cfg.diskSpaceWarnGo));
+            numRomCritGo.Value = Math.Max(numRomCritGo.Minimum, Math.Min(numRomCritGo.Maximum, cfg.diskSpaceCriticalGo));
+            numRomCooldown.Value = Math.Max(numRomCooldown.Minimum, Math.Min(numRomCooldown.Maximum, cfg.alertCooldownHours));
+            chkRomSmartAlert.Checked = cfg.alertOnSmartFailure;
+        }
+
+        private void BtnSaveRomConfig_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                var lines = new[]
+                {
+                    "# ============================================================",
+                    "# RomMonitor.config",
+                    "# Configuration du service RomMonitor",
+                    "# ============================================================",
+                    "",
+                    "# Fréquence de vérification (minutes)",
+                    $"Interval={(int)numRomInterval.Value}",
+                    "",
+                    "# Seuil d'alerte espace disque (% libre)",
+                    $"DiskSpaceWarnPercent={(int)numRomWarnPct.Value}",
+                    $"DiskSpaceCriticalPercent={(int)numRomCritPct.Value}",
+                    "",
+                    "# Seuil d'alerte espace disque (Go libre)",
+                    $"DiskSpaceWarnGo={(int)numRomWarnGo.Value}",
+                    $"DiskSpaceCriticalGo={(int)numRomCritGo.Value}",
+                    "",
+                    "# Alertes email",
+                    $"AlertOnSmartFailure={chkRomSmartAlert.Checked.ToString().ToLower()}",
+                    "AlertOnLowDiskSpace=false",
+                    "",
+                    "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
+                    $"AlertCooldownHours={(int)numRomCooldown.Value}"
+                };
+
+                File.WriteAllLines(configPath, lines);
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Réglages RomMonitor enregistrés") ?? "Réglages RomMonitor enregistrés",
+                    "Information"
+                );
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Erreur lors de l'enregistrement : ") ?? "Erreur lors de l'enregistrement : ") + ex.Message,
+                    "Erreur"
+                );
+            }
+        }
+
+        private void UpdateRomMonitorToggle()
+        {
+            bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+
+            if (running)
+            {
+                toggleRomService.BackColor = Color.LimeGreen;
+                toggleRomKnob.Left = 20;
+                lblRomStatus.Text =
+                    LanguageManager.Get("Service RomMonitor : actif") ?? "Service RomMonitor : actif";
+            }
+            else
+            {
+                toggleRomService.BackColor = Color.LightGray;
+                toggleRomKnob.Left = 2;
+                lblRomStatus.Text =
+                    LanguageManager.Get("Service RomMonitor : arrêté") ?? "Service RomMonitor : arrêté";
+            }
+        }
+
+        private void toggleRomService_Click(object sender, EventArgs e)
+        {
+            bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+
+            if (running)
+            {
+                foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
+                    p.Kill();
+            }
+            else
+            {
+                string servicePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.Service.exe"
+                );
+
+                if (!File.Exists(servicePath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("RomMonitor.Service.exe introuvable.") ?? "RomMonitor.Service.exe introuvable.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = servicePath,
+                    UseShellExecute = true
+                });
+            }
+
+            Task.Delay(800).ContinueWith(_ =>
+            {
+                this.Invoke(new Action(UpdateRomMonitorToggle));
+            });
+        }
+
+        private void RomMonitorTimer_Tick(object sender, EventArgs e)
+        {
+            UpdateRomMonitorToggle();
+            UpdateRomTaskButtons();
+        }
+
+        private void UpdateRomTaskButtons()
+        {
+            bool exists = TaskSchedulerHelper.RomMonitorTaskExists();
+
+            btnCreateRomTask.Enabled = !exists;
+            btnDeleteRomTask.Enabled = exists;
+
+            Color lightGreen = Color.FromArgb(200, 255, 200);
+            Color lightRed = Color.FromArgb(255, 200, 200);
+            Color defaultColor = SystemColors.Control;
+
+            btnCreateRomTask.BackColor = btnCreateRomTask.Enabled ? lightGreen : defaultColor;
+            btnDeleteRomTask.BackColor = btnDeleteRomTask.Enabled ? lightRed : defaultColor;
+        }
+
+        private void BtnCreateRomTask_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string result = TaskSchedulerHelper.CreateRomMonitorTask();
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    result,
+                    LanguageManager.Get("Résultat création tâche RomMonitor") ?? "Résultat création tâche RomMonitor"
+                );
+                UpdateRomTaskButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+
+        private void BtnDeleteRomTask_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string result = TaskSchedulerHelper.DeleteRomMonitorTask();
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    result,
+                    LanguageManager.Get("Résultat suppression tâche RomMonitor") ?? "Résultat suppression tâche RomMonitor"
+                );
+                UpdateRomTaskButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+
+        private void BtnOpenRomUI_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RomMonitor.UI.exe");
+
+                if (!File.Exists(uiPath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "RomMonitor.UI.exe est introuvable.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uiPath,
+                    Arguments = $"--from-mcem -lang {lang}",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, "Erreur lors de l'ouverture de RomMonitor.UI : " + ex.Message);
+            }
+        }        
+    }   
 }
 

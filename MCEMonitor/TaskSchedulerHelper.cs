@@ -93,6 +93,38 @@ namespace MCEMonitor.Utils
             );
         }
 
+        // ============================================================
+        // ROM MONITOR
+        // ============================================================
+
+        public static string CreateRomMonitorTask()
+        {
+            string exePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "RomMonitor.Service.exe"
+            );
+
+            if (!File.Exists(exePath))
+                return "ERREUR : RomMonitor.Service.exe introuvable.";
+
+            return RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_RomMonitorService\" " +
+                "/SC ONSTART " +
+                $"/TR \"\\\"{exePath}\\\"\" /RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteRomMonitorTask()
+        {
+            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_RomMonitorService\" /F");
+        }
+
+        public static bool RomMonitorTaskExists()
+        {
+            return QueryTask("MCEMonitor_RomMonitorService");
+        }
+
         public static string DeleteShutdownTask()
         {
             return RunAdmin("schtasks /Delete /TN \"MCEMonitor_Shutdown\" /F");
