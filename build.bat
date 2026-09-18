@@ -1,7 +1,7 @@
 @echo off
 setlocal enabledelayedexpansion
 
-REM Récupérer ESC pour les couleurs
+REM RÃ©cupÃ©rer ESC pour les couleurs
 for /F "delims=" %%A in ('echo prompt $E^| cmd') do set "ESC=%%A"
 
 echo ============================================
@@ -24,9 +24,9 @@ mkdir "%DEST_APPDATA%"
 
 set ERROR=0
 
-REM --- Arrêter les services en cours (pour éviter les verrous) ---
+REM --- ArrÃªter les services en cours (pour Ã©viter les verrous) ---
 echo.
-echo Arrêt des services en cours...
+echo ArrÃªt des services en cours...
 taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
@@ -43,6 +43,8 @@ call :publish "%ROOT%\MCEMonitor"                            "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Core"        "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"          "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"        "%DEST_PROGRAM%"
+call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"            "%DEST_PROGRAM%"
+call :publish "%ROOT%\RomMonitor\RomMonitor.UI"              "%DEST_PROGRAM%"
 
 REM === ProgramData ===
 call :publish "%ROOT%\StopMonitor"                           "%DEST_APPDATA%"
@@ -62,24 +64,24 @@ if %ERROR%==0 (
 
     if /I "!CHOICE!"=="O" (
         echo.
-        echo Vérification de la présence de ISCC.exe...
+        echo VÃ©rification de la prÃ©sence de ISCC.exe...
 
         set "ISCC=C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
         if not exist "!ISCC!" (
             echo %ESC%[31m? ERREUR : ISCC.exe introuvable !%ESC%[0m
-            echo Vérifiez l'installation de Inno Setup.
+            echo VÃ©rifiez l'installation de Inno Setup.
             start "" "%ROOT%\MCEMonitorInstaller.iss"
             goto endFinal
         )
 
-        echo ISCC trouvé. Compilation en cours...
+        echo ISCC trouvÃ©. Compilation en cours...
         "!ISCC!" "%ROOT%\MCEMonitorInstaller.iss"
 
         if errorlevel 1 (
             echo %ESC%[31m? Erreur lors de la compilation Inno Setup.%ESC%[0m
         ) else (
-            echo %ESC%[32m? Installeur compilé avec succès !%ESC%[0m
+            echo %ESC%[32m? Installeur compilÃ© avec succÃ¨s !%ESC%[0m
 
             set "INNO_OUT="
             for /f "tokens=1,* delims==" %%A in ('findstr /I "OutputDir" "%ROOT%\MCEMonitorInstaller.iss"') do (
@@ -88,7 +90,7 @@ if %ERROR%==0 (
             set "INNO_OUT=!INNO_OUT:"=!"
 
             echo.
-            echo Dossier de sortie détecté :
+            echo Dossier de sortie dÃ©tectÃ© :
             echo !INNO_OUT!
 
             if exist "!INNO_OUT!" (
@@ -142,7 +144,7 @@ echo Vers    : !DEST_DIR!
 dotnet publish "!CSPROJ!" -c Release -o "!DEST_DIR!" --nologo -v q
 
 if errorlevel 1 (
-    echo %ESC%[31m[ERREUR] Publish échoué : !CSPROJ!%ESC%[0m
+    echo %ESC%[31m[ERREUR] Publish Ã©chouÃ© : !CSPROJ!%ESC%[0m
     endlocal & set ERROR=1 & exit /b 0
 )
 
