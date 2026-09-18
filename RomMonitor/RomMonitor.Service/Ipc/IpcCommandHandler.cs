@@ -62,8 +62,9 @@ namespace RomMonitor.Service
                 totalGo = Math.Round(d.TotalGo, 1),
                 freeGo = Math.Round(d.FreeGo, 1),
                 freePercent = Math.Round(d.FreePercent, 1),
-                physicalSerial = d.PhysicalSerial,           // ??
-                physicalDiskNumber = d.PhysicalDiskNumber    // ??
+                physicalSerial = d.PhysicalSerial,
+                physicalDiskNumber = d.PhysicalDiskNumber,
+                physicalSizeGo = d.PhysicalSizeGo
             }).ToList();
 
             IpcResponse.Json(server, disks);
@@ -81,7 +82,8 @@ namespace RomMonitor.Service
                 statusReason = s.StatusReason,
                 temperature = s.Temperature,
                 powerOnHours = s.PowerOnHours,
-                passed = s.Passed
+                passed = s.Passed,
+                capacityGo = s.CapacityGo
             }).ToList();
 
             IpcResponse.Json(server, smart);

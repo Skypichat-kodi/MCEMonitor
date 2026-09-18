@@ -2,17 +2,17 @@ using System.Collections.Generic;
 
 namespace RomMonitor.Service
 {
-    /// <summary>
-    /// Informations SMART d'un disque physique.
-    /// </summary>
     public class SmartInfo
     {
         // Identité
-        public string Device { get; set; } = "";         // /dev/sda
-        public string Type { get; set; } = "";           // "nvme", "ata", "scsi"
+        public string Device { get; set; } = "";
+        public string Type { get; set; } = "";
         public string Model { get; set; } = "";
         public string Serial { get; set; } = "";
         public string Firmware { get; set; } = "";
+
+        // ?? Capacité (en Go)
+        public double CapacityGo { get; set; }
 
         // État global
         public bool Available { get; set; }
@@ -35,10 +35,10 @@ namespace RomMonitor.Service
         public long? SpinRetryCount { get; set; }
 
         // Statut calculé
-        public string Status { get; set; } = "N/A";        // "OK", "Warning", "Critical", "N/A"
+        public string Status { get; set; } = "N/A";
         public string StatusReason { get; set; } = "";
 
-        // Détails supplémentaires (pour affichage/debug)
+        // Détails
         public Dictionary<string, string> Details { get; set; } = new();
     }
 }

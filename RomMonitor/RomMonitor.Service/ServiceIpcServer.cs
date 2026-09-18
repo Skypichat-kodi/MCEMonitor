@@ -41,9 +41,8 @@ namespace RomMonitor.Service
                         PipeOptions.None
                     );
 
-                    CoreLog.Write("IPC : attente d'une connexion...");
+                    // (logs IPC supprimés car trop bruyants)
                     server.WaitForConnection();
-                    CoreLog.Write("IPC : client connecté");
 
                     // Lecture brute
                     byte[] buffer = new byte[4096];
@@ -64,12 +63,20 @@ namespace RomMonitor.Service
                     }
 
                     string command = Encoding.UTF8.GetString(buffer, 0, bytesRead).Trim();
-                    CoreLog.Write($"IPC : commande reçue = '{command}'");
+
+                    // On ne log PAS les commandes de polling (get-*), trop bruyantes
+                    if (!command.StartsWith("get-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        CoreLog.Write($"IPC : commande reçue = '{command}'");
+                    }
 
                     var handler = new IpcCommandHandler(_engine, _settings);
                     handler.Handle(command, server);
 
-                    CoreLog.Write("IPC : commande traitée");
+                    if (!command.StartsWith("get-", StringComparison.OrdinalIgnoreCase))
+                    {
+                        CoreLog.Write("IPC : commande traitée");
+                    }
                 }
                 catch (Exception ex)
                 {

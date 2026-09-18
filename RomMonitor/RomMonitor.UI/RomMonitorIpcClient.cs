@@ -32,7 +32,8 @@ namespace RomMonitor.UI
         public double freeGo { get; set; }
         public double freePercent { get; set; }
         public string physicalSerial { get; set; } = "";
-        public int? physicalDiskNumber { get; set; }    
+        public int? physicalDiskNumber { get; set; }
+        public double physicalSizeGo { get; set; }    
     }
 
     public class RomSmart
@@ -46,6 +47,7 @@ namespace RomMonitor.UI
         public int? temperature { get; set; }
         public int? powerOnHours { get; set; }
         public bool passed { get; set; }
+        public double capacityGo { get; set; }    // ??
     }
 
     public class RomAlert

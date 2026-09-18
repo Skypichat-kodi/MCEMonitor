@@ -5,13 +5,13 @@ namespace RomMonitor.Service
     /// </summary>
     public class DiskInfo
     {
-        public string Name { get; set; } = "";           // "C:\", "D:\"
+        public string Name { get; set; } = "";
         public string Label { get; set; } = "";
         public string DriveType { get; set; } = "";
 
-        // ?? Disque physique sous-jacent
         public string PhysicalSerial { get; set; } = "";
         public int? PhysicalDiskNumber { get; set; }
+        public double PhysicalSizeGo { get; set; }
 
         public long TotalBytes { get; set; }
         public long FreeBytes { get; set; }

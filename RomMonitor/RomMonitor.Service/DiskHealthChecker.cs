@@ -202,6 +202,14 @@ namespace RomMonitor.Service
             if (root.TryGetProperty("firmware_version", out var fwEl))
                 info.Firmware = fwEl.GetString() ?? "";
 
+            // --- Capacité (en Go) ---
+            if (root.TryGetProperty("user_capacity", out var capEl) &&
+                capEl.TryGetProperty("bytes", out var capBytesEl))
+            {
+                long bytes = capBytesEl.GetInt64();
+                info.CapacityGo = bytes / 1024.0 / 1024.0 / 1024.0;
+            }
+
             // --- Support SMART ? ---
             if (root.TryGetProperty("smart_support", out var supEl) &&
                 supEl.TryGetProperty("available", out var availEl))
