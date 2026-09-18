@@ -357,16 +357,14 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             if (running)
             {
-                toggleMediaService.BackColor = Color.LimeGreen;
-                toggleKnob.Left = 20;
+                toggleMediaService.Checked = true;
                 lblMediaStatus.Text =
                     LanguageManager.Get("Service MediaMonitor : actif") ??
                     "Service MediaMonitor : actif";
             }
             else
             {
-                toggleMediaService.BackColor = Color.LightGray;
-                toggleKnob.Left = 2;
+                toggleMediaService.Checked = false;
                 lblMediaStatus.Text =
                     LanguageManager.Get("Service MediaMonitor : arrêté") ??
                     "Service MediaMonitor : arrêté";
@@ -945,24 +943,76 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
         {
             UpdateRomMonitorToggle();
             UpdateRomTaskButtons();
-            _ = LoadRomMonitorSettingsAsync();
+            LoadRomMonitorSettings();
         }
 
-        private async System.Threading.Tasks.Task LoadRomMonitorSettingsAsync()
+        private void LoadRomMonitorSettings()
         {
-            var cfg = await RomMonitorIpcClient.GetConfig();
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config"
+                );
 
-            if (cfg == null)
-                return;
+                if (!File.Exists(configPath))
+                    return;
 
-            // On applique les valeurs du service, mais on respecte les minimums locaux
-            numRomInterval.Value = Math.Max(numRomInterval.Minimum, Math.Min(numRomInterval.Maximum, cfg.interval));
-            numRomWarnPct.Value = Math.Max(numRomWarnPct.Minimum, Math.Min(numRomWarnPct.Maximum, cfg.diskSpaceWarnPercent));
-            numRomCritPct.Value = Math.Max(numRomCritPct.Minimum, Math.Min(numRomCritPct.Maximum, cfg.diskSpaceCriticalPercent));
-            numRomWarnGo.Value = Math.Max(numRomWarnGo.Minimum, Math.Min(numRomWarnGo.Maximum, cfg.diskSpaceWarnGo));
-            numRomCritGo.Value = Math.Max(numRomCritGo.Minimum, Math.Min(numRomCritGo.Maximum, cfg.diskSpaceCriticalGo));
-            numRomCooldown.Value = Math.Max(numRomCooldown.Minimum, Math.Min(numRomCooldown.Maximum, cfg.alertCooldownHours));
-            chkRomSmartAlert.Checked = cfg.alertOnSmartFailure;
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":
+                            if (int.TryParse(val, out int i))
+                                numRomInterval.Value = Math.Max(numRomInterval.Minimum, Math.Min(numRomInterval.Maximum, i));
+                            break;
+
+                        case "DiskSpaceWarnPercent":
+                            if (int.TryParse(val, out int wp))
+                                numRomWarnPct.Value = Math.Max(numRomWarnPct.Minimum, Math.Min(numRomWarnPct.Maximum, wp));
+                            break;
+
+                        case "DiskSpaceCriticalPercent":
+                            if (int.TryParse(val, out int cp))
+                                numRomCritPct.Value = Math.Max(numRomCritPct.Minimum, Math.Min(numRomCritPct.Maximum, cp));
+                            break;
+
+                        case "DiskSpaceWarnGo":
+                            if (int.TryParse(val, out int wg))
+                                numRomWarnGo.Value = Math.Max(numRomWarnGo.Minimum, Math.Min(numRomWarnGo.Maximum, wg));
+                            break;
+
+                        case "DiskSpaceCriticalGo":
+                            if (int.TryParse(val, out int cg))
+                                numRomCritGo.Value = Math.Max(numRomCritGo.Minimum, Math.Min(numRomCritGo.Maximum, cg));
+                            break;
+
+                        case "AlertOnSmartFailure":
+                            chkRomSmartAlert.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "AlertCooldownHours":
+                            if (int.TryParse(val, out int cd))
+                                numRomCooldown.Value = Math.Max(numRomCooldown.Minimum, Math.Min(numRomCooldown.Maximum, cd));
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // En cas d'erreur, on garde les valeurs par défaut
+                System.Diagnostics.Debug.WriteLine("Erreur LoadRomMonitorSettings : " + ex.Message);
+            }
         }
 
         private void BtnSaveRomConfig_Click(object sender, EventArgs e)
@@ -1027,15 +1077,13 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             if (running)
             {
-                toggleRomService.BackColor = Color.LimeGreen;
-                toggleRomKnob.Left = 20;
+                toggleRomService.Checked = true;
                 lblRomStatus.Text =
                     LanguageManager.Get("Service RomMonitor : actif") ?? "Service RomMonitor : actif";
             }
             else
             {
-                toggleRomService.BackColor = Color.LightGray;
-                toggleRomKnob.Left = 2;
+                toggleRomService.Checked = false;
                 lblRomStatus.Text =
                     LanguageManager.Get("Service RomMonitor : arrêté") ?? "Service RomMonitor : arrêté";
             }

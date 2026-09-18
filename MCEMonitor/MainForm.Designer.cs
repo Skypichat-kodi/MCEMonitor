@@ -317,8 +317,7 @@ namespace MCEMonitor
             this.lblMediaInfo = new System.Windows.Forms.Label();
 
             this.grpMediaActions = new System.Windows.Forms.GroupBox();
-            this.toggleMediaService = new System.Windows.Forms.Panel();
-            this.toggleKnob = new System.Windows.Forms.Panel();
+            this.toggleMediaService = new MCEMonitor.Controls.Win11Toggle();
             this.lblMediaStatus = new System.Windows.Forms.Label();
             this.lblNextReport = new System.Windows.Forms.Label();
             this.lblLastReport = new System.Windows.Forms.Label();
@@ -369,35 +368,10 @@ namespace MCEMonitor
             this.grpMediaActions.Location = new System.Drawing.Point(20, 150);
             this.grpMediaActions.Size = new System.Drawing.Size(620, 160);
 
-            // TOGGLE SWITCH
-            this.toggleMediaService.Location = new System.Drawing.Point(20, 34);
-            this.toggleMediaService.Size = new System.Drawing.Size(34, 16);
-            this.toggleMediaService.BackColor = System.Drawing.Color.LightGray;
-            this.toggleMediaService.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.toggleMediaService.Cursor = Cursors.Hand;
-
-            this.toggleMediaService.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddArc(0, 0, 16, 16, 90, 180);
-                gp.AddArc(18, 0, 16, 16, 270, 180);
-                gp.CloseFigure();
-                toggleMediaService.Region = new Region(gp);
-            };
-
-            this.toggleKnob.Size = new System.Drawing.Size(12, 12);
-            this.toggleKnob.Location = new System.Drawing.Point(2, 2);
-            this.toggleKnob.BackColor = System.Drawing.Color.White;
-            this.toggleKnob.Cursor = Cursors.Hand;
-
-            this.toggleKnob.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddEllipse(0, 0, toggleKnob.Width - 1, toggleKnob.Height - 1);
-                toggleKnob.Region = new Region(gp);
-            };
-
-            this.toggleMediaService.Controls.Add(this.toggleKnob);
+            // MediaMonitor — Toggle
+            this.toggleMediaService.Location = new System.Drawing.Point(20, 32);
+            this.toggleMediaService.Size = new System.Drawing.Size(44, 22);
+            this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
 
             this.lblMediaStatus.Text = LanguageManager.Get("Service MediaMonitor") ?? "Service MediaMonitor";
             this.lblMediaStatus.Font = normalFont;
@@ -417,9 +391,6 @@ namespace MCEMonitor
             this.lblLastReport.Font = normalFont;
             this.lblLastReport.Location = new System.Drawing.Point(300, 52);
             this.lblLastReport.Text = "";   // ? VIDE
-
-            this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
-            this.toggleKnob.Click += new System.EventHandler(this.toggleMediaService_Click);
 
             // BOUTONS MEDIA MONITOR
 
@@ -464,7 +435,6 @@ namespace MCEMonitor
             this.btnOpenMediaUI.FlatAppearance.BorderSize = 1;
             this.btnOpenMediaUI.FlatAppearance.BorderColor = Color.FromArgb(180, 180, 185);
 
-
             // Ajout dans le groupbox
             this.grpMediaActions.Controls.Add(this.toggleMediaService);
             this.grpMediaActions.Controls.Add(this.lblMediaStatus);
@@ -486,10 +456,13 @@ namespace MCEMonitor
             // ROM MONITOR — CONTENU
             // ============================================================
 
+            // --- Instanciations ---
+            this.lblRomTitle = new System.Windows.Forms.Label();
+            this.pnlRomInfo = new System.Windows.Forms.Panel();
+            this.picRomInfo = new System.Windows.Forms.PictureBox();
             this.lblRomDescription = new System.Windows.Forms.Label();
             this.grpRomActions = new System.Windows.Forms.GroupBox();
-            this.toggleRomService = new System.Windows.Forms.Panel();
-            this.toggleRomKnob = new System.Windows.Forms.Panel();
+            this.toggleRomService = new MCEMonitor.Controls.Win11Toggle();
             this.lblRomStatus = new System.Windows.Forms.Label();
             this.grpRomSettings = new System.Windows.Forms.GroupBox();
             this.lblRomInterval = new System.Windows.Forms.Label();
@@ -505,6 +478,7 @@ namespace MCEMonitor
             this.lblRomCooldown = new System.Windows.Forms.Label();
             this.numRomCooldown = new System.Windows.Forms.NumericUpDown();
             this.chkRomSmartAlert = new System.Windows.Forms.CheckBox();
+            this.lblRomHint = new System.Windows.Forms.Label();
             this.btnCreateRomTask = new System.Windows.Forms.Button();
             this.btnDeleteRomTask = new System.Windows.Forms.Button();
             this.btnOpenRomUI = new System.Windows.Forms.Button();
@@ -512,7 +486,6 @@ namespace MCEMonitor
             this.romMonitorTimer = new System.Windows.Forms.Timer();
 
             // --- Titre (au-dessus) ---
-            this.lblRomTitle = new System.Windows.Forms.Label();
             this.lblRomTitle.Text = LanguageManager.Get("À propos de RomMonitor") ?? "À propos de RomMonitor";
             this.lblRomTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.lblRomTitle.AutoSize = true;
@@ -520,10 +493,6 @@ namespace MCEMonitor
             this.tabRomMonitor.Controls.Add(this.lblRomTitle);
 
             // --- Panneau info grisé avec icône ---
-            this.pnlRomInfo = new System.Windows.Forms.Panel();
-            this.picRomInfo = new System.Windows.Forms.PictureBox();
-            this.lblRomDescription = new System.Windows.Forms.Label();
-
             this.pnlRomInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
             this.pnlRomInfo.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.pnlRomInfo.Location = new System.Drawing.Point(15, 40);
@@ -554,43 +523,15 @@ namespace MCEMonitor
             this.grpRomActions.Location = new System.Drawing.Point(20, 110);
             this.grpRomActions.Size = new System.Drawing.Size(620, 100);
 
-            // Toggle
-            this.toggleRomService.Location = new System.Drawing.Point(20, 34);
-            this.toggleRomService.Size = new System.Drawing.Size(34, 16);
-            this.toggleRomService.BackColor = System.Drawing.Color.LightGray;
-            this.toggleRomService.BorderStyle = System.Windows.Forms.BorderStyle.None;
-            this.toggleRomService.Cursor = Cursors.Hand;
-
-            this.toggleRomService.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddArc(0, 0, 16, 16, 90, 180);
-                gp.AddArc(18, 0, 16, 16, 270, 180);
-                gp.CloseFigure();
-                toggleRomService.Region = new Region(gp);
-            };
-
-            this.toggleRomKnob.Size = new System.Drawing.Size(12, 12);
-            this.toggleRomKnob.Location = new System.Drawing.Point(2, 2);
-            this.toggleRomKnob.BackColor = System.Drawing.Color.White;
-            this.toggleRomKnob.Cursor = Cursors.Hand;
-
-            this.toggleRomKnob.Paint += (s, e) =>
-            {
-                var gp = new System.Drawing.Drawing2D.GraphicsPath();
-                gp.AddEllipse(0, 0, toggleRomKnob.Width - 1, toggleRomKnob.Height - 1);
-                toggleRomKnob.Region = new Region(gp);
-            };
-
-            this.toggleRomService.Controls.Add(this.toggleRomKnob);
+            // RomMonitor — Toggle
+            this.toggleRomService.Location = new System.Drawing.Point(20, 32);
+            this.toggleRomService.Size = new System.Drawing.Size(44, 22);
+            this.toggleRomService.Click += new System.EventHandler(this.toggleRomService_Click);
 
             this.lblRomStatus.Text = LanguageManager.Get("Service RomMonitor") ?? "Service RomMonitor";
             this.lblRomStatus.Font = normalFont;
             this.lblRomStatus.Location = new System.Drawing.Point(70, 32);
             this.lblRomStatus.AutoSize = true;
-
-            this.toggleRomService.Click += new System.EventHandler(this.toggleRomService_Click);
-            this.toggleRomKnob.Click += new System.EventHandler(this.toggleRomService_Click);
 
             // Boutons
             this.btnCreateRomTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
@@ -634,10 +575,10 @@ namespace MCEMonitor
             this.grpRomSettings.Text = LanguageManager.Get("Réglages") ?? "Réglages";
             this.grpRomSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpRomSettings.Location = new System.Drawing.Point(20, 220);
-            this.grpRomSettings.Size = new System.Drawing.Size(620, 170);
+            this.grpRomSettings.Size = new System.Drawing.Size(620, 190);
 
             // Fréquence
-            this.lblRomInterval.Text = LanguageManager.Get("Fréquence (minutes) :") ?? "Fréquence (minutes) :";
+            this.lblRomInterval.Text = LanguageManager.Get("Fréquence de contrôle (min) :") ?? "Fréquence de contrôle (min) :";
             this.lblRomInterval.Location = new System.Drawing.Point(20, 30);
             this.lblRomInterval.Size = new System.Drawing.Size(200, 20);
             this.lblRomInterval.Font = normalFont;
@@ -648,8 +589,8 @@ namespace MCEMonitor
             this.numRomInterval.Maximum = 1440;
             this.numRomInterval.Font = normalFont;
 
-            // Seuil warning %
-            this.lblRomWarnPct.Text = LanguageManager.Get("Seuil warning (% libre) :") ?? "Seuil warning (% libre) :";
+            // Seuil danger %
+            this.lblRomWarnPct.Text = LanguageManager.Get("Seuil warning (% libre) :") ?? "Seuil de danger (% libre) :";
             this.lblRomWarnPct.Location = new System.Drawing.Point(20, 58);
             this.lblRomWarnPct.Size = new System.Drawing.Size(200, 20);
             this.lblRomWarnPct.Font = normalFont;
@@ -672,68 +613,78 @@ namespace MCEMonitor
             this.numRomCritPct.Maximum = 100;
             this.numRomCritPct.Font = normalFont;
 
-            // Seuil warning Go
-            this.lblRomWarnGo.Text = LanguageManager.Get("Seuil warning (Go libre) :") ?? "Seuil warning (Go libre) :";
-            this.lblRomWarnGo.Location = new System.Drawing.Point(20, 114);
-            this.lblRomWarnGo.Size = new System.Drawing.Size(200, 20);
-            this.lblRomWarnGo.Font = normalFont;
-
-            this.numRomWarnGo.Location = new System.Drawing.Point(230, 114);
-            this.numRomWarnGo.Size = new System.Drawing.Size(80, 20);
-            this.numRomWarnGo.Minimum = 5;
-            this.numRomWarnGo.Maximum = 10000;
-            this.numRomWarnGo.Font = normalFont;
-
-            // Seuil critique Go
-            this.lblRomCritGo.Text = LanguageManager.Get("Seuil critique (Go) :") ?? "Seuil critique (Go) :";
-            this.lblRomCritGo.Location = new System.Drawing.Point(330, 30);
-            this.lblRomCritGo.Size = new System.Drawing.Size(180, 20);
-            this.lblRomCritGo.Font = normalFont;
-
-            this.numRomCritGo.Location = new System.Drawing.Point(520, 30);
-            this.numRomCritGo.Size = new System.Drawing.Size(70, 20);
-            this.numRomCritGo.Minimum = 1;
-            this.numRomCritGo.Maximum = 10000;
-            this.numRomCritGo.Font = normalFont;
-
             // Cooldown
-            this.lblRomCooldown.Text = LanguageManager.Get("Cooldown alertes (h) :") ?? "Cooldown alertes (h) :";
-            this.lblRomCooldown.Location = new System.Drawing.Point(330, 58);
+            this.lblRomCooldown.Text = LanguageManager.Get("Intervale d'envoi des alertes (h) :") ?? "Intervale d'envoi des alertes (h) :";
+            this.lblRomCooldown.Location = new System.Drawing.Point(330, 30);
             this.lblRomCooldown.Size = new System.Drawing.Size(180, 20);
             this.lblRomCooldown.Font = normalFont;
 
-            this.numRomCooldown.Location = new System.Drawing.Point(520, 58);
+            this.numRomCooldown.Location = new System.Drawing.Point(520, 30);
             this.numRomCooldown.Size = new System.Drawing.Size(70, 20);
             this.numRomCooldown.Minimum = 1;
             this.numRomCooldown.Maximum = 168;
             this.numRomCooldown.Font = normalFont;
 
+            // ?? Champs Go masqués (valeurs fixées à 10 et 5 dans le code)
+            this.lblRomWarnGo.Text = "Seuil warning (Go) :";
+            this.lblRomWarnGo.Location = new System.Drawing.Point(20, 114);
+            this.lblRomWarnGo.Size = new System.Drawing.Size(200, 20);
+            this.lblRomWarnGo.Font = normalFont;
+            this.lblRomWarnGo.Visible = false;
+
+            this.numRomWarnGo.Location = new System.Drawing.Point(230, 114);
+            this.numRomWarnGo.Size = new System.Drawing.Size(80, 20);
+            this.numRomWarnGo.Minimum = 10;
+            this.numRomWarnGo.Maximum = 10;
+            this.numRomWarnGo.Value = 10;
+            this.numRomWarnGo.Font = normalFont;
+            this.numRomWarnGo.Visible = false;
+
+            this.lblRomCritGo.Text = "Seuil critique (Go) :";
+            this.lblRomCritGo.Location = new System.Drawing.Point(330, 58);
+            this.lblRomCritGo.Size = new System.Drawing.Size(180, 20);
+            this.lblRomCritGo.Font = normalFont;
+            this.lblRomCritGo.Visible = false;
+
+            this.numRomCritGo.Location = new System.Drawing.Point(520, 58);
+            this.numRomCritGo.Size = new System.Drawing.Size(70, 20);
+            this.numRomCritGo.Minimum = 5;
+            this.numRomCritGo.Maximum = 5;
+            this.numRomCritGo.Value = 5;
+            this.numRomCritGo.Font = normalFont;
+            this.numRomCritGo.Visible = false;
+
             // CheckBox alerte SMART
             this.chkRomSmartAlert.Text = LanguageManager.Get("Alerte email sur défaillance SMART") ?? "Alerte email sur défaillance SMART";
-            this.chkRomSmartAlert.Location = new System.Drawing.Point(330, 91);
-            this.chkRomSmartAlert.Size = new System.Drawing.Size(280, 20);
+            this.chkRomSmartAlert.Location = new System.Drawing.Point(20, 120);
+            this.chkRomSmartAlert.Size = new System.Drawing.Size(400, 20);
             this.chkRomSmartAlert.Font = normalFont;
 
+            // Texte explicatif
+            this.lblRomHint.Text = "Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.";
+            this.lblRomHint.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Italic);
+            this.lblRomHint.ForeColor = System.Drawing.Color.Gray;
+            this.lblRomHint.Location = new System.Drawing.Point(20, 145);
+            this.lblRomHint.Size = new System.Drawing.Size(580, 20);
+
+            // Ajout des contrôles au GroupBox (les Go masqués ne sont PAS ajoutés)
             this.grpRomSettings.Controls.Add(this.lblRomInterval);
             this.grpRomSettings.Controls.Add(this.numRomInterval);
             this.grpRomSettings.Controls.Add(this.lblRomWarnPct);
             this.grpRomSettings.Controls.Add(this.numRomWarnPct);
             this.grpRomSettings.Controls.Add(this.lblRomCritPct);
             this.grpRomSettings.Controls.Add(this.numRomCritPct);
-            this.grpRomSettings.Controls.Add(this.lblRomWarnGo);
-            this.grpRomSettings.Controls.Add(this.numRomWarnGo);
-            this.grpRomSettings.Controls.Add(this.lblRomCritGo);
-            this.grpRomSettings.Controls.Add(this.numRomCritGo);
             this.grpRomSettings.Controls.Add(this.lblRomCooldown);
             this.grpRomSettings.Controls.Add(this.numRomCooldown);
             this.grpRomSettings.Controls.Add(this.chkRomSmartAlert);
+            this.grpRomSettings.Controls.Add(this.lblRomHint);
             this.tabRomMonitor.Controls.Add(this.grpRomSettings);
 
             // --- Bouton Enregistrer ---
             this.btnSaveRomConfig.Text = LanguageManager.Get("Enregistrer les réglages") ?? "Enregistrer les réglages";
             this.btnSaveRomConfig.Font = normalFont;
             this.btnSaveRomConfig.Size = new System.Drawing.Size(200, 35);
-            this.btnSaveRomConfig.Location = new System.Drawing.Point(405, 128);
+            this.btnSaveRomConfig.Location = new System.Drawing.Point(400, 65);
             this.btnSaveRomConfig.BackColor = Color.FromArgb(220, 220, 225);
             this.btnSaveRomConfig.FlatStyle = FlatStyle.Flat;
             this.btnSaveRomConfig.FlatAppearance.BorderSize = 1;
@@ -745,7 +696,7 @@ namespace MCEMonitor
             this.romMonitorTimer.Interval = 3000;
             this.romMonitorTimer.Tick += new System.EventHandler(this.RomMonitorTimer_Tick);
             this.romMonitorTimer.Start();
-
+            
             // ============================================================
             // WAKE MONITOR — CONTENU
             // ============================================================
@@ -1376,8 +1327,7 @@ namespace MCEMonitor
         private System.Windows.Forms.Timer logRefreshTimer;
 
         private System.Windows.Forms.GroupBox grpMediaActions;
-        private System.Windows.Forms.Panel toggleMediaService;
-        private System.Windows.Forms.Panel toggleKnob;
+        private MCEMonitor.Controls.Win11Toggle toggleMediaService;
         private System.Windows.Forms.Label lblMediaStatus;
         private System.Windows.Forms.Label lblNextReport;
         private System.Windows.Forms.Label lblLastReport;
@@ -1441,8 +1391,7 @@ namespace MCEMonitor
         private System.Windows.Forms.PictureBox picRomInfo;
         private System.Windows.Forms.Label lblRomDescription;
         private System.Windows.Forms.GroupBox grpRomActions;
-        private System.Windows.Forms.Panel toggleRomService;
-        private System.Windows.Forms.Panel toggleRomKnob;
+        private MCEMonitor.Controls.Win11Toggle toggleRomService;
         private System.Windows.Forms.Label lblRomStatus;
         private System.Windows.Forms.GroupBox grpRomSettings;
         private System.Windows.Forms.Label lblRomInterval;
@@ -1458,6 +1407,7 @@ namespace MCEMonitor
         private System.Windows.Forms.Label lblRomCooldown;
         private System.Windows.Forms.NumericUpDown numRomCooldown;
         private System.Windows.Forms.CheckBox chkRomSmartAlert;
+        private System.Windows.Forms.Label lblRomHint;
         private System.Windows.Forms.Button btnCreateRomTask;
         private System.Windows.Forms.Button btnDeleteRomTask;
         private System.Windows.Forms.Button btnOpenRomUI;
