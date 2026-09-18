@@ -1047,32 +1047,16 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             if (running)
             {
+                // Arrêter le service
                 foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
                     p.Kill();
+
+                // ?? Le Tray va disparaître tout seul grâce à son Watchdog
             }
             else
             {
-                string servicePath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "RomMonitor.Service.exe"
-                );
-
-                if (!File.Exists(servicePath))
-                {
-                    PopupHelper.ShowBottomPopup(
-                        this,
-                        LanguageManager.Get("RomMonitor.Service.exe introuvable.") ?? "RomMonitor.Service.exe introuvable.",
-                        "Erreur"
-                    );
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = servicePath,
-                    UseShellExecute = true
-                });
+                // Démarrer le service + le Tray
+                StartRomMonitorService();
             }
 
             Task.Delay(800).ContinueWith(_ =>
@@ -1081,6 +1065,78 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             });
         }
 
+        private void BtnOpenRomUI_Click(object sender, EventArgs e)
+        {
+            // Vérifie si le service tourne
+            bool serviceRunning = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+
+            if (!serviceRunning)
+            {
+                var result = MessageBox.Show(
+                    (LanguageManager.Get("Le service RomMonitor n'est pas en cours d'exécution.")
+                        ?? "Le service RomMonitor n'est pas en cours d'exécution.")
+                    + "\n\n" +
+                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
+                        ?? "Voulez-vous le démarrer maintenant ?"),
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Warning
+                );
+
+                if (result != DialogResult.Yes)
+                    return;
+
+                // Démarre le service + le Tray
+                if (!StartRomMonitorService())
+                    return;
+
+                // Met à jour le switch
+                UpdateRomMonitorToggle();
+            }
+
+            // Le service tourne ? ouvrir l'UI
+            try
+            {
+                string uiPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "RomMonitor.UI.exe"
+                );
+
+                if (!File.Exists(uiPath))
+                {
+                    uiPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "RomMonitor.UI.exe"
+                    );
+                }
+
+                if (!File.Exists(uiPath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "RomMonitor.UI.exe est introuvable.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uiPath,
+                    Arguments = $"--from-mcem -lang {lang}",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, "Erreur lors de l'ouverture de RomMonitor.UI : " + ex.Message);
+            }
+        }
+        
         private void RomMonitorTimer_Tick(object sender, EventArgs e)
         {
             UpdateRomMonitorToggle();
@@ -1138,36 +1194,102 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
             }
         }
 
-        private void BtnOpenRomUI_Click(object sender, EventArgs e)
+        /// <summary>
+        /// Démarre le service RomMonitor et lance le Tray.
+        /// Renvoie true si le service tourne à la fin.
+        /// </summary>
+        private bool StartRomMonitorService()
         {
             try
             {
-                string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RomMonitor.UI.exe");
+                string servicePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.Service.exe"
+                );
 
-                if (!File.Exists(uiPath))
+                if (!File.Exists(servicePath))
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        "RomMonitor.UI.exe est introuvable.",
+                        LanguageManager.Get("RomMonitor.Service.exe introuvable.") ?? "RomMonitor.Service.exe introuvable.",
                         "Erreur"
                     );
-                    return;
+                    return false;
                 }
-
-                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
 
                 Process.Start(new ProcessStartInfo
                 {
-                    FileName = uiPath,
-                    Arguments = $"--from-mcem -lang {lang}",
+                    FileName = servicePath,
                     UseShellExecute = true
                 });
+
+                Thread.Sleep(1200);
+
+                // Vérifier que le service tourne
+                if (Process.GetProcessesByName("RomMonitor.Service").Length == 0)
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "Le service RomMonitor n'a pas pu démarrer.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                // Démarrer le Tray
+                StartRomMonitorTray();
+
+                return true;
             }
             catch (Exception ex)
             {
-                PopupHelper.ShowBottomPopup(this, "Erreur lors de l'ouverture de RomMonitor.UI : " + ex.Message);
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors du démarrage du service RomMonitor : " + ex.Message,
+                    "Erreur"
+                );
+                return false;
             }
-        }        
+        }
+
+        /// <summary>
+        /// Lance le Tray RomMonitor s'il n'est pas déjà en cours.
+        /// </summary>
+        private void StartRomMonitorTray()
+        {
+            try
+            {
+                // Déjà en cours ?
+                if (Process.GetProcessesByName("RomMonitor.Tray").Length > 0)
+                    return;
+
+                string trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "RomMonitor.Tray.exe"
+                );
+
+                if (!File.Exists(trayPath))
+                {
+                    trayPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "RomMonitor.Tray.exe"
+                    );
+                }
+
+                if (File.Exists(trayPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = trayPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch { }
+        }                
     }   
 }
 
