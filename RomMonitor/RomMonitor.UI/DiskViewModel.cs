@@ -26,7 +26,11 @@ namespace RomMonitor.UI
         public string SmartModel { get; set; } = "";
         public string SmartSerial { get; set; } = "";
         public string SmartStatus { get; set; } = "N/A";
-        public string SmartReason { get; set; } = "";
+        public string SmartReason { get; set; } = "";    // ? AJOUTER CETTE LIGNE
+
+        public string SmartReasonText => 
+            string.IsNullOrWhiteSpace(SmartReason) ? "Aucun problème détecté" : SmartReason;
+        
         public int? SmartTemperature { get; set; }
         public int? SmartPowerOnHours { get; set; }
         public bool SmartAvailable { get; set; }

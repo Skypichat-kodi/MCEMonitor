@@ -34,6 +34,28 @@ namespace RomMonitor.Service
             Save();
         }
 
+        /// <summary>
+        /// Vide l'historique (fichier + mémoire).
+        /// </summary>
+        public void Clear()
+        {
+            try
+            {
+                _alerts.Clear();
+
+                Directory.CreateDirectory(Folder);
+
+                // Écrire un fichier vide (array JSON vide)
+                File.WriteAllText(FilePath, "[]");
+
+                CoreLog.Write("Historique des alertes purgé");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur Clear AlertHistory : " + ex.Message);
+            }
+        }
+
         private void Load()
         {
             try

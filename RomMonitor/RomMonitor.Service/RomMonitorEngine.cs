@@ -34,6 +34,10 @@ namespace RomMonitor.Service
         {
             _settings = settings;
             _history = new AlertHistory();
+
+            // ?? Purger l'historique à chaque démarrage
+            _history.Clear();
+
             _alertManager = new AlertManager(_settings, _history);
         }
 

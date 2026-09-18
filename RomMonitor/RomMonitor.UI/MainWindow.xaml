@@ -254,9 +254,16 @@
                                     Width="2*"/>
 
                 <!-- Raison -->
-                <DataGridTextColumn Header="{loc:Tr 'État'}"
-                                    Binding="{Binding SmartReason}"
-                                    Width="2*"/>
+                <DataGridTemplateColumn Header="{loc:Tr 'État'}" Width="2*">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding SmartReasonText}"
+                                       Foreground="{Binding SmartBadgeBrush}"
+                                       VerticalAlignment="Center"
+                                       Margin="4,0"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
                 <!-- Température -->
                 <DataGridTemplateColumn Header="{loc:Tr 'Temp.'}" Width="90">
