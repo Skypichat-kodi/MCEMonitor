@@ -259,9 +259,18 @@
                                     Width="2*"/>
 
                 <!-- Température -->
-                <DataGridTextColumn Header="{loc:Tr 'Temp.'}"
-                                    Binding="{Binding SmartTemperature, StringFormat={}{0}°C}"
-                                    Width="80"/>
+                <DataGridTemplateColumn Header="{loc:Tr 'Temp.'}" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding TemperatureText}"
+                                       Foreground="{Binding TemperatureBrush}"
+                                       FontWeight="SemiBold"
+                                       FontSize="13"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
 
             </DataGrid.Columns>
         </DataGrid>

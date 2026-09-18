@@ -215,29 +215,32 @@ namespace RomMonitor.UI
                             FreePercent = d.freePercent
                         };
 
-                        // Associer le SMART
+                        // Associer le SMART par Serial (mapping WMI)
                         if (smart != null && smart.Count > 0)
                         {
                             RomSmart? match = null;
 
-                            // Tentative 1 : match par device
-                            foreach (var s in smart)
+                            // Match par serial (le plus fiable)
+                            if (!string.IsNullOrEmpty(d.physicalSerial))
                             {
-                                if (string.IsNullOrEmpty(s.serial)) continue;
-                                if (string.IsNullOrEmpty(s.device)) continue;
+                                string wmiSerial = Normalize(d.physicalSerial);
 
-                                string devLower = s.device.ToLower();
-
-                                if (devLower.Contains("sda") && d.name.StartsWith("C"))
-                                {
-                                    match = s;
-                                    break;
-                                }
+                                match = smart.FirstOrDefault(s =>
+                                    !string.IsNullOrEmpty(s.serial) &&
+                                    Normalize(s.serial).Contains(wmiSerial));
                             }
 
-                            // Fallback : si un seul SMART dispo
-                            if (match == null && smart.Count == 1)
-                                match = smart[0];
+                            // Fallback : match par DiskNumber (pour /dev/sdX)
+                            if (match == null && d.physicalDiskNumber.HasValue)
+                            {
+                                // /dev/sda = Disk 0, /dev/sdb = Disk 1...
+                                // (souvent mais pas toujours)
+                                char expectedLetter = (char)('a' + d.physicalDiskNumber.Value);
+                                string expectedDevice = "/dev/sd" + expectedLetter;
+
+                                match = smart.FirstOrDefault(s =>
+                                    s.device?.Equals(expectedDevice, StringComparison.OrdinalIgnoreCase) == true);
+                            }
 
                             if (match != null)
                             {
@@ -250,7 +253,7 @@ namespace RomMonitor.UI
                                 vm.SmartPowerOnHours = match.powerOnHours;
                             }
                         }
-
+                        
                         // Mise à jour des Brush
                         vm.UpdateBrushes();
 
@@ -304,6 +307,20 @@ namespace RomMonitor.UI
                 catch { }
             }
         }
+        
+        /// <summary>
+        /// Normalise un numéro de série pour comparaison.
+        /// </summary>
+        private static string Normalize(string s)
+        {
+            if (string.IsNullOrEmpty(s)) return "";
+
+            return s.ToUpperInvariant()
+                .Replace("-", "")
+                .Replace(" ", "")
+                .Replace("_", "")
+                .Trim();
+        }        
 
         // ------------------------------------------------------------
         //  Boutons

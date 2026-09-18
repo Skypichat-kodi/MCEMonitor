@@ -282,49 +282,54 @@ namespace RomMonitor.Service
             info.Status = "OK";
             info.StatusReason = "";
 
+            // =====================================================
+            //  Priorité 1 : CRITICAL
+            // =====================================================
+
             if (!info.Passed)
             {
                 info.Status = "Critical";
                 info.StatusReason = "SMART global : FAILED";
             }
-
-            if (info.CriticalWarning.HasValue && info.CriticalWarning.Value != 0)
+            else if (info.CriticalWarning.HasValue && info.CriticalWarning.Value != 0)
             {
                 info.Status = "Critical";
                 info.StatusReason = $"Critical Warning NVMe : 0x{info.CriticalWarning.Value:X2}";
             }
-
-            if (info.ReallocatedSectors.HasValue && info.ReallocatedSectors.Value > 0)
-            {
-                info.Status = "Warning";
-                info.StatusReason = $"{info.ReallocatedSectors.Value} secteurs réalloués";
-            }
-
-            if (info.PendingSectors.HasValue && info.PendingSectors.Value > 0)
+            else if (info.PendingSectors.HasValue && info.PendingSectors.Value > 0)
             {
                 info.Status = "Critical";
                 info.StatusReason = $"{info.PendingSectors.Value} secteurs en attente";
             }
-
-            if (info.UncorrectableSectors.HasValue && info.UncorrectableSectors.Value > 0)
+            else if (info.UncorrectableSectors.HasValue && info.UncorrectableSectors.Value > 0)
             {
                 info.Status = "Critical";
                 info.StatusReason = $"{info.UncorrectableSectors.Value} secteurs non corrigeables";
             }
+            else if (info.Temperature.HasValue && info.Temperature.Value >= 70)
+            {
+                info.Status = "Critical";
+                info.StatusReason = $"Température critique : {info.Temperature.Value}°C";
+            }
 
-            if (info.MediaErrors.HasValue && info.MediaErrors.Value > 0)
+            // =====================================================
+            //  Priorité 2 : WARNING (seulement si pas déjà Critical)
+            // =====================================================
+
+            else if (info.ReallocatedSectors.HasValue && info.ReallocatedSectors.Value > 0)
+            {
+                info.Status = "Warning";
+                info.StatusReason = $"{info.ReallocatedSectors.Value} secteurs réalloués";
+            }
+            else if (info.MediaErrors.HasValue && info.MediaErrors.Value > 0)
             {
                 info.Status = "Warning";
                 info.StatusReason = $"{info.MediaErrors.Value} erreurs média";
             }
-
-            if (info.Temperature.HasValue && info.Temperature.Value > 55)
+            else if (info.Temperature.HasValue && info.Temperature.Value >= 55)
             {
-                if (info.Status == "OK")
-                {
-                    info.Status = "Warning";
-                    info.StatusReason = $"Température élevée : {info.Temperature.Value}°C";
-                }
+                info.Status = "Warning";
+                info.StatusReason = $"Température élevée : {info.Temperature.Value}°C";
             }
 
             return info;

@@ -31,6 +31,8 @@ namespace RomMonitor.UI
         public double totalGo { get; set; }
         public double freeGo { get; set; }
         public double freePercent { get; set; }
+        public string physicalSerial { get; set; } = "";
+        public int? physicalDiskNumber { get; set; }    
     }
 
     public class RomSmart

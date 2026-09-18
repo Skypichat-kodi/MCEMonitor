@@ -61,7 +61,9 @@ namespace RomMonitor.Service
                 driveType = d.DriveType,
                 totalGo = Math.Round(d.TotalGo, 1),
                 freeGo = Math.Round(d.FreeGo, 1),
-                freePercent = Math.Round(d.FreePercent, 1)
+                freePercent = Math.Round(d.FreePercent, 1),
+                physicalSerial = d.PhysicalSerial,           // ??
+                physicalDiskNumber = d.PhysicalDiskNumber    // ??
             }).ToList();
 
             IpcResponse.Json(server, disks);

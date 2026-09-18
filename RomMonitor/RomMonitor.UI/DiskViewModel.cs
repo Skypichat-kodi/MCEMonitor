@@ -55,5 +55,30 @@ namespace RomMonitor.UI
                 _ => new SolidColorBrush(Color.FromRgb(120, 120, 120))
             };
         }
+        
+        // Texte de la température
+        public string TemperatureText => SmartTemperature.HasValue 
+            ? $"{SmartTemperature}°C" 
+            : "N/A";
+
+        // Couleur selon la température
+        public Brush TemperatureBrush
+        {
+            get
+            {
+                if (!SmartTemperature.HasValue)
+                    return new SolidColorBrush(Color.FromRgb(120, 120, 120)); // gris
+
+                int t = SmartTemperature.Value;
+
+                if (t >= 70)
+                    return new SolidColorBrush(Color.FromRgb(255, 99, 71));  // rouge
+
+                if (t >= 55)
+                    return new SolidColorBrush(Color.FromRgb(255, 185, 0));  // orange
+
+                return new SolidColorBrush(Color.FromRgb(108, 203, 95));      // vert
+            }
+        }
     }
 }
