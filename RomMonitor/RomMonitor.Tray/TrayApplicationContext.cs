@@ -38,11 +38,11 @@ namespace RomMonitor.Tray
             // ------------------------------------------------------------
             // Gestion des clics : double-clic ou clic gauche ? ouvre l'UI
             // ------------------------------------------------------------
-            trayIcon.DoubleClick += (s, e) => OpenRomMonitorUI();
+            trayIcon.DoubleClick += (s, e) => OpenMCEMonitor();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenRomMonitorUI();
+                    OpenMCEMonitor();
             };
 
             // ------------------------------------------------------------
@@ -50,7 +50,6 @@ namespace RomMonitor.Tray
             // ------------------------------------------------------------
             var menu = new ContextMenuStrip();
 
-            menu.Items.Add("Ouvrir RomMonitor", null, (s, e) => OpenRomMonitorUI());
             menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
@@ -64,46 +63,6 @@ namespace RomMonitor.Tray
             watchdog.Interval = 5000;
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
-        }
-
-        // ------------------------------------------------------------
-        // Ouvrir RomMonitor.UI
-        // ------------------------------------------------------------
-        private void OpenRomMonitorUI()
-        {
-            try
-            {
-                string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
-                string uiPath = Path.Combine(exeDir, "RomMonitor.UI.exe");
-
-                if (!File.Exists(uiPath))
-                {
-                    // Tentative dans Program Files
-                    string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
-                    uiPath = Path.Combine(programFiles, "MCEMonitor", "RomMonitor.UI.exe");
-                }
-
-                if (!File.Exists(uiPath))
-                {
-                    MessageBox.Show(
-                        "RomMonitor.UI.exe est introuvable.",
-                        "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
-                    );
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = uiPath,
-                    UseShellExecute = true
-                });
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show("Impossible d'ouvrir RomMonitor : " + ex.Message);
-            }
         }
 
         // ------------------------------------------------------------
