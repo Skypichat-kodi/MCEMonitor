@@ -1,0 +1,344 @@
+﻿<Window x:Class="RomMonitor.UI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:MediaMonitor.Core.Language;assembly=MediaMonitor.Core"
+        Title="RomMonitor"
+        Height="700"
+        Width="1100">
+
+    <Window.Resources>
+
+        <!-- Couleurs Windows 11 Dark -->
+        <SolidColorBrush x:Key="Win11Background" Color="#1E1E1E"/>
+        <SolidColorBrush x:Key="Win11Panel" Color="#252526"/>
+        <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
+        <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
+        <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
+        <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
+
+        <!-- Style en-têtes de colonnes -->
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="6,4"/>
+        </Style>
+
+        <!-- Style des cellules -->
+        <Style TargetType="DataGridCell">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style des lignes -->
+        <Style TargetType="DataGridRow">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="0 0 0 1"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2D2D30"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- ScrollBars sombres -->
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#3C3C3C"/>
+        </Style>
+
+        <!-- Style des boutons -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Padding" Value="10 5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3A3A3D"/>
+                                <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style DataGrid -->
+        <Style TargetType="DataGrid">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="RowBackground" Value="#1E1E1E"/>
+            <Setter Property="AlternatingRowBackground" Value="#252526"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <!-- Style TextBlock -->
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+        </Style>
+
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- Barre titre -->
+            <RowDefinition Height="Auto"/>   <!-- Boutons -->
+            <RowDefinition Height="3*"/>     <!-- Tableau disques -->
+            <RowDefinition Height="Auto"/>   <!-- Titre alertes -->
+            <RowDefinition Height="2*"/>     <!-- Tableau alertes -->
+            <RowDefinition Height="Auto"/>   <!-- Status bar -->
+        </Grid.RowDefinitions>
+
+        <!-- Fond sombre -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="6"/>
+
+        <!-- Overlay background -->
+        <Rectangle Grid.RowSpan="6">
+            <Rectangle.Fill>
+                <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- ============================================================ -->
+        <!--  BARRE TITRE                                                  -->
+        <!-- ============================================================ -->
+        <TextBlock Grid.Row="0"
+                   Text="RomMonitor"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="#4CC2FF"
+                   Margin="15,12,0,8"/>
+
+        <!-- ============================================================ -->
+        <!--  BOUTONS                                                      -->
+        <!-- ============================================================ -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="15,0,15,10">
+            <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click">
+                <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
+            </Button>
+            <Button Width="140" Margin="0,0,10,0" Click="OpenLogs_Click">
+                <TextBlock Text="{loc:Tr 'Dossier Logs'}"/>
+            </Button>
+            <Button Width="140" Margin="0,0,10,0" Click="OpenHistory_Click">
+                <TextBlock Text="{loc:Tr 'Historique'}"/>
+            </Button>
+        </StackPanel>
+
+        <!-- ============================================================ -->
+        <!--  TABLEAU DISQUES                                              -->
+        <!-- ============================================================ -->
+        <DataGrid x:Name="DisksGrid"
+                  Grid.Row="2"
+                  Margin="15,0,15,0"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column">
+
+            <DataGrid.Columns>
+
+                <!-- Nom disque -->
+                <DataGridTextColumn Header="{loc:Tr 'Disque'}"
+                                    Binding="{Binding Name}"
+                                    Width="80"/>
+
+                <!-- Label -->
+                <DataGridTextColumn Header="{loc:Tr 'Nom'}"
+                                    Binding="{Binding Label}"
+                                    Width="120"/>
+
+                <!-- Type -->
+                <DataGridTextColumn Header="{loc:Tr 'Type'}"
+                                    Binding="{Binding DriveType}"
+                                    Width="90"/>
+
+                <!-- Taille -->
+                <DataGridTextColumn Header="{loc:Tr 'Taille'}"
+                                    Binding="{Binding TotalGoText}"
+                                    Width="90"/>
+
+                <!-- Libre -->
+                <DataGridTextColumn Header="{loc:Tr 'Libre'}"
+                                    Binding="{Binding FreeGoText}"
+                                    Width="90"/>
+
+                <!-- % libre avec barre -->
+                <DataGridTemplateColumn Header="{loc:Tr 'Espace'}" Width="180">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Grid Margin="4,2">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="50"/>
+                                </Grid.ColumnDefinitions>
+
+                                <ProgressBar Grid.Column="0"
+                                             Height="16"
+                                             Minimum="0"
+                                             Maximum="100"
+                                             Value="{Binding UsedPercent, Mode=OneWay}"
+                                             Foreground="{Binding StatusBrush}"
+                                             Background="#2D2D30"
+                                             BorderBrush="#3C3C3C"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding FreePercentText}"
+                                           VerticalAlignment="Center"
+                                           HorizontalAlignment="Right"
+                                           FontSize="12"
+                                           Margin="6,0,0,0"/>
+                            </Grid>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- SMART status -->
+                <DataGridTemplateColumn Header="{loc:Tr 'SMART'}" Width="120">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding SmartBadgeBrush}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    HorizontalAlignment="Left"
+                                    Margin="4,0">
+                                <TextBlock Text="{Binding SmartStatusText}"
+                                           Foreground="Black"
+                                           FontWeight="Bold"
+                                           FontSize="11"/>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <!-- Modèle -->
+                <DataGridTextColumn Header="{loc:Tr 'Modèle'}"
+                                    Binding="{Binding SmartModel}"
+                                    Width="2*"/>
+
+                <!-- Raison -->
+                <DataGridTextColumn Header="{loc:Tr 'État'}"
+                                    Binding="{Binding SmartReason}"
+                                    Width="2*"/>
+
+                <!-- Température -->
+                <DataGridTextColumn Header="{loc:Tr 'Temp.'}"
+                                    Binding="{Binding SmartTemperature, StringFormat={}{0}°C}"
+                                    Width="80"/>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ============================================================ -->
+        <!--  TITRE ALERTES                                                -->
+        <!-- ============================================================ -->
+        <TextBlock Grid.Row="3"
+                   Text="{loc:Tr 'Alertes récentes'}"
+                   FontSize="14"
+                   FontWeight="SemiBold"
+                   Foreground="#4CC2FF"
+                   Margin="15,15,0,5"/>
+
+        <!-- ============================================================ -->
+        <!--  TABLEAU ALERTES                                              -->
+        <!-- ============================================================ -->
+        <DataGrid x:Name="AlertsGrid"
+                  Grid.Row="4"
+                  Margin="15,0,15,0"
+                  AutoGenerateColumns="False"
+                  CanUserAddRows="False"
+                  IsReadOnly="True"
+                  HeadersVisibility="Column">
+
+            <DataGrid.Columns>
+
+                <DataGridTextColumn Header="{loc:Tr 'Heure'}"
+                                    Binding="{Binding TimeText}"
+                                    Width="140"/>
+
+                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding SeverityBrush}"
+                                    CornerRadius="10"
+                                    Padding="8,2"
+                                    HorizontalAlignment="Left"
+                                    Margin="4,0">
+                                <TextBlock Text="{Binding Severity}"
+                                           Foreground="Black"
+                                           FontWeight="Bold"
+                                           FontSize="11"/>
+                            </Border>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+
+                <DataGridTextColumn Header="{loc:Tr 'Cible'}"
+                                    Binding="{Binding Target}"
+                                    Width="2*"/>
+
+                <DataGridTextColumn Header="{loc:Tr 'Message'}"
+                                    Binding="{Binding Message}"
+                                    Width="4*"/>
+
+                <DataGridTextColumn Header="{loc:Tr 'Email'}"
+                                    Binding="{Binding EmailText}"
+                                    Width="70"/>
+
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- ============================================================ -->
+        <!--  STATUS BAR                                                   -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="5"
+                Background="#252526"
+                BorderBrush="#3C3C3C"
+                BorderThickness="0,1,0,0"
+                Margin="0,10,0,0"
+                Padding="15,6">
+            <TextBlock x:Name="StatusText"
+                       Text="..."
+                       FontSize="12"
+                       Foreground="#B4B4B4"/>
+        </Border>
+
+    </Grid>
+</Window>
