@@ -58,7 +58,7 @@ echo.
 echo ============================================
 
 if %ERROR%==0 (
-    echo %ESC%[32m? AUCUNE ERREUR DE PUBLISH%ESC%[0m
+    echo %ESC%[32m[OK] AUCUNE ERREUR DE PUBLISH%ESC%[0m
     echo ============================================
     echo.
     set /p CHOICE="Voulez-vous compiler l'installeur Inno Setup ? (O/N) : "
@@ -82,7 +82,7 @@ if %ERROR%==0 (
         if errorlevel 1 (
             echo %ESC%[31m? Erreur lors de la compilation Inno Setup.%ESC%[0m
         ) else (
-            echo %ESC%[32m? Installeur compilé avec succès !%ESC%[0m
+            echo %ESC%[32m[OK] Installeur compilé avec succès !%ESC%[0m
 
             set "INNO_OUT="
             for /f "tokens=1,* delims==" %%A in ('findstr /I "OutputDir" "%ROOT%\MCEMonitorInstaller.iss"') do (
