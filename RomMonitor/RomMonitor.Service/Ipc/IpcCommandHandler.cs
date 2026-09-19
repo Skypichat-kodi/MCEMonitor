@@ -143,6 +143,10 @@ namespace RomMonitor.Service
         {
             try
             {
+                // Sauvegarder l'ancien port AVANT modification
+                int oldPort = _settings.WebPort;
+                bool oldEnabled = _settings.WebEnabled;
+
                 string payload = command.Substring("set-web-config ".Length).Trim();
                 var parts = payload.Split('&');
 
@@ -173,10 +177,30 @@ namespace RomMonitor.Service
 
                 _settings.Save();
 
-                // Redémarrer le WebServer
+                // ============================================================
+                //  ?? GESTION DU PARE-FEU
+                // ============================================================
+
+                int newPort = _settings.WebPort;
+                bool newEnabled = _settings.WebEnabled;
+
+                if (newEnabled)
+                {
+                    // Met à jour la règle pour le nouveau port (supprime + ajoute)
+                    FirewallHelper.UpdateFirewallRule(newPort);
+                }
+                else
+                {
+                    // Web désactivé ? supprime la règle
+                    FirewallHelper.RemoveRule();
+                }
+
+                // ============================================================
+                //  Redémarrer le WebServer
+                // ============================================================
                 Program.RestartWebServer();
 
-                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
+                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={newEnabled}, port={newPort})");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)

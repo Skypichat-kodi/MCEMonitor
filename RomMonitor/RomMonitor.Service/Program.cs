@@ -37,6 +37,12 @@ namespace RomMonitor.Service
             _ipc = new ServiceIpcServer(_engine, settings);
             _ipc.Start();
 
+            // Ajouter la règle pare-feu AVANT de démarrer le WebServer
+            if (settings.WebEnabled)
+            {
+                FirewallHelper.UpdateFirewallRule(settings.WebPort);
+            }
+
             // Démarrer WebServer
             _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
             _webServer.Start();
@@ -56,6 +62,13 @@ namespace RomMonitor.Service
                 Thread.Sleep(500);
 
                 var settings = RomMonitorSettings.Load();
+
+                // S'assurer que le pare-feu autorise le port actuel
+                if (settings.WebEnabled)
+                {
+                    FirewallHelper.UpdateFirewallRule(settings.WebPort);
+                }
+
                 _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
                 _webServer.Start();
 
