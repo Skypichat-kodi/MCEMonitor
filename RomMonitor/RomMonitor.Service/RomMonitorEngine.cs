@@ -35,7 +35,7 @@ namespace RomMonitor.Service
             _settings = settings;
             _history = new AlertHistory();
 
-            // ?? Purger l'historique à chaque démarrage
+            // Purge de l'historique à chaque démarrage
             _history.Clear();
 
             _alertManager = new AlertManager(_settings, _history);
@@ -124,6 +124,13 @@ namespace RomMonitor.Service
 
                     if (_alertManager.CanSendAlert(alert.Type, alert.Target))
                     {
+                        // ?? Envoi email pour les Critical si activé
+                        if (_settings.AlertOnLowDiskSpace)
+                        {
+                            _ = SendDiskSpaceAlertEmailAsync(disk, "Critical");
+                            alert.EmailSent = true;
+                        }
+
                         _alertManager.Add(alert);
                     }
                 }
@@ -141,6 +148,7 @@ namespace RomMonitor.Service
 
                     if (_alertManager.CanSendAlert(alert.Type, alert.Target))
                     {
+                        // Pas d'email pour les Warning (log uniquement)
                         _alertManager.Add(alert);
                     }
                 }
@@ -231,6 +239,42 @@ namespace RomMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur envoi email SMART : " + ex.Message);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  ?? Envoi email d'alerte espace disque
+        // ------------------------------------------------------------------
+        private async Task SendDiskSpaceAlertEmailAsync(DiskInfo disk, string severity)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                {
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annulé");
+                    return;
+                }
+
+                string subject = $"[ALERTE] Disque {disk.Name} en danger";
+                string reasonText = "Espace critique (< 5% libre)";
+
+                string body = $@"
+                    <p><b>Disque :</b> {disk.Name} {(string.IsNullOrEmpty(disk.Label) ? "" : $"({disk.Label})")}</p>
+                    <p><b>Statut :</b> <span style='color:#c0392b'>{severity}</span></p>
+                    <p><b>Espace libre :</b> {disk.FreePercent:F1}% ({disk.FreeGo:F1} Go sur {disk.TotalGo:F1} Go)</p>
+                    <p><b>Raison :</b> {reasonText}</p>
+                    <hr>
+                    <p style='color:#888;font-size:12px'>Serveur : {Environment.MachineName}</p>";
+
+                await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte espace disque envoyée pour {disk.Name}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email espace : " + ex.Message);
             }
         }
 

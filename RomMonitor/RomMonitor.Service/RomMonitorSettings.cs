@@ -30,7 +30,7 @@ namespace RomMonitor.Service
         public int DiskSpaceCriticalGo { get; set; } = 5;
 
         public bool AlertOnSmartFailure { get; set; } = true;
-        public bool AlertOnLowDiskSpace { get; set; } = false;
+        public bool AlertOnLowDiskSpace { get; set; } = true;
 
         public int AlertCooldownHours { get; set; } = 24;
 
