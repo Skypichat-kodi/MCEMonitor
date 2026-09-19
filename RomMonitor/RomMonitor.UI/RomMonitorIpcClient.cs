@@ -60,6 +60,13 @@ namespace RomMonitor.UI
         public bool emailSent { get; set; }
     }
 
+    public class RomWebStatus
+    {
+        public bool enabled { get; set; }
+        public int port { get; set; }
+        public string username { get; set; } = "";
+    }
+    
     // ============================================================
     //  Client IPC
     // ============================================================
@@ -215,5 +222,33 @@ namespace RomMonitor.UI
             var status = await GetStatus();
             return status != null;
         }
+        
+        // ============================================================
+        //  Serveur Web
+        // ============================================================
+
+        public static async Task<RomWebStatus?> GetWebStatus()
+        {
+            string? json = await SendCommand("get-web-status");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<RomWebStatus>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+
+        public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
+        {
+            string cmd = $"set-web-config enabled={enabled.ToString().ToLower()}" +
+                         $"&port={port}" +
+                         $"&username={username}" +
+                         $"&password={password}";
+
+            string? json = await SendCommand(cmd);
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }        
     }
 }

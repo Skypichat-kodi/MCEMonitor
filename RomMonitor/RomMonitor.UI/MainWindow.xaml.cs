@@ -17,6 +17,7 @@ namespace RomMonitor.UI
 
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
+        private bool _loadingWebConfig = false;
 
         public MainWindow()
         {
@@ -120,6 +121,9 @@ namespace RomMonitor.UI
 
             // Premier refresh
             _ = RefreshSafe();
+
+            // Charger la config Web
+            _ = LoadWebConfig();
         }
 
         // ------------------------------------------------------------
@@ -207,9 +211,7 @@ namespace RomMonitor.UI
 
                 if (disks != null)
                 {
-                    // ============================================================
-                    //  3. Groupement par DiskNumber (si dispo)
-                    // ============================================================
+                    // 3. Groupement par DiskNumber
                     var diskNumberToCapacity = new System.Collections.Generic.Dictionary<int, double>();
 
                     foreach (var d in disks)
@@ -228,14 +230,11 @@ namespace RomMonitor.UI
                         }
                     }
 
-                    // ============================================================
-                    //  4. Mapping DiskNumber ? SMART (avec fallbacks)
-                    // ============================================================
+                    // 4. Mapping DiskNumber ? SMART
                     var diskNumberToSmart = new System.Collections.Generic.Dictionary<int, RomSmart>();
 
                     if (smart != null && smart.Count > 0)
                     {
-                        // --- CAS 1 : un seul SMART ? on l'associe à tous les disques
                         if (smart.Count == 1)
                         {
                             foreach (var kv in diskNumberToCapacity)
@@ -243,7 +242,6 @@ namespace RomMonitor.UI
                         }
                         else
                         {
-                            // --- CAS 2 : plusieurs SMART ? match par capacité
                             foreach (var kv in diskNumberToCapacity)
                             {
                                 int num = kv.Key;
@@ -273,9 +271,7 @@ namespace RomMonitor.UI
                         }
                     }
 
-                    // ============================================================
-                    //  5. Créer les ViewModels des disques
-                    // ============================================================
+                    // 5. Créer les ViewModels des disques
                     foreach (var d in disks)
                     {
                         var vm = new DiskViewModel
@@ -288,23 +284,17 @@ namespace RomMonitor.UI
                             FreePercent = d.freePercent
                         };
 
-                        // Association SMART
                         RomSmart? match = null;
 
-                        // Tentative 1 : via DiskNumber
                         if (d.physicalDiskNumber.HasValue &&
                             diskNumberToSmart.TryGetValue(d.physicalDiskNumber.Value, out var m))
                         {
                             match = m;
                         }
 
-                        // Tentative 2 (FALLBACK) : si un seul SMART dispo
                         if (match == null && smart != null && smart.Count == 1)
-                        {
                             match = smart[0];
-                        }
 
-                        // Tentative 3 (FALLBACK ULTIME) : le SMART le plus proche en capacité
                         if (match == null && smart != null && smart.Count > 0)
                         {
                             double bestDelta = double.MaxValue;
@@ -322,7 +312,6 @@ namespace RomMonitor.UI
                             }
                         }
 
-                        // Appliquer le match
                         if (match != null)
                         {
                             vm.SmartAvailable = true;
@@ -372,7 +361,7 @@ namespace RomMonitor.UI
         }
 
         // ------------------------------------------------------------
-        //  Boutons
+        //  Boutons principaux
         // ------------------------------------------------------------
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
@@ -431,6 +420,143 @@ namespace RomMonitor.UI
             catch (Exception ex)
             {
                 MessageBox.Show("Impossible d'ouvrir l'historique.\n" + ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  SERVEUR WEB
+        // ============================================================
+
+        private async Task LoadWebConfig()
+        {
+            try
+            {
+                _loadingWebConfig = true;
+
+                var status = await RomMonitorIpcClient.GetWebStatus();
+
+                if (status == null)
+                    return;
+
+                ToggleWeb.IsChecked = status.enabled;
+                txtWebPort.Text = status.port.ToString();
+                txtWebLogin.Text = status.username;
+
+                // Mot de passe : lu depuis le fichier config local
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config"
+                );
+
+                if (File.Exists(configPath))
+                {
+                    foreach (var line in File.ReadAllLines(configPath))
+                    {
+                        if (line.StartsWith("WebPassword=", StringComparison.OrdinalIgnoreCase))
+                        {
+                            string pass = line.Split('=', 2)[1].Trim();
+                            txtWebPassword.Password = pass;
+                            txtWebPasswordVisible.Text = pass;
+                            break;
+                        }
+                    }
+                }
+            }
+            catch { }
+            finally
+            {
+                _loadingWebConfig = false;
+            }
+        }
+
+        private async void ToggleWeb_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_loadingWebConfig) return;
+            await ApplyWebConfig();
+        }
+
+        private async void ToggleWeb_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_loadingWebConfig) return;
+            await ApplyWebConfig();
+        }
+
+        private async void btnApplyWeb_Click(object sender, RoutedEventArgs e)
+        {
+            bool ok = await ApplyWebConfig();
+
+            if (ok)
+            {
+                MessageBox.Show(
+                    LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
+                    "OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+        }
+
+        private async Task<bool> ApplyWebConfig()
+        {
+            try
+            {
+                if (!int.TryParse(txtWebPort.Text, out int port))
+                {
+                    MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return false;
+                }
+
+                string login = txtWebLogin.Text.Trim();
+
+                string pass = txtWebPassword.Visibility == Visibility.Visible
+                    ? txtWebPassword.Password
+                    : txtWebPasswordVisible.Text;
+
+                bool enabled = ToggleWeb.IsChecked == true;
+
+                return await RomMonitorIpcClient.SetWebConfig(enabled, port, login, pass);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+                return false;
+            }
+        }
+
+        private void btnShowWebPassword_Click(object sender, RoutedEventArgs e)
+        {
+            if (txtWebPassword.Visibility == Visibility.Visible)
+            {
+                txtWebPasswordVisible.Text = txtWebPassword.Password;
+                txtWebPassword.Visibility = Visibility.Collapsed;
+                txtWebPasswordVisible.Visibility = Visibility.Visible;
+                btnShowWebPassword.Content = "??";
+            }
+            else
+            {
+                txtWebPassword.Password = txtWebPasswordVisible.Text;
+                txtWebPasswordVisible.Visibility = Visibility.Collapsed;
+                txtWebPassword.Visibility = Visibility.Visible;
+                btnShowWebPassword.Content = "??";
+            }
+        }
+
+        private void btnOpenWeb_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!int.TryParse(txtWebPort.Text, out int port))
+                    return;
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = $"http://localhost:{port}/",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
         }
     }

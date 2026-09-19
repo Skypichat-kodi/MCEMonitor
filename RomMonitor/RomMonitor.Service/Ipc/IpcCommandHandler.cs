@@ -39,6 +39,7 @@ namespace RomMonitor.Service
                 case "get-smart":        HandleGetSmart(server); break;
                 case "get-alerts":       HandleGetAlerts(server); break;
                 case "get-config":       HandleGetConfig(server); break;
+                case "get-web-status":   HandleGetWebStatus(server); break;   // ?? AJOUTÉ
                 case "send-test-email":  HandleSendTestEmail(server); break;
                 case "shutdown":         HandleShutdown(server); break;
                 default:                 IpcResponse.Error(server, "unknown command"); break;
@@ -125,85 +126,9 @@ namespace RomMonitor.Service
             });
         }
 
-        private void HandleSendTestEmail(NamedPipeServerStream server)
-        {
-            try
-            {
-                _engine.SendTestEmailAsync().GetAwaiter().GetResult();
-                IpcResponse.Ok(server);
-            }
-            catch (Exception ex)
-            {
-                IpcResponse.Error(server, ex.Message);
-            }
-        }
-
-        private void HandleShutdown(NamedPipeServerStream server)
-        {
-            IpcResponse.Ok(server);
-            CoreLog.Write("IPC : shutdown demandé");
-
-            System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
-        }
-        
-        private void HandleSetConfig(string command, NamedPipeServerStream server)
-        {
-            try
-            {
-                // Récupérer la partie après "set-config "
-                string payload = command.Substring("set-config ".Length).Trim();
-                var parts = payload.Split('&');
-
-                foreach (var part in parts)
-                {
-                    var kv = part.Split('=', 2);
-                    if (kv.Length != 2) continue;
-
-                    string key = kv[0].Trim().ToLower();
-                    string val = kv[1].Trim();
-
-                    switch (key)
-                    {
-                        case "interval":
-                            if (int.TryParse(val, out int i)) _settings.Interval = i;
-                            break;
-                        case "warnpct":
-                            if (int.TryParse(val, out int wp)) _settings.DiskSpaceWarnPercent = wp;
-                            break;
-                        case "critpct":
-                            if (int.TryParse(val, out int cp)) _settings.DiskSpaceCriticalPercent = cp;
-                            break;
-                        case "warngo":
-                            if (int.TryParse(val, out int wg)) _settings.DiskSpaceWarnGo = wg;
-                            break;
-                        case "critgo":
-                            if (int.TryParse(val, out int cg)) _settings.DiskSpaceCriticalGo = cg;
-                            break;
-                        case "smart":
-                            if (bool.TryParse(val, out bool s)) _settings.AlertOnSmartFailure = s;
-                            break;
-                        case "lowdisk":
-                            if (bool.TryParse(val, out bool ld)) _settings.AlertOnLowDiskSpace = ld;
-                            break;
-                        case "cooldown":
-                            if (int.TryParse(val, out int cd)) _settings.AlertCooldownHours = cd;
-                            break;
-                        case "get-web-status":
-                            HandleGetWebStatus(server);
-                            break;                            
-                    }
-                }
-
-                _settings.Save();
-                CoreLog.Write("IPC : config RomMonitor mise à jour");
-                IpcResponse.Ok(server);
-            }
-            catch (Exception ex)
-            {
-                IpcResponse.Error(server, ex.Message);
-            }
-        } 
-
+        // ============================================================
+        //  WEB SERVER
+        // ============================================================
         private void HandleGetWebStatus(NamedPipeServerStream server)
         {
             IpcResponse.Json(server, new
@@ -251,13 +176,93 @@ namespace RomMonitor.Service
                 // Redémarrer le WebServer
                 Program.RestartWebServer();
 
-                CoreLog.Write("IPC : config WebServer mise à jour");
+                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleSetWebConfig : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  ACTIONS
+        // ============================================================
+        private void HandleSendTestEmail(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.SendTestEmailAsync().GetAwaiter().GetResult();
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
             {
                 IpcResponse.Error(server, ex.Message);
             }
-        }              
+        }
+
+        private void HandleShutdown(NamedPipeServerStream server)
+        {
+            IpcResponse.Ok(server);
+            CoreLog.Write("IPC : shutdown demandé");
+
+            System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
+        }
+
+        private void HandleSetConfig(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                // Récupérer la partie après "set-config "
+                string payload = command.Substring("set-config ".Length).Trim();
+                var parts = payload.Split('&');
+
+                foreach (var part in parts)
+                {
+                    var kv = part.Split('=', 2);
+                    if (kv.Length != 2) continue;
+
+                    string key = kv[0].Trim().ToLower();
+                    string val = kv[1].Trim();
+
+                    switch (key)
+                    {
+                        case "interval":
+                            if (int.TryParse(val, out int i)) _settings.Interval = i;
+                            break;
+                        case "warnpct":
+                            if (int.TryParse(val, out int wp)) _settings.DiskSpaceWarnPercent = wp;
+                            break;
+                        case "critpct":
+                            if (int.TryParse(val, out int cp)) _settings.DiskSpaceCriticalPercent = cp;
+                            break;
+                        case "warngo":
+                            if (int.TryParse(val, out int wg)) _settings.DiskSpaceWarnGo = wg;
+                            break;
+                        case "critgo":
+                            if (int.TryParse(val, out int cg)) _settings.DiskSpaceCriticalGo = cg;
+                            break;
+                        case "smart":
+                            if (bool.TryParse(val, out bool s)) _settings.AlertOnSmartFailure = s;
+                            break;
+                        case "lowdisk":
+                            if (bool.TryParse(val, out bool ld)) _settings.AlertOnLowDiskSpace = ld;
+                            break;
+                        case "cooldown":
+                            if (int.TryParse(val, out int cd)) _settings.AlertCooldownHours = cd;
+                            break;
+                    }
+                }
+
+                _settings.Save();
+                CoreLog.Write("IPC : config RomMonitor mise à jour");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
     }
 }

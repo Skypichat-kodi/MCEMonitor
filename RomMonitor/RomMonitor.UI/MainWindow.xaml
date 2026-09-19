@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MediaMonitor.Core.Language;assembly=MediaMonitor.Core"
         Title="RomMonitor"
-        Height="700"
+        Height="750"
         Width="1100">
 
     <Window.Resources>
@@ -120,6 +120,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>   <!-- Barre titre -->
+            <RowDefinition Height="Auto"/>   <!-- Serveur Web -->
             <RowDefinition Height="Auto"/>   <!-- Boutons -->
             <RowDefinition Height="3*"/>     <!-- Tableau disques -->
             <RowDefinition Height="Auto"/>   <!-- Titre alertes -->
@@ -128,10 +129,10 @@
         </Grid.RowDefinitions>
 
         <!-- Fond sombre -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="6"/>
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="7"/>
 
         <!-- Overlay background -->
-        <Rectangle Grid.RowSpan="6">
+        <Rectangle Grid.RowSpan="7">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
             </Rectangle.Fill>
@@ -148,9 +149,167 @@
                    Margin="15,12,0,8"/>
 
         <!-- ============================================================ -->
+        <!--  SERVEUR WEB                                                  -->
+        <!-- ============================================================ -->
+        <GroupBox Grid.Row="1"
+                  Margin="15,0,15,10"
+                  Padding="10"
+                  Header="{loc:Tr 'Serveur Web'}"
+                  Background="{StaticResource PanelBackground}"
+                  BorderBrush="{StaticResource Win11Border}"
+                  Foreground="{StaticResource Win11Text}">
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- ZONE 1 : Config (gauche) -->
+                <Grid Grid.Column="0" Margin="0,0,20,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Switch ON/OFF -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
+                                   VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+
+                        <ToggleButton x:Name="ToggleWeb"
+                                      Width="40"
+                                      Height="20"
+                                      Checked="ToggleWeb_Checked"
+                                      Unchecked="ToggleWeb_Unchecked">
+                            <ToggleButton.Style>
+                                <Style TargetType="ToggleButton">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="ToggleButton">
+                                                <Grid Width="40" Height="20">
+                                                    <Border x:Name="SwitchBackground"
+                                                            CornerRadius="10"
+                                                            Background="#3C3C3C"/>
+                                                    <Ellipse x:Name="SwitchThumb"
+                                                             Width="16" Height="16"
+                                                             Margin="2"
+                                                             Fill="#E5E5E5"
+                                                             HorizontalAlignment="Left"/>
+                                                </Grid>
+
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsChecked" Value="True">
+                                                        <Setter TargetName="SwitchBackground"
+                                                                Property="Background"
+                                                                Value="#4CC2FF"/>
+                                                        <Setter TargetName="SwitchThumb"
+                                                                Property="HorizontalAlignment"
+                                                                Value="Right"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </ToggleButton.Style>
+                        </ToggleButton>
+                    </StackPanel>
+
+                    <!-- Port -->
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="txtWebPort"
+                                 Width="200"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"/>
+                    </StackPanel>
+
+                    <!-- Login -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
+                        <TextBox x:Name="txtWebLogin"
+                                 Width="200"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"/>
+                    </StackPanel>
+
+                    <!-- Mot de passe -->
+                    <Grid Grid.Row="3">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120"/>
+                            <ColumnDefinition Width="177"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Text="{loc:Tr 'Mot de passe :'}"
+                                   Grid.Column="0"
+                                   VerticalAlignment="Center"/>
+
+                        <PasswordBox x:Name="txtWebPassword"
+                                     Grid.Column="1"
+                                     Width="177"
+                                     Background="#1E1E1E"
+                                     Foreground="#E5E5E5"
+                                     BorderBrush="#3C3C3C"
+                                     Visibility="Visible"/>
+
+                        <TextBox x:Name="txtWebPasswordVisible"
+                                 Grid.Column="1"
+                                 Width="177"
+                                 Background="#1E1E1E"
+                                 Foreground="#E5E5E5"
+                                 BorderBrush="#3C3C3C"
+                                 Visibility="Collapsed"/>
+
+                        <Button x:Name="btnShowWebPassword"
+                                Grid.Column="2"
+                                Width="18"
+                                Height="18"
+                                Margin="6,0,0,0"
+                                Padding="0"
+                                Click="btnShowWebPassword_Click"
+                                Background="#2D2D30"
+                                BorderBrush="#3C3C3C"
+                                BorderThickness="1"
+                                Cursor="Hand">
+                            <TextBlock Text="👁" FontSize="12" FontFamily="Segoe UI Emoji"/>
+                        </Button>
+                    </Grid>
+                </Grid>
+
+                <!-- ZONE 2 : Boutons (droite) -->
+                <StackPanel Grid.Column="2"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Bottom">
+                    <Button Content="{loc:Tr 'Appliquer'}"
+                            Width="150"
+                            Height="28"
+                            Margin="0,0,0,8"
+                            Padding="0"
+                            VerticalContentAlignment="Center"
+                            Click="btnApplyWeb_Click"/>
+
+                    <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
+                            Width="220"
+                            Height="28"
+                            Padding="0"
+                            VerticalContentAlignment="Center"
+                            Click="btnOpenWeb_Click"/>
+                </StackPanel>
+            </Grid>
+        </GroupBox>
+
+        <!-- ============================================================ -->
         <!--  BOUTONS                                                      -->
         <!-- ============================================================ -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="15,0,15,10">
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="15,0,15,10">
             <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click">
                 <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
             </Button>
@@ -166,7 +325,7 @@
         <!--  TABLEAU DISQUES                                              -->
         <!-- ============================================================ -->
         <DataGrid x:Name="DisksGrid"
-                  Grid.Row="2"
+                  Grid.Row="3"
                   Margin="15,0,15,0"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
@@ -285,7 +444,7 @@
         <!-- ============================================================ -->
         <!--  TITRE ALERTES                                                -->
         <!-- ============================================================ -->
-        <TextBlock Grid.Row="3"
+        <TextBlock Grid.Row="4"
                    Text="{loc:Tr 'Alertes récentes'}"
                    FontSize="14"
                    FontWeight="SemiBold"
@@ -296,7 +455,7 @@
         <!--  TABLEAU ALERTES                                              -->
         <!-- ============================================================ -->
         <DataGrid x:Name="AlertsGrid"
-                  Grid.Row="4"
+                  Grid.Row="5"
                   Margin="15,0,15,0"
                   AutoGenerateColumns="False"
                   CanUserAddRows="False"
@@ -344,7 +503,7 @@
         <!-- ============================================================ -->
         <!--  STATUS BAR                                                   -->
         <!-- ============================================================ -->
-        <Border Grid.Row="5"
+        <Border Grid.Row="6"
                 Background="#252526"
                 BorderBrush="#3C3C3C"
                 BorderThickness="0,1,0,0"
