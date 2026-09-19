@@ -14,13 +14,17 @@
     <ProjectReference Include="..\..\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
 
+  <!-- Assets (icône application) -->
   <ItemGroup>
     <Content Include="Assets\RomMonitor.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Resources\Images\UI-background.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+  </ItemGroup>
+
+  <!-- ?? Images et icônes embarquées dans l'assembly (WPF Resource) -->
+  <ItemGroup>
+    <Resource Include="Resources\Icons\*.png" />
+    <Resource Include="Resources\Images\*.png" />
   </ItemGroup>
 
 </Project>

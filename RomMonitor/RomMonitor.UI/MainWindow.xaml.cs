@@ -192,7 +192,8 @@ namespace RomMonitor.UI
 
                 if (status == null)
                 {
-                    StatusText.Text = "[!] Service RomMonitor non joignable";
+                    StatusText.Text = "Service RomMonitor non joignable";
+                    SetStatusIcon("/Resources/Icons/warning.png");
                     return;
                 }
 
@@ -200,6 +201,12 @@ namespace RomMonitor.UI
                     $"Service actif  |  Dernier check : {status.lastCheck:HH:mm:ss}  |  " +
                     $"{status.diskCount} disque(s)  |  {status.smartCount} SMART  |  " +
                     $"{status.alertCount} alerte(s)  |  Intervalle : {status.interval} min";
+
+                // ?? Icône selon l'état
+                if (status.alertCount > 0)
+                    SetStatusIcon("/Resources/Icons/warning.png");
+                else
+                    SetStatusIcon("/Resources/Icons/check.png");
 
                 // ============================================================
                 //  2. Récupérer disques + SMART
@@ -356,10 +363,29 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "[!] Erreur IPC : " + ex.Message;
+                StatusText.Text = "Erreur IPC : " + ex.Message;
+                SetStatusIcon("/Resources/Icons/warning.png");
             }
         }
 
+        // ============================================================
+        //  Icône de statut
+        // ============================================================
+        private void SetStatusIcon(string iconPath)
+        {
+            try
+            {
+                imgStatusIcon.Source = new System.Windows.Media.Imaging.BitmapImage(
+                    new Uri("pack://application:,,," + iconPath));
+
+                imgStatusIcon.Visibility = Visibility.Visible;
+            }
+            catch
+            {
+                imgStatusIcon.Visibility = Visibility.Collapsed;
+            }
+        }
+        
         // ------------------------------------------------------------
         //  Boutons principaux
         // ------------------------------------------------------------
@@ -527,17 +553,23 @@ namespace RomMonitor.UI
         {
             if (txtWebPassword.Visibility == Visibility.Visible)
             {
+                // Afficher le mot de passe
                 txtWebPasswordVisible.Text = txtWebPassword.Password;
                 txtWebPassword.Visibility = Visibility.Collapsed;
                 txtWebPasswordVisible.Visibility = Visibility.Visible;
-                btnShowWebPassword.Content = "??";
+
+                imgWebEye.Source = new System.Windows.Media.Imaging.BitmapImage(
+                    new Uri("pack://application:,,,/Resources/Icons/eye-off.png"));
             }
             else
             {
+                // Cacher le mot de passe
                 txtWebPassword.Password = txtWebPasswordVisible.Text;
                 txtWebPasswordVisible.Visibility = Visibility.Collapsed;
                 txtWebPassword.Visibility = Visibility.Visible;
-                btnShowWebPassword.Content = "??";
+
+                imgWebEye.Source = new System.Windows.Media.Imaging.BitmapImage(
+                    new Uri("pack://application:,,,/Resources/Icons/eye.png"));
             }
         }
 
