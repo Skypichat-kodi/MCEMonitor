@@ -102,7 +102,8 @@ namespace MCEMonitor.Controls
             }
 
             // --- Capsule (fond) ---
-            var capsuleRect = new Rectangle(0, 0, w - 1, h - 1);
+            int capsuleMargin = 1;
+            var capsuleRect = new Rectangle(0, capsuleMargin, w - 1, h - capsuleMargin * 2 - 1);
 
             using (var path = GetCapsulePath(capsuleRect, radius))
             using (var brush = new SolidBrush(bgColor))
@@ -122,7 +123,7 @@ namespace MCEMonitor.Controls
             }
 
             // Marge autour du knob
-            int margin = 3;
+            int margin = 1;   // ? 3 ? 1 (juste pour la bordure)
             int knobSize = h - (margin * 2);
             int knobX = _checked ? (w - knobSize - margin) : margin;
             int knobY = margin;

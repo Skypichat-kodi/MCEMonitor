@@ -64,11 +64,11 @@ namespace MCEMonitor
             this.tabControl.BackColor = Color.White;
 
             this.tabControl.Controls.Add(this.tabEmail);
+            this.tabControl.Controls.Add(this.tabOnOff);
             this.tabControl.Controls.Add(this.tabMediaMonitor);
             this.tabControl.Controls.Add(this.tabRomMonitor);
             this.tabControl.Controls.Add(this.tabWakeMonitor);
-            this.tabControl.Controls.Add(this.tabStopMonitor);
-            this.tabControl.Controls.Add(this.tabOnOff);
+            this.tabControl.Controls.Add(this.tabStopMonitor);            
             this.tabControl.Controls.Add(this.tabAbout);
 
             // ============================================================
@@ -369,7 +369,7 @@ namespace MCEMonitor
             this.grpMediaActions.Size = new System.Drawing.Size(620, 160);
 
             // MediaMonitor — Toggle
-            this.toggleMediaService.Location = new System.Drawing.Point(20, 32);
+            this.toggleMediaService.Location = new System.Drawing.Point(20, 29);
             this.toggleMediaService.Size = new System.Drawing.Size(44, 22);
             this.toggleMediaService.Click += new System.EventHandler(this.toggleMediaService_Click);
 
@@ -524,7 +524,7 @@ namespace MCEMonitor
             this.grpRomActions.Size = new System.Drawing.Size(620, 100);
 
             // RomMonitor — Toggle
-            this.toggleRomService.Location = new System.Drawing.Point(20, 32);
+            this.toggleRomService.Location = new System.Drawing.Point(20, 29);
             this.toggleRomService.Size = new System.Drawing.Size(44, 22);
             this.toggleRomService.Click += new System.EventHandler(this.toggleRomService_Click);
 
@@ -655,7 +655,7 @@ namespace MCEMonitor
             this.numRomCritGo.Visible = false;
 
             // CheckBox alerte SMART
-            this.chkRomSmartAlert.Text = LanguageManager.Get("Alerte email sur défaillance SMART") ?? "Alerte email sur défaillance SMART";
+            this.chkRomSmartAlert.Text = LanguageManager.Get("Alerte email, SMART et disque plein") ?? "Alerte email, SMART et disque plein";
             this.chkRomSmartAlert.Location = new System.Drawing.Point(20, 120);
             this.chkRomSmartAlert.Size = new System.Drawing.Size(400, 20);
             this.chkRomSmartAlert.Font = normalFont;
