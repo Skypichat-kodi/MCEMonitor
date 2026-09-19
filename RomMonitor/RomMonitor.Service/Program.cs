@@ -8,6 +8,7 @@ namespace RomMonitor.Service
         private static Mutex _mutex;
         private static RomMonitorEngine _engine;
         private static ServiceIpcServer _ipc;
+        private static RomMonitor.Service.Web.MiniHttpServer _webServer;
 
         static void Main(string[] args)
         {
@@ -36,8 +37,34 @@ namespace RomMonitor.Service
             _ipc = new ServiceIpcServer(_engine, settings);
             _ipc.Start();
 
+            // Démarrer WebServer
+            _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
+            _webServer.Start();
+
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
+        }
+
+        // ============================================================
+        //  Redémarrage du WebServer (appelé par IPC)
+        // ============================================================
+        internal static void RestartWebServer()
+        {
+            try
+            {
+                _webServer?.Stop();
+                Thread.Sleep(500);
+
+                var settings = RomMonitorSettings.Load();
+                _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
+                _webServer.Start();
+
+                CoreLog.Write("WebServer redémarré");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur RestartWebServer : " + ex.Message);
+            }
         }
     }
 }

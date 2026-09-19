@@ -9,23 +9,27 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="MailKit" Version="4.16.0" />
-    <PackageReference Include="MimeKit" Version="4.16.0" />
     <PackageReference Include="System.Management" Version="8.0.0" />
     <PackageReference Include="System.Diagnostics.EventLog" Version="8.0.0" />
+    <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="MimeKit" Version="4.16.0" />
+  </ItemGroup>
+
+  <!-- Référence à MediaMonitor.Core pour LanguageManager -->
+  <ItemGroup>
+    <ProjectReference Include="..\..\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Configuration -->
     <None Include="RomMonitor.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-  
-  <ItemGroup>
     <None Include="Tools\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>  
+    <Content Include="Templates\**\*.html">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
 
 </Project>

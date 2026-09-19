@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>RomMonitor - {{MachineName}}</title>
+<style>
+    body {
+        margin:0; padding:20px;
+        font-family: Segoe UI, Arial, sans-serif;
+        background-color: #1e1e1e;
+        color: #e5e5e5;
+    }
+    h1 { margin:0 0 20px 0; font-size:22px; color:#4CC2FF; }
+    h2 { margin:25px 0 10px 0; font-size:16px; color:#4CC2FF; }
+
+    .info {
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    .info-grid {
+        display: grid;
+        grid-template-columns: auto auto auto auto;
+        gap: 8px 20px;
+        font-size: 13px;
+    }
+    .label { color: #ccc; }
+    .value { font-weight: bold; color: #fff; }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 10px;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #3c3c3c;
+        text-align: left;
+    }
+    th {
+        background: #2d2d30;
+        color: #fff;
+        font-weight: 600;
+    }
+    tr:nth-child(even) td { background: #262626; }
+    tr:nth-child(odd)  td { background: #1f1f1f; }
+
+    .ok      { color: #6CCB5F; font-weight: bold; }
+    .warning { color: #FFB900; font-weight: bold; }
+    .danger  { color: #FF6347; font-weight: bold; }
+    .na      { color: #888; }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: bold;
+        background: #444;
+        color: #fff;
+    }
+    .badge.ok      { background: #6CCB5F; color: black; }
+    .badge.warning { background: #FFB900; color: black; }
+    .badge.danger  { background: #FF6347; color: white; }
+    .badge.na      { background: #555; color: #ccc; }
+
+    .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+    }
+</style>
+</head>
+<body>
+
+<h1>RomMonitor - Surveillance disques</h1>
+
+<div class="info">
+    <div class="info-grid">
+        <div class="label">Serveur :</div><div class="value">{{MachineName}}</div>
+        <div class="label">Dernier check :</div><div class="value">{{LastCheck}}</div>
+        <div class="label">Disques :</div><div class="value">{{DiskCount}}</div>
+        <div class="label">SMART :</div><div class="value">{{SmartCount}}</div>
+        <div class="label">Alertes :</div><div class="value">{{AlertCount}}</div>
+    </div>
+</div>
+
+<h2>État des disques</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Disque</th>
+            <th>Nom</th>
+            <th>Type</th>
+            <th>Taille</th>
+            <th>Libre</th>
+            <th>%</th>
+            <th>SMART</th>
+            <th>Modèle</th>
+            <th>Temp.</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{DiskRows}}
+    </tbody>
+</table>
+
+<h2>Alertes récentes</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Heure</th>
+            <th>Sévérité</th>
+            <th>Cible</th>
+            <th>Message</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{AlertRows}}
+    </tbody>
+</table>
+
+<div class="footer">
+    RomMonitor - Généré à {{LastCheck}}
+</div>
+
+</body>
+</html>

@@ -1027,6 +1027,48 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
+                // ============================================================
+                //  Lire les valeurs Web existantes (préservées)
+                // ============================================================
+                bool webEnabled = true;
+                int webPort = 8085;
+                string webUsername = "admin";
+                string webPassword = "changeme";
+
+                if (File.Exists(configPath))
+                {
+                    foreach (var line in File.ReadAllLines(configPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                            continue;
+
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+
+                        string key = parts[0].Trim();
+                        string val = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "WebEnabled":
+                                if (bool.TryParse(val, out bool we)) webEnabled = we;
+                                break;
+                            case "WebPort":
+                                if (int.TryParse(val, out int wp)) webPort = wp;
+                                break;
+                            case "WebUsername":
+                                webUsername = val;
+                                break;
+                            case "WebPassword":
+                                webPassword = val;
+                                break;
+                        }
+                    }
+                }
+
+                // ============================================================
+                //  Écrire le fichier complet
+                // ============================================================
                 var lines = new[]
                 {
                     "# ============================================================",
@@ -1034,7 +1076,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                     "# Configuration du service RomMonitor",
                     "# ============================================================",
                     "",
-                    "# Fréquence de vérification (minutes)",
+                    "# Fréquence de contrôle (minutes)",
                     $"Interval={(int)numRomInterval.Value}",
                     "",
                     "# Seuil d'alerte espace disque (% libre)",
@@ -1042,15 +1084,21 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                     $"DiskSpaceCriticalPercent={(int)numRomCritPct.Value}",
                     "",
                     "# Seuil d'alerte espace disque (Go libre)",
-                    $"DiskSpaceWarnGo={(int)numRomWarnGo.Value}",
-                    $"DiskSpaceCriticalGo={(int)numRomCritGo.Value}",
+                    "DiskSpaceWarnGo=10",
+                    "DiskSpaceCriticalGo=5",
                     "",
                     "# Alertes email",
                     $"AlertOnSmartFailure={chkRomSmartAlert.Checked.ToString().ToLower()}",
                     "AlertOnLowDiskSpace=true",
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
-                    $"AlertCooldownHours={(int)numRomCooldown.Value}"
+                    $"AlertCooldownHours={(int)numRomCooldown.Value}",
+                    "",
+                    "# Serveur Web",
+                    $"WebEnabled={webEnabled.ToString().ToLower()}",
+                    $"WebPort={webPort}",
+                    $"WebUsername={webUsername}",
+                    $"WebPassword={webPassword}"
                 };
 
                 File.WriteAllLines(configPath, lines);

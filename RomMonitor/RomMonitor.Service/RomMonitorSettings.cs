@@ -8,9 +8,6 @@ namespace RomMonitor.Service
     /// </summary>
     public class RomMonitorSettings
     {
-        // ------------------------------------------------------------
-        //  Chemins
-        // ------------------------------------------------------------
         private static readonly string ConfigFolder = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor"
@@ -19,20 +16,28 @@ namespace RomMonitor.Service
         private static readonly string ConfigPath = Path.Combine(ConfigFolder, "RomMonitor.config");
 
         // ------------------------------------------------------------
-        //  Paramètres
+        //  Paramètres existants
         // ------------------------------------------------------------
         public int Interval { get; set; } = 15;
 
         public int DiskSpaceWarnPercent { get; set; } = 15;
         public int DiskSpaceCriticalPercent { get; set; } = 5;
 
-        public int DiskSpaceWarnGo { get; set; } = 20;
+        public int DiskSpaceWarnGo { get; set; } = 10;
         public int DiskSpaceCriticalGo { get; set; } = 5;
 
         public bool AlertOnSmartFailure { get; set; } = true;
         public bool AlertOnLowDiskSpace { get; set; } = true;
 
         public int AlertCooldownHours { get; set; } = 24;
+
+        // ------------------------------------------------------------
+        //  ?? Serveur Web
+        // ------------------------------------------------------------
+        public bool WebEnabled { get; set; } = true;
+        public int WebPort { get; set; } = 8085;
+        public string WebUsername { get; set; } = "admin";
+        public string WebPassword { get; set; } = "changeme";
 
         // ------------------------------------------------------------
         //  Chargement
@@ -45,7 +50,6 @@ namespace RomMonitor.Service
             {
                 if (!File.Exists(ConfigPath))
                 {
-                    // Créer le fichier par défaut
                     settings.Save();
                     return settings;
                 }
@@ -97,6 +101,22 @@ namespace RomMonitor.Service
                         case "AlertCooldownHours":
                             if (int.TryParse(value, out int ach)) settings.AlertCooldownHours = ach;
                             break;
+
+                        case "WebEnabled":
+                            if (bool.TryParse(value, out bool we)) settings.WebEnabled = we;
+                            break;
+
+                        case "WebPort":
+                            if (int.TryParse(value, out int wport)) settings.WebPort = wport;
+                            break;
+
+                        case "WebUsername":
+                            settings.WebUsername = value;
+                            break;
+
+                        case "WebPassword":
+                            settings.WebPassword = value;
+                            break;
                     }
                 }
             }
@@ -124,7 +144,7 @@ namespace RomMonitor.Service
                     "# Configuration du service RomMonitor",
                     "# ============================================================",
                     "",
-                    "# Fréquence de vérification (minutes)",
+                    "# Fréquence de contrôle (minutes)",
                     $"Interval={Interval}",
                     "",
                     "# Seuil d'alerte espace disque (% libre)",
@@ -140,7 +160,13 @@ namespace RomMonitor.Service
                     $"AlertOnLowDiskSpace={AlertOnLowDiskSpace.ToString().ToLower()}",
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
-                    $"AlertCooldownHours={AlertCooldownHours}"
+                    $"AlertCooldownHours={AlertCooldownHours}",
+                    "",
+                    "# Serveur Web",
+                    $"WebEnabled={WebEnabled.ToString().ToLower()}",
+                    $"WebPort={WebPort}",
+                    $"WebUsername={WebUsername}",
+                    $"WebPassword={WebPassword}"
                 };
 
                 File.WriteAllLines(ConfigPath, lines);

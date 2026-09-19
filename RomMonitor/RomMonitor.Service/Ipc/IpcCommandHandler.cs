@@ -25,6 +25,12 @@ namespace RomMonitor.Service
                 return;
             }
 
+            if (command.StartsWith("set-web-config ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetWebConfig(command, server);
+                return;
+            }
+
             // Commandes exactes
             switch (command)
             {
@@ -182,6 +188,9 @@ namespace RomMonitor.Service
                         case "cooldown":
                             if (int.TryParse(val, out int cd)) _settings.AlertCooldownHours = cd;
                             break;
+                        case "get-web-status":
+                            HandleGetWebStatus(server);
+                            break;                            
                     }
                 }
 
@@ -193,6 +202,62 @@ namespace RomMonitor.Service
             {
                 IpcResponse.Error(server, ex.Message);
             }
-        }       
+        } 
+
+        private void HandleGetWebStatus(NamedPipeServerStream server)
+        {
+            IpcResponse.Json(server, new
+            {
+                enabled = _settings.WebEnabled,
+                port = _settings.WebPort,
+                username = _settings.WebUsername
+            });
+        }
+
+        private void HandleSetWebConfig(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string payload = command.Substring("set-web-config ".Length).Trim();
+                var parts = payload.Split('&');
+
+                foreach (var part in parts)
+                {
+                    var kv = part.Split('=', 2);
+                    if (kv.Length != 2) continue;
+
+                    string key = kv[0].Trim().ToLower();
+                    string val = kv[1].Trim();
+
+                    switch (key)
+                    {
+                        case "enabled":
+                            if (bool.TryParse(val, out bool e)) _settings.WebEnabled = e;
+                            break;
+                        case "port":
+                            if (int.TryParse(val, out int p)) _settings.WebPort = p;
+                            break;
+                        case "username":
+                            _settings.WebUsername = val;
+                            break;
+                        case "password":
+                            _settings.WebPassword = val;
+                            break;
+                    }
+                }
+
+                _settings.Save();
+
+                // Redémarrer le WebServer
+                Program.RestartWebServer();
+
+                CoreLog.Write("IPC : config WebServer mise à jour");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }              
     }
 }
