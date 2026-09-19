@@ -181,7 +181,9 @@ namespace RomMonitor.UI
         {
             try
             {
-                // 1. Statut
+                // ============================================================
+                //  1. Statut
+                // ============================================================
                 var status = await RomMonitorIpcClient.GetStatus();
 
                 if (status == null)
@@ -195,143 +197,172 @@ namespace RomMonitor.UI
                     $"{status.diskCount} disque(s)  |  {status.smartCount} SMART  |  " +
                     $"{status.alertCount} alerte(s)  |  Intervalle : {status.interval} min";
 
-                // 2. Récupérer disques + SMART
+                // ============================================================
+                //  2. Récupérer disques + SMART
+                // ============================================================
                 var disks = await RomMonitorIpcClient.GetDisks();
                 var smart = await RomMonitorIpcClient.GetSmart();
 
                 _disks.Clear();
 
-                if (disks == null) return;
-
-                // ============================================================
-                //  3. Groupement par DiskNumber (si dispo)
-                // ============================================================
-                var diskNumberToCapacity = new System.Collections.Generic.Dictionary<int, double>();
-
-                foreach (var d in disks)
+                if (disks != null)
                 {
-                    if (!d.physicalDiskNumber.HasValue) continue;
+                    // ============================================================
+                    //  3. Groupement par DiskNumber (si dispo)
+                    // ============================================================
+                    var diskNumberToCapacity = new System.Collections.Generic.Dictionary<int, double>();
 
-                    int num = d.physicalDiskNumber.Value;
-
-                    if (d.physicalSizeGo > 0)
-                        diskNumberToCapacity[num] = d.physicalSizeGo;
-                    else
+                    foreach (var d in disks)
                     {
-                        if (!diskNumberToCapacity.ContainsKey(num))
-                            diskNumberToCapacity[num] = 0;
-                        diskNumberToCapacity[num] += d.totalGo;
-                    }
-                }
+                        if (!d.physicalDiskNumber.HasValue) continue;
 
-                // ============================================================
-                //  4. Mapping DiskNumber ? SMART (avec fallbacks)
-                // ============================================================
-                var diskNumberToSmart = new System.Collections.Generic.Dictionary<int, RomSmart>();
+                        int num = d.physicalDiskNumber.Value;
 
-                if (smart != null && smart.Count > 0)
-                {
-                    // --- CAS 1 : un seul SMART ? on l'associe à tous les disques
-                    if (smart.Count == 1)
-                    {
-                        foreach (var kv in diskNumberToCapacity)
-                            diskNumberToSmart[kv.Key] = smart[0];
-                    }
-                    else
-                    {
-                        // --- CAS 2 : plusieurs SMART ? match par capacité
-                        foreach (var kv in diskNumberToCapacity)
+                        if (d.physicalSizeGo > 0)
+                            diskNumberToCapacity[num] = d.physicalSizeGo;
+                        else
                         {
-                            int num = kv.Key;
-                            double totalCapacity = kv.Value;
+                            if (!diskNumberToCapacity.ContainsKey(num))
+                                diskNumberToCapacity[num] = 0;
+                            diskNumberToCapacity[num] += d.totalGo;
+                        }
+                    }
 
-                            if (totalCapacity <= 0) continue;
+                    // ============================================================
+                    //  4. Mapping DiskNumber ? SMART (avec fallbacks)
+                    // ============================================================
+                    var diskNumberToSmart = new System.Collections.Generic.Dictionary<int, RomSmart>();
 
-                            RomSmart? best = null;
+                    if (smart != null && smart.Count > 0)
+                    {
+                        // --- CAS 1 : un seul SMART ? on l'associe à tous les disques
+                        if (smart.Count == 1)
+                        {
+                            foreach (var kv in diskNumberToCapacity)
+                                diskNumberToSmart[kv.Key] = smart[0];
+                        }
+                        else
+                        {
+                            // --- CAS 2 : plusieurs SMART ? match par capacité
+                            foreach (var kv in diskNumberToCapacity)
+                            {
+                                int num = kv.Key;
+                                double totalCapacity = kv.Value;
+
+                                if (totalCapacity <= 0) continue;
+
+                                RomSmart? best = null;
+                                double bestDelta = double.MaxValue;
+
+                                foreach (var s in smart)
+                                {
+                                    if (s.capacityGo <= 0) continue;
+
+                                    double delta = Math.Abs(s.capacityGo - totalCapacity) / totalCapacity;
+
+                                    if (delta < 0.10 && delta < bestDelta)
+                                    {
+                                        best = s;
+                                        bestDelta = delta;
+                                    }
+                                }
+
+                                if (best != null)
+                                    diskNumberToSmart[num] = best;
+                            }
+                        }
+                    }
+
+                    // ============================================================
+                    //  5. Créer les ViewModels des disques
+                    // ============================================================
+                    foreach (var d in disks)
+                    {
+                        var vm = new DiskViewModel
+                        {
+                            Name = d.name ?? "",
+                            Label = d.label ?? "",
+                            DriveType = d.driveType ?? "",
+                            TotalGo = d.totalGo,
+                            FreeGo = d.freeGo,
+                            FreePercent = d.freePercent
+                        };
+
+                        // Association SMART
+                        RomSmart? match = null;
+
+                        // Tentative 1 : via DiskNumber
+                        if (d.physicalDiskNumber.HasValue &&
+                            diskNumberToSmart.TryGetValue(d.physicalDiskNumber.Value, out var m))
+                        {
+                            match = m;
+                        }
+
+                        // Tentative 2 (FALLBACK) : si un seul SMART dispo
+                        if (match == null && smart != null && smart.Count == 1)
+                        {
+                            match = smart[0];
+                        }
+
+                        // Tentative 3 (FALLBACK ULTIME) : le SMART le plus proche en capacité
+                        if (match == null && smart != null && smart.Count > 0)
+                        {
                             double bestDelta = double.MaxValue;
 
                             foreach (var s in smart)
                             {
                                 if (s.capacityGo <= 0) continue;
 
-                                double delta = Math.Abs(s.capacityGo - totalCapacity) / totalCapacity;
-
-                                if (delta < 0.10 && delta < bestDelta)
+                                double delta = Math.Abs(s.capacityGo - d.totalGo);
+                                if (delta < bestDelta)
                                 {
-                                    best = s;
                                     bestDelta = delta;
+                                    match = s;
                                 }
                             }
-
-                            if (best != null)
-                                diskNumberToSmart[num] = best;
                         }
+
+                        // Appliquer le match
+                        if (match != null)
+                        {
+                            vm.SmartAvailable = true;
+                            vm.SmartModel = match.model ?? "";
+                            vm.SmartSerial = match.serial ?? "";
+                            vm.SmartStatus = match.status ?? "N/A";
+                            vm.SmartReason = match.statusReason ?? "";
+                            vm.SmartTemperature = match.temperature;
+                            vm.SmartPowerOnHours = match.powerOnHours;
+                        }
+
+                        vm.UpdateBrushes();
+                        _disks.Add(vm);
                     }
                 }
 
                 // ============================================================
-                //  5. Créer les ViewModels
+                //  6. Alertes
                 // ============================================================
-                foreach (var d in disks)
+                var alerts = await RomMonitorIpcClient.GetAlerts();
+
+                _alerts.Clear();
+
+                if (alerts != null)
                 {
-                    var vm = new DiskViewModel
+                    foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(100))
                     {
-                        Name = d.name ?? "",
-                        Label = d.label ?? "",
-                        DriveType = d.driveType ?? "",
-                        TotalGo = d.totalGo,
-                        FreeGo = d.freeGo,
-                        FreePercent = d.freePercent
-                    };
-
-                    // Association SMART
-                    RomSmart? match = null;
-
-                    // Tentative 1 : via DiskNumber
-                    if (d.physicalDiskNumber.HasValue &&
-                        diskNumberToSmart.TryGetValue(d.physicalDiskNumber.Value, out var m))
-                    {
-                        match = m;
-                    }
-
-                    // Tentative 2 (FALLBACK) : si un seul SMART dispo
-                    if (match == null && smart != null && smart.Count == 1)
-                    {
-                        match = smart[0];
-                    }
-
-                    // Tentative 3 (FALLBACK ULTIME) : le SMART le plus proche en capacité
-                    if (match == null && smart != null && smart.Count > 0)
-                    {
-                        double bestDelta = double.MaxValue;
-
-                        foreach (var s in smart)
+                        var vm = new AlertViewModel
                         {
-                            if (s.capacityGo <= 0) continue;
+                            Timestamp = a.timestamp,
+                            Type = a.type ?? "",
+                            Severity = a.severity ?? "",
+                            Target = a.target ?? "",
+                            Message = a.message ?? "",
+                            EmailSent = a.emailSent
+                        };
 
-                            double delta = Math.Abs(s.capacityGo - d.totalGo);
-                            if (delta < bestDelta)
-                            {
-                                bestDelta = delta;
-                                match = s;
-                            }
-                        }
+                        vm.UpdateBrushes();
+                        _alerts.Add(vm);
                     }
-
-                    // Appliquer le match
-                    if (match != null)
-                    {
-                        vm.SmartAvailable = true;
-                        vm.SmartModel = match.model ?? "";
-                        vm.SmartSerial = match.serial ?? "";
-                        vm.SmartStatus = match.status ?? "N/A";
-                        vm.SmartReason = match.statusReason ?? "";
-                        vm.SmartTemperature = match.temperature;
-                        vm.SmartPowerOnHours = match.powerOnHours;
-                    }
-
-                    vm.UpdateBrushes();
-                    _disks.Add(vm);
                 }
             }
             catch (Exception ex)
@@ -402,20 +433,5 @@ namespace RomMonitor.UI
                 MessageBox.Show("Impossible d'ouvrir l'historique.\n" + ex.Message);
             }
         }
-        
-        /// <summary>
-        /// Normalise un serial (supprime _, -, ., espaces, met en majuscules).
-        /// </summary>
-        private static string NormalizeSerial(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return "";
-
-            return s.ToUpperInvariant()
-                .Replace("_", "")
-                .Replace("-", "")
-                .Replace(".", "")
-                .Replace(" ", "")
-                .Trim();
-        }        
     }
 }

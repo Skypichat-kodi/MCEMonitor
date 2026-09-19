@@ -69,6 +69,28 @@ namespace RomMonitor.UI
         private const string PIPE_NAME = "MCEMonitor_RomMonitorPipe";
         private const int GLOBAL_TIMEOUT_MS = 3000;
 
+        // ------------------------------------------------------------
+        //  Log de debug
+        // ------------------------------------------------------------
+        private static void LogDebug(string message)
+        {
+            try
+            {
+                string logPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs",
+                    "ui-debug.log"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+                File.AppendAllText(logPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}\n");
+            }
+            catch { }
+        }
+        
         private static readonly SemaphoreSlim _ipcLock = new(1, 1);
 
         private static async Task<string?> SendCommand(string command)
@@ -165,10 +187,27 @@ namespace RomMonitor.UI
         public static async Task<List<RomAlert>?> GetAlerts()
         {
             string? json = await SendCommand("get-alerts");
-            if (string.IsNullOrWhiteSpace(json)) return null;
 
-            try { return JsonSerializer.Deserialize<List<RomAlert>>(json); }
-            catch { return null; }
+            try
+            {
+                LogDebug($"GetAlerts : json.len={json?.Length ?? 0}");
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return null;
+
+                var result = JsonSerializer.Deserialize<List<RomAlert>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                LogDebug($"GetAlerts : {result?.Count ?? 0} alertes désérialisées");
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                LogDebug($"GetAlerts ERREUR : {ex.Message}");
+                LogDebug($"GetAlerts JSON brut : {json}");
+                return null;
+            }
         }
 
         public static async Task<bool> IsServiceRunning()
