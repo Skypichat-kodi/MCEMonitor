@@ -1047,7 +1047,7 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                     "",
                     "# Alertes email",
                     $"AlertOnSmartFailure={chkRomSmartAlert.Checked.ToString().ToLower()}",
-                    "AlertOnLowDiskSpace=false",
+                    "AlertOnLowDiskSpace=true",
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
                     $"AlertCooldownHours={(int)numRomCooldown.Value}"
