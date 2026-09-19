@@ -293,5 +293,33 @@ namespace RomMonitor.Service
 
             await EmailSender.SendAsync(cfg, "Test RomMonitor", body, isHtml: true);
         }
+        
+        /// <summary>
+        /// Sévérité la plus grave parmi les alertes récentes.
+        /// "ok" / "warning" / "critical"
+        /// </summary>
+        public string WorstSeverity
+        {
+            get
+            {
+                var alerts = _alertManager.GetAlerts();
+
+                if (alerts == null || alerts.Count == 0)
+                    return "ok";
+
+                bool hasWarning = false;
+
+                foreach (var a in alerts)
+                {
+                    if (a.Severity == "Critical")
+                        return "critical";
+
+                    if (a.Severity == "Warning")
+                        hasWarning = true;
+                }
+
+                return hasWarning ? "warning" : "ok";
+            }
+        }        
     }
 }

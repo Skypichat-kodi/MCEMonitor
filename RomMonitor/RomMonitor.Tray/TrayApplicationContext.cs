@@ -1,11 +1,13 @@
 using System;
 using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Windows.Forms;
 using System.Drawing;
+using System.IO;
 using System.IO.Pipes;
+using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading;
+using System.Windows.Forms;
 using Timer = System.Windows.Forms.Timer;
 
 namespace RomMonitor.Tray
@@ -14,30 +16,78 @@ namespace RomMonitor.Tray
     {
         private NotifyIcon trayIcon;
         private Timer watchdog;
+        private Timer severityTimer;
+
+        private Icon _defaultIcon;
+        private Icon _warningIcon;
+        private Icon _criticalIcon;
+
+        private string _currentSeverity = "";
+
+        private const string PIPE_NAME = "MCEMonitor_RomMonitorPipe";
 
         public TrayApplicationContext()
         {
+            LoadIcons();
             InitializeTray();
         }
 
+        // ------------------------------------------------------------
+        //  Chargement des icônes (depuis PNG ou ICO)
+        // ------------------------------------------------------------
+        private void LoadIcons()
+        {
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+
+            // Icône par défaut (RomMonitor.ico à côté du Tray)
+            string defaultPath = Path.Combine(exeDir, "RomMonitor.ico");
+            _defaultIcon = File.Exists(defaultPath)
+                ? new Icon(defaultPath)
+                : SystemIcons.Application;
+
+            // Icône Warning (PNG)
+            string warningPath = Path.Combine(exeDir, "warning.png");
+            _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
+
+            // Icône Critical (PNG)
+            string criticalPath = Path.Combine(exeDir, "critical.png");
+            _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
+        }
+
+        /// <summary>
+        /// Charge une icône depuis un PNG et la convertit en Icon.
+        /// </summary>
+        private static Icon? LoadIconFromPng(string path)
+        {
+            try
+            {
+                if (!File.Exists(path))
+                    return null;
+
+                using var bmp = new Bitmap(path);
+                IntPtr hIcon = bmp.GetHicon();
+                using var tmp = Icon.FromHandle(hIcon);
+                return (Icon)tmp.Clone();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Initialisation du Tray
+        // ------------------------------------------------------------
         private void InitializeTray()
         {
-            // ------------------------------------------------------------
-            // Chargement de l'icône
-            // ------------------------------------------------------------
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
-            string iconPath = Path.Combine(exeDir, "RomMonitor.ico");
-
             trayIcon = new NotifyIcon()
             {
-                Icon = File.Exists(iconPath) ? new Icon(iconPath) : SystemIcons.Application,
+                Icon = _defaultIcon,
                 Visible = true,
                 Text = "RomMonitor"
             };
 
-            // ------------------------------------------------------------
-            // Gestion des clics : double-clic ou clic gauche ? ouvre l'UI
-            // ------------------------------------------------------------
+            // Double-clic / clic gauche ? ouvrir MCEMonitor
             trayIcon.DoubleClick += (s, e) => OpenMCEMonitor();
             trayIcon.MouseClick += (s, e) =>
             {
@@ -45,28 +95,118 @@ namespace RomMonitor.Tray
                     OpenMCEMonitor();
             };
 
-            // ------------------------------------------------------------
             // Menu contextuel
-            // ------------------------------------------------------------
             var menu = new ContextMenuStrip();
-
             menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
 
             trayIcon.ContextMenuStrip = menu;
 
-            // ------------------------------------------------------------
-            // Watchdog : vérifie toutes les 5 secondes si le service tourne
-            // ------------------------------------------------------------
+            // Watchdog : vérifie que le service tourne (5s)
             watchdog = new Timer();
             watchdog.Interval = 5000;
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
+
+            // ?? Vérification de la sévérité (30s)
+            severityTimer = new Timer();
+            severityTimer.Interval = 30000;
+            severityTimer.Tick += SeverityTimer_Tick;
+            severityTimer.Start();
+
+            // Premier check immédiat
+            _ = System.Threading.Tasks.Task.Run(() => CheckSeverity());
         }
 
         // ------------------------------------------------------------
-        // Ouvrir MCEMonitor
+        //  Timer de sévérité ? change l'icône
+        // ------------------------------------------------------------
+        private void SeverityTimer_Tick(object? sender, EventArgs e)
+        {
+            CheckSeverity();
+        }
+
+        private void CheckSeverity()
+        {
+            try
+            {
+                string? severity = GetWorstSeverity();
+
+                if (severity == null)
+                    return;   // service non joignable ? on ne touche pas
+
+                if (severity == _currentSeverity)
+                    return;   // pas de changement
+
+                _currentSeverity = severity;
+
+                // Changer l'icône (sur le thread UI)
+                if (trayIcon != null && trayIcon.Visible)
+                {
+                    trayIcon.Icon = severity switch
+                    {
+                        "critical" => _criticalIcon,
+                        "warning"  => _warningIcon,
+                        _          => _defaultIcon
+                    };
+
+                    trayIcon.Text = severity switch
+                    {
+                        "critical" => "RomMonitor - Alerte critique",
+                        "warning"  => "RomMonitor - Avertissement",
+                        _          => "RomMonitor"
+                    };
+                }
+            }
+            catch { }
+        }
+
+        // ------------------------------------------------------------
+        //  Requête IPC : get-status ? worstSeverity
+        // ------------------------------------------------------------
+        private string? GetWorstSeverity()
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
+
+                // Connect avec timeout (lève une exception si timeout)
+                client.Connect(1000);
+
+                if (!client.IsConnected)
+                    return null;
+
+                // Envoyer la commande
+                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-status");
+                client.Write(cmdBytes, 0, cmdBytes.Length);
+                client.Flush();
+
+                // Lire la réponse
+                byte[] buffer = new byte[8192];
+                int bytesRead = client.Read(buffer, 0, buffer.Length);
+
+                if (bytesRead <= 0)
+                    return null;
+
+                string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+
+                // Parser le JSON
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("worstSeverity", out var sev))
+                    return sev.GetString() ?? "ok";
+
+                return "ok";
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Ouvrir MCEMonitor
         // ------------------------------------------------------------
         private void OpenMCEMonitor()
         {
@@ -105,9 +245,9 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        // Watchdog : ferme le Tray si le service s'arrête
+        //  Watchdog : ferme le Tray si le service s'arrête
         // ------------------------------------------------------------
-        private void Watchdog_Tick(object sender, EventArgs e)
+        private void Watchdog_Tick(object? sender, EventArgs e)
         {
             bool serviceRunning = Process.GetProcessesByName("RomMonitor.Service").Any();
 
@@ -120,57 +260,44 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        // Quitter proprement (IPC ? service + fermeture UI)
+        //  Quitter
         // ------------------------------------------------------------
         private void Exit()
         {
             // 1. Envoyer "shutdown" au service RomMonitor via IPC
-            bool shutdownSent = false;
-
             try
             {
-                using var client = new NamedPipeClientStream(".", "MCEMonitor_RomMonitorPipe", PipeDirection.Out);
-                client.Connect(1000);   // 1s au lieu de 500ms
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.Out);
+                client.Connect(1000);
 
                 using var writer = new StreamWriter(client);
                 writer.WriteLine("shutdown");
                 writer.Flush();
 
-                shutdownSent = true;
-
-                // Attendre la réponse du service
-                Thread.Sleep(500);
+                Thread.Sleep(800);
             }
-            catch
+            catch { }
+
+            // 2. Si le service tourne encore ? kill
+            for (int i = 0; i < 20; i++)
             {
-                // IPC échoué ? on tuera le processus plus bas
+                if (Process.GetProcessesByName("RomMonitor.Service").Length == 0)
+                    break;
+                Thread.Sleep(100);
             }
 
-            // 2. Attendre que le service s'arrête (max 2 secondes)
-            if (shutdownSent)
-            {
-                for (int i = 0; i < 20; i++)   // 20 × 100ms = 2s
-                {
-                    if (Process.GetProcessesByName("RomMonitor.Service").Length == 0)
-                        break;
-
-                    Thread.Sleep(100);
-                }
-            }
-
-            // 3. Si le service tourne encore ? kill direct
             foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
             {
                 try { p.Kill(); } catch { }
             }
 
-            // 4. Fermer RomMonitor.UI.exe s'il tourne
+            // 3. Fermer RomMonitor.UI s'il tourne
             foreach (var p in Process.GetProcessesByName("RomMonitor.UI"))
             {
                 try { p.Kill(); } catch { }
             }
 
-            // 5. Fermer le Tray
+            // 4. Fermer le Tray
             trayIcon.Visible = false;
             trayIcon.Dispose();
             Application.Exit();

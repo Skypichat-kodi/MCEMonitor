@@ -55,7 +55,8 @@ namespace RomMonitor.Service
                 smartCount = _engine.LastSmart.Count,
                 alertCount = _engine.LastAlerts.Count,
                 interval = _settings.Interval,
-                alertOnSmartFailure = _settings.AlertOnSmartFailure
+                alertOnSmartFailure = _settings.AlertOnSmartFailure,
+                worstSeverity = _engine.WorstSeverity    // ??
             });
         }
 
