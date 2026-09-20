@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -113,8 +114,7 @@ namespace RomMonitor.Service.Web
                 }
                 else if (path == "/favicon.ico")
                 {
-                    ctx.Response.StatusCode = 404;
-                    ctx.Response.Close();
+                    ServeFavicon(ctx);
                 }
                 else
                 {
@@ -127,6 +127,46 @@ namespace RomMonitor.Service.Web
             }
         }
 
+        // ------------------------------------------------------------
+        //  Favicon
+        // ------------------------------------------------------------
+        private static void ServeFavicon(HttpListenerContext ctx)
+        {
+            try
+            {
+                string icoPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.ico"
+                );
+
+                if (!File.Exists(icoPath))
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                byte[] ico = File.ReadAllBytes(icoPath);
+
+                ctx.Response.ContentType = "image/x-icon";
+                ctx.Response.ContentLength64 = ico.Length;
+                ctx.Response.OutputStream.Write(ico, 0, ico.Length);
+                ctx.Response.OutputStream.Close();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebServer favicon ERROR : " + ex.Message);
+
+                try
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                }
+                catch { }
+            }
+        }
+        
         private bool CheckAuth(HttpListenerContext ctx)
         {
             string auth = ctx.Request.Headers["Authorization"];

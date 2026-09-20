@@ -27,6 +27,9 @@
     <None Include="Tools\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="RomMonitor.ico">                    <!-- ?? -->
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <Content Include="Templates\**\*.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
