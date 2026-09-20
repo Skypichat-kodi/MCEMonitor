@@ -1143,11 +1143,23 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
 
             if (running)
             {
+                // ?? Empêcher l'arrêt si RomMonitor.UI est ouvert
+                if (Process.GetProcessesByName("RomMonitor.UI").Length > 0)
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert. Veuillez fermer RomMonitor.UI d'abord.")
+                            ?? "Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert.\nVeuillez fermer RomMonitor.UI d'abord.",
+                        LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
+                    );
+                    return;
+                }
+
                 // Arrêter le service
                 foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
                     p.Kill();
 
-                // ?? Le Tray va disparaître tout seul grâce à son Watchdog
+                // Le Tray va disparaître tout seul grâce à son Watchdog
             }
             else
             {
