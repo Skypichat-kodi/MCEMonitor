@@ -18,12 +18,27 @@ set DEST_PROGRAM=%DEST%\ProgramFiles
 set DEST_APPDATA=%DEST%\ProgramData
 set DEST_TOOLS=%DEST%\Tools\Autotrad
 
+REM --- Sauvegarder les configs dev avant nettoyage ---
+set TEMP_AUTOTRAD_CONFIG=%TEMP%\autotrad.config.json
+
+if exist "%DEST_TOOLS%\autotrad.config.json" (
+    copy "%DEST_TOOLS%\autotrad.config.json" "%TEMP_AUTOTRAD_CONFIG%" /Y >nul
+    echo Config Autotrad sauvegardée temporairement.
+)
+
 REM --- Nettoyage complet ---
 if exist "%DEST%" rmdir /s /q "%DEST%"
 mkdir "%DEST%"
 mkdir "%DEST_PROGRAM%"
 mkdir "%DEST_APPDATA%"
 mkdir "%DEST_TOOLS%"
+
+REM --- Restaurer les configs dev ---
+if exist "%TEMP_AUTOTRAD_CONFIG%" (
+    copy "%TEMP_AUTOTRAD_CONFIG%" "%DEST_TOOLS%\autotrad.config.json" /Y >nul
+    del "%TEMP_AUTOTRAD_CONFIG%" >nul
+    echo Config Autotrad restaurée.
+)
 
 set ERROR=0
 
