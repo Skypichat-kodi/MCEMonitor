@@ -16,12 +16,14 @@ REM --- Dossiers de destination ---
 set DEST=%ROOT%\MCEMonitor Ver 1.0
 set DEST_PROGRAM=%DEST%\ProgramFiles
 set DEST_APPDATA=%DEST%\ProgramData
+set DEST_TOOLS=%DEST%\Tools\Autotrad
 
 REM --- Nettoyage complet ---
 if exist "%DEST%" rmdir /s /q "%DEST%"
 mkdir "%DEST%"
 mkdir "%DEST_PROGRAM%"
 mkdir "%DEST_APPDATA%"
+mkdir "%DEST_TOOLS%"
 
 set ERROR=0
 
@@ -33,6 +35,7 @@ taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM MCEMonitor.exe /F >nul 2>&1
+taskkill /IM Autotrad.exe /F >nul 2>&1
 echo %ESC%[32m[OK] TOUS LES EXECUTABLES SONT ARRETÉS%ESC%[0m
 
 echo.
@@ -53,6 +56,9 @@ call :publish "%ROOT%\WakeMonitor"                           "%DEST_APPDATA%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"     "%DEST_APPDATA%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Languages"   "%DEST_APPDATA%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Service"         "%DEST_APPDATA%"
+
+REM === Tools ===
+call :publish_single "%ROOT%\Autotrad"                       "%DEST_TOOLS%"
 
 echo.
 echo ============================================
@@ -123,7 +129,7 @@ exit /b 0
 
 
 REM ============================================================
-REM  FONCTION : publish
+REM  FONCTION : publish (multi-fichiers, classique)
 REM  %1 = dossier du projet (contient le .csproj)
 REM  %2 = dossier de destination
 REM ============================================================
@@ -149,6 +155,42 @@ echo ============================================
 echo Vers    : !DEST_DIR!
 
 dotnet publish "!CSPROJ!" -c Release -o "!DEST_DIR!" --nologo -v q
+
+if errorlevel 1 (
+    echo %ESC%[31m[ERREUR] Publish échoué : !CSPROJ!%ESC%[0m
+    endlocal & set ERROR=1 & exit /b 0
+)
+
+endlocal & exit /b 0
+
+
+REM ============================================================
+REM  FONCTION : publish_single (single-file, pour Autotrad)
+REM  %1 = dossier du projet (contient le .csproj)
+REM  %2 = dossier de destination
+REM ============================================================
+:publish_single
+setlocal
+
+set "PROJECT_DIR=%~1"
+set "DEST_DIR=%~2"
+set "CSPROJ="
+
+REM Trouver le .csproj dans le dossier
+for %%F in ("!PROJECT_DIR!\*.csproj") do set "CSPROJ=%%F"
+
+if not defined CSPROJ (
+    echo %ESC%[31m[ERREUR] Aucun .csproj dans !PROJECT_DIR!%ESC%[0m
+    endlocal & set ERROR=1 & exit /b 0
+)
+
+echo.
+echo ============================================
+echo  PUBLISH (single-file) : %~nx1
+echo ============================================
+echo Vers    : !DEST_DIR!
+
+dotnet publish "!CSPROJ!" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o "!DEST_DIR!" --nologo -v q
 
 if errorlevel 1 (
     echo %ESC%[31m[ERREUR] Publish échoué : !CSPROJ!%ESC%[0m
