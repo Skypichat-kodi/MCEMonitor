@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using MediaMonitor.Core.Language;
 
 namespace RomMonitor.Service
 {
@@ -297,17 +298,21 @@ namespace RomMonitor.Service
             if (!info.Passed)
             {
                 info.Status = "Critical";
-                info.StatusReason = "SMART global : FAILED";
+                info.StatusReason = LanguageManager.Get("SMART global : FAILED") ?? "SMART global : FAILED";
             }
             else if (info.CriticalWarning.HasValue && info.CriticalWarning.Value != 0)
             {
                 info.Status = "Critical";
-                info.StatusReason = $"Critical Warning NVMe : 0x{info.CriticalWarning.Value:X2}";
+                info.StatusReason = string.Format(
+                    LanguageManager.Get("Critical Warning NVMe : 0x{0:X2}") ?? "Critical Warning NVMe : 0x{0:X2}",
+                    info.CriticalWarning.Value);
             }
             else if (info.PendingSectors.HasValue && info.PendingSectors.Value > 0)
             {
                 info.Status = "Critical";
-                info.StatusReason = $"{info.PendingSectors.Value} secteurs en attente";
+                info.StatusReason = string.Format(
+                    LanguageManager.Get("{0} secteurs en attente") ?? "{0} secteurs en attente",
+                    info.PendingSectors.Value);
             }
             else if (info.UncorrectableSectors.HasValue && info.UncorrectableSectors.Value > 0)
             {

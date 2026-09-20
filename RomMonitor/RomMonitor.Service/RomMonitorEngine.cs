@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using Timer = System.Timers.Timer;
+using MediaMonitor.Core.Language;
 
 namespace RomMonitor.Service
 {
@@ -118,7 +119,10 @@ namespace RomMonitor.Service
                         Type = AlertType.DiskSpaceCritical,
                         Severity = "Critical",
                         Target = disk.Name,
-                        Message = $"Espace critique : {disk.FreePercent:F1}% ({disk.FreeGo:F1} Go libre)",
+                        Message = string.Format(
+                            LanguageManager.Get("Espace critique : {0:F1}% ({1:F1} Go libre)") 
+                                ?? "Espace critique : {0:F1}% ({1:F1} Go libre)",
+                            disk.FreePercent, disk.FreeGo),
                         EmailSent = false
                     };
 

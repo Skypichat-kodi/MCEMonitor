@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using MediaMonitor.Core.Language;
 
 namespace RomMonitor.Service.Web
 {
@@ -44,7 +45,7 @@ namespace RomMonitor.Service.Web
                                      : d.FreePercent < 15 ? "warning"
                                      : "ok";
 
-                    string smartStatus = match?.Status ?? "N/A";
+                    string smartStatus = match?.Status ?? (LanguageManager.Get("N/A") ?? "N/A");
                     string smartClass = smartStatus == "OK" ? "ok"
                                       : smartStatus == "Warning" ? "warning"
                                       : smartStatus == "Critical" ? "danger"
@@ -52,7 +53,7 @@ namespace RomMonitor.Service.Web
 
                     string tempText = match?.Temperature.HasValue == true
                         ? $"{match.Temperature}°C"
-                        : "N/A";
+                        : (LanguageManager.Get("N/A") ?? "N/A");
 
                     diskRows.Append($@"
                         <tr>
@@ -90,7 +91,7 @@ namespace RomMonitor.Service.Web
                 {
                     ["MachineName"] = Environment.MachineName,
                     ["LastCheck"] = engine.LastCheckTime == DateTime.MinValue
-                        ? "Jamais"
+                        ? (LanguageManager.Get("Jamais") ?? "Jamais")
                         : engine.LastCheckTime.ToString("dd/MM/yyyy HH:mm:ss"),
                     ["DiskCount"] = disks.Count,
                     ["SmartCount"] = smart.Count,
@@ -104,7 +105,8 @@ namespace RomMonitor.Service.Web
             catch (Exception ex)
             {
                 CoreLog.Write("WebHandler ERROR : " + ex.Message);
-                return $"<html><body><h2>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
+                string err = LanguageManager.Get("Erreur") ?? "Erreur";
+                return $"<html><body><h2>{err} : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
         }
     }

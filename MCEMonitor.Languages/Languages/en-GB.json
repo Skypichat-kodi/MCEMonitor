@@ -345,7 +345,7 @@
   "RomMonitor.Service.exe introuvable.": "RomMonitor.Service.exe not found.",
   "Rom Monitor": "Rom Monitor",
   "À propos de RomMonitor": "About RomMonitor",
-  "Rom.Description": "Rom.Description",
+  "Rom.Description": "RomMonitor monitors disk space and the SMART health of your drives. An alert email is sent in the event of a critical SMART failure. A log is maintained for every detected issue.",
   "Automatisation RomMonitor": "Automation RomMonitor",
   "Service RomMonitor": "RomMonitor Service",
   "Ouvrir RomMonitor": "Open RomMonitor",
@@ -374,5 +374,12 @@
   "Disques": "Discs",
   "Alertes": "Alerts",
   "État des disques": "Disc status",
-  "RomMonitor - Généré à": "RomMonitor - Generated at"
+  "RomMonitor - Généré à": "RomMonitor - Generated at",
+  "SMART global : FAILED": "SMART global : FAILED",
+  "Critical Warning NVMe : 0x{0:X2}": "Critical Warning NVMe : 0x{0:X2}",
+  "{0} secteurs en attente": "{0} sectors on hold",
+  "Espace critique : {0:F1}% ({1:F1} Go libre)": "Espace critique : {0:F1}% ({1:F1} Go free)",
+  "Surveillance des disques de": "Monitoring of discs",
+  "N/A": "N/A",
+  "Jamais": "Jamais"
 }

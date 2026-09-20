@@ -77,9 +77,12 @@ namespace RomMonitor.UI
                             return;
                         }
 
+                        string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
                         Process.Start(new ProcessStartInfo
                         {
                             FileName = servicePath,
+                            Arguments = $"-lang {lang}",
                             UseShellExecute = true
                         });
 
@@ -153,9 +156,12 @@ namespace RomMonitor.UI
 
                 if (File.Exists(trayPath))
                 {
+                    string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
                     Process.Start(new ProcessStartInfo
                     {
                         FileName = trayPath,
+                        Arguments = $"-lang {lang}",
                         UseShellExecute = true
                     });
                 }

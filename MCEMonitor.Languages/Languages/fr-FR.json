@@ -361,7 +361,7 @@
   "RomMonitor.Service.exe introuvable.": "RomMonitor.Service.exe est introuvable.",
   "Rom Monitor": "Rom Monitor",
   "À propos de RomMonitor": "A propos de RomMonitor",
-  "Rom.Description": "Rom.Description",
+  "Rom.Description": "RomMonitor surveille l'espace disque et la santé SMART de vos disques. En cas de défaillance SMART critique, un email d'alerte est envoyé. Un log est tenu à jour pour chaque problème détecté.",
   "Automatisation RomMonitor": "Automatisation RomMonitor",
   "Service RomMonitor": "Service RomMonitor",
   "Ouvrir RomMonitor": "Ouvrir RomMonitor",

@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
+using MediaMonitor.Core.Language;
 
 namespace RomMonitor.Service.Web
 {
@@ -47,7 +48,7 @@ namespace RomMonitor.Service.Web
                 _thread = new Thread(ServerLoop) { IsBackground = true };
                 _thread.Start();
 
-                CoreLog.Write($"WebServer démarré sur http://+:{_currentPort}/");
+                CoreLog.Write($"WebServer démarré sur http://+:{_currentPort}/ (langue = {LanguageManager.CurrentLanguage})");
             }
             catch (Exception ex)
             {
@@ -105,6 +106,14 @@ namespace RomMonitor.Service.Web
                     return;
                 }
 
+                // Langue demandée par l'URL (?lang=fr-FR) — sinon on garde celle du service
+                string lang = ctx.Request.QueryString["lang"];
+                if (!string.IsNullOrEmpty(lang))
+                {
+                    // Recharge le MÊME LanguageManager que celui du TemplateEngine
+                    LanguageManager.Load(lang);
+                }
+
                 string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
 
                 if (path == "/" || path == "/rom")
@@ -127,9 +136,6 @@ namespace RomMonitor.Service.Web
             }
         }
 
-        // ------------------------------------------------------------
-        //  Favicon
-        // ------------------------------------------------------------
         private static void ServeFavicon(HttpListenerContext ctx)
         {
             try
@@ -166,7 +172,7 @@ namespace RomMonitor.Service.Web
                 catch { }
             }
         }
-        
+
         private bool CheckAuth(HttpListenerContext ctx)
         {
             string auth = ctx.Request.Headers["Authorization"];

@@ -1,5 +1,9 @@
 using System;
+using System.Globalization;
+using System.IO;
+using System.Linq;
 using System.Threading;
+using MediaMonitor.Core.Language;
 
 namespace RomMonitor.Service
 {
@@ -21,29 +25,60 @@ namespace RomMonitor.Service
                 return;
             }
 
-            // Init logs
-            CoreLog.Clear();
-            CoreLog.Write("=== RomMonitor.Service démarré ===");
+            // ============================================================
+            //  LANGUE : argument -lang xx-XX > fichier language.config > défaut
+            // ============================================================
+            string selectedLang = null;
 
-            // Charger config
+            // 1) Argument -lang fr-FR / en-GB
+            for (int i = 0; i < args.Length - 1; i++)
+            {
+                if (args[i].Equals("-lang", StringComparison.OrdinalIgnoreCase))
+                {
+                    selectedLang = args[i + 1];
+                    break;
+                }
+            }
+
+            // 2) Sinon : fichier écrit par MCEMonitor.exe
+            if (string.IsNullOrEmpty(selectedLang))
+            {
+                string cfgPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "language.config"
+                );
+
+                if (File.Exists(cfgPath))
+                    selectedLang = File.ReadAllText(cfgPath).Trim();
+            }
+
+            // 3) Fallback
+            if (string.IsNullOrEmpty(selectedLang))
+                selectedLang = "fr-FR";
+
+            Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
+            Thread.CurrentThread.CurrentCulture  = new CultureInfo(selectedLang);
+            LanguageManager.Load(selectedLang);
+
+            // ============================================================
+            //  Logs
+            // ============================================================
+            CoreLog.Clear();
+            CoreLog.Write($"=== RomMonitor.Service démarré (langue = {selectedLang}) ===");
+
             var settings = RomMonitorSettings.Load();
             CoreLog.Write($"Config : Interval={settings.Interval}min, AlertOnSmartFailure={settings.AlertOnSmartFailure}");
 
-            // Démarrer engine
             _engine = new RomMonitorEngine(settings);
             _engine.Start();
 
-            // Démarrer IPC
             _ipc = new ServiceIpcServer(_engine, settings);
             _ipc.Start();
 
-            // Ajouter la règle pare-feu AVANT de démarrer le WebServer
             if (settings.WebEnabled)
-            {
                 FirewallHelper.UpdateFirewallRule(settings.WebPort);
-            }
 
-            // Démarrer WebServer
             _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
             _webServer.Start();
 
@@ -51,9 +86,6 @@ namespace RomMonitor.Service
             Thread.Sleep(Timeout.Infinite);
         }
 
-        // ============================================================
-        //  Redémarrage du WebServer (appelé par IPC)
-        // ============================================================
         internal static void RestartWebServer()
         {
             try
@@ -63,11 +95,8 @@ namespace RomMonitor.Service
 
                 var settings = RomMonitorSettings.Load();
 
-                // S'assurer que le pare-feu autorise le port actuel
                 if (settings.WebEnabled)
-                {
                     FirewallHelper.UpdateFirewallRule(settings.WebPort);
-                }
 
                 _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
                 _webServer.Start();

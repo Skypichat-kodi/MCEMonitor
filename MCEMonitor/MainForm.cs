@@ -305,41 +305,40 @@ namespace MCEMonitor
             }
         }
 
-private void BtnOpenUI_Click(object sender, EventArgs e)
-{
-    try
-    {
-        string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MediaMonitor.UI.exe");
-
-        if (!File.Exists(uiPath))
+        private void BtnOpenUI_Click(object sender, EventArgs e)
         {
-            PopupHelper.ShowBottomPopup(
-                this,
-                "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
-                "Erreur"
-            );
-            return;
+            try
+            {
+                string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MediaMonitor.UI.exe");
+
+                if (!File.Exists(uiPath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "MediaMonitor.UI.exe est introuvable dans le dossier de MCEMonitor.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                // ?? Récupération de la langue actuellement utilisée par MCEMonitor
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uiPath,
+                    Arguments = $"--from-mcem -lang {lang}",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors de l'ouverture de MediaMonitor.UI : " + ex.Message
+                );
+            }
         }
-
-        // ?? Récupération de la langue actuellement utilisée par MCEMonitor
-        string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
-
-        Process.Start(new ProcessStartInfo
-        {
-            FileName = uiPath,
-            Arguments = $"--from-mcem -lang {lang}",
-            UseShellExecute = true
-        });
-    }
-    catch (Exception ex)
-    {
-        PopupHelper.ShowBottomPopup(
-            this,
-            "Erreur lors de l'ouverture de MediaMonitor.UI : " + ex.Message
-        );
-    }
-}
-
 
         private bool IsMediaServiceRunning()
         {
@@ -1326,9 +1325,12 @@ private void BtnOpenUI_Click(object sender, EventArgs e)
                     return false;
                 }
 
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = servicePath,
+                    Arguments = $"-lang {lang}",
                     UseShellExecute = true
                 });
 
