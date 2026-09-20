@@ -33,7 +33,7 @@ taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM MCEMonitor.exe /F >nul 2>&1
-echo OK
+echo %ESC%[32m[OK] TOUS LES EXECUTABLES SONT ARRETÉS%ESC%[0m
 
 echo.
 echo          PUBLISH DES PROJETS
@@ -80,9 +80,13 @@ if %ERROR%==0 (
         "!ISCC!" "%ROOT%\MCEMonitorInstaller.iss"
 
         if errorlevel 1 (
+            echo ============================================
             echo %ESC%[31m? Erreur lors de la compilation Inno Setup.%ESC%[0m
+            echo ============================================
         ) else (
+            echo ============================================
             echo %ESC%[32m[OK] Installeur compilé avec succès !%ESC%[0m
+            echo ============================================
 
             set "INNO_OUT="
             for /f "tokens=1,* delims==" %%A in ('findstr /I "OutputDir" "%ROOT%\MCEMonitorInstaller.iss"') do (
@@ -97,7 +101,9 @@ if %ERROR%==0 (
             if exist "!INNO_OUT!" (
                 start "" "!INNO_OUT!"
             ) else (
+                echo ============================================
                 echo %ESC%[31m? Le dossier de sortie n'existe pas !%ESC%[0m
+                echo ============================================
             )
         )
     ) else (
