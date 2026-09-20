@@ -384,5 +384,11 @@
   "Cible": "Cible",
   "Message": "Message",
   "RomMonitor.Service n'est pas en cours d'exécution.": "RomMonitor.Service n'est pas en cours d'exécution.",
-  "Paramètres Web mis à jour.": "Paramètres Web mis à jour."
+  "Paramètres Web mis à jour.": "Paramètres Web mis à jour.",
+  "RomMonitor - Surveillance disques": "RomMonitor - Surveillance disques",
+  "Dernier check": "Dernier check",
+  "Disques": "Disques",
+  "Alertes": "Alerte",
+  "État des disques": "État des disques",
+  "RomMonitor - Généré à": "RomMonitor - Généré à"
 }
