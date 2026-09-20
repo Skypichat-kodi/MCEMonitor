@@ -69,7 +69,7 @@ REM === ProgramData ===
 call :publish "%ROOT%\StopMonitor"                           "%DEST_APPDATA%"
 call :publish "%ROOT%\WakeMonitor"                           "%DEST_APPDATA%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"     "%DEST_APPDATA%"
-call :publish "%ROOT%\MediaMonitor\MediaMonitor.Languages"   "%DEST_APPDATA%"
+call :publish "%ROOT%\MCEMonitor.Languages"                  "%DEST_APPDATA%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Service"         "%DEST_APPDATA%"
 
 REM === Tools ===
