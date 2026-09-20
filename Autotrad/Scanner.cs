@@ -1,34 +1,32 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
 
 namespace Autotrad
 {
     public static class Scanner
     {
+        // =========================================================
+        //  SCAN D'UN FICHIER UNIQUE
+        // =========================================================
         public static List<ScanResult> ScanFile(string path, Dictionary<string, string> existingKeys)
         {
             var results = new List<ScanResult>();
 
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+                return results;
+
             // ---------------------------------------------------------
-            // Détection d’encodage
+            //  Détection d'encodage
+            //  ?? File.ReadAllLines fait DÉJÀ la conversion ? pas de
+            //     double conversion nécessaire (bug corrigé)
             // ---------------------------------------------------------
             Encoding enc = Utils.DetectEncoding(path);
-            var lines = File.ReadAllLines(path, enc);
-
-            // Conversion explicite UTF-8
-            for (int i = 0; i < lines.Length; i++)
-            {
-                byte[] raw = enc.GetBytes(lines[i]);
-                lines[i] = Encoding.UTF8.GetString(
-                    Encoding.Convert(enc, Encoding.UTF8, raw)
-                );
-            }
+            string[] lines = File.ReadAllLines(path, enc);
 
             // ---------------------------------------------------------
-            // 1) Analyse C#
+            //  1) Analyse C#
             // ---------------------------------------------------------
             if (path.EndsWith(".cs", StringComparison.OrdinalIgnoreCase))
             {
@@ -39,84 +37,71 @@ namespace Autotrad
                     if (string.IsNullOrEmpty(entry.Key))
                         continue;
 
-                    bool exists = existingKeys.ContainsKey(entry.Key);
-
-                    results.Add(new ScanResult
-                    {
-                        FilePath = path,
-                        LineNumber = entry.LineNumber,
-                        FullLine = entry.Raw,
-                        Key = entry.Key,
-                        Text = entry.Key,
-                        Preview = entry.Raw.Trim(),
-
-                        // ?? AJOUT ESSENTIEL
-                        JsonValue = exists ? existingKeys[entry.Key] : "",
-
-                        IsTranslated = exists,
-                        IsMissingKey = !exists
-                    });
+                    results.Add(BuildResult(path, entry.LineNumber, entry.Raw, entry.Key, entry.Preview, existingKeys));
                 }
             }
 
             // ---------------------------------------------------------
-            // 2) Analyse XAML
+            //  2) Analyse XAML
             // ---------------------------------------------------------
-            if (path.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
+            else if (path.EndsWith(".xaml", StringComparison.OrdinalIgnoreCase))
             {
                 var parsed = XamlParser.Parse(lines);
 
                 foreach (var entry in parsed)
                 {
-                    bool exists = existingKeys.ContainsKey(entry.Key);
+                    if (string.IsNullOrEmpty(entry.Key))
+                        continue;
 
-                    results.Add(new ScanResult
-                    {
-                        FilePath = path,
-                        LineNumber = entry.LineNumber,
-                        FullLine = entry.Raw,
-                        Key = entry.Key,
-                        Text = entry.Key,
-                        Preview = entry.Preview,
-
-                        // ?? AJOUT ESSENTIEL
-                        JsonValue = exists ? existingKeys[entry.Key] : "",
-
-                        IsTranslated = exists,
-                        IsMissingKey = !exists
-                    });
+                    results.Add(BuildResult(path, entry.LineNumber, entry.Raw, entry.Key, entry.Preview, existingKeys));
                 }
             }
-            
+
             // ---------------------------------------------------------
-            // 3) Analyse HTML
+            //  3) Analyse HTML
             // ---------------------------------------------------------
-            if (path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
-                path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
+            else if (path.EndsWith(".html", StringComparison.OrdinalIgnoreCase) ||
+                     path.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
             {
                 var parsed = HtmlParser.Parse(lines);
 
                 foreach (var entry in parsed)
                 {
-                    bool exists = existingKeys.ContainsKey(entry.Key);
+                    if (string.IsNullOrEmpty(entry.Key))
+                        continue;
 
-                    results.Add(new ScanResult
-                    {
-                        FilePath = path,
-                        LineNumber = entry.LineNumber,
-                        FullLine = entry.Raw,
-                        Key = entry.Key,
-                        Text = entry.Key,
-                        Preview = entry.Preview,
-                        JsonValue = exists ? existingKeys[entry.Key] : "",
-                        IsTranslated = exists,
-                        IsMissingKey = !exists
-                    });
+                    results.Add(BuildResult(path, entry.LineNumber, entry.Raw, entry.Key, entry.Preview, existingKeys));
                 }
             }
 
             return results;
         }
+
+        // =========================================================
+        //  CONSTRUCTION D'UN RÉSULTAT UNIFIÉ
+        // =========================================================
+        private static ScanResult BuildResult(
+            string path,
+            int lineNumber,
+            string rawLine,
+            string key,
+            string preview,
+            Dictionary<string, string> existingKeys)
+        {
+            bool exists = existingKeys.ContainsKey(key);
+
+            return new ScanResult
+            {
+                FilePath = path,
+                LineNumber = lineNumber,
+                FullLine = rawLine,
+                Key = key,
+                Text = key,
+                Preview = preview,
+                JsonValue = exists ? existingKeys[key] : "",
+                IsTranslated = exists,
+                IsMissingKey = !exists
+            };
+        }
     }
 }
-

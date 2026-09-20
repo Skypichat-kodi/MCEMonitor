@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -6,16 +5,25 @@ namespace Autotrad
 {
     public static class XamlParser
     {
-        // {loc:Tr 'clé'} ou {loc:Tr "clé"}
+        // ---------------------------------------------------------
+        //  1) {loc:Tr 'clé'} ou {loc:Tr "clé"}
+        // ---------------------------------------------------------
         private static readonly Regex _regexLocTr =
-            new Regex(@"\{loc:Tr\s*['""]([^'""]+)['""]\}",
+            new Regex(
+                @"\{loc:Tr\s*['""]([^'""]+)['""]\}",
                 RegexOptions.Compiled);
 
-        // Binding 'clé' Converter={StaticResource Lang}
+        // ---------------------------------------------------------
+        //  2) Binding 'clé' ... Lang
+        // ---------------------------------------------------------
         private static readonly Regex _regexBindingLang =
-            new Regex(@"Binding\s+'([^']+)'.*?Lang",
+            new Regex(
+                @"Binding\s+'([^']+)'.*?Lang",
                 RegexOptions.Compiled | RegexOptions.Singleline);
 
+        // ---------------------------------------------------------
+        //  PARSE LIGNE PAR LIGNE
+        // ---------------------------------------------------------
         public static List<XamlEntry> Parse(string[] lines)
         {
             var results = new List<XamlEntry>();
@@ -24,31 +32,46 @@ namespace Autotrad
             {
                 string line = lines[i];
 
-                // 1) {loc:Tr 'clé'}
-                var mLoc = _regexLocTr.Match(line);
-                if (mLoc.Success)
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                // =========================================================
+                //  1) {loc:Tr 'clé'} — TOUTES les occurrences
+                // =========================================================
+                foreach (Match m in _regexLocTr.Matches(line))
                 {
+                    string key = m.Groups[1].Value.Trim();
+
+                    if (string.IsNullOrEmpty(key))
+                        continue;
+
                     results.Add(new XamlEntry
                     {
-                        Key = mLoc.Groups[1].Value,
+                        Key = key,
                         LineNumber = i + 1,
                         Raw = line,
                         Preview = line
                     });
-                    continue;
                 }
 
-                // 2) Binding 'clé' ... Lang
+                // =========================================================
+                //  2) Binding 'clé' ... Lang
+                // =========================================================
                 var mBind = _regexBindingLang.Match(line);
                 if (mBind.Success)
                 {
-                    results.Add(new XamlEntry
+                    string key = mBind.Groups[1].Value.Trim();
+
+                    if (!string.IsNullOrEmpty(key))
                     {
-                        Key = mBind.Groups[1].Value,
-                        LineNumber = i + 1,
-                        Raw = line,
-                        Preview = line
-                    });
+                        results.Add(new XamlEntry
+                        {
+                            Key = key,
+                            LineNumber = i + 1,
+                            Raw = line,
+                            Preview = line
+                        });
+                    }
                 }
             }
 
@@ -56,6 +79,9 @@ namespace Autotrad
         }
     }
 
+    // =========================================================
+    //  Entrée XAML (résultat d'un parsing)
+    // =========================================================
     public class XamlEntry
     {
         public string Key { get; set; } = "";
@@ -64,4 +90,3 @@ namespace Autotrad
         public string Preview { get; set; } = "";
     }
 }
-

@@ -17,47 +17,105 @@ namespace Autotrad
         private string _lastOpenedFile = "";
         private Dictionary<string, string> _existingKeys = new();
         private string _langFolder = "";
-
         private string _currentJsonPath = "";
 
-        private static readonly HttpClient http = new HttpClient();
+        private static readonly HttpClient http = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
 
         private string ConfigPath => Path.Combine(AppContext.BaseDirectory, "autotrad.config.json");
 
+        // ============================================================
+        //  CONSTRUCTEUR
+        // ============================================================
         public FormMain()
         {
             InitializeComponent();
+
+            // ?? Config d'abord (peut ouvrir un dossier langues)
             LoadConfig();
 
-            dataGridView1.Width = this.ClientSize.Width - 24;
-            txtPreview.Width = this.ClientSize.Width - 24;
-
-            dataGridView1.ReadOnly = false;
-            dataGridView1.EditMode = DataGridViewEditMode.EditOnEnter;
-            dataGridView1.SelectionMode = DataGridViewSelectionMode.CellSelect;
-
-            txtPreview.Multiline = true;
-            txtPreview.ReadOnly = true;
-            txtPreview.ScrollBars = ScrollBars.Vertical;
-
+            // Événements DataGrid
             dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
-
-            // ?? Ajout pour gérer le bouton Trad
             dataGridView1.CellClick += dataGridView1_CellClick;
 
-            cmbLang.Location = new Point(topPanel.Width - cmbLang.Width - 20, 4);
+            // Positionner les contrôles ancrés à droite
+            PositionRightControls();
+
+            // Re-positionner au redimensionnement
+            this.Resize += (s, e) => PositionRightControls();
         }
 
+        // ============================================================
+        //  POSITIONNEMENT DES CONTRÔLES ANCRÉS À DROITE
+        // ============================================================
+        private void PositionRightControls()
+        {
+            // --- toolbarPanel ---
+            if (cmbLang != null && toolbarPanel != null)
+            {
+                cmbLang.Left = toolbarPanel.Width - cmbLang.Width - 12;
+                cmbLang.Top = 12;
+            }
+
+            if (lblLang != null && cmbLang != null)
+            {
+                lblLang.Left = cmbLang.Left - lblLang.Width - 8;
+                lblLang.Top = 18;
+            }
+
+            if (btnChangeLangFolder != null && lblLang != null)
+            {
+                btnChangeLangFolder.Left = lblLang.Left - btnChangeLangFolder.Width - 16;
+                btnChangeLangFolder.Top = 12;
+            }
+
+            // --- apiPanel ---
+            if (btnSaveApiKey != null && apiPanel != null)
+            {
+                btnSaveApiKey.Left = apiPanel.Width - btnSaveApiKey.Width - 12;
+                btnSaveApiKey.Top = 10;
+
+                if (txtApiKey != null)
+                {
+                    txtApiKey.Width = btnSaveApiKey.Left - txtApiKey.Left - 12;
+                }
+
+                // ?? Le lien juste en dessous du TextBox
+                if (lnkApiKey != null && txtApiKey != null)
+                {
+                    lnkApiKey.Left = txtApiKey.Left;
+                    lnkApiKey.Top = txtApiKey.Bottom + 2;
+                }
+            }
+            
+            // --- statusPanel ---
+            if (btnApply != null && statusPanel != null)
+            {
+                btnApply.Left = statusPanel.Width - btnApply.Width - 12;
+            }
+        }
+
+        // ============================================================
+        //  SÉLECTION DANS LE TABLEAU
+        // ============================================================
         private void dataGridView1_SelectionChanged(object sender, EventArgs e)
         {
             if (dataGridView1.CurrentCell != null)
-                txtPreview.Text = dataGridView1.CurrentCell.Value?.ToString();
+                txtPreview.Text = dataGridView1.CurrentCell.Value?.ToString() ?? "";
         }
 
+        // ============================================================
+        //  OUVRIR UN FICHIER
+        // ============================================================
         private void OuvrirFichier_Click(object sender, EventArgs e)
         {
             using var dlg = new OpenFileDialog();
-            dlg.Filter = "Fichiers C# (*.cs)|*.cs";
+            dlg.Filter = "Fichiers sources (*.cs;*.xaml;*.html;*.htm)|*.cs;*.xaml;*.html;*.htm|" +
+                         "Fichiers C# (*.cs)|*.cs|" +
+                         "Fichiers XAML (*.xaml)|*.xaml|" +
+                         "Fichiers HTML (*.html;*.htm)|*.html;*.htm";
 
             if (dlg.ShowDialog() == DialogResult.OK)
             {
@@ -70,9 +128,14 @@ namespace Autotrad
                 dataGridView1.DataSource = list;
 
                 FillPreviewColumn();
+
+                lblStatus.Text = $"Fichier : {Path.GetFileName(dlg.FileName)} — {list.Count} clé(s) détectée(s)";
             }
         }
 
+        // ============================================================
+        //  OUVRIR UN DOSSIER
+        // ============================================================
         private void OuvrirDossier_Click(object sender, EventArgs e)
         {
             using var dlg = new FolderBrowserDialog();
@@ -98,7 +161,8 @@ namespace Autotrad
                      || f.EndsWith(".htm", StringComparison.OrdinalIgnoreCase))
                     && !f.Contains(@"\bin\", StringComparison.OrdinalIgnoreCase)
                     && !f.Contains(@"\obj\", StringComparison.OrdinalIgnoreCase)
-                );
+                )
+                .ToList();
 
             foreach (var file in files)
             {
@@ -113,14 +177,24 @@ namespace Autotrad
                 .ToList();
 
             FillPreviewColumn();
+
+            int missing = allResults.Count(r => r.IsMissingKey);
+
+            lblStatus.Text =
+                $"Dossier : {Path.GetFileName(folder)} — " +
+                $"{files.Count} fichier(s), {allResults.Count} clé(s), " +
+                $"{missing} manquante(s)";
         }
 
+        // ============================================================
+        //  LANGUE SÉLECTIONNÉE
+        // ============================================================
         private string GetSelectedLangCode()
         {
             if (cmbLang.SelectedItem == null)
                 return "fr-FR";
 
-            string txt = cmbLang.SelectedItem.ToString();
+            string txt = cmbLang.SelectedItem.ToString() ?? "";
 
             if (txt.Contains("(fr-FR)")) return "fr-FR";
             if (txt.Contains("(en-GB)")) return "en-GB";
@@ -130,8 +204,14 @@ namespace Autotrad
             return "fr-FR";
         }
 
+        // ============================================================
+        //  CHARGEMENT DU JSON EXISTANT
+        // ============================================================
         private void LoadExistingJsonKeys()
         {
+            if (string.IsNullOrEmpty(_langFolder))
+                return;
+
             string lang = GetSelectedLangCode();
             string path = Path.Combine(_langFolder, $"{lang}.json");
 
@@ -174,6 +254,9 @@ namespace Autotrad
             }
         }
 
+        // ============================================================
+        //  CONFIGURATION DES COLONNES
+        // ============================================================
         private void SetupColumns(bool isFolderMode)
         {
             dataGridView1.AutoGenerateColumns = false;
@@ -250,6 +333,9 @@ namespace Autotrad
             }
         }
 
+        // ============================================================
+        //  COLORATION DES LIGNES (thème sombre)
+        // ============================================================
         private void dataGridView1_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
         {
             var row = dataGridView1.Rows[e.RowIndex];
@@ -258,19 +344,28 @@ namespace Autotrad
 
             if (item.IsMissingKey)
             {
-                row.DefaultCellStyle.BackColor = Color.Moccasin;
+                // Clé manquante ? fond légèrement rouge/orange
+                row.DefaultCellStyle.BackColor = Color.FromArgb(80, 40, 40);
+                row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 200, 200);
                 return;
             }
 
             if (!string.IsNullOrWhiteSpace(item.JsonValue))
             {
-                row.DefaultCellStyle.BackColor = Color.LightGreen;
+                // Traduit ? fond légèrement vert
+                row.DefaultCellStyle.BackColor = Color.FromArgb(40, 60, 40);
+                row.DefaultCellStyle.ForeColor = Color.FromArgb(200, 255, 200);
                 return;
             }
 
-            row.DefaultCellStyle.BackColor = Color.White;
+            // Par défaut ? fond sombre
+            row.DefaultCellStyle.BackColor = Color.FromArgb(37, 37, 38);
+            row.DefaultCellStyle.ForeColor = Color.FromArgb(229, 229, 229);
         }
 
+        // ============================================================
+        //  SAUVEGARDE DU JSON
+        // ============================================================
         private void SaveJson()
         {
             if (string.IsNullOrEmpty(_currentJsonPath))
@@ -287,6 +382,9 @@ namespace Autotrad
             File.WriteAllText(_currentJsonPath, json, new UTF8Encoding(true));
         }
 
+        // ============================================================
+        //  DOUBLE-CLIC ? OUVRIR DANS L'ÉDITEUR
+        // ============================================================
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
@@ -325,6 +423,9 @@ namespace Autotrad
             }
         }
 
+        // ============================================================
+        //  CONFIGURATION
+        // ============================================================
         private void LoadConfig()
         {
             if (File.Exists(ConfigPath))
@@ -345,21 +446,87 @@ namespace Autotrad
                 ChoisirDossierLangues_Click(null, null);
             }
 
-            lblLangFolder.Text = $"Dossier langues : {_langFolder}";
-            btnChangeLangFolder.Left = lblLangFolder.Right + 10;
+            lblLangFolder.Text = $"Dossier : {_langFolder}";
+
+            // Charger la clé API
+            LoadApiKey();
         }
 
         private void SaveConfig()
         {
-            var cfg = new Dictionary<string, string>
+            // Charger la config existante pour ne rien perdre
+            var cfg = new Dictionary<string, string>();
+
+            if (File.Exists(ConfigPath))
             {
-                ["LangFolder"] = _langFolder
-            };
+                try
+                {
+                    var json = File.ReadAllText(ConfigPath);
+                    var existing = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+                    if (existing != null)
+                        cfg = existing;
+                }
+                catch { }
+            }
+
+            cfg["LangFolder"] = _langFolder;
+
+            if (!string.IsNullOrWhiteSpace(txtApiKey.Text))
+                cfg["ApiKey"] = txtApiKey.Text.Trim();
 
             File.WriteAllText(ConfigPath,
                 JsonSerializer.Serialize(cfg, new JsonSerializerOptions { WriteIndented = true }));
         }
 
+        // ============================================================
+        //  CLÉ API
+        // ============================================================
+        private void LoadApiKey()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath))
+                    return;
+
+                var json = File.ReadAllText(ConfigPath);
+                var cfg = JsonSerializer.Deserialize<Dictionary<string, string>>(json);
+
+                if (cfg != null && cfg.TryGetValue("ApiKey", out var key))
+                    txtApiKey.Text = key ?? "";
+            }
+            catch { }
+        }
+
+        private void btnSaveApiKey_Click(object sender, EventArgs e)
+        {
+            string key = txtApiKey.Text.Trim();
+
+            if (string.IsNullOrWhiteSpace(key))
+            {
+                MessageBox.Show(
+                    "Veuillez saisir une clé API valide.",
+                    "Clé vide",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return;
+            }
+
+            SaveConfig();
+
+            lblStatus.Text = "Clé API sauvegardée.";
+
+            MessageBox.Show(
+                "Clé API sauvegardée.",
+                "OK",
+                MessageBoxButtons.OK,
+                MessageBoxIcon.Information
+            );
+        }
+
+        // ============================================================
+        //  CHOISIR DOSSIER LANGUES
+        // ============================================================
         private void ChoisirDossierLangues_Click(object sender, EventArgs e)
         {
             using var dlg = new FolderBrowserDialog();
@@ -371,17 +538,22 @@ namespace Autotrad
                 SaveConfig();
                 LoadExistingJsonKeys();
 
-                lblLangFolder.Text = $"Dossier langues : {_langFolder}";
-                btnChangeLangFolder.Left = lblLangFolder.Right + 10;
+                lblLangFolder.Text = $"Dossier : {_langFolder}";
+                PositionRightControls();
 
                 MessageBox.Show("Dossier des langues mis à jour.");
             }
         }
 
+        // ============================================================
+        //  BOUTON APPLIQUER
+        // ============================================================
         private void btnApply_Click(object sender, EventArgs e)
         {
             if (dataGridView1.DataSource is not IEnumerable<ScanResult> list)
                 return;
+
+            int applied = 0;
 
             foreach (var item in list)
             {
@@ -392,10 +564,12 @@ namespace Autotrad
                     continue;
 
                 _existingKeys[item.Key] = item.JsonValue;
+                applied++;
             }
 
             SaveJson();
 
+            // Rafraîchir l'affichage
             if (Directory.Exists(_lastOpenedFile))
             {
                 ChargerDossier(_lastOpenedFile);
@@ -408,67 +582,145 @@ namespace Autotrad
                 FillPreviewColumn();
             }
 
-            MessageBox.Show("Modifications appliquées au fichier JSON.", "Succès",
+            lblStatus.Text = $"Modifications appliquées : {applied} clé(s).";
+
+            MessageBox.Show($"Modifications appliquées au fichier JSON ({applied} clé(s)).",
+                "Succès",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
-        // ?? MÉTHODE DE TRADUCTION LIBRETRANSLATE
-private async Task<string> TranslateTextAsync(string text, string lang)
-{
-    string target = lang switch
-    {
-        "fr-FR" => "fr",
-        "en-GB" => "en",
-        "de-DE" => "de",
-        "es-ES" => "es",
-        _ => "en"
-    };
+        // ============================================================
+        //  TRADUCTION VIA API
+        // ============================================================
+        private async Task<string> TranslateTextAsync(string text, string lang)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(text))
+                    return "";
 
-    string apiKey = "ta_8ed30e2b2252b02d349477accd1664d9a30f35b1269004c1120d25f2";
+                string target = lang switch
+                {
+                    "fr-FR" => "fr",
+                    "en-GB" => "en",
+                    "de-DE" => "de",
+                    "es-ES" => "es",
+                    _ => "en"
+                };
 
-    var payload = new
-    {
-        text = text,
-        target_language = target
-    };
+                string apiKey = txtApiKey.Text.Trim();
 
-    var json = JsonSerializer.Serialize(payload);
-    var content = new StringContent(json, Encoding.UTF8, "application/json");
+                if (string.IsNullOrEmpty(apiKey))
+                {
+                    MessageBox.Show(
+                        "Aucune clé API configurée. Saisissez-la dans le champ en haut.",
+                        "Configuration manquante",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Warning
+                    );
+                    return "";
+                }
 
-    var request = new HttpRequestMessage(HttpMethod.Post, "https://api.translateapi.ai/api/v1/translate/");
-    request.Headers.Add("Authorization", $"Bearer {apiKey}");
-    request.Content = content;
+                var payload = new
+                {
+                    text = text,
+                    target_language = target
+                };
 
-    var response = await http.SendAsync(request);
-    string result = await response.Content.ReadAsStringAsync();
+                var json = JsonSerializer.Serialize(payload);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-    using var doc = JsonDocument.Parse(result);
-    return doc.RootElement.GetProperty("translated_text").GetString();
-}
+                var request = new HttpRequestMessage(
+                    HttpMethod.Post,
+                    "https://api.translateapi.ai/api/v1/translate/");
+                request.Headers.Add("Authorization", $"Bearer {apiKey}");
+                request.Content = content;
 
-        // ?? GESTION DU CLIC SUR LE BOUTON TRAD
+                var response = await http.SendAsync(request);
+                string result = await response.Content.ReadAsStringAsync();
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    MessageBox.Show(
+                        $"Erreur API ({(int)response.StatusCode}) :\n{result}",
+                        "Erreur de traduction",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return "";
+                }
+
+                using var doc = JsonDocument.Parse(result);
+
+                if (doc.RootElement.TryGetProperty("translated_text", out var translated))
+                    return translated.GetString() ?? "";
+
+                MessageBox.Show(
+                    "Réponse inattendue de l'API :\n" + result,
+                    "Erreur",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return "";
+            }
+            catch (TaskCanceledException)
+            {
+                MessageBox.Show(
+                    "La traduction a expiré (timeout 30s).",
+                    "Timeout",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning
+                );
+                return "";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Erreur de traduction :\n" + ex.Message,
+                    "Erreur",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+                return "";
+            }
+        }
+
+        // ============================================================
+        //  CLIC SUR LE BOUTON "TRAD"
+        // ============================================================
         private async void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < 0)
                 return;
 
-            if (dataGridView1.Columns[e.ColumnIndex] is DataGridViewButtonColumn)
+            if (dataGridView1.Columns[e.ColumnIndex] is not DataGridViewButtonColumn)
+                return;
+
+            if (dataGridView1.Rows[e.RowIndex].DataBoundItem is not ScanResult item)
+                return;
+
+            string sourceText = item.Text;
+
+            if (string.IsNullOrWhiteSpace(sourceText))
+                return;
+
+            string targetLang = GetSelectedLangCode();
+
+            lblStatus.Text = $"Traduction en cours : {sourceText}...";
+
+            string translated = await TranslateTextAsync(sourceText, targetLang);
+
+            if (!string.IsNullOrWhiteSpace(translated))
             {
-                if (dataGridView1.Rows[e.RowIndex].DataBoundItem is ScanResult item)
-                {
-                    string sourceText = item.Text;
-                    string targetLang = GetSelectedLangCode();
+                item.JsonValue = translated;
+                dataGridView1.Refresh();
 
-                    string translated = await TranslateTextAsync(sourceText, targetLang);
-
-                    if (!string.IsNullOrWhiteSpace(translated))
-                    {
-                        item.JsonValue = translated;
-                        dataGridView1.Refresh();
-                    }
-                }
+                lblStatus.Text = $"Traduit : {sourceText} ? {translated}";
+            }
+            else
+            {
+                lblStatus.Text = "Traduction annulée ou échouée.";
             }
         }
     }
 }
-
