@@ -8,7 +8,7 @@ namespace MCEMonitor
     public static class ServiceInstaller
     {
         private const string SERVICE_TASK_NAME = "MCEMonitor_Service";
-        private const string TRAY_TASK_NAME = "MCEMonitor_Tray";
+        private const string TRAY_TASK_NAME = "MCEMonitor_MediaMonitorTray";
 
         // ============================================================
         //  Vérifier si la tâche SYSTEM du service existe

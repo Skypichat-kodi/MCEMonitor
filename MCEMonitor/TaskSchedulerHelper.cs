@@ -26,7 +26,7 @@ namespace MCEMonitor.Utils
                 "\"*[System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1]]\"";
 
             return RunAdmin(
-                "schtasks /Create /TN \"MCEMonitor_Wake\" " +
+                "schtasks /Create /TN \"MCEMonitor_WakeMonitor\" " +
                 "/SC ONEVENT /EC System /MO " + query + " " +
                 $"/TR \"\\\"{exe}\\\"\" /RU SYSTEM /RL HIGHEST /F"
             );
@@ -34,12 +34,12 @@ namespace MCEMonitor.Utils
 
         public static string DeleteWakeTask()
         {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_Wake\" /F");
+            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_WakeMonitor\" /F");
         }
 
         public static bool WakeTaskExists()
         {
-            return QueryTask("MCEMonitor_Wake");
+            return QueryTask("MCEMonitor_WakeMonitor");
         }
 
 
