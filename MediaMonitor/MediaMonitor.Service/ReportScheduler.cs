@@ -1,6 +1,6 @@
 using System;
 using System.Threading;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Service.Reports;
 

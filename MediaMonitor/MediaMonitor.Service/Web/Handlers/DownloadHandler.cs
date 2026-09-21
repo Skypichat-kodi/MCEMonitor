@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Service.Web.Models;
 using PdfSharp.Drawing;

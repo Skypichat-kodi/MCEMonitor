@@ -15,7 +15,6 @@
     <PackageReference Include="MailKit" Version="4.16.0" />
   </ItemGroup>
 
-  <!-- Référence vers MediaMonitor.Core -->
   <ItemGroup>
     <ProjectReference Include="..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>

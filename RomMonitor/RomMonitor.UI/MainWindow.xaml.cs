@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Threading;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.UI
 {

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Core.Models;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Service.Web.Models;

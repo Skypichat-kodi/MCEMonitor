@@ -3,7 +3,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Threading;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.Service.Web
 {

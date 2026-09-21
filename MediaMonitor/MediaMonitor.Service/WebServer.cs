@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using MediaMonitor.Core.Services;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Service.Web;
 using MediaMonitor.Service.Web.Handlers;
 

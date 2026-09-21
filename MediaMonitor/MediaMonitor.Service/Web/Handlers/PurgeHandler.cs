@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Service.Web;
 
 namespace MediaMonitor.Service.Web.Handlers

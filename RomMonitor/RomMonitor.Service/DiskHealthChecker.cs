@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.Service
 {

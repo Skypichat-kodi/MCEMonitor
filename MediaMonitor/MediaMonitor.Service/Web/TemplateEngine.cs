@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace MediaMonitor.Service.Web
 {

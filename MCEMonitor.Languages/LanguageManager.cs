@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
-namespace MediaMonitor.Core.Language
+namespace MCEMonitor.Languages
 {
     public static class LanguageManager
     {

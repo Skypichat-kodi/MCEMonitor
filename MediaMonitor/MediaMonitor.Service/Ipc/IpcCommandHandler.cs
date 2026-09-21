@@ -4,7 +4,7 @@ using System.IO.Pipes;
 using System.Text.Json;
 using System.Threading;
 using MediaMonitor.Core.Services;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Service.Reports;
 
 namespace MediaMonitor.Service.Ipc

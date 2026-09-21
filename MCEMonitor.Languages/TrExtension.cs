@@ -1,7 +1,7 @@
 using System;
 using System.Windows.Markup;
 
-namespace MediaMonitor.Core.Language
+namespace MCEMonitor.Languages
 {
     [MarkupExtensionReturnType(typeof(string))]
     public class TrExtension : MarkupExtension

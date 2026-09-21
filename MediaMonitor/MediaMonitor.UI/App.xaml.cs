@@ -52,7 +52,7 @@ namespace MediaMonitor.UI
             Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
 
             // Chargement du JSON de langue
-            MediaMonitor.Core.Language.LanguageManager.Load(selectedLang);
+            MCEMonitor.Languages.LanguageManager.Load(selectedLang);
 
             base.OnStartup(e);
         }

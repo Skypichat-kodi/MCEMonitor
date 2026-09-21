@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using System.Threading;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 using MediaMonitor.Core.Services;
 using MediaMonitor.Service.Service;
 

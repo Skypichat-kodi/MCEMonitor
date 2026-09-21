@@ -1,2 +1,2 @@
-global using MediaMonitor.Core.Language;
+global using MCEMonitor.Languages;
 

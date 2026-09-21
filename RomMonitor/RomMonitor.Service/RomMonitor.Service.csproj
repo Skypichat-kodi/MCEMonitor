@@ -15,9 +15,7 @@
     <PackageReference Include="MimeKit" Version="4.16.0" />
   </ItemGroup>
 
-  <!-- Référence à MediaMonitor.Core pour LanguageManager -->
   <ItemGroup>
-    <ProjectReference Include="..\..\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj" />
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 

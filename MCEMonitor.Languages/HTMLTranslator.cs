@@ -1,7 +1,7 @@
 using System;
 using System.Text.RegularExpressions;
 
-namespace MediaMonitor.Core.Language
+namespace MCEMonitor.Languages
 {
     public static class HTMLTranslator
     {

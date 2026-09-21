@@ -80,7 +80,7 @@ namespace RomMonitor.UI
             Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
             Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
 
-            MediaMonitor.Core.Language.LanguageManager.Load(selectedLang);
+            MCEMonitor.Languages.LanguageManager.Load(selectedLang);
 
             base.OnStartup(e);
         }

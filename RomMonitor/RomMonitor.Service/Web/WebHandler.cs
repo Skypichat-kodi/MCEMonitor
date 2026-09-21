@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.Service.Web
 {

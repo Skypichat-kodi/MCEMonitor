@@ -1,7 +1,7 @@
 using System;
 using System.Globalization;
 using System.Windows.Data;
-using MediaMonitor.Core.Language;
+using MCEMonitor.Languages;
 
 namespace MediaMonitor.UI.Converters
 {
