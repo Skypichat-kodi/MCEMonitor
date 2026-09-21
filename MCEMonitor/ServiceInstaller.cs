@@ -7,8 +7,9 @@ namespace MCEMonitor
 {
     public static class ServiceInstaller
     {
-        private const string SERVICE_TASK_NAME = "MCEMonitor_Service";
-        private const string TRAY_TASK_NAME = "MCEMonitor_MediaMonitorTray";
+        private const string SERVICE_TASK_NAME   = "MCEMonitor_Service";
+        private const string TRAY_TASK_NAME      = "MCEMonitor_MediaMonitorTray";
+        private const string ROM_TRAY_TASK_NAME  = "MCEMonitor_RomMonitorTray";
 
         // ============================================================
         //  Vérifier si la tâche SYSTEM du service existe
@@ -19,11 +20,19 @@ namespace MCEMonitor
         }
 
         // ============================================================
-        //  Vérifier si la tâche ONLOGON du Tray existe
+        //  Vérifier si la tâche ONLOGON du Tray MediaMonitor existe
         // ============================================================
         public static bool TrayTaskExists()
         {
             return TaskExists(TRAY_TASK_NAME);
+        }
+
+        // ============================================================
+        //  Vérifier si la tâche ONLOGON du Tray RomMonitor existe
+        // ============================================================
+        public static bool RomTrayTaskExists()
+        {
+            return TaskExists(ROM_TRAY_TASK_NAME);
         }
 
         private static bool TaskExists(string taskName)
@@ -101,6 +110,50 @@ namespace MCEMonitor
         }
 
         // ============================================================
+        //  Créer la tâche ONLOGON qui lance RomMonitor.Tray.exe
+        // ============================================================
+        public static void CreateRomTrayTask()
+        {
+            string trayPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "MCEMonitor",
+                "RomMonitor.Tray.exe"
+            );
+
+            if (!File.Exists(trayPath))
+            {
+                trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    "MCEMonitor",
+                    "RomMonitor.Tray.exe"
+                );
+            }
+
+            if (!File.Exists(trayPath))
+            {
+                // Pas la peine de créer une tâche vers un exe inexistant
+                return;
+            }
+
+            string cmd =
+                "schtasks /Create /TN \"" + ROM_TRAY_TASK_NAME + "\" " +
+                "/SC ONLOGON " +
+                $"/TR \"\\\"{trayPath}\\\"\" " +
+                "/RL HIGHEST /F";
+
+            RunAdminCommand(cmd);
+        }
+
+        // ============================================================
+        //  Supprimer la tâche ONLOGON du Tray RomMonitor
+        // ============================================================
+        public static void DeleteRomTrayTask()
+        {
+            string cmd = $"schtasks /Delete /TN \"{ROM_TRAY_TASK_NAME}\" /F";
+            RunAdminCommand(cmd);
+        }
+
+        // ============================================================
         //  Démarrer immédiatement la tâche SYSTEM du service
         // ============================================================
         public static void StartServiceTask()
@@ -124,4 +177,3 @@ namespace MCEMonitor
         }
     }
 }
-

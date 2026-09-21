@@ -24,10 +24,18 @@ namespace RomMonitor.Tray
 
         private string _currentSeverity = "";
 
+        private readonly SynchronizationContext? _uiContext;
+
+        // Compteur pour la phase de démarrage (check toutes les 5s pendant 60s)
+        private int _startupCheckCount = 0;
+
         private const string PIPE_NAME = "MCEMonitor_RomMonitorPipe";
 
         public TrayApplicationContext()
         {
+            // Capture du contexte UI pour marshaller les mises à jour d'icône
+            _uiContext = SynchronizationContext.Current;
+
             LoadIcons();
             InitializeTray();
         }
@@ -109,18 +117,36 @@ namespace RomMonitor.Tray
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
 
-            // ?? Vérification de la sévérité (30s)
+            // Vérification de la sévérité (30s) — régime stable
             severityTimer = new Timer();
             severityTimer.Interval = 30000;
             severityTimer.Tick += SeverityTimer_Tick;
             severityTimer.Start();
 
-            // Premier check immédiat
-            _ = System.Threading.Tasks.Task.Run(() => CheckSeverity());
+            // ------------------------------------------------------------
+            // Phase de démarrage : check toutes les 5s pendant 60s
+            // Le service peut mettre ~40s à faire son premier scan SMART.
+            // ------------------------------------------------------------
+            _startupCheckCount = 0;
+
+            var startupTimer = new Timer();
+            startupTimer.Interval = 5000;
+            startupTimer.Tick += (s, e) =>
+            {
+                _startupCheckCount++;
+                CheckSeverity();
+
+                if (_startupCheckCount >= 12)   // 12 × 5s = 60s
+                {
+                    startupTimer.Stop();
+                    startupTimer.Dispose();
+                }
+            };
+            startupTimer.Start();
         }
 
         // ------------------------------------------------------------
-        //  Timer de sévérité ? change l'icône
+        //  Timer de sévérité ? change l'icône (régime stable)
         // ------------------------------------------------------------
         private void SeverityTimer_Tick(object? sender, EventArgs e)
         {
@@ -144,19 +170,25 @@ namespace RomMonitor.Tray
                 // Changer l'icône (sur le thread UI)
                 if (trayIcon != null && trayIcon.Visible)
                 {
-                    trayIcon.Icon = severity switch
+                    _uiContext?.Post(_ =>
                     {
-                        "critical" => _criticalIcon,
-                        "warning"  => _warningIcon,
-                        _          => _defaultIcon
-                    };
+                        if (trayIcon == null || !trayIcon.Visible)
+                            return;
 
-                    trayIcon.Text = severity switch
-                    {
-                        "critical" => "RomMonitor - Alerte critique",
-                        "warning"  => "RomMonitor - Avertissement",
-                        _          => "RomMonitor"
-                    };
+                        trayIcon.Icon = severity switch
+                        {
+                            "critical" => _criticalIcon,
+                            "warning"  => _warningIcon,
+                            _          => _defaultIcon
+                        };
+
+                        trayIcon.Text = severity switch
+                        {
+                            "critical" => "RomMonitor - Alerte critique",
+                            "warning"  => "RomMonitor - Avertissement",
+                            _          => "RomMonitor"
+                        };
+                    }, null);
                 }
             }
             catch { }

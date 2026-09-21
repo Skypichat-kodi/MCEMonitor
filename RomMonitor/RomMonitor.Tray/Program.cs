@@ -34,6 +34,21 @@ namespace RomMonitor.Tray
 
                 if (!serviceRunning)
                 {
+                    // Le service peut être en train de démarrer : on retente 5 fois sur ~6 secondes
+                    for (int i = 0; i < 5; i++)
+                    {
+                        Thread.Sleep(1200);
+
+                        if (Process.GetProcessesByName("RomMonitor.Service").Any())
+                        {
+                            serviceRunning = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!serviceRunning)
+                {
                     // Ne pas créer de NotifyIcon ? évite les icônes fantômes Windows 11
                     return;
                 }

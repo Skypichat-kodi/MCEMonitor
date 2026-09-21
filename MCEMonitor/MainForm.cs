@@ -34,7 +34,13 @@ namespace MCEMonitor
             // Centre la fenêtre au démarrage
             this.StartPosition = FormStartPosition.CenterScreen;                        
 
-            this.Icon = new Icon("Assets/MediaMonitor.ico");
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MediaMonitor.ico");
+
+            if (File.Exists(iconPath))
+                this.Icon = new Icon(iconPath);
+            else
+                this.Icon = SystemIcons.Application;
+                
             this.BackColor = Color.FromArgb(200, 200, 210); // gris doux, pas trop foncé
             // Fond des pages d’onglets en gris clair
             foreach (TabPage page in tabControl.TabPages)
@@ -636,6 +642,7 @@ namespace MCEMonitor
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = exePath,
+                    WorkingDirectory = Path.GetDirectoryName(exePath) ?? "",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
@@ -761,6 +768,7 @@ namespace MCEMonitor
                 Process.Start(new ProcessStartInfo
                 {
                     FileName = exePath,
+                    WorkingDirectory = Path.GetDirectoryName(exePath) ?? "",
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     WindowStyle = ProcessWindowStyle.Hidden
@@ -1265,34 +1273,21 @@ namespace MCEMonitor
             btnDeleteRomTask.BackColor = btnDeleteRomTask.Enabled ? lightRed : defaultColor;
         }
 
-        private void BtnCreateRomTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string result = TaskSchedulerHelper.CreateRomMonitorTask();
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    result,
-                    LanguageManager.Get("Résultat création tâche RomMonitor") ?? "Résultat création tâche RomMonitor"
-                );
-                UpdateRomTaskButtons();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
-            }
-        }
-
         private void BtnDeleteRomTask_Click(object sender, EventArgs e)
         {
             try
             {
                 string result = TaskSchedulerHelper.DeleteRomMonitorTask();
+
+                // Supprime aussi la tâche du Tray RomMonitor
+                ServiceInstaller.DeleteRomTrayTask();
+
                 PopupHelper.ShowBottomPopup(
                     this,
                     result,
                     LanguageManager.Get("Résultat suppression tâche RomMonitor") ?? "Résultat suppression tâche RomMonitor"
                 );
+
                 UpdateRomTaskButtons();
             }
             catch (Exception ex)
@@ -1301,6 +1296,30 @@ namespace MCEMonitor
             }
         }
 
+        private void BtnCreateRomTask_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string result = TaskSchedulerHelper.CreateRomMonitorTask();
+
+                // Crée aussi la tâche du Tray RomMonitor
+                if (!ServiceInstaller.RomTrayTaskExists())
+                    ServiceInstaller.CreateRomTrayTask();
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    result,
+                    LanguageManager.Get("Résultat création tâche RomMonitor") ?? "Résultat création tâche RomMonitor"
+                );
+
+                UpdateRomTaskButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+        
         /// <summary>
         /// Démarre le service RomMonitor et lance le Tray.
         /// Renvoie true si le service tourne à la fin.

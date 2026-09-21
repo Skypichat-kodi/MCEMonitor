@@ -75,10 +75,16 @@ namespace MCEMonitor
                 // INSTALLATION AUTOMATIQUE TRAY
                 // ============================================================
 
-                // Installer la tâche ONLOGON du Tray si absente
+                // Installer la tâche ONLOGON du Tray MediaMonitor si absente
                 if (!ServiceInstaller.TrayTaskExists())
                 {
                     ServiceInstaller.CreateTrayTask();
+                }
+
+                // Installer la tâche ONLOGON du Tray RomMonitor si absente
+                if (!ServiceInstaller.RomTrayTaskExists())
+                {
+                    ServiceInstaller.CreateRomTrayTask();
                 }
 
                 // ============================================================
