@@ -1,7 +1,7 @@
 <Window x:Class="MediaMonitor.UI.InfoPopupWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:loc="clr-namespace:MediaMonitor.Core.Language;assembly=MediaMonitor.Core"
+        xmlns:loc="clr-namespace:MediaMonitor.Core.Language;assembly=MCEMonitor.Languages"
         Title="Informations sur le fichier"
         Width="540"
         SizeToContent="Height"

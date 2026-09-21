@@ -17,7 +17,7 @@
 
   <!-- Référence vers MediaMonitor.Core -->
   <ItemGroup>
-    <ProjectReference Include="..\MediaMonitor\MediaMonitor.Core\MediaMonitor.Core.csproj" />
+    <ProjectReference Include="..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 </Project>
 

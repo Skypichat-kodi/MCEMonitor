@@ -33,36 +33,42 @@ namespace RomMonitor.Service.Web
 
             string html = template;
 
-            // 1) Boucles {{#for:Items}} ... {{/for:Items}}
+            // 1) Boucles
             html = ProcessLoops(html, model);
 
-            // 2) Conditionnels {{#IfTag}} ... {{/IfTag}}
+            // 2) Conditionnels
             html = ProcessConditionals(html, model);
 
-            // 3) Traductions {{tr:...}}
-            html = TrRegex.Replace(html, m =>
-            {
-                string key = m.Groups[1].Value.Trim();
-                string translated = LanguageManager.Get(key);
-                return string.IsNullOrEmpty(translated) ? key : translated;
-            });
+            // 3) Traductions (passe 1)
+            html = TranslatePass(html);
 
-            // 4) Variables simples {{var}} (à la fin pour ne pas casser les boucles)
+            // 4) Variables
             html = VarRegex.Replace(html, m =>
             {
                 string key = m.Groups[1].Value;
-
-                // Ignore les restes de tags (#If..., /for...)
                 if (key.StartsWith("#") || key.StartsWith("/"))
                     return m.Value;
 
                 if (model.TryGetValue(key, out var val))
                     return val?.ToString() ?? "";
 
-                return ""; // variable inconnue ? vide
+                return "";
             });
 
+            // 5) Traductions (passe 2) — pour les {{tr:...}} injectés par les variables
+            html = TranslatePass(html);
+
             return html;
+        }
+
+        private static string TranslatePass(string html)
+        {
+            return TrRegex.Replace(html, m =>
+            {
+                string key = m.Groups[1].Value.Trim();
+                string translated = LanguageManager.Get(key);
+                return string.IsNullOrEmpty(translated) ? key : translated;
+            });
         }
 
         // ---------------------------------------------------------------
