@@ -17,14 +17,13 @@ namespace RomMonitor.Tray
         private NotifyIcon trayIcon;
         private Timer watchdog;
         private Timer severityTimer;
+        private Timer? startupTimer;
 
         private Icon _defaultIcon;
         private Icon _warningIcon;
         private Icon _criticalIcon;
 
         private string _currentSeverity = "";
-
-        private readonly SynchronizationContext? _uiContext;
 
         // Compteur pour la phase de démarrage (check toutes les 5s pendant 60s)
         private int _startupCheckCount = 0;
@@ -33,9 +32,6 @@ namespace RomMonitor.Tray
 
         public TrayApplicationContext()
         {
-            // Capture du contexte UI pour marshaller les mises à jour d'icône
-            _uiContext = SynchronizationContext.Current;
-
             LoadIcons();
             InitializeTray();
         }
@@ -129,7 +125,7 @@ namespace RomMonitor.Tray
             // ------------------------------------------------------------
             _startupCheckCount = 0;
 
-            var startupTimer = new Timer();
+            startupTimer = new Timer();
             startupTimer.Interval = 5000;
             startupTimer.Tick += (s, e) =>
             {
@@ -138,8 +134,9 @@ namespace RomMonitor.Tray
 
                 if (_startupCheckCount >= 12)   // 12 × 5s = 60s
                 {
-                    startupTimer.Stop();
-                    startupTimer.Dispose();
+                    startupTimer?.Stop();
+                    startupTimer?.Dispose();
+                    startupTimer = null;
                 }
             };
             startupTimer.Start();
@@ -165,30 +162,26 @@ namespace RomMonitor.Tray
                 if (severity == _currentSeverity)
                     return;   // pas de changement
 
-                _currentSeverity = severity;
-
-                // Changer l'icône (sur le thread UI)
                 if (trayIcon != null && trayIcon.Visible)
                 {
-                    _uiContext?.Post(_ =>
+                    // On est déjà sur le thread UI grâce au Timer WinForms,
+                    // donc pas besoin de marshalling.
+                    trayIcon.Icon = severity switch
                     {
-                        if (trayIcon == null || !trayIcon.Visible)
-                            return;
+                        "critical" => _criticalIcon,
+                        "warning"  => _warningIcon,
+                        _          => _defaultIcon
+                    };
 
-                        trayIcon.Icon = severity switch
-                        {
-                            "critical" => _criticalIcon,
-                            "warning"  => _warningIcon,
-                            _          => _defaultIcon
-                        };
+                    trayIcon.Text = severity switch
+                    {
+                        "critical" => "RomMonitor - Alerte critique",
+                        "warning"  => "RomMonitor - Avertissement",
+                        _          => "RomMonitor"
+                    };
 
-                        trayIcon.Text = severity switch
-                        {
-                            "critical" => "RomMonitor - Alerte critique",
-                            "warning"  => "RomMonitor - Avertissement",
-                            _          => "RomMonitor"
-                        };
-                    }, null);
+                    // On mémorise la sévérité
+                    _currentSeverity = severity;
                 }
             }
             catch { }
