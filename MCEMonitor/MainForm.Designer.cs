@@ -135,9 +135,9 @@ namespace MCEMonitor
 
             this.cmbSecurityMode = new System.Windows.Forms.ComboBox();
 
-            this.btnSaveEmail = new System.Windows.Forms.Button();
-            this.btnTestEmail = new System.Windows.Forms.Button();
-            this.btnTogglePassword = new System.Windows.Forms.Button();
+            this.btnSaveEmail = new MCEMonitor.Controls.ShadowButton();
+            this.btnTestEmail = new MCEMonitor.Controls.ShadowButton();
+            this.btnTogglePassword = new MCEMonitor.Controls.ShadowButton();
 
             // GROUPBOX INFO Email
             this.grpEmailInfo = new System.Windows.Forms.GroupBox();
@@ -341,9 +341,9 @@ namespace MCEMonitor
             this.lblNextReport = new System.Windows.Forms.Label();
             this.lblLastReport = new System.Windows.Forms.Label();
 
-            this.btnCreateMediaTask2 = new System.Windows.Forms.Button();
-            this.btnDeleteMediaTask2 = new System.Windows.Forms.Button();
-            this.btnOpenMediaUI = new System.Windows.Forms.Button();
+            this.btnCreateMediaTask2 = new MCEMonitor.Controls.ShadowButton();
+            this.btnDeleteMediaTask2 = new MCEMonitor.Controls.ShadowButton();
+            this.btnOpenMediaUI = new MCEMonitor.Controls.ShadowButton();
 
             // GROUPBOX 1 — INFORMATIONS
             this.grpMediaInfo.Text = LanguageManager.Get("À propos de MediaMonitor") ?? "À propos de MediaMonitor";
@@ -487,10 +487,10 @@ namespace MCEMonitor
             this.numRomCooldown = new System.Windows.Forms.NumericUpDown();
             this.chkRomSmartAlert = new System.Windows.Forms.CheckBox();
             this.lblRomHint = new System.Windows.Forms.Label();
-            this.btnCreateRomTask = new System.Windows.Forms.Button();
-            this.btnDeleteRomTask = new System.Windows.Forms.Button();
-            this.btnOpenRomUI = new System.Windows.Forms.Button();
-            this.btnSaveRomConfig = new System.Windows.Forms.Button();
+            this.btnCreateRomTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnDeleteRomTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnOpenRomUI = new MCEMonitor.Controls.ShadowButton();
+            this.btnSaveRomConfig = new MCEMonitor.Controls.ShadowButton();
             this.romMonitorTimer = new System.Windows.Forms.Timer();
 
             // --- GroupBox Info RomMonitor ---
@@ -720,11 +720,11 @@ namespace MCEMonitor
             this.chkCause = new System.Windows.Forms.CheckBox();
             this.chkDuration = new System.Windows.Forms.CheckBox();
 
-            this.btnSaveWakeConfig = new System.Windows.Forms.Button();
-            this.btnRunWake = new System.Windows.Forms.Button();
-            this.btnCreateWakeTask = new System.Windows.Forms.Button();
-            this.btnDeleteWakeTask = new System.Windows.Forms.Button();
-            this.btnManageWolMacs = new System.Windows.Forms.Button();
+            this.btnSaveWakeConfig = new MCEMonitor.Controls.ShadowButton();
+            this.btnRunWake = new MCEMonitor.Controls.ShadowButton();
+            this.btnCreateWakeTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnDeleteWakeTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnManageWolMacs = new MCEMonitor.Controls.ShadowButton();
 
             // --- GroupBox Info WakeMonitor ---
             this.grpWakeInfo.Text = LanguageManager.Get("À propos de WakeMonitor") ?? "À propos de WakeMonitor";
@@ -906,9 +906,9 @@ namespace MCEMonitor
             // ============================================================
             // STOP MONITOR — BOUTONS
             // ============================================================
-            this.btnCreateStopTask = new System.Windows.Forms.Button();
-            this.btnDeleteStopTask = new System.Windows.Forms.Button();
-            this.btnRunStopMonitor = new System.Windows.Forms.Button();
+            this.btnCreateStopTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnDeleteStopTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnRunStopMonitor = new MCEMonitor.Controls.ShadowButton();
 
             // Bouton Créer tâche
             this.btnCreateStopTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
@@ -997,8 +997,8 @@ namespace MCEMonitor
             this.numShutdownMinute = new System.Windows.Forms.NumericUpDown();
             this.lblShutdownType = new System.Windows.Forms.Label();
             this.cmbShutdownType = new System.Windows.Forms.ComboBox();
-            this.btnCreateShutdownTask = new System.Windows.Forms.Button();
-            this.btnDeleteShutdownTask = new System.Windows.Forms.Button();
+            this.btnCreateShutdownTask = new MCEMonitor.Controls.ShadowButton();
+            this.btnDeleteShutdownTask = new MCEMonitor.Controls.ShadowButton();
 
             this.grpShutdown.Text = LanguageManager.Get("Arrêt programmé") ?? "Arrêt programmé";
             this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
@@ -1038,7 +1038,7 @@ namespace MCEMonitor
             this.cmbShutdownType.Font = normalFont;
 
             // Bouton Sauvegarder configuration On/Off
-            this.btnSaveOnOff = new System.Windows.Forms.Button();
+            this.btnSaveOnOff = new MCEMonitor.Controls.ShadowButton();
             this.btnSaveOnOff.Text = LanguageManager.Get("Sauvegarder") ?? "Sauvegarder";
             this.btnSaveOnOff.Font = normalFont;
             this.btnSaveOnOff.Location = new System.Drawing.Point(10, 100);
@@ -1166,7 +1166,7 @@ namespace MCEMonitor
             this.grpAboutInfo.Controls.Add(this.pnlAboutScroll);
 
             // BOUTON : Ouvrir le dossier Logs
-            this.btnOpenLogs = new System.Windows.Forms.Button();
+            this.btnOpenLogs = new MCEMonitor.Controls.ShadowButton();
             this.btnOpenLogs.Text = LanguageManager.Get("Dossier Logs") ?? "Dossier Logs";
             this.btnOpenLogs.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.btnOpenLogs.Size = new System.Drawing.Size(150, 32);
@@ -1200,7 +1200,7 @@ namespace MCEMonitor
             };
 
             // BOUTON : Purger les logs
-            this.btnPurgeLogs = new System.Windows.Forms.Button();
+            this.btnPurgeLogs = new MCEMonitor.Controls.ShadowButton();
             this.btnPurgeLogs.Text = LanguageManager.Get("Purger les logs") ?? "Purger les logs";
             this.btnPurgeLogs.Font = new System.Drawing.Font("Segoe UI", 9F);
             this.btnPurgeLogs.Size = new System.Drawing.Size(150, 32);
