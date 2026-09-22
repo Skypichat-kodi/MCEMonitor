@@ -12,6 +12,7 @@ using MCEMonitor.Utils;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
+using System.Collections.Generic;
 
 namespace MCEMonitor
 {
@@ -19,6 +20,9 @@ namespace MCEMonitor
     {
         private readonly MediaMonitorService _media;
         private readonly WakeMonitorService _wake;
+        private readonly List<TabPage> _lockedPages = new();
+        private readonly Dictionary<TabPage, int> _originalTabOrder = new();
+        private bool _smtpTabsUnlocked = false;
 
         public MainForm(MediaMonitorService media, WakeMonitorService wake)
         {
@@ -26,7 +30,7 @@ namespace MCEMonitor
             _wake = wake;
 
             InitializeComponent();
-            
+                        
             // Empêche le redimensionnement
             this.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
@@ -58,7 +62,11 @@ namespace MCEMonitor
             UpdateStopTaskStatus();
             UpdateNextReportLabel();
             UpdateLastReportLabel();
+            // Prépare le verrouillage SMTP des onglets dépendants
+            InitializeSmtpTabGating();
 
+            // Lance le check SMTP après l'affichage de la fenêtre
+            this.Shown += async (s, e) => await CheckSmtpAtStartupAsync();
         }
 
         // ============================================================
@@ -90,6 +98,16 @@ namespace MCEMonitor
             };
 
             cfg.Save();
+            
+            // La config vient de changer ? on invalide le cache et on re-teste
+            _ = Task.Run(async () =>
+            {
+                var status = await SmtpHealthChecker.CheckAsync(cacheMinutes: 0);
+                if (InvokeRequired)
+                    Invoke(new Action(() => UpdateEmailStatusBadge(status)));
+                else
+                    UpdateEmailStatusBadge(status);
+            });            
 
             PopupHelper.ShowBottomPopup(
             this,
@@ -168,6 +186,16 @@ namespace MCEMonitor
 
                 await client.DisconnectAsync(true);
                 logForm.Log(LanguageManager.Get("Déconnexion du serveur.") ?? "Déconnexion du serveur.");
+
+                // Met à jour le badge avec le statut réel
+                _ = RefreshSmtpStatusAsync();
+                                
+                // Test réussi ? on débloque les onglets dépendants du SMTP
+                SmtpHealthChecker.MarkAsReady();
+                UnlockTabs();
+                
+                // Met à jour le badge immédiatement
+                UpdateEmailStatusBadge(SmtpStatus.Ready);                
             }
             catch (Exception ex)
             {
@@ -533,10 +561,14 @@ namespace MCEMonitor
                 lblLastReport.Text = "";
             }
         }
+        
         private void LogRefreshTimer_Tick(object sender, EventArgs e)
         {
             UpdateNextReportLabel();
             UpdateLastReportLabel();
+
+            // Rafraîchit le badge de statut SMTP (un vrai check toutes les 10 min, sinon cache)
+            _ = RefreshSmtpStatusAsync();
         }
 
         // ============================================================
@@ -1418,7 +1450,181 @@ namespace MCEMonitor
                 }
             }
             catch { }
-        }                
+        }
+        
+        // ============================================================
+        // GESTION SMTP : verrouillage / déverrouillage des onglets
+        // ============================================================
+
+        private void InitializeSmtpTabGating()
+        {
+            // Capture l'ordre initial de TOUS les onglets
+            for (int i = 0; i < tabControl.TabPages.Count; i++)
+                _originalTabOrder[tabControl.TabPages[i]] = i;
+
+            // Onglets nécessitant une config SMTP valide
+            _lockedPages.Add(tabMediaMonitor);
+            _lockedPages.Add(tabRomMonitor);
+            _lockedPages.Add(tabWakeMonitor);
+            _lockedPages.Add(tabStopMonitor);
+
+            // On démarre verrouillé (le check async débloquera si OK)
+            LockTabs();
+        }
+
+        private void LockTabs()
+        {
+            _smtpTabsUnlocked = false;
+
+            foreach (var page in _lockedPages)
+            {
+                if (tabControl.TabPages.Contains(page))
+                    tabControl.TabPages.Remove(page);
+            }
+        }
+
+        private void UnlockTabs()
+        {
+            if (_smtpTabsUnlocked)
+                return;
+
+            _smtpTabsUnlocked = true;
+
+            // Réinsère les onglets dans leur ordre d'origine
+            foreach (var kvp in _originalTabOrder.OrderBy(x => x.Value))
+            {
+                var page = kvp.Key;
+
+                if (!_lockedPages.Contains(page))
+                    continue;
+
+                if (tabControl.TabPages.Contains(page))
+                    continue;
+
+                int targetIndex = Math.Min(kvp.Value, tabControl.TabPages.Count);
+                tabControl.TabPages.Insert(targetIndex, page);
+            }
+        }
+
+        private async Task CheckSmtpAtStartupAsync()
+        {
+            try
+            {
+                var status = await SmtpHealthChecker.CheckAsync(cacheMinutes: 0);
+
+                if (status == SmtpStatus.Ready)
+                {
+                    UnlockTabs();
+                    return;
+                }
+
+                // Échec ? popup explicative
+                string message = GetSmtpWarningMessage(status) +
+                    "\n\n" +
+                    (LanguageManager.Get("Vous pouvez configurer l'envoi d'emails dans l'onglet Email.")
+                        ?? "Vous pouvez configurer l'envoi d'emails dans l'onglet Email.");
+
+                MessageBox.Show(
+                    this,
+                    message,
+                    LanguageManager.Get("Configuration Email requise") ?? "Configuration Email requise",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+
+                // Bascule sur l'onglet Email
+                tabControl.SelectedTab = tabEmail;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Erreur CheckSmtpAtStartup : " + ex.Message);
+            }
+        }
+
+        private static string GetSmtpWarningMessage(SmtpStatus status)
+        {
+            return status switch
+            {
+                SmtpStatus.NotConfigured =>
+                    LanguageManager.Get("La configuration email n'a pas encore été remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.")
+                    ?? "La configuration email n'a pas encore été remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.",
+
+                SmtpStatus.Unreachable =>
+                    LanguageManager.Get("Le serveur SMTP est injoignable.\nVérifiez l'adresse et le port.")
+                    ?? "Le serveur SMTP est injoignable.\nVérifiez l'adresse et le port.",
+
+                SmtpStatus.AuthFailed =>
+                    LanguageManager.Get("L'authentification SMTP a échoué.\nVérifiez l'adresse expéditeur et le mot de passe.")
+                    ?? "L'authentification SMTP a échoué.\nVérifiez l'adresse expéditeur et le mot de passe.",
+
+                _ =>
+                    LanguageManager.Get("Impossible de vérifier la configuration SMTP.\nConsultez les logs pour plus de détails.")
+                    ?? "Impossible de vérifier la configuration SMTP.\nConsultez les logs pour plus de détails."
+            };
+        }
+        
+        private void UpdateEmailStatusBadge(SmtpStatus status)
+        {
+            if (pnlSmtpStatusDot == null)
+                return;
+
+            Color color;
+            Color border;
+
+            switch (status)
+            {
+                case SmtpStatus.Ready:
+                    color  = Color.FromArgb(76, 175, 80);   // vert
+                    border = Color.FromArgb(56, 142, 60);
+                    break;
+
+                case SmtpStatus.NotConfigured:
+                    color  = Color.FromArgb(160, 160, 160); // gris
+                    border = Color.FromArgb(120, 120, 120);
+                    break;
+
+                case SmtpStatus.Unreachable:
+                case SmtpStatus.AuthFailed:
+                    color  = Color.FromArgb(220, 60, 60);   // rouge
+                    border = Color.FromArgb(180, 40, 40);
+                    break;
+
+                default:
+                    color  = Color.FromArgb(230, 150, 30);  // orange
+                    border = Color.FromArgb(190, 120, 20);
+                    break;
+            }
+
+            pnlSmtpStatusDot.BackColor = color;
+            pnlSmtpStatusDot.BorderColor = border;
+        }
+        
+        private async Task RefreshSmtpStatusAsync()
+        {
+            var status = await SmtpHealthChecker.CheckAsync(cacheMinutes: 10);
+
+            if (InvokeRequired)
+                Invoke(new Action(() => UpdateEmailStatusBadge(status)));
+            else
+                UpdateEmailStatusBadge(status);
+            if (toolTipSmtp != null)
+            {
+                string tooltip = status switch
+                {
+                    SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP opérationnelle.") 
+                                                ?? "Connexion SMTP opérationnelle.",
+                    SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplète.")
+                                                ?? "Configuration email incomplète.",
+                    SmtpStatus.Unreachable   => LanguageManager.Get("Le serveur SMTP ne répond pas.")
+                                                ?? "Le serveur SMTP ne répond pas.",
+                    SmtpStatus.AuthFailed    => LanguageManager.Get("Identifiants SMTP refusés.")
+                                                ?? "Identifiants SMTP refusés.",
+                    _                        => LanguageManager.Get("Statut SMTP inconnu.")
+                                                ?? "Statut SMTP inconnu."
+                };
+
+                toolTipSmtp.SetToolTip(pnlSmtpStatusDot, tooltip);
+            }                
+        }                                        
     }   
 }
 

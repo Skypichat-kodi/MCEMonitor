@@ -116,6 +116,9 @@ namespace MCEMonitor
             this.picEmailInfo = new System.Windows.Forms.PictureBox();
             this.lblEmailDescription = new System.Windows.Forms.Label();
             this.lblEmailTitle = new System.Windows.Forms.Label();
+            this.lblSmtpStatusTitle = new System.Windows.Forms.Label();
+            this.pnlSmtpStatusDot = new MCEMonitor.Controls.RoundedPanel();
+            this.toolTipSmtp = new System.Windows.Forms.ToolTip();
 
             this.lblSmtpServer = new System.Windows.Forms.Label();
             this.lblSmtpPort = new System.Windows.Forms.Label();
@@ -174,6 +177,23 @@ namespace MCEMonitor
             this.lblEmailTitle.Text =
                 LanguageManager.Get("Configuration Email") ?? "Configuration Email";
             this.tabEmail.Controls.Add(this.lblEmailTitle);
+            
+            // STATUT SMTP — label + pastille
+            this.lblSmtpStatusTitle.Text = LanguageManager.Get("Statut du serveur SMTP :") ?? "Statut du serveur SMTP :";
+            this.lblSmtpStatusTitle.TextAlign = System.Drawing.ContentAlignment.MiddleRight;
+            this.lblSmtpStatusTitle.Location = new System.Drawing.Point(40, 348);
+            this.lblSmtpStatusTitle.Size = new System.Drawing.Size(150, 20);
+            this.lblSmtpStatusTitle.Font = normalFont;
+
+            this.pnlSmtpStatusDot.BackColor = System.Drawing.Color.FromArgb(160, 160, 160);
+            this.pnlSmtpStatusDot.Location = new System.Drawing.Point(202, 349);
+            this.pnlSmtpStatusDot.Size = new System.Drawing.Size(18, 18);
+            this.pnlSmtpStatusDot.CornerRadius = 9;
+            this.pnlSmtpStatusDot.BorderWidth = 1;
+            this.pnlSmtpStatusDot.BorderColor = System.Drawing.Color.FromArgb(120, 120, 120);
+
+            this.tabEmail.Controls.Add(this.lblSmtpStatusTitle);
+            this.tabEmail.Controls.Add(this.pnlSmtpStatusDot);
 
             // ALIGNEMENT DES CHAMPS
             int labelX = 40;
@@ -935,7 +955,7 @@ namespace MCEMonitor
             this.grpOnOffInfo.Text = LanguageManager.Get("À propos de On/Off") ?? "À propos de On/Off";
             this.grpOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpOnOffInfo.Location = new System.Drawing.Point(20, 20);
-            this.grpOnOffInfo.Size = new System.Drawing.Size(620, 130);
+            this.grpOnOffInfo.Size = new System.Drawing.Size(620, 120);
 
             // PANEL INFO (à l'intérieur du GroupBox)
             this.pnlOnOffInfo = new MCEMonitor.Controls.RoundedPanel();
@@ -944,18 +964,18 @@ namespace MCEMonitor
 
             this.pnlOnOffInfo.BackColor = System.Drawing.Color.FromArgb(240, 240, 240);
             this.pnlOnOffInfo.Location = new System.Drawing.Point(15, 25);
-            this.pnlOnOffInfo.Size = new System.Drawing.Size(590, 90);
+            this.pnlOnOffInfo.Size = new System.Drawing.Size(590, 80);
 
             // Icône info
-            this.picOnOffInfo.Location = new System.Drawing.Point(10, 30);
+            this.picOnOffInfo.Location = new System.Drawing.Point(10, 10);
             this.picOnOffInfo.Size = new System.Drawing.Size(28, 28);
             this.picOnOffInfo.SizeMode = System.Windows.Forms.PictureBoxSizeMode.StretchImage;
             this.picOnOffInfo.Image = SystemIcons.Information.ToBitmap();
 
             // Texte
             this.lblOnOffInfo.AutoSize = false;
-            this.lblOnOffInfo.Location = new System.Drawing.Point(45, 20);
-            this.lblOnOffInfo.Size = new System.Drawing.Size(530, 55);
+            this.lblOnOffInfo.Location = new System.Drawing.Point(50, 15);
+            this.lblOnOffInfo.Size = new System.Drawing.Size(530, 50);
             this.lblOnOffInfo.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             this.lblOnOffInfo.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
             this.lblOnOffInfo.Text =
@@ -968,7 +988,7 @@ namespace MCEMonitor
             this.pnlOnOffInfo.Controls.Add(this.lblOnOffInfo);
             this.grpOnOffInfo.Controls.Add(this.pnlOnOffInfo);
             this.tabOnOff.Controls.Add(this.grpOnOffInfo);
-
+            
             // ARRÊT PROGRAMMÉ
             this.grpShutdown = new System.Windows.Forms.GroupBox();
             this.lblShutdownHour = new System.Windows.Forms.Label();
@@ -1279,6 +1299,10 @@ namespace MCEMonitor
         private System.Windows.Forms.Button btnSaveEmail;
         private System.Windows.Forms.Button btnTestEmail;
         private System.Windows.Forms.Button btnTogglePassword;
+        private System.Windows.Forms.Label lblSmtpStatusTitle;
+        private System.Windows.Forms.ToolTip toolTipSmtp;           
+        private MCEMonitor.Controls.RoundedPanel pnlSmtpStatusDot;
+     
 
         // ---------- On / Off ----------
         private System.Windows.Forms.GroupBox grpOnOffInfo;
