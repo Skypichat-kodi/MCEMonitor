@@ -42,6 +42,7 @@ namespace RomMonitor.Service
                 case "get-web-status":   HandleGetWebStatus(server); break;   // ?? AJOUTÉ
                 case "send-test-email":  HandleSendTestEmail(server); break;
                 case "shutdown":         HandleShutdown(server); break;
+                case "force-scan":       HandleForceScan(server); break;
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -289,5 +290,19 @@ namespace RomMonitor.Service
                 IpcResponse.Error(server, ex.Message);
             }
         }
+
+        private void HandleForceScan(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ForceTick();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleForceScan : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }        
     }
 }

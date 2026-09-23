@@ -249,6 +249,12 @@ namespace RomMonitor.UI
 
             string? json = await SendCommand(cmd);
             return json != null && json.Contains("\"status\":\"ok\"");
-        }        
+        }
+        
+        public static async Task<bool> ForceScanAsync()
+        {
+            string? json = await SendCommand("force-scan");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }                
     }
 }

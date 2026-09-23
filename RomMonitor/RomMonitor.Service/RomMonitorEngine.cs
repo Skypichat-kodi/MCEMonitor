@@ -65,6 +65,16 @@ namespace RomMonitor.Service
             CoreLog.Write("RomMonitorEngine arrêté");
         }
 
+        /// <summary>
+        /// Force un Tick immédiat, sans attendre l'intervalle.
+        /// Appelé par IPC quand l'utilisateur clique sur "Rafraîchir".
+        /// </summary>
+        public void ForceTick()
+        {
+            CoreLog.Write("ForceTick demandé via IPC");
+            Task.Run(() => Tick());
+        }
+        
         // ------------------------------------------------------------------
         //  Tick principal
         // ------------------------------------------------------------------

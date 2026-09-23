@@ -397,7 +397,37 @@ namespace RomMonitor.UI
         // ------------------------------------------------------------
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            await RefreshSafe();
+            try
+            {
+                // 1) Demande au service de refaire un scan immédiatement
+                StatusText.Text = "Scan forcé en cours…";
+                SetStatusIcon("/Resources/Icons/warning.png");
+
+                bool ok = await RomMonitorIpcClient.ForceScanAsync();
+
+                if (!ok)
+                {
+                    StatusText.Text = "Impossible de contacter le service RomMonitor.";
+                    SetStatusIcon("/Resources/Icons/critical.png");
+                    return;
+                }
+
+                // 2) Le service scanne en arrière-plan. On laisse un peu de temps
+                //    avant de relire, pour laisser smartctl finir.
+                //    On relit progressivement : 5 s, 10 s, 20 s, 40 s.
+                int[] delays = { 5000, 5000, 10000, 20000 };
+
+                foreach (int delay in delays)
+                {
+                    await Task.Delay(delay);
+                    await RefreshSafe();
+                }
+            }
+            catch (Exception ex)
+            {
+                StatusText.Text = "Erreur lors du scan forcé : " + ex.Message;
+                SetStatusIcon("/Resources/Icons/warning.png");
+            }
         }
 
         private void OpenLogs_Click(object sender, RoutedEventArgs e)
