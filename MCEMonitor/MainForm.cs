@@ -13,16 +13,47 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using System.Collections.Generic;
+using Krypton.Toolkit;
+using Krypton.Navigator;
 
 namespace MCEMonitor
 {
-    public partial class MainForm : Form
+    public partial class MainForm : KryptonForm
     {
         private readonly MediaMonitorService _media;
         private readonly WakeMonitorService _wake;
-        private readonly List<TabPage> _lockedPages = new();
-        private readonly Dictionary<TabPage, int> _originalTabOrder = new();
+        private readonly List<KryptonPage> _lockedPages = new();
+        private readonly Dictionary<KryptonPage, int> _originalTabOrder = new();
         private bool _smtpTabsUnlocked = false;
+
+        // ? Garde-fous anti-récursion pour les toggles KryptonCheckButton
+        private bool _suppressToggleMedia = false;
+        private bool _suppressToggleRom = false;
+
+        // ? Anti-double-fermeture
+        private bool _closingInProgress = false;
+
+        protected override void OnFormClosing(FormClosingEventArgs e)
+        {
+            base.OnFormClosing(e);
+
+            if (e.CloseReason == CloseReason.UserClosing && !_closingInProgress)
+            {
+                _closingInProgress = true;
+
+                // 1. Cacher la fenêtre immédiatement (évite le clignotement)
+                this.SuspendLayout();
+                this.Visible = false;
+
+                // 2. Arrêter tous les timers
+                logRefreshTimer?.Stop();
+                mediaServiceTimer?.Stop();
+                romMonitorTimer?.Stop();
+
+                // 3. Forcer la sortie propre
+                Application.Exit();
+            }
+        }
 
         public MainForm(MediaMonitorService media, WakeMonitorService wake)
         {
@@ -30,13 +61,22 @@ namespace MCEMonitor
             _wake = wake;
 
             InitializeComponent();
-                        
-            // Empêche le redimensionnement
-            this.FormBorderStyle = FormBorderStyle.FixedSingle;
+
+            // Double-buffering pour éliminer les repaints parasites
+            this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
+            this.UpdateStyles();
+
+            // ? Fenêtre non redimensionnable (sans toucher à FormBorderStyle,
+            //    qui entre en conflit avec la barre de titre KryptonForm)
             this.MaximizeBox = false;
-            
-            // Centre la fenêtre au démarrage
-            this.StartPosition = FormStartPosition.CenterScreen;                        
+            this.MinimizeBox = true;
+
+            this.StartPosition = FormStartPosition.CenterScreen;
+
+            // Verrouille la taille (Min == Max ? non redimensionnable)
+            // 700x540 = ClientSize ? +16 en largeur, +39 en hauteur pour bordures/titre
+            this.MinimumSize = new Size(716, 579);
+            this.MaximumSize = new Size(716, 579);
 
             string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MediaMonitor.ico");
 
@@ -44,13 +84,6 @@ namespace MCEMonitor
                 this.Icon = new Icon(iconPath);
             else
                 this.Icon = SystemIcons.Application;
-                
-            this.BackColor = Color.FromArgb(200, 200, 210); // gris doux, pas trop foncé
-            // Fond des pages d’onglets en gris clair
-            foreach (TabPage page in tabControl.TabPages)
-            {
-                page.BackColor = Color.White;
-            }
 
             LoadEmailConfig();
             LoadMediaConfig();
@@ -62,10 +95,8 @@ namespace MCEMonitor
             UpdateStopTaskStatus();
             UpdateNextReportLabel();
             UpdateLastReportLabel();
-            // Prépare le verrouillage SMTP des onglets dépendants
             InitializeSmtpTabGating();
 
-            // Lance le check SMTP après l'affichage de la fenêtre
             this.Shown += async (s, e) => await CheckSmtpAtStartupAsync();
         }
 
@@ -98,16 +129,24 @@ namespace MCEMonitor
             };
 
             cfg.Save();
-            
-            // La config vient de changer ? on invalide le cache et on re-teste
+
             _ = Task.Run(async () =>
             {
                 var status = await SmtpHealthChecker.CheckAsync(cacheMinutes: 0);
-                if (InvokeRequired)
-                    Invoke(new Action(() => UpdateEmailStatusBadge(status)));
-                else
-                    UpdateEmailStatusBadge(status);
-            });            
+
+                if (this.IsDisposed || this.Disposing || _closingInProgress)
+                    return;
+
+                try
+                {
+                    if (InvokeRequired)
+                        Invoke(new Action(() => UpdateEmailStatusBadge(status)));
+                    else
+                        UpdateEmailStatusBadge(status);
+                }
+                catch (ObjectDisposedException) { }
+                catch (InvalidOperationException) { }
+            });
 
             PopupHelper.ShowBottomPopup(
             this,
@@ -187,15 +226,12 @@ namespace MCEMonitor
                 await client.DisconnectAsync(true);
                 logForm.Log(LanguageManager.Get("Déconnexion du serveur.") ?? "Déconnexion du serveur.");
 
-                // Met à jour le badge avec le statut réel
                 _ = RefreshSmtpStatusAsync();
-                                
-                // Test réussi ? on débloque les onglets dépendants du SMTP
+
                 SmtpHealthChecker.MarkAsReady();
                 UnlockTabs();
-                
-                // Met à jour le badge immédiatement
-                UpdateEmailStatusBadge(SmtpStatus.Ready);                
+
+                UpdateEmailStatusBadge(SmtpStatus.Ready);
             }
             catch (Exception ex)
             {
@@ -208,30 +244,25 @@ namespace MCEMonitor
         // ============================================================
         // ONGLET MEDIA MONITOR
         // ============================================================
-        /// <summary>
-        /// Traduit une ligne de log contenant un code (CODE01, CODE02).
-        /// Format attendu : "[CODE0X]|valeur1|valeur2|..."
-        /// </summary>
+
         private string TranslateStatusCode(string rawLine)
         {
             if (string.IsNullOrWhiteSpace(rawLine))
                 return "";
 
-            // CODE01 : prochain envoi — "[CODE01]|19:47|2h 15min"
             if (rawLine.StartsWith("[CODE01]|"))
             {
                 var parts = rawLine.Substring("[CODE01]|".Length).Split('|');
                 string heure = parts.Length > 0 ? parts[0] : "";
                 string dans  = parts.Length > 1 ? parts[1] : "";
 
-                string label = LanguageManager.Get("Prochain envoi du rapport prévu à") 
+                string label = LanguageManager.Get("Prochain envoi du rapport prévu à")
                                ?? "Prochain envoi du rapport prévu à";
                 string labelDans = LanguageManager.Get("dans") ?? "dans";
 
                 return $"{label} {heure} ({labelDans} {dans})";
             }
 
-            // CODE02 : dernier rapport — "[CODE02]|AUCUN" ou "[CODE02]|2026-05-28 11:47:01"
             if (rawLine.StartsWith("[CODE02]|"))
             {
                 string value = rawLine.Substring("[CODE02]|".Length).Trim();
@@ -243,10 +274,9 @@ namespace MCEMonitor
                 return $"{label} {value}";
             }
 
-            // Fallback : afficher brut (anciens logs, autres codes)
             return rawLine;
         }
-        
+
         private void UpdateNextReportLabel()
         {
             try
@@ -264,7 +294,6 @@ namespace MCEMonitor
                     return;
                 }
 
-                // On cherche la DERNIÈRE ligne contenant [CODE01]
                 string lastCode01 = File.ReadLines(path)
                     .Reverse()
                     .FirstOrDefault(l => l.Contains("[CODE01]"));
@@ -275,12 +304,10 @@ namespace MCEMonitor
                     return;
                 }
 
-                // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
                 int idx = lastCode01.IndexOf("] ");
                 if (idx > 0)
                     lastCode01 = lastCode01.Substring(idx + 2);
 
-                // Parser et traduire le code
                 lblNextReport.Text = TranslateStatusCode(lastCode01);
             }
             catch
@@ -355,7 +382,6 @@ namespace MCEMonitor
                     return;
                 }
 
-                // ?? Récupération de la langue actuellement utilisée par MCEMonitor
                 string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
 
                 Process.Start(new ProcessStartInfo
@@ -386,112 +412,133 @@ namespace MCEMonitor
 
         private void UpdateMediaToggle()
         {
-            bool running = IsMediaServiceRunning();
+            // ? Protégé contre la récursion (le setter de Checked déclenche CheckedChanged)
+            _suppressToggleMedia = true;
+            try
+            {
+                bool running = IsMediaServiceRunning();
 
-            if (running)
-            {
-                toggleMediaService.Checked = true;
-                lblMediaStatus.Text =
-                    LanguageManager.Get("Service MediaMonitor : actif") ??
-                    "Service MediaMonitor : actif";
+                if (running)
+                {
+                    toggleMediaService.Checked = true;
+                    lblMediaStatus.Text =
+                        LanguageManager.Get("Service MediaMonitor : actif") ??
+                        "Service MediaMonitor : actif";
+                }
+                else
+                {
+                    toggleMediaService.Checked = false;
+                    lblMediaStatus.Text =
+                        LanguageManager.Get("Service MediaMonitor : arrêté") ??
+                        "Service MediaMonitor : arrêté";
+                }
             }
-            else
+            finally
             {
-                toggleMediaService.Checked = false;
-                lblMediaStatus.Text =
-                    LanguageManager.Get("Service MediaMonitor : arrêté") ??
-                    "Service MediaMonitor : arrêté";
+                _suppressToggleMedia = false;
             }
         }
 
         private void toggleMediaService_Click(object sender, EventArgs e)
         {
-            bool running = IsMediaServiceRunning();
-
-            if (running)
-            {
-                // Empêcher l'arrêt si MediaMonitor.UI est ouvert
-                if (IsMediaUIRunning())
-                {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.") ??
-                    "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
-                    LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
-                );
-                    return;
-                }
-
-                // 1. Arrêter le service
-                foreach (var p in Process.GetProcessesByName("MediaMonitor.Service"))
-                    p.Kill();
-            }
-            else
-            {
-                // 1. Démarrer le service
-                string servicePath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "MediaMonitor.Service.exe"
-                );
-
-                if (!File.Exists(servicePath))
-                {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("MediaMonitor.Service.exe introuvable.") ??
-                    "MediaMonitor.Service.exe introuvable.",
-                    "Erreur"
-                );
-                    return;
-                }
-
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = servicePath,
-                    UseShellExecute = true
-                });
-
-                Thread.Sleep(1200);
-
-                // 2. Vérifier si le service tourne réellement
-                bool serviceRunning = Process.GetProcesses()
-                    .Any(p => p.ProcessName.StartsWith("MediaMonitor.Service", StringComparison.OrdinalIgnoreCase));
-
-                if (!serviceRunning)
-                {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    "Le service MediaMonitor.Service n'a pas pu démarrer.",
-                    "Erreur"
-                );
+            // ? Anti-récursion : évite que UpdateMediaToggle() ou ce handler ne se rappellent en boucle
+            if (_suppressToggleMedia)
                 return;
-                }
 
-                // 3. Démarrer le Tray
-                string trayPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                    "MCEMonitor",
-                    "MediaMonitor.Tray.exe"
-                );
+            _suppressToggleMedia = true;
+            try
+            {
+                bool running = IsMediaServiceRunning();
 
-                if (!File.Exists(trayPath))
+                if (running)
                 {
-                    trayPath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    if (IsMediaUIRunning())
+                    {
+                        // On remet le toggle dans son état réel (le clic vient d'inverser Checked)
+                        toggleMediaService.Checked = true;
+
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            LanguageManager.Get("Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.") ??
+                            "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
+                            LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
+                        );
+                        return;
+                    }
+
+                    foreach (var p in Process.GetProcessesByName("MediaMonitor.Service"))
+                        p.Kill();
+                }
+                else
+                {
+                    string servicePath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "MCEMonitor",
+                        "MediaMonitor.Service.exe"
+                    );
+
+                    if (!File.Exists(servicePath))
+                    {
+                        toggleMediaService.Checked = false;
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            LanguageManager.Get("MediaMonitor.Service.exe introuvable.") ??
+                            "MediaMonitor.Service.exe introuvable.",
+                            "Erreur"
+                        );
+                        return;
+                    }
+
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = servicePath,
+                        UseShellExecute = true
+                    });
+
+                    Thread.Sleep(1200);
+
+                    bool serviceRunning = Process.GetProcesses()
+                        .Any(p => p.ProcessName.StartsWith("MediaMonitor.Service", StringComparison.OrdinalIgnoreCase));
+
+                    if (!serviceRunning)
+                    {
+                        toggleMediaService.Checked = false;
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            "Le service MediaMonitor.Service n'a pas pu démarrer.",
+                            "Erreur"
+                        );
+                        return;
+                    }
+
+                    string trayPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
                         "MCEMonitor",
                         "MediaMonitor.Tray.exe"
                     );
-                }
 
-                if (File.Exists(trayPath))
-                {
-                    Process.Start(new ProcessStartInfo
+                    if (!File.Exists(trayPath))
                     {
-                        FileName = trayPath,
-                        UseShellExecute = true
-                    });
+                        trayPath = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                            "MCEMonitor",
+                            "MediaMonitor.Tray.exe"
+                        );
+                    }
+
+                    if (File.Exists(trayPath))
+                    {
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = trayPath,
+                            UseShellExecute = true
+                        });
+                    }
                 }
+            }
+            finally
+            {
+                _suppressToggleMedia = false;
             }
 
             Task.Delay(500).ContinueWith(_ =>
@@ -502,6 +549,9 @@ namespace MCEMonitor
 
         private void MediaServiceTimer_Tick(object sender, EventArgs e)
         {
+            if (_closingInProgress || this.IsDisposed)
+                return;
+
             UpdateMediaToggle();
             UpdateMediaTaskButtons();
         }
@@ -509,17 +559,10 @@ namespace MCEMonitor
         private void UpdateMediaTaskButtons()
         {
             bool exists = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
-
             btnCreateMediaTask2.Enabled = !exists;
             btnDeleteMediaTask2.Enabled = exists;
-
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
-
-            btnCreateMediaTask2.BackColor = btnCreateMediaTask2.Enabled ? lightGreen : defaultColor;
-            btnDeleteMediaTask2.BackColor = btnDeleteMediaTask2.Enabled ? lightRed : defaultColor;
         }
+
         private void UpdateLastReportLabel()
         {
             try
@@ -537,7 +580,6 @@ namespace MCEMonitor
                     return;
                 }
 
-                // On cherche la DERNIÈRE ligne contenant [CODE02]
                 string lastCode02 = File.ReadLines(path)
                     .Reverse()
                     .FirstOrDefault(l => l.Contains("[CODE02]"));
@@ -548,12 +590,10 @@ namespace MCEMonitor
                     return;
                 }
 
-                // Retirer le timestamp "[xxxx-xx-xx xx:xx:xx] "
                 int idx = lastCode02.IndexOf("] ");
                 if (idx > 0)
                     lastCode02 = lastCode02.Substring(idx + 2);
 
-                // Parser et traduire le code
                 lblLastReport.Text = TranslateStatusCode(lastCode02);
             }
             catch
@@ -561,13 +601,15 @@ namespace MCEMonitor
                 lblLastReport.Text = "";
             }
         }
-        
+
         private void LogRefreshTimer_Tick(object sender, EventArgs e)
         {
+            if (_closingInProgress || this.IsDisposed)
+                return;
+
             UpdateNextReportLabel();
             UpdateLastReportLabel();
 
-            // Rafraîchit le badge de statut SMTP (un vrai check toutes les 10 min, sinon cache)
             _ = RefreshSmtpStatusAsync();
         }
 
@@ -688,28 +730,20 @@ namespace MCEMonitor
             }
             catch (Exception ex)
             {
-              PopupHelper.ShowBottomPopup(
-                  this,
-                  (LanguageManager.Get("Impossible d'exécuter WakeMonitor.exe : ") ??
-                  "Impossible d'exécuter WakeMonitor.exe :\n") + ex.Message,
-                  LanguageManager.Get("Erreur") ?? "Erreur"
-              );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Impossible d'exécuter WakeMonitor.exe : ") ??
+                    "Impossible d'exécuter WakeMonitor.exe :\n") + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur"
+                );
             }
         }
 
         private void UpdateWakeTaskStatus()
         {
             bool exists = TaskSchedulerHelper.WakeTaskExists();
-
             btnCreateWakeTask.Enabled = !exists;
             btnDeleteWakeTask.Enabled = exists;
-
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
-
-            btnCreateWakeTask.BackColor = btnCreateWakeTask.Enabled ? lightGreen : defaultColor;
-            btnDeleteWakeTask.BackColor = btnDeleteWakeTask.Enabled ? lightRed : defaultColor;
         }
 
         private void BtnManageWolMacs_Click(object sender, EventArgs e)
@@ -725,7 +759,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Impossible d’ouvrir la gestion des MAC autorisées :\n" + ex.Message,
+                    "Impossible d'ouvrir la gestion des MAC autorisées :\n" + ex.Message,
                     "Erreur"
                 );
             }
@@ -745,7 +779,6 @@ namespace MCEMonitor
                 "Information"
             );
 
-            // Si une tâche existe déjà, on la met à jour
             if (TaskSchedulerHelper.ShutdownTaskExists())
             {
                 string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
@@ -806,36 +839,28 @@ namespace MCEMonitor
                     WindowStyle = ProcessWindowStyle.Hidden
                 });
 
-                    PopupHelper.ShowBottomPopup(
-                        this,
-                        LanguageManager.Get("StopMonitor exécuté") ?? "StopMonitor exécuté",
-                        "Information"
-                    );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("StopMonitor exécuté") ?? "StopMonitor exécuté",
+                    "Information"
+                );
             }
             catch (Exception ex)
             {
-                  PopupHelper.ShowBottomPopup(
-                      this,
-                      (LanguageManager.Get("Impossible d'exécuter StopMonitor.exe :") ??
-                      "Impossible d'exécuter StopMonitor.exe :\n") + ex.Message,
-                      LanguageManager.Get("Erreur") ?? "Erreur"
-                  );
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Impossible d'exécuter StopMonitor.exe :") ??
+                    "Impossible d'exécuter StopMonitor.exe :\n") + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur"
+                );
             }
         }
 
         private void UpdateStopTaskStatus()
         {
             bool exists = TaskSchedulerHelper.StopTaskExists();
-
             btnCreateStopTask.Enabled = !exists;
             btnDeleteStopTask.Enabled = exists;
-
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
-
-            btnCreateStopTask.BackColor = btnCreateStopTask.Enabled ? lightGreen : defaultColor;
-            btnDeleteStopTask.BackColor = btnDeleteStopTask.Enabled ? lightRed : defaultColor;
         }
 
         // ============================================================
@@ -893,16 +918,8 @@ namespace MCEMonitor
         private void UpdateShutdownTaskStatus()
         {
             bool exists = TaskSchedulerHelper.ShutdownTaskExists();
-
             btnCreateShutdownTask.Enabled = !exists;
             btnDeleteShutdownTask.Enabled = exists;
-
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
-
-            btnCreateShutdownTask.BackColor = btnCreateShutdownTask.Enabled ? lightGreen : defaultColor;
-            btnDeleteShutdownTask.BackColor = btnDeleteShutdownTask.Enabled ? lightRed : defaultColor;
 
             if (exists)
             {
@@ -973,7 +990,7 @@ namespace MCEMonitor
                 );
             }
         }
-        
+
         // ============================================================
         // ROM MONITOR
         // ============================================================
@@ -1049,7 +1066,6 @@ namespace MCEMonitor
             }
             catch (Exception ex)
             {
-                // En cas d'erreur, on garde les valeurs par défaut
                 System.Diagnostics.Debug.WriteLine("Erreur LoadRomMonitorSettings : " + ex.Message);
             }
         }
@@ -1066,9 +1082,6 @@ namespace MCEMonitor
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
-                // ============================================================
-                //  Lire les valeurs Web existantes (préservées)
-                // ============================================================
                 bool webEnabled = true;
                 int webPort = 8085;
                 string webUsername = "admin";
@@ -1105,9 +1118,6 @@ namespace MCEMonitor
                     }
                 }
 
-                // ============================================================
-                //  Écrire le fichier complet
-                // ============================================================
                 var lines = new[]
                 {
                     "# ============================================================",
@@ -1160,50 +1170,66 @@ namespace MCEMonitor
 
         private void UpdateRomMonitorToggle()
         {
-            bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+            _suppressToggleRom = true;
+            try
+            {
+                bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
 
-            if (running)
-            {
-                toggleRomService.Checked = true;
-                lblRomStatus.Text =
-                    LanguageManager.Get("Service RomMonitor : actif") ?? "Service RomMonitor : actif";
+                if (running)
+                {
+                    toggleRomService.Checked = true;
+                    lblRomStatus.Text =
+                        LanguageManager.Get("Service RomMonitor : actif") ?? "Service RomMonitor : actif";
+                }
+                else
+                {
+                    toggleRomService.Checked = false;
+                    lblRomStatus.Text =
+                        LanguageManager.Get("Service RomMonitor : arrêté") ?? "Service RomMonitor : arrêté";
+                }
             }
-            else
+            finally
             {
-                toggleRomService.Checked = false;
-                lblRomStatus.Text =
-                    LanguageManager.Get("Service RomMonitor : arrêté") ?? "Service RomMonitor : arrêté";
+                _suppressToggleRom = false;
             }
         }
 
         private void toggleRomService_Click(object sender, EventArgs e)
         {
-            bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+            if (_suppressToggleRom)
+                return;
 
-            if (running)
+            _suppressToggleRom = true;
+            try
             {
-                // ?? Empêcher l'arrêt si RomMonitor.UI est ouvert
-                if (Process.GetProcessesByName("RomMonitor.UI").Length > 0)
+                bool running = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
+
+                if (running)
                 {
-                    PopupHelper.ShowBottomPopup(
-                        this,
-                        LanguageManager.Get("Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert. Veuillez fermer RomMonitor.UI d'abord.")
-                            ?? "Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert.\nVeuillez fermer RomMonitor.UI d'abord.",
-                        LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
-                    );
-                    return;
+                    if (Process.GetProcessesByName("RomMonitor.UI").Length > 0)
+                    {
+                        toggleRomService.Checked = true;
+
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            LanguageManager.Get("Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert. Veuillez fermer RomMonitor.UI d'abord.")
+                                ?? "Impossible d'arrêter RomMonitor.Service tant que RomMonitor.UI est ouvert.\nVeuillez fermer RomMonitor.UI d'abord.",
+                            LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
+                        );
+                        return;
+                    }
+
+                    foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
+                        p.Kill();
                 }
-
-                // Arrêter le service
-                foreach (var p in Process.GetProcessesByName("RomMonitor.Service"))
-                    p.Kill();
-
-                // Le Tray va disparaître tout seul grâce à son Watchdog
+                else
+                {
+                    StartRomMonitorService();
+                }
             }
-            else
+            finally
             {
-                // Démarrer le service + le Tray
-                StartRomMonitorService();
+                _suppressToggleRom = false;
             }
 
             Task.Delay(800).ContinueWith(_ =>
@@ -1214,7 +1240,6 @@ namespace MCEMonitor
 
         private void BtnOpenRomUI_Click(object sender, EventArgs e)
         {
-            // Vérifie si le service tourne
             bool serviceRunning = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
 
             if (!serviceRunning)
@@ -1233,15 +1258,12 @@ namespace MCEMonitor
                 if (result != DialogResult.Yes)
                     return;
 
-                // Démarre le service + le Tray
                 if (!StartRomMonitorService())
                     return;
 
-                // Met à jour le switch
                 UpdateRomMonitorToggle();
             }
 
-            // Le service tourne ? ouvrir l'UI
             try
             {
                 string uiPath = Path.Combine(
@@ -1283,9 +1305,12 @@ namespace MCEMonitor
                 PopupHelper.ShowBottomPopup(this, "Erreur lors de l'ouverture de RomMonitor.UI : " + ex.Message);
             }
         }
-        
+
         private void RomMonitorTimer_Tick(object sender, EventArgs e)
         {
+            if (_closingInProgress || this.IsDisposed)
+                return;
+
             UpdateRomMonitorToggle();
             UpdateRomTaskButtons();
         }
@@ -1293,16 +1318,8 @@ namespace MCEMonitor
         private void UpdateRomTaskButtons()
         {
             bool exists = TaskSchedulerHelper.RomMonitorTaskExists();
-
             btnCreateRomTask.Enabled = !exists;
             btnDeleteRomTask.Enabled = exists;
-
-            Color lightGreen = Color.FromArgb(200, 255, 200);
-            Color lightRed = Color.FromArgb(255, 200, 200);
-            Color defaultColor = SystemColors.Control;
-
-            btnCreateRomTask.BackColor = btnCreateRomTask.Enabled ? lightGreen : defaultColor;
-            btnDeleteRomTask.BackColor = btnDeleteRomTask.Enabled ? lightRed : defaultColor;
         }
 
         private void BtnDeleteRomTask_Click(object sender, EventArgs e)
@@ -1311,7 +1328,6 @@ namespace MCEMonitor
             {
                 string result = TaskSchedulerHelper.DeleteRomMonitorTask();
 
-                // Supprime aussi la tâche du Tray RomMonitor
                 ServiceInstaller.DeleteRomTrayTask();
 
                 PopupHelper.ShowBottomPopup(
@@ -1334,7 +1350,6 @@ namespace MCEMonitor
             {
                 string result = TaskSchedulerHelper.CreateRomMonitorTask();
 
-                // Crée aussi la tâche du Tray RomMonitor
                 if (!ServiceInstaller.RomTrayTaskExists())
                     ServiceInstaller.CreateRomTrayTask();
 
@@ -1351,11 +1366,7 @@ namespace MCEMonitor
                 PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
             }
         }
-        
-        /// <summary>
-        /// Démarre le service RomMonitor et lance le Tray.
-        /// Renvoie true si le service tourne à la fin.
-        /// </summary>
+
         private bool StartRomMonitorService()
         {
             try
@@ -1387,7 +1398,6 @@ namespace MCEMonitor
 
                 Thread.Sleep(1200);
 
-                // Vérifier que le service tourne
                 if (Process.GetProcessesByName("RomMonitor.Service").Length == 0)
                 {
                     PopupHelper.ShowBottomPopup(
@@ -1398,7 +1408,6 @@ namespace MCEMonitor
                     return false;
                 }
 
-                // Démarrer le Tray
                 StartRomMonitorTray();
 
                 return true;
@@ -1414,14 +1423,10 @@ namespace MCEMonitor
             }
         }
 
-        /// <summary>
-        /// Lance le Tray RomMonitor s'il n'est pas déjà en cours.
-        /// </summary>
         private void StartRomMonitorTray()
         {
             try
             {
-                // Déjà en cours ?
                 if (Process.GetProcessesByName("RomMonitor.Tray").Length > 0)
                     return;
 
@@ -1451,24 +1456,21 @@ namespace MCEMonitor
             }
             catch { }
         }
-        
+
         // ============================================================
         // GESTION SMTP : verrouillage / déverrouillage des onglets
         // ============================================================
 
         private void InitializeSmtpTabGating()
         {
-            // Capture l'ordre initial de TOUS les onglets
-            for (int i = 0; i < tabControl.TabPages.Count; i++)
-                _originalTabOrder[tabControl.TabPages[i]] = i;
+            for (int i = 0; i < tabControl.Pages.Count; i++)
+                _originalTabOrder[tabControl.Pages[i]] = i;
 
-            // Onglets nécessitant une config SMTP valide
             _lockedPages.Add(tabMediaMonitor);
             _lockedPages.Add(tabRomMonitor);
             _lockedPages.Add(tabWakeMonitor);
             _lockedPages.Add(tabStopMonitor);
 
-            // On démarre verrouillé (le check async débloquera si OK)
             LockTabs();
         }
 
@@ -1478,8 +1480,8 @@ namespace MCEMonitor
 
             foreach (var page in _lockedPages)
             {
-                if (tabControl.TabPages.Contains(page))
-                    tabControl.TabPages.Remove(page);
+                if (tabControl.Pages.Contains(page))
+                    tabControl.Pages.Remove(page);
             }
         }
 
@@ -1490,7 +1492,6 @@ namespace MCEMonitor
 
             _smtpTabsUnlocked = true;
 
-            // Réinsère les onglets dans leur ordre d'origine
             foreach (var kvp in _originalTabOrder.OrderBy(x => x.Value))
             {
                 var page = kvp.Key;
@@ -1498,11 +1499,11 @@ namespace MCEMonitor
                 if (!_lockedPages.Contains(page))
                     continue;
 
-                if (tabControl.TabPages.Contains(page))
+                if (tabControl.Pages.Contains(page))
                     continue;
 
-                int targetIndex = Math.Min(kvp.Value, tabControl.TabPages.Count);
-                tabControl.TabPages.Insert(targetIndex, page);
+                int targetIndex = Math.Min(kvp.Value, tabControl.Pages.Count);
+                tabControl.Pages.Insert(targetIndex, page);
             }
         }
 
@@ -1518,7 +1519,6 @@ namespace MCEMonitor
                     return;
                 }
 
-                // Échec ? popup explicative
                 string message = GetSmtpWarningMessage(status) +
                     "\n\n" +
                     (LanguageManager.Get("Vous pouvez configurer l'envoi d'emails dans l'onglet Email.")
@@ -1531,8 +1531,7 @@ namespace MCEMonitor
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
 
-                // Bascule sur l'onglet Email
-                tabControl.SelectedTab = tabEmail;
+                tabControl.SelectedPage = tabEmail;
             }
             catch (Exception ex)
             {
@@ -1561,43 +1560,37 @@ namespace MCEMonitor
                     ?? "Impossible de vérifier la configuration SMTP.\nConsultez les logs pour plus de détails."
             };
         }
-        
+
         private void UpdateEmailStatusBadge(SmtpStatus status)
         {
             if (pnlSmtpStatusDot == null)
                 return;
 
             Color color;
-            Color border;
 
             switch (status)
             {
                 case SmtpStatus.Ready:
-                    color  = Color.FromArgb(76, 175, 80);   // vert
-                    border = Color.FromArgb(56, 142, 60);
+                    color = Color.FromArgb(76, 175, 80);
                     break;
 
                 case SmtpStatus.NotConfigured:
-                    color  = Color.FromArgb(160, 160, 160); // gris
-                    border = Color.FromArgb(120, 120, 120);
+                    color = Color.FromArgb(160, 160, 160);
                     break;
 
                 case SmtpStatus.Unreachable:
                 case SmtpStatus.AuthFailed:
-                    color  = Color.FromArgb(220, 60, 60);   // rouge
-                    border = Color.FromArgb(180, 40, 40);
+                    color = Color.FromArgb(220, 60, 60);
                     break;
 
                 default:
-                    color  = Color.FromArgb(230, 150, 30);  // orange
-                    border = Color.FromArgb(190, 120, 20);
+                    color = Color.FromArgb(230, 150, 30);
                     break;
             }
 
             pnlSmtpStatusDot.BackColor = color;
-            pnlSmtpStatusDot.BorderColor = border;
         }
-        
+
         private async Task RefreshSmtpStatusAsync()
         {
             var status = await SmtpHealthChecker.CheckAsync(cacheMinutes: 10);
@@ -1606,11 +1599,12 @@ namespace MCEMonitor
                 Invoke(new Action(() => UpdateEmailStatusBadge(status)));
             else
                 UpdateEmailStatusBadge(status);
+
             if (toolTipSmtp != null)
             {
                 string tooltip = status switch
                 {
-                    SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP opérationnelle.") 
+                    SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP opérationnelle.")
                                                 ?? "Connexion SMTP opérationnelle.",
                     SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplète.")
                                                 ?? "Configuration email incomplète.",
@@ -1623,8 +1617,17 @@ namespace MCEMonitor
                 };
 
                 toolTipSmtp.SetToolTip(pnlSmtpStatusDot, tooltip);
-            }                
-        }                                        
-    }   
-}
+            }
+        }
+        
+        // ============================================================
+        // SÉLECTEUR DE THÈME
+        // ============================================================
 
+        private void BtnChooseTheme_Click(object sender, EventArgs e)
+        {
+            using var selector = new ThemeSelectorForm();
+            selector.ShowDialog(this);
+        }        
+    }
+}
