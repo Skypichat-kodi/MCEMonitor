@@ -1,9 +1,11 @@
+using Krypton.Toolkit;
+
 namespace MCEMonitor
 {
     partial class SmtpTestForm
     {
         private System.ComponentModel.IContainer components = null;
-        private System.Windows.Forms.TextBox txtLog;
+        private KryptonTextBox txtLog;
 
         protected override void Dispose(bool disposing)
         {
@@ -14,11 +16,11 @@ namespace MCEMonitor
 
         private void InitializeComponent()
         {
-            this.txtLog = new System.Windows.Forms.TextBox();
+            this.txtLog = new KryptonTextBox();
             this.SuspendLayout();
 
             this.txtLog.Multiline = true;
-            this.txtLog.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.txtLog.ScrollBars = ScrollBars.Vertical;
             this.txtLog.ReadOnly = true;
             this.txtLog.Font = new System.Drawing.Font("Consolas", 10F);
             this.txtLog.Location = new System.Drawing.Point(10, 10);
@@ -32,4 +34,3 @@ namespace MCEMonitor
         }
     }
 }
-

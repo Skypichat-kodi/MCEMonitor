@@ -1,10 +1,12 @@
 using System;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 using MCEMonitor.Services;
+using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
-    public partial class MediaMonitorLiveForm : Form
+    public partial class MediaMonitorLiveForm : KryptonForm
     {
         private readonly MediaMonitorService _media;
         private readonly System.Windows.Forms.Timer _timer;
@@ -33,5 +35,3 @@ namespace MCEMonitor
         }
     }
 }
-
-

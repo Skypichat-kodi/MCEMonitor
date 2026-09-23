@@ -2,6 +2,7 @@ using System;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
@@ -67,7 +68,7 @@ namespace MCEMonitor
 
             if (!File.Exists(servicePath))
             {
-                MessageBox.Show(LanguageManager.Get("MediaMonitor.Service.exe introuvable dans ProgramData.") ?? "MediaMonitor.Service.exe introuvable dans ProgramData.");
+                KryptonMessageBox.Show(LanguageManager.Get("MediaMonitor.Service.exe introuvable dans ProgramData.") ?? "MediaMonitor.Service.exe introuvable dans ProgramData.");
                 return;
             }
 

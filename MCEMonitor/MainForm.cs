@@ -26,11 +26,11 @@ namespace MCEMonitor
         private readonly Dictionary<KryptonPage, int> _originalTabOrder = new();
         private bool _smtpTabsUnlocked = false;
 
-        // ? Garde-fous anti-récursion pour les toggles KryptonCheckButton
+        // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
         private bool _suppressToggleRom = false;
 
-        // ? Anti-double-fermeture
+        // Anti-double-fermeture
         private bool _closingInProgress = false;
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -66,15 +66,13 @@ namespace MCEMonitor
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
             this.UpdateStyles();
 
-            // ? Fenêtre non redimensionnable (sans toucher à FormBorderStyle,
-            //    qui entre en conflit avec la barre de titre KryptonForm)
+            // Fenêtre non redimensionnable
             this.MaximizeBox = false;
             this.MinimizeBox = true;
 
             this.StartPosition = FormStartPosition.CenterScreen;
 
             // Verrouille la taille (Min == Max ? non redimensionnable)
-            // 700x540 = ClientSize ? +16 en largeur, +39 en hauteur pour bordures/titre
             this.MinimumSize = new Size(716, 579);
             this.MaximumSize = new Size(716, 579);
 
@@ -412,7 +410,6 @@ namespace MCEMonitor
 
         private void UpdateMediaToggle()
         {
-            // ? Protégé contre la récursion (le setter de Checked déclenche CheckedChanged)
             _suppressToggleMedia = true;
             try
             {
@@ -441,7 +438,6 @@ namespace MCEMonitor
 
         private void toggleMediaService_Click(object sender, EventArgs e)
         {
-            // ? Anti-récursion : évite que UpdateMediaToggle() ou ce handler ne se rappellent en boucle
             if (_suppressToggleMedia)
                 return;
 
@@ -454,7 +450,6 @@ namespace MCEMonitor
                 {
                     if (IsMediaUIRunning())
                     {
-                        // On remet le toggle dans son état réel (le clic vient d'inverser Checked)
                         toggleMediaService.Checked = true;
 
                         PopupHelper.ShowBottomPopup(
@@ -1245,6 +1240,7 @@ namespace MCEMonitor
             if (!serviceRunning)
             {
                 var result = MessageBox.Show(
+                    this,
                     (LanguageManager.Get("Le service RomMonitor n'est pas en cours d'exécution.")
                         ?? "Le service RomMonitor n'est pas en cours d'exécution.")
                     + "\n\n" +
@@ -1252,8 +1248,7 @@ namespace MCEMonitor
                         ?? "Voulez-vous le démarrer maintenant ?"),
                     LanguageManager.Get("Service non démarré") ?? "Service non démarré",
                     MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning
-                );
+                    MessageBoxIcon.Warning);
 
                 if (result != DialogResult.Yes)
                     return;
@@ -1524,12 +1519,12 @@ namespace MCEMonitor
                     (LanguageManager.Get("Vous pouvez configurer l'envoi d'emails dans l'onglet Email.")
                         ?? "Vous pouvez configurer l'envoi d'emails dans l'onglet Email.");
 
-                MessageBox.Show(
-                    this,
+                // ? CORRECTION : plus de "this," en premier argument
+                KryptonMessageBox.Show(
                     message,
-                    LanguageManager.Get("Configuration Email requise") ?? "Configuration Email requise",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
+                    "Configuration Email requise",
+                    KryptonMessageBoxButtons.OK,
+                    KryptonMessageBoxIcon.Information);
 
                 tabControl.SelectedPage = tabEmail;
             }
@@ -1619,7 +1614,7 @@ namespace MCEMonitor
                 toolTipSmtp.SetToolTip(pnlSmtpStatusDot, tooltip);
             }
         }
-        
+
         // ============================================================
         // SÉLECTEUR DE THÈME
         // ============================================================
@@ -1628,6 +1623,6 @@ namespace MCEMonitor
         {
             using var selector = new ThemeSelectorForm();
             selector.ShowDialog(this);
-        }        
+        }
     }
 }

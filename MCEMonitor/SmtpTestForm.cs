@@ -1,9 +1,10 @@
 using System;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
-    public partial class SmtpTestForm : Form
+    public partial class SmtpTestForm : KryptonForm
     {
         public SmtpTestForm()
         {
@@ -16,4 +17,3 @@ namespace MCEMonitor
         }
     }
 }
-

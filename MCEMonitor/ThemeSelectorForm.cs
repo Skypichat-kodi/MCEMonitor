@@ -6,18 +6,12 @@ using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
-    /// <summary>
-    /// Formulaire de sélection du thème Krypton.
-    /// Utilise KryptonThemeListBox (inclus dans Krypton.Toolkit).
-    /// Le thème est appliqué en direct et sauvegardé dans theme.config.
-    /// </summary>
     public class ThemeSelectorForm : KryptonForm
     {
         private KryptonThemeListBox _themeList;
         private KryptonButton _btnClose;
         private KryptonLabel _lblInfo;
 
-        // Chemin du fichier de config
         private static string ThemeConfigPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor",
@@ -53,7 +47,7 @@ namespace MCEMonitor
                 Size = new Size(400, 280)
             };
 
-            // Restaure la sélection actuelle (sans réappliquer le thème)
+            // Restaure la sélection actuelle
             var current = LoadSavedTheme();
             if (_themeList.Items.Contains(current))
                 _themeList.SelectedItem = current;
@@ -76,13 +70,29 @@ namespace MCEMonitor
 
         private void ThemeList_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (_themeList.SelectedItem is PaletteMode mode)
-            {
-                // ? Utilise l'instance partagée exposée par Program
-                Program.SharedManager.GlobalPaletteMode = mode;
+            // ? Approche robuste : on lit directement l'état du KryptonManager
+            // Peu importe ce que contient SelectedItem, on applique le thème actuel
+            var mode = KryptonManager.CurrentGlobalPaletteMode;
 
-                SaveTheme(mode);
+            // Si la liste permet de changer le thème au vol, on force la synchro
+            if (_themeList.SelectedItem != null)
+            {
+                // Tentative de récupération via Value (si wrapper KryptonListItem)
+                var valueProp = _themeList.SelectedItem.GetType().GetProperty("Value");
+                if (valueProp != null && valueProp.GetValue(_themeList.SelectedItem) is PaletteMode pm)
+                {
+                    mode = pm;
+                    Program.SharedManager.GlobalPaletteMode = pm;
+                }
+                // Tentative directe (si c'est déjà un PaletteMode)
+                else if (_themeList.SelectedItem is PaletteMode pmDirect)
+                {
+                    mode = pmDirect;
+                    Program.SharedManager.GlobalPaletteMode = pmDirect;
+                }
             }
+
+            SaveTheme(mode);
         }
 
         // ============================================================
@@ -115,7 +125,6 @@ namespace MCEMonitor
             }
             catch { }
 
-            // Thème par défaut
             return PaletteMode.SparkleBlueDarkMode;
         }
     }

@@ -1,14 +1,16 @@
+using Krypton.Toolkit;
+
 namespace MCEMonitor
 {
     partial class MediaMonitorLiveForm
     {
         private System.ComponentModel.IContainer components = null;
 
-        private Label lblCpu;
-        private Label lblGpu;
-        private Label lblTemp;
-        private Label lblNetwork;
-        private Label lblDisk;
+        private KryptonLabel lblCpu;
+        private KryptonLabel lblGpu;
+        private KryptonLabel lblTemp;
+        private KryptonLabel lblNetwork;
+        private KryptonLabel lblDisk;
 
         protected override void Dispose(bool disposing)
         {
@@ -19,19 +21,19 @@ namespace MCEMonitor
 
         private void InitializeComponent()
         {
-            this.lblCpu = new Label();
-            this.lblGpu = new Label();
-            this.lblTemp = new Label();
-            this.lblNetwork = new Label();
-            this.lblDisk = new Label();
+            this.lblCpu = new KryptonLabel();
+            this.lblGpu = new KryptonLabel();
+            this.lblTemp = new KryptonLabel();
+            this.lblNetwork = new KryptonLabel();
+            this.lblDisk = new KryptonLabel();
 
             this.SuspendLayout();
 
-            lblCpu.Location = new Point(20, 20);
-            lblGpu.Location = new Point(20, 50);
-            lblTemp.Location = new Point(20, 80);
-            lblNetwork.Location = new Point(20, 110);
-            lblDisk.Location = new Point(20, 140);
+            lblCpu.Location = new System.Drawing.Point(20, 20);
+            lblGpu.Location = new System.Drawing.Point(20, 50);
+            lblTemp.Location = new System.Drawing.Point(20, 80);
+            lblNetwork.Location = new System.Drawing.Point(20, 110);
+            lblDisk.Location = new System.Drawing.Point(20, 140);
 
             lblCpu.AutoSize = true;
             lblGpu.AutoSize = true;
@@ -46,10 +48,9 @@ namespace MCEMonitor
             this.Controls.Add(lblDisk);
 
             this.Text = LanguageManager.Get("MediaMonitor - Temps réel") ?? "MediaMonitor - Temps réel";
-            this.ClientSize = new Size(300, 200);
+            this.ClientSize = new System.Drawing.Size(300, 200);
 
             this.ResumeLayout(false);
         }
     }
 }
-

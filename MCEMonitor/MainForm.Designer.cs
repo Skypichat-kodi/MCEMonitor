@@ -991,8 +991,8 @@ namespace MCEMonitor
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show("Impossible d'ouvrir le dossier Logs.\n\n" + ex.Message,
-                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    KryptonMessageBox.Show("Impossible d'ouvrir le dossier Logs.\n\n" + ex.Message,
+                        "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
                 }
             };
 
@@ -1021,21 +1021,21 @@ namespace MCEMonitor
                         System.IO.Directory.CreateDirectory(logFolder);
                     }
 
-                    MessageBox.Show(
+                    KryptonMessageBox.Show(
                         LanguageManager.Get("Tous les logs ont été purgés.") ?? "Tous les logs ont été purgés.",
                         LanguageManager.Get("Succès") ?? "Succès",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information
+                        KryptonMessageBoxButtons.OK,
+                        KryptonMessageBoxIcon.Information
                     );
                 }
                 catch (Exception ex)
                 {
-                    MessageBox.Show(
+                    KryptonMessageBox.Show(
                         (LanguageManager.Get("Erreur lors de la purge des logs.") ?? "Erreur lors de la purge des logs.")
                         + "\n\n" + ex.Message,
                         LanguageManager.Get("Erreur") ?? "Erreur",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Error
+                        KryptonMessageBoxButtons.OK,
+                        KryptonMessageBoxIcon.Error
                     );
                 }
             };

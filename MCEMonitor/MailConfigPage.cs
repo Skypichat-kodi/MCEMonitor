@@ -4,6 +4,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
@@ -12,15 +13,21 @@ namespace MCEMonitor
 {
     public class MailConfigPage : UserControl
     {
-        private TextBox txtFrom;
-        private TextBox txtPassword;
-        private TextBox txtTo;
-        private TextBox txtServer;
-        private NumericUpDown numPort;
-        private ComboBox cboSecurity;
-        private Button btnSave;
-        private Button btnTest;
-        private PictureBox picStatus;
+        private KryptonTextBox txtFrom;
+        private KryptonTextBox txtPassword;
+        private KryptonTextBox txtTo;
+        private KryptonTextBox txtServer;
+        private KryptonNumericUpDown numPort;
+        private KryptonComboBox cboSecurity;
+        private KryptonButton btnSave;
+        private KryptonButton btnTest;
+        private KryptonPictureBox picStatus;
+        private KryptonLabel lblFrom;
+        private KryptonLabel lblPassword;
+        private KryptonLabel lblTo;
+        private KryptonLabel lblServer;
+        private KryptonLabel lblPort;
+        private KryptonLabel lblSecurity;
 
         public MailConfigPage()
         {
@@ -32,66 +39,58 @@ namespace MCEMonitor
         {
             this.Dock = DockStyle.Fill;
 
-            var lblFrom = new Label { Text = "Email expéditeur :", AutoSize = true, Left = 20, Top = 20 };
-            txtFrom = new TextBox { Left = 160, Top = 18, Width = 280 };
+            lblFrom = new KryptonLabel { Text = "Email expéditeur :", AutoSize = true, Location = new Point(20, 20) };
+            txtFrom = new KryptonTextBox { Location = new Point(160, 18), Width = 280 };
 
-            var lblPassword = new Label { Text = "Mot de passe :", AutoSize = true, Left = 20, Top = 55 };
-            txtPassword = new TextBox { Left = 160, Top = 53, Width = 280, UseSystemPasswordChar = true };
+            lblPassword = new KryptonLabel { Text = "Mot de passe :", AutoSize = true, Location = new Point(20, 55) };
+            txtPassword = new KryptonTextBox { Location = new Point(160, 53), Width = 280, UseSystemPasswordChar = true };
 
-            var lblTo = new Label { Text = "Destinataire :", AutoSize = true, Left = 20, Top = 90 };
-            txtTo = new TextBox { Left = 160, Top = 88, Width = 280 };
+            lblTo = new KryptonLabel { Text = "Destinataire :", AutoSize = true, Location = new Point(20, 90) };
+            txtTo = new KryptonTextBox { Location = new Point(160, 88), Width = 280 };
 
-            var lblServer = new Label { Text = "Serveur SMTP :", AutoSize = true, Left = 20, Top = 125 };
-            txtServer = new TextBox { Left = 160, Top = 123, Width = 280 };
+            lblServer = new KryptonLabel { Text = "Serveur SMTP :", AutoSize = true, Location = new Point(20, 125) };
+            txtServer = new KryptonTextBox { Location = new Point(160, 123), Width = 280 };
 
-            var lblPort = new Label { Text = "Port :", AutoSize = true, Left = 20, Top = 160 };
-            numPort = new NumericUpDown
+            lblPort = new KryptonLabel { Text = "Port :", AutoSize = true, Location = new Point(20, 160) };
+            numPort = new KryptonNumericUpDown
             {
-                Left = 160,
-                Top = 158,
+                Location = new Point(160, 158),
                 Width = 80,
                 Minimum = 1,
                 Maximum = 65535,
                 Value = 465
             };
 
-            var lblSecurity = new Label { Text = "Sécurité :", AutoSize = true, Left = 20, Top = 195 };
-            cboSecurity = new ComboBox
+            lblSecurity = new KryptonLabel { Text = "Sécurité :", AutoSize = true, Location = new Point(20, 195) };
+            cboSecurity = new KryptonComboBox
             {
-                Left = 160,
-                Top = 193,
+                Location = new Point(160, 193),
                 Width = 120,
                 DropDownStyle = ComboBoxStyle.DropDownList
             };
             cboSecurity.Items.AddRange(new object[] { "SSL", "STARTTLS", "AUCUN" });
             cboSecurity.SelectedIndex = 0;
 
-btnSave = new Button
-{
-    Text = LanguageManager.Get("Enregistrer") ?? "Enregistrer",
-    Left = 160,
-    Top = 240,
-    Width = 120
-};
-
+            btnSave = new KryptonButton
+            {
+                Text = LanguageManager.Get("Enregistrer") ?? "Enregistrer",
+                Location = new Point(160, 240),
+                Size = new Size(120, 32)
+            };
             btnSave.Click += (s, e) => SaveConfig();
 
-btnTest = new Button
-{
-    Text = LanguageManager.Get("Tester SMTP") ?? "Tester SMTP",
-    Left = 300,
-    Top = 240,
-    Width = 140
-};
-btnTest.Click += BtnTest_Click;
-
-
-            picStatus = new PictureBox
+            btnTest = new KryptonButton
             {
-                Left = 20,
-                Top = 240,
-                Width = 20,
-                Height = 20,
+                Text = LanguageManager.Get("Tester SMTP") ?? "Tester SMTP",
+                Location = new Point(300, 240),
+                Size = new Size(140, 32)
+            };
+            btnTest.Click += BtnTest_Click;
+
+            picStatus = new KryptonPictureBox
+            {
+                Location = new Point(20, 240),
+                Size = new Size(20, 20),
                 BackColor = Color.Gray,
                 BorderStyle = BorderStyle.FixedSingle
             };
@@ -139,8 +138,8 @@ btnTest.Click += BtnTest_Click;
 
             cfg.Save();
 
-            MessageBox.Show("Configuration enregistrée.", "Succès",
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            KryptonMessageBox.Show("Configuration enregistrée.", "Succès",
+                KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Information);
         }
 
         private void Log(string message)
@@ -173,28 +172,26 @@ btnTest.Click += BtnTest_Click;
 
                 Log($"Paramètres : Server={cfg.Server}, Port={cfg.Port}, Mode={cfg.SecurityMode}");
 
-                // 1?? Test du port
                 Log("Test du port...");
                 await TestPortAsync(cfg.Server, cfg.Port);
                 Log("Port OK");
 
-                // 2?? Envoi réel via MailKit
                 Log("Envoi email via MailKit...");
                 await SendMailKitAsync(cfg);
                 Log("Email envoyé avec succès");
 
                 picStatus.BackColor = Color.LimeGreen;
 
-                MessageBox.Show("Test SMTP réussi.", "Succès",
-                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                KryptonMessageBox.Show("Test SMTP réussi.", "Succès",
+                    KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Information);
             }
             catch (Exception ex)
             {
                 picStatus.BackColor = Color.Red;
                 Log("ERREUR : " + ex.Message);
 
-                MessageBox.Show("Erreur SMTP : " + ex.Message,
-                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                KryptonMessageBox.Show("Erreur SMTP : " + ex.Message,
+                    "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
             }
         }
 
@@ -247,4 +244,3 @@ btnTest.Click += BtnTest_Click;
         }
     }
 }
-

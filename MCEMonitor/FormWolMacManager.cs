@@ -3,10 +3,11 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
-    public partial class FormWolMacManager : Form
+    public partial class FormWolMacManager : KryptonForm
     {
         private string WhitelistPath;
 
@@ -59,7 +60,6 @@ namespace MCEMonitor
 
         private bool IsValidMac(string mac)
         {
-            // Format AA:BB:CC:DD:EE:FF
             return Regex.IsMatch(mac, @"^[0-9A-F]{2}(:[0-9A-F]{2}){5}$");
         }
 
@@ -69,11 +69,10 @@ namespace MCEMonitor
 
             if (string.IsNullOrWhiteSpace(mac))
             {
-                MessageBox.Show(LanguageManager.Get("Veuillez entrer une adresse MAC.") ?? "Veuillez entrer une adresse MAC.");
+                KryptonMessageBox.Show(LanguageManager.Get("Veuillez entrer une adresse MAC.") ?? "Veuillez entrer une adresse MAC.");
                 return;
             }
 
-            // Format sans ":" ? on les ajoute automatiquement
             if (!mac.Contains(":") && mac.Length == 12)
             {
                 mac = string.Join(":", Enumerable.Range(0, 6).Select(i => mac.Substring(i * 2, 2)));
@@ -81,13 +80,13 @@ namespace MCEMonitor
 
             if (!IsValidMac(mac))
             {
-                MessageBox.Show(LanguageManager.Get("Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF") ?? "Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF");
+                KryptonMessageBox.Show(LanguageManager.Get("Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF") ?? "Format MAC invalide. Exemple : AA:BB:CC:DD:EE:FF");
                 return;
             }
 
             if (listBoxMacs.Items.Contains(mac))
             {
-                MessageBox.Show(LanguageManager.Get("Cette adresse MAC est déjà dans la liste.") ?? "Cette adresse MAC est déjà dans la liste.");
+                KryptonMessageBox.Show(LanguageManager.Get("Cette adresse MAC est déjà dans la liste.") ?? "Cette adresse MAC est déjà dans la liste.");
                 return;
             }
 
@@ -106,30 +105,24 @@ namespace MCEMonitor
             SaveWhitelist();
             this.Close();
         }
-        
+
         private void textBoxMac_TextChanged(object sender, EventArgs e)
         {
             string input = textBoxMac.Text.Trim().ToUpper();
 
-            // Remplace les tirets par des deux-points
             input = input.Replace("-", ":");
-
-            // Supprime les espaces
             input = input.Replace(" ", "");
 
-            // Si format collé (12 caractères hex), on ajoute les :
             if (!input.Contains(":") && input.Length == 12)
             {
                 input = string.Join(":", Enumerable.Range(0, 6).Select(i => input.Substring(i * 2, 2)));
             }
 
-            // Empêche le curseur de sauter en fin de texte
             int pos = textBoxMac.SelectionStart;
             textBoxMac.TextChanged -= textBoxMac_TextChanged;
             textBoxMac.Text = input;
             textBoxMac.SelectionStart = Math.Min(pos, textBoxMac.Text.Length);
             textBoxMac.TextChanged += textBoxMac_TextChanged;
-        }          
+        }
     }
 }
-
