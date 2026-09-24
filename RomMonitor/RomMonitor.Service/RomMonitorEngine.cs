@@ -95,7 +95,6 @@ namespace RomMonitor.Service
 
             try
             {
-                CoreLog.Write("--- Vérification en cours ---");
 
                 // 1. Espace disque
                 var disks = DiskSpaceChecker.GetDisks();
@@ -108,8 +107,6 @@ namespace RomMonitor.Service
                 CheckSmart(smartInfo);
 
                 LastCheckTime = DateTime.Now;
-
-                CoreLog.Write($"--- Vérification terminée ({disks.Count} disques, {smartInfo.Count} SMART) ---");
 
                 OnUpdate?.Invoke();
             }

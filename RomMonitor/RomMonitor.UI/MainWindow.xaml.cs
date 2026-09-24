@@ -218,6 +218,32 @@ namespace RomMonitor.UI
                 //  2. Récupérer disques + SMART
                 // ============================================================
                 var disks = await RomMonitorIpcClient.GetDisks();
+                
+// === DEBUG TEMPORAIRE : log des données reçues ===
+try
+{
+    string debugPath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "MCEMonitor", "Logs", "ui-debug-disk.log");
+
+    Directory.CreateDirectory(Path.GetDirectoryName(debugPath)!);
+
+    var lines = new System.Collections.Generic.List<string>();
+    lines.Add($"--- {DateTime.Now:HH:mm:ss} ---");
+
+    if (disks != null)
+    {
+        foreach (var d in disks)
+        {
+            lines.Add($"  {d.name} | totalGo={d.totalGo:F1} | physNum={d.physicalDiskNumber?.ToString() ?? "NULL"} | physSizeGo={d.physicalSizeGo:F1} | serial={d.physicalSerial}");
+        }
+    }
+
+    File.AppendAllLines(debugPath, lines);
+}
+catch { }
+// === FIN DEBUG ===
+                
                 var smart = await RomMonitorIpcClient.GetSmart();
 
                 _disks.Clear();

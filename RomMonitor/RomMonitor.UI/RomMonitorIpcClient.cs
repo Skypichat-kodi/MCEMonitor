@@ -197,15 +197,11 @@ namespace RomMonitor.UI
 
             try
             {
-                LogDebug($"GetAlerts : json.len={json?.Length ?? 0}");
-
                 if (string.IsNullOrWhiteSpace(json))
                     return null;
 
                 var result = JsonSerializer.Deserialize<List<RomAlert>>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                LogDebug($"GetAlerts : {result?.Count ?? 0} alertes désérialisées");
 
                 return result;
             }

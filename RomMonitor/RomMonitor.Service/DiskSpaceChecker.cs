@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Management;
+using System.Text.RegularExpressions;
 
 namespace RomMonitor.Service
 {
@@ -41,7 +42,7 @@ namespace RomMonitor.Service
                         {
                             disk.PhysicalSerial = physical.Serial;
                             disk.PhysicalDiskNumber = physical.DiskNumber;
-                            disk.PhysicalSizeGo = physical.SizeGo;    // ??
+                            disk.PhysicalSizeGo = physical.SizeGo;
                         }
 
                         result.Add(disk);
@@ -164,34 +165,31 @@ namespace RomMonitor.Service
         }
 
         // ------------------------------------------------------------------
-        //  Helpers
+        //  Helpers — Extraction robuste via Regex
         // ------------------------------------------------------------------
+        private static string ExtractDeviceId(string wmiPath)
+        {
+            // Gère "DeviceID=..." ET "DeviceID = ..." (avec espaces)
+            var match = Regex.Match(wmiPath, @"DeviceID\s*=\s*""([^""]+)""");
+            return match.Success ? match.Groups[1].Value : "";
+        }
+
         private static string ExtractLetter(string wmiPath)
         {
-            int idx = wmiPath.IndexOf("DeviceID=");
-            if (idx < 0) return "";
-
-            string s = wmiPath.Substring(idx + 9).Trim('"', '\\');
-            if (s.Length >= 1)
-                return s.Substring(0, 1).ToUpperInvariant();
-
-            return "";
+            string deviceId = ExtractDeviceId(wmiPath);
+            return deviceId.Length >= 1
+                ? deviceId.Substring(0, 1).ToUpperInvariant()
+                : "";
         }
 
         private static string ExtractDiskPartition(string wmiPath)
         {
-            int idx = wmiPath.IndexOf("DeviceID=");
-            if (idx < 0) return "";
-
-            return wmiPath.Substring(idx + 9).Trim('"', '\\');
+            return ExtractDeviceId(wmiPath);
         }
 
         private static string ExtractDiskDrive(string wmiPath)
         {
-            int idx = wmiPath.IndexOf("DeviceID=");
-            if (idx < 0) return "";
-
-            return wmiPath.Substring(idx + 9).Trim('"', '\\').Replace("\\\\", "\\");
+            return ExtractDeviceId(wmiPath).Replace("\\\\", "\\");
         }
     }
 }
