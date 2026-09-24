@@ -33,6 +33,44 @@ namespace MCEMonitor
         // Anti-double-fermeture
         private bool _closingInProgress = false;
 
+        protected override void WndProc(ref Message m)
+        {
+            // WM_NCHITTEST = 0x0084 : détermine la zone sous le curseur
+            const int WM_NCHITTEST = 0x0084;
+
+            // Codes de retour pour les zones de redimensionnement
+            const int HTLEFT        = 10;
+            const int HTRIGHT       = 11;
+            const int HTTOP         = 12;
+            const int HTTOPLEFT     = 13;
+            const int HTTOPRIGHT    = 14;
+            const int HTBOTTOM      = 15;
+            const int HTBOTTOMLEFT  = 16;
+            const int HTBOTTOMRIGHT = 17;
+
+            if (m.Msg == WM_NCHITTEST)
+            {
+                base.WndProc(ref m);
+
+                int hit = m.Result.ToInt32();
+
+                // Si le hit-test renvoie une zone de redimensionnement, on la neutralise
+                // en renvoyant HTCLIENT (zone client normale)
+                if (hit == HTLEFT || hit == HTRIGHT ||
+                    hit == HTTOP || hit == HTBOTTOM ||
+                    hit == HTTOPLEFT || hit == HTTOPRIGHT ||
+                    hit == HTBOTTOMLEFT || hit == HTBOTTOMRIGHT)
+                {
+                    m.Result = (IntPtr)1; // HTCLIENT = 1 (zone client)
+                    return;
+                }
+
+                return;
+            }
+
+            base.WndProc(ref m);
+        }
+
         protected override void OnFormClosing(FormClosingEventArgs e)
         {
             base.OnFormClosing(e);
