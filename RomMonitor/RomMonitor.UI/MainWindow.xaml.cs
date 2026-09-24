@@ -485,6 +485,42 @@ namespace RomMonitor.UI
             }
         }
 
+        private async void ClearHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    "Voulez-vous vraiment vider tout l'historique des alertes ?\n" +
+                    "Cette action est irréversible.",
+                    "Vider l'historique",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                bool ok = await RomMonitorIpcClient.ClearAlertsAsync();
+
+                if (ok)
+                {
+                    _alerts.Clear();
+                    StatusText.Text = "Historique des alertes vidé.";
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Impossible de vider l'historique (service non joignable ?).",
+                        "Erreur",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }
+        
         // ============================================================
         //  SERVEUR WEB
         // ============================================================

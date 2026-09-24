@@ -3,8 +3,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="RomMonitor"
-        Height="750"
-        Width="1100">
+        Height="850"
+        Width="1500">
 
     <Window.Resources>
 
@@ -324,6 +324,10 @@
             <Button Width="140" Margin="0,0,10,0" Click="OpenHistory_Click">
                 <TextBlock Text="{loc:Tr 'Historique'}"/>
             </Button>
+            
+            <Button Width="160" Margin="0,0,10,0" Click="ClearHistory_Click">
+                <TextBlock Text="{loc:Tr 'Réinitialiser'}"/>
+            </Button>        
         </StackPanel>
 
         <!-- ============================================================ -->
@@ -442,6 +446,19 @@
                         </DataTemplate>
                     </DataGridTemplateColumn.CellTemplate>
                 </DataGridTemplateColumn>
+                
+                <!-- Heures de fonctionnement -->
+                <DataGridTemplateColumn Header="{loc:Tr 'Heures'}" Width="90">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding PowerOnHoursText}"
+                                       Foreground="#E5E5E5"
+                                       FontSize="12"
+                                       VerticalAlignment="Center"
+                                       HorizontalAlignment="Center"/>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>                
 
             </DataGrid.Columns>
         </DataGrid>

@@ -65,6 +65,11 @@ namespace RomMonitor.UI
             ? $"{SmartTemperature}°C" 
             : "N/A";
 
+        // Texte des heures de fonctionnement
+        public string PowerOnHoursText => SmartPowerOnHours.HasValue
+            ? SmartPowerOnHours.Value.ToString("N0") + " h"
+            : "N/A";
+            
         // Couleur selon la température
         public Brush TemperatureBrush
         {

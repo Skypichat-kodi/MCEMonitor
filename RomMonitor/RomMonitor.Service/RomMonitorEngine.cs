@@ -74,7 +74,18 @@ namespace RomMonitor.Service
             CoreLog.Write("ForceTick demandé via IPC");
             Task.Run(() => Tick());
         }
-        
+
+        /// <summary>
+        /// Vide l'historique des alertes (appelé via IPC).
+        /// </summary>
+        public void ClearAlerts()
+        {
+            _alertManager.Clear();
+            CoreLog.Write("Historique des alertes vidé par IPC");
+
+            OnUpdate?.Invoke();
+        }
+                
         // ------------------------------------------------------------------
         //  Tick principal
         // ------------------------------------------------------------------

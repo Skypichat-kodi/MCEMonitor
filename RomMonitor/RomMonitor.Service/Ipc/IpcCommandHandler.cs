@@ -43,6 +43,7 @@ namespace RomMonitor.Service
                 case "send-test-email":  HandleSendTestEmail(server); break;
                 case "shutdown":         HandleShutdown(server); break;
                 case "force-scan":       HandleForceScan(server); break;
+                case "clear-alerts":     HandleClearAlerts(server); break;
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -303,6 +304,21 @@ namespace RomMonitor.Service
                 CoreLog.Write("Erreur HandleForceScan : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }        
+        }
+        
+        private void HandleClearAlerts(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearAlerts();
+                CoreLog.Write("IPC : historique des alertes vidé");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleClearAlerts : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                
     }
 }

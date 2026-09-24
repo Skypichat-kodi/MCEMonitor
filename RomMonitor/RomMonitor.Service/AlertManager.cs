@@ -44,5 +44,13 @@ namespace RomMonitor.Service
         /// Retourne toutes les alertes.
         /// </summary>
         public List<Alert> GetAlerts() => _history.GetAll();
+        
+                /// <summary>
+        /// Vide l'historique des alertes.
+        /// </summary>
+        public void Clear()
+        {
+            _history.Clear();
+        }
     }
 }
