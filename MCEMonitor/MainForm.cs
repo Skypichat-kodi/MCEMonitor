@@ -366,6 +366,34 @@ namespace MCEMonitor
 
         private void BtnOpenUI_Click(object sender, EventArgs e)
         {
+            bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
+
+            if (!serviceRunning)
+            {
+                string message =
+                    (LanguageManager.Get("Le service MediaMonitor n'est pas en cours d'exécution.")
+                        ?? "Le service MediaMonitor n'est pas en cours d'exécution.")
+                    + "\n\n" +
+                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
+                        ?? "Voulez-vous le démarrer maintenant ?");
+
+                bool confirmed = ConfirmDialog.Show(
+                    this,
+                    message,
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    yesText: LanguageManager.Get("Démarrer") ?? "Démarrer",
+                    noText: LanguageManager.Get("Annuler") ?? "Annuler",
+                    warning: true);
+
+                if (!confirmed)
+                    return;
+
+                if (!StartMediaMonitorService())
+                    return;
+
+                UpdateMediaToggle();
+            }
+
             try
             {
                 string uiPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "MediaMonitor.UI.exe");
@@ -1233,24 +1261,124 @@ namespace MCEMonitor
             });
         }
 
+        /// <summary>
+        /// Démarre le service MediaMonitor et lance le Tray.
+        /// Renvoie true si le service tourne à la fin.
+        /// </summary>
+        private bool StartMediaMonitorService()
+        {
+            try
+            {
+                string servicePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "MediaMonitor.Service.exe"
+                );
+
+                if (!File.Exists(servicePath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("MediaMonitor.Service.exe introuvable.") ?? "MediaMonitor.Service.exe introuvable.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = servicePath,
+                    UseShellExecute = true
+                });
+
+                Thread.Sleep(1200);
+
+                // Vérifier que le service tourne
+                if (Process.GetProcessesByName("MediaMonitor.Service").Length == 0)
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "Le service MediaMonitor n'a pas pu démarrer.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                // Démarrer le Tray
+                StartMediaMonitorTray();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors du démarrage du service MediaMonitor : " + ex.Message,
+                    "Erreur"
+                );
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Lance le Tray MediaMonitor s'il n'est pas déjà en cours.
+        /// </summary>
+        private void StartMediaMonitorTray()
+        {
+            try
+            {
+                if (Process.GetProcessesByName("MediaMonitor.Tray").Length > 0)
+                    return;
+
+                string trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "MediaMonitor.Tray.exe"
+                );
+
+                if (!File.Exists(trayPath))
+                {
+                    trayPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "MediaMonitor.Tray.exe"
+                    );
+                }
+
+                if (File.Exists(trayPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = trayPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch { }
+        }
+
         private void BtnOpenRomUI_Click(object sender, EventArgs e)
         {
             bool serviceRunning = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
 
             if (!serviceRunning)
             {
-                var result = MessageBox.Show(
-                    this,
+                string message =
                     (LanguageManager.Get("Le service RomMonitor n'est pas en cours d'exécution.")
                         ?? "Le service RomMonitor n'est pas en cours d'exécution.")
                     + "\n\n" +
                     (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
-                        ?? "Voulez-vous le démarrer maintenant ?"),
-                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Warning);
+                        ?? "Voulez-vous le démarrer maintenant ?");
 
-                if (result != DialogResult.Yes)
+                bool confirmed = ConfirmDialog.Show(
+                    this,
+                    message,
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    yesText: LanguageManager.Get("Démarrer") ?? "Démarrer",
+                    noText: LanguageManager.Get("Annuler") ?? "Annuler",
+                    warning: true);
+
+                if (!confirmed)
                     return;
 
                 if (!StartRomMonitorService())

@@ -60,93 +60,24 @@ namespace MediaMonitor.UI
 
             ResetUiLog();
 
+            // ✅ Fallback : si l'UI est lancée alors que le service est arrêté
+            //    (cas rare, car MCEMonitor le démarre avant), on prévient et on ferme.
             bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
 
             if (!serviceRunning)
             {
-                var result = MessageBox.Show(
-                    (LanguageManager.Get("MediaMonitor.Service n'est pas en cours d'exécution.") 
-                        ?? "MediaMonitor.Service n'est pas en cours d'exécution.") 
-                    + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?") 
-                        ?? "Voulez-vous le démarrer maintenant ?"),
-                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
-                    MessageBoxButton.YesNo,
-                    MessageBoxImage.Warning
-                );
+                MessageBox.Show(
+                    "Le service MediaMonitor n'est pas démarré.\n" +
+                    "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
+                    "Service non démarré",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
 
-                if (result == MessageBoxResult.Yes)
-                {
-                    try
-                    {
-                        string servicePath = Path.Combine(
-                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                            "MCEMonitor",
-                            "MediaMonitor.Service.exe"
-                        );
-
-                        if (!File.Exists(servicePath))
-                        {
-                            MessageBox.Show(
-                                "MediaMonitor.Service.exe est introuvable dans :\n" + servicePath,
-                                "Erreur",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error
-                            );
-                            Close();
-                            return;
-                        }
-
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = servicePath,
-                            UseShellExecute = true
-                        });
-
-                        System.Threading.Thread.Sleep(1200);
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(
-                            "Impossible de démarrer MediaMonitor.Service.exe :\n" + ex.Message,
-                            "Erreur",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error
-                        );
-                        Close();
-                        return;
-                    }
-                }
-                else
-                {
-                    Close();
-                    return;
-                }
+                Close();
+                return;
             }
 
-            string trayPath = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                "MCEMonitor",
-                "MediaMonitor.Tray.exe"
-            );
-
-            if (!File.Exists(trayPath))
-            {
-                trayPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
-                    "MCEMonitor",
-                    "MediaMonitor.Tray.exe"
-                );
-            }
-
-            if (File.Exists(trayPath))
-            {
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = trayPath,
-                    UseShellExecute = true
-                });
-            }
+            // 🗑️ BLOC TRAY SUPPRIMÉ : MCEMonitor s'occupe déjà de lancer le Tray
 
             // UI
 

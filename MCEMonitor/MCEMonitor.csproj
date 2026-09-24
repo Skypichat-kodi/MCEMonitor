@@ -12,6 +12,7 @@
   <ItemGroup>
     <Content Include="Assets\MediaMonitor.ico" CopyToOutputDirectory="Always" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Krypton.Navigator" Version="105.26.7.201" />
     <PackageReference Include="Krypton.Toolkit" Version="105.26.7.201" />
     <PackageReference Include="MailKit" Version="4.16.0" />
