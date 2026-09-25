@@ -326,14 +326,33 @@ namespace SystemMonitor.UI
             {
                 _loadingWebConfig = true;
 
-                var status = await SystemMonitorIpcClient.GetWebStatus();
-                if (status == null) return;
+                // ============================================================
+                //  Boucle de retry : le service peut mettre quelques secondes
+                //  à démarrer son serveur IPC
+                // ============================================================
+                SysWebStatus? status = null;
+
+                for (int attempt = 0; attempt < 10; attempt++)
+                {
+                    status = await SystemMonitorIpcClient.GetWebStatus();
+
+                    if (status != null)
+                        break;
+
+                    await Task.Delay(500);
+                }
+
+                if (status == null)
+                {
+                    // Après 5 secondes, on abandonne
+                    return;
+                }
 
                 ToggleWeb.IsChecked = status.enabled;
                 txtWebPort.Text = status.port.ToString();
                 txtWebLogin.Text = status.username;
 
-                // Mot de passe depuis le fichier config
+                // Mot de passe : lu depuis le fichier config local
                 string configPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
