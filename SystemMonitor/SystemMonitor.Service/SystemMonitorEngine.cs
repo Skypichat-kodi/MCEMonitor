@@ -11,9 +11,10 @@ namespace SystemMonitor.Service
     public class SystemMonitorEngine
     {
         private readonly SystemMonitorSettings _settings;
-        private readonly HardwareMonitorService _hardware;
         private readonly AlertManager _alertManager;
         private readonly AlertHistory _history;
+        private readonly HardwareMonitorService _hardware;
+        private readonly HistoryBuffer _measureHistory;    
         
         private Timer _timer;
         private bool _isRunning;
@@ -24,15 +25,21 @@ namespace SystemMonitor.Service
         public bool IsRunning => _isRunning;
 
         public event Action OnUpdate;
-
+        
         public SystemMonitorEngine(SystemMonitorSettings settings)
         {
             _settings = settings;
-            _hardware = new HardwareMonitorService();
+            
+            // Historique des alertes (existant)
             _history = new AlertHistory();
-            _history.Clear();   // Purge à chaque démarrage
-
+            _history.Clear();
             _alertManager = new AlertManager(settings, _history);
+
+            // ? NOUVEAU : historique des mesures
+            _measureHistory = new HistoryBuffer(capacity: 60);
+
+            // Collecte matérielle
+            _hardware = new HardwareMonitorService();
         }
 
         public void Start()
@@ -77,7 +84,20 @@ namespace SystemMonitor.Service
                 _lastSnapshot = snap;
                 LastUpdateTime = DateTime.Now;
 
-                // ? NOUVEAU : vérification des seuils
+                // ? NOUVEAU : ajouter à l'historique
+                var gpu = snap.Gpus.Count > 0 ? snap.Gpus[0] : null;
+
+                _measureHistory.Add(new HistoryPoint
+                {
+                    Timestamp = snap.Timestamp,
+                    CpuUsage = snap.Cpu.UsagePercent,
+                    RamUsage = snap.Ram.UsagePercent,
+                    CpuTemp = snap.Cpu.Temperature,
+                    GpuUsage = gpu?.UsagePercent,
+                    GpuTemp = gpu?.Temperature
+                });
+
+                // Vérification des seuils
                 CheckThresholds(snap);
 
                 OnUpdate?.Invoke();
@@ -266,6 +286,23 @@ namespace SystemMonitor.Service
             {
                 CoreLog.Write("Erreur envoi email temp : " + ex.Message);
             }
-        }        
+        }
+        
+        public List<Alert> GetAlerts() => _alertManager.GetAlerts();
+
+        public void ClearAlerts()
+        {
+            _history.Clear();
+            CoreLog.Write("Historique des alertes vidé par IPC");
+            OnUpdate?.Invoke();
+        }
+        
+        public List<HistoryPoint> GetHistory() => _measureHistory.GetAll();
+
+        public void ClearHistory()
+        {
+            _measureHistory.Clear();
+            CoreLog.Write("Historique des mesures vidé");
+        }                             
     }
 }

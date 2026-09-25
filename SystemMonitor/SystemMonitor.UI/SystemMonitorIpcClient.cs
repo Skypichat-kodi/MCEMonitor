@@ -92,6 +92,26 @@ namespace SystemMonitor.UI
         public List<SysNetwork> networks { get; set; } = new();
     }
 
+    public class SysAlert
+    {
+        public DateTime timestamp { get; set; }
+        public string type { get; set; } = "";
+        public string severity { get; set; } = "";
+        public string target { get; set; } = "";
+        public string message { get; set; } = "";
+        public bool emailSent { get; set; }
+    }
+
+    public class SysHistoryPoint
+    {
+        public DateTime timestamp { get; set; }
+        public double cpuUsage { get; set; }
+        public double ramUsage { get; set; }
+        public double? cpuTemp { get; set; }
+        public double? gpuUsage { get; set; }
+        public double? gpuTemp { get; set; }
+    }
+        
     // ============================================================
     //  Client IPC
     // ============================================================
@@ -280,5 +300,43 @@ namespace SystemMonitor.UI
             var status = await GetStatus();
             return status != null;
         }
+        
+        public static async Task<List<SysAlert>?> GetAlerts()
+        {
+            string? json = await SendCommand("get-alerts");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<SysAlert>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+
+        public static async Task<bool> ClearAlertsAsync()
+        {
+            string? json = await SendCommand("clear-alerts");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }
+        
+        public static async Task<List<SysHistoryPoint>?> GetHistory()
+        {
+            string? json = await SendCommand("get-history");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<SysHistoryPoint>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+        
+        public static async Task<bool> ClearMeasureHistoryAsync()
+        {
+            string? json = await SendCommand("clear-history");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }                                    
     }
 }

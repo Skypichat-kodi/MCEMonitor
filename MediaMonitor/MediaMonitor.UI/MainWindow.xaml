@@ -264,8 +264,9 @@
                         Stretch="Fill"/>
         </Rectangle.Fill>
     </Rectangle>
-
-    <!-- puis le reste de ton contenu -->
+    
+    <!-- ✅ Voile sombre pour la lisibilité -->
+    <Rectangle Fill="#1E1E1E" Grid.RowSpan="9" Opacity="0.9"/>
 
         <!-- BOUTONS -->
         <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">

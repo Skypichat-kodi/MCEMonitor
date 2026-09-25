@@ -139,7 +139,10 @@
                 <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
             </Rectangle.Fill>
         </Rectangle>
-
+        
+        <!-- ✅ Voile sombre pour la lisibilité -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="9" Opacity="0.9"/>
+        
         <!-- ============================================================ -->
         <!--  BARRE TITRE                                                  -->
         <!-- ============================================================ -->

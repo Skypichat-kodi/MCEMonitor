@@ -86,17 +86,6 @@
             </Setter>
         </Style>
 
-        <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="#252526"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-            <Setter Property="RowBackground" Value="#1E1E1E"/>
-            <Setter Property="AlternatingRowBackground" Value="#252526"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
-            <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
-            <Setter Property="FontSize" Value="13"/>
-        </Style>
-
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#E5E5E5"/>
         </Style>
@@ -135,329 +124,858 @@
             </Setter>
         </Style>
 
+        <!-- Style des onglets internes -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border"
+                                Background="#252526"
+                                BorderBrush="#3C3C3C"
+                                BorderThickness="0,0,0,2"
+                                Padding="15,8">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        
     </Window.Resources>
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Barre titre -->
-            <RowDefinition Height="Auto"/>   <!-- Serveur Web -->
-            <RowDefinition Height="Auto"/>   <!-- Boutons -->
-            <RowDefinition Height="Auto"/>   <!-- Cartes CPU + RAM -->
-            <RowDefinition Height="Auto"/>   <!-- Titre GPU -->
-            <RowDefinition Height="2*"/>     <!-- Tableau GPU -->
-            <RowDefinition Height="Auto"/>   <!-- Titre Réseau -->
-            <RowDefinition Height="*"/>      <!-- Tableau Réseau -->
-            <RowDefinition Height="Auto"/>   <!-- Status bar -->
+            <RowDefinition Height="Auto"/>   <!-- 0 : Barre titre -->
+            <RowDefinition Height="*"/>      <!-- 1 : TabControl principal -->
+            <RowDefinition Height="Auto"/>   <!-- 2 : Status bar -->
         </Grid.RowDefinitions>
 
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="9"/>
+        <!-- Fond sombre -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
 
-        <!-- BARRE TITRE -->
-        <TextBlock Grid.Row="0"
-                   Text="SystemMonitor"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   Foreground="#4CC2FF"
-                   Margin="15,12,0,8"/>
+        <!-- Overlay background -->
+        <Rectangle Grid.RowSpan="3">
+            <Rectangle.Fill>
+                <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
+            </Rectangle.Fill>
+        </Rectangle>
 
-        <!-- SERVEUR WEB -->
-        <GroupBox Grid.Row="1"
-                  Margin="15,0,15,10"
-                  Padding="10"
-                  Header="{loc:Tr 'Serveur Web'}"
-                  Background="{StaticResource PanelBackground}"
-                  BorderBrush="{StaticResource Win11Border}"
-                  Foreground="{StaticResource Win11Text}">
+        <!-- Voile sombre pour la lisibilité -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
-
-                <Grid Grid.Column="0" Margin="0,0,20,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                    </Grid.RowDefinitions>
-
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"/>
-                        <ToggleButton x:Name="ToggleWeb"
-                                      Width="40" Height="20"
-                                      Checked="ToggleWeb_Checked"
-                                      Unchecked="ToggleWeb_Unchecked">
-                            <ToggleButton.Style>
-                                <Style TargetType="ToggleButton">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ToggleButton">
-                                                <Grid Width="40" Height="20">
-                                                    <Border x:Name="SwitchBackground"
-                                                            CornerRadius="10" Background="#3C3C3C"/>
-                                                    <Ellipse x:Name="SwitchThumb"
-                                                             Width="16" Height="16"
-                                                             Margin="2" Fill="#E5E5E5"
-                                                             HorizontalAlignment="Left"/>
-                                                </Grid>
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsChecked" Value="True">
-                                                        <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
-                                                        <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ToggleButton.Style>
-                        </ToggleButton>
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebPort" Width="200"
-                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
-                    </StackPanel>
-
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebLogin" Width="200"
-                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
-                    </StackPanel>
-
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="177"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
-
-                        <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
-                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Visible"/>
-
-                        <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
-                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Collapsed"/>
-
-                        <Button x:Name="btnShowWebPassword" Grid.Column="2"
-                                Width="22" Height="22" Margin="6,0,0,0" Padding="0"
-                                Click="btnShowWebPassword_Click"
-                                Background="#2D2D30" BorderBrush="#3C3C3C" BorderThickness="1"
-                                Cursor="Hand">
-                            <TextBlock x:Name="imgWebEye" Text="👁" FontSize="12"/>
-                        </Button>
-                    </Grid>
-                </Grid>
-
-                <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                    <Button Content="{loc:Tr 'Appliquer'}"
-                            Width="150" Height="28" Margin="0,0,0,8"
-                            Padding="0" VerticalContentAlignment="Center"
-                            Click="btnApplyWeb_Click"/>
-
-                    <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
-                            Width="220" Height="28"
-                            Padding="0" VerticalContentAlignment="Center"
-                            Click="btnOpenWeb_Click"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
-
-        <!-- BOUTONS -->
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="15,0,15,10">
-            <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click">
-                <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
-            </Button>
-            <Button Width="140" Margin="0,0,10,0" Click="OpenLogs_Click">
-                <TextBlock Text="{loc:Tr 'Dossier Logs'}"/>
-            </Button>
-        </StackPanel>
-
-        <!-- CARTES CPU + RAM -->
-        <Grid Grid.Row="3" Margin="15,0,15,10">
+        <!-- ============================================================ -->
+        <!--  BARRE TITRE                                                  -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="0" Margin="15,12,15,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <!-- CARTE CPU -->
-            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
-                <StackPanel>
-                    <TextBlock Text="{loc:Tr 'Processeur'}"
-                               FontSize="14"
-                               FontWeight="Bold"
-                               Foreground="#4CC2FF"
-                               Margin="0,0,0,10"/>
+            <TextBlock Grid.Column="0"
+                       Text="SystemMonitor"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="#4CC2FF"
+                       VerticalAlignment="Center"/>
 
-                    <TextBlock x:Name="txtCpuName"
-                               FontSize="12"
-                               Foreground="#ccc"
-                               Margin="0,0,0,12"
-                               TextWrapping="Wrap"/>
-
-                    <!-- Utilisation CPU -->
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Utilisation'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtCpuUsage" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 %"/>
-                    </Grid>
-                    <ProgressBar x:Name="barCpuUsage" Style="{StaticResource ProgressBarStyle}" Value="0" Maximum="100" Margin="0,0,0,12"/>
-
-                    <!-- Température -->
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Température'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtCpuTemp" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
-                    </Grid>
-
-                    <!-- Fréquence -->
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Fréquence'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtCpuFreq" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
-                    </Grid>
-
-                    <!-- Fréquence max -->
-                    <Grid Margin="0,0,0,12">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Fréquence max'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtCpuMaxFreq" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
-                    </Grid>
-
-                    <!-- Cœurs -->
-                    <TextBlock Text="{loc:Tr 'Cœurs'}"
-                               FontSize="12"
-                               Foreground="#888"
-                               Margin="0,8,0,6"/>
-                    <ItemsControl x:Name="coresList">
-                        <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                                <WrapPanel Orientation="Horizontal"/>
-                            </ItemsPanelTemplate>
-                        </ItemsControl.ItemsPanel>
-                    </ItemsControl>
+            <Button Grid.Column="1"
+                    x:Name="btnOpenWebTop"
+                    Height="30"
+                    Padding="15,0"
+                    VerticalContentAlignment="Center"
+                    Click="btnOpenWeb_Click"
+                    ToolTip="{loc:Tr 'Ouvrir la page Web dans le navigateur'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Tr 'Ouvrir la page Web'}" VerticalAlignment="Center"/>
                 </StackPanel>
-            </Border>
-
-            <!-- CARTE RAM -->
-            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
-                <StackPanel>
-                    <TextBlock Text="{loc:Tr 'Mémoire'}"
-                               FontSize="14"
-                               FontWeight="Bold"
-                               Foreground="#4CC2FF"
-                               Margin="0,0,0,10"/>
-
-                    <TextBlock Text="" FontSize="12" Foreground="#ccc" Margin="0,0,0,12"/>
-
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Utilisation'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtRamUsage" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 %"/>
-                    </Grid>
-                    <ProgressBar x:Name="barRamUsage" Style="{StaticResource ProgressBarStyle}" Value="0" Maximum="100" Margin="0,0,0,12"/>
-
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Utilisée'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtRamUsed" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
-                    </Grid>
-
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Libre'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtRamFree" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
-                    </Grid>
-
-                    <Grid Margin="0,0,0,4">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-                        <TextBlock Text="{loc:Tr 'Totale'}" Foreground="#aaa" FontSize="13"/>
-                        <TextBlock x:Name="txtRamTotal" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
-                    </Grid>
-                </StackPanel>
-            </Border>
+            </Button>
         </Grid>
 
-        <!-- TITRE GPU -->
-        <TextBlock Grid.Row="4"
-                   Text="{loc:Tr 'Cartes graphiques'}"
-                   FontSize="14"
-                   FontWeight="SemiBold"
-                   Foreground="#4CC2FF"
-                   Margin="15,10,0,5"/>
+        <!-- ============================================================ -->
+        <!--  TABCONTROL PRINCIPAL                                         -->
+        <!-- ============================================================ -->
+        <TabControl x:Name="MainTabControl"
+                    Grid.Row="1"
+                    Margin="15,0,15,0"
+                    Background="Transparent"
+                    BorderThickness="0">
 
-        <!-- TABLEAU GPU -->
-        <DataGrid x:Name="GpusGrid"
-                  Grid.Row="5"
-                  Margin="15,0,15,10"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="{loc:Tr 'Modèle'}" Binding="{Binding Name}" Width="3*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Utilisation'}" Binding="{Binding UsageText}" Width="*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Temp.'}" Binding="{Binding TempText}" Width="*"/>
-                <DataGridTextColumn Header="{loc:Tr 'VRAM'}" Binding="{Binding VramText}" Width="2*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+            <!-- ====================================================== -->
+            <!--  ONGLET SYSTÈME                                        -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Système'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>   <!-- Boutons -->
+                        <RowDefinition Height="Auto"/>   <!-- Cartes CPU + RAM -->
+                        <RowDefinition Height="Auto"/>   <!-- Titres GPU + Réseau -->
+                        <RowDefinition Height="*"/>      <!-- Cartes GPU + Réseau -->
+                    </Grid.RowDefinitions>
 
-        <!-- TITRE RÉSEAU -->
-        <TextBlock Grid.Row="6"
-                   Text="{loc:Tr 'Réseau'}"
-                   FontSize="14"
-                   FontWeight="SemiBold"
-                   Foreground="#4CC2FF"
-                   Margin="15,10,0,5"/>
+                    <!-- BOUTONS -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click"
+                                ToolTip="{loc:Tr 'Force un scan immédiat du service'}">
+                            <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
+                        </Button>
+                        <Button Width="140" Margin="0,0,10,0" Click="OpenLogs_Click"
+                                ToolTip="{loc:Tr 'Ouvrir le dossier des logs'}">
+                            <TextBlock Text="{loc:Tr 'Dossier Logs'}"/>
+                        </Button>
+                    </StackPanel>
 
-        <!-- TABLEAU RÉSEAU -->
-        <DataGrid x:Name="NetworksGrid"
-                  Grid.Row="7"
-                  Margin="15,0,15,0"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  HeadersVisibility="Column">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="{loc:Tr 'Interface'}" Binding="{Binding Name}" Width="3*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Descendant'}" Binding="{Binding DownloadText}" Width="*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Montant'}" Binding="{Binding UploadText}" Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+                    <!-- CARTES CPU + RAM -->
+                    <Grid Grid.Row="1" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-        <!-- STATUS BAR -->
-        <Border Grid.Row="8"
+                        <!-- CARTE CPU -->
+                        <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Image Source="/Resources/Icons/cpu.png"
+                                           Width="22" Height="22"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Processeur'}"
+                                               FontSize="14"
+                                               FontWeight="Bold"
+                                               Foreground="#4CC2FF"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock x:Name="txtCpuName"
+                                           FontSize="12"
+                                           Foreground="#ccc"
+                                           Margin="0,0,0,12"
+                                           TextWrapping="Wrap"/>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Utilisation'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtCpuUsage" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 %"/>
+                                </Grid>
+                                <ProgressBar x:Name="barCpuUsage" Style="{StaticResource ProgressBarStyle}" Value="0" Maximum="100" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Température'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtCpuTemp" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Fréquence'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtCpuFreq" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Fréquence max'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtCpuMaxFreq" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="N/A"/>
+                                </Grid>
+
+                                <TextBlock Text="{loc:Tr 'Cœurs'}"
+                                           FontSize="12"
+                                           Foreground="#888"
+                                           Margin="0,8,0,6"/>
+                                <ItemsControl x:Name="coresList">
+                                    <ItemsControl.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal"/>
+                                        </ItemsPanelTemplate>
+                                    </ItemsControl.ItemsPanel>
+                                </ItemsControl>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- CARTE RAM -->
+                        <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <Image Source="/Resources/Icons/ram.png"
+                                           Width="22" Height="22"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Mémoire'}"
+                                               FontSize="14"
+                                               FontWeight="Bold"
+                                               Foreground="#4CC2FF"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <TextBlock Text="" FontSize="12" Foreground="#ccc" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Utilisation'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtRamUsage" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 %"/>
+                                </Grid>
+                                <ProgressBar x:Name="barRamUsage" Style="{StaticResource ProgressBarStyle}" Value="0" Maximum="100" Margin="0,0,0,12"/>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Utilisée'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtRamUsed" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Libre'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtRamFree" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
+                                </Grid>
+
+                                <Grid Margin="0,0,0,4">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="{loc:Tr 'Totale'}" Foreground="#aaa" FontSize="13"/>
+                                    <TextBlock x:Name="txtRamTotal" Grid.Column="1" FontWeight="Bold" FontSize="14" Text="0 Go"/>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <!-- TITRES GPU + RÉSEAU -->
+                    <Grid Grid.Row="2" Margin="0,10,0,5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Grid.Column="0" Orientation="Horizontal">
+                            <Image Source="/Resources/Icons/gpu.png"
+                                   Width="20" Height="20"
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Tr 'Cartes graphiques'}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#4CC2FF"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Image Source="/Resources/Icons/lan.png"
+                                   Width="20" Height="20"
+                                   Margin="0,0,8,0"
+                                   VerticalAlignment="Center"/>
+                            <TextBlock Text="{loc:Tr 'Réseau'}"
+                                       FontSize="14"
+                                       FontWeight="SemiBold"
+                                       Foreground="#4CC2FF"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- CARTES GPU + RÉSEAU -->
+                    <Grid Grid.Row="3" Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <ItemsControl x:Name="GpusList" Grid.Column="0" Margin="0,0,5,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardBorder}"
+                                            Width="300"
+                                            Margin="0,0,10,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#E5E5E5"
+                                                       Margin="0,0,0,12"
+                                                       TextWrapping="Wrap"/>
+
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{loc:Tr 'Utilisation'}" Foreground="#aaa" FontSize="12"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding UsageText}"
+                                                           Foreground="{Binding UsageBrush}"
+                                                           FontWeight="Bold"
+                                                           FontSize="13"/>
+                                            </Grid>
+                                            <ProgressBar Value="{Binding UsagePercent}"
+                                                         Maximum="100"
+                                                         Style="{StaticResource ProgressBarStyle}"
+                                                         Foreground="{Binding UsageBrush}"
+                                                         Margin="0,0,0,10"/>
+
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{loc:Tr 'Température'}" Foreground="#aaa" FontSize="12"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding TempText}"
+                                                           Foreground="{Binding TempBrush}"
+                                                           FontWeight="Bold"
+                                                           FontSize="13"/>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{loc:Tr 'VRAM'}" Foreground="#aaa" FontSize="12"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding VramText}"
+                                                           Foreground="#E5E5E5"
+                                                           FontWeight="Bold"
+                                                           FontSize="13"/>
+                                            </Grid>
+                                            <ProgressBar Value="{Binding VramPercent}"
+                                                         Maximum="100"
+                                                         Style="{StaticResource ProgressBarStyle}"
+                                                         Foreground="{Binding VramBrush}"
+                                                         Margin="0,0,0,4"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <ItemsControl x:Name="NetworksList" Grid.Column="1" Margin="5,0,0,0">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <WrapPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource CardBorder}"
+                                            Width="300"
+                                            Margin="0,0,10,10">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Name}"
+                                                       FontSize="13"
+                                                       FontWeight="SemiBold"
+                                                       Foreground="#E5E5E5"
+                                                       Margin="0,0,0,12"
+                                                       TextWrapping="Wrap"/>
+
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{loc:Tr '↓ Descendant'}" Foreground="#aaa" FontSize="12"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding DownloadText}"
+                                                           Foreground="#6CCB5F"
+                                                           FontWeight="Bold"
+                                                           FontSize="13"/>
+                                            </Grid>
+
+                                            <Grid Margin="0,0,0,4">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Text="{loc:Tr '↑ Montant'}" Foreground="#aaa" FontSize="12"/>
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding UploadText}"
+                                                           Foreground="#4CC2FF"
+                                                           FontWeight="Bold"
+                                                           FontSize="13"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </Grid>
+                </Grid>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET HISTORIQUE                                     -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Historique'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>   <!-- Boutons -->
+                        <RowDefinition Height="*"/>      <!-- Graphique CPU -->
+                        <RowDefinition Height="*"/>      <!-- Graphique RAM -->
+                    </Grid.RowDefinitions>
+
+                    <!-- BOUTONS -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Width="180" Click="ClearMeasureHistory_Click"
+                                ToolTip="{loc:Tr 'Réinitialiser le graphique'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Réinitialiser le graphique'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- GRAPHIQUE CPU -->
+                    <Border Grid.Row="1" Style="{StaticResource CardBorder}" Margin="0,0,0,10">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <Image Source="/Resources/Icons/cpu.png"
+                                       Width="20" Height="20"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Utilisation CPU (5 minutes)'}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4CC2FF"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock x:Name="txtCpuHistoMax"
+                                           Margin="20,0,0,0"
+                                           FontSize="12"
+                                           Foreground="#888"
+                                           VerticalAlignment="Center"
+                                           Text="Max : 0 %"/>
+                            </StackPanel>
+
+                            <Canvas x:Name="chartCpu"
+                                    Grid.Row="1"
+                                    Background="#1A1A1A"
+                                    ClipToBounds="True"
+                                    SizeChanged="Chart_SizeChanged">
+                                <!-- Grille -->
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid25"/>
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid50"/>
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid75"/>
+
+                                <!-- Courbe -->
+                                <Polyline x:Name="polyCpu"
+                                          Stroke="#4CC2FF"
+                                          StrokeThickness="2"
+                                          Fill="Transparent"/>
+                            </Canvas>
+                        </Grid>
+                    </Border>
+
+                    <!-- GRAPHIQUE RAM -->
+                    <Border Grid.Row="2" Style="{StaticResource CardBorder}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="*"/>
+                            </Grid.RowDefinitions>
+
+                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                <Image Source="/Resources/Icons/ram.png"
+                                       Width="20" Height="20"
+                                       Margin="0,0,8,0"
+                                       VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Utilisation RAM (5 minutes)'}"
+                                           FontSize="14"
+                                           FontWeight="SemiBold"
+                                           Foreground="#4CC2FF"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock x:Name="txtRamHistoMax"
+                                           Margin="20,0,0,0"
+                                           FontSize="12"
+                                           Foreground="#888"
+                                           VerticalAlignment="Center"
+                                           Text="Max : 0 %"/>
+                            </StackPanel>
+
+                            <Canvas x:Name="chartRam"
+                                    Grid.Row="1"
+                                    Background="#1A1A1A"
+                                    ClipToBounds="True"
+                                    SizeChanged="Chart_SizeChanged">
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid25"/>
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid50"/>
+                                <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid75"/>
+
+                                <Polyline x:Name="polyRam"
+                                          Stroke="#6CCB5F"
+                                          StrokeThickness="2"
+                                          Fill="Transparent"/>
+                            </Canvas>
+                        </Grid>
+                    </Border>
+                </Grid>
+            </TabItem>
+            
+            <!-- ====================================================== -->
+            <!--  ONGLET CONFIG                                         -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Configuration'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- SERVEUR WEB -->
+                    <GroupBox Grid.Row="0"
+                              Margin="0,0,0,10"
+                              Padding="10"
+                              Header="{loc:Tr 'Serveur Web'}"
+                              Background="{StaticResource PanelBackground}"
+                              BorderBrush="{StaticResource Win11Border}"
+                              Foreground="{StaticResource Win11Text}">
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Grid Grid.Column="0" Margin="0,0,20,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
+                                    <ToggleButton x:Name="ToggleWeb"
+                                                  Width="40" Height="20"
+                                                  Checked="ToggleWeb_Checked"
+                                                  Unchecked="ToggleWeb_Unchecked">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <Grid Width="40" Height="20">
+                                                                <Border x:Name="SwitchBackground"
+                                                                        CornerRadius="10" Background="#3C3C3C"/>
+                                                                <Ellipse x:Name="SwitchThumb"
+                                                                         Width="16" Height="16"
+                                                                         Margin="2" Fill="#E5E5E5"
+                                                                         HorizontalAlignment="Left"/>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                    <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebPort" Width="200"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>
+
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebLogin" Width="200"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>
+
+                                <Grid Grid.Row="3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="177"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
+
+                                    <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
+                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Visible"/>
+
+                                    <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+
+                                    <Button x:Name="btnShowWebPassword" Grid.Column="2"
+                                            Width="22" Height="22" Margin="6,0,0,0" Padding="0"
+                                            Click="btnShowWebPassword_Click"
+                                            Background="#2D2D30" BorderBrush="#3C3C3C" BorderThickness="1"
+                                            Cursor="Hand">
+                                        <TextBlock x:Name="imgWebEye" Text="👁" FontSize="12"/>
+                                    </Button>
+                                </Grid>
+                            </Grid>
+
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                <Button Content="{loc:Tr 'Appliquer'}"
+                                        Width="150" Height="28" Margin="0,0,0,8"
+                                        Padding="0" VerticalContentAlignment="Center"
+                                        Click="btnApplyWeb_Click"/>
+
+                                <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
+                                        Width="220" Height="28"
+                                        Padding="0" VerticalContentAlignment="Center"
+                                        Click="btnOpenWeb_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- RÉGLAGES DE SURVEILLANCE -->
+                    <Border Grid.Row="1"
+                            Style="{StaticResource CardBorder}"
+                            VerticalAlignment="Top">
+                        <StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <TextBlock Text="⚙"
+                                           FontSize="16"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Réglages de surveillance'}"
+                                           FontSize="14"
+                                           FontWeight="Bold"
+                                           Foreground="#4CC2FF"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
+
+                            <!-- Fréquence + Cooldown -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Colonne gauche : Fréquence -->
+                                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                                    <TextBlock Text="{loc:Tr 'Fréquence de contrôle (s) :'}"
+                                               Width="180"
+                                               VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtInterval"
+                                             Width="80"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+                                </StackPanel>
+
+                                <!-- Colonne droite : Temps entre les alertes -->
+                                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                    <TextBlock Text="{loc:Tr 'Temps entre les envois des alertes (min) :'}"
+                                               Width="280"
+                                               VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtCooldown"
+                                             Width="80"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Alert CPU -->
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox x:Name="chkAlertCpu"
+                                          Grid.Column="0"
+                                          Content="{loc:Tr 'Alerte si CPU saturé'}"
+                                          Foreground="#E5E5E5"
+                                          VerticalAlignment="Center"
+                                          Width="220"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{loc:Tr 'Seuil CPU (%) :'}"
+                                           Margin="20,0,10,0"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBox x:Name="txtCpuThreshold"
+                                         Grid.Column="2"
+                                         Width="80"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"/>
+                            </Grid>
+
+                            <!-- Alert RAM -->
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox x:Name="chkAlertRam"
+                                          Grid.Column="0"
+                                          Content="{loc:Tr 'Alerte si RAM saturée'}"
+                                          Foreground="#E5E5E5"
+                                          VerticalAlignment="Center"
+                                          Width="220"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{loc:Tr 'Seuil RAM (%) :'}"
+                                           Margin="20,0,10,0"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBox x:Name="txtRamThreshold"
+                                         Grid.Column="2"
+                                         Width="80"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"/>
+                            </Grid>
+
+                            <!-- Alert Temp -->
+                            <Grid Margin="0,10,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox x:Name="chkAlertTemp"
+                                          Grid.Column="0"
+                                          Content="{loc:Tr 'Alerte si température élevée'}"
+                                          Foreground="#E5E5E5"
+                                          VerticalAlignment="Center"
+                                          Width="220"/>
+
+                                <TextBlock Grid.Column="1"
+                                           Text="{loc:Tr 'Seuil Temp. (°C) :'}"
+                                           Margin="20,0,10,0"
+                                           VerticalAlignment="Center"/>
+
+                                <TextBox x:Name="txtTempThreshold"
+                                         Grid.Column="2"
+                                         Width="80"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"/>
+                            </Grid>
+
+                            <!-- Bouton Enregistrer -->
+                            <Button x:Name="btnSaveWatchConfig"
+                                    Content="{loc:Tr 'Enregistrer les réglages'}"
+                                    Width="220"
+                                    Height="35"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Click="btnSaveWatchConfig_Click"
+                                    ToolTip="{loc:Tr 'Enregistrer les réglages de surveillance'}"/>
+
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET ALERTES                                        -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Alertes'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- BOUTONS -->
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Width="160" Margin="0,0,10,0" Click="ClearHistory_Click"
+                                ToolTip="{loc:Tr 'Vider toutes les alertes'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Réinitialiser'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Width="160" Click="OpenHistory_Click"
+                                ToolTip="{loc:Tr 'Ouvrir le fichier JSON des alertes'}">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📂" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Ouvrir le fichier'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <!-- LISTE DES ALERTES -->
+                    <DataGrid x:Name="AlertsGrid"
+                              Grid.Row="1"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="100"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding Type}" Width="120"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Cible'}" Binding="{Binding Target}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Message'}" Binding="{Binding Message}" Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+        </TabControl>
+
+        <!-- ============================================================ -->
+        <!--  STATUS BAR                                                   -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="2"
                 Background="#252526"
                 BorderBrush="#3C3C3C"
                 BorderThickness="0,1,0,0"

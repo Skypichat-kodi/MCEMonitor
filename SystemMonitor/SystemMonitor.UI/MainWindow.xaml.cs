@@ -8,16 +8,21 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
+using Polyline = System.Windows.Shapes.Polyline;
+using Line = System.Windows.Shapes.Line;
 using Rectangle = System.Windows.Shapes.Rectangle;
 using MCEMonitor.Languages;
+using System.Linq;
 
 namespace SystemMonitor.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ObservableCollection<GpuRow> _gpus = new();
-        private readonly ObservableCollection<NetworkRow> _networks = new();
-
+        private readonly ObservableCollection<GpuCard> _gpus = new();
+        private readonly ObservableCollection<NetworkCard> _networks = new();
+        private readonly ObservableCollection<AlertRow> _alerts = new();
+        private List<SysHistoryPoint> _history = new();
+        
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
         private bool _loadingWebConfig = false;
@@ -57,8 +62,9 @@ namespace SystemMonitor.UI
                 return;
             }
 
-            GpusGrid.ItemsSource = _gpus;
-            NetworksGrid.ItemsSource = _networks;
+            GpusList.ItemsSource = _gpus;
+            NetworksList.ItemsSource = _networks;
+            AlertsGrid.ItemsSource = _alerts;
 
             _refreshTimer = new DispatcherTimer
             {
@@ -68,6 +74,7 @@ namespace SystemMonitor.UI
             _refreshTimer.Start();
 
             _ = RefreshSafe();
+            LoadWatchConfig();
             _ = LoadWebConfig();
         }
 
@@ -95,6 +102,8 @@ namespace SystemMonitor.UI
                 UpdateRam(snap.ram);
                 UpdateGpus(snap.gpus);
                 UpdateNetworks(snap.networks);
+                _ = RefreshAlerts();
+                _ = RefreshHistory();                
 
                 StatusText.Text =
                     $"Dernière mise à jour : {snap.timestamp:HH:mm:ss}  |  " +
@@ -222,15 +231,29 @@ namespace SystemMonitor.UI
 
             foreach (var g in gpus)
             {
-                _gpus.Add(new GpuRow
+                double vramPercent = 0;
+                if (g.vramUsedMB.HasValue && g.vramTotalMB.HasValue && g.vramTotalMB.Value > 0)
+                    vramPercent = (g.vramUsedMB.Value / g.vramTotalMB.Value) * 100;
+
+                var card = new GpuCard
                 {
                     Name = g.name,
+                    UsagePercent = g.usagePercent,
                     UsageText = $"{g.usagePercent:F1} %",
+                    UsageBrush = new SolidColorBrush(GetColorForPercent(g.usagePercent)),
+
                     TempText = g.temperature.HasValue ? $"{g.temperature.Value:F1} °C" : "N/A",
+                    TempBrush = new SolidColorBrush(GetColorForPercent(
+                        g.temperature.HasValue ? Math.Min(100, (g.temperature.Value / 100.0) * 100) : 0)),
+
                     VramText = (g.vramUsedMB.HasValue && g.vramTotalMB.HasValue)
                         ? $"{g.vramUsedMB.Value:F0} / {g.vramTotalMB.Value:F0} Mo"
-                        : "N/A"
-                });
+                        : "N/A",
+                    VramPercent = vramPercent,
+                    VramBrush = new SolidColorBrush(GetColorForPercent(vramPercent))
+                };
+
+                _gpus.Add(card);
             }
         }
 
@@ -243,7 +266,7 @@ namespace SystemMonitor.UI
 
             foreach (var n in networks)
             {
-                _networks.Add(new NetworkRow
+                _networks.Add(new NetworkCard
                 {
                     Name = n.name,
                     DownloadText = $"{n.downloadKBps:F1} KB/s",
@@ -252,6 +275,31 @@ namespace SystemMonitor.UI
             }
         }
 
+        private async Task RefreshAlerts()
+        {
+            try
+            {
+                var alerts = await SystemMonitorIpcClient.GetAlerts();
+                if (alerts == null) return;
+
+                _alerts.Clear();
+
+                foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(100))
+                {
+                    _alerts.Add(new AlertRow
+                    {
+                        Timestamp = a.timestamp,
+                        Type = a.type ?? "",
+                        Severity = a.severity ?? "",
+                        Target = a.target ?? "",
+                        Message = a.message ?? "",
+                        EmailSent = a.emailSent
+                    });
+                }
+            }
+            catch { }
+        }
+        
         // ------------------------------------------------------------
         //  Couleur selon pourcentage (même logique que le web)
         // ------------------------------------------------------------
@@ -469,24 +517,371 @@ namespace SystemMonitor.UI
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
         }
+        
+        // ------------------------------------------------------------
+        //  Alertes
+        // ------------------------------------------------------------
+        private void OpenHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string historyPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor",
+                    "alert_history.json"
+                );
+
+                if (!File.Exists(historyPath))
+                {
+                    MessageBox.Show(
+                        "Aucun historique d'alertes disponible pour l'instant.",
+                        "Historique",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = historyPath,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir l'historique.\n" + ex.Message);
+            }
+        }
+
+        private async void ClearHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    "Voulez-vous vraiment vider tout l'historique des alertes ?\n" +
+                    "Cette action est irréversible.",
+                    "Vider l'historique",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                bool ok = await SystemMonitorIpcClient.ClearAlertsAsync();
+
+                if (ok)
+                {
+                    _alerts.Clear();
+                    StatusText.Text = "Historique des alertes vidé.";
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Impossible de vider l'historique (service non joignable ?).",
+                        "Erreur",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }
+        
+        // ------------------------------------------------------------
+        //  Réglages de surveillance
+        // ------------------------------------------------------------
+        private void LoadWatchConfig()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config"
+                );
+
+                // Valeurs par défaut
+                txtInterval.Text = "5";
+                txtCooldown.Text = "15";
+                chkAlertCpu.IsChecked = true;
+                txtCpuThreshold.Text = "90";
+                chkAlertRam.IsChecked = true;
+                txtRamThreshold.Text = "90";
+                chkAlertTemp.IsChecked = true;
+                txtTempThreshold.Text = "85";
+
+                if (!File.Exists(configPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":             txtInterval.Text = val; break;
+                        case "CpuCooldownMinutes":   txtCooldown.Text = val; break;
+                        case "AlertOnHighCpu":       chkAlertCpu.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "CpuThresholdPercent":  txtCpuThreshold.Text = val; break;
+                        case "AlertOnHighRam":       chkAlertRam.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "RamThresholdPercent":  txtRamThreshold.Text = val; break;
+                        case "AlertOnHighTemp":      chkAlertTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "TempThresholdCelsius": txtTempThreshold.Text = val; break;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private void btnSaveWatchConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                var updates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Interval"] = txtInterval.Text.Trim(),
+                    ["CpuCooldownMinutes"] = txtCooldown.Text.Trim(),
+                    ["AlertOnHighCpu"] = (chkAlertCpu.IsChecked == true).ToString().ToLower(),
+                    ["CpuThresholdPercent"] = txtCpuThreshold.Text.Trim(),
+                    ["AlertOnHighRam"] = (chkAlertRam.IsChecked == true).ToString().ToLower(),
+                    ["RamThresholdPercent"] = txtRamThreshold.Text.Trim(),
+                    ["AlertOnHighTemp"] = (chkAlertTemp.IsChecked == true).ToString().ToLower(),
+                    ["TempThresholdCelsius"] = txtTempThreshold.Text.Trim(),
+                };
+
+                var newLines = new List<string>();
+                var processed = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+                if (File.Exists(configPath))
+                {
+                    foreach (var line in File.ReadAllLines(configPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        {
+                            newLines.Add(line);
+                            continue;
+                        }
+
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2)
+                        {
+                            newLines.Add(line);
+                            continue;
+                        }
+
+                        string key = parts[0].Trim();
+
+                        if (updates.TryGetValue(key, out var newVal))
+                        {
+                            newLines.Add($"{key}={newVal}");
+                            processed.Add(key);
+                        }
+                        else
+                        {
+                            newLines.Add(line);
+                        }
+                    }
+                }
+
+                foreach (var kv in updates)
+                {
+                    if (!processed.Contains(kv.Key))
+                        newLines.Add($"{kv.Key}={kv.Value}");
+                }
+
+                File.WriteAllLines(configPath, newLines);
+
+                MessageBox.Show(
+                    "Réglages de surveillance enregistrés.\n\n" +
+                    "Pour que le service les prenne en compte, redémarrez-le.",
+                    "OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }
+        
+        // ------------------------------------------------------------
+        //  Historique
+        // ------------------------------------------------------------
+        private async Task RefreshHistory()
+        {
+            try
+            {
+                var history = await SystemMonitorIpcClient.GetHistory();
+                if (history == null) return;
+
+                _history = history;
+                DrawCharts();
+            }
+            catch { }
+        }
+
+        private void Chart_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            DrawCharts();
+        }
+
+        private void DrawCharts()
+        {
+            if (_history == null || _history.Count == 0)
+            {
+                polyCpu.Points.Clear();
+                polyRam.Points.Clear();
+                txtCpuHistoMax.Text = "Max : 0 %";
+                txtRamHistoMax.Text = "Max : 0 %";
+                return;
+            }
+
+            DrawChart(chartCpu, polyCpu, _history.Select(h => h.cpuUsage).ToList());
+            DrawChart(chartRam, polyRam, _history.Select(h => h.ramUsage).ToList());
+
+            double maxCpu = _history.Max(h => h.cpuUsage);
+            double maxRam = _history.Max(h => h.ramUsage);
+
+            txtCpuHistoMax.Text = $"Max : {maxCpu:F1} %";
+            txtRamHistoMax.Text = $"Max : {maxRam:F1} %";
+        }
+
+        private void DrawChart(Canvas canvas, Polyline poly, List<double> values)
+        {
+            double w = canvas.ActualWidth;
+            double h = canvas.ActualHeight;
+
+            if (w <= 0 || h <= 0 || values.Count < 2)
+            {
+                poly.Points.Clear();
+                return;
+            }
+
+            // Mettre à jour les lignes de grille
+            foreach (var child in canvas.Children.OfType<Line>())
+            {
+                if (child.Tag?.ToString() == "Grid25")
+                {
+                    double y = h * 0.25;
+                    child.X1 = 0; child.Y1 = y;
+                    child.X2 = w; child.Y2 = y;
+                }
+                else if (child.Tag?.ToString() == "Grid50")
+                {
+                    double y = h * 0.50;
+                    child.X1 = 0; child.Y1 = y;
+                    child.X2 = w; child.Y2 = y;
+                }
+                else if (child.Tag?.ToString() == "Grid75")
+                {
+                    double y = h * 0.75;
+                    child.X1 = 0; child.Y1 = y;
+                    child.X2 = w; child.Y2 = y;
+                }
+            }
+
+            // Dessiner la courbe
+            poly.Points.Clear();
+
+            double stepX = w / Math.Max(1, values.Count - 1);
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                double v = Math.Max(0, Math.Min(100, values[i]));
+                double x = i * stepX;
+                double y = h - (v / 100.0 * h);
+                poly.Points.Add(new Point(x, y));
+            }
+        }
+
+        private async void ClearMeasureHistory_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    "Voulez-vous vraiment vider l'historique du graphique ?\n" +
+                    "Les courbes seront remises à zéro.",
+                    "Vider le graphique",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                bool ok = await SystemMonitorIpcClient.ClearMeasureHistoryAsync();
+
+                if (ok)
+                {
+                    _history.Clear();
+                    DrawCharts();
+                    StatusText.Text = "Historique du graphique vidé.";
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Impossible de vider l'historique (service non joignable ?).",
+                        "Erreur",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }                        
     }
 
     // ============================================================
     //  ViewModels pour les DataGrid
     // ============================================================
 
-    public class GpuRow
+    public class GpuCard
     {
         public string Name { get; set; } = "";
+        public double UsagePercent { get; set; }
         public string UsageText { get; set; } = "";
+        public Brush UsageBrush { get; set; } = Brushes.Gray;
         public string TempText { get; set; } = "";
+        public Brush TempBrush { get; set; } = Brushes.Gray;
         public string VramText { get; set; } = "";
+        public double VramPercent { get; set; }
+        public Brush VramBrush { get; set; } = Brushes.Gray;
     }
 
-    public class NetworkRow
+    public class NetworkCard
     {
         public string Name { get; set; } = "";
         public string DownloadText { get; set; } = "";
         public string UploadText { get; set; } = "";
     }
+    
+    public class AlertRow
+    {
+        public DateTime Timestamp { get; set; }
+        public string TimestampText => Timestamp.ToString("dd/MM/yyyy HH:mm:ss");
+        public string Type { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string Target { get; set; } = "";
+        public string Message { get; set; } = "";
+        public bool EmailSent { get; set; }
+    }    
 }

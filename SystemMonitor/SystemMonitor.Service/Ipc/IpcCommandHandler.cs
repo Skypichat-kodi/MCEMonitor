@@ -43,6 +43,10 @@ namespace SystemMonitor.Service.Ipc
                 case "get-web-status":   HandleGetWebStatus(server); break;
                 case "force-scan":       HandleForceScan(server); break;
                 case "shutdown":         HandleShutdown(server); break;
+                case "get-alerts":       HandleGetAlerts(server); break;
+                case "clear-alerts":     HandleClearAlerts(server); break;
+                case "get-history":      HandleGetHistory(server); break;
+                case "clear-history":    HandleClearHistory(server); break;                
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -254,5 +258,61 @@ namespace SystemMonitor.Service.Ipc
 
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
         }
+        
+        private void HandleGetAlerts(NamedPipeServerStream server)
+        {
+            try
+            {
+                var alerts = _engine.GetAlerts();
+                IpcResponse.Json(server, alerts);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleClearAlerts(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearAlerts();
+                CoreLog.Write("IPC : historique des alertes vidé");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleClearAlerts : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+        
+        private void HandleGetHistory(NamedPipeServerStream server)
+        {
+            try
+            {
+                var history = _engine.GetHistory();
+                IpcResponse.Json(server, history);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleClearHistory(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearHistory();
+                CoreLog.Write("IPC : historique des mesures vidé");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleClearHistory : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                
     }
 }
