@@ -16,29 +16,81 @@ namespace RomMonitor.Service.Web
                 var smart = engine.LastSmart;
                 var alerts = engine.LastAlerts;
 
-                // Préparer les lignes du tableau disques
-                var diskRows = new System.Text.StringBuilder();
+                // ============================================================
+                //  1. Matching SMART ? disque physique (même logique que l'UI)
+                // ============================================================
+                var diskNumberToSmart = new Dictionary<int, SmartInfo>();
+                var usedSmartSerials = new HashSet<string>();
 
-                foreach (var d in disks)
+                if (smart != null && smart.Count > 0)
                 {
-                    // Chercher le SMART correspondant (par capacité pour les non-NVMe)
-                    SmartInfo? match = null;
+                    // Liste des disques physiques uniques
+                    var uniqueDiskNumbers = new HashSet<int>();
 
-                    if (smart != null && smart.Count > 0)
+                    foreach (var d in disks)
                     {
-                        // Match simple : on prend le SMART le plus proche en capacité
+                        if (d.PhysicalDiskNumber.HasValue)
+                            uniqueDiskNumbers.Add(d.PhysicalDiskNumber.Value);
+                    }
+
+                    // Pour chaque disque physique, on cherche son SMART
+                    foreach (int diskNum in uniqueDiskNumbers)
+                    {
+                        // Taille du disque physique
+                        double physicalSize = 0;
+
+                        foreach (var d in disks)
+                        {
+                            if (d.PhysicalDiskNumber == diskNum && d.PhysicalSizeGo > 0)
+                            {
+                                physicalSize = d.PhysicalSizeGo;
+                                break;
+                            }
+                        }
+
+                        if (physicalSize <= 0)
+                            continue;
+
+                        SmartInfo? best = null;
                         double bestDelta = double.MaxValue;
 
                         foreach (var s in smart)
                         {
                             if (s.CapacityGo <= 0) continue;
-                            double delta = Math.Abs(s.CapacityGo - d.TotalGo);
-                            if (delta < bestDelta)
+                            if (usedSmartSerials.Contains(s.Serial ?? "")) continue;
+
+                            double delta = Math.Abs(s.CapacityGo - physicalSize) / physicalSize;
+
+                            if (delta < 0.05 && delta < bestDelta)
                             {
+                                best = s;
                                 bestDelta = delta;
-                                match = s;
                             }
                         }
+
+                        if (best != null)
+                        {
+                            diskNumberToSmart[diskNum] = best;
+                            if (!string.IsNullOrEmpty(best.Serial))
+                                usedSmartSerials.Add(best.Serial);
+                        }
+                    }
+                }
+
+                // ============================================================
+                //  2. Construction des lignes du tableau disques
+                // ============================================================
+                var diskRows = new System.Text.StringBuilder();
+
+                foreach (var d in disks)
+                {
+                    // Match UNIQUEMENT par numéro de disque physique
+                    SmartInfo? match = null;
+
+                    if (d.PhysicalDiskNumber.HasValue &&
+                        diskNumberToSmart.TryGetValue(d.PhysicalDiskNumber.Value, out var m))
+                    {
+                        match = m;
                     }
 
                     string freeClass = d.FreePercent < 5 ? "danger"
@@ -55,6 +107,11 @@ namespace RomMonitor.Service.Web
                         ? $"{match.Temperature}°C"
                         : (LanguageManager.Get("N/A") ?? "N/A");
 
+                    // ? NOUVEAU : heures de fonctionnement
+                    string hoursText = match?.PowerOnHours.HasValue == true
+                        ? $"{match.PowerOnHours.Value:N0} h"
+                        : (LanguageManager.Get("N/A") ?? "N/A");
+
                     diskRows.Append($@"
                         <tr>
                             <td><b>{WebUtility.HtmlEncode(d.Name)}</b></td>
@@ -66,10 +123,13 @@ namespace RomMonitor.Service.Web
                             <td><span class='badge {smartClass}'>{smartStatus}</span></td>
                             <td>{WebUtility.HtmlEncode(match?.Model ?? "")}</td>
                             <td>{tempText}</td>
+                            <td>{hoursText}</td>
                         </tr>");
                 }
 
-                // Préparer les lignes des alertes
+                // ============================================================
+                //  3. Construction des lignes des alertes
+                // ============================================================
                 var alertRows = new System.Text.StringBuilder();
 
                 foreach (var a in alerts.OrderByDescending(x => x.Timestamp).Take(50))
@@ -87,6 +147,9 @@ namespace RomMonitor.Service.Web
                         </tr>");
                 }
 
+                // ============================================================
+                //  4. Modèle final
+                // ============================================================
                 var model = new Dictionary<string, object?>
                 {
                     ["MachineName"] = Environment.MachineName,

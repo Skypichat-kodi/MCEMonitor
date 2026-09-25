@@ -250,67 +250,70 @@ catch { }
 
                 if (disks != null)
                 {
-                    // 3. Groupement par DiskNumber
-                    var diskNumberToCapacity = new System.Collections.Generic.Dictionary<int, double>();
-
-                    foreach (var d in disks)
-                    {
-                        if (!d.physicalDiskNumber.HasValue) continue;
-
-                        int num = d.physicalDiskNumber.Value;
-
-                        if (d.physicalSizeGo > 0)
-                            diskNumberToCapacity[num] = d.physicalSizeGo;
-                        else
-                        {
-                            if (!diskNumberToCapacity.ContainsKey(num))
-                                diskNumberToCapacity[num] = 0;
-                            diskNumberToCapacity[num] += d.totalGo;
-                        }
-                    }
-
-                    // 4. Mapping DiskNumber ? SMART
+                    // 3. Construction d'un dictionnaire : DiskNumber ? (SMART)
+                    // On apparie chaque SMART à un disque physique via son index
                     var diskNumberToSmart = new System.Collections.Generic.Dictionary<int, RomSmart>();
 
                     if (smart != null && smart.Count > 0)
                     {
-                        if (smart.Count == 1)
+                        // Pour chaque disque physique présent dans les partitions
+                        // (déduit des physicalDiskNumber non-null), on cherche le SMART correspondant
+                        var uniqueDiskNumbers = new System.Collections.Generic.HashSet<int>();
+
+                        foreach (var d in disks)
                         {
-                            foreach (var kv in diskNumberToCapacity)
-                                diskNumberToSmart[kv.Key] = smart[0];
+                            if (d.physicalDiskNumber.HasValue)
+                                uniqueDiskNumbers.Add(d.physicalDiskNumber.Value);
                         }
-                        else
+
+                        // Pour chaque disque physique, on cherche le SMART de même capacité physique
+                        var usedSmartSerials = new System.Collections.Generic.HashSet<string>();
+
+                        foreach (int diskNum in uniqueDiskNumbers)
                         {
-                            foreach (var kv in diskNumberToCapacity)
+                            // Trouver la taille du disque physique à partir des partitions
+                            double physicalSize = 0;
+
+                            foreach (var d in disks)
                             {
-                                int num = kv.Key;
-                                double totalCapacity = kv.Value;
-
-                                if (totalCapacity <= 0) continue;
-
-                                RomSmart? best = null;
-                                double bestDelta = double.MaxValue;
-
-                                foreach (var s in smart)
+                                if (d.physicalDiskNumber == diskNum && d.physicalSizeGo > 0)
                                 {
-                                    if (s.capacityGo <= 0) continue;
-
-                                    double delta = Math.Abs(s.capacityGo - totalCapacity) / totalCapacity;
-
-                                    if (delta < 0.10 && delta < bestDelta)
-                                    {
-                                        best = s;
-                                        bestDelta = delta;
-                                    }
+                                    physicalSize = d.physicalSizeGo;
+                                    break;
                                 }
+                            }
 
-                                if (best != null)
-                                    diskNumberToSmart[num] = best;
+                            if (physicalSize <= 0)
+                                continue;
+
+                            RomSmart? best = null;
+                            double bestDelta = double.MaxValue;
+
+                            foreach (var s in smart)
+                            {
+                                if (s.capacityGo <= 0) continue;
+                                if (usedSmartSerials.Contains(s.serial ?? "")) continue;
+
+                                double delta = Math.Abs(s.capacityGo - physicalSize) / physicalSize;
+
+                                // Tolérance stricte (5%) car on compare maintenant des tailles de disques physiques
+                                if (delta < 0.05 && delta < bestDelta)
+                                {
+                                    best = s;
+                                    bestDelta = delta;
+                                }
+                            }
+
+                            if (best != null)
+                            {
+                                diskNumberToSmart[diskNum] = best;
+                                if (!string.IsNullOrEmpty(best.serial))
+                                    usedSmartSerials.Add(best.serial);
                             }
                         }
                     }
 
-                    // 5. Créer les ViewModels des disques
+                    // 4. Créer les ViewModels
                     foreach (var d in disks)
                     {
                         var vm = new DiskViewModel
@@ -325,31 +328,14 @@ catch { }
 
                         RomSmart? match = null;
 
+                        // Match UNIQUEMENT par numéro de disque physique
                         if (d.physicalDiskNumber.HasValue &&
                             diskNumberToSmart.TryGetValue(d.physicalDiskNumber.Value, out var m))
                         {
                             match = m;
                         }
 
-                        if (match == null && smart != null && smart.Count == 1)
-                            match = smart[0];
-
-                        if (match == null && smart != null && smart.Count > 0)
-                        {
-                            double bestDelta = double.MaxValue;
-
-                            foreach (var s in smart)
-                            {
-                                if (s.capacityGo <= 0) continue;
-
-                                double delta = Math.Abs(s.capacityGo - d.totalGo);
-                                if (delta < bestDelta)
-                                {
-                                    bestDelta = delta;
-                                    match = s;
-                                }
-                            }
-                        }
+                        // Pas de fallback par taille. Si on n'a pas matché, on affiche N/A.
 
                         if (match != null)
                         {

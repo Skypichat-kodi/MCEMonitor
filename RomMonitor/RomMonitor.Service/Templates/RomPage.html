@@ -23,10 +23,16 @@
         margin-bottom: 20px;
     }
     .info-grid {
-        display: grid;
-        grid-template-columns: auto auto auto auto;
-        gap: 8px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 30px;
         font-size: 13px;
+    }
+
+    .info-pair {
+        display: inline-flex;
+        gap: 6px;
+        align-items: baseline;
     }
     .label { color: #ccc; }
     .value { font-weight: bold; color: #fff; }
@@ -84,14 +90,12 @@
 
 <h1>{{tr:RomMonitor - Surveillance disques}}</h1>
 
-<div class="info">
-    <div class="info-grid">
-        <div class="label">{{tr:Serveur}} :</div><div class="value">{{MachineName}}</div>
-        <div class="label">{{tr:Dernier check}} :</div><div class="value">{{LastCheck}}</div>
-        <div class="label">{{tr:Disques}} :</div><div class="value">{{DiskCount}}</div>
-        <div class="label">{{tr:SMART}} :</div><div class="value">{{SmartCount}}</div>
-        <div class="label">{{tr:Alertes}} :</div><div class="value">{{AlertCount}}</div>
-    </div>
+<div class="info-grid">
+    <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
+    <span class="info-pair"><span class="label">{{tr:Dernier check}} :</span><span class="value">{{LastCheck}}</span></span>
+    <span class="info-pair"><span class="label">{{tr:Disques}} :</span><span class="value">{{DiskCount}}</span></span>
+    <span class="info-pair"><span class="label">{{tr:SMART}} :</span><span class="value">{{SmartCount}}</span></span>
+    <span class="info-pair"><span class="label">{{tr:Alertes}} :</span><span class="value">{{AlertCount}}</span></span>
 </div>
 
 <h2>{{tr:État des disques}}</h2>
@@ -107,6 +111,7 @@
             <th>{{tr:SMART}}</th>
             <th>{{tr:Modèle}}</th>
             <th>{{tr:Temp.}}</th>
+            <th>{{tr:Heures}}</th>
         </tr>
     </thead>
     <tbody>
