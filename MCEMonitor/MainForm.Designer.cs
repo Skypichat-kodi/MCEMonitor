@@ -1108,7 +1108,7 @@ namespace MCEMonitor
             this.grpSystemActions.Text = LanguageManager.Get("Automatisation SystemMonitor") ?? "Automatisation SystemMonitor";
             this.grpSystemActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpSystemActions.Location = new System.Drawing.Point(20, 160);
-            this.grpSystemActions.Size = new System.Drawing.Size(640, 140);
+            this.grpSystemActions.Size = new System.Drawing.Size(640, 100);
 
             this.toggleSystemService.Text = "ON / OFF";
             this.toggleSystemService.AutoSize = false;
@@ -1124,19 +1124,19 @@ namespace MCEMonitor
             this.btnCreateSystemTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
             this.btnCreateSystemTask.Font = normalFont;
             this.btnCreateSystemTask.Size = new System.Drawing.Size(190, 32);
-            this.btnCreateSystemTask.Location = new System.Drawing.Point(30, 55);
+            this.btnCreateSystemTask.Location = new System.Drawing.Point(30, 45);
             this.btnCreateSystemTask.Click += new System.EventHandler(this.BtnCreateSystemTask_Click);
 
             this.btnDeleteSystemTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
             this.btnDeleteSystemTask.Font = normalFont;
             this.btnDeleteSystemTask.Size = new System.Drawing.Size(190, 32);
-            this.btnDeleteSystemTask.Location = new System.Drawing.Point(225, 55);
+            this.btnDeleteSystemTask.Location = new System.Drawing.Point(225, 45);
             this.btnDeleteSystemTask.Click += new System.EventHandler(this.BtnDeleteSystemTask_Click);
 
             this.btnOpenSystemUI.Text = LanguageManager.Get("Ouvrir SystemMonitor") ?? "Ouvrir SystemMonitor";
             this.btnOpenSystemUI.Font = normalFont;
             this.btnOpenSystemUI.Size = new System.Drawing.Size(190, 32);
-            this.btnOpenSystemUI.Location = new System.Drawing.Point(420, 55);
+            this.btnOpenSystemUI.Location = new System.Drawing.Point(420, 45);
             this.btnOpenSystemUI.Click += new System.EventHandler(this.BtnOpenSystemUI_Click);
 
             this.grpSystemActions.Panel.Controls.Add(this.toggleSystemService);
@@ -1152,6 +1152,129 @@ namespace MCEMonitor
             this.systemMonitorTimer.Interval = 3000;
             this.systemMonitorTimer.Tick += new System.EventHandler(this.SystemMonitorTimer_Tick);
             this.systemMonitorTimer.Start();
+
+            // ============================================================
+            // SYSTEM MONITOR — RÉGLAGES
+            // ============================================================
+            this.grpSystemSettings = new KryptonGroupBox();
+            this.chkSystemAlertCpu = new KryptonCheckBox();
+            this.numSystemCpuThreshold = new KryptonNumericUpDown();
+            this.lblSystemCpuThreshold = new KryptonLabel();
+            this.chkSystemAlertRam = new KryptonCheckBox();
+            this.numSystemRamThreshold = new KryptonNumericUpDown();
+            this.lblSystemRamThreshold = new KryptonLabel();
+            this.chkSystemAlertTemp = new KryptonCheckBox();
+            this.numSystemTempThreshold = new KryptonNumericUpDown();
+            this.lblSystemTempThreshold = new KryptonLabel();
+            this.lblSystemCooldown = new KryptonLabel();
+            this.numSystemCooldown = new KryptonNumericUpDown();
+            this.lblSystemInterval = new KryptonLabel();
+            this.numSystemInterval = new KryptonNumericUpDown();
+            this.btnSaveSystemConfig = new KryptonButton();
+
+            this.grpSystemSettings.Text = LanguageManager.Get("Réglages") ?? "Réglages";
+            this.grpSystemSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpSystemSettings.Location = new System.Drawing.Point(20, 270);
+            this.grpSystemSettings.Size = new System.Drawing.Size(640, 190);
+
+            // Intervalle
+            this.lblSystemInterval.Text = LanguageManager.Get("Fréquence de contrôle (s) :") ?? "Fréquence de contrôle (s) :";
+            this.lblSystemInterval.Location = new System.Drawing.Point(20, 10);
+            this.lblSystemInterval.Size = new System.Drawing.Size(200, 20);
+            this.lblSystemInterval.Font = normalFont;
+
+            this.numSystemInterval.Location = new System.Drawing.Point(230, 10);
+            this.numSystemInterval.Size = new System.Drawing.Size(80, 20);
+            this.numSystemInterval.Minimum = 1;
+            this.numSystemInterval.Maximum = 60;
+            this.numSystemInterval.Font = normalFont;
+
+            // Cooldown
+            this.lblSystemCooldown.Text = LanguageManager.Get("Intervale d'envoi des alertes (min) :") ?? "Intervale d'envoi des alertes (min) :";
+            this.lblSystemCooldown.Location = new System.Drawing.Point(330, 10);
+            this.lblSystemCooldown.Size = new System.Drawing.Size(210, 20);
+            this.lblSystemCooldown.Font = normalFont;
+
+            this.numSystemCooldown.Location = new System.Drawing.Point(540, 10);
+            this.numSystemCooldown.Size = new System.Drawing.Size(70, 20);
+            this.numSystemCooldown.Minimum = 1;
+            this.numSystemCooldown.Maximum = 1440;
+            this.numSystemCooldown.Font = normalFont;
+
+            // Alert CPU
+            this.chkSystemAlertCpu.Text = LanguageManager.Get("Alerte si CPU saturé") ?? "Alerte si CPU saturé";
+            this.chkSystemAlertCpu.Location = new System.Drawing.Point(20, 45);
+            this.chkSystemAlertCpu.Size = new System.Drawing.Size(200, 22);
+            this.chkSystemAlertCpu.Font = normalFont;
+
+            this.lblSystemCpuThreshold.Text = LanguageManager.Get("Seuil CPU (%) :") ?? "Seuil CPU (%) :";
+            this.lblSystemCpuThreshold.Location = new System.Drawing.Point(230, 45);
+            this.lblSystemCpuThreshold.Size = new System.Drawing.Size(120, 20);
+            this.lblSystemCpuThreshold.Font = normalFont;
+
+            this.numSystemCpuThreshold.Location = new System.Drawing.Point(360, 45);
+            this.numSystemCpuThreshold.Size = new System.Drawing.Size(70, 20);
+            this.numSystemCpuThreshold.Minimum = 10;
+            this.numSystemCpuThreshold.Maximum = 100;
+            this.numSystemCpuThreshold.Font = normalFont;
+
+            // Alert RAM
+            this.chkSystemAlertRam.Text = LanguageManager.Get("Alerte si RAM saturée") ?? "Alerte si RAM saturée";
+            this.chkSystemAlertRam.Location = new System.Drawing.Point(20, 75);
+            this.chkSystemAlertRam.Size = new System.Drawing.Size(200, 22);
+            this.chkSystemAlertRam.Font = normalFont;
+
+            this.lblSystemRamThreshold.Text = LanguageManager.Get("Seuil RAM (%) :") ?? "Seuil RAM (%) :";
+            this.lblSystemRamThreshold.Location = new System.Drawing.Point(230, 75);
+            this.lblSystemRamThreshold.Size = new System.Drawing.Size(120, 20);
+            this.lblSystemRamThreshold.Font = normalFont;
+
+            this.numSystemRamThreshold.Location = new System.Drawing.Point(360, 75);
+            this.numSystemRamThreshold.Size = new System.Drawing.Size(70, 20);
+            this.numSystemRamThreshold.Minimum = 10;
+            this.numSystemRamThreshold.Maximum = 100;
+            this.numSystemRamThreshold.Font = normalFont;
+
+            // Alert Temp
+            this.chkSystemAlertTemp.Text = LanguageManager.Get("Alerte si température élevée") ?? "Alerte si température élevée";
+            this.chkSystemAlertTemp.Location = new System.Drawing.Point(20, 105);
+            this.chkSystemAlertTemp.Size = new System.Drawing.Size(230, 22);
+            this.chkSystemAlertTemp.Font = normalFont;
+
+            this.lblSystemTempThreshold.Text = LanguageManager.Get("Seuil Temp. (°C) :") ?? "Seuil Temp. (°C) :";
+            this.lblSystemTempThreshold.Location = new System.Drawing.Point(250, 105);
+            this.lblSystemTempThreshold.Size = new System.Drawing.Size(120, 20);
+            this.lblSystemTempThreshold.Font = normalFont;
+
+            this.numSystemTempThreshold.Location = new System.Drawing.Point(360, 105);
+            this.numSystemTempThreshold.Size = new System.Drawing.Size(70, 20);
+            this.numSystemTempThreshold.Minimum = 40;
+            this.numSystemTempThreshold.Maximum = 110;
+            this.numSystemTempThreshold.Font = normalFont;
+
+            // Bouton Enregistrer
+            this.btnSaveSystemConfig.Text = LanguageManager.Get("Enregistrer les réglages") ?? "Enregistrer les réglages";
+            this.btnSaveSystemConfig.Font = normalFont;
+            this.btnSaveSystemConfig.Size = new System.Drawing.Size(170, 35);
+            this.btnSaveSystemConfig.Location = new System.Drawing.Point(440, 45);
+            this.btnSaveSystemConfig.Click += new System.EventHandler(this.BtnSaveSystemConfig_Click);
+
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemInterval);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemInterval);
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemCooldown);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemCooldown);
+            this.grpSystemSettings.Panel.Controls.Add(this.chkSystemAlertCpu);
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemCpuThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemCpuThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.chkSystemAlertRam);
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemRamThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemRamThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.chkSystemAlertTemp);
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemTempThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemTempThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.btnSaveSystemConfig);
+
+            this.tabSystemMonitor.Controls.Add(this.grpSystemSettings);
             
             // ============================================================
             // FINALISATION
@@ -1277,6 +1400,21 @@ namespace MCEMonitor
         private KryptonButton btnCreateSystemTask;
         private KryptonButton btnDeleteSystemTask;
         private System.Windows.Forms.Timer systemMonitorTimer;
+        private KryptonGroupBox grpSystemSettings;
+        private KryptonCheckBox chkSystemAlertCpu;
+        private KryptonNumericUpDown numSystemCpuThreshold;
+        private KryptonLabel lblSystemCpuThreshold;
+        private KryptonCheckBox chkSystemAlertRam;
+        private KryptonNumericUpDown numSystemRamThreshold;
+        private KryptonLabel lblSystemRamThreshold;
+        private KryptonCheckBox chkSystemAlertTemp;
+        private KryptonNumericUpDown numSystemTempThreshold;
+        private KryptonLabel lblSystemTempThreshold;
+        private KryptonLabel lblSystemCooldown;
+        private KryptonNumericUpDown numSystemCooldown;
+        private KryptonLabel lblSystemInterval;
+        private KryptonNumericUpDown numSystemInterval;
+        private KryptonButton btnSaveSystemConfig;        
         
         // ---------- Wake Monitor ----------
         private KryptonGroupBox grpWakeInfo;

@@ -1309,6 +1309,7 @@ namespace MCEMonitor
         {
             UpdateSystemToggle();
             UpdateSystemTaskButtons();
+            LoadSystemSettings();
         }
 
         private bool IsSystemServiceRunning()
@@ -2093,6 +2094,179 @@ namespace MCEMonitor
             }
         }
 
+        private void LoadSystemSettings()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config"
+                );
+
+                if (!File.Exists(configPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":
+                            if (int.TryParse(val, out int i))
+                                numSystemInterval.Value = Math.Max(numSystemInterval.Minimum, Math.Min(numSystemInterval.Maximum, i));
+                            break;
+
+                        case "CpuCooldownMinutes":
+                            if (int.TryParse(val, out int cd))
+                                numSystemCooldown.Value = Math.Max(numSystemCooldown.Minimum, Math.Min(numSystemCooldown.Maximum, cd));
+                            break;
+
+                        case "AlertOnHighCpu":
+                            chkSystemAlertCpu.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "CpuThresholdPercent":
+                            if (int.TryParse(val, out int ct))
+                                numSystemCpuThreshold.Value = Math.Max(numSystemCpuThreshold.Minimum, Math.Min(numSystemCpuThreshold.Maximum, ct));
+                            break;
+
+                        case "AlertOnHighRam":
+                            chkSystemAlertRam.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "RamThresholdPercent":
+                            if (int.TryParse(val, out int rt))
+                                numSystemRamThreshold.Value = Math.Max(numSystemRamThreshold.Minimum, Math.Min(numSystemRamThreshold.Maximum, rt));
+                            break;
+
+                        case "AlertOnHighTemp":
+                            chkSystemAlertTemp.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "TempThresholdCelsius":
+                            if (int.TryParse(val, out int tt))
+                                numSystemTempThreshold.Value = Math.Max(numSystemTempThreshold.Minimum, Math.Min(numSystemTempThreshold.Maximum, tt));
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Erreur LoadSystemSettings : " + ex.Message);
+            }
+        }
+
+        private void BtnSaveSystemConfig_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                // ============================================================
+                //  Lire les valeurs Web existantes (préservées)
+                // ============================================================
+                bool webEnabled = true;
+                int webPort = 8083;
+                string webUsername = "admin";
+                string webPassword = "changeme";
+
+                if (File.Exists(configPath))
+                {
+                    foreach (var line in File.ReadAllLines(configPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                            continue;
+
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+
+                        string key = parts[0].Trim();
+                        string val = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "WebEnabled":
+                                if (bool.TryParse(val, out bool we)) webEnabled = we;
+                                break;
+                            case "WebPort":
+                                if (int.TryParse(val, out int wp)) webPort = wp;
+                                break;
+                            case "WebUsername":
+                                webUsername = val;
+                                break;
+                            case "WebPassword":
+                                webPassword = val;
+                                break;
+                        }
+                    }
+                }
+
+                // ============================================================
+                //  Écrire le fichier complet
+                // ============================================================
+                var lines = new[]
+                {
+                    "# ============================================================",
+                    "# SystemMonitor.config",
+                    "# Configuration du service SystemMonitor",
+                    "# ============================================================",
+                    "",
+                    "# Fréquence de rafraîchissement (secondes)",
+                    $"Interval={(int)numSystemInterval.Value}",
+                    "",
+                    "# Alertes CPU",
+                    $"AlertOnHighCpu={chkSystemAlertCpu.Checked.ToString().ToLower()}",
+                    $"CpuThresholdPercent={(int)numSystemCpuThreshold.Value}",
+                    $"CpuCooldownMinutes={(int)numSystemCooldown.Value}",
+                    "",
+                    "# Alertes RAM",
+                    $"AlertOnHighRam={chkSystemAlertRam.Checked.ToString().ToLower()}",
+                    $"RamThresholdPercent={(int)numSystemRamThreshold.Value}",
+                    "",
+                    "# Alertes Température",
+                    $"AlertOnHighTemp={chkSystemAlertTemp.Checked.ToString().ToLower()}",
+                    $"TempThresholdCelsius={(int)numSystemTempThreshold.Value}",
+                    "",
+                    "# Serveur Web",
+                    $"WebEnabled={webEnabled.ToString().ToLower()}",
+                    $"WebPort={webPort}",
+                    $"WebUsername={webUsername}",
+                    $"WebPassword={webPassword}"
+                };
+
+                File.WriteAllLines(configPath, lines);
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Réglages SystemMonitor enregistrés") ?? "Réglages SystemMonitor enregistrés",
+                    "Information"
+                );
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Erreur lors de l'enregistrement : ") ?? "Erreur lors de l'enregistrement : ") + ex.Message,
+                    "Erreur"
+                );
+            }
+        }
+        
         // ============================================================
         // SÉLECTEUR DE THÈME
         // ============================================================
