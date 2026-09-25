@@ -45,6 +45,7 @@ set ERROR=0
 REM --- Arrêter les services en cours (pour éviter les verrous) ---
 echo.
 echo Arrêt des services en cours...
+taskkill /IM SystemMonitor.Service.exe /F >nul 2>&1
 taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
@@ -71,6 +72,7 @@ call :publish "%ROOT%\WakeMonitor"                           "%DEST_APPDATA%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"     "%DEST_APPDATA%"
 call :publish "%ROOT%\MCEMonitor.Languages"                  "%DEST_APPDATA%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Service"         "%DEST_APPDATA%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"    "%DEST_APPDATA%"
 
 REM === Tools ===
 call :publish_single "%ROOT%\Autotrad"                       "%DEST_TOOLS%"

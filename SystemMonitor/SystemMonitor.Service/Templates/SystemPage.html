@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{tr:Surveillance système de }}{{MachineName}}</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<meta http-equiv="refresh" content="10">
+<style>
+    body {
+        margin: 0;
+        padding: 20px;
+        font-family: Segoe UI, Arial, sans-serif;
+        background-color: #1e1e1e;
+        background-image: url('/Resources/Images/Web-background.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: #e5e5e5;
+        min-height: 100vh;
+    }
+
+    h1 { margin:0 0 20px 0; font-size:22px; color:#4CC2FF; }
+    h2 { margin:25px 0 10px 0; font-size:16px; color:#4CC2FF; }
+
+    .info {
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 20px;
+    }
+    .info-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 30px;
+        font-size: 13px;
+    }
+    .info-pair {
+        display: inline-flex;
+        gap: 6px;
+        align-items: baseline;
+    }
+    .label { color: #ccc; }
+    .value { font-weight: bold; color: #fff; }
+
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .card {
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        padding: 15px;
+    }
+
+    /* ✅ Titres des cartes avec icône */
+    .card h3 {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 12px 0;
+        font-size: 14px;
+        color: #4CC2FF;
+    }
+
+    .card h3 img {
+        width: 24px;
+        height: 24px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    /* ✅ Titres de sections avec icône */
+    h2.with-icon {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 25px 0 10px 0;
+        font-size: 16px;
+        color: #4CC2FF;
+    }
+
+    h2.with-icon img {
+        width: 26px;
+        height: 26px;
+        object-fit: contain;
+        flex-shrink: 0;
+    }
+
+    .metric {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 6px 0;
+        border-bottom: 1px solid #2d2d30;
+    }
+    .metric:last-child { border-bottom: none; }
+
+    .metric-label { color: #aaa; font-size: 13px; }
+    .metric-value { font-weight: bold; font-size: 15px; }
+
+    .progress {
+        width: 100%;
+        height: 12px;
+        background: #2d2d30;
+        border-radius: 6px;
+        overflow: hidden;
+        margin-top: 4px;
+    }
+    .progress-bar {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+        margin-top: 10px;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    th, td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #3c3c3c;
+        text-align: left;
+    }
+    th {
+        background: #2d2d30;
+        color: #fff;
+        font-weight: 600;
+    }
+    tr:nth-child(even) td { background: #262626; }
+    tr:nth-child(odd)  td { background: #1f1f1f; }
+
+    .ok      { color: #6CCB5F; font-weight: bold; }
+    .warning { color: #FFB900; font-weight: bold; }
+    .danger  { color: #FF6347; font-weight: bold; }
+    .na      { color: #888; }
+
+    .footer {
+        margin-top: 30px;
+        font-size: 12px;
+        color: #888;
+        text-align: center;
+    }
+    /* Barres verticales des cœurs CPU */
+    .cores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #2d2d30;
+    }
+
+    .core-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1 1 40px;
+        min-width: 36px;
+        max-width: 70px;
+    }
+
+    .core-label {
+        font-size: 9px;
+        color: #888;
+        white-space: nowrap;
+    }
+
+    .core-progress {
+        width: 100%;
+        height: 60px;
+        background: #2d2d30;
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .core-bar {
+        width: 100%;
+        transition: height 0.3s ease;
+        border-radius: 4px 4px 0 0;
+    }
+
+    .core-value {
+        font-size: 10px;
+        font-weight: bold;
+        color: #ccc;
+    }    
+</style>
+</head>
+<body>
+
+<h1>{{tr:SystemMonitor - Surveillance système}}</h1>
+
+<div class="info">
+    <div class="info-grid">
+        <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:Dernière mise à jour}} :</span><span class="value">{{LastUpdate}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:GPU}} :</span><span class="value">{{GpuCount}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:Réseaux}} :</span><span class="value">{{NetCount}}</span></span>
+    </div>
+</div>
+
+<div class="cards">
+
+    <!-- CARTE CPU -->
+    <div class="card">
+        <h3>
+            <img src="/Resources/Icons/cpu.png" alt="CPU">
+            {{tr:Processeur}}
+        </h3>
+
+        <div class="metric-label" style="margin-bottom:10px">{{CpuName}}</div>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Utilisation}}</span>
+            <span class="metric-value {{CpuUsageClass}}">{{CpuUsage}} %</span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" style="width:{{CpuUsage}}%;background:{{CpuBarColor}}"></div>
+        </div>
+
+        <div class="metric" style="margin-top:10px">
+            <span class="metric-label">{{tr:Température}}</span>
+            <span class="metric-value {{CpuTempClass}}">{{CpuTemp}} °C</span>
+        </div>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Fréquence}}</span>
+            <span class="metric-value">{{CpuFreq}} MHz</span>
+        </div>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Fréquence max}}</span>
+            <span class="metric-value">{{CpuMaxFreq}} MHz</span>
+        </div>
+        
+        <div class="cores">
+            {{CoreBars}}
+        </div>        
+    </div>
+
+    <!-- CARTE RAM -->
+    <div class="card">
+        <h3>
+            <img src="/Resources/Icons/ram.png" alt="RAM">
+            {{tr:Mémoire}}
+        </h3>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Utilisation}}</span>
+            <span class="metric-value {{RamUsageClass}}">{{RamUsage}} %</span>
+        </div>
+        <div class="progress">
+            <div class="progress-bar" style="width:{{RamUsage}}%;background:{{RamBarColor}}"></div>
+        </div>
+
+        <div class="metric" style="margin-top:10px">
+            <span class="metric-label">{{tr:Utilisée}}</span>
+            <span class="metric-value">{{RamUsed}} Go</span>
+        </div>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Libre}}</span>
+            <span class="metric-value">{{RamFree}} Go</span>
+        </div>
+
+        <div class="metric">
+            <span class="metric-label">{{tr:Totale}}</span>
+            <span class="metric-value">{{RamTotal}} Go</span>
+        </div>
+    </div>
+
+</div>
+
+<h2 class="with-icon">
+    <img src="/Resources/Icons/gpu.png" alt="GPU">
+    {{tr:Carte graphique}}
+</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{{tr:Modèle}}</th>
+            <th>{{tr:Utilisation}}</th>
+            <th>{{tr:Temp.}}</th>
+            <th>{{tr:VRAM}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{GpuRows}}
+    </tbody>
+</table>
+
+<h2 class="with-icon">
+    <img src="/Resources/Icons/lan.png" alt="LAN">
+    {{tr:Réseau}}
+</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{{tr:Interface}}</th>
+            <th>{{tr:Descendant}}</th>
+            <th>{{tr:Montant}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{NetRows}}
+    </tbody>
+</table>
+
+<div class="footer">
+    {{tr:SystemMonitor - Généré à}} {{LastUpdate}}
+</div>
+
+</body>
+</html>
