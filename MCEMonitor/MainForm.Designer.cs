@@ -33,11 +33,12 @@ namespace MCEMonitor
             this.tabControl.Button.ButtonDisplayLogic = ButtonDisplayLogic.None;
 
             this.tabEmail = new KryptonPage();
+            this.tabOnOff = new KryptonPage();            
             this.tabMediaMonitor = new KryptonPage();
             this.tabRomMonitor = new KryptonPage();
+            this.tabSystemMonitor = new KryptonPage();
             this.tabWakeMonitor = new KryptonPage();
             this.tabStopMonitor = new KryptonPage();
-            this.tabOnOff = new KryptonPage();
             this.tabAbout = new KryptonPage();
 
             this.logRefreshTimer = new System.Windows.Forms.Timer();
@@ -63,6 +64,7 @@ namespace MCEMonitor
             this.tabControl.Pages.Add(this.tabOnOff);
             this.tabControl.Pages.Add(this.tabMediaMonitor);
             this.tabControl.Pages.Add(this.tabRomMonitor);
+            this.tabControl.Pages.Add(this.tabSystemMonitor);
             this.tabControl.Pages.Add(this.tabWakeMonitor);
             this.tabControl.Pages.Add(this.tabStopMonitor);
             this.tabControl.Pages.Add(this.tabAbout);
@@ -73,6 +75,8 @@ namespace MCEMonitor
             this.tabMediaMonitor.Name = "tabMediaMonitor";
             this.tabRomMonitor.Text = LanguageManager.Get("Rom Monitor") ?? "Rom Monitor";
             this.tabRomMonitor.Name = "tabRomMonitor";
+            this.tabSystemMonitor.Text = LanguageManager.Get("System Monitor") ?? "System Monitor";
+            this.tabSystemMonitor.Name = "tabSystemMonitor";            
             this.tabWakeMonitor.Text = LanguageManager.Get("Wake Monitor") ?? "Wake Monitor";
             this.tabWakeMonitor.Name = "tabWakeMonitor";
             this.tabStopMonitor.Text = LanguageManager.Get("Stop Monitor") ?? "Stop Monitor";
@@ -1055,6 +1059,101 @@ namespace MCEMonitor
             this.tabAbout.Controls.Add(this.grpAboutInfo);
 
             // ============================================================
+            // SYSTEM MONITOR — CONTENU
+            // ============================================================
+            this.grpSystemInfo = new KryptonGroupBox();
+            this.pnlSystemInfo = new KryptonPanel();
+            this.picSystemInfo = new KryptonPictureBox();
+            this.lblSystemDescription = new KryptonLabel();
+
+            this.grpSystemActions = new KryptonGroupBox();
+            this.toggleSystemService = new KryptonCheckButton();
+            this.lblSystemStatus = new KryptonLabel();
+            this.btnOpenSystemUI = new KryptonButton();
+            this.btnCreateSystemTask = new KryptonButton();
+            this.btnDeleteSystemTask = new KryptonButton();
+
+            // --- GroupBox Info ---
+            this.grpSystemInfo.Text = LanguageManager.Get("À propos de SystemMonitor") ?? "À propos de SystemMonitor";
+            this.grpSystemInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpSystemInfo.Location = new System.Drawing.Point(20, 20);
+            this.grpSystemInfo.Size = new System.Drawing.Size(640, 130);
+
+            this.pnlSystemInfo.Location = new System.Drawing.Point(15, 8);
+            this.pnlSystemInfo.Size = new System.Drawing.Size(610, 80);
+            this.pnlSystemInfo.StateCommon.Color1 = System.Drawing.Color.FromArgb(240, 240, 240);
+
+            this.picSystemInfo.Location = new System.Drawing.Point(10, 10);
+            this.picSystemInfo.Size = new System.Drawing.Size(28, 28);
+            this.picSystemInfo.SizeMode = PictureBoxSizeMode.StretchImage;
+            this.picSystemInfo.Image = SystemIcons.Information.ToBitmap();
+
+            this.lblSystemDescription.AutoSize = false;
+            this.lblSystemDescription.Location = new System.Drawing.Point(50, 15);
+            this.lblSystemDescription.Size = new System.Drawing.Size(550, 50);
+            this.lblSystemDescription.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
+            this.lblSystemDescription.StateCommon.ShortText.Color1 = System.Drawing.Color.FromArgb(60, 60, 60);
+            this.lblSystemDescription.Text =
+                LanguageManager.Get("System.Description") ??
+                "SystemMonitor surveille l'utilisation du processeur, de la mémoire, des cartes graphiques et du réseau.\n" +
+                "Une page web permet de consulter ces informations à distance.\n" +
+                "Les données sont collectées par un service Windows.";
+
+            this.pnlSystemInfo.Controls.Add(this.picSystemInfo);
+            this.pnlSystemInfo.Controls.Add(this.lblSystemDescription);
+            this.grpSystemInfo.Panel.Controls.Add(this.pnlSystemInfo);
+            this.tabSystemMonitor.Controls.Add(this.grpSystemInfo);
+
+            // --- GroupBox Actions ---
+            this.grpSystemActions.Text = LanguageManager.Get("Automatisation SystemMonitor") ?? "Automatisation SystemMonitor";
+            this.grpSystemActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpSystemActions.Location = new System.Drawing.Point(20, 160);
+            this.grpSystemActions.Size = new System.Drawing.Size(640, 140);
+
+            this.toggleSystemService.Text = "ON / OFF";
+            this.toggleSystemService.AutoSize = false;
+            this.toggleSystemService.Location = new System.Drawing.Point(20, 5);
+            this.toggleSystemService.Size = new System.Drawing.Size(90, 28);
+            this.toggleSystemService.CheckedChanged += new System.EventHandler(this.toggleSystemService_Click);
+
+            this.lblSystemStatus.Text = LanguageManager.Get("Service SystemMonitor") ?? "Service SystemMonitor";
+            this.lblSystemStatus.Font = normalFont;
+            this.lblSystemStatus.Location = new System.Drawing.Point(120, 10);
+            this.lblSystemStatus.AutoSize = true;
+
+            this.btnCreateSystemTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
+            this.btnCreateSystemTask.Font = normalFont;
+            this.btnCreateSystemTask.Size = new System.Drawing.Size(190, 32);
+            this.btnCreateSystemTask.Location = new System.Drawing.Point(30, 55);
+            this.btnCreateSystemTask.Click += new System.EventHandler(this.BtnCreateSystemTask_Click);
+
+            this.btnDeleteSystemTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
+            this.btnDeleteSystemTask.Font = normalFont;
+            this.btnDeleteSystemTask.Size = new System.Drawing.Size(190, 32);
+            this.btnDeleteSystemTask.Location = new System.Drawing.Point(225, 55);
+            this.btnDeleteSystemTask.Click += new System.EventHandler(this.BtnDeleteSystemTask_Click);
+
+            this.btnOpenSystemUI.Text = LanguageManager.Get("Ouvrir SystemMonitor") ?? "Ouvrir SystemMonitor";
+            this.btnOpenSystemUI.Font = normalFont;
+            this.btnOpenSystemUI.Size = new System.Drawing.Size(190, 32);
+            this.btnOpenSystemUI.Location = new System.Drawing.Point(420, 55);
+            this.btnOpenSystemUI.Click += new System.EventHandler(this.BtnOpenSystemUI_Click);
+
+            this.grpSystemActions.Panel.Controls.Add(this.toggleSystemService);
+            this.grpSystemActions.Panel.Controls.Add(this.lblSystemStatus);
+            this.grpSystemActions.Panel.Controls.Add(this.btnCreateSystemTask);
+            this.grpSystemActions.Panel.Controls.Add(this.btnDeleteSystemTask);
+            this.grpSystemActions.Panel.Controls.Add(this.btnOpenSystemUI);
+
+            this.tabSystemMonitor.Controls.Add(this.grpSystemActions);
+
+            // Timer SystemMonitor
+            this.systemMonitorTimer = new System.Windows.Forms.Timer();
+            this.systemMonitorTimer.Interval = 3000;
+            this.systemMonitorTimer.Tick += new System.EventHandler(this.SystemMonitorTimer_Tick);
+            this.systemMonitorTimer.Start();
+            
+            // ============================================================
             // FINALISATION
             // ============================================================
             this.Controls.Add(this.tabControl);
@@ -1165,6 +1264,20 @@ namespace MCEMonitor
         private KryptonButton btnSaveRomConfig;
         private System.Windows.Forms.Timer romMonitorTimer;
 
+        // ---------- System Monitor ----------
+        private KryptonPage tabSystemMonitor;
+        private KryptonGroupBox grpSystemInfo;
+        private KryptonPanel pnlSystemInfo;
+        private KryptonPictureBox picSystemInfo;
+        private KryptonLabel lblSystemDescription;
+        private KryptonGroupBox grpSystemActions;
+        private KryptonCheckButton toggleSystemService;
+        private KryptonLabel lblSystemStatus;
+        private KryptonButton btnOpenSystemUI;
+        private KryptonButton btnCreateSystemTask;
+        private KryptonButton btnDeleteSystemTask;
+        private System.Windows.Forms.Timer systemMonitorTimer;
+        
         // ---------- Wake Monitor ----------
         private KryptonGroupBox grpWakeInfo;
         private KryptonPanel pnlWakeInfo;

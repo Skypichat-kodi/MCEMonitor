@@ -86,6 +86,12 @@ namespace MCEMonitor
                     ServiceInstaller.CreateRomTrayTask();
                 }
 
+                // Installer la tâche ONLOGON du Tray SystemMonitor si absente
+                if (!ServiceInstaller.SystemTrayTaskExists())
+                {
+                    ServiceInstaller.CreateSystemTrayTask();
+                }
+                
                 // ============================================================
                 // SERVICES LOCAUX
                 // ============================================================

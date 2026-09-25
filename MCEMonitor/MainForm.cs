@@ -29,6 +29,7 @@ namespace MCEMonitor
         // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
         private bool _suppressToggleRom = false;
+        private bool _suppressToggleSystem = false;
 
         // Anti-double-fermeture
         private bool _closingInProgress = false;
@@ -124,6 +125,7 @@ namespace MCEMonitor
             LoadEmailConfig();
             LoadMediaConfig();
             LoadRomMonitorConfig();
+            LoadSystemMonitorConfig();
             LoadWakeConfig();
             UpdateWakeTaskStatus();
             LoadShutdownConfig();
@@ -1299,6 +1301,315 @@ namespace MCEMonitor
             });
         }
 
+        // ============================================================
+        // SYSTEM MONITOR
+        // ============================================================
+
+        private void LoadSystemMonitorConfig()
+        {
+            UpdateSystemToggle();
+            UpdateSystemTaskButtons();
+        }
+
+        private bool IsSystemServiceRunning()
+        {
+            return Process.GetProcessesByName("SystemMonitor.Service").Length > 0;
+        }
+
+        private void UpdateSystemToggle()
+        {
+            _suppressToggleSystem = true;
+            try
+            {
+                bool running = IsSystemServiceRunning();
+
+                if (running)
+                {
+                    toggleSystemService.Checked = true;
+                    lblSystemStatus.Text =
+                        LanguageManager.Get("Service SystemMonitor : actif") ?? "Service SystemMonitor : actif";
+                }
+                else
+                {
+                    toggleSystemService.Checked = false;
+                    lblSystemStatus.Text =
+                        LanguageManager.Get("Service SystemMonitor : arrêté") ?? "Service SystemMonitor : arrêté";
+                }
+            }
+            finally
+            {
+                _suppressToggleSystem = false;
+            }
+        }
+
+        private void toggleSystemService_Click(object sender, EventArgs e)
+        {
+            if (_suppressToggleSystem)
+                return;
+
+            _suppressToggleSystem = true;
+            try
+            {
+                bool running = IsSystemServiceRunning();
+
+                if (running)
+                {
+                    // Empêcher l'arrêt si l'UI est ouverte
+                    if (Process.GetProcessesByName("SystemMonitor.UI").Length > 0)
+                    {
+                        toggleSystemService.Checked = true;
+
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            LanguageManager.Get("Impossible d'arrêter SystemMonitor.Service tant que SystemMonitor.UI est ouvert. Veuillez fermer SystemMonitor.UI d'abord.")
+                                ?? "Impossible d'arrêter SystemMonitor.Service tant que SystemMonitor.UI est ouvert.\nVeuillez fermer SystemMonitor.UI d'abord.",
+                            LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
+                        );
+                        return;
+                    }
+
+                    foreach (var p in Process.GetProcessesByName("SystemMonitor.Service"))
+                        p.Kill();
+                }
+                else
+                {
+                    StartSystemMonitorService();
+                }
+            }
+            finally
+            {
+                _suppressToggleSystem = false;
+            }
+
+            Task.Delay(800).ContinueWith(_ =>
+            {
+                this.Invoke(new Action(UpdateSystemToggle));
+            });
+        }
+
+        private bool StartSystemMonitorService()
+        {
+            try
+            {
+                string servicePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.Service.exe"
+                );
+
+                if (!File.Exists(servicePath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("SystemMonitor.Service.exe introuvable.") ?? "SystemMonitor.Service.exe introuvable.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = servicePath,
+                    Arguments = $"-lang {lang}",
+                    UseShellExecute = true
+                });
+
+                Thread.Sleep(1200);
+
+                if (Process.GetProcessesByName("SystemMonitor.Service").Length == 0)
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "Le service SystemMonitor n'a pas pu démarrer.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                StartSystemMonitorTray();
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors du démarrage du service SystemMonitor : " + ex.Message,
+                    "Erreur"
+                );
+                return false;
+            }
+        }
+
+        private void StartSystemMonitorTray()
+        {
+            try
+            {
+                if (Process.GetProcessesByName("SystemMonitor.Tray").Length > 0)
+                    return;
+
+                string trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "SystemMonitor.Tray.exe"
+                );
+
+                if (!File.Exists(trayPath))
+                {
+                    trayPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "SystemMonitor.Tray.exe"
+                    );
+                }
+
+                if (File.Exists(trayPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = trayPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch { }
+        }
+
+        private void BtnOpenSystemUI_Click(object sender, EventArgs e)
+        {
+            bool serviceRunning = IsSystemServiceRunning();
+
+            if (!serviceRunning)
+            {
+                string message =
+                    (LanguageManager.Get("Le service SystemMonitor n'est pas en cours d'exécution.")
+                        ?? "Le service SystemMonitor n'est pas en cours d'exécution.")
+                    + "\n\n" +
+                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
+                        ?? "Voulez-vous le démarrer maintenant ?");
+
+                bool confirmed = ConfirmDialog.Show(
+                    this,
+                    message,
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    yesText: LanguageManager.Get("Démarrer") ?? "Démarrer",
+                    noText: LanguageManager.Get("Annuler") ?? "Annuler",
+                    warning: true);
+
+                if (!confirmed)
+                    return;
+
+                if (!StartSystemMonitorService())
+                    return;
+
+                UpdateSystemToggle();
+            }
+
+            try
+            {
+                string uiPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "SystemMonitor.UI.exe"
+                );
+
+                if (!File.Exists(uiPath))
+                {
+                    uiPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "SystemMonitor.UI.exe"
+                    );
+                }
+
+                if (!File.Exists(uiPath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "SystemMonitor.UI.exe est introuvable.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uiPath,
+                    Arguments = $"--from-mcem -lang {lang}",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, "Erreur lors de l'ouverture de SystemMonitor.UI : " + ex.Message);
+            }
+        }
+
+        private void BtnCreateSystemTask_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string result = TaskSchedulerHelper.CreateSystemMonitorTask();
+
+                if (!ServiceInstaller.SystemTrayTaskExists())
+                    ServiceInstaller.CreateSystemTrayTask();
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    result,
+                    LanguageManager.Get("Résultat création tâche SystemMonitor") ?? "Résultat création tâche SystemMonitor"
+                );
+
+                UpdateSystemTaskButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+
+        private void BtnDeleteSystemTask_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string result = TaskSchedulerHelper.DeleteSystemMonitorTask();
+
+                ServiceInstaller.DeleteSystemTrayTask();
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    result,
+                    LanguageManager.Get("Résultat suppression tâche SystemMonitor") ?? "Résultat suppression tâche SystemMonitor"
+                );
+
+                UpdateSystemTaskButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+
+        private void UpdateSystemTaskButtons()
+        {
+            bool exists = TaskSchedulerHelper.SystemMonitorTaskExists();
+            btnCreateSystemTask.Enabled = !exists;
+            btnDeleteSystemTask.Enabled = exists;
+        }
+
+        private void SystemMonitorTimer_Tick(object sender, EventArgs e)
+        {
+            if (_closingInProgress || this.IsDisposed)
+                return;
+
+            UpdateSystemToggle();
+            UpdateSystemTaskButtons();
+        }
+        
         /// <summary>
         /// Démarre le service MediaMonitor et lance le Tray.
         /// Renvoie true si le service tourne à la fin.
@@ -1631,6 +1942,7 @@ namespace MCEMonitor
             _lockedPages.Add(tabRomMonitor);
             _lockedPages.Add(tabWakeMonitor);
             _lockedPages.Add(tabStopMonitor);
+            _lockedPages.Add(tabSystemMonitor);
 
             LockTabs();
         }

@@ -45,11 +45,18 @@ set ERROR=0
 REM --- Arrêter les services en cours (pour éviter les verrous) ---
 echo.
 echo Arrêt des services en cours...
-taskkill /IM SystemMonitor.Service.exe /F >nul 2>&1
-taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
+taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
+taskkill /IM SystemMonitor.Service.exe /F >nul 2>&1
+
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
+taskkill /IM RomMonitor.UI.exe /F >nul 2>&1
+taskkill /IM SystemMonitor.UI.exe /F >nul 2>&1
+
 taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
+taskkill /IM RomMonitor.Tray.exe /F >nul 2>&1
+taskkill /IM SystemMonitor.Tray.exe /F >nul 2>&1
+
 taskkill /IM MCEMonitor.exe /F >nul 2>&1
 taskkill /IM Autotrad.exe /F >nul 2>&1
 echo %ESC%[32m[OK] TOUS LES EXECUTABLES SONT ARRETÉS%ESC%[0m
@@ -65,6 +72,7 @@ call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"          "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"        "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"            "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.UI"              "%DEST_PROGRAM%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.UI"        "%DEST_PROGRAM%"
 
 REM === ProgramData ===
 call :publish "%ROOT%\StopMonitor"                           "%DEST_APPDATA%"
@@ -72,7 +80,7 @@ call :publish "%ROOT%\WakeMonitor"                           "%DEST_APPDATA%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"     "%DEST_APPDATA%"
 call :publish "%ROOT%\MCEMonitor.Languages"                  "%DEST_APPDATA%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Service"         "%DEST_APPDATA%"
-call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"    "%DEST_APPDATA%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"   "%DEST_APPDATA%"
 
 REM === Tools ===
 call :publish_single "%ROOT%\Autotrad"                       "%DEST_TOOLS%"

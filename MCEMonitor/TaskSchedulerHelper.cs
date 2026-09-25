@@ -212,6 +212,38 @@ namespace MCEMonitor.Utils
         }
 
         // ============================================================
+        // SYSTEM MONITOR
+        // ============================================================
+
+        public static string CreateSystemMonitorTask()
+        {
+            string exePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "SystemMonitor.Service.exe"
+            );
+
+            if (!File.Exists(exePath))
+                return "ERREUR : SystemMonitor.Service.exe introuvable.";
+
+            return RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_SystemMonitorService\" " +
+                "/SC ONSTART " +
+                $"/TR \"\\\"{exePath}\\\"\" /RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteSystemMonitorTask()
+        {
+            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_SystemMonitorService\" /F");
+        }
+
+        public static bool SystemMonitorTaskExists()
+        {
+            return QueryTask("MCEMonitor_SystemMonitorService");
+        }
+        
+        // ============================================================
         // STOP MONITOR
         // ============================================================
 

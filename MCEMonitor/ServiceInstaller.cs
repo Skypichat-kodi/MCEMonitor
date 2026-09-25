@@ -11,6 +11,7 @@ namespace MCEMonitor
         private const string SERVICE_TASK_NAME   = "MCEMonitor_Service";
         private const string TRAY_TASK_NAME      = "MCEMonitor_MediaMonitorTray";
         private const string ROM_TRAY_TASK_NAME  = "MCEMonitor_RomMonitorTray";
+        private const string SYSTEM_TRAY_TASK_NAME = "MCEMonitor_SystemMonitorTray";
 
         // ============================================================
         //  Vérifier si la tâche SYSTEM du service existe
@@ -154,6 +155,55 @@ namespace MCEMonitor
             RunAdminCommand(cmd);
         }
 
+        // ============================================================
+        //  Vérifier si la tâche ONLOGON du Tray SystemMonitor existe
+        // ============================================================
+        public static bool SystemTrayTaskExists()
+        {
+            return TaskExists(SYSTEM_TRAY_TASK_NAME);
+        }
+
+        // ============================================================
+        //  Créer la tâche ONLOGON qui lance SystemMonitor.Tray.exe
+        // ============================================================
+        public static void CreateSystemTrayTask()
+        {
+            string trayPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "MCEMonitor",
+                "SystemMonitor.Tray.exe"
+            );
+
+            if (!File.Exists(trayPath))
+            {
+                trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    "MCEMonitor",
+                    "SystemMonitor.Tray.exe"
+                );
+            }
+
+            if (!File.Exists(trayPath))
+                return;
+
+            string cmd =
+                "schtasks /Create /TN \"" + SYSTEM_TRAY_TASK_NAME + "\" " +
+                "/SC ONLOGON " +
+                $"/TR \"\\\"{trayPath}\\\"\" " +
+                "/RL HIGHEST /F";
+
+            RunAdminCommand(cmd);
+        }
+
+        // ============================================================
+        //  Supprimer la tâche ONLOGON du Tray SystemMonitor
+        // ============================================================
+        public static void DeleteSystemTrayTask()
+        {
+            string cmd = $"schtasks /Delete /TN \"{SYSTEM_TRAY_TASK_NAME}\" /F";
+            RunAdminCommand(cmd);
+        }
+        
         // ============================================================
         //  Démarrer immédiatement la tâche SYSTEM du service
         // ============================================================
