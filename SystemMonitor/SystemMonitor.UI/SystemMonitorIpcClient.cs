@@ -111,7 +111,18 @@ namespace SystemMonitor.UI
         public double? gpuUsage { get; set; }
         public double? gpuTemp { get; set; }
     }
-        
+
+    public class SysBsod
+    {
+        public DateTime timestamp { get; set; }
+        public string bugCheckCode { get; set; } = "";
+        public string bugCheckName { get; set; } = "";
+        public string parameters { get; set; } = "";
+        public string dumpPath { get; set; } = "";
+        public bool dumpExists { get; set; }
+        public string source { get; set; } = "";
+    }
+            
     // ============================================================
     //  Client IPC
     // ============================================================
@@ -337,6 +348,25 @@ namespace SystemMonitor.UI
         {
             string? json = await SendCommand("clear-history");
             return json != null && json.Contains("\"status\":\"ok\"");
-        }                                    
+        }
+        
+        public static async Task<List<SysBsod>?> GetBsods()
+        {
+            string? json = await SendCommand("get-bsods");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<SysBsod>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+
+        public static async Task<bool> ClearBsodsAsync()
+        {
+            string? json = await SendCommand("clear-bsods");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }                                            
     }
 }

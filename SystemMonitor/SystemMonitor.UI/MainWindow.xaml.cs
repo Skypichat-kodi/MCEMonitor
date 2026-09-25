@@ -22,6 +22,7 @@ namespace SystemMonitor.UI
         private readonly ObservableCollection<NetworkCard> _networks = new();
         private readonly ObservableCollection<AlertRow> _alerts = new();
         private List<SysHistoryPoint> _history = new();
+        private readonly ObservableCollection<BsodRow> _bsods = new();        
         
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
@@ -65,6 +66,7 @@ namespace SystemMonitor.UI
             GpusList.ItemsSource = _gpus;
             NetworksList.ItemsSource = _networks;
             AlertsGrid.ItemsSource = _alerts;
+            BsodsGrid.ItemsSource = _bsods;            
 
             _refreshTimer = new DispatcherTimer
             {
@@ -103,7 +105,8 @@ namespace SystemMonitor.UI
                 UpdateGpus(snap.gpus);
                 UpdateNetworks(snap.networks);
                 _ = RefreshAlerts();
-                _ = RefreshHistory();                
+                _ = RefreshHistory();
+                _ = RefreshBsods();                                
 
                 StatusText.Text =
                     $"Dernière mise à jour : {snap.timestamp:HH:mm:ss}  |  " +
@@ -847,7 +850,95 @@ namespace SystemMonitor.UI
             {
                 MessageBox.Show("Erreur : " + ex.Message);
             }
-        }                        
+        }
+        
+        // ------------------------------------------------------------
+        //  BSOD
+        // ------------------------------------------------------------
+        private async Task RefreshBsods()
+        {
+            try
+            {
+                var bsods = await SystemMonitorIpcClient.GetBsods();
+                if (bsods == null) return;
+
+                _bsods.Clear();
+
+                foreach (var b in bsods.OrderByDescending(x => x.timestamp).Take(100))
+                {
+                    _bsods.Add(new BsodRow
+                    {
+                        Timestamp = b.timestamp,
+                        BugCheckCode = b.bugCheckCode ?? "",
+                        BugCheckName = b.bugCheckName ?? "",
+                        Parameters = b.parameters ?? "",
+                        DumpPath = b.dumpPath ?? "",
+                        DumpExists = b.dumpExists
+                    });
+                }
+            }
+            catch { }
+        }
+
+        private async void ClearBsods_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var result = MessageBox.Show(
+                    "Voulez-vous vraiment vider l'historique des BSOD ?\n" +
+                    "Cette action est irréversible.",
+                    "Vider l'historique BSOD",
+                    MessageBoxButton.YesNo,
+                    MessageBoxImage.Warning);
+
+                if (result != MessageBoxResult.Yes)
+                    return;
+
+                bool ok = await SystemMonitorIpcClient.ClearBsodsAsync();
+
+                if (ok)
+                {
+                    _bsods.Clear();
+                    StatusText.Text = "Historique BSOD vidé.";
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Impossible de vider l'historique (service non joignable ?).",
+                        "Erreur",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }
+
+        private void OpenMinidumpFolder_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string folder = @"C:\Windows\Minidump";
+
+                if (!Directory.Exists(folder))
+                {
+                    MessageBox.Show(
+                        "Le dossier C:\\Windows\\Minidump n'existe pas sur cette machine.",
+                        "Info",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                    return;
+                }
+
+                Process.Start("explorer.exe", folder);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir le dossier.\n" + ex.Message);
+            }
+        }                                
     }
 
     // ============================================================
@@ -883,5 +974,16 @@ namespace SystemMonitor.UI
         public string Target { get; set; } = "";
         public string Message { get; set; } = "";
         public bool EmailSent { get; set; }
-    }    
+    }
+    
+    public class BsodRow
+    {
+        public DateTime Timestamp { get; set; }
+        public string TimestampText => Timestamp.ToString("dd/MM/yyyy HH:mm:ss");
+        public string BugCheckCode { get; set; } = "";
+        public string BugCheckName { get; set; } = "";
+        public string Parameters { get; set; } = "";
+        public string DumpPath { get; set; } = "";
+        public bool DumpExists { get; set; }
+    }        
 }

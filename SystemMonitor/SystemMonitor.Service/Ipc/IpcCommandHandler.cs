@@ -46,7 +46,9 @@ namespace SystemMonitor.Service.Ipc
                 case "get-alerts":       HandleGetAlerts(server); break;
                 case "clear-alerts":     HandleClearAlerts(server); break;
                 case "get-history":      HandleGetHistory(server); break;
-                case "clear-history":    HandleClearHistory(server); break;                
+                case "clear-history":    HandleClearHistory(server); break;
+                case "get-bsods":        HandleGetBsods(server); break;
+                case "clear-bsods":      HandleClearBsods(server); break;                                
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -313,6 +315,34 @@ namespace SystemMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleClearHistory : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                
+        }
+        
+        private void HandleGetBsods(NamedPipeServerStream server)
+        {
+            try
+            {
+                var bsods = _engine.GetBsods();
+                IpcResponse.Json(server, bsods);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleClearBsods(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearBsods();
+                CoreLog.Write("IPC : historique BSOD vidé");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleClearBsods : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                        
     }
 }

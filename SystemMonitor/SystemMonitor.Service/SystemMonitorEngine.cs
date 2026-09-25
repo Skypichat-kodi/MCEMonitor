@@ -14,7 +14,9 @@ namespace SystemMonitor.Service
         private readonly AlertManager _alertManager;
         private readonly AlertHistory _history;
         private readonly HardwareMonitorService _hardware;
-        private readonly HistoryBuffer _measureHistory;    
+        private readonly HistoryBuffer _measureHistory;
+        private readonly BsodHistory _bsodHistory;
+        private DateTime _lastBsodCheck = DateTime.MinValue;    
         
         private Timer _timer;
         private bool _isRunning;
@@ -37,6 +39,9 @@ namespace SystemMonitor.Service
 
             // ? NOUVEAU : historique des mesures
             _measureHistory = new HistoryBuffer(capacity: 60);
+            
+            // Historique des BSOD
+            _bsodHistory = new BsodHistory();            
 
             // Collecte matérielle
             _hardware = new HardwareMonitorService();
@@ -56,6 +61,9 @@ namespace SystemMonitor.Service
 
             // Premier check immédiat
             Task.Run(() => Tick());
+            
+            // Scan initial des BSOD
+            Task.Run(() => ScanForBsods(force: true));            
         }
 
         public void Stop()
@@ -99,6 +107,9 @@ namespace SystemMonitor.Service
 
                 // Vérification des seuils
                 CheckThresholds(snap);
+
+                // Scan périodique des BSOD
+                ScanForBsods();
 
                 OnUpdate?.Invoke();
             }
@@ -303,6 +314,38 @@ namespace SystemMonitor.Service
         {
             _measureHistory.Clear();
             CoreLog.Write("Historique des mesures vidé");
-        }                             
+        }
+        
+        /// <summary>
+        /// Scanne l'Event Log pour les BSOD récents et les ajoute à l'historique.
+        /// Ne scanne pas plus d'une fois par 5 minutes.
+        /// </summary>
+        public void ScanForBsods(bool force = false)
+        {
+            if (!force && (DateTime.Now - _lastBsodCheck).TotalMinutes < 5)
+                return;
+
+            _lastBsodCheck = DateTime.Now;
+
+            try
+            {
+                var bsods = BsodReader.GetRecentBsods(30);
+
+                foreach (var b in bsods)
+                    _bsodHistory.Add(b);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur ScanForBsods : " + ex.Message);
+            }
+        }
+
+        public List<BsodInfo> GetBsods() => _bsodHistory.GetAll();
+
+        public void ClearBsods()
+        {
+            _bsodHistory.Clear();
+            CoreLog.Write("Historique BSOD vidé");
+        }                                     
     }
 }
