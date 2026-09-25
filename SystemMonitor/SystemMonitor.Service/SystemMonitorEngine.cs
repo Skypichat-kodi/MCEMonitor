@@ -12,7 +12,9 @@ namespace SystemMonitor.Service
     {
         private readonly SystemMonitorSettings _settings;
         private readonly HardwareMonitorService _hardware;
-
+        private readonly AlertManager _alertManager;
+        private readonly AlertHistory _history;
+        
         private Timer _timer;
         private bool _isRunning;
         private SystemSnapshot _lastSnapshot = new();
@@ -27,6 +29,10 @@ namespace SystemMonitor.Service
         {
             _settings = settings;
             _hardware = new HardwareMonitorService();
+            _history = new AlertHistory();
+            _history.Clear();   // Purge à chaque démarrage
+
+            _alertManager = new AlertManager(settings, _history);
         }
 
         public void Start()
@@ -71,6 +77,9 @@ namespace SystemMonitor.Service
                 _lastSnapshot = snap;
                 LastUpdateTime = DateTime.Now;
 
+                // ? NOUVEAU : vérification des seuils
+                CheckThresholds(snap);
+
                 OnUpdate?.Invoke();
             }
             catch (Exception ex)
@@ -84,5 +93,179 @@ namespace SystemMonitor.Service
             Stop();
             _hardware?.Dispose();
         }
+        
+        // ============================================================
+        //  Vérification des seuils
+        // ============================================================
+        private void CheckThresholds(SystemSnapshot snap)
+        {
+            // --- CPU ---
+            if (_settings.AlertOnHighCpu &&
+                snap.Cpu.UsagePercent >= _settings.CpuThresholdPercent)
+            {
+                var alert = new Alert
+                {
+                    Timestamp = DateTime.Now,
+                    Type = AlertType.CpuHigh,
+                    Severity = "Critical",
+                    Target = "CPU",
+                    Message = $"Utilisation CPU : {snap.Cpu.UsagePercent:F1}% (seuil : {_settings.CpuThresholdPercent}%)",
+                    EmailSent = false
+                };
+
+                if (_alertManager.CanSendAlert(alert.Type, alert.Target))
+                {
+                    _ = SendCpuAlertEmailAsync(snap.Cpu);
+                    alert.EmailSent = true;
+                    _alertManager.Add(alert);
+                }
+            }
+
+            // --- RAM ---
+            if (_settings.AlertOnHighRam &&
+                snap.Ram.UsagePercent >= _settings.RamThresholdPercent)
+            {
+                var alert = new Alert
+                {
+                    Timestamp = DateTime.Now,
+                    Type = AlertType.RamHigh,
+                    Severity = "Critical",
+                    Target = "RAM",
+                    Message = $"Utilisation RAM : {snap.Ram.UsagePercent:F1}% ({snap.Ram.UsedGB:F1} / {snap.Ram.TotalGB:F1} Go, seuil : {_settings.RamThresholdPercent}%)",
+                    EmailSent = false
+                };
+
+                if (_alertManager.CanSendAlert(alert.Type, alert.Target))
+                {
+                    _ = SendRamAlertEmailAsync(snap.Ram);
+                    alert.EmailSent = true;
+                    _alertManager.Add(alert);
+                }
+            }
+
+            // --- Température CPU ---
+            if (_settings.AlertOnHighTemp &&
+                snap.Cpu.Temperature.HasValue &&
+                snap.Cpu.Temperature.Value >= _settings.TempThresholdCelsius)
+            {
+                var alert = new Alert
+                {
+                    Timestamp = DateTime.Now,
+                    Type = AlertType.TempHigh,
+                    Severity = "Critical",
+                    Target = "CPU Temp",
+                    Message = $"Température CPU : {snap.Cpu.Temperature.Value:F1}°C (seuil : {_settings.TempThresholdCelsius}°C)",
+                    EmailSent = false
+                };
+
+                if (_alertManager.CanSendAlert(alert.Type, alert.Target))
+                {
+                    _ = SendTempAlertEmailAsync(snap.Cpu);
+                    alert.EmailSent = true;
+                    _alertManager.Add(alert);
+                }
+            }
+        }
+
+        // ============================================================
+        //  Envoi email d'alerte CPU
+        // ============================================================
+        private async Task SendCpuAlertEmailAsync(CpuInfo cpu)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                {
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annulé");
+                    return;
+                }
+
+                string body = $@"
+                    <p><b>Processeur :</b> {cpu.Name}</p>
+                    <p><b>Utilisation :</b> <span style='color:#c0392b'>{cpu.UsagePercent:F1} %</span></p>
+                    <p><b>Seuil configuré :</b> {_settings.CpuThresholdPercent} %</p>
+                    {(cpu.Temperature.HasValue ? $"<p><b>Température :</b> {cpu.Temperature.Value:F1}°C</p>" : "")}
+                    {(cpu.FrequencyMHz.HasValue ? $"<p><b>Fréquence :</b> {cpu.FrequencyMHz.Value:F0} MHz</p>" : "")}";
+
+                await EmailSender.SendAsync(
+                    cfg,
+                    $"[ALERTE] CPU saturé sur {Environment.MachineName}",
+                    body,
+                    isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte CPU envoyée ({cpu.UsagePercent:F1}%)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email CPU : " + ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  Envoi email d'alerte RAM
+        // ============================================================
+        private async Task SendRamAlertEmailAsync(RamInfo ram)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                    return;
+
+                string body = $@"
+                    <p><b>Mémoire utilisée :</b> <span style='color:#c0392b'>{ram.UsagePercent:F1} %</span></p>
+                    <p><b>Utilisée :</b> {ram.UsedGB:F1} Go</p>
+                    <p><b>Libre :</b> {ram.FreeGB:F1} Go</p>
+                    <p><b>Totale :</b> {ram.TotalGB:F1} Go</p>
+                    <p><b>Seuil configuré :</b> {_settings.RamThresholdPercent} %</p>";
+
+                await EmailSender.SendAsync(
+                    cfg,
+                    $"[ALERTE] RAM saturée sur {Environment.MachineName}",
+                    body,
+                    isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte RAM envoyée ({ram.UsagePercent:F1}%)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email RAM : " + ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  Envoi email d'alerte Température
+        // ============================================================
+        private async Task SendTempAlertEmailAsync(CpuInfo cpu)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                    return;
+
+                string body = $@"
+                    <p><b>Processeur :</b> {cpu.Name}</p>
+                    <p><b>Température :</b> <span style='color:#c0392b'>{cpu.Temperature:F1} °C</span></p>
+                    <p><b>Seuil configuré :</b> {_settings.TempThresholdCelsius} °C</p>
+                    <p><b>Utilisation CPU :</b> {cpu.UsagePercent:F1} %</p>";
+
+                await EmailSender.SendAsync(
+                    cfg,
+                    $"[ALERTE] Température CPU élevée sur {Environment.MachineName}",
+                    body,
+                    isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte température envoyée ({cpu.Temperature:F1}°C)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email temp : " + ex.Message);
+            }
+        }        
     }
 }
