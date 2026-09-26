@@ -223,6 +223,12 @@ namespace MCEMonitor
 
             string? json = await SendCommand(cmd);
             return json != null && json.Contains("\"status\":\"ok\"");
-        }        
+        }
+        
+        public static async Task<bool> ReloadConfigAsync()
+        {
+            string? json = await SendCommand("reload-config");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }                
     }
 }

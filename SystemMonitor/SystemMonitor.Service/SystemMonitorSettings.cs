@@ -167,5 +167,66 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur Save SystemMonitorSettings : " + ex.Message);
             }
         }
+        
+        /// <summary>
+        /// Recharge les valeurs depuis le fichier config (à chaud).
+        /// </summary>
+        public void Reload()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(ConfigPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":
+                            if (int.TryParse(value, out int i)) Interval = i;
+                            break;
+
+                        case "AlertOnHighCpu":
+                            if (bool.TryParse(value, out bool ac)) AlertOnHighCpu = ac;
+                            break;
+                        case "CpuThresholdPercent":
+                            if (int.TryParse(value, out int ct)) CpuThresholdPercent = ct;
+                            break;
+                        case "CpuCooldownMinutes":
+                            if (int.TryParse(value, out int cc)) CpuCooldownMinutes = cc;
+                            break;
+
+                        case "AlertOnHighRam":
+                            if (bool.TryParse(value, out bool ar)) AlertOnHighRam = ar;
+                            break;
+                        case "RamThresholdPercent":
+                            if (int.TryParse(value, out int rt)) RamThresholdPercent = rt;
+                            break;
+
+                        case "AlertOnHighTemp":
+                            if (bool.TryParse(value, out bool at)) AlertOnHighTemp = at;
+                            break;
+                        case "TempThresholdCelsius":
+                            if (int.TryParse(value, out int tt)) TempThresholdCelsius = tt;
+                            break;
+                    }
+                }
+
+                CoreLog.Write("Config rechargée à chaud");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur Reload settings : " + ex.Message);
+            }
+        }        
     }
 }

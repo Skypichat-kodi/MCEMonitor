@@ -176,5 +176,81 @@ namespace RomMonitor.Service
                 CoreLog.Write("Erreur Save RomMonitorSettings : " + ex.Message);
             }
         }
+        
+        /// <summary>
+        /// Recharge les valeurs depuis le fichier config (à chaud).
+        /// </summary>
+        public void Reload()
+        {
+            try
+            {
+                if (!File.Exists(ConfigPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(ConfigPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":
+                            if (int.TryParse(value, out int i)) Interval = i;
+                            break;
+
+                        case "DiskSpaceWarnPercent":
+                            if (int.TryParse(value, out int wp)) DiskSpaceWarnPercent = wp;
+                            break;
+                        case "DiskSpaceCriticalPercent":
+                            if (int.TryParse(value, out int cp)) DiskSpaceCriticalPercent = cp;
+                            break;
+
+                        case "DiskSpaceWarnGo":
+                            if (int.TryParse(value, out int wg)) DiskSpaceWarnGo = wg;
+                            break;
+                        case "DiskSpaceCriticalGo":
+                            if (int.TryParse(value, out int cg)) DiskSpaceCriticalGo = cg;
+                            break;
+
+                        case "AlertOnSmartFailure":
+                            if (bool.TryParse(value, out bool asf)) AlertOnSmartFailure = asf;
+                            break;
+                        case "AlertOnLowDiskSpace":
+                            if (bool.TryParse(value, out bool als)) AlertOnLowDiskSpace = als;
+                            break;
+
+                        case "AlertCooldownHours":
+                            if (int.TryParse(value, out int ach)) AlertCooldownHours = ach;
+                            break;
+
+                        // Web (pas utilisé pour recharger le WebServer ici, voir RestartWebServer)
+                        case "WebEnabled":
+                            if (bool.TryParse(value, out bool we)) WebEnabled = we;
+                            break;
+                        case "WebPort":
+                            if (int.TryParse(value, out int wport)) WebPort = wport;
+                            break;
+                        case "WebUsername":
+                            WebUsername = value;
+                            break;
+                        case "WebPassword":
+                            WebPassword = value;
+                            break;
+                    }
+                }
+
+                CoreLog.Write("RomMonitor config rechargée à chaud");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur Reload RomMonitorSettings : " + ex.Message);
+            }
+        }        
     }
 }

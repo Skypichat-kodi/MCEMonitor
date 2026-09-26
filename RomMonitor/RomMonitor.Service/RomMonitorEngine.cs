@@ -342,6 +342,27 @@ namespace RomMonitor.Service
 
                 return hasWarning ? "warning" : "ok";
             }
-        }        
+        }
+        
+        /// <summary>
+        /// Recharge la config à chaud et purge les alertes obsolètes.
+        /// </summary>
+        public void ReloadConfig()
+        {
+            try
+            {
+                _settings.Reload();
+
+                // Purger les alertes : elles ne sont plus valides
+                _history.Clear();
+
+                CoreLog.Write("RomMonitorEngine : config rechargée + historique alertes purgé");
+                OnUpdate?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur ReloadConfig RomMonitorEngine : " + ex.Message);
+            }
+        }                
     }
 }

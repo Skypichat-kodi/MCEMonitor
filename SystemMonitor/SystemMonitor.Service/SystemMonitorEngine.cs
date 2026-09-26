@@ -460,6 +460,27 @@ namespace SystemMonitor.Service
                 .ThenByDescending(p => p.Timestamp)
                 .Take(maxItems)
                 .ToList();
-        }        
+        }
+        
+        /// <summary>
+        /// Recharge la config à chaud et purge les alertes obsolètes.
+        /// </summary>
+        public void ReloadConfig()
+        {
+            try
+            {
+                _settings.Reload();
+
+                // Purger les alertes existantes : elles ne sont plus valides
+                _history.Clear();
+
+                CoreLog.Write("Engine : config rechargée + historique alertes purgé");
+                OnUpdate?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur ReloadConfig : " + ex.Message);
+            }
+        }                
     }
 }

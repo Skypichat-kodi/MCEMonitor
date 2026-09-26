@@ -49,7 +49,8 @@ namespace SystemMonitor.Service.Ipc
                 case "clear-history":    HandleClearHistory(server); break;
                 case "get-bsods":        HandleGetBsods(server); break;
                 case "clear-bsods":      HandleClearBsods(server); break;
-                case "get-problems":     HandleGetProblems(server); break;                                
+                case "get-problems":     HandleGetProblems(server); break;
+                case "reload-config":    HandleReloadConfig(server); break;                                                
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -359,6 +360,20 @@ namespace SystemMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleGetProblems : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                                
+        }
+        
+        private void HandleReloadConfig(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ReloadConfig();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleReloadConfig : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                        
     }
 }

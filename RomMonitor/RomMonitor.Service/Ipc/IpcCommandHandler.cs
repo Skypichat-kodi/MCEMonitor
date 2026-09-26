@@ -39,11 +39,12 @@ namespace RomMonitor.Service
                 case "get-smart":        HandleGetSmart(server); break;
                 case "get-alerts":       HandleGetAlerts(server); break;
                 case "get-config":       HandleGetConfig(server); break;
-                case "get-web-status":   HandleGetWebStatus(server); break;   // ?? AJOUTÉ
+                case "get-web-status":   HandleGetWebStatus(server); break;
                 case "send-test-email":  HandleSendTestEmail(server); break;
                 case "shutdown":         HandleShutdown(server); break;
                 case "force-scan":       HandleForceScan(server); break;
                 case "clear-alerts":     HandleClearAlerts(server); break;
+                case "reload-config":    HandleReloadConfig(server); break;
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -319,6 +320,20 @@ namespace RomMonitor.Service
                 CoreLog.Write("Erreur HandleClearAlerts : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                
+        }
+        
+        private void HandleReloadConfig(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ReloadConfig();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleReloadConfig RomMonitor : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                        
     }
 }

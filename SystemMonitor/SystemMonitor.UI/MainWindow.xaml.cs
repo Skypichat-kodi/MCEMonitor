@@ -647,7 +647,7 @@ namespace SystemMonitor.UI
             catch { }
         }
 
-        private void btnSaveWatchConfig_Click(object sender, RoutedEventArgs e)
+        private async void btnSaveWatchConfig_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -713,12 +713,27 @@ namespace SystemMonitor.UI
 
                 File.WriteAllLines(configPath, newLines);
 
-                MessageBox.Show(
-                    "Réglages de surveillance enregistrés.\n\n" +
-                    "Pour que le service les prenne en compte, redémarrez-le.",
-                    "OK",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                // ✅ Recharger la config à chaud côté service
+                bool reloaded = await SystemMonitorIpcClient.ReloadConfigAsync();
+
+                if (reloaded)
+                {
+                    MessageBox.Show(
+                        "Réglages de surveillance enregistrés.\n\n" +
+                        "Le service a rechargé la configuration à chaud.",
+                        "OK",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Réglages enregistrés, mais le service n'a pas pu être notifié.\n" +
+                        "Redémarrez-le pour appliquer les modifications.",
+                        "Attention",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
             }
             catch (Exception ex)
             {

@@ -1133,7 +1133,7 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnSaveRomConfig_Click(object sender, EventArgs e)
+        private async void BtnSaveRomConfig_Click(object sender, EventArgs e)
         {
             try
             {
@@ -1215,6 +1215,14 @@ namespace MCEMonitor
 
                 File.WriteAllLines(configPath, lines);
 
+                // notifier le service de recharger la config
+                _ = RomMonitorIpcClient.ReloadConfigAsync();
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Réglages RomMonitor enregistrés") ?? "Réglages RomMonitor enregistrés",
+                    "Information"
+                );
                 PopupHelper.ShowBottomPopup(
                     this,
                     LanguageManager.Get("Réglages RomMonitor enregistrés") ?? "Réglages RomMonitor enregistrés",
@@ -2165,7 +2173,7 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnSaveSystemConfig_Click(object sender, EventArgs e)
+        private async void BtnSaveSystemConfig_Click(object sender, EventArgs e)
         {
             try
             {
@@ -2250,6 +2258,9 @@ namespace MCEMonitor
                 };
 
                 File.WriteAllLines(configPath, lines);
+
+                // ? NOUVEAU : notifier le service de recharger la config à chaud
+                _ = SystemMonitorIpcClient.ReloadConfigAsync();
 
                 PopupHelper.ShowBottomPopup(
                     this,

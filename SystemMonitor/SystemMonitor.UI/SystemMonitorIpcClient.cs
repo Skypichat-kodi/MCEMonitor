@@ -369,6 +369,12 @@ namespace SystemMonitor.UI
         {
             string? json = await SendCommand("clear-bsods");
             return json != null && json.Contains("\"status\":\"ok\"");
-        }                                            
+        }
+        
+        public static async Task<bool> ReloadConfigAsync()
+        {
+            string? json = await SendCommand("reload-config");
+            return json != null && json.Contains("\"status\":\"ok\"");
+        }                                                    
     }
 }
