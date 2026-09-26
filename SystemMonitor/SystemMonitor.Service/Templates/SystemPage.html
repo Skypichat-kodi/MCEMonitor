@@ -194,7 +194,103 @@
         font-size: 10px;
         font-weight: bold;
         color: #ccc;
-    }    
+    }
+    /* Barres verticales des cœurs CPU */
+    .cores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #2d2d30;
+    }
+
+    .core-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 4px;
+        flex: 1 1 40px;
+        min-width: 36px;
+        max-width: 70px;
+    }
+
+    .core-label {
+        font-size: 9px;
+        color: #888;
+        white-space: nowrap;
+    }
+
+    .core-progress {
+        width: 100%;
+        height: 60px;
+        background: #2d2d30;
+        border-radius: 4px;
+        overflow: hidden;
+        display: flex;
+        align-items: flex-end;
+    }
+
+    .core-bar {
+        width: 100%;
+        transition: height 0.3s ease;
+        border-radius: 4px 4px 0 0;
+    }
+
+    .core-value {
+        font-size: 10px;
+        font-weight: bold;
+        color: #ccc;
+    }
+    /* Graphiques historiques */
+    .chart-section {
+        margin-bottom: 20px;
+    }
+
+    .chart-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #4CC2FF;
+        font-weight: 600;
+    }
+
+    .chart-header img {
+        width: 20px;
+        height: 20px;
+        object-fit: contain;
+    }
+
+    .chart-stats {
+        margin-left: auto;
+        font-size: 12px;
+        color: #E5E5E5;
+        font-weight: normal;
+    }
+
+    .chart-container {
+        background: #1A1A1A;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+    
+    /* Badges de sévérité */
+    .badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: bold;
+        background: #444;
+        color: #fff;
+    }
+    .badge.ok      { background: #6CCB5F; color: black; }
+    .badge.warning { background: #FFB900; color: black; }
+    .badge.danger  { background: #FF6347; color: white; }
+    .badge.na      { background: #555; color: #ccc; }
+                    
 </style>
 </head>
 <body>
@@ -243,7 +339,14 @@
             <span class="metric-label">{{tr:Fréquence max}}</span>
             <span class="metric-value">{{CpuMaxFreq}} MHz</span>
         </div>
-        
+
+        <!-- Cœurs CPU -->
+        {{#IfHasCores}}
+        <div class="cores">
+            {{CoreBars}}
+        </div>
+        {{/IfHasCores}}
+                
         <div class="cores">
             {{CoreBars}}
         </div>        
@@ -282,6 +385,28 @@
 
 </div>
 
+<div class="chart-section">
+    <div class="chart-header">
+        <img src="/Resources/Icons/cpu.png" alt="CPU">
+        {{tr:Utilisation CPU}}
+        <span class="chart-stats">{{HistoryCount}} points | Max : {{CpuMaxText}} %</span>
+    </div>
+    <div class="chart-container">
+        {{CpuChartSvg}}
+    </div>
+</div>
+
+<div class="chart-section">
+    <div class="chart-header">
+        <img src="/Resources/Icons/ram.png" alt="RAM">
+        {{tr:Utilisation RAM}}
+        <span class="chart-stats">{{HistoryCount}} points | Max : {{RamMaxText}} %</span>
+    </div>
+    <div class="chart-container">
+        {{RamChartSvg}}
+    </div>
+</div>
+
 <h2 class="with-icon">
     <img src="/Resources/Icons/gpu.png" alt="GPU">
     {{tr:Carte graphique}}
@@ -314,6 +439,44 @@
     </thead>
     <tbody>
         {{NetRows}}
+    </tbody>
+</table>
+
+<h2 class="with-icon">
+    <span style="font-size:20px">💥</span>
+    {{tr:Écrans bleus (BSOD)}} — {{BsodTotalCount}}
+</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{{tr:Date}}</th>
+            <th>{{tr:Code}}</th>
+            <th>{{tr:Nom}}</th>
+            <th>{{tr:Pilote}}</th>
+            <th style="width:60px;text-align:center">{{tr:Dump}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{BsodRows}}
+    </tbody>
+</table>
+
+<h2 class="with-icon">
+    <span style="font-size:20px">🔔</span>
+    {{tr:Alertes récentes}} — {{AlertTotalCount}}
+</h2>
+<table>
+    <thead>
+        <tr>
+            <th style="width:150px">{{tr:Date}}</th>
+            <th style="width:100px">{{tr:Sévérité}}</th>
+            <th style="width:120px">{{tr:Type}}</th>
+            <th style="width:150px">{{tr:Cible}}</th>
+            <th>{{tr:Message}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{AlertRows}}
     </tbody>
 </table>
 

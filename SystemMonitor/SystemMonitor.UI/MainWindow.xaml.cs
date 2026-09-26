@@ -873,7 +873,9 @@ namespace SystemMonitor.UI
                         BugCheckName = b.bugCheckName ?? "",
                         Parameters = b.parameters ?? "",
                         DumpPath = b.dumpPath ?? "",
-                        DumpExists = b.dumpExists
+                        DumpExists = b.dumpExists,
+                        FaultyModule = b.faultyModule ?? "",
+                        FaultAddress = b.faultAddress ?? ""
                     });
                 }
             }
@@ -985,5 +987,7 @@ namespace SystemMonitor.UI
         public string Parameters { get; set; } = "";
         public string DumpPath { get; set; } = "";
         public bool DumpExists { get; set; }
-    }        
+        public string FaultyModule { get; set; } = "";
+        public string FaultAddress { get; set; } = "";
+    }     
 }

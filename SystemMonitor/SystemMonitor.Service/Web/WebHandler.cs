@@ -96,7 +96,108 @@ namespace SystemMonitor.Service.Web
                             <div class='core-value'>{usage}%</div>
                         </div>");
                 }
-                
+
+                // ============================================================
+                //  Cœurs CPU (barres verticales)
+                // ============================================================
+                var cpuCoreBars = new System.Text.StringBuilder();
+
+                foreach (var core in snap.Cpu.Cores)
+                {
+                    string coreColor = GetColorForPercent(core.UsagePercent);
+                    string coreUsage = core.UsagePercent.ToString("F0", CultureInfo.InvariantCulture);
+                    string coreName = WebUtility.HtmlEncode(core.Name);
+
+                    cpuCoreBars.Append($@"
+                        <div class='core-item' title='{coreName} : {coreUsage}%'>
+                            <div class='core-label'>{coreName}</div>
+                            <div class='core-progress'>
+                                <div class='core-bar' style='height:{coreUsage}%;background:{coreColor}'></div>
+                            </div>
+                            <div class='core-value'>{coreUsage}%</div>
+                        </div>");
+                }
+
+                // ============================================================
+                //  Graphiques historiques (5 min)
+                // ============================================================
+                var history = engine.GetHistory();
+
+                var cpuValues = history.Select(h => h.CpuUsage).ToList();
+                var ramValues = history.Select(h => h.RamUsage).ToList();
+
+                string cpuChartSvg = GenerateSvgChart(cpuValues, "#4CC2FF");
+                string ramChartSvg = GenerateSvgChart(ramValues, "#6CCB5F");
+
+                string cpuMaxText = cpuValues.Count > 0
+                    ? cpuValues.Max().ToString("F1", CultureInfo.InvariantCulture)
+                    : "0";
+
+                string ramMaxText = ramValues.Count > 0
+                    ? ramValues.Max().ToString("F1", CultureInfo.InvariantCulture)
+                    : "0";
+
+                string historyCountText = history.Count.ToString();
+
+                // ============================================================
+                //  Alertes récentes
+                // ============================================================
+                var alerts = engine.GetAlerts();
+                var alertRows = new System.Text.StringBuilder();
+
+                if (alerts != null && alerts.Count > 0)
+                {
+                    foreach (var a in alerts.OrderByDescending(x => x.Timestamp).Take(50))
+                    {
+                        string sevClass = a.Severity == "Critical" ? "danger"
+                                        : a.Severity == "Warning" ? "warning"
+                                        : "ok";
+
+                        alertRows.Append($@"
+                            <tr>
+                                <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
+                                <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(a.Severity)}</span></td>
+                                <td>{WebUtility.HtmlEncode(a.Type.ToString())}</td>
+                                <td>{WebUtility.HtmlEncode(a.Target)}</td>
+                                <td>{WebUtility.HtmlEncode(a.Message)}</td>
+                            </tr>");
+                    }
+                }
+                else
+                {
+                    alertRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Aucune alerte</td></tr>");
+                }
+
+                // ============================================================
+                //  BSOD
+                // ============================================================
+                var bsods = engine.GetBsods();
+                var bsodRows = new System.Text.StringBuilder();
+
+                if (bsods != null && bsods.Count > 0)
+                {
+                    foreach (var b in bsods.OrderByDescending(x => x.Timestamp).Take(50))
+                    {
+                        string dumpIcon = b.DumpExists ? "?" : "?";
+
+                        bsodRows.Append($@"
+                            <tr>
+                                <td>{b.Timestamp:dd/MM/yyyy HH:mm:ss}</td>
+                                <td><b>{WebUtility.HtmlEncode(b.BugCheckCode)}</b></td>
+                                <td>{WebUtility.HtmlEncode(b.BugCheckName)}</td>
+                                <td>{WebUtility.HtmlEncode(b.FaultyModule)}</td>
+                                <td style='text-align:center'>{dumpIcon}</td>
+                            </tr>");
+                    }
+                }
+                else
+                {
+                    bsodRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Aucun BSOD</td></tr>");
+                }
+
+                int alertCount = alerts?.Count ?? 0;
+                int bsodCount = bsods?.Count ?? 0;
+                                                                
                 // ============================================================
                 //  Modèle
                 // ============================================================
@@ -118,6 +219,9 @@ namespace SystemMonitor.Service.Web
                     ["CpuMaxFreq"] = snap.Cpu.MaxFrequencyMHz?.ToString("F0", CultureInfo.InvariantCulture) ?? "N/A",
                     ["CoreCount"] = snap.Cpu.Cores.Count,
                     ["CoreBars"] = coreBars.ToString(),
+                    ["HasCores"] = snap.Cpu.Cores.Count > 0,                
+                    ["CoreCount"] = snap.Cpu.Cores.Count,
+                    ["CoreBars"] = cpuCoreBars.ToString(),
 
                     // RAM
                     ["RamTotal"] = snap.Ram.TotalGB.ToString("F1", CultureInfo.InvariantCulture),
@@ -127,6 +231,19 @@ namespace SystemMonitor.Service.Web
                     ["RamBarColor"] = GetColorForPercent(snap.Ram.UsagePercent),
                     ["RamUsageClass"] = ramClass,
 
+                    //Graphiques historique
+                    ["CpuChartSvg"] = cpuChartSvg,
+                    ["RamChartSvg"] = ramChartSvg,
+                    ["CpuMaxText"] = cpuMaxText,
+                    ["RamMaxText"] = ramMaxText,
+                    ["HistoryCount"] = historyCountText,
+
+                    // Infos BSOD
+                    ["AlertRows"] = alertRows.ToString(),
+                    ["AlertTotalCount"] = alertCount,
+                    ["BsodRows"] = bsodRows.ToString(),
+                    ["BsodTotalCount"] = bsodCount,
+                                        
                     // Boucles
                     ["GpuRows"] = gpuRows.ToString(),
                     ["NetRows"] = netRows.ToString(),
@@ -180,6 +297,78 @@ namespace SystemMonitor.Service.Web
             }
 
             return $"#{r:X2}{g:X2}{b:X2}";
+        }
+        
+        /// <summary>
+        /// Génère un graphique SVG à partir d'une série de valeurs (0-100).
+        /// </summary>
+        private static string GenerateSvgChart(
+            List<double> values,
+            string color,
+            int width = 800,
+            int height = 180,
+            double maxValue = 100)
+        {
+            if (values == null || values.Count < 2)
+                return "<div style='color:#888;padding:20px;text-align:center'>Pas assez de données</div>";
+
+            var sb = new System.Text.StringBuilder();
+            var inv = CultureInfo.InvariantCulture;   // ? Important : force le point comme séparateur
+
+            int padding = 10;
+            int drawWidth = width - padding * 2;
+            int drawHeight = height - padding * 2;
+            int bottomY = padding + drawHeight;
+
+            // 1. Calculer tous les points (x, y) une seule fois
+            var points = new List<(double x, double y)>();
+            double stepX = drawWidth / (double)(values.Count - 1);
+
+            for (int i = 0; i < values.Count; i++)
+            {
+                double v = Math.Max(0, Math.Min(maxValue, values[i]));
+                double x = padding + i * stepX;
+                double y = padding + drawHeight - (v / maxValue * drawHeight);
+                points.Add((x, y));
+            }
+
+            // 2. Générer le SVG
+            sb.Append($"<svg viewBox='0 0 {width} {height}' preserveAspectRatio='none' ");
+            sb.Append($"style='width:100%;height:{height}px;background:#1A1A1A;border-radius:6px'>");
+
+            // Grille horizontale
+            for (int i = 1; i <= 3; i++)
+            {
+                double y = padding + drawHeight * (i / 4.0);
+                sb.Append($"<line x1='{padding}' y1='{y.ToString("F1", inv)}' x2='{width - padding}' y2='{y.ToString("F1", inv)}' ");
+                sb.Append($"stroke='#2D2D30' stroke-width='1'/>");
+            }
+
+            // 3. Zone remplie sous la courbe (path fermé)
+            sb.Append("<path d='");
+            sb.Append($"M {padding},{bottomY} ");
+            sb.Append($"L {points[0].x.ToString("F1", inv)},{points[0].y.ToString("F1", inv)} ");
+
+            for (int i = 1; i < points.Count; i++)
+                sb.Append($"L {points[i].x.ToString("F1", inv)},{points[i].y.ToString("F1", inv)} ");
+
+            sb.Append($"L {points[points.Count - 1].x.ToString("F1", inv)},{bottomY} Z' ");
+            sb.Append($"fill='{color}' fill-opacity='0.15' stroke='none'/>");
+
+            // 4. Courbe (polyline)
+            sb.Append("<polyline points='");
+            for (int i = 0; i < points.Count; i++)
+            {
+                sb.Append($"{points[i].x.ToString("F1", inv)},{points[i].y.ToString("F1", inv)}");
+                if (i < points.Count - 1)
+                    sb.Append(' ');
+            }
+            sb.Append($"' fill='none' stroke='{color}' stroke-width='2' ");
+            sb.Append("stroke-linejoin='round' stroke-linecap='round'/>");
+
+            sb.Append("</svg>");
+
+            return sb.ToString();
         }
     }
 }

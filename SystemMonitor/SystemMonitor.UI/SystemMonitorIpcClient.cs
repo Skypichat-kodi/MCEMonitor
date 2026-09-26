@@ -121,6 +121,8 @@ namespace SystemMonitor.UI
         public string dumpPath { get; set; } = "";
         public bool dumpExists { get; set; }
         public string source { get; set; } = "";
+        public string faultyModule { get; set; } = "";  
+        public string faultAddress { get; set; } = "";
     }
             
     // ============================================================

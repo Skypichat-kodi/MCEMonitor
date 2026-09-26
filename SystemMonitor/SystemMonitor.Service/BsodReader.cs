@@ -90,6 +90,33 @@ namespace SystemMonitor.Service
                 bsod.DumpPath = FindDumpForCrash(entry.TimeGenerated);
                 bsod.DumpExists = !string.IsNullOrEmpty(bsod.DumpPath) && File.Exists(bsod.DumpPath);
 
+                // ? Parser le dump
+                if (bsod.DumpExists)
+                {
+                    try
+                    {
+                        var fault = MinidumpParser.Analyze(bsod.DumpPath);
+                        if (fault != null)
+                        {
+                            if (fault.IsKernelDump)
+                            {
+                                // Kernel dump : le pilote n'est pas extractible
+                                bsod.FaultyModule = "Kernel dump (pilote non identifiable sans WinDbg)";
+                                bsod.FaultAddress = fault.BugCheckParameters;
+                            }
+                            else
+                            {
+                                bsod.FaultyModule = fault.FaultyModuleName;
+                                bsod.FaultAddress = $"0x{fault.FaultAddress:X16}";
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreLog.Write("Erreur parsing dump : " + ex.Message);
+                    }
+                }
+
                 return bsod;
             }
             catch (Exception ex)

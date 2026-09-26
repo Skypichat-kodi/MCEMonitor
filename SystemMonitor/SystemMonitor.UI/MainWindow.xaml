@@ -1025,6 +1025,7 @@
                             <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Code'}" Binding="{Binding BugCheckCode}" Width="120"/>
                             <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding BugCheckName}" Width="2*"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Pilote'}" Binding="{Binding FaultyModule}" Width="3*"/>
                             <DataGridTemplateColumn Header="{loc:Tr 'Dump'}" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -1048,7 +1049,7 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                         </DataGrid.Columns>
-                    </DataGrid>                    
+                    </DataGrid>
                 </Grid>
             </TabItem>
 
