@@ -22,7 +22,8 @@ namespace SystemMonitor.UI
         private readonly ObservableCollection<NetworkCard> _networks = new();
         private readonly ObservableCollection<AlertRow> _alerts = new();
         private List<SysHistoryPoint> _history = new();
-        private readonly ObservableCollection<BsodRow> _bsods = new();        
+        private readonly ObservableCollection<BsodRow> _bsods = new();
+        private readonly ObservableCollection<AlertRow> _alertsHistory = new();        
         
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
@@ -66,6 +67,7 @@ namespace SystemMonitor.UI
             GpusList.ItemsSource = _gpus;
             NetworksList.ItemsSource = _networks;
             AlertsGrid.ItemsSource = _alerts;
+            AlertsHistoryGrid.ItemsSource = _alertsHistory;
             BsodsGrid.ItemsSource = _bsods;            
 
             _refreshTimer = new DispatcherTimer
@@ -286,11 +288,29 @@ namespace SystemMonitor.UI
                 var alerts = await SystemMonitorIpcClient.GetAlerts();
                 if (alerts == null) return;
 
-                _alerts.Clear();
+                // ✅ Alertes récentes (30 min) pour AlertsGrid
+                var limit = DateTime.Now.AddMinutes(-30);
 
-                foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(100))
+                _alerts.Clear();
+                foreach (var a in alerts.Where(x => x.timestamp >= limit)
+                                        .OrderByDescending(x => x.timestamp))
                 {
                     _alerts.Add(new AlertRow
+                    {
+                        Timestamp = a.timestamp,
+                        Type = a.type ?? "",
+                        Severity = a.severity ?? "",
+                        Target = a.target ?? "",
+                        Message = a.message ?? "",
+                        EmailSent = a.emailSent
+                    });
+                }
+
+                // ✅ Historique complet pour AlertsHistoryGrid
+                _alertsHistory.Clear();
+                foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(100))
+                {
+                    _alertsHistory.Add(new AlertRow
                     {
                         Timestamp = a.timestamp,
                         Type = a.type ?? "",
@@ -577,6 +597,7 @@ namespace SystemMonitor.UI
                 if (ok)
                 {
                     _alerts.Clear();
+                    _alertsHistory.Clear();   // ✅ NOUVEAU
                     StatusText.Text = "Historique des alertes vidé.";
                 }
                 else
