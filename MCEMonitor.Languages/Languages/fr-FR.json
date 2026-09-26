@@ -209,7 +209,7 @@
   "Email envoyé avec succès !": "Email envoyé avec succès !",
   "Déconnexion du serveur.": "Déconnexion du serveur.",
   "ERREUR : ": "ERREUR : ",
-  "OnOff.Info.Description": "Le module On/Off permet de programmer l’arrêt ou la mise en veille de votre machine à une heure\nprécise.\nCette heure est également utilisée par MediaMonitor pour envoyer un rapport par email 10 minutes\navant l’arrêt ou la mise en veille.\nSi vous ne souhaitez pas envoyer de rapport, vous pouvez désactiver cette fonctionnalité dans l’interface de MediaMonitor.      ",
+  "OnOff.Info.Description": "Ce module permet de programmer l’arrêt ou la mise en veille de votre machine à une heure précise.\nHeure également utilisée par les autres services pour envoyer un rapport par email.\nVous pouvez désactiver cette fonctionnalité dans les interfaces des autres services.",
   "Service en cours d'utilisation": "Service en cours d'utilisation",
   "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.": "Impossible d'arrêter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
   "DVBviewer RS": "DVBviewer RS",

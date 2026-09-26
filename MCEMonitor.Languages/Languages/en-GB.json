@@ -156,7 +156,7 @@
   "Envoi d'un mail de test": "Sending a test email",
   "A propos de StopMonitor": "About StopMonitor",
   "Information": "Information",
-  "OnOff.Info.Description": "The On/Off module allows you to schedule your computer to shut down or go to sleep at\na specific time.\nThis time is also used by MediaMonitor to send a report by email 10 minutes before the shutdown or sleep process.\nIf you do not wish to send a report, you can disable this feature in the MediaMonitor interface.",
+  "OnOff.Info.Description": "This module allows you to schedule your machine to shut down or enter sleep mode at a specific time.\nThis time is also used by other services to send email reports.\nYou can disable this feature within the interfaces of the other services.",
   "Arrêt programmé": "Scheduled stop",
   "Heure (0–23) :": "Time (0–23):",
   "Minute (0–59) :": "Minute (0–59):",
