@@ -87,20 +87,20 @@ namespace SystemMonitor.Tray
                 Text = "SystemMonitor"
             };
 
-            trayIcon.DoubleClick += (s, e) => OpenMCEMonitor();
+            // Clic gauche ? ouvrir l'UI SystemMonitor
+            trayIcon.DoubleClick += (s, e) => OpenSystemMonitorUI();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenMCEMonitor();
+                    OpenSystemMonitorUI();
             };
 
             // Menu contextuel
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add("Ouvrir SystemMonitor", null, (s, e) => OpenSystemMonitorUI());
+            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
-
             trayIcon.ContextMenuStrip = menu;
 
             // Watchdog (5s)

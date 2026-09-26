@@ -15,15 +15,13 @@ namespace MediaMonitor.Tray
 
         public TrayApplicationContext()
         {
-            // On ne crée PAS le NotifyIcon ici.
-            // On laisse Program.cs vérifier que le service tourne.
             InitializeTray();
         }
 
         private void InitializeTray()
         {
             // ------------------------------------------------------------
-            // Chargement de l'icône (chemin fiable Windows 10/11)
+            // Chargement de l'icône
             // ------------------------------------------------------------
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
             string iconPath = Path.Combine(exeDir, "MediaMonitor.ico");
@@ -36,26 +34,28 @@ namespace MediaMonitor.Tray
             };
 
             // ------------------------------------------------------------
-            // Gestion des clics
+            // Gestion des clics ? ouvrir l'UI MediaMonitor
             // ------------------------------------------------------------
-            trayIcon.DoubleClick += (s, e) => OpenMCEMonitor();
+            trayIcon.DoubleClick += (s, e) => OpenMediaMonitorUI();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenMCEMonitor();
+                    OpenMediaMonitorUI();
             };
 
             // ------------------------------------------------------------
             // Menu contextuel
             // ------------------------------------------------------------
             var menu = new ContextMenuStrip();
+            menu.Items.Add("Ouvrir MediaMonitor", null, (s, e) => OpenMediaMonitorUI());
             menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
+            menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
 
             trayIcon.ContextMenuStrip = menu;
 
             // ------------------------------------------------------------
-            // Watchdog : vérifie toutes les 5 secondes si le service tourne
+            // Watchdog
             // ------------------------------------------------------------
             watchdog = new Timer();
             watchdog.Interval = 5000;
@@ -64,7 +64,47 @@ namespace MediaMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        // Ouvrir l’UI
+        //  Ouvrir MediaMonitor.UI
+        // ------------------------------------------------------------
+        private void OpenMediaMonitorUI()
+        {
+            try
+            {
+                string programFiles = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles);
+                string exePath = Path.Combine(programFiles, "MCEMonitor", "MediaMonitor.UI.exe");
+
+                if (!File.Exists(exePath))
+                {
+                    string programFilesX86 = Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86);
+                    exePath = Path.Combine(programFilesX86, "MCEMonitor", "MediaMonitor.UI.exe");
+                }
+
+                if (!File.Exists(exePath))
+                {
+                    MessageBox.Show(
+                        "MediaMonitor.UI.exe est introuvable dans Program Files.",
+                        "Erreur",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error
+                    );
+                    return;
+                }
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = exePath,
+                    Arguments = "--from-mcem",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir MediaMonitor.UI : " + ex.Message);
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Ouvrir MCEMonitor
         // ------------------------------------------------------------
         private void OpenMCEMonitor()
         {
@@ -103,7 +143,7 @@ namespace MediaMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        // Watchdog : ferme le Tray si le service s'arrête
+        //  Watchdog
         // ------------------------------------------------------------
         private void Watchdog_Tick(object sender, EventArgs e)
         {
@@ -118,7 +158,7 @@ namespace MediaMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        // Quitter proprement (IPC vers le service + fermeture UI)
+        //  Quitter
         // ------------------------------------------------------------
         private void Exit()
         {
@@ -139,9 +179,6 @@ namespace MediaMonitor.Tray
                 }
             }
 
-            // ------------------------------------------------------------
-            // AJOUT : fermer MediaMonitor.UI.exe
-            // ------------------------------------------------------------
             foreach (var p in Process.GetProcessesByName("MediaMonitor.UI"))
             {
                 try { p.Kill(); } catch { }
