@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Timers;
 using Timer = System.Timers.Timer;
@@ -16,8 +18,8 @@ namespace SystemMonitor.Service
         private readonly HardwareMonitorService _hardware;
         private readonly HistoryBuffer _measureHistory;
         private readonly BsodHistory _bsodHistory;
-        private DateTime _lastBsodCheck = DateTime.MinValue;    
-        
+        private DateTime _lastBsodCheck = DateTime.MinValue;
+
         private Timer _timer;
         private bool _isRunning;
         private SystemSnapshot _lastSnapshot = new();
@@ -27,21 +29,70 @@ namespace SystemMonitor.Service
         public bool IsRunning => _isRunning;
 
         public event Action OnUpdate;
-        
+
+        /// <summary>
+        /// Sévérité globale : "ok" / "warning" / "critical".
+        /// Basée sur les alertes récentes + les BSOD récents.
+        /// </summary>
+        public string WorstSeverity
+        {
+            get
+            {
+                try
+                {
+                    // Vérifier les alertes des 30 dernières minutes
+                    var alerts = _alertManager.GetAlerts();
+                    if (alerts != null && alerts.Count > 0)
+                    {
+                        bool hasWarning = false;
+                        var limit = DateTime.Now.AddMinutes(-30);
+
+                        foreach (var a in alerts)
+                        {
+                            if (a.Timestamp < limit) continue;
+
+                            if (a.Severity == "Critical")
+                                return "critical";
+
+                            if (a.Severity == "Warning")
+                                hasWarning = true;
+                        }
+
+                        if (hasWarning) return "warning";
+                    }
+
+                    // Vérifier les BSOD récents (24h)
+                    var bsods = _bsodHistory.GetAll();
+                    if (bsods != null)
+                    {
+                        var bsodLimit = DateTime.Now.AddHours(-24);
+                        if (bsods.Any(b => b.Timestamp >= bsodLimit))
+                            return "critical";
+                    }
+
+                    return "ok";
+                }
+                catch
+                {
+                    return "ok";
+                }
+            }
+        }
+
         public SystemMonitorEngine(SystemMonitorSettings settings)
         {
             _settings = settings;
-            
-            // Historique des alertes (existant)
+
+            // Historique des alertes
             _history = new AlertHistory();
             _history.Clear();
             _alertManager = new AlertManager(settings, _history);
 
-            // ? NOUVEAU : historique des mesures
+            // Historique des mesures
             _measureHistory = new HistoryBuffer(capacity: 60);
-            
+
             // Historique des BSOD
-            _bsodHistory = new BsodHistory();            
+            _bsodHistory = new BsodHistory();
 
             // Collecte matérielle
             _hardware = new HardwareMonitorService();
@@ -61,9 +112,9 @@ namespace SystemMonitor.Service
 
             // Premier check immédiat
             Task.Run(() => Tick());
-            
+
             // Scan initial des BSOD
-            Task.Run(() => ScanForBsods(force: true));            
+            Task.Run(() => ScanForBsods(force: true));
         }
 
         public void Stop()
@@ -92,7 +143,7 @@ namespace SystemMonitor.Service
                 _lastSnapshot = snap;
                 LastUpdateTime = DateTime.Now;
 
-                // ? NOUVEAU : ajouter à l'historique
+                // Ajouter à l'historique
                 var gpu = snap.Gpus.Count > 0 ? snap.Gpus[0] : null;
 
                 _measureHistory.Add(new HistoryPoint
@@ -124,7 +175,7 @@ namespace SystemMonitor.Service
             Stop();
             _hardware?.Dispose();
         }
-        
+
         // ============================================================
         //  Vérification des seuils
         // ============================================================
@@ -298,7 +349,7 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur envoi email temp : " + ex.Message);
             }
         }
-        
+
         public List<Alert> GetAlerts() => _alertManager.GetAlerts();
 
         public void ClearAlerts()
@@ -307,7 +358,7 @@ namespace SystemMonitor.Service
             CoreLog.Write("Historique des alertes vidé par IPC");
             OnUpdate?.Invoke();
         }
-        
+
         public List<HistoryPoint> GetHistory() => _measureHistory.GetAll();
 
         public void ClearHistory()
@@ -315,7 +366,7 @@ namespace SystemMonitor.Service
             _measureHistory.Clear();
             CoreLog.Write("Historique des mesures vidé");
         }
-        
+
         /// <summary>
         /// Scanne l'Event Log pour les BSOD récents et les ajoute à l'historique.
         /// Ne scanne pas plus d'une fois par 5 minutes.
@@ -346,6 +397,6 @@ namespace SystemMonitor.Service
         {
             _bsodHistory.Clear();
             CoreLog.Write("Historique BSOD vidé");
-        }                                     
+        }
     }
 }

@@ -66,7 +66,8 @@ namespace SystemMonitor.Service.Ipc
                 cpuUsage = _engine.LastSnapshot.Cpu.UsagePercent,
                 cpuTemp = _engine.LastSnapshot.Cpu.Temperature,
                 ramUsage = _engine.LastSnapshot.Ram.UsagePercent,
-                gpuCount = _engine.LastSnapshot.Gpus.Count
+                gpuCount = _engine.LastSnapshot.Gpus.Count,
+                worstSeverity = _engine.WorstSeverity    // ? NOUVEAU
             });
         }
 

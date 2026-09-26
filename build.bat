@@ -72,6 +72,7 @@ call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"          "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"        "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"            "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.UI"              "%DEST_PROGRAM%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.Tray"      "%DEST_PROGRAM%"
 call :publish "%ROOT%\SystemMonitor\SystemMonitor.UI"        "%DEST_PROGRAM%"
 
 REM === ProgramData ===
