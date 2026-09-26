@@ -1,4 +1,5 @@
 using System.Windows.Media;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.UI
 {
@@ -29,7 +30,7 @@ namespace RomMonitor.UI
         public string SmartReason { get; set; } = "";    // ? AJOUTER CETTE LIGNE
 
         public string SmartReasonText => 
-            string.IsNullOrWhiteSpace(SmartReason) ? "Aucun problème détecté" : SmartReason;
+            string.IsNullOrWhiteSpace(SmartReason) ? LanguageManager.Get("Aucun problème détecté") ?? "Aucun problème détecté" : SmartReason;
         
         public int? SmartTemperature { get; set; }
         public int? SmartPowerOnHours { get; set; }

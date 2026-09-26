@@ -525,7 +525,7 @@ namespace MCEMonitor
             this.numRomCooldown.Maximum = 168;
             this.numRomCooldown.Font = normalFont;
 
-            this.lblRomWarnGo.Text = "Seuil warning (Go) :";
+            this.lblRomWarnGo.Text = LanguageManager.Get("Seuil warning (Go) :") ?? "Seuil warning (Go) :";
             this.lblRomWarnGo.Location = new System.Drawing.Point(20, 94);
             this.lblRomWarnGo.Size = new System.Drawing.Size(200, 20);
             this.lblRomWarnGo.Font = normalFont;
@@ -539,7 +539,7 @@ namespace MCEMonitor
             this.numRomWarnGo.Font = normalFont;
             this.numRomWarnGo.Visible = false;
 
-            this.lblRomCritGo.Text = "Seuil critique (Go) :";
+            this.lblRomCritGo.Text = LanguageManager.Get("Seuil critique (Go) :") ?? "Seuil critique (Go) :";
             this.lblRomCritGo.Location = new System.Drawing.Point(340, 38);
             this.lblRomCritGo.Size = new System.Drawing.Size(180, 20);
             this.lblRomCritGo.Font = normalFont;
@@ -558,7 +558,7 @@ namespace MCEMonitor
             this.chkRomSmartAlert.Size = new System.Drawing.Size(400, 20);
             this.chkRomSmartAlert.Font = normalFont;
 
-            this.lblRomHint.Text = "Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.";
+            this.lblRomHint.Text = LanguageManager.Get("Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.") ?? "Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.";
             this.lblRomHint.Font = new System.Drawing.Font("Segoe UI", 8F, System.Drawing.FontStyle.Italic);
             this.lblRomHint.Location = new System.Drawing.Point(20, 125);
             this.lblRomHint.Size = new System.Drawing.Size(600, 20);

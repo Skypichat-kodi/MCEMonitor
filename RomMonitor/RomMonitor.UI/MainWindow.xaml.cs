@@ -204,9 +204,12 @@ namespace RomMonitor.UI
                 }
 
                 StatusText.Text =
-                    $"Service actif  |  Dernier check : {status.lastCheck:HH:mm:ss}  |  " +
-                    $"{status.diskCount} disque(s)  |  {status.smartCount} SMART  |  " +
-                    $"{status.alertCount} alerte(s)  |  Intervalle : {status.interval} min";
+                    $"{LanguageManager.Get("Service actif") ?? "Service actif"}  |  " +
+                    $"{LanguageManager.Get("Dernier check") ?? "Dernier check"} : {status.lastCheck:HH:mm:ss}  |  " +
+                    $"{status.diskCount} {LanguageManager.Get("disque(s)") ?? "disque(s)"}  |  " +
+                    $"{status.smartCount} SMART  |  " +
+                    $"{status.alertCount} {LanguageManager.Get("alerte(s)") ?? "alerte(s)"}  |  " +
+                    $"{LanguageManager.Get("Intervalle") ?? "Intervalle"} : {status.interval} min";
 
                 // ?? Icône selon l'état
                 if (status.alertCount > 0)

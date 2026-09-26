@@ -108,11 +108,12 @@ namespace SystemMonitor.UI
                 _ = RefreshHistory();
                 _ = RefreshBsods();                                
 
-                StatusText.Text =
-                    $"Dernière mise à jour : {snap.timestamp:HH:mm:ss}  |  " +
-                    $"CPU : {snap.cpu.usagePercent:F1}%  |  " +
-                    $"RAM : {snap.ram.usagePercent:F1}%  |  " +
-                    $"{snap.gpus.Count} GPU  |  {snap.networks.Count} réseau(x)";
+            StatusText.Text =
+                $"{LanguageManager.Get("Dernière mise à jour") ?? "Dernière mise à jour"} : {snap.timestamp:HH:mm:ss}  |  " +
+                $"CPU : {snap.cpu.usagePercent:F1}%  |  " +
+                $"RAM : {snap.ram.usagePercent:F1}%  |  " +
+                $"{snap.gpus.Count} GPU  |  " +
+                $"{snap.networks.Count} {LanguageManager.Get("réseau(x)") ?? "réseau(x)"}";
             }
             catch (Exception ex)
             {

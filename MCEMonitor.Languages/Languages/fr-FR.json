@@ -489,5 +489,14 @@
   "Choix du thème": "Choix du thème",
   "Sélectionnez un thème (appliqué immédiatement) :": "Sélectionnez un thème (appliqué immédiatement) :",
   "N/A": "N/A",
-  "Jamais": "Jamais"
+  "Jamais": "Jamais",
+  "Aucun problème détecté": "Aucun problème détecté",
+  "Seuil warning (Go) :": "Seuil warning (Go) :",
+  "Seuil critique (Go) :": "Seuil critique (Go) :",
+  "Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.": "Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.",
+  "Service actif": "Service actif",
+  "disque(s)": "disque(s)",
+  "alerte(s)": "alerte(s)",
+  "Intervalle": "Intervalle",
+  "réseau(x)": "réseau(x)"
 }
