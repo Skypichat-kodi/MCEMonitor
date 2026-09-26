@@ -640,7 +640,7 @@ namespace MCEMonitor
 
             this.grpWakeOptions.Text = LanguageManager.Get("Indications à donner dans le mail") ?? "Indications à donner dans le mail";
             this.grpWakeOptions.Location = new System.Drawing.Point(20, 160);
-            this.grpWakeOptions.Size = new System.Drawing.Size(420, 230);
+            this.grpWakeOptions.Size = new System.Drawing.Size(420, 200);
             this.grpWakeOptions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
 
             this.chkPublicIP.AutoSize = true;
@@ -947,7 +947,7 @@ namespace MCEMonitor
                 "----------------------------------------\n" +
                 "LICENCE MIT\n" +
                 "----------------------------------------\n\n" +
-            @"MCEMonitor (Version 1.7.5)
+            @"MCEMonitor (Version 2.0.0)
             Outil de supervision et d'automatisation pour Media Server (KODI).
 
             MIT License
@@ -1242,7 +1242,7 @@ namespace MCEMonitor
             this.chkSystemAlertTemp.Font = normalFont;
 
             this.lblSystemTempThreshold.Text = LanguageManager.Get("Seuil Temp. (°C) :") ?? "Seuil Temp. (°C) :";
-            this.lblSystemTempThreshold.Location = new System.Drawing.Point(250, 105);
+            this.lblSystemTempThreshold.Location = new System.Drawing.Point(230, 105);
             this.lblSystemTempThreshold.Size = new System.Drawing.Size(120, 20);
             this.lblSystemTempThreshold.Font = normalFont;
 
