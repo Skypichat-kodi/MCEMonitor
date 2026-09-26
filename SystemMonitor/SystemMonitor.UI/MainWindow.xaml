@@ -3,9 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="SystemMonitor"
-        Height="900"
-        Width="1300"
-        MinHeight="600"
+        Height="750"
+        Width="1250"
+        MinHeight="550"
         MinWidth="900">
 
     <Window.Resources>
