@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
+using System.Collections.Generic;
 using Timer = System.Windows.Forms.Timer;
 
 namespace RomMonitor.Tray
@@ -91,12 +92,12 @@ namespace RomMonitor.Tray
                 Text = "RomMonitor"
             };
 
-            // Clic gauche / double-clic ? ouvrir l'UI RomMonitor
-            trayIcon.DoubleClick += (s, e) => OpenRomMonitorUI();
+            // Clic gauche / double-clic ? ouvrir le popup
+            trayIcon.DoubleClick += (s, e) => ShowProblemsPopup();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenRomMonitorUI();
+                    ShowProblemsPopup();
             };
 
             // Menu contextuel
@@ -370,5 +371,112 @@ namespace RomMonitor.Tray
             trayIcon.Dispose();
             Application.Exit();
         }
+        
+        // ------------------------------------------------------------
+        //  Requête IPC : get-alerts ? liste des problèmes
+        // ------------------------------------------------------------
+        private List<ProblemInfo> GetProblems()
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
+
+                client.Connect(1000);
+
+                if (!client.IsConnected)
+                    return new List<ProblemInfo>();
+
+                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-alerts");
+                client.Write(cmdBytes, 0, cmdBytes.Length);
+                client.Flush();
+
+                byte[] buffer = new byte[16384];
+                using var mem = new MemoryStream();
+
+                while (true)
+                {
+                    int bytesRead = client.Read(buffer, 0, buffer.Length);
+                    if (bytesRead <= 0)
+                        break;
+
+                    mem.Write(buffer, 0, bytesRead);
+                }
+
+                string json = Encoding.UTF8.GetString(mem.ToArray());
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return new List<ProblemInfo>();
+
+                // Parser le JSON brut pour extraire les alertes
+                using var doc = JsonDocument.Parse(json);
+
+                var problems = new List<ProblemInfo>();
+                var limit = DateTime.Now.AddMinutes(-30);
+
+                foreach (var el in doc.RootElement.EnumerateArray())
+                {
+                    try
+                    {
+                        var ts = el.GetProperty("timestamp").GetDateTime();
+
+                        if (ts < limit)
+                            continue;
+
+                        var severity = el.GetProperty("severity").GetString() ?? "Warning";
+                        var type = el.GetProperty("type").GetString() ?? "";
+                        var message = el.GetProperty("message").GetString() ?? "";
+
+                        problems.Add(new ProblemInfo
+                        {
+                            Timestamp = ts,
+                            Severity = severity == "Critical" ? "critical" : "warning",
+                            Category = type,
+                            Message = message
+                        });
+                    }
+                    catch { }
+                }
+
+                return problems
+                    .OrderByDescending(p => p.Severity == "critical")
+                    .ThenByDescending(p => p.Timestamp)
+                    .Take(20)
+                    .ToList();
+            }
+            catch
+            {
+                return new List<ProblemInfo>();
+            }
+        }
+        
+        // ------------------------------------------------------------
+        //  Afficher le popup des problèmes
+        // ------------------------------------------------------------
+        private void ShowProblemsPopup()
+        {
+            try
+            {
+                var problems = GetProblems();
+
+                var popup = new ProblemsPopupForm(problems);
+
+                popup.OnOpenRomMonitor += () => OpenRomMonitorUI();
+                popup.OnOpenMCEMonitor += () => OpenMCEMonitor();
+                popup.OnQuit += () => Exit();
+
+                popup.FormClosed += (s, e) => popup.Dispose();
+
+                popup.ShowAtTrayPosition();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Erreur lors de l'ouverture du popup : " + ex.Message,
+                    "Erreur",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }                
     }
 }

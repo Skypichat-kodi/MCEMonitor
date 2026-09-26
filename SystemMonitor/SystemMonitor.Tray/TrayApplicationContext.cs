@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
+using System.Collections.Generic;
 using Timer = System.Windows.Forms.Timer;
 
 namespace SystemMonitor.Tray
@@ -87,12 +88,12 @@ namespace SystemMonitor.Tray
                 Text = "SystemMonitor"
             };
 
-            // Clic gauche ? ouvrir l'UI SystemMonitor
-            trayIcon.DoubleClick += (s, e) => OpenSystemMonitorUI();
+            // Clic gauche / double-clic ? ouvrir le popup des problèmes
+            trayIcon.DoubleClick += (s, e) => ShowProblemsPopup();
             trayIcon.MouseClick += (s, e) =>
             {
                 if (e.Button == MouseButtons.Left)
-                    OpenSystemMonitorUI();
+                    ShowProblemsPopup();
             };
 
             // Menu contextuel
@@ -177,6 +178,52 @@ namespace SystemMonitor.Tray
             catch { }
         }
 
+        // ------------------------------------------------------------
+        //  Requête IPC : get-problems ? liste des problèmes
+        // ------------------------------------------------------------
+        private List<ProblemInfo> GetProblems()
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
+
+                client.Connect(1000);
+
+                if (!client.IsConnected)
+                    return new List<ProblemInfo>();
+
+                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-problems");
+                client.Write(cmdBytes, 0, cmdBytes.Length);
+                client.Flush();
+
+                byte[] buffer = new byte[16384];
+                using var mem = new MemoryStream();
+
+                while (true)
+                {
+                    int bytesRead = client.Read(buffer, 0, buffer.Length);
+                    if (bytesRead <= 0)
+                        break;
+
+                    mem.Write(buffer, 0, bytesRead);
+                }
+
+                string json = Encoding.UTF8.GetString(mem.ToArray());
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return new List<ProblemInfo>();
+
+                var problems = JsonSerializer.Deserialize<List<ProblemInfo>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                return problems ?? new List<ProblemInfo>();
+            }
+            catch
+            {
+                return new List<ProblemInfo>();
+            }
+        }
+        
         // ------------------------------------------------------------
         //  Requête IPC : get-status ? worstSeverity
         // ------------------------------------------------------------
@@ -353,5 +400,36 @@ namespace SystemMonitor.Tray
             trayIcon.Dispose();
             Application.Exit();
         }
+        
+        // ------------------------------------------------------------
+        //  Afficher le popup des problèmes
+        // ------------------------------------------------------------
+        private void ShowProblemsPopup()
+        {
+            try
+            {
+                var problems = GetProblems();
+
+                var popup = new ProblemsPopupForm(problems);
+
+                popup.OnOpenSystemMonitor += () => OpenSystemMonitorUI();
+                popup.OnOpenMCEMonitor += () => OpenMCEMonitor();
+                popup.OnQuit += () => Exit();
+
+                // Nettoyage automatique à la fermeture
+                popup.FormClosed += (s, e) => popup.Dispose();
+
+                popup.ShowAtTrayPosition();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Erreur lors de l'ouverture du popup : " + ex.Message,
+                    "Erreur",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error
+                );
+            }
+        }        
     }
 }

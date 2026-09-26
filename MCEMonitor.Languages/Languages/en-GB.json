@@ -130,7 +130,7 @@
   "Stop Monitor": "Stop Monitor",
   "On/Off": "On/Off",
   "À propos": "About",
-  "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.": "You must enter your sending information and a recipient so that other features of the software can send reports automatically.",
+  "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités du logiciel puissent envoyer des rapports automatiquement.": "You must enter your sending information and a recipient.\nSo that other features of the software can send reports automatically.",
   "Configuration Email": "Email Configuration",
   "Serveur SMTP :": "SMTP Server:",
   "Adresse expéditeur :": "Sending address:",

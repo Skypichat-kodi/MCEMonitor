@@ -48,7 +48,8 @@ namespace SystemMonitor.Service.Ipc
                 case "get-history":      HandleGetHistory(server); break;
                 case "clear-history":    HandleClearHistory(server); break;
                 case "get-bsods":        HandleGetBsods(server); break;
-                case "clear-bsods":      HandleClearBsods(server); break;                                
+                case "clear-bsods":      HandleClearBsods(server); break;
+                case "get-problems":     HandleGetProblems(server); break;                                
                 default:                 IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -344,6 +345,20 @@ namespace SystemMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleClearBsods : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                        
+        }
+        
+        private void HandleGetProblems(NamedPipeServerStream server)
+        {
+            try
+            {
+                var problems = _engine.GetProblems(20);
+                IpcResponse.Json(server, problems);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleGetProblems : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                
     }
 }

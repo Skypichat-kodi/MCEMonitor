@@ -398,5 +398,68 @@ namespace SystemMonitor.Service
             _bsodHistory.Clear();
             CoreLog.Write("Historique BSOD vidé");
         }
+        
+        /// <summary>
+        /// Retourne la liste unifiée des problèmes actuels (alertes + BSOD récents),
+        /// triés par sévérité puis par date décroissante.
+        /// </summary>
+        public List<ProblemItem> GetProblems(int maxItems = 20)
+        {
+            var problems = new List<ProblemItem>();
+
+            try
+            {
+                // Alertes des 30 dernières minutes
+                var alerts = _alertManager.GetAlerts();
+                var alertLimit = DateTime.Now.AddMinutes(-30);
+
+                if (alerts != null)
+                {
+                    foreach (var a in alerts)
+                    {
+                        if (a.Timestamp < alertLimit) continue;
+
+                        problems.Add(new ProblemItem
+                        {
+                            Timestamp = a.Timestamp,
+                            Severity = a.Severity == "Critical" ? "critical" : "warning",
+                            Category = a.Type.ToString(),
+                            Message = a.Message
+                        });
+                    }
+                }
+
+                // BSOD des dernières 24h
+                var bsods = _bsodHistory.GetAll();
+                var bsodLimit = DateTime.Now.AddHours(-24);
+
+                if (bsods != null)
+                {
+                    foreach (var b in bsods)
+                    {
+                        if (b.Timestamp < bsodLimit) continue;
+
+                        problems.Add(new ProblemItem
+                        {
+                            Timestamp = b.Timestamp,
+                            Severity = "critical",
+                            Category = "BSOD",
+                            Message = $"{b.BugCheckCode} - {b.BugCheckName}"
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur GetProblems : " + ex.Message);
+            }
+
+            // Trier : critical avant warning, puis par date décroissante
+            return problems
+                .OrderByDescending(p => p.Severity == "critical")
+                .ThenByDescending(p => p.Timestamp)
+                .Take(maxItems)
+                .ToList();
+        }        
     }
 }
