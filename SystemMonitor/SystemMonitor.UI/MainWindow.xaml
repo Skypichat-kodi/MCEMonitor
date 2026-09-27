@@ -1006,7 +1006,7 @@
                                        FontSize="16"
                                        Margin="0,0,8,0"
                                        VerticalAlignment="Center"/>
-                            <TextBlock Text="{loc:Tr 'Alertes système'}"
+                            <TextBlock Text="{loc:Tr 'Alertes système (30 Minutes)'}"
                                        FontSize="14"
                                        FontWeight="SemiBold"
                                        Foreground="#4CC2FF"

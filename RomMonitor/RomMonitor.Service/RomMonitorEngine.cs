@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,7 +9,7 @@ using MCEMonitor.Languages;
 namespace RomMonitor.Service
 {
     /// <summary>
-    /// Orchestrateur principal : boucle de vÈrification toutes les X minutes.
+    /// Orchestrateur principal : boucle de v√©rification toutes les X minutes.
     /// </summary>
     public class RomMonitorEngine
     {
@@ -20,7 +20,7 @@ namespace RomMonitor.Service
         private Timer _timer;
         private bool _isRunning;
 
-        // Cache des derniers rÈsultats (pour IPC)
+        // Cache des derniers r√©sultats (pour IPC)
         private List<DiskInfo> _lastDisks = new();
         private List<SmartInfo> _lastSmart = new();
 
@@ -36,7 +36,7 @@ namespace RomMonitor.Service
             _settings = settings;
             _history = new AlertHistory();
 
-            // Purge de l'historique ‡ chaque dÈmarrage
+            // Purge de l'historique √† chaque d√©marrage
             _history.Clear();
 
             _alertManager = new AlertManager(_settings, _history);
@@ -47,14 +47,14 @@ namespace RomMonitor.Service
             if (_isRunning) return;
             _isRunning = true;
 
-            CoreLog.Write($"RomMonitorEngine dÈmarrÈ (intervalle = {_settings.Interval} min)");
+            CoreLog.Write($"RomMonitorEngine d√©marr√© (intervalle = {_settings.Interval} min)");
 
             _timer = new Timer(_settings.Interval * 60 * 1000);
             _timer.Elapsed += (s, e) => Tick();
             _timer.AutoReset = true;
             _timer.Start();
 
-            // Premier check 30 secondes aprËs le dÈmarrage
+            // Premier check 30 secondes apr√®s le d√©marrage
             Task.Delay(30000).ContinueWith(_ => Tick());
         }
 
@@ -62,26 +62,26 @@ namespace RomMonitor.Service
         {
             _isRunning = false;
             _timer?.Stop();
-            CoreLog.Write("RomMonitorEngine arrÍtÈ");
+            CoreLog.Write("RomMonitorEngine arr√™t√©");
         }
 
         /// <summary>
-        /// Force un Tick immÈdiat, sans attendre l'intervalle.
-        /// AppelÈ par IPC quand l'utilisateur clique sur "RafraÓchir".
+        /// Force un Tick imm√©diat, sans attendre l'intervalle.
+        /// Appel√© par IPC quand l'utilisateur clique sur "Rafra√Æchir".
         /// </summary>
         public void ForceTick()
         {
-            CoreLog.Write("ForceTick demandÈ via IPC");
+            CoreLog.Write("ForceTick demand√© via IPC");
             Task.Run(() => Tick());
         }
 
         /// <summary>
-        /// Vide l'historique des alertes (appelÈ via IPC).
+        /// Vide l'historique des alertes (appel√© via IPC).
         /// </summary>
         public void ClearAlerts()
         {
             _alertManager.Clear();
-            CoreLog.Write("Historique des alertes vidÈ par IPC");
+            CoreLog.Write("Historique des alertes vid√© par IPC");
 
             OnUpdate?.Invoke();
         }
@@ -101,7 +101,7 @@ namespace RomMonitor.Service
                 _lastDisks = disks;
                 CheckDiskSpace(disks);
 
-                // 2. SantÈ SMART
+                // 2. Sant√© SMART
                 var smartInfo = DiskHealthChecker.GetAllSmartInfo();
                 _lastSmart = smartInfo.Values.ToList();
                 CheckSmart(smartInfo);
@@ -146,7 +146,7 @@ namespace RomMonitor.Service
 
                     if (_alertManager.CanSendAlert(alert.Type, alert.Target))
                     {
-                        // ?? Envoi email pour les Critical si activÈ
+                        // ?? Envoi email pour les Critical si activ√©
                         if (_settings.AlertOnLowDiskSpace)
                         {
                             _ = SendDiskSpaceAlertEmailAsync(disk, "Critical");
@@ -238,18 +238,18 @@ namespace RomMonitor.Service
 
                 if (string.IsNullOrEmpty(cfg.Server))
                 {
-                    CoreLog.Write("[EMAIL] Config email vide, envoi annulÈ");
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annul√©");
                     return;
                 }
 
                 string body = $@"
                     <p><b>Disque :</b> {info.Model}</p>
-                    <p><b>NumÈro de sÈrie :</b> {info.Serial}</p>
+                    <p><b>Num√©ro de s√©rie :</b> {info.Serial}</p>
                     <p><b>Device :</b> {info.Device}</p>
                     <p><b>Type :</b> {info.Type}</p>
                     <p><b>Statut :</b> <span style='color:#c0392b'>{info.Status}</span></p>
                     <p><b>Raison :</b> {info.StatusReason}</p>
-                    {(info.Temperature.HasValue ? $"<p><b>TempÈrature :</b> {info.Temperature}∞C</p>" : "")}
+                    {(info.Temperature.HasValue ? $"<p><b>Temp√©rature :</b> {info.Temperature}¬∞C</p>" : "")}
                     {(info.PowerOnHours.HasValue ? $"<p><b>Heures de fonctionnement :</b> {info.PowerOnHours}</p>" : "")}";
 
                 await EmailSender.SendAsync(
@@ -275,7 +275,7 @@ namespace RomMonitor.Service
 
                 if (string.IsNullOrEmpty(cfg.Server))
                 {
-                    CoreLog.Write("[EMAIL] Config email vide, envoi annulÈ");
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annul√©");
                     return;
                 }
 
@@ -292,7 +292,7 @@ namespace RomMonitor.Service
 
                 await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte espace disque envoyÈe pour {disk.Name}");
+                CoreLog.Write($"[EMAIL] Alerte espace disque envoy√©e pour {disk.Name}");
             }
             catch (Exception ex)
             {
@@ -301,51 +301,88 @@ namespace RomMonitor.Service
         }
 
         // ------------------------------------------------------------------
-        //  Email de test (appelÈ par IPC)
+        //  Email de test (appel√© par IPC)
         // ------------------------------------------------------------------
         public async Task SendTestEmailAsync()
         {
             var cfg = EmailConfig.Load();
 
             string body = $@"
-                <p>Ceci est un email de test envoyÈ par RomMonitor.</p>
+                <p>Ceci est un email de test envoy√© par RomMonitor.</p>
                 <p><b>Machine :</b> {Environment.MachineName}</p>
-                <p><b>Disques surveillÈs :</b> {_lastDisks.Count}</p>
+                <p><b>Disques surveill√©s :</b> {_lastDisks.Count}</p>
                 <p><b>Disques avec SMART :</b> {_lastSmart.Count}</p>";
 
             await EmailSender.SendAsync(cfg, "Test RomMonitor", body, isHtml: true);
         }
         
         /// <summary>
-        /// SÈvÈritÈ la plus grave parmi les alertes rÈcentes.
-        /// "ok" / "warning" / "critical"
+        /// S√©v√©rit√© la plus grave bas√©e sur l'√©tat ACTUEL des disques
+        /// (SMART + espace disque). Refl√®te l'√©tat R√âEL du syst√®me √† l'instant T.
+        /// 
+        /// IMPORTANT : Ne se base PAS sur l'historique des alertes. Ainsi, si un
+        /// probl√®me dispara√Æt (espace lib√©r√©, disque remplac√©, SMART redevenu OK),
+        /// l'ic√¥ne du Tray revient automatiquement √† la normale, sans n√©cessiter
+        /// de r√©initialisation manuelle.
+        ///
+        /// Valeurs possibles : "ok" / "warning" / "critical"
         /// </summary>
         public string WorstSeverity
         {
             get
             {
-                var alerts = _alertManager.GetAlerts();
-
-                if (alerts == null || alerts.Count == 0)
+                // Aucun scan effectu√© pour l'instant ? On consid√®re que tout va bien.
+                if (_lastDisks.Count == 0 && _lastSmart.Count == 0)
                     return "ok";
 
-                bool hasWarning = false;
+                // ============================================================
+                //  Priorit√© 1 : CRITICAL
+                // ============================================================
 
-                foreach (var a in alerts)
+                // 1a. SMART en √©tat critique (secteurs en attente, FAILED, etc.)
+                foreach (var s in _lastSmart)
                 {
-                    if (a.Severity == "Critical")
+                    if (s.Available && s.Status == "Critical")
                         return "critical";
-
-                    if (a.Severity == "Warning")
-                        hasWarning = true;
                 }
 
-                return hasWarning ? "warning" : "ok";
+                // 1b. Espace disque critique
+                foreach (var d in _lastDisks)
+                {
+                    bool critical = d.FreePercent < _settings.DiskSpaceCriticalPercent
+                                 || d.FreeGo < _settings.DiskSpaceCriticalGo;
+
+                    if (critical)
+                        return "critical";
+                }
+
+                // ============================================================
+                //  Priorit√© 2 : WARNING
+                // ============================================================
+
+                // 2a. SMART en √©tat warning (secteurs r√©allou√©s, temp√©rature √©lev√©e‚Ä¶)
+                foreach (var s in _lastSmart)
+                {
+                    if (s.Available && s.Status == "Warning")
+                        return "warning";
+                }
+
+                // 2b. Espace disque faible
+                foreach (var d in _lastDisks)
+                {
+                    bool warn = d.FreePercent < _settings.DiskSpaceWarnPercent
+                             || d.FreeGo < _settings.DiskSpaceWarnGo;
+
+                    if (warn)
+                        return "warning";
+                }
+
+                return "ok";
             }
         }
         
         /// <summary>
-        /// Recharge la config ‡ chaud et purge les alertes obsolËtes.
+        /// Recharge la config √† chaud et purge les alertes obsol√®tes.
         /// </summary>
         public void ReloadConfig()
         {
@@ -356,7 +393,7 @@ namespace RomMonitor.Service
                 // Purger les alertes : elles ne sont plus valides
                 _history.Clear();
 
-                CoreLog.Write("RomMonitorEngine : config rechargÈe + historique alertes purgÈ");
+                CoreLog.Write("RomMonitorEngine : config recharg√©e + historique alertes purg√©");
                 OnUpdate?.Invoke();
             }
             catch (Exception ex)

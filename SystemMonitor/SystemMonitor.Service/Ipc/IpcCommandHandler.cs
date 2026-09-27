@@ -269,7 +269,19 @@ namespace SystemMonitor.Service.Ipc
             try
             {
                 var alerts = _engine.GetAlerts();
-                IpcResponse.Json(server, alerts);
+
+                // ? Convertir le Type (enum) en string pour l'UI
+                var projected = alerts.Select(a => new
+                {
+                    timestamp = a.Timestamp,
+                    type = a.Type.ToString(),
+                    severity = a.Severity,
+                    target = a.Target,
+                    message = a.Message,
+                    emailSent = a.EmailSent
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
             }
             catch (Exception ex)
             {

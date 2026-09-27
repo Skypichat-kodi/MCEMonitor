@@ -19,6 +19,8 @@ namespace SystemMonitor.Service
         private readonly HistoryBuffer _measureHistory;
         private readonly BsodHistory _bsodHistory;
         private DateTime _lastBsodCheck = DateTime.MinValue;
+        private readonly Queue<double> _cpuHistory = new();
+        private readonly Queue<double> _ramHistory = new();                
 
         private Timer _timer;
         private bool _isRunning;
@@ -32,7 +34,7 @@ namespace SystemMonitor.Service
 
         /// <summary>
         /// Sévérité globale : "ok" / "warning" / "critical".
-        /// Basée sur les alertes récentes + les BSOD récents.
+        /// Basée sur les problèmes ACTIFS (seuils actuellement dépassés).
         /// </summary>
         public string WorstSeverity
         {
@@ -40,37 +42,15 @@ namespace SystemMonitor.Service
             {
                 try
                 {
-                    // Vérifier les alertes des 30 dernières minutes
-                    var alerts = _alertManager.GetAlerts();
-                    if (alerts != null && alerts.Count > 0)
-                    {
-                        bool hasWarning = false;
-                        var limit = DateTime.Now.AddMinutes(-30);
+                    var problems = GetProblems();
 
-                        foreach (var a in alerts)
-                        {
-                            if (a.Timestamp < limit) continue;
+                    if (problems.Count == 0)
+                        return "ok";
 
-                            if (a.Severity == "Critical")
-                                return "critical";
+                    if (problems.Any(p => p.Severity == "critical"))
+                        return "critical";
 
-                            if (a.Severity == "Warning")
-                                hasWarning = true;
-                        }
-
-                        if (hasWarning) return "warning";
-                    }
-
-                    // Vérifier les BSOD récents (24h)
-                    var bsods = _bsodHistory.GetAll();
-                    if (bsods != null)
-                    {
-                        var bsodLimit = DateTime.Now.AddHours(-24);
-                        if (bsods.Any(b => b.Timestamp >= bsodLimit))
-                            return "critical";
-                    }
-
-                    return "ok";
+                    return "warning";
                 }
                 catch
                 {
@@ -78,7 +58,7 @@ namespace SystemMonitor.Service
                 }
             }
         }
-
+        
         public SystemMonitorEngine(SystemMonitorSettings settings)
         {
             _settings = settings;
@@ -143,23 +123,28 @@ namespace SystemMonitor.Service
                 _lastSnapshot = snap;
                 LastUpdateTime = DateTime.Now;
 
+                // ? Calculer la moyenne glissante de CPU
+                double smoothedCpu = GetSmoothedCpuUsage(snap.Cpu.UsagePercent);
+                snap.Cpu.UsagePercent = smoothedCpu;
+
+                // ? Calculer la moyenne glissante de RAM
+                double smoothedRam = GetSmoothedRamUsage(snap.Ram.UsagePercent);
+                snap.Ram.UsagePercent = smoothedRam;
+
                 // Ajouter à l'historique
                 var gpu = snap.Gpus.Count > 0 ? snap.Gpus[0] : null;
 
                 _measureHistory.Add(new HistoryPoint
                 {
                     Timestamp = snap.Timestamp,
-                    CpuUsage = snap.Cpu.UsagePercent,
-                    RamUsage = snap.Ram.UsagePercent,
+                    CpuUsage = smoothedCpu,
+                    RamUsage = smoothedRam,
                     CpuTemp = snap.Cpu.Temperature,
                     GpuUsage = gpu?.UsagePercent,
                     GpuTemp = gpu?.Temperature
                 });
 
-                // Vérification des seuils
                 CheckThresholds(snap);
-
-                // Scan périodique des BSOD
                 ScanForBsods();
 
                 OnUpdate?.Invoke();
@@ -169,7 +154,7 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur Tick : " + ex.Message);
             }
         }
-
+        
         public void Dispose()
         {
             Stop();
@@ -182,8 +167,12 @@ namespace SystemMonitor.Service
         private void CheckThresholds(SystemSnapshot snap)
         {
             // --- CPU ---
+            // Tolérance : on ne déclenche que si le CPU dépasse le seuil + 5%
+            // (évite les alertes sur des fluctuations juste au-dessus du seuil)
+            double cpuAlertTrigger = _settings.CpuThresholdPercent + 5.0;
+
             if (_settings.AlertOnHighCpu &&
-                snap.Cpu.UsagePercent >= _settings.CpuThresholdPercent)
+                snap.Cpu.UsagePercent >= cpuAlertTrigger)
             {
                 var alert = new Alert
                 {
@@ -204,8 +193,11 @@ namespace SystemMonitor.Service
             }
 
             // --- RAM ---
+            // Tolérance : on ne déclenche que si la RAM dépasse le seuil + 5%
+            double ramAlertTrigger = _settings.RamThresholdPercent + 5.0;
+
             if (_settings.AlertOnHighRam &&
-                snap.Ram.UsagePercent >= _settings.RamThresholdPercent)
+                snap.Ram.UsagePercent >= ramAlertTrigger)
             {
                 var alert = new Alert
                 {
@@ -400,8 +392,8 @@ namespace SystemMonitor.Service
         }
         
         /// <summary>
-        /// Retourne la liste unifiée des problèmes actuels (alertes + BSOD récents),
-        /// triés par sévérité puis par date décroissante.
+        /// Retourne la liste des problèmes ACTIFS (seuils actuellement dépassés).
+        /// Ne se base PAS sur l'historique des alertes.
         /// </summary>
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
@@ -409,36 +401,59 @@ namespace SystemMonitor.Service
 
             try
             {
-                // Alertes des 30 dernières minutes
-                var alerts = _alertManager.GetAlerts();
-                var alertLimit = DateTime.Now.AddMinutes(-30);
+                var snap = _lastSnapshot;
 
-                if (alerts != null)
+                if (snap == null)
+                    return problems;
+
+                // --- CPU actif ? ---
+                if (_settings.AlertOnHighCpu &&
+                    snap.Cpu.UsagePercent >= _settings.CpuThresholdPercent)
                 {
-                    foreach (var a in alerts)
+                    problems.Add(new ProblemItem
                     {
-                        if (a.Timestamp < alertLimit) continue;
-
-                        problems.Add(new ProblemItem
-                        {
-                            Timestamp = a.Timestamp,
-                            Severity = a.Severity == "Critical" ? "critical" : "warning",
-                            Category = a.Type.ToString(),
-                            Message = a.Message
-                        });
-                    }
+                        Timestamp = DateTime.Now,
+                        Severity = "critical",
+                        Category = "CpuHigh",
+                        Message = $"Utilisation CPU : {snap.Cpu.UsagePercent:F1}% (seuil : {_settings.CpuThresholdPercent}%)"
+                    });
                 }
 
-                // BSOD des dernières 24h
+                // --- RAM active ? ---
+                if (_settings.AlertOnHighRam &&
+                    snap.Ram.UsagePercent >= _settings.RamThresholdPercent)
+                {
+                    problems.Add(new ProblemItem
+                    {
+                        Timestamp = DateTime.Now,
+                        Severity = "critical",
+                        Category = "RamHigh",
+                        Message = $"Utilisation RAM : {snap.Ram.UsagePercent:F1}% ({snap.Ram.UsedGB:F1} / {snap.Ram.TotalGB:F1} Go, seuil : {_settings.RamThresholdPercent}%)"
+                    });
+                }
+
+                // --- Température CPU active ? ---
+                if (_settings.AlertOnHighTemp &&
+                    snap.Cpu.Temperature.HasValue &&
+                    snap.Cpu.Temperature.Value >= _settings.TempThresholdCelsius)
+                {
+                    problems.Add(new ProblemItem
+                    {
+                        Timestamp = DateTime.Now,
+                        Severity = "critical",
+                        Category = "TempHigh",
+                        Message = $"Température CPU : {snap.Cpu.Temperature.Value:F1}°C (seuil : {_settings.TempThresholdCelsius}°C)"
+                    });
+                }
+
+                // --- BSOD récents (< 24h) ---
                 var bsods = _bsodHistory.GetAll();
                 var bsodLimit = DateTime.Now.AddHours(-24);
 
                 if (bsods != null)
                 {
-                    foreach (var b in bsods)
+                    foreach (var b in bsods.Where(x => x.Timestamp >= bsodLimit))
                     {
-                        if (b.Timestamp < bsodLimit) continue;
-
                         problems.Add(new ProblemItem
                         {
                             Timestamp = b.Timestamp,
@@ -481,6 +496,46 @@ namespace SystemMonitor.Service
             {
                 CoreLog.Write("Erreur ReloadConfig : " + ex.Message);
             }
-        }                
+        }
+        
+        /// <summary>
+        /// Ajoute la valeur CPU au buffer et retourne la moyenne glissante.
+        /// Le buffer garde N échantillons, où N = 20s / intervalle (minimum 2).
+        /// </summary>
+        private double GetSmoothedCpuUsage(double currentUsage)
+        {
+            // Nombre d'échantillons à garder (20s / intervalle)
+            int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
+
+            // Ajouter la valeur courante
+            _cpuHistory.Enqueue(currentUsage);
+
+            // Limiter la taille du buffer
+            while (_cpuHistory.Count > windowSize)
+                _cpuHistory.Dequeue();
+
+            // Retourner la moyenne
+            return _cpuHistory.Average();
+        }
+        
+        /// <summary>
+        /// Ajoute la valeur RAM au buffer et retourne la moyenne glissante.
+        /// Le buffer garde N échantillons, où N = 20s / intervalle (minimum 2).
+        /// </summary>
+        private double GetSmoothedRamUsage(double currentUsage)
+        {
+            // Nombre d'échantillons à garder (20s / intervalle)
+            int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
+
+            // Ajouter la valeur courante
+            _ramHistory.Enqueue(currentUsage);
+
+            // Limiter la taille du buffer
+            while (_ramHistory.Count > windowSize)
+                _ramHistory.Dequeue();
+
+            // Retourner la moyenne
+            return _ramHistory.Average();
+        }                                
     }
 }
