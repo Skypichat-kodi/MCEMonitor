@@ -640,7 +640,7 @@ namespace MCEMonitor
 
             this.grpWakeOptions.Text = LanguageManager.Get("Indications à donner dans le mail") ?? "Indications à donner dans le mail";
             this.grpWakeOptions.Location = new System.Drawing.Point(20, 160);
-            this.grpWakeOptions.Size = new System.Drawing.Size(420, 200);
+            this.grpWakeOptions.Size = new System.Drawing.Size(420, 205);
             this.grpWakeOptions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
 
             this.chkPublicIP.AutoSize = true;
@@ -904,7 +904,7 @@ namespace MCEMonitor
             this.grpWOL.Text = LanguageManager.Get("Démarrage automatique (Wake On Lan)") ?? "Démarrage automatique (Wake On Lan)";
             this.grpWOL.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpWOL.Location = new System.Drawing.Point(20, 320);
-            this.grpWOL.Size = new System.Drawing.Size(640, 120);
+            this.grpWOL.Size = new System.Drawing.Size(640, 130);
 
             this.lblWOLInfo.AutoSize = false;
             this.lblWOLInfo.Location = new System.Drawing.Point(20, 15);

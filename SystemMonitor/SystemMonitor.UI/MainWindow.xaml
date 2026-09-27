@@ -4,7 +4,7 @@
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="SystemMonitor"
         Height="750"
-        Width="1250"
+        Width="1300"
         MinHeight="550"
         MinWidth="900">
 
@@ -966,7 +966,7 @@
                                           VerticalAlignment="Center"
                                           Width="220"/>
                                 <TextBlock Grid.Row="2" Grid.Column="1"
-                                           Text="{loc:Tr 'Seuil Temp. (°C) :'}"
+                                           Text="{loc:Tr 'Seuil Temp. CPU (°C) :'}"
                                            Margin="0,10,0,0"
                                            VerticalAlignment="Center"/>
                                 <TextBox x:Name="txtTempThreshold"

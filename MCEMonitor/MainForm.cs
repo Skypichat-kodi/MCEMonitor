@@ -25,6 +25,8 @@ namespace MCEMonitor
         private readonly List<KryptonPage> _lockedPages = new();
         private readonly Dictionary<KryptonPage, int> _originalTabOrder = new();
         private bool _smtpTabsUnlocked = false;
+        private DateTime _lastSystemConfigWriteTime = DateTime.MinValue;
+        private long _lastSystemConfigSize = -1;        
 
         // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
@@ -1615,6 +1617,8 @@ namespace MCEMonitor
             if (_closingInProgress || this.IsDisposed)
                 return;
 
+            CheckSystemConfigFileChanged();
+
             UpdateSystemToggle();
             UpdateSystemTaskButtons();
         }
@@ -2272,7 +2276,12 @@ namespace MCEMonitor
 
                 File.WriteAllLines(configPath, lines);
 
-                // ? NOUVEAU : notifier le service de recharger la config à chaud
+                // Éviter l'auto-reload : mémoriser la signature du fichier
+                var fi = new FileInfo(configPath);
+                _lastSystemConfigWriteTime = fi.LastWriteTime;
+                _lastSystemConfigSize = fi.Length;
+
+                // Notifier le service de recharger la config
                 _ = SystemMonitorIpcClient.ReloadConfigAsync();
 
                 PopupHelper.ShowBottomPopup(
@@ -2300,5 +2309,35 @@ namespace MCEMonitor
             using var selector = new ThemeSelectorForm();
             selector.ShowDialog(this);
         }
+        
+        /// <summary>
+        /// Détecte si le fichier SystemMonitor.config a été modifié
+        /// par un autre processus (SystemMonitor.UI par ex.) et recharge
+        /// les valeurs dans les contrôles WinForms si c'est le cas.
+        /// </summary>
+        private void CheckSystemConfigFileChanged()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                var fi = new FileInfo(configPath);
+
+                if (fi.LastWriteTime == _lastSystemConfigWriteTime && fi.Length == _lastSystemConfigSize)
+                    return;
+
+                _lastSystemConfigWriteTime = fi.LastWriteTime;
+                _lastSystemConfigSize = fi.Length;
+
+                LoadSystemSettings();
+            }
+            catch { }
+        }        
     }
 }

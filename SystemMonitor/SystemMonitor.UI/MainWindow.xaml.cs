@@ -23,8 +23,9 @@ namespace SystemMonitor.UI
         private readonly ObservableCollection<AlertRow> _alerts = new();
         private List<SysHistoryPoint> _history = new();
         private readonly ObservableCollection<BsodRow> _bsods = new();
-        private readonly ObservableCollection<AlertRow> _alertsHistory = new();        
-        
+        private readonly ObservableCollection<AlertRow> _alertsHistory = new();
+        private DateTime _lastConfigWriteTime = DateTime.MinValue;
+        private long _lastConfigSize = -1;
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
         private bool _loadingWebConfig = false;
@@ -68,7 +69,7 @@ namespace SystemMonitor.UI
             NetworksList.ItemsSource = _networks;
             AlertsGrid.ItemsSource = _alerts;
             AlertsHistoryGrid.ItemsSource = _alertsHistory;
-            BsodsGrid.ItemsSource = _bsods;            
+            BsodsGrid.ItemsSource = _bsods;
 
             _refreshTimer = new DispatcherTimer
             {
@@ -92,6 +93,8 @@ namespace SystemMonitor.UI
             _isRefreshing = true;
             try
             {
+                CheckConfigFileChanged();
+
                 var snap = await SystemMonitorIpcClient.GetSnapshot();
 
                 if (snap == null)
@@ -108,14 +111,14 @@ namespace SystemMonitor.UI
                 UpdateNetworks(snap.networks);
                 _ = RefreshAlerts();
                 _ = RefreshHistory();
-                _ = RefreshBsods();                                
+                _ = RefreshBsods();
 
-            StatusText.Text =
-                $"{LanguageManager.Get("Dernière mise à jour") ?? "Dernière mise à jour"} : {snap.timestamp:HH:mm:ss}  |  " +
-                $"CPU : {snap.cpu.usagePercent:F1}%  |  " +
-                $"RAM : {snap.ram.usagePercent:F1}%  |  " +
-                $"{snap.gpus.Count} GPU  |  " +
-                $"{snap.networks.Count} {LanguageManager.Get("réseau(x)") ?? "réseau(x)"}";
+                StatusText.Text =
+                    $"{LanguageManager.Get("Dernière mise à jour") ?? "Dernière mise à jour"} : {snap.timestamp:HH:mm:ss}  |  " +
+                    $"CPU : {snap.cpu.usagePercent:F1}%  |  " +
+                    $"RAM : {snap.ram.usagePercent:F1}%  |  " +
+                    $"{snap.gpus.Count} GPU  |  " +
+                    $"{snap.networks.Count} {LanguageManager.Get("réseau(x)") ?? "réseau(x)"}";
             }
             catch (Exception ex)
             {
@@ -125,6 +128,41 @@ namespace SystemMonitor.UI
             {
                 _isRefreshing = false;
             }
+        }
+
+        // ------------------------------------------------------------
+        //  Synchronisation config (si modifiée par MCEMonitor)
+        // ------------------------------------------------------------
+        /// <summary>
+        /// Détecte si le fichier SystemMonitor.config a été modifié
+        /// par un autre processus (MCEMonitor par ex.) et recharge les
+        /// valeurs dans l'UI si c'est le cas.
+        /// </summary>
+        private void CheckConfigFileChanged()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "SystemMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                var fi = new FileInfo(configPath);
+
+                // Rien n'a changé depuis le dernier check
+                if (fi.LastWriteTime == _lastConfigWriteTime && fi.Length == _lastConfigSize)
+                    return;
+
+                _lastConfigWriteTime = fi.LastWriteTime;
+                _lastConfigSize = fi.Length;
+
+                // Recharger les valeurs dans les contrôles
+                LoadWatchConfig();
+            }
+            catch { }
         }
 
         // ------------------------------------------------------------
@@ -288,7 +326,7 @@ namespace SystemMonitor.UI
                 var alerts = await SystemMonitorIpcClient.GetAlerts();
                 if (alerts == null) return;
 
-                // ✅ Alertes récentes (30 min) pour AlertsGrid
+                // Alertes récentes (30 min) pour AlertsGrid
                 var limit = DateTime.Now.AddMinutes(-30);
 
                 _alerts.Clear();
@@ -306,7 +344,7 @@ namespace SystemMonitor.UI
                     });
                 }
 
-                // ✅ Historique complet pour AlertsHistoryGrid
+                // Historique complet pour AlertsHistoryGrid
                 _alertsHistory.Clear();
                 foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(100))
                 {
@@ -323,7 +361,7 @@ namespace SystemMonitor.UI
             }
             catch { }
         }
-        
+
         // ------------------------------------------------------------
         //  Couleur selon pourcentage (même logique que le web)
         // ------------------------------------------------------------
@@ -398,10 +436,8 @@ namespace SystemMonitor.UI
             {
                 _loadingWebConfig = true;
 
-                // ============================================================
-                //  Boucle de retry : le service peut mettre quelques secondes
-                //  à démarrer son serveur IPC
-                // ============================================================
+                // Boucle de retry : le service peut mettre quelques secondes
+                // à démarrer son serveur IPC
                 SysWebStatus? status = null;
 
                 for (int attempt = 0; attempt < 10; attempt++)
@@ -541,7 +577,7 @@ namespace SystemMonitor.UI
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
         }
-        
+
         // ------------------------------------------------------------
         //  Alertes
         // ------------------------------------------------------------
@@ -597,7 +633,7 @@ namespace SystemMonitor.UI
                 if (ok)
                 {
                     _alerts.Clear();
-                    _alertsHistory.Clear();   // ✅ NOUVEAU
+                    _alertsHistory.Clear();
                     StatusText.Text = "Historique des alertes vidé.";
                 }
                 else
@@ -614,7 +650,7 @@ namespace SystemMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message);
             }
         }
-        
+
         // ------------------------------------------------------------
         //  Réglages de surveillance
         // ------------------------------------------------------------
@@ -638,7 +674,7 @@ namespace SystemMonitor.UI
                 chkAlertTemp.IsChecked = true;
                 txtTempThreshold.Text = "85";
                 chkAlertGpuTemp.IsChecked = true;
-                txtGpuTempThreshold.Text = "85";                
+                txtGpuTempThreshold.Text = "85";
 
                 if (!File.Exists(configPath))
                     return;
@@ -665,7 +701,7 @@ namespace SystemMonitor.UI
                         case "AlertOnHighTemp":          chkAlertTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
                         case "TempThresholdCelsius":     txtTempThreshold.Text = val; break;
                         case "AlertOnHighGpuTemp":       chkAlertGpuTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
-                        case "GpuTempThresholdCelsius":  txtGpuTempThreshold.Text = val; break;                        
+                        case "GpuTempThresholdCelsius":  txtGpuTempThreshold.Text = val; break;
                     }
                 }
             }
@@ -695,7 +731,7 @@ namespace SystemMonitor.UI
                     ["AlertOnHighTemp"] = (chkAlertTemp.IsChecked == true).ToString().ToLower(),
                     ["TempThresholdCelsius"] = txtTempThreshold.Text.Trim(),
                     ["AlertOnHighGpuTemp"] = (chkAlertGpuTemp.IsChecked == true).ToString().ToLower(),
-                    ["GpuTempThresholdCelsius"] = txtGpuTempThreshold.Text.Trim(),                    
+                    ["GpuTempThresholdCelsius"] = txtGpuTempThreshold.Text.Trim(),
                 };
 
                 var newLines = new List<string>();
@@ -740,7 +776,14 @@ namespace SystemMonitor.UI
 
                 File.WriteAllLines(configPath, newLines);
 
-                // ✅ Recharger la config à chaud côté service
+                // Éviter l'auto-reload : on mémorise la signature du fichier
+                // qu'on vient d'écrire pour que CheckConfigFileChanged() ne
+                // détecte pas notre propre écriture.
+                var fi = new FileInfo(configPath);
+                _lastConfigWriteTime = fi.LastWriteTime;
+                _lastConfigSize = fi.Length;
+
+                // Recharger la config à chaud côté service
                 bool reloaded = await SystemMonitorIpcClient.ReloadConfigAsync();
 
                 if (reloaded)
@@ -767,7 +810,7 @@ namespace SystemMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message);
             }
         }
-        
+
         // ------------------------------------------------------------
         //  Historique
         // ------------------------------------------------------------
@@ -894,7 +937,7 @@ namespace SystemMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message);
             }
         }
-        
+
         // ------------------------------------------------------------
         //  BSOD
         // ------------------------------------------------------------
@@ -983,7 +1026,7 @@ namespace SystemMonitor.UI
             {
                 MessageBox.Show("Impossible d'ouvrir le dossier.\n" + ex.Message);
             }
-        }                                
+        }
     }
 
     // ============================================================
@@ -1009,7 +1052,7 @@ namespace SystemMonitor.UI
         public string DownloadText { get; set; } = "";
         public string UploadText { get; set; } = "";
     }
-    
+
     public class AlertRow
     {
         public DateTime Timestamp { get; set; }
@@ -1020,7 +1063,7 @@ namespace SystemMonitor.UI
         public string Message { get; set; } = "";
         public bool EmailSent { get; set; }
     }
-    
+
     public class BsodRow
     {
         public DateTime Timestamp { get; set; }
@@ -1032,5 +1075,5 @@ namespace SystemMonitor.UI
         public bool DumpExists { get; set; }
         public string FaultyModule { get; set; } = "";
         public string FaultAddress { get; set; } = "";
-    }     
+    }
 }

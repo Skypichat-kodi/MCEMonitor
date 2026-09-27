@@ -172,6 +172,20 @@ namespace SystemMonitor.Tray
                         _ => "SystemMonitor"
                     };
 
+                    // Son uniquement lors d'une transition vers un état d'alerte.
+                    // On ne joue rien au premier check (démarrage), ni au retour à "ok".
+                    if (!string.IsNullOrEmpty(_currentSeverity))
+                    {
+                        if (severity == "critical")
+                        {
+                            System.Media.SystemSounds.Hand.Play();
+                        }
+                        else if (severity == "warning")
+                        {
+                            System.Media.SystemSounds.Exclamation.Play();
+                        }
+                    }
+
                     _currentSeverity = severity;
                 }
             }
