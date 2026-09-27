@@ -34,11 +34,10 @@ namespace RomMonitor.Service
         public RomMonitorEngine(RomMonitorSettings settings)
         {
             _settings = settings;
+
+            // Historique des alertes — on CONSERVE ce qui existe déjà sur disque.
+            // Le constructeur d'AlertHistory charge automatiquement le fichier JSON.
             _history = new AlertHistory();
-
-            // Purge de l'historique à chaque démarrage
-            _history.Clear();
-
             _alertManager = new AlertManager(_settings, _history);
         }
 
@@ -382,7 +381,7 @@ namespace RomMonitor.Service
         }
         
         /// <summary>
-        /// Recharge la config à chaud et purge les alertes obsolètes.
+        /// Recharge la config à chaud SANS toucher à l'historique des alertes.
         /// </summary>
         public void ReloadConfig()
         {
@@ -390,16 +389,13 @@ namespace RomMonitor.Service
             {
                 _settings.Reload();
 
-                // Purger les alertes : elles ne sont plus valides
-                _history.Clear();
-
-                CoreLog.Write("RomMonitorEngine : config rechargée + historique alertes purgé");
+                CoreLog.Write("RomMonitorEngine : config rechargée (historique alertes conservé)");
                 OnUpdate?.Invoke();
             }
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur ReloadConfig RomMonitorEngine : " + ex.Message);
             }
-        }                
+        }
     }
 }

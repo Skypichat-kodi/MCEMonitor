@@ -6,7 +6,8 @@ namespace SystemMonitor.Service
     {
         CpuHigh,
         RamHigh,
-        TempHigh
+        TempHigh,
+        GpuTempHigh
     }
 
     public class Alert

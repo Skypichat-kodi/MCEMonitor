@@ -121,7 +121,9 @@ namespace SystemMonitor.Service.Ipc
                 alertOnHighRam = _settings.AlertOnHighRam,
                 ramThresholdPercent = _settings.RamThresholdPercent,
                 alertOnHighTemp = _settings.AlertOnHighTemp,
-                tempThresholdCelsius = _settings.TempThresholdCelsius
+                tempThresholdCelsius = _settings.TempThresholdCelsius,
+                alertOnHighGpuTemp = _settings.AlertOnHighGpuTemp,
+                gpuTempThresholdCelsius = _settings.GpuTempThresholdCelsius                
             });
         }
 
@@ -166,6 +168,13 @@ namespace SystemMonitor.Service.Ipc
                         case "tempthreshold":
                             if (int.TryParse(val, out int tt)) _settings.TempThresholdCelsius = tt;
                             break;
+                            
+                        case "alertgputemp":
+                            if (bool.TryParse(val, out bool agt)) _settings.AlertOnHighGpuTemp = agt;
+                            break;
+                        case "gputempthreshold":
+                            if (int.TryParse(val, out int gtt)) _settings.GpuTempThresholdCelsius = gtt;
+                            break;                            
                     }
                 }
 

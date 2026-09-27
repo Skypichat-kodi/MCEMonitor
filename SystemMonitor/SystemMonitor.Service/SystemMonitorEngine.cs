@@ -20,7 +20,7 @@ namespace SystemMonitor.Service
         private readonly BsodHistory _bsodHistory;
         private DateTime _lastBsodCheck = DateTime.MinValue;
         private readonly Queue<double> _cpuHistory = new();
-        private readonly Queue<double> _ramHistory = new();                
+        private readonly Queue<double> _ramHistory = new();
 
         private Timer _timer;
         private bool _isRunning;
@@ -32,10 +32,6 @@ namespace SystemMonitor.Service
 
         public event Action OnUpdate;
 
-        /// <summary>
-        /// Sévérité globale : "ok" / "warning" / "critical".
-        /// Basée sur les problèmes ACTIFS (seuils actuellement dépassés).
-        /// </summary>
         public string WorstSeverity
         {
             get
@@ -58,14 +54,14 @@ namespace SystemMonitor.Service
                 }
             }
         }
-        
+
         public SystemMonitorEngine(SystemMonitorSettings settings)
         {
             _settings = settings;
 
-            // Historique des alertes
+            // Historique des alertes — on CONSERVE ce qui existe déjà sur disque.
+            // Le constructeur d'AlertHistory charge automatiquement le fichier JSON.
             _history = new AlertHistory();
-            _history.Clear();
             _alertManager = new AlertManager(settings, _history);
 
             // Historique des mesures
@@ -90,10 +86,7 @@ namespace SystemMonitor.Service
             _timer.AutoReset = true;
             _timer.Start();
 
-            // Premier check immédiat
             Task.Run(() => Tick());
-
-            // Scan initial des BSOD
             Task.Run(() => ScanForBsods(force: true));
         }
 
@@ -104,9 +97,6 @@ namespace SystemMonitor.Service
             CoreLog.Write("SystemMonitorEngine arrêté");
         }
 
-        /// <summary>
-        /// Force un Tick immédiat (appelé par IPC).
-        /// </summary>
         public void ForceTick()
         {
             CoreLog.Write("ForceTick demandé via IPC");
@@ -123,15 +113,12 @@ namespace SystemMonitor.Service
                 _lastSnapshot = snap;
                 LastUpdateTime = DateTime.Now;
 
-                // ? Calculer la moyenne glissante de CPU
                 double smoothedCpu = GetSmoothedCpuUsage(snap.Cpu.UsagePercent);
                 snap.Cpu.UsagePercent = smoothedCpu;
 
-                // ? Calculer la moyenne glissante de RAM
                 double smoothedRam = GetSmoothedRamUsage(snap.Ram.UsagePercent);
                 snap.Ram.UsagePercent = smoothedRam;
 
-                // Ajouter à l'historique
                 var gpu = snap.Gpus.Count > 0 ? snap.Gpus[0] : null;
 
                 _measureHistory.Add(new HistoryPoint
@@ -154,7 +141,7 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur Tick : " + ex.Message);
             }
         }
-        
+
         public void Dispose()
         {
             Stop();
@@ -167,8 +154,6 @@ namespace SystemMonitor.Service
         private void CheckThresholds(SystemSnapshot snap)
         {
             // --- CPU ---
-            // Tolérance : on ne déclenche que si le CPU dépasse le seuil + 5%
-            // (évite les alertes sur des fluctuations juste au-dessus du seuil)
             double cpuAlertTrigger = _settings.CpuThresholdPercent + 5.0;
 
             if (_settings.AlertOnHighCpu &&
@@ -193,7 +178,6 @@ namespace SystemMonitor.Service
             }
 
             // --- RAM ---
-            // Tolérance : on ne déclenche que si la RAM dépasse le seuil + 5%
             double ramAlertTrigger = _settings.RamThresholdPercent + 5.0;
 
             if (_settings.AlertOnHighRam &&
@@ -237,6 +221,36 @@ namespace SystemMonitor.Service
                     _ = SendTempAlertEmailAsync(snap.Cpu);
                     alert.EmailSent = true;
                     _alertManager.Add(alert);
+                }
+            }
+
+            // --- Température GPU (NOUVEAU) ---
+            if (_settings.AlertOnHighGpuTemp)
+            {
+                foreach (var gpu in snap.Gpus)
+                {
+                    if (!gpu.Temperature.HasValue)
+                        continue;
+
+                    if (gpu.Temperature.Value < _settings.GpuTempThresholdCelsius)
+                        continue;
+
+                    var alert = new Alert
+                    {
+                        Timestamp = DateTime.Now,
+                        Type = AlertType.GpuTempHigh,
+                        Severity = "Critical",
+                        Target = gpu.Name,
+                        Message = $"Température GPU {gpu.Name} : {gpu.Temperature.Value:F1}°C (seuil : {_settings.GpuTempThresholdCelsius}°C)",
+                        EmailSent = false
+                    };
+
+                    if (_alertManager.CanSendAlert(alert.Type, alert.Target))
+                    {
+                        _ = SendGpuTempAlertEmailAsync(gpu);
+                        alert.EmailSent = true;
+                        _alertManager.Add(alert);
+                    }
                 }
             }
         }
@@ -311,7 +325,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Envoi email d'alerte Température
+        //  Envoi email d'alerte Température CPU
         // ============================================================
         private async Task SendTempAlertEmailAsync(CpuInfo cpu)
         {
@@ -342,6 +356,44 @@ namespace SystemMonitor.Service
             }
         }
 
+        // ============================================================
+        //  Envoi email d'alerte Température GPU (NOUVEAU)
+        // ============================================================
+        private async Task SendGpuTempAlertEmailAsync(GpuInfo gpu)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                {
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annulé");
+                    return;
+                }
+
+                string body = $@"
+                    <p><b>GPU :</b> {gpu.Name}</p>
+                    <p><b>Température :</b> <span style='color:#c0392b'>{gpu.Temperature:F1} °C</span></p>
+                    <p><b>Seuil configuré :</b> {_settings.GpuTempThresholdCelsius} °C</p>
+                    <p><b>Utilisation GPU :</b> {gpu.UsagePercent:F1} %</p>
+                    {(gpu.VramUsedMB.HasValue && gpu.VramTotalMB.HasValue
+                        ? $"<p><b>VRAM :</b> {gpu.VramUsedMB.Value:F0} / {gpu.VramTotalMB.Value:F0} Mo</p>"
+                        : "")}";
+
+                await EmailSender.SendAsync(
+                    cfg,
+                    $"[ALERTE] Température GPU élevée sur {Environment.MachineName}",
+                    body,
+                    isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte temp GPU envoyée ({gpu.Name} : {gpu.Temperature.Value:F1}°C)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email temp GPU : " + ex.Message);
+            }
+        }
+
         public List<Alert> GetAlerts() => _alertManager.GetAlerts();
 
         public void ClearAlerts()
@@ -359,10 +411,6 @@ namespace SystemMonitor.Service
             CoreLog.Write("Historique des mesures vidé");
         }
 
-        /// <summary>
-        /// Scanne l'Event Log pour les BSOD récents et les ajoute à l'historique.
-        /// Ne scanne pas plus d'une fois par 5 minutes.
-        /// </summary>
         public void ScanForBsods(bool force = false)
         {
             if (!force && (DateTime.Now - _lastBsodCheck).TotalMinutes < 5)
@@ -390,10 +438,9 @@ namespace SystemMonitor.Service
             _bsodHistory.Clear();
             CoreLog.Write("Historique BSOD vidé");
         }
-        
+
         /// <summary>
         /// Retourne la liste des problèmes ACTIFS (seuils actuellement dépassés).
-        /// Ne se base PAS sur l'historique des alertes.
         /// </summary>
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
@@ -446,6 +493,25 @@ namespace SystemMonitor.Service
                     });
                 }
 
+                // --- Température GPU active ? (NOUVEAU) ---
+                if (_settings.AlertOnHighGpuTemp)
+                {
+                    foreach (var gpu in snap.Gpus)
+                    {
+                        if (gpu.Temperature.HasValue &&
+                            gpu.Temperature.Value >= _settings.GpuTempThresholdCelsius)
+                        {
+                            problems.Add(new ProblemItem
+                            {
+                                Timestamp = DateTime.Now,
+                                Severity = "critical",
+                                Category = "GpuTempHigh",
+                                Message = $"Température GPU {gpu.Name} : {gpu.Temperature.Value:F1}°C (seuil : {_settings.GpuTempThresholdCelsius}°C)"
+                            });
+                        }
+                    }
+                }
+
                 // --- BSOD récents (< 24h) ---
                 var bsods = _bsodHistory.GetAll();
                 var bsodLimit = DateTime.Now.AddHours(-24);
@@ -469,16 +535,17 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur GetProblems : " + ex.Message);
             }
 
-            // Trier : critical avant warning, puis par date décroissante
             return problems
                 .OrderByDescending(p => p.Severity == "critical")
                 .ThenByDescending(p => p.Timestamp)
                 .Take(maxItems)
                 .ToList();
         }
-        
+
         /// <summary>
-        /// Recharge la config à chaud et purge les alertes obsolètes.
+        /// Recharge la config à chaud SANS toucher à l'historique des alertes.
+        /// (L'historique est désormais découplé de la config : le modifier
+        ///  ne doit pas effacer les alertes passées.)
         /// </summary>
         public void ReloadConfig()
         {
@@ -486,10 +553,7 @@ namespace SystemMonitor.Service
             {
                 _settings.Reload();
 
-                // Purger les alertes existantes : elles ne sont plus valides
-                _history.Clear();
-
-                CoreLog.Write("Engine : config rechargée + historique alertes purgé");
+                CoreLog.Write("Engine : config rechargée (historique alertes conservé)");
                 OnUpdate?.Invoke();
             }
             catch (Exception ex)
@@ -497,45 +561,29 @@ namespace SystemMonitor.Service
                 CoreLog.Write("Erreur ReloadConfig : " + ex.Message);
             }
         }
-        
-        /// <summary>
-        /// Ajoute la valeur CPU au buffer et retourne la moyenne glissante.
-        /// Le buffer garde N échantillons, où N = 20s / intervalle (minimum 2).
-        /// </summary>
+
         private double GetSmoothedCpuUsage(double currentUsage)
         {
-            // Nombre d'échantillons à garder (20s / intervalle)
             int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
 
-            // Ajouter la valeur courante
             _cpuHistory.Enqueue(currentUsage);
 
-            // Limiter la taille du buffer
             while (_cpuHistory.Count > windowSize)
                 _cpuHistory.Dequeue();
 
-            // Retourner la moyenne
             return _cpuHistory.Average();
         }
-        
-        /// <summary>
-        /// Ajoute la valeur RAM au buffer et retourne la moyenne glissante.
-        /// Le buffer garde N échantillons, où N = 20s / intervalle (minimum 2).
-        /// </summary>
+
         private double GetSmoothedRamUsage(double currentUsage)
         {
-            // Nombre d'échantillons à garder (20s / intervalle)
             int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
 
-            // Ajouter la valeur courante
             _ramHistory.Enqueue(currentUsage);
 
-            // Limiter la taille du buffer
             while (_ramHistory.Count > windowSize)
                 _ramHistory.Dequeue();
 
-            // Retourner la moyenne
             return _ramHistory.Average();
-        }                                
+        }
     }
 }

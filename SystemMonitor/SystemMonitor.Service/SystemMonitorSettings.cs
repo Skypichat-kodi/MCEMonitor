@@ -32,6 +32,9 @@ namespace SystemMonitor.Service
 
         public bool AlertOnHighTemp { get; set; } = true;
         public int TempThresholdCelsius { get; set; } = 85;
+        
+        public bool AlertOnHighGpuTemp { get; set; } = true;
+        public int GpuTempThresholdCelsius { get; set; } = 85;        
 
         // ============================================================
         //  Serveur Web
@@ -98,6 +101,13 @@ namespace SystemMonitor.Service
                             if (int.TryParse(value, out int tt)) settings.TempThresholdCelsius = tt;
                             break;
 
+                        case "AlertOnHighGpuTemp":
+                            if (bool.TryParse(value, out bool agt)) settings.AlertOnHighGpuTemp = agt;
+                            break;
+                        case "GpuTempThresholdCelsius":
+                            if (int.TryParse(value, out int gtt)) settings.GpuTempThresholdCelsius = gtt;
+                            break;
+    
                         case "WebEnabled":
                             if (bool.TryParse(value, out bool we)) settings.WebEnabled = we;
                             break;
@@ -110,6 +120,7 @@ namespace SystemMonitor.Service
                         case "WebPassword":
                             settings.WebPassword = value;
                             break;
+                            
                     }
                 }
             }
@@ -152,6 +163,12 @@ namespace SystemMonitor.Service
                     "# Alertes Température",
                     $"AlertOnHighTemp={AlertOnHighTemp.ToString().ToLower()}",
                     $"TempThresholdCelsius={TempThresholdCelsius}",
+                    
+                    "",
+                    "# Alertes Température GPU",
+                    $"AlertOnHighGpuTemp={AlertOnHighGpuTemp.ToString().ToLower()}",
+                    $"GpuTempThresholdCelsius={GpuTempThresholdCelsius}",                    
+                    
                     "",
                     "# Serveur Web",
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
@@ -218,6 +235,14 @@ namespace SystemMonitor.Service
                         case "TempThresholdCelsius":
                             if (int.TryParse(value, out int tt)) TempThresholdCelsius = tt;
                             break;
+                            
+                        case "AlertOnHighGpuTemp":
+                            if (bool.TryParse(value, out bool agt)) AlertOnHighGpuTemp = agt;
+                            break;
+                        case "GpuTempThresholdCelsius":
+                            if (int.TryParse(value, out int gtt)) GpuTempThresholdCelsius = gtt;
+                            break;
+                                
                     }
                 }
 

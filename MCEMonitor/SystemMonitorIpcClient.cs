@@ -17,6 +17,8 @@ namespace MCEMonitor
         public int ramThresholdPercent { get; set; }
         public bool alertOnHighTemp { get; set; }
         public int tempThresholdCelsius { get; set; }
+        public bool alertOnHighGpuTemp { get; set; }
+        public int gpuTempThresholdCelsius { get; set; }      
     }
 
     public static class SystemMonitorIpcClient
@@ -104,7 +106,9 @@ namespace MCEMonitor
                          $"&alertRam={cfg.alertOnHighRam.ToString().ToLower()}" +
                          $"&ramThreshold={cfg.ramThresholdPercent}" +
                          $"&alertTemp={cfg.alertOnHighTemp.ToString().ToLower()}" +
-                         $"&tempThreshold={cfg.tempThresholdCelsius}";
+                         $"&tempThreshold={cfg.tempThresholdCelsius}" +
+                         $"&alertGpuTemp={cfg.alertOnHighGpuTemp.ToString().ToLower()}" +
+                         $"&gpuTempThreshold={cfg.gpuTempThresholdCelsius}"; 
 
             string? json = await SendCommand(cmd);
             return json != null && json.Contains("\"status\":\"ok\"");

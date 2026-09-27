@@ -1166,6 +1166,9 @@ namespace MCEMonitor
             this.chkSystemAlertTemp = new KryptonCheckBox();
             this.numSystemTempThreshold = new KryptonNumericUpDown();
             this.lblSystemTempThreshold = new KryptonLabel();
+            this.chkSystemAlertGpuTemp = new KryptonCheckBox();
+            this.numSystemGpuTempThreshold = new KryptonNumericUpDown();
+            this.lblSystemGpuTempThreshold = new KryptonLabel();    
             this.lblSystemCooldown = new KryptonLabel();
             this.numSystemCooldown = new KryptonNumericUpDown();
             this.lblSystemInterval = new KryptonLabel();
@@ -1236,12 +1239,12 @@ namespace MCEMonitor
             this.numSystemRamThreshold.Font = normalFont;
 
             // Alert Temp
-            this.chkSystemAlertTemp.Text = LanguageManager.Get("Alerte si température élevée") ?? "Alerte si température élevée";
+            this.chkSystemAlertTemp.Text = LanguageManager.Get("Alerte CPU température élevée") ?? "Alerte CPU température élevée";
             this.chkSystemAlertTemp.Location = new System.Drawing.Point(20, 105);
             this.chkSystemAlertTemp.Size = new System.Drawing.Size(230, 22);
             this.chkSystemAlertTemp.Font = normalFont;
 
-            this.lblSystemTempThreshold.Text = LanguageManager.Get("Seuil Temp. (°C) :") ?? "Seuil Temp. (°C) :";
+            this.lblSystemTempThreshold.Text = LanguageManager.Get("Seuil Temp. CPU (°C) :") ?? "Seuil Temp. CPU (°C) :";
             this.lblSystemTempThreshold.Location = new System.Drawing.Point(230, 105);
             this.lblSystemTempThreshold.Size = new System.Drawing.Size(120, 20);
             this.lblSystemTempThreshold.Font = normalFont;
@@ -1251,6 +1254,23 @@ namespace MCEMonitor
             this.numSystemTempThreshold.Minimum = 40;
             this.numSystemTempThreshold.Maximum = 110;
             this.numSystemTempThreshold.Font = normalFont;
+
+            // Alert Temp GPU (NOUVEAU)
+            this.chkSystemAlertGpuTemp.Text = LanguageManager.Get("Alerte si température GPU élevée") ?? "Alerte si température GPU élevée";
+            this.chkSystemAlertGpuTemp.Location = new System.Drawing.Point(20, 135);
+            this.chkSystemAlertGpuTemp.Size = new System.Drawing.Size(230, 22);
+            this.chkSystemAlertGpuTemp.Font = normalFont;
+
+            this.lblSystemGpuTempThreshold.Text = LanguageManager.Get("Seuil Temp. GPU (°C) :") ?? "Seuil Temp. GPU (°C) :";
+            this.lblSystemGpuTempThreshold.Location = new System.Drawing.Point(230, 135);
+            this.lblSystemGpuTempThreshold.Size = new System.Drawing.Size(130, 20);
+            this.lblSystemGpuTempThreshold.Font = normalFont;
+
+            this.numSystemGpuTempThreshold.Location = new System.Drawing.Point(360, 135);
+            this.numSystemGpuTempThreshold.Size = new System.Drawing.Size(70, 20);
+            this.numSystemGpuTempThreshold.Minimum = 40;
+            this.numSystemGpuTempThreshold.Maximum = 110;
+            this.numSystemGpuTempThreshold.Font = normalFont;
 
             // Bouton Enregistrer
             this.btnSaveSystemConfig.Text = LanguageManager.Get("Enregistrer les réglages") ?? "Enregistrer les réglages";
@@ -1272,6 +1292,9 @@ namespace MCEMonitor
             this.grpSystemSettings.Panel.Controls.Add(this.chkSystemAlertTemp);
             this.grpSystemSettings.Panel.Controls.Add(this.lblSystemTempThreshold);
             this.grpSystemSettings.Panel.Controls.Add(this.numSystemTempThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.chkSystemAlertGpuTemp);
+            this.grpSystemSettings.Panel.Controls.Add(this.lblSystemGpuTempThreshold);
+            this.grpSystemSettings.Panel.Controls.Add(this.numSystemGpuTempThreshold);    
             this.grpSystemSettings.Panel.Controls.Add(this.btnSaveSystemConfig);
 
             this.tabSystemMonitor.Controls.Add(this.grpSystemSettings);
@@ -1410,6 +1433,9 @@ namespace MCEMonitor
         private KryptonCheckBox chkSystemAlertTemp;
         private KryptonNumericUpDown numSystemTempThreshold;
         private KryptonLabel lblSystemTempThreshold;
+        private KryptonCheckBox chkSystemAlertGpuTemp;
+        private KryptonNumericUpDown numSystemGpuTempThreshold;
+        private KryptonLabel lblSystemGpuTempThreshold;        
         private KryptonLabel lblSystemCooldown;
         private KryptonNumericUpDown numSystemCooldown;
         private KryptonLabel lblSystemInterval;

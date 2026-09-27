@@ -637,6 +637,8 @@ namespace SystemMonitor.UI
                 txtRamThreshold.Text = "90";
                 chkAlertTemp.IsChecked = true;
                 txtTempThreshold.Text = "85";
+                chkAlertGpuTemp.IsChecked = true;
+                txtGpuTempThreshold.Text = "85";                
 
                 if (!File.Exists(configPath))
                     return;
@@ -654,14 +656,16 @@ namespace SystemMonitor.UI
 
                     switch (key)
                     {
-                        case "Interval":             txtInterval.Text = val; break;
-                        case "CpuCooldownMinutes":   txtCooldown.Text = val; break;
-                        case "AlertOnHighCpu":       chkAlertCpu.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
-                        case "CpuThresholdPercent":  txtCpuThreshold.Text = val; break;
-                        case "AlertOnHighRam":       chkAlertRam.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
-                        case "RamThresholdPercent":  txtRamThreshold.Text = val; break;
-                        case "AlertOnHighTemp":      chkAlertTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
-                        case "TempThresholdCelsius": txtTempThreshold.Text = val; break;
+                        case "Interval":                 txtInterval.Text = val; break;
+                        case "CpuCooldownMinutes":       txtCooldown.Text = val; break;
+                        case "AlertOnHighCpu":           chkAlertCpu.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "CpuThresholdPercent":      txtCpuThreshold.Text = val; break;
+                        case "AlertOnHighRam":           chkAlertRam.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "RamThresholdPercent":      txtRamThreshold.Text = val; break;
+                        case "AlertOnHighTemp":          chkAlertTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "TempThresholdCelsius":     txtTempThreshold.Text = val; break;
+                        case "AlertOnHighGpuTemp":       chkAlertGpuTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
+                        case "GpuTempThresholdCelsius":  txtGpuTempThreshold.Text = val; break;                        
                     }
                 }
             }
@@ -690,6 +694,8 @@ namespace SystemMonitor.UI
                     ["RamThresholdPercent"] = txtRamThreshold.Text.Trim(),
                     ["AlertOnHighTemp"] = (chkAlertTemp.IsChecked == true).ToString().ToLower(),
                     ["TempThresholdCelsius"] = txtTempThreshold.Text.Trim(),
+                    ["AlertOnHighGpuTemp"] = (chkAlertGpuTemp.IsChecked == true).ToString().ToLower(),
+                    ["GpuTempThresholdCelsius"] = txtGpuTempThreshold.Text.Trim(),                    
                 };
 
                 var newLines = new List<string>();

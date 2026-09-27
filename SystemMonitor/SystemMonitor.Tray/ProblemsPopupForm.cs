@@ -226,6 +226,7 @@ namespace SystemMonitor.Tray
                 "CpuHigh" => "CPU",
                 "RamHigh" => "RAM",
                 "TempHigh" => "Temp",
+                "GpuTempHigh" => "GPU Temp",
                 "SmartFailure" => "SMART",
                 "DiskSpaceLow" => "Disque",
                 "DiskSpaceCritical" => "Disque",

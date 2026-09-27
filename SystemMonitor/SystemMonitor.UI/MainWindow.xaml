@@ -924,6 +924,7 @@
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
                                 </Grid.RowDefinitions>
 
                                 <CheckBox x:Name="chkAlertCpu"
@@ -959,7 +960,7 @@
 
                                 <CheckBox x:Name="chkAlertTemp"
                                           Grid.Row="2" Grid.Column="0"
-                                          Content="{loc:Tr 'Alerte si température élevée'}"
+                                          Content="{loc:Tr 'Alerte CPU température élevée'}"
                                           Foreground="#E5E5E5"
                                           Margin="0,10,0,0"
                                           VerticalAlignment="Center"
@@ -973,6 +974,23 @@
                                          Width="80"
                                          Margin="0,10,0,0"
                                          Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                         
+                              <CheckBox x:Name="chkAlertGpuTemp"
+                                        Grid.Row="3" Grid.Column="0"
+                                        Content="{loc:Tr 'Alerte GPU température élevée'}"
+                                        Foreground="#E5E5E5"
+                                        Margin="0,10,0,0"
+                                        VerticalAlignment="Center"
+                                        Width="220"/>
+                              <TextBlock Grid.Row="3" Grid.Column="1"
+                                         Text="{loc:Tr 'Seuil Temp. GPU (°C) :'}"
+                                         Margin="0,10,0,0"
+                                         VerticalAlignment="Center"/>
+                              <TextBox x:Name="txtGpuTempThreshold"
+                                       Grid.Row="3" Grid.Column="2"
+                                       Width="80"
+                                       Margin="0,10,0,0"
+                                       Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>                                         
                             </Grid>
 
                             <Button x:Name="btnSaveWatchConfig"

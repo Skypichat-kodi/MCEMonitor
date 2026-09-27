@@ -2164,6 +2164,15 @@ namespace MCEMonitor
                             if (int.TryParse(val, out int tt))
                                 numSystemTempThreshold.Value = Math.Max(numSystemTempThreshold.Minimum, Math.Min(numSystemTempThreshold.Maximum, tt));
                             break;
+                            
+                        case "AlertOnHighGpuTemp":
+                            chkSystemAlertGpuTemp.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "GpuTempThresholdCelsius":
+                            if (int.TryParse(val, out int gtt))
+                                numSystemGpuTempThreshold.Value = Math.Max(numSystemGpuTempThreshold.Minimum, Math.Min(numSystemGpuTempThreshold.Maximum, gtt));
+                            break;                            
                     }
                 }
             }
@@ -2246,9 +2255,13 @@ namespace MCEMonitor
                     $"AlertOnHighRam={chkSystemAlertRam.Checked.ToString().ToLower()}",
                     $"RamThresholdPercent={(int)numSystemRamThreshold.Value}",
                     "",
-                    "# Alertes Température",
+                    "# Alertes Température CPU",
                     $"AlertOnHighTemp={chkSystemAlertTemp.Checked.ToString().ToLower()}",
                     $"TempThresholdCelsius={(int)numSystemTempThreshold.Value}",
+                    "",
+                    "# Alertes Température GPU",
+                    $"AlertOnHighGpuTemp={chkSystemAlertGpuTemp.Checked.ToString().ToLower()}",
+                    $"GpuTempThresholdCelsius={(int)numSystemGpuTempThreshold.Value}",
                     "",
                     "# Serveur Web",
                     $"WebEnabled={webEnabled.ToString().ToLower()}",
