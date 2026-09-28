@@ -103,6 +103,20 @@ namespace SystemMonitor.Service
             Task.Run(() => Tick());
         }
 
+        /// <summary>
+        /// True tant que les buffers CPU/RAM n'ont pas atteint leur taille cible.
+        /// Utilisé pour éviter les fausses alertes au démarrage du service
+        /// (phase de chauffe de 60 s après le boot).
+        /// </summary>
+        private bool IsWarmupPhase
+        {
+            get
+            {
+                int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
+                return _cpuHistory.Count < windowSize || _ramHistory.Count < windowSize;
+            }
+        }
+
         private void Tick()
         {
             if (!_isRunning) return;
@@ -131,7 +145,17 @@ namespace SystemMonitor.Service
                     GpuTemp = gpu?.Temperature
                 });
 
-                CheckThresholds(snap);
+                // Ignorer les seuils CPU/RAM tant que la moyenne
+                // n'est pas stabilisée (phase de chauffe de 60 s au démarrage)
+                if (!IsWarmupPhase)
+                {
+                    CheckThresholds(snap);
+                }
+                else
+                {
+                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{Math.Max(2, 60 / Math.Max(1, _settings.Interval))} échantillons)");
+                }
+
                 ScanForBsods();
 
                 OnUpdate?.Invoke();
@@ -154,10 +178,8 @@ namespace SystemMonitor.Service
         private void CheckThresholds(SystemSnapshot snap)
         {
             // --- CPU ---
-            double cpuAlertTrigger = _settings.CpuThresholdPercent + 5.0;
-
             if (_settings.AlertOnHighCpu &&
-                snap.Cpu.UsagePercent >= cpuAlertTrigger)
+                snap.Cpu.UsagePercent >= _settings.CpuThresholdPercent)
             {
                 var alert = new Alert
                 {
@@ -178,10 +200,8 @@ namespace SystemMonitor.Service
             }
 
             // --- RAM ---
-            double ramAlertTrigger = _settings.RamThresholdPercent + 5.0;
-
             if (_settings.AlertOnHighRam &&
-                snap.Ram.UsagePercent >= ramAlertTrigger)
+                snap.Ram.UsagePercent >= _settings.RamThresholdPercent)
             {
                 var alert = new Alert
                 {
@@ -200,7 +220,7 @@ namespace SystemMonitor.Service
                     _alertManager.Add(alert);
                 }
             }
-
+            
             // --- Température CPU ---
             if (_settings.AlertOnHighTemp &&
                 snap.Cpu.Temperature.HasValue &&
@@ -564,7 +584,8 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedCpuUsage(double currentUsage)
         {
-            int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
+            // Nombre d'échantillons à garder (60s / intervalle)
+            int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
 
             _cpuHistory.Enqueue(currentUsage);
 
@@ -576,7 +597,8 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedRamUsage(double currentUsage)
         {
-            int windowSize = Math.Max(2, 20 / Math.Max(1, _settings.Interval));
+            // Nombre d'échantillons à garder (60s / intervalle)
+            int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
 
             _ramHistory.Enqueue(currentUsage);
 
