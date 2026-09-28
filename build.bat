@@ -1,4 +1,11 @@
 @echo off
+REM --- Auto-elevation en Administrateur ---
+net session >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Elevation des privileges...
+    powershell -Command "Start-Process '%~f0' -Verb RunAs"
+    exit /b
+)
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
@@ -111,6 +118,9 @@ if %ERROR%==0 (
         echo ISCC trouvé. Compilation en cours...
         "!ISCC!" "%ROOT%\MCEMonitorInstaller.iss"
 
+        REM Réactiver le support VT (ISCC.exe l'a désactivé)
+        powershell -NoProfile -Command "$k='[DllImport(\"kernel32.dll\")]public static extern IntPtr GetStdHandle(int n);[DllImport(\"kernel32.dll\")]public static extern bool GetConsoleMode(IntPtr h,out uint m);[DllImport(\"kernel32.dll\")]public static extern bool SetConsoleMode(IntPtr h,uint m);';$a=Add-Type -MemberDefinition $k -Name K -Namespace W -PassThru;$h=$a::GetStdHandle(-11);$m=0;[void]$a::GetConsoleMode($h,[ref]$m);[void]$a::SetConsoleMode($h,$m -bor 0x0004)" >nul 2>&1
+
         if errorlevel 1 (
             echo ============================================
             echo %ESC%[31m? Erreur lors de la compilation Inno Setup.%ESC%[0m
@@ -125,6 +135,15 @@ if %ERROR%==0 (
                 set "INNO_OUT=%%B"
             )
             set "INNO_OUT=!INNO_OUT:"=!"
+            set "INNO_OUT=!INNO_OUT: =!"
+
+            REM --- Si le chemin est relatif, le préfixer avec la racine du projet ---
+            REM Détection : un chemin absolu commence par "X:" (lettre + deux-points)
+            echo !INNO_OUT! | findstr /R /C:"^[A-Za-z]:" >nul
+            if errorlevel 1 (
+                set "INNO_OUT=%ROOT%\!INNO_OUT!"
+                echo [INFO] Chemin relatif detecte, prefixe avec la racine du projet.
+            )
 
             echo.
             echo Dossier de sortie détecté :
