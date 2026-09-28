@@ -90,6 +90,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["IfFile"]              = false,
                 ["IfVideo"]             = false,
                 ["IfAudio"]             = false,
+                ["IfImage"]             = false,
                 ["IfRecSerie"]          = !string.IsNullOrEmpty(rec.SeriesName),
                 ["IfRecMovie"]          = string.IsNullOrEmpty(rec.SeriesName),
                 ["IfRecEpisode"]        = !string.IsNullOrEmpty(rec.EpisodeName),
@@ -127,6 +128,37 @@ namespace MediaMonitor.Service.Web.Handlers
                 _       => "icon_file.png"
             };
 
+            // --- Aperçu réel pour les images ------------------------------
+            bool isImage = info.MediaType == "Image";
+            string imageBase64 = "";
+
+            if (isImage && File.Exists(info.Path))
+            {
+                try
+                {
+                    byte[] bytes = File.ReadAllBytes(info.Path);
+                    string ext = Path.GetExtension(info.Path).ToLowerInvariant();
+                    string mime = ext switch
+                    {
+                        ".png"  => "image/png",
+                        ".jpg"  => "image/jpeg",
+                        ".jpeg" => "image/jpeg",
+                        ".gif"  => "image/gif",
+                        ".bmp"  => "image/bmp",
+                        ".webp" => "image/webp",
+                        ".tif"  => "image/tiff",
+                        ".tiff" => "image/tiff",
+                        _       => "image/jpeg"
+                    };
+                    imageBase64 = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                }
+                catch
+                {
+                    imageBase64 = "";
+                }
+            }
+            // -------------------------------------------------------------
+
             var fi = new FileInfo(info.Path);
 
             var m = new Dictionary<string, object?>
@@ -139,6 +171,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["SizeMB"]          = (fi.Length / 1024.0 / 1024.0).ToString("F2"),
                 ["DurationText"]    = durationText,
                 ["AlbumArtBase64"]  = coverBase64,
+                ["ImageBase64"]     = imageBase64,
 
                 ["SeriesName"]      = WebUtility.HtmlEncode(info.SeriesName ?? ""),
                 ["EpisodeName"]     = WebUtility.HtmlEncode(info.EpisodeName ?? ""),
@@ -158,6 +191,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["IfDuration"]      = info.Duration > 0,
                 ["IfVideo"]         = info.MediaType == "Video",
                 ["IfAudio"]         = info.MediaType == "Audio",
+                ["IfImage"]         = isImage && !string.IsNullOrEmpty(imageBase64),
                 ["IfSeries"]        = !string.IsNullOrEmpty(info.SeriesName),
                 ["IfMovie"]         = info.MediaType == "Video" && string.IsNullOrEmpty(info.SeriesName),
                 ["IfSeasonEpisode"] = info.Saison > 0 || info.Episode > 0,
@@ -184,10 +218,43 @@ namespace MediaMonitor.Service.Web.Handlers
             {
                 "audio" => "webicon_audio.png",
                 "video" => "webicon_video.png",
+                "image" => "webicon_image.png",
                 "rec"   => "webicon_serie.png",
                 "tv"    => "webicon_tv.png",
                 _       => "icon_file.png"
             };
+
+            // --- Aperçu réel pour les images (si le fichier existe encore) -
+            bool isImage = item.MediaType != null &&
+                           item.MediaType.Equals("image", StringComparison.OrdinalIgnoreCase);
+
+            string imageBase64 = "";
+            if (isImage && !string.IsNullOrEmpty(item.Path) && File.Exists(item.Path))
+            {
+                try
+                {
+                    byte[] bytes = File.ReadAllBytes(item.Path);
+                    string ext = Path.GetExtension(item.Path).ToLowerInvariant();
+                    string mime = ext switch
+                    {
+                        ".png"  => "image/png",
+                        ".jpg"  => "image/jpeg",
+                        ".jpeg" => "image/jpeg",
+                        ".gif"  => "image/gif",
+                        ".bmp"  => "image/bmp",
+                        ".webp" => "image/webp",
+                        ".tif"  => "image/tiff",
+                        ".tiff" => "image/tiff",
+                        _       => "image/jpeg"
+                    };
+                    imageBase64 = $"data:{mime};base64,{Convert.ToBase64String(bytes)}";
+                }
+                catch
+                {
+                    imageBase64 = "";
+                }
+            }
+            // -------------------------------------------------------------
 
             var m = new Dictionary<string, object?>
             {
@@ -202,11 +269,13 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["Episode"]     = item.Episode.ToString(),
                 ["Channel"]     = WebUtility.HtmlEncode(item.Channel ?? ""),
                 ["ChannelLogo"] = WebUtility.HtmlEncode(item.ChannelLogo ?? ""),
+                ["ImageBase64"] = imageBase64,
 
                 ["IfRec"]           = item.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase),
                 ["IfFile"]          = false,
                 ["IfVideo"]         = item.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase),
                 ["IfAudio"]         = item.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase),
+                ["IfImage"]         = isImage && !string.IsNullOrEmpty(imageBase64),
                 ["IfSeries"]        = !string.IsNullOrEmpty(item.SeriesName),
                 ["IfMovie"]         = item.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(item.SeriesName),
                 ["IfSeasonEpisode"] = item.Saison > 0 || item.Episode > 0,

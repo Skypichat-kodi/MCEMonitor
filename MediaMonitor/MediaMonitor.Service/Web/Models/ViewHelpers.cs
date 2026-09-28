@@ -36,6 +36,7 @@ namespace MediaMonitor.Service.Web.Models
                 "video" => "type-video",
                 "rec"   => "type-rec",
                 "tv"    => "type-tv",
+                "image" => "type-image", 
                 _       => ""
             };
         }

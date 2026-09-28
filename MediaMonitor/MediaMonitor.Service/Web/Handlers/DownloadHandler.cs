@@ -170,6 +170,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 "VIDEO" => XBrushes.DarkOrange,
                 "REC"   => XBrushes.Red,
                 "TV"    => XBrushes.DarkGoldenrod,
+                "IMAGE" => new XSolidBrush(XColor.FromArgb(76, 175, 80)),  // ? ajout #4caf50
                 _       => XBrushes.Black
             };
 

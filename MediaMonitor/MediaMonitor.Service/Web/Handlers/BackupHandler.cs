@@ -62,6 +62,7 @@ namespace MediaMonitor.Service.Web.Handlers
             int audio    = items.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase));
             int series   = items.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase));
             int videos   = items.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase));
+            int images   = items.Count(i => i.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase));
             int recCount = items.Count(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase));
             int tvCount  = items.Count(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase));
 
@@ -120,6 +121,7 @@ namespace MediaMonitor.Service.Web.Handlers
                     audio = clientItems.Count(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)),
                     serie = clientItems.Count(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)),
                     video = clientItems.Count(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)),
+                    image = clientItems.Count(i => i.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase)),
                     rec   = clientItems.Count(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)),
                     tv    = clientItems.Count(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase))
                 });
@@ -142,6 +144,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["AUDIO"]   = audio,
                 ["SERIES"]  = series,
                 ["VIDEOS"]  = videos,
+                ["IMAGES"]  = images,
                 ["REC"]     = recCount,
                 ["TV"]      = tvCount,
                 ["COUNT"]   = total,
@@ -158,6 +161,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["SEL_AUDIO"] = req.Type == "audio" ? "selected" : "",
                 ["SEL_SERIE"] = req.Type == "serie" ? "selected" : "",
                 ["SEL_VIDEO"] = req.Type == "video" ? "selected" : "",
+                ["SEL_IMAGE"] = req.Type == "image" ? "selected" : "",
 
                 ["SEL_DATE_ALL"]       = req.Date == "all"       ? "selected" : "",
                 ["SEL_DATE_TODAY"]     = req.Date == "today"     ? "selected" : "",
@@ -194,6 +198,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 "audio" => items.Where(i => i.MediaType.Equals("Audio", StringComparison.OrdinalIgnoreCase)).ToList(),
                 "serie" => items.Where(i => i.MediaType.Equals("Serie", StringComparison.OrdinalIgnoreCase)).ToList(),
                 "video" => items.Where(i => i.MediaType.Equals("Video", StringComparison.OrdinalIgnoreCase)).ToList(),
+                "image" => items.Where(i => i.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase)).ToList(),
                 "rec"   => items.Where(i => i.MediaType.Equals("REC",   StringComparison.OrdinalIgnoreCase)).ToList(),
                 "tv"    => items.Where(i => i.MediaType.Equals("TV",    StringComparison.OrdinalIgnoreCase)).ToList(),
                 _       => items
@@ -234,6 +239,7 @@ namespace MediaMonitor.Service.Web.Handlers
             var hoursAudio  = new int[24];
             var hoursSeries = new int[24];
             var hoursVideo  = new int[24];
+            var hoursImage  = new int[24];
             var hoursRec    = new int[24];
             var hoursTv     = new int[24];
 
@@ -245,6 +251,7 @@ namespace MediaMonitor.Service.Web.Handlers
                     case "audio": hoursAudio[h]++;  break;
                     case "serie": hoursSeries[h]++; break;
                     case "video": hoursVideo[h]++;  break;
+                    case "image": hoursImage[h]++;  break;
                     case "rec":   hoursRec[h]++;    break;
                     case "tv":    hoursTv[h]++;     break;
                 }
@@ -258,6 +265,7 @@ namespace MediaMonitor.Service.Web.Handlers
                     audio = hoursAudio[h],
                     serie = hoursSeries[h],
                     video = hoursVideo[h],
+                    image = hoursImage[h],
                     rec   = hoursRec[h],
                     tv    = hoursTv[h]
                 };
@@ -328,7 +336,7 @@ namespace MediaMonitor.Service.Web.Handlers
                  .OrderByDescending(x => x.Count)
                  .Take(10).ToList();
 
-        private Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)>
+        private Dictionary<string, (int Audio, int Serie, int Video, int Image, int Rec, int Tv)>
             GetMediaStatsPerClient(List<MediaUsageItem> items) =>
             items.Where(i => !string.IsNullOrWhiteSpace(i.ClientDisplay)
                              && !string.IsNullOrWhiteSpace(i.MediaType))
@@ -339,6 +347,7 @@ namespace MediaMonitor.Service.Web.Handlers
                          Audio: g.Count(x => x.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase)),
                          Serie: g.Count(x => x.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase)),
                          Video: g.Count(x => x.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase)),
+                         Image: g.Count(x => x.MediaType.Equals("image", StringComparison.OrdinalIgnoreCase)),
                          Rec:   g.Count(x => x.MediaType.Equals("rec",   StringComparison.OrdinalIgnoreCase)),
                          Tv:    g.Count(x => x.MediaType.Equals("tv",    StringComparison.OrdinalIgnoreCase))
                      ));
@@ -368,7 +377,7 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         private string BuildMediaStatsPerClientHtml(
-            Dictionary<string, (int Audio, int Serie, int Video, int Rec, int Tv)> dict)
+            Dictionary<string, (int Audio, int Serie, int Video, int Image, int Rec, int Tv)> dict)
         {
             var sb = new StringBuilder();
 
@@ -386,6 +395,7 @@ namespace MediaMonitor.Service.Web.Handlers
                     ["Audio"]      = stats.Audio,
                     ["Serie"]      = stats.Serie,
                     ["Video"]      = stats.Video,
+                    ["Image"]      = stats.Image,
                     ["Rec"]        = stats.Rec,
                     ["Tv"]         = stats.Tv
                 };

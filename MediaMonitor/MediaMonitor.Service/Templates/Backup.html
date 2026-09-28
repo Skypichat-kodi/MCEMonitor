@@ -57,6 +57,7 @@
     .type-audio { background:#007acc; }
     .type-serie { background:#c586c0; }
     .type-video { background:#d19a66; }
+    .type-image { background:#4caf50; color:#fff; }
     .type-rec   { background:#ff4d4d; color:white; }
     .type-tv    { background:#ffe066; color:black; }
 
@@ -141,6 +142,7 @@
             <option value='audio' {{SEL_AUDIO}}>{{tr:Audio}}</option>
             <option value='serie' {{SEL_SERIE}}>{{tr:Séries}}</option>
             <option value='video' {{SEL_VIDEO}}>{{tr:Vidéos}}</option>
+            <option value='image' {{SEL_IMAGE}}>{{tr:Images}}</option>
         </select>
     </div>
 
@@ -285,33 +287,37 @@
 </div>
 
 <script>
-const audio = {{AUDIO}};
+const audio  = {{AUDIO}};
 const series = {{SERIES}};
 const videos = {{VIDEOS}};
-const rec = {{REC}};
-const tv = {{TV}};
+const rec    = {{REC}};
+const tv     = {{TV}};
+const images = {{IMAGES}};
 const hoursData = {{HOURS_DATA}};
 
 const colors = {
     audio: '#007acc',
     series: '#c586c0',
-    video: '#d19a66',
-    rec:   '#ff4d4d',
-    tv:    '#ffe066'
+    video:  '#d19a66',
+    rec:    '#ff4d4d',
+    tv:     '#ffe066',
+    image:  '#4caf50'
 };
 
+/* --- Répartition par type (doughnut) --- */
 new Chart(document.getElementById('chartTypes'), {
     type: 'doughnut',
     data: {
-        labels: ['{{tr:Audio}}','{{tr:Séries}}','{{tr:Vidéos}}','{{tr:REC}}','{{tr:TV}}'],
+        labels: ['{{tr:Audio}}','{{tr:Séries}}','{{tr:Vidéos}}','{{tr:REC}}','{{tr:TV}}','{{tr:Images}}'],
         datasets: [{
-            data: [audio, series, videos, rec, tv],
-            backgroundColor: [colors.audio, colors.series, colors.video, colors.rec, colors.tv]
+            data: [audio, series, videos, rec, tv, images],
+            backgroundColor: [colors.audio, colors.series, colors.video, colors.rec, colors.tv, colors.image]
         }]
     },
     options: { plugins: { legend: { labels: { color:'#fff' } } } }
 });
 
+/* --- Activité par heure (courbe) --- */
 new Chart(document.getElementById('chartHours'), {
     type: 'line',
     data: {
@@ -320,6 +326,7 @@ new Chart(document.getElementById('chartHours'), {
             { label:'{{tr:Audio}}',  data:hoursData.map(h=>h.audio??0), borderColor:colors.audio,  backgroundColor:'rgba(0,122,204,0.25)',  tension:0.3 },
             { label:'{{tr:Séries}}', data:hoursData.map(h=>h.serie??0), borderColor:colors.series, backgroundColor:'rgba(197,134,192,0.25)',tension:0.3 },
             { label:'{{tr:Vidéos}}', data:hoursData.map(h=>h.video??0), borderColor:colors.video,  backgroundColor:'rgba(209,154,102,0.25)',tension:0.3 },
+            { label:'{{tr:Images}}', data:hoursData.map(h=>h.image??0), borderColor:colors.image,  backgroundColor:'rgba(76,175,80,0.25)',  tension:0.3 },
             { label:'REC',           data:hoursData.map(h=>h.rec??0),   borderColor:colors.rec,    backgroundColor:'rgba(255,77,77,0.25)',  tension:0.3 },
             { label:'TV',            data:hoursData.map(h=>h.tv??0),    borderColor:colors.tv,     backgroundColor:'rgba(255,224,102,0.25)',tension:0.3 }
         ]
@@ -330,6 +337,7 @@ new Chart(document.getElementById('chartHours'), {
     }
 });
 
+/* --- Médias par client (barres) --- */
 const clientData = {{CLIENT_MEDIA_DATA}};
 console.log("CLIENT DATA:", clientData);
 
@@ -341,6 +349,7 @@ new Chart(document.getElementById("chartClients"), {
             { label:"{{tr:Audio}}",  data:clientData.map(c=>c.audio), backgroundColor:colors.audio,  barThickness:12, maxBarThickness:12 },
             { label:"{{tr:Séries}}", data:clientData.map(c=>c.serie), backgroundColor:colors.series, barThickness:12, maxBarThickness:12 },
             { label:"{{tr:Vidéos}}", data:clientData.map(c=>c.video), backgroundColor:colors.video,  barThickness:12, maxBarThickness:12 },
+            { label:"{{tr:Images}}", data:clientData.map(c=>c.image), backgroundColor:colors.image,  barThickness:12, maxBarThickness:12 },
             { label:"REC",           data:clientData.map(c=>c.rec),   backgroundColor:colors.rec,    barThickness:12, maxBarThickness:12 },
             { label:"TV",            data:clientData.map(c=>c.tv),    backgroundColor:colors.tv,     barThickness:12, maxBarThickness:12 }
         ]
@@ -354,18 +363,22 @@ new Chart(document.getElementById("chartClients"), {
         plugins: { legend: { labels: { color:"#fff" } } }
     }
 });
+</script>
 
+<script>
 (function () {
     const btn = document.getElementById('toggleLeft');
     const leftCol = document.getElementById('leftColumn');
     if (!btn || !leftCol) return;
+
     let collapsed = true;
     leftCol.classList.add('collapsed');
     btn.textContent = '>';
+
     btn.addEventListener('click', () => {
         collapsed = !collapsed;
         if (collapsed) { leftCol.classList.add('collapsed'); btn.textContent = '>'; }
-        else { leftCol.classList.remove('collapsed'); btn.textContent = '<'; }
+        else           { leftCol.classList.remove('collapsed'); btn.textContent = '<'; }
     });
 })();
 </script>

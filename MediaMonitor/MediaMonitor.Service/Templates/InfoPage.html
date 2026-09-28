@@ -58,7 +58,7 @@
 #closeX:hover { opacity: 1; }
 
 #mediaIcon {
-    width: 32px;      
+    width: 32px;
     height: 32px;
     vertical-align: middle;
     margin-right: 10px;
@@ -72,9 +72,9 @@
     width: 100%;
     margin-bottom: 20px;
 
-    display: flex;           
-    align-items: center;        
-    gap: 10px;                  
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 #titleText {
@@ -117,6 +117,19 @@
     box-shadow: 0 0 18px rgba(0,0,0,0.6);
 }
 
+/* Aperçu image (respecte le ratio) */
+#imagePreview {
+    max-width: 100%;
+    max-height: 300px;
+    display: block;
+    margin: 0 auto 20px auto;
+    border-radius: 10px;
+    object-fit: contain;
+    border: 2px solid #4caf50;
+    box-shadow: 0 0 18px rgba(0,0,0,0.6);
+    background: #0d0d0d;
+}
+
 /* === SECTIONS === */
 .info-section {
     margin-bottom: 15px;
@@ -151,7 +164,7 @@
     <div id="overlayContent">
 
         <div id="closeX" onclick="closeOverlay()">&#10006;</div>
- 
+
         <!-- TITRE -->
         <div id="titleScrollContainer">
             <img id="mediaIcon" src="{{IconPath}}" alt="Type">
@@ -162,7 +175,7 @@
         {{#IfVideo}}
         <img id="albumArt" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
         {{/IfVideo}}
-        
+
         {{#IfRec}}
         <img id="tv-logo" src="/logo?channel={{Channel}}" alt="{{Channel}}">
         {{/IfRec}}
@@ -170,6 +183,10 @@
         {{#IfAudio}}
         <img class="audio-thumb" src="{{AlbumArtBase64}}" alt="{{tr:Couverture}}">
         {{/IfAudio}}
+
+        {{#IfImage}}
+        <img id="imagePreview" src="{{ImageBase64}}" alt="{{tr:Image}}">
+        {{/IfImage}}
 
         <div id="infoBody">
 
@@ -365,4 +382,3 @@ function openDiscogs(title, artist) {
 
 </body>
 </html>
-
