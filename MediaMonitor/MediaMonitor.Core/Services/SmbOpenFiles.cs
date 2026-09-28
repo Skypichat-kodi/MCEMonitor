@@ -12,6 +12,8 @@ public class SmbOpenFile
 
 public static class SmbOpenFiles
 {
+    private const int TimeoutMs = 12000;
+
     public static List<SmbOpenFile> GetOpenFiles(string serverName)
     {
         var result = new List<SmbOpenFile>();
@@ -32,12 +34,25 @@ public static class SmbOpenFiles
                 StandardErrorEncoding = Encoding.UTF8
             };
 
-            var process = Process.Start(psi);
-            if (process == null)
+            using var process = new Process { StartInfo = psi };
+
+            if (!process.Start())
                 return result;
 
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            // Lecture ASYNCHRONE des deux flux : élimine le deadlock stderr.
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            // Timeout dur : si PowerShell ne répond pas (veille, WMI, réseau),
+            // on tue tout l'arbre (powershell + conhost rattaché).
+            if (!process.WaitForExit(TimeoutMs))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+                return result;
+            }
+
+            string output = stdoutTask.GetAwaiter().GetResult();
+            _ = stderrTask.GetAwaiter().GetResult(); // consommé, même si on l'ignore
 
             if (string.IsNullOrWhiteSpace(output))
                 return result;
@@ -62,4 +77,3 @@ public static class SmbOpenFiles
         return result;
     }
 }
-

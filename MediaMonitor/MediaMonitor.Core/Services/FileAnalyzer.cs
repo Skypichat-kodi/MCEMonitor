@@ -15,6 +15,9 @@ namespace MediaMonitor.Core.Services
         private static string FfprobePath => Path.Combine(FfmpegDir, "ffprobe.exe");
         private static string FfmpegPath  => Path.Combine(FfmpegDir, "ffmpeg.exe");
 
+        private const int FfprobeTimeoutMs  = 15000;
+        private const int FfmpegTimeoutMs   = 30000;
+
         public static MediaUsageItem Analyze(string path)
         {
             var fi = new FileInfo(path);
@@ -121,7 +124,7 @@ namespace MediaMonitor.Core.Services
             {
                 // Si ffmpeg plante, pas de miniature.
             }
-            
+
             // Définition du titre pour la popup Webserver
             if (!string.IsNullOrEmpty(item.EpisodeName))
             {
@@ -147,12 +150,30 @@ namespace MediaMonitor.Core.Services
                 Arguments = $"-v quiet -print_format json -show_streams -show_format \"{path}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 
-            using var proc = Process.Start(psi);
-            string json = proc!.StandardOutput.ReadToEnd();
-            proc.WaitForExit();
+            using var proc = new Process { StartInfo = psi };
+
+            if (!proc.Start())
+                return (null!, Array.Empty<StreamInfo>());
+
+            // Lecture asynchrone des deux flux pour éviter tout deadlock.
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+
+            if (!proc.WaitForExit(FfprobeTimeoutMs))
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+                return (null!, Array.Empty<StreamInfo>());
+            }
+
+            string json = stdoutTask.GetAwaiter().GetResult();
+            _ = stderrTask.GetAwaiter().GetResult(); // consommé, même si ignoré
+
+            if (string.IsNullOrWhiteSpace(json))
+                return (null!, Array.Empty<StreamInfo>());
 
             var doc = JsonSerializer.Deserialize<FfprobeResult>(json);
             return (doc!.format, doc.streams ?? Array.Empty<StreamInfo>());
@@ -169,13 +190,27 @@ namespace MediaMonitor.Core.Services
                 FileName = FfmpegPath,
                 Arguments = $"-y -ss {seconds} -i \"{input}\" -frames:v 1 -q:v 2 \"{output}\"",
                 UseShellExecute = false,
-                RedirectStandardOutput = false,
-                RedirectStandardError = false,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
                 CreateNoWindow = true
             };
 
-            using var proc = Process.Start(psi);
-            proc!.WaitForExit();
+            using var proc = new Process { StartInfo = psi };
+
+            if (!proc.Start())
+                return;
+
+            var stdoutTask = proc.StandardOutput.ReadToEndAsync();
+            var stderrTask = proc.StandardError.ReadToEndAsync();
+
+            if (!proc.WaitForExit(FfmpegTimeoutMs))
+            {
+                try { proc.Kill(entireProcessTree: true); } catch { }
+            }
+
+            // Toujours consommer les flux pour ne pas laisser de pipes ouverts.
+            _ = stdoutTask.GetAwaiter().GetResult();
+            _ = stderrTask.GetAwaiter().GetResult();
         }
 
         // ---------------------------

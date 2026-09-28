@@ -14,6 +14,8 @@ public class SmbSession
 
 public static class SmbSessions
 {
+    private const int TimeoutMs = 12000;
+
     public static List<SmbSession> GetSessions(string serverName)
     {
         var result = new List<SmbSession>();
@@ -34,12 +36,22 @@ public static class SmbSessions
                 StandardErrorEncoding = Encoding.UTF8
             };
 
-            var process = Process.Start(psi);
-            if (process == null)
+            using var process = new Process { StartInfo = psi };
+
+            if (!process.Start())
                 return result;
 
-            string output = process.StandardOutput.ReadToEnd();
-            process.WaitForExit();
+            var stdoutTask = process.StandardOutput.ReadToEndAsync();
+            var stderrTask = process.StandardError.ReadToEndAsync();
+
+            if (!process.WaitForExit(TimeoutMs))
+            {
+                try { process.Kill(entireProcessTree: true); } catch { }
+                return result;
+            }
+
+            string output = stdoutTask.GetAwaiter().GetResult();
+            _ = stderrTask.GetAwaiter().GetResult();
 
             if (string.IsNullOrWhiteSpace(output))
                 return result;
@@ -64,4 +76,3 @@ public static class SmbSessions
         return result;
     }
 }
-
