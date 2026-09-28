@@ -828,24 +828,28 @@
 
                                 <!-- Série -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Serie">
-                                    <Setter Property="Background" Value="#FF2A3A4A"/>
+                                    <Setter Property="Background" Value="#80C586C0"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Vidéo -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Video">
-                                    <Setter Property="Background" Value="#FF3A2A2A"/>
+                                    <Setter Property="Background" Value="#80D19A66"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Musique -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Audio">
-                                    <Setter Property="Background" Value="#FF2A4A2A"/>
+                                    <Setter Property="Background" Value="#80007ACC"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Image -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Image">
-                                    <Setter Property="Background" Value="#FF4A4A2A"/>
+                                    <Setter Property="Background" Value="#804CAF50"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
-
+                                
                                 <!-- 🔴 REC -->
                                 <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
                                     <Setter Property="Background" Value="#80FF0000"/>
@@ -945,22 +949,26 @@
 
                                 <!-- Série -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Serie">
-                                    <Setter Property="Background" Value="#FF2A3A4A"/>
+                                    <Setter Property="Background" Value="#80C586C0"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Vidéo -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Video">
-                                    <Setter Property="Background" Value="#FF3A2A2A"/>
+                                    <Setter Property="Background" Value="#80D19A66"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Musique -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Audio">
-                                    <Setter Property="Background" Value="#FF2A4A2A"/>
+                                    <Setter Property="Background" Value="#80007ACC"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- Image -->
                                 <DataTrigger Binding="{Binding MediaType}" Value="Image">
-                                    <Setter Property="Background" Value="#FF4A4A2A"/>
+                                    <Setter Property="Background" Value="#804CAF50"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
 
                                 <!-- 🟡 TV -->

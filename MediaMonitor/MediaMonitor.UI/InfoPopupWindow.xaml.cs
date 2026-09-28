@@ -45,6 +45,10 @@ namespace MediaMonitor.UI
                     ? _info.FileName
                     : _info.Title;
             }
+            else if (_info.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase))
+            {
+                TitleText.Text = Path.GetFileNameWithoutExtension(_info.FileName);
+            }
             else
             {
                 TitleText.Text = _info.FileName;
@@ -164,6 +168,68 @@ namespace MediaMonitor.UI
                 {
                     AlbumArtImage.Source = DefaultCover;
                 }
+
+                return;
+            }
+
+            // --- IMAGE ---
+            if (_info.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase))
+            {
+                // Cadre adapté à l’aperçu
+                AlbumArtBorder.Width = 400;
+                AlbumArtBorder.Height = 260;
+                AlbumArtBorder.BorderThickness = new Thickness(2);
+                AlbumArtBorder.BorderBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0xAF, 0x50)); // vert
+                AlbumArtImage.Stretch = Stretch.Uniform;
+                AlbumArtImage.HorizontalAlignment = HorizontalAlignment.Center;
+                AlbumArtImage.VerticalAlignment = VerticalAlignment.Center;
+                VideoOverlay.Visibility = Visibility.Collapsed;
+
+                // Chargement direct depuis le disque (AlbumArt n’est pas rempli pour les images)
+                try
+                {
+                    if (File.Exists(_info.Path))
+                    {
+                        var bitmap = new BitmapImage();
+                        bitmap.BeginInit();
+                        bitmap.UriSource = new Uri(_info.Path, UriKind.Absolute);
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;   // libère le fichier
+                        bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
+                        bitmap.EndInit();
+                        bitmap.Freeze();
+                        AlbumArtImage.Source = bitmap;
+                    }
+                    else
+                    {
+                        AlbumArtImage.Source = DefaultCover;
+                    }
+                }
+                catch
+                {
+                    AlbumArtImage.Source = DefaultCover;
+                }
+
+                // Masquer toutes les infos audio/vidéo non pertinentes
+                Id3TitleLabel.Visibility = Visibility.Collapsed;  Id3Title.Visibility  = Visibility.Collapsed;
+                Id3ArtistLabel.Visibility = Visibility.Collapsed; Id3Artist.Visibility = Visibility.Collapsed;
+                Id3AlbumLabel.Visibility = Visibility.Collapsed;  Id3Album.Visibility  = Visibility.Collapsed;
+                Id3YearLabel.Visibility = Visibility.Collapsed;   Id3Year.Visibility   = Visibility.Collapsed;
+                Id3TrackLabel.Visibility = Visibility.Collapsed;  Id3Track.Visibility  = Visibility.Collapsed;
+                Id3GenreLabel.Visibility = Visibility.Collapsed;  Id3Genre.Visibility  = Visibility.Collapsed;
+
+                SeriesLabel.Visibility = Visibility.Collapsed;    SeriesText.Visibility = Visibility.Collapsed;
+                SeasonEpisodeLabel.Visibility = Visibility.Collapsed; SeasonEpisodeText.Visibility = Visibility.Collapsed;
+                EpisodeLabel.Visibility = Visibility.Collapsed;   EpisodeText.Visibility = Visibility.Collapsed;
+                VideoCodecLabel.Visibility = Visibility.Collapsed; VideoCodecText.Visibility = Visibility.Collapsed;
+                AudioCodecLabel.Visibility = Visibility.Collapsed; AudioCodecText.Visibility = Visibility.Collapsed;
+
+                // Durée non pertinente pour une image
+                DurationLabel.Visibility = Visibility.Collapsed;
+                DurationText.Visibility = Visibility.Collapsed;
+
+                // Chemin / Type / Taille : on garde (déjà remplis plus haut)
+                PathText.Text = _info.Path;
+                TypeText.Text = _info.MediaType;
 
                 return;
             }
