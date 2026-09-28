@@ -96,34 +96,19 @@ fr.RAMError=MCEMonitor nécessite au moins 8 Go de RAM.%nRAM détectée : %1 Go.
 en.RAMError=MCEMonitor requires at least 8 GB of RAM.%nDetected RAM: %1 GB.%n%nSetup will now exit.
 
 [Code]
-type
-  TMemoryStatusEx = record
-    dwLength: DWORD;
-    dwMemoryLoad: DWORD;
-    ullTotalPhys: Int64;
-    ullAvailPhys: Int64;
-    ullTotalPageFile: Int64;
-    ullAvailPageFile: Int64;
-    ullTotalVirtual: Int64;
-    ullAvailVirtual: Int64;
-    ullAvailExtendedVirtual: Int64;
-  end;
-
-function GlobalMemoryStatusEx(var lpBuffer: TMemoryStatusEx): BOOL;
-  external 'GlobalMemoryStatusEx@kernel32.dll stdcall';
+function GetPhysicallyInstalledSystemMemory(var TotalMemoryInKilobytes: Int64): Boolean;
+  external 'GetPhysicallyInstalledSystemMemory@kernel32.dll stdcall';
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
-  MemStatus: TMemoryStatusEx;
+  RAMKb: Int64;
   RAMGo: Integer;
 begin
   Result := '';
-  MemStatus.dwLength := SizeOf(MemStatus);
-
-  if GlobalMemoryStatusEx(MemStatus) then
+  if GetPhysicallyInstalledSystemMemory(RAMKb) then
   begin
-    // ullTotalPhys est en octets -> conversion en Go
-    RAMGo := MemStatus.ullTotalPhys div 1024 div 1024 div 1024;
+    // RAMKb est en kilo-octets -> conversion en Go
+    RAMGo := RAMKb div 1024 div 1024;
     if RAMGo < 8 then
       Result := FmtMessage(CustomMessage('RAMError'), [IntToStr(RAMGo)]);
   end;
