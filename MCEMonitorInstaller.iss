@@ -13,9 +13,13 @@ OutputBaseFilename=MCEMonitorSetup
 Compression=lzma
 SolidCompression=yes
 UsedUserAreasWarning=no
+WizardSmallImageFile=MCEMonitor.png
 
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
+
+; Windows 10 minimum (build 10.0.10240 = Windows 10 RTM)
+MinVersion=10.0.10240
 
 ; Icônes
 SetupIconFile="MediaMonitor\MediaMonitor.Tray\MediaMonitor.ico"
@@ -87,7 +91,44 @@ Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomService"" /F"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomTray"" /F";             Flags: runhidden; RunOnceId: "DelOldRomTrayTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor"" /F";         Flags: runhidden; RunOnceId: "DelOldStopTask"
 
+[CustomMessages]
+fr.RAMError=MCEMonitor nécessite au moins 8 Go de RAM.%nRAM détectée : %1 Go.%n%nL'installation va s'arrêter.
+en.RAMError=MCEMonitor requires at least 8 GB of RAM.%nDetected RAM: %1 GB.%n%nSetup will now exit.
+
 [Code]
+type
+  TMemoryStatusEx = record
+    dwLength: DWORD;
+    dwMemoryLoad: DWORD;
+    ullTotalPhys: Int64;
+    ullAvailPhys: Int64;
+    ullTotalPageFile: Int64;
+    ullAvailPageFile: Int64;
+    ullTotalVirtual: Int64;
+    ullAvailVirtual: Int64;
+    ullAvailExtendedVirtual: Int64;
+  end;
+
+function GlobalMemoryStatusEx(var lpBuffer: TMemoryStatusEx): BOOL;
+  external 'GlobalMemoryStatusEx@kernel32.dll stdcall';
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  MemStatus: TMemoryStatusEx;
+  RAMGo: Integer;
+begin
+  Result := '';
+  MemStatus.dwLength := SizeOf(MemStatus);
+
+  if GlobalMemoryStatusEx(MemStatus) then
+  begin
+    // ullTotalPhys est en octets -> conversion en Go
+    RAMGo := MemStatus.ullTotalPhys div 1024 div 1024 div 1024;
+    if RAMGo < 8 then
+      Result := FmtMessage(CustomMessage('RAMError'), [IntToStr(RAMGo)]);
+  end;
+end;
+
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
   DataDir: String;
