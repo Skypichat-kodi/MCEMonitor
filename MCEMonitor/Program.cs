@@ -1,6 +1,8 @@
 using System;
 using System.IO;
+using System.IO.Pipes;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
 using System.Globalization;
@@ -15,8 +17,31 @@ namespace MCEMonitor
     {
         private static Mutex _mutex;
 
-        // ? Référence partagée vers le KryptonManager (pour le sélecteur de thème)
+        private const string MutexName = "Global\\MCEMonitor_MainUI";
+        private const string PipeName  = "MCEMonitor_Activate";
+
+        // Référence partagée vers le KryptonManager (pour le sélecteur de thème)
         public static KryptonManager SharedManager { get; private set; }
+
+        // Référence vers la fenêtre principale (pour l'activation)
+        private static MainForm _mainForm;
+
+        // ============================================================
+        //  Win32 imports pour l'activation de fenêtre
+        // ============================================================
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr GetForegroundWindow();
+
+        [DllImport("user32.dll")]
+        private static extern bool IsIconic(IntPtr hWnd);
+
+        private const int SW_RESTORE = 9;
 
         [STAThread]
         static void Main(string[] args)
@@ -26,22 +51,24 @@ namespace MCEMonitor
                 // Support des encodages legacy (CP850)
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-                // Mutex anti-multi-instance
+                // ============================================================
+                //  Mutex anti-multi-instance
+                // ============================================================
                 bool createdNew;
-                _mutex = new Mutex(true, "Global\\MCEMonitor_MainUI", out createdNew);
+                _mutex = new Mutex(true, MutexName, out createdNew);
+
                 if (!createdNew)
                 {
-                    MessageBox.Show(
-                        "MCEMonitor est déjà en cours d'exécution.",
-                        "Instance déjà ouverte",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information
-                    );
+                    // Une instance tourne déjà ? lui demander de s'activer
+                    SignalExistingInstance();
                     return;
                 }
 
+                // Première instance ? démarrer le listener IPC
+                StartActivationListener();
+
                 // ============================================================
-                // GESTION DE LA LANGUE (argument > auto-détection Windows)
+                //  GESTION DE LA LANGUE (argument > auto-détection Windows)
                 // ============================================================
 
                 string selectedLang = null;
@@ -62,42 +89,35 @@ namespace MCEMonitor
                 }
 
                 Thread.CurrentThread.CurrentUICulture = new CultureInfo(selectedLang);
-                Thread.CurrentThread.CurrentCulture = new CultureInfo(selectedLang);
+                Thread.CurrentThread.CurrentCulture   = new CultureInfo(selectedLang);
 
                 LanguageManager.Load(selectedLang);
 
                 // ============================================================
-                // INITIALISATION APPLICATION
+                //  INITIALISATION APPLICATION
                 // ============================================================
 
                 AppData.Initialize();
 
                 // ============================================================
-                // INSTALLATION AUTOMATIQUE TRAY
+                //  INSTALLATION AUTOMATIQUE TRAY
                 // ============================================================
 
                 if (!ServiceInstaller.TrayTaskExists())
-                {
                     ServiceInstaller.CreateTrayTask();
-                }
 
                 if (!ServiceInstaller.RomTrayTaskExists())
-                {
                     ServiceInstaller.CreateRomTrayTask();
-                }
 
-                // Installer la tâche ONLOGON du Tray SystemMonitor si absente
                 if (!ServiceInstaller.SystemTrayTaskExists())
-                {
                     ServiceInstaller.CreateSystemTrayTask();
-                }
-                
+
                 // ============================================================
-                // SERVICES LOCAUX
+                //  SERVICES LOCAUX
                 // ============================================================
 
                 var media = new MediaMonitorService();
-                var wake = new WakeMonitorService();
+                var wake  = new WakeMonitorService();
 
                 if (args.Contains("--media-silent"))
                 {
@@ -112,18 +132,19 @@ namespace MCEMonitor
                 }
 
                 // ============================================================
-                // INITIALISATION APPLICATION (une seule fois !)
+                //  INITIALISATION APPLICATION (une seule fois !)
                 // ============================================================
 
                 ApplicationConfiguration.Initialize();
 
-                // ? Initialisation du thème Krypton
+                // Initialisation du thème Krypton
                 SharedManager = new KryptonManager();
                 SharedManager.GlobalPaletteMode = ThemeSelectorForm.LoadSavedTheme();
                 SharedManager.GlobalApplyToolstrips = true;
 
-                // ? Lancement de la fenêtre principale (une seule fois !)
-                Application.Run(new MainForm(media, wake));
+                // Lancement de la fenêtre principale
+                _mainForm = new MainForm(media, wake);
+                Application.Run(_mainForm);
             }
             catch (Exception ex)
             {
@@ -137,9 +158,7 @@ namespace MCEMonitor
 
                     File.WriteAllText(logPath, ex.ToString());
                 }
-                catch
-                {
-                }
+                catch { }
 
                 MessageBox.Show(
                     "Une erreur est survenue au démarrage.\n" +
@@ -149,6 +168,113 @@ namespace MCEMonitor
                     MessageBoxIcon.Error
                 );
             }
+        }
+
+        // ============================================================
+        //  Signale à l'instance existante de venir au premier plan
+        // ============================================================
+        private static void SignalExistingInstance()
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(
+                    ".", PipeName, PipeDirection.Out);
+
+                client.Connect(1500);
+
+                using var writer = new StreamWriter(client);
+                writer.WriteLine("ACTIVATE");
+                writer.Flush();
+            }
+            catch
+            {
+                // Si le pipe ne répond pas, on ne peut rien faire
+            }
+        }
+
+        // ============================================================
+        //  Thread qui écoute les demandes d'activation
+        // ============================================================
+        private static void StartActivationListener()
+        {
+            var thread = new Thread(() =>
+            {
+                while (true)
+                {
+                    try
+                    {
+                        using var server = new NamedPipeServerStream(
+                            PipeName,
+                            PipeDirection.In,
+                            1,
+                            PipeTransmissionMode.Byte,
+                            PipeOptions.None);
+
+                        server.WaitForConnection();
+
+                        using var reader = new StreamReader(server);
+                        string? cmd = reader.ReadLine();
+
+                        if (cmd == "ACTIVATE")
+                        {
+                            OnActivationRequested();
+                        }
+                    }
+                    catch
+                    {
+                        // On continue la boucle même en cas d'erreur
+                    }
+                }
+            })
+            {
+                IsBackground = true,
+                Name = "ActivationListener"
+            };
+
+            thread.Start();
+        }
+
+        // ============================================================
+        //  Ramène la fenêtre principale au premier plan
+        //  ou affiche un message si elle est déjà active
+        // ============================================================
+        private static void OnActivationRequested()
+        {
+            // Attendre que la fenêtre soit prête (max 5 s)
+            for (int i = 0; i < 50 && _mainForm == null; i++)
+                Thread.Sleep(100);
+
+            if (_mainForm == null || _mainForm.IsDisposed)
+                return;
+
+            // Marshalling vers le thread UI WinForms
+            if (_mainForm.InvokeRequired)
+            {
+                _mainForm.Invoke(new Action(OnActivationRequested));
+                return;
+            }
+
+            IntPtr hwnd = _mainForm.Handle;
+
+            // Déjà au premier plan ET pas minimisée ?
+            if (GetForegroundWindow() == hwnd &&
+                _mainForm.WindowState != FormWindowState.Minimized)
+            {
+                MessageBox.Show(
+                    "MCEMonitor est déjà au premier plan.",
+                    "Instance déjà active",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Information);
+                return;
+            }
+
+            // Restaurer si minimisée
+            if (IsIconic(hwnd))
+                ShowWindow(hwnd, SW_RESTORE);
+
+            // Ramener au premier plan
+            SetForegroundWindow(hwnd);
+            _mainForm.Activate();
         }
     }
 }
