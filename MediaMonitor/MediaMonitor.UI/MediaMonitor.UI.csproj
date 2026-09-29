@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="PdfSharp" Version="1.50.5147" />
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
@@ -22,7 +23,6 @@
     <Content Include="Resources\Images\*.*">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-  </ItemGroup>    
+  </ItemGroup>
 
 </Project>
-

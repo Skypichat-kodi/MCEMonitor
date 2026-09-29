@@ -4,9 +4,10 @@
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="MediaMonitor"
         Height="750"
-        Width="1200">
+        Width="1300"
+        MinHeight="550"
+        MinWidth="900">
 
-    <!-- 🔥 RESSOURCES EN PREMIER (obligatoire) -->
     <Window.Resources>
 
         <!-- Couleurs Windows 11 Dark -->
@@ -15,25 +16,23 @@
         <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
         <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
         <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
-        <SolidColorBrush x:Key="WebPanelBackground" Color="#553A8DFF"/>
+        <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
 
-
-        <!-- Style des en-têtes de colonnes -->
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#2D2D30"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="6,4"/>
         </Style>
 
-        <!-- Style des cellules -->
         <Style TargetType="DataGridCell">
             <Setter Property="Background" Value="#1E1E1E"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#4CC2FF"/>
@@ -42,7 +41,6 @@
             </Style.Triggers>
         </Style>
 
-        <!-- Style des lignes -->
         <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="#1E1E1E"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
@@ -52,27 +50,16 @@
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#2D2D30"/>
                 </Trigger>
-                <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#4CC2FF"/>
-                    <Setter Property="Foreground" Value="Black"/>
-                </Trigger>
             </Style.Triggers>
         </Style>
 
-        <!-- ScrollBars sombres -->
-        <Style TargetType="ScrollBar">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#3C3C3C"/>
-        </Style>
-
-        <!-- Style des boutons -->
         <Style TargetType="Button">
             <Setter Property="Background" Value="#2D2D30"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="Padding" Value="10 5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -99,7 +86,191 @@
             </Setter>
         </Style>
 
-        <!-- Style DataGrid Windows 11 Dark -->
+        <!-- Style ComboBox sombre -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="#1E1E1E"
+                                                BorderBrush="#3C3C3C"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="20"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Grid.Column="1"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Data="M 0 0 L 4 4 L 8 0 Z"
+                                                      Fill="#E5E5E5"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <ContentPresenter x:Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="8,0,24,0"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   PopupAnimation="Slide">
+                                <Grid x:Name="DropDown"
+                                      SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder"
+                                            Background="#252526"
+                                            BorderBrush="#3C3C3C"
+                                            BorderThickness="1"
+                                            CornerRadius="4"/>
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="30"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style ComboBoxItem sombre -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2D2D30"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+        </Style>
+
+        <!-- Style des cartes -->
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="15"/>
+        </Style>
+
+        <!-- Style des barres de progression -->
+        <Style x:Key="ProgressBarStyle" TargetType="ProgressBar">
+            <Setter Property="Height" Value="12"/>
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ProgressBar">
+                        <Border Background="{TemplateBinding Background}"
+                                CornerRadius="6"
+                                ClipToBounds="True">
+                            <Grid>
+                                <Rectangle x:Name="PART_Track"/>
+                                <Rectangle x:Name="PART_Indicator"
+                                           HorizontalAlignment="Left"
+                                           Fill="{TemplateBinding Foreground}"
+                                           RadiusX="6"
+                                           RadiusY="6"/>
+                            </Grid>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style des onglets internes -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border"
+                                Background="#252526"
+                                BorderBrush="#3C3C3C"
+                                BorderThickness="0,0,0,2"
+                                Padding="15,8">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+
+        <!-- Style DataGrid -->
         <Style TargetType="DataGrid">
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
@@ -108,108 +279,89 @@
             <Setter Property="AlternatingRowBackground" Value="#252526"/>
             <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
             <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
-            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
 
-        <!-- Style TextBlock -->
-        <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+        <!-- ScrollBar stylée -->
+        <Style x:Key="ScrollBarThumbStyle" TargetType="Thumb">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Thumb">
+                        <Border x:Name="ThumbBorder"
+                                Background="#4A4A4D"
+                                CornerRadius="4"
+                                Margin="2"/>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#5A5A5E"/>
+                            </Trigger>
+                            <Trigger Property="IsDragging" Value="True">
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="#4CC2FF"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
-        
+
+        <Style x:Key="ScrollBarPageButtonStyle" TargetType="RepeatButton">
+            <Setter Property="OverridesDefaultStyle" Value="True"/>
+            <Setter Property="Focusable" Value="False"/>
+            <Setter Property="IsTabStop" Value="False"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="RepeatButton">
+                        <Border Background="Transparent"/>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Width" Value="12"/>
+            <Setter Property="MinWidth" Value="12"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track" IsDirectionReversed="True">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageUpCommand"
+                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageDownCommand"
+                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="Orientation" Value="Horizontal">
+                                <Setter Property="Height" Value="12"/>
+                                <Setter Property="MinHeight" Value="12"/>
+                                <Setter Property="Width" Value="Auto"/>
+                                <Setter Property="MinWidth" Value="0"/>
+                                <Setter TargetName="PART_Track" Property="IsDirectionReversed" Value="False"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Style CheckBox -->
         <Style TargetType="CheckBox">
             <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="FontSize" Value="14"/>
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="CheckBox">
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="20"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- Carré noir -->
-                            <Border x:Name="Box"
-                                    Width="16"
-                                    Height="16"
-                                    Background="Black"
-                                    BorderBrush="White"
-                                    BorderThickness="1"
-                                    CornerRadius="2"
-                                    VerticalAlignment="Center"
-                                    HorizontalAlignment="Left"/>
-
-                            <!-- Coche blanche -->
-                            <Path x:Name="CheckMark"
-                                  Grid.Column="0"
-                                  Data="M 3 8 L 7 12 L 13 4"
-                                  Stroke="White"
-                                  StrokeThickness="2"
-                                  StrokeEndLineCap="Round"
-                                  StrokeStartLineCap="Round"
-                                  Visibility="Collapsed"
-                                  HorizontalAlignment="Left"
-                                  VerticalAlignment="Center"/>
-
-                            <!-- Texte -->
-                            <ContentPresenter Grid.Column="1"
-                                              VerticalAlignment="Center"
-                                              Margin="6,0,0,0"/>
-                        </Grid>
-
-                        <ControlTemplate.Triggers>
-
-                            <!-- Cochée -->
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="CheckMark" Property="Visibility" Value="Visible"/>
-                            </Trigger>
-
-                            <!-- Hover -->
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Box" Property="BorderBrush" Value="#4CC2FF"/>
-                            </Trigger>
-
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style> 
-        <Style TargetType="TabItem">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="TabItem">
-                        <Grid>
-                            <Border x:Name="Bd"
-                                    Background="{TemplateBinding Background}"
-                                    BorderBrush="{TemplateBinding BorderBrush}"
-                                    BorderThickness="{TemplateBinding BorderThickness}"
-                                    Padding="{TemplateBinding Padding}">
-                                <ContentPresenter ContentSource="Header"
-                                                  HorizontalAlignment="Center"
-                                                  VerticalAlignment="Center"
-                                                  RecognizesAccessKey="True"/>
-                            </Border>
-                        </Grid>
-
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#505050"/>
-                                <Setter TargetName="Bd" Property="BorderBrush" Value="White"/>
-                            </Trigger>
-                            <Trigger Property="IsEnabled" Value="False">
-                                <Setter Property="Foreground" Value="#777"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-
-            <Setter Property="Background" Value="#303030"/>
-            <Setter Property="Foreground" Value="White"/>
-            <Setter Property="BorderBrush" Value="#505050"/>
-            <Setter Property="BorderThickness" Value="1"/>
-            <Setter Property="Padding" Value="10,4"/>
+            <Setter Property="FontSize" Value="13"/>
         </Style>
+
+        <!-- Style InfoButton -->
         <Style x:Key="InfoButtonStyle" TargetType="Button">
             <Setter Property="Background" Value="#333"/>
             <Setter Property="Foreground" Value="White"/>
@@ -239,421 +391,107 @@
                     <Setter Property="Foreground" Value="Black"/>
                 </Trigger>
             </Style.Triggers>
-        </Style>        
+        </Style>
+
     </Window.Resources>
 
-<Grid>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>   <!-- 0 : Barre titre -->
+            <RowDefinition Height="*"/>      <!-- 1 : TabControl principal -->
+            <RowDefinition Height="Auto"/>   <!-- 2 : Status bar -->
+        </Grid.RowDefinitions>
 
-    <Grid.RowDefinitions>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="2*"/>
-        <RowDefinition Height="Auto"/>
-        <RowDefinition Height="3*"/>
-    </Grid.RowDefinitions>
+        <!-- Fond sombre -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
 
-    <!-- Fond sombre -->
-    <Rectangle Fill="#1E1E1E"
-               Grid.RowSpan="6"/>
+        <!-- Overlay background -->
+        <Rectangle Grid.RowSpan="3">
+            <Rectangle.Fill>
+                <ImageBrush ImageSource="Resources/Images/Ui-background.png" Stretch="Fill"/>
+            </Rectangle.Fill>
+        </Rectangle>
 
-    <!-- Overlay -->
-    <Rectangle Grid.RowSpan="6">
-        <Rectangle.Fill>
-            <ImageBrush ImageSource="Resources/Images/Ui-background.png"
-                        Stretch="Fill"/>
-        </Rectangle.Fill>
-    </Rectangle>
-    
-    <!-- ✅ Voile sombre pour la lisibilité -->
-    <Rectangle Fill="#1E1E1E" Grid.RowSpan="9" Opacity="0.9"/>
+        <!-- Voile sombre pour la lisibilité -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
 
-        <!-- BOUTONS -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="10">
-        <Button Width="150" Margin="5" Click="SendReportNow_Click">
-            <TextBlock Text="{loc:Tr 'Envoyer rapport'}"/>
-        </Button>
+        <!-- ============================================================ -->
+        <!--  BARRE TITRE                                                  -->
+        <!-- ============================================================ -->
+        <Grid Grid.Row="0" Margin="15,12,15,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
 
-            <!-- SWITCH LOG -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="15 5 5 5">
-                <TextBlock Text="{loc:Tr Log}" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            <TextBlock Grid.Column="0"
+                       Text="MediaMonitor"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="#4CC2FF"
+                       VerticalAlignment="Center"/>
 
-                <ToggleButton x:Name="ToggleLog"
-                              Width="40"
-                              Height="20"
-                              Checked="ToggleLog_Checked"
-                              Unchecked="ToggleLog_Unchecked">
-                    <ToggleButton.Style>
-                        <Style TargetType="ToggleButton">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Grid Width="40" Height="20">
-                                            <Border x:Name="SwitchBackground"
-                                                    CornerRadius="10"
-                                                    Background="#3C3C3C"/>
-                                            <Ellipse x:Name="SwitchThumb"
-                                                     Width="16" Height="16"
-                                                     Margin="2"
-                                                     Fill="#E5E5E5"
-                                                     HorizontalAlignment="Left"/>
-                                        </Grid>
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
 
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsChecked" Value="True">
-                                                <Setter TargetName="SwitchBackground"
-                                                        Property="Background"
-                                                        Value="#4CC2FF"/>
-                                                <Setter TargetName="SwitchThumb"
-                                                        Property="HorizontalAlignment"
-                                                        Value="Right"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
+                <!-- Envoyer rapport -->
+                <Button Height="30" Padding="15,0" Margin="0,0,8,0"
+                        VerticalContentAlignment="Center"
+                        Click="SendReportNow_Click"
+                        ToolTip="{loc:Tr 'Envoyer le rapport maintenant'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📧" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Envoyer rapport'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
 
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ToggleButton.Style>
-                </ToggleButton>
+                <!-- Ouvrir page Web -->
+                <Button Height="30" Padding="15,0"
+                        VerticalContentAlignment="Center"
+                        Click="btnOpenWeb_Click"
+                        ToolTip="{loc:Tr 'Ouvrir la page Web dans le navigateur'}">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Ouvrir la page Web'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
             </StackPanel>
-            <!-- 🔥 SWITCH EMAIL -->
-            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="25 5 5 5">
-                <TextBlock Text="{loc:Tr Envoi du rapport automatique}"
-                           VerticalAlignment="Center"
-                           Margin="0,0,8,0"/>
+        </Grid>
 
-                <ToggleButton x:Name="ToggleEmail"
-                              Width="40"
-                              Height="20"
-                              IsChecked="True"
-                              Checked="ToggleEmail_Checked"
-                              Unchecked="ToggleEmail_Unchecked">
+        <!-- ============================================================ -->
+        <!--  TABCONTROL PRINCIPAL                                         -->
+        <!-- ============================================================ -->
+        <TabControl x:Name="MainTabControl"
+                    Grid.Row="1"
+                    Margin="15,0,15,0"
+                    Background="Transparent"
+                    BorderThickness="0">
 
-                    <ToggleButton.Style>
-                        <Style TargetType="ToggleButton">
-                            <Setter Property="Template">
-                                <Setter.Value>
-                                    <ControlTemplate TargetType="ToggleButton">
-                                        <Grid Width="40" Height="20">
-                                            <Border x:Name="SwitchBackground"
-                                                    CornerRadius="10"
-                                                    Background="#3C3C3C"/>
-                                            <Ellipse x:Name="SwitchThumb"
-                                                     Width="16" Height="16"
-                                                     Margin="2"
-                                                     Fill="#E5E5E5"
-                                                     HorizontalAlignment="Left"/>
-                                        </Grid>
-
-                                        <ControlTemplate.Triggers>
-                                            <Trigger Property="IsChecked" Value="True">
-                                                <Setter TargetName="SwitchBackground"
-                                                        Property="Background"
-                                                        Value="#4CC2FF"/>
-                                                <Setter TargetName="SwitchThumb"
-                                                        Property="HorizontalAlignment"
-                                                        Value="Right"/>
-                                            </Trigger>
-                                        </ControlTemplate.Triggers>
-
-                                    </ControlTemplate>
-                                </Setter.Value>
-                            </Setter>
-                        </Style>
-                    </ToggleButton.Style>
-
-                </ToggleButton>
-            </StackPanel>
-        </StackPanel>
-
-        <!-- 🔥 SERVEUR WEB -->
-        <GroupBox Header="{loc:Tr Serveur Web}"
-                  Grid.Row="1"
-                  Margin="10"
-                  Padding="10"
-                  Background="{StaticResource WebPanelBackground}"
-                  BorderBrush="{StaticResource Win11Border}"
-                  Foreground="{StaticResource Win11Text}">
-
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>   <!-- Zone 1 : Configuration -->
-                    <ColumnDefinition Width="*"/>      <!-- Zone 2 : Espace réservé -->
-                    <ColumnDefinition Width="Auto"/>   <!-- Zone 3 : Ouvrir -->
-                </Grid.ColumnDefinitions>
-
-                <!-- ZONE 1 : CONFIGURATION (à gauche) -->
-                <Grid Grid.Column="0" Margin="0,0,20,0">
+            <!-- ====================================================== -->
+            <!--  ONGLET 1 : SURVEILLANCE                               -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Surveillance'}">
+                <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>  <!-- Switch -->
-                        <RowDefinition Height="Auto"/>  <!-- Port -->
-                        <RowDefinition Height="Auto"/>  <!-- Login -->
-                        <RowDefinition Height="Auto"/>  <!-- Mot de passe -->
-                        <RowDefinition Height="*"/>     <!-- Espace flexible -->
-                        <RowDefinition Height="Auto"/>  <!-- Bouton Appliquer -->
+                        <RowDefinition Height="Auto"/>  <!-- 0 : Switches Log / Email -->
+                        <RowDefinition Height="Auto"/>  <!-- 1 : Serveur Web -->
+                        <RowDefinition Height="Auto"/>  <!-- 2 : Serveur TV -->
+                        <RowDefinition Height="2*"/>    <!-- 3 : En cours -->
+                        <RowDefinition Height="Auto"/>  <!-- 4 : Dernière image -->
+                        <RowDefinition Height="3*"/>    <!-- 5 : Historique -->
                     </Grid.RowDefinitions>
 
-                    <!-- Switch ON/OFF -->
+                    <!-- SWITCHES LOG + EMAIL -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{loc:Tr Activer le serveur Web}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"/>
-
-                        <ToggleButton x:Name="ToggleWeb"
-                                      Width="40"
-                                      Height="20"
-                                      Checked="ToggleWeb_Checked"
-                                      Unchecked="ToggleWeb_Unchecked">
-                            <ToggleButton.Style>
-                                <Style TargetType="ToggleButton">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ToggleButton">
-                                                <Grid Width="40" Height="20">
-                                                    <Border x:Name="SwitchBackground"
-                                                            CornerRadius="10"
-                                                            Background="#3C3C3C"/>
-                                                    <Ellipse x:Name="SwitchThumb"
-                                                             Width="16" Height="16"
-                                                             Margin="2"
-                                                             Fill="#E5E5E5"
-                                                             HorizontalAlignment="Left"/>
-                                                </Grid>
-
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsChecked" Value="True">
-                                                        <Setter TargetName="SwitchBackground"
-                                                                Property="Background"
-                                                                Value="#4CC2FF"/>
-                                                        <Setter TargetName="SwitchThumb"
-                                                                Property="HorizontalAlignment"
-                                                                Value="Right"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ToggleButton.Style>
-                        </ToggleButton>
-                    </StackPanel>
-
-                    <!-- Port -->
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{loc:Tr Port :}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebPort"
-                                 Width="200"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"/>
-                    </StackPanel>
-
-                    <!-- Login -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,5">
-                        <TextBlock Text="{loc:Tr Login :}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebLogin"
-                                 Width="200"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"/>
-                    </StackPanel>
-
-                    <!-- Mot de passe -->
-                    <Grid Grid.Row="3" Margin="0,0,0,10">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="177"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
-
-                        <TextBlock Text="{loc:Tr Mot de passe :}"
-                                   Grid.Column="0"
-                                   VerticalAlignment="Center"/>
-
-                        <PasswordBox x:Name="txtWebPassword"
-                                     Grid.Column="1"
-                                     Width="177"
-                                     Background="#1E1E1E"
-                                     Foreground="#E5E5E5"
-                                     BorderBrush="#3C3C3C"
-                                     Visibility="Visible"/>
-
-                        <TextBox x:Name="txtWebPasswordVisible"
-                                 Grid.Column="1"
-                                 Width="177"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"
-                                 Visibility="Collapsed"/>
-
-                        <Button x:Name="btnShowPassword"
-                                Grid.Column="2"
-                                Width="18"
-                                Height="18"
-                                Margin="6,0,0,0"
-                                Padding="0"
-                                Click="btnShowPassword_Click"
-                                Background="#2D2D30"
-                                BorderBrush="#3C3C3C"
-                                BorderThickness="1"
-                                Cursor="Hand">
-                            <TextBlock Text="👁" FontSize="12"/>
-                        </Button>
-                    </Grid>
-
-                    <!-- Bouton Appliquer aligné sous les zones de texte -->
-                    <Grid Grid.Row="5">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>   <!-- même largeur que les labels -->
-                            <ColumnDefinition Width="Auto"/>  <!-- bouton aligné avec les TextBox -->
-                        </Grid.ColumnDefinitions>
-
-                        <Button Grid.Column="1"
-                                Content="{loc:Tr Appliquer}"
-                                Width="150"
-                                Height="24"
-                                Padding="0"
-                                HorizontalAlignment="Left"
-                                VerticalContentAlignment="Center"
-                                Click="btnApplyWebAll_Click"/>
-                    </Grid>
-                </Grid>
-
-                <!-- ZONE 2 : Sauvegarde de l'historique -->
-                <Grid Grid.Column="1"
-                      Margin="20,0"
-                      VerticalAlignment="Center">
-
-                    <!-- Trait vertical gauche -->
-                    <Rectangle Width="1"
-                               Fill="White"
-                               HorizontalAlignment="Left"/>
-
-                    <!-- Trait vertical droite -->
-                    <Rectangle Width="1"
-                               Fill="White"
-                               HorizontalAlignment="Right"/>
-
-                    <!-- Contenu Zone 2 -->
-                    <StackPanel Orientation="Vertical"
-                                HorizontalAlignment="Center"
-                                VerticalAlignment="Center"
-                                Margin="20,0">
-
-                        <TextBlock Text="{loc:Tr Garder une sauvegarde :}"
-                                   FontSize="14"
-                                   FontWeight="SemiBold"
-                                   Foreground="#F0F0F0"
-                                   HorizontalAlignment="Center"
-                                   Margin="0,0,0,10"/>
-
-                        <!-- CheckBox alignées à gauche -->
-                        <StackPanel Orientation="Vertical"
-                                    HorizontalAlignment="Left"
-                                    Margin="0,0,0,20">
-
-                            <CheckBox x:Name="chkNone"
-                                      Content="{loc:Tr Aucune}"
-                                      Foreground="#E5E5E5"
-                                      Margin="0,4"
-                                      Checked="BackupOption_Checked"/>
-
-                            <CheckBox x:Name="chk1w"
-                                      Content="{loc:Tr 1 semaine}"
-                                      Foreground="#E5E5E5"
-                                      Margin="0,4"
-                                      Checked="BackupOption_Checked"/>
-
-                            <CheckBox x:Name="chk2w"
-                                      Content="{loc:Tr 2 semaines}"
-                                      Foreground="#E5E5E5"
-                                      Margin="0,4"
-                                      Checked="BackupOption_Checked"/>
-
-                            <CheckBox x:Name="chk1m"
-                                      Content="{loc:Tr 1 mois}"
-                                      Foreground="#E5E5E5"
-                                      Margin="0,4"
-                                      Checked="BackupOption_Checked"/>
-
-                        </StackPanel>
-
-                        <!-- Bouton aligné horizontalement avec les autres zones -->
-                        <Button Content="{loc:Tr Ouvrir la sauvegarde}"
-                                Width="180"
-                                Height="24"
-                                Padding="0,-1,0,0"
-                                VerticalContentAlignment="Center"
-                                HorizontalAlignment="Left"
-                                Click="btnOpenBackup_Click"/>
-                    </StackPanel>
-                </Grid>
-
-
-                <!-- ZONE 3 : BOUTON OUVRIR (à droite, en bas) -->
-                <StackPanel Grid.Column="2"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom">
-
-                    <Button Content="{loc:Tr Ouvrir dans le navigateur}"
-                            Width="220"
-                            Height="24"
-                            Padding="0"
-                            VerticalContentAlignment="Center"
-                            Click="btnOpenWeb_Click"/>
-                </StackPanel>
-
-            </Grid>
-        </GroupBox>
-        <!-- 🔥 SERVEUR TV (repliable) -->
-        <Expander Header="{loc:Tr 'Serveur TV'}"
-                  Grid.Row="2"
-                  Margin="10"
-                  Background="{StaticResource WebPanelBackground}"
-                  Foreground="{StaticResource Win11Text}"
-                  BorderBrush="{StaticResource Win11Border}"
-                  BorderThickness="1"
-                  IsExpanded="False">
-
-            <GroupBox Padding="10"
-                      Background="{StaticResource WebPanelBackground}"
-                      BorderBrush="{StaticResource Win11Border}"
-                      Foreground="{StaticResource Win11Text}"
-                      Margin="0">
-
-                <!-- 📌 NOUVEAU : TabControl -->
-                <TabControl Background="{StaticResource WebPanelBackground}"
-                            Foreground="{StaticResource Win11Text}"
-                            BorderBrush="{StaticResource Win11Border}">
-
-                    <!-- ========================= -->
-                    <!--     ONGLET DVBVIEWER RS   -->
-                    <!-- ========================= -->
-                    <TabItem Header="{loc:Tr 'DVBviewer RS'}">
-                        <Grid Margin="10">
-
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-
-                            <!-- SWITCH EN HAUT À GAUCHE -->
-                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                <TextBlock Text="{loc:Tr 'Activer DVBViewer RS'}"
+                        <Border Style="{StaticResource CardBorder}" Padding="12,8">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Tr 'Log'}"
                                            VerticalAlignment="Center"
-                                           Margin="0,0,8,0"/>
+                                           Margin="0,0,10,0"/>
 
-                                <ToggleButton x:Name="ToggleDvb"
-                                              Width="40"
-                                              Height="20"
-                                              Checked="ToggleDvb_Checked"
-                                              Unchecked="ToggleDvb_Unchecked">
-
+                                <ToggleButton x:Name="ToggleLog"
+                                              Width="40" Height="20"
+                                              Checked="ToggleLog_Checked"
+                                              Unchecked="ToggleLog_Unchecked">
                                     <ToggleButton.Style>
                                         <Style TargetType="ToggleButton">
                                             <Setter Property="Template">
@@ -661,369 +499,834 @@
                                                     <ControlTemplate TargetType="ToggleButton">
                                                         <Grid Width="40" Height="20">
                                                             <Border x:Name="SwitchBackground"
-                                                                    CornerRadius="10"
-                                                                    Background="#3C3C3C"/>
+                                                                    CornerRadius="10" Background="#3C3C3C"/>
                                                             <Ellipse x:Name="SwitchThumb"
                                                                      Width="16" Height="16"
-                                                                     Margin="2"
-                                                                     Fill="#E5E5E5"
+                                                                     Margin="2" Fill="#E5E5E5"
                                                                      HorizontalAlignment="Left"/>
                                                         </Grid>
-
                                                         <ControlTemplate.Triggers>
-
-                                                            <!-- ON -->
                                                             <Trigger Property="IsChecked" Value="True">
-                                                                <Setter TargetName="SwitchBackground"
-                                                                        Property="Background"
-                                                                        Value="#4CC2FF"/>
-                                                                <Setter TargetName="SwitchThumb"
-                                                                        Property="HorizontalAlignment"
-                                                                        Value="Right"/>
+                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                             </Trigger>
-
-                                                            <!-- HOVER -->
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="SwitchBackground"
-                                                                        Property="Background"
-                                                                        Value="#5DD2FF"/>
-                                                            </Trigger>
-
                                                         </ControlTemplate.Triggers>
                                                     </ControlTemplate>
                                                 </Setter.Value>
                                             </Setter>
                                         </Style>
                                     </ToggleButton.Style>
-
                                 </ToggleButton>
                             </StackPanel>
+                        </Border>
 
-                            <!-- URL -->
-                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="{loc:Tr 'Adresse des status :'}"
-                                           Width="120"
-                                           VerticalAlignment="Center"/>
-                                <TextBox x:Name="txtDvbUrl"
-                                         Width="400"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"/>
+                        <Border Style="{StaticResource CardBorder}" Padding="12,8" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="{loc:Tr 'Envoi du rapport automatique'}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,0"/>
+
+                                <ToggleButton x:Name="ToggleEmail"
+                                              Width="40" Height="20"
+                                              IsChecked="True"
+                                              Checked="ToggleEmail_Checked"
+                                              Unchecked="ToggleEmail_Unchecked">
+                                    <ToggleButton.Style>
+                                        <Style TargetType="ToggleButton">
+                                            <Setter Property="Template">
+                                                <Setter.Value>
+                                                    <ControlTemplate TargetType="ToggleButton">
+                                                        <Grid Width="40" Height="20">
+                                                            <Border x:Name="SwitchBackground"
+                                                                    CornerRadius="10" Background="#3C3C3C"/>
+                                                            <Ellipse x:Name="SwitchThumb"
+                                                                     Width="16" Height="16"
+                                                                     Margin="2" Fill="#E5E5E5"
+                                                                     HorizontalAlignment="Left"/>
+                                                        </Grid>
+                                                        <ControlTemplate.Triggers>
+                                                            <Trigger Property="IsChecked" Value="True">
+                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                            </Trigger>
+                                                        </ControlTemplate.Triggers>
+                                                    </ControlTemplate>
+                                                </Setter.Value>
+                                            </Setter>
+                                        </Style>
+                                    </ToggleButton.Style>
+                                </ToggleButton>
                             </StackPanel>
+                        </Border>
+                    </StackPanel>
 
-                            <!-- Login -->
-                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                                <TextBlock Text="{loc:Tr 'Login :'}"
-                                           Width="120"
-                                           VerticalAlignment="Center"/>
-                                <TextBox x:Name="txtDvbUser"
-                                         Width="200"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"/>
-                            </StackPanel>
+                    <!-- SERVEUR WEB -->
+                    <GroupBox Grid.Row="1"
+                              Margin="0,0,0,10"
+                              Padding="10"
+                              Header="{loc:Tr 'Serveur Web'}"
+                              Background="{StaticResource PanelBackground}"
+                              BorderBrush="{StaticResource Win11Border}"
+                              Foreground="{StaticResource Win11Text}">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                            <!-- Password -->
-                            <Grid Grid.Row="3" Margin="0,0,0,8">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="120"/>
-                                    <ColumnDefinition Width="177"/>
-                                    <ColumnDefinition Width="Auto"/>
-                                </Grid.ColumnDefinitions>
+                            <Grid Grid.Column="0" Margin="0,0,20,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                                <TextBlock Text="{loc:Tr 'Mot de passe :'}"
-                                           Grid.Column="0"
-                                           VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
+                                               VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                    <ToggleButton x:Name="ToggleWeb"
+                                                  Width="40" Height="20"
+                                                  Checked="ToggleWeb_Checked"
+                                                  Unchecked="ToggleWeb_Unchecked">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <Grid Width="40" Height="20">
+                                                                <Border x:Name="SwitchBackground"
+                                                                        CornerRadius="10" Background="#3C3C3C"/>
+                                                                <Ellipse x:Name="SwitchThumb"
+                                                                         Width="16" Height="16"
+                                                                         Margin="2" Fill="#E5E5E5"
+                                                                         HorizontalAlignment="Left"/>
+                                                            </Grid>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                    <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                </StackPanel>
 
-                                <PasswordBox x:Name="txtDvbPass"
-                                             Grid.Column="1"
-                                             Width="177"
-                                             Background="#1E1E1E"
-                                             Foreground="#E5E5E5"
-                                             BorderBrush="#3C3C3C"
-                                             Visibility="Visible"/>
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebPort" Width="200"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>
 
-                                <TextBox x:Name="txtDvbPassVisible"
-                                         Grid.Column="1"
-                                         Width="177"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         Visibility="Collapsed"/>
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebLogin" Width="200"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>
 
-                                <Button x:Name="btnShowDvbPass"
-                                        Grid.Column="2"
-                                        Width="18"
-                                        Height="18"
-                                        Margin="6,0,0,0"
-                                        Padding="0"
-                                        Click="btnShowDvbPass_Click"
-                                        Background="#2D2D30"
-                                        BorderBrush="#3C3C3C"
-                                        BorderThickness="1"
-                                        Cursor="Hand">
-                                    <TextBlock Text="👁" FontSize="12"/>
-                                </Button>
+                                <Grid Grid.Row="3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="177"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
+
+                                    <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
+                                                 Background="#1E1E1E" Foreground="#E5E5E5"
+                                                 BorderBrush="#3C3C3C" Visibility="Visible"/>
+
+                                    <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
+                                             Background="#1E1E1E" Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+
+                                    <Button x:Name="btnShowPassword" Grid.Column="2"
+                                            Width="22" Height="22" Margin="6,0,0,0" Padding="0"
+                                            Click="btnShowPassword_Click"
+                                            Background="#2D2D30" BorderBrush="#3C3C3C"
+                                            BorderThickness="1" Cursor="Hand">
+                                        <TextBlock Text="👁" FontSize="12"/>
+                                    </Button>
+                                </Grid>
                             </Grid>
 
-                            <!-- Bouton Appliquer -->
-                            <Button Grid.Row="4"
-                                    Content="{loc:Tr 'Appliquer'}"
-                                    Width="150"
-                                    Height="24"
-                                    Padding="0"
-                                    HorizontalAlignment="Left"
-                                    VerticalContentAlignment="Center"
-                                    Click="btnApplyDvb_Click"/>
+                            <!-- ZONE RETENTION -->
+                            <Border Grid.Column="1"
+                                    BorderBrush="#3C3C3C" BorderThickness="1,0,1,0"
+                                    Padding="25,0"
+                                    Margin="20,0"
+                                    VerticalAlignment="Stretch">
+                                <StackPanel Orientation="Vertical"
+                                            VerticalAlignment="Center"
+                                            HorizontalAlignment="Center">
+
+                                    <TextBlock Text="{loc:Tr 'Garder une sauvegarde :'}"
+                                               FontSize="13"
+                                               FontWeight="SemiBold"
+                                               Foreground="#4CC2FF"
+                                               HorizontalAlignment="Center"
+                                               Margin="0,0,0,10"/>
+
+                                    <StackPanel Orientation="Vertical" HorizontalAlignment="Left">
+                                        <CheckBox x:Name="chkNone" Content="{loc:Tr 'Aucune'}"
+                                                  Margin="0,4" Checked="BackupOption_Checked"/>
+                                        <CheckBox x:Name="chk1w" Content="{loc:Tr '1 semaine'}"
+                                                  Margin="0,4" Checked="BackupOption_Checked"/>
+                                        <CheckBox x:Name="chk2w" Content="{loc:Tr '2 semaines'}"
+                                                  Margin="0,4" Checked="BackupOption_Checked"/>
+                                        <CheckBox x:Name="chk1m" Content="{loc:Tr '1 mois'}"
+                                                  Margin="0,4" Checked="BackupOption_Checked"/>
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+
+                            <StackPanel Grid.Column="2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom">
+                                <Button Content="{loc:Tr 'Appliquer'}"
+                                        Width="150" Height="28" Margin="0,0,0,8"
+                                        Padding="0" VerticalContentAlignment="Center"
+                                        Click="btnApplyWebAll_Click"/>
+
+                                <Button Content="{loc:Tr 'Ouvrir la sauvegarde'}"
+                                        Width="220" Height="28"
+                                        Padding="0" VerticalContentAlignment="Center"
+                                        Click="btnOpenBackup_Click"/>
+                            </StackPanel>
                         </Grid>
-                    </TabItem>
+                    </GroupBox>
 
-                    <!-- ========================= -->
-                    <!--       ONGLET MEDIAPORTAL  -->
-                    <!-- ========================= -->
-                    <TabItem Header="MediaPortal">
-                        <Grid Margin="10">
-                            <TextBlock Text="{loc:Tr 'Support MediaPortal TV Server à venir'}"
-                                       Foreground="#888"
-                                       FontStyle="Italic"/>
+                    <!-- SERVEUR TV -->
+                    <Expander Grid.Row="2"
+                              Margin="0,0,0,10"
+                              Header="{loc:Tr 'Serveur TV'}"
+                              Background="{StaticResource PanelBackground}"
+                              Foreground="{StaticResource Win11Text}"
+                              BorderBrush="{StaticResource Win11Border}"
+                              BorderThickness="1"
+                              IsExpanded="False">
+                        <GroupBox Padding="10"
+                                  Background="{StaticResource PanelBackground}"
+                                  BorderBrush="{StaticResource Win11Border}"
+                                  Foreground="{StaticResource Win11Text}"
+                                  Margin="0">
+                            <TabControl Background="Transparent" BorderThickness="0">
+                                <TabItem Header="{loc:Tr 'DVBviewer RS'}">
+                                    <Grid Margin="10">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                            <RowDefinition Height="Auto"/>
+                                        </Grid.RowDefinitions>
+
+                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="{loc:Tr 'Activer DVBViewer RS'}"
+                                                       VerticalAlignment="Center" Margin="0,0,8,0"/>
+                                            <ToggleButton x:Name="ToggleDvb" Width="40" Height="20"
+                                                          Checked="ToggleDvb_Checked"
+                                                          Unchecked="ToggleDvb_Unchecked">
+                                                <ToggleButton.Style>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Grid Width="40" Height="20">
+                                                                        <Border x:Name="SwitchBackground"
+                                                                                CornerRadius="10" Background="#3C3C3C"/>
+                                                                        <Ellipse x:Name="SwitchThumb"
+                                                                                 Width="16" Height="16"
+                                                                                 Margin="2" Fill="#E5E5E5"
+                                                                                 HorizontalAlignment="Left"/>
+                                                                    </Grid>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBlock Text="{loc:Tr 'Adresse des status :'}"
+                                                       Width="120" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtDvbUrl" Width="400"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                            <TextBlock Text="{loc:Tr 'Login :'}"
+                                                       Width="120" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtDvbUser" Width="200"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                        </StackPanel>
+
+                                        <Grid Grid.Row="3" Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="120"/>
+                                                <ColumnDefinition Width="177"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Text="{loc:Tr 'Mot de passe :'}"
+                                                       Grid.Column="0" VerticalAlignment="Center"/>
+
+                                            <PasswordBox x:Name="txtDvbPass" Grid.Column="1" Width="177"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5"
+                                                         BorderBrush="#3C3C3C" Visibility="Visible"/>
+
+                                            <TextBox x:Name="txtDvbPassVisible" Grid.Column="1" Width="177"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5"
+                                                     BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+
+                                            <Button x:Name="btnShowDvbPass" Grid.Column="2"
+                                                    Width="22" Height="22" Margin="6,0,0,0" Padding="0"
+                                                    Click="btnShowDvbPass_Click"
+                                                    Background="#2D2D30" BorderBrush="#3C3C3C"
+                                                    BorderThickness="1" Cursor="Hand">
+                                                <TextBlock Text="👁" FontSize="12"/>
+                                            </Button>
+                                        </Grid>
+
+                                        <Button Grid.Row="4"
+                                                Content="{loc:Tr 'Appliquer'}"
+                                                Width="150" Height="28" Padding="0"
+                                                HorizontalAlignment="Left"
+                                                VerticalContentAlignment="Center"
+                                                Click="btnApplyDvb_Click"/>
+                                    </Grid>
+                                </TabItem>
+
+                                <TabItem Header="MediaPortal">
+                                    <Grid Margin="10">
+                                        <TextBlock Text="{loc:Tr 'Support MediaPortal TV Server à venir'}"
+                                                   Foreground="#888" FontStyle="Italic"/>
+                                    </Grid>
+                                </TabItem>
+                            </TabControl>
+                        </GroupBox>
+                    </Expander>
+
+                    <!-- TABLEAU EN COURS -->
+                    <DataGrid x:Name="FilesGrid"
+                              Grid.Row="3"
+                              Margin="0,0,0,5"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Width="22" Height="22" Source="{Binding IconPath}"
+                                               VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Foreground" Value="#E5E5E5"/>
+                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                                <Setter Property="Background" Value="#80C586C0"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                                <Setter Property="Background" Value="#80D19A66"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                                <Setter Property="Background" Value="#80007ACC"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                                <Setter Property="Background" Value="#804CAF50"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
+                                                <Setter Property="Background" Value="#80FF0000"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                                <Setter Property="Background" Value="#80FFFF00"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Canal'}" Binding="{Binding Channel}" Width="120"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Nom'}"   Binding="{Binding Nom}"     Width="2*"/>
+
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="i" Width="22" Height="22"
+                                                Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource InfoButtonStyle}"
+                                                ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Saison'}"  Binding="{Binding Saison}"  Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Chemin'}"  Binding="{Binding Path}"    Width="3*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- DERNIERE IMAGE -->
+                    <Border Grid.Row="4" Style="{StaticResource CardBorder}"
+                            Padding="12,6" Margin="0,5,0,5">
+                        <TextBlock x:Name="LastImageText"
+                                   FontSize="13"
+                                   Foreground="#4CC2FF"
+                                   Text="{loc:Tr 'Dernière image ouverte : aucune'}"/>
+                    </Border>
+
+                    <!-- TABLEAU HISTORIQUE -->
+                    <DataGrid x:Name="HistoryGrid"
+                              Grid.Row="5"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Width="22" Height="22" Source="{Binding IconPath}"
+                                               VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Heure'}"
+                                                Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Foreground" Value="#E5E5E5"/>
+                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                                <Setter Property="Background" Value="#80C586C0"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                                <Setter Property="Background" Value="#80D19A66"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                                <Setter Property="Background" Value="#80007ACC"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                                <Setter Property="Background" Value="#804CAF50"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
+                                                <Setter Property="Background" Value="#80FF0000"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                                <Setter Property="Background" Value="#80FFFF00"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Canal'}" Binding="{Binding Channel}" Width="120"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Nom'}"   Binding="{Binding Nom}"     Width="2*"/>
+
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="i" Width="22" Height="22"
+                                                Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource InfoButtonStyle}"
+                                                ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Saison'}"  Binding="{Binding Saison}"  Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Chemin'}"  Binding="{Binding Path}"    Width="3*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET 2 : BACKUP                                     -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Backup'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Info + actions -->
+                    <Border Grid.Row="0" Style="{StaticResource CardBorder}" Padding="12,8" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="📦" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
+                            <TextBlock x:Name="BackupInfoText"
+                                       VerticalAlignment="Center"
+                                       Margin="0,0,20,0"
+                                       Foreground="#4CC2FF"
+                                       FontWeight="SemiBold"
+                                       Text="Chargement..."/>
+                            <Button Content="{loc:Tr 'Rafraîchir'}"     Margin="0,0,8,0" Click="btnRefreshBackup_Click"/>
+                            <Button Content="{loc:Tr 'Exporter PDF'}" Margin="0,0,8,0" Click="btnBackupPdf_Click"/>
+                            <Button Content="{loc:Tr 'Purger'}"         Click="btnPurgeBackup_Click"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Filtres -->
+                    <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="12,8" Margin="0,0,0,10">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{loc:Tr 'Filtrer par type : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="BackupFilterType" Width="120" Margin="0,0,20,0"
+                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      SelectionChanged="BackupFilter_Changed">
+                                <ComboBoxItem Content="Tous"/>
+                                <ComboBoxItem Content="Audio"/>
+                                <ComboBoxItem Content="Série"/>
+                                <ComboBoxItem Content="Vidéo"/>
+                                <ComboBoxItem Content="Image"/>
+                                <ComboBoxItem Content="REC"/>
+                                <ComboBoxItem Content="TV"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Filtrer par client : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="BackupFilterClient" Width="160" Margin="0,0,20,0"
+                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      SelectionChanged="BackupFilter_Changed"/>
+
+                            <TextBlock Text="{loc:Tr 'Filtrer par date : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
+                            <ComboBox x:Name="BackupFilterDate" Width="140"
+                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      SelectionChanged="BackupFilter_Changed">
+                                <ComboBoxItem Content="Tout"/>
+                                <ComboBoxItem Content="Aujourd'hui"/>
+                                <ComboBoxItem Content="Hier"/>
+                                <ComboBoxItem Content="7 jours"/>
+                                <ComboBoxItem Content="30 jours"/>
+                            </ComboBox>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Grille -->
+                    <DataGrid x:Name="BackupGrid"
+                              Grid.Row="2"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                        <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Image Width="22" Height="22" Source="{Binding IconPath}"
+                                               VerticalAlignment="Center"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Heure'}"
+                                                Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
+                                                Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
+                                <DataGridTextColumn.CellStyle>
+                                    <Style TargetType="DataGridCell">
+                                        <Setter Property="Foreground" Value="#E5E5E5"/>
+                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Serie">
+                                                <Setter Property="Background" Value="#80C586C0"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Video">
+                                                <Setter Property="Background" Value="#80D19A66"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Audio">
+                                                <Setter Property="Background" Value="#80007ACC"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="Image">
+                                                <Setter Property="Background" Value="#804CAF50"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
+                                                <Setter Property="Background" Value="#80FF0000"/>
+                                                <Setter Property="Foreground" Value="White"/>
+                                            </DataTrigger>
+                                            <DataTrigger Binding="{Binding MediaType}" Value="TV">
+                                                <Setter Property="Background" Value="#80FFFF00"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </DataTrigger>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </DataGridTextColumn.CellStyle>
+                            </DataGridTextColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Canal'}" Binding="{Binding Channel}" Width="120"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Nom'}"   Binding="{Binding Nom}"     Width="2*"/>
+
+                            <DataGridTemplateColumn Header="" Width="40">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Content="i" Width="22" Height="22"
+                                                Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                Style="{StaticResource InfoButtonStyle}"
+                                                ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr 'Saison'}"  Binding="{Binding Saison}"  Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Chemin'}"  Binding="{Binding Path}"    Width="3*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET 3 : STATISTIQUES                               -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Statistiques'}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,5,0">
+                    <StackPanel Margin="0,10,0,0">
+
+                        <!-- Statistiques globales -->
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                    <TextBlock Text="📊" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Statistiques globales'}"
+                                               FontSize="14" FontWeight="Bold"
+                                               Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{loc:Tr 'Titres lus : '}" Width="110" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatTotal" FontWeight="Bold" Foreground="#4CC2FF"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{loc:Tr 'Audio : '}" Width="80" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatAudio" FontWeight="Bold" Foreground="#007ACC"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{loc:Tr 'Séries : '}" Width="80" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatSerie" FontWeight="Bold" Foreground="#C586C0"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{loc:Tr 'Vidéos : '}" Width="80" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatVideo" FontWeight="Bold" Foreground="#D19A66"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="{loc:Tr 'Images : '}" Width="110" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatImage" FontWeight="Bold" Foreground="#4CAF50"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="REC :" Width="80" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatRec" FontWeight="Bold" Foreground="#FF4D4D"/>
+                                    </StackPanel>
+                                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,4">
+                                        <TextBlock Text="TV :" Width="80" Foreground="#aaa"/>
+                                        <TextBlock x:Name="StatTv" FontWeight="Bold" Foreground="#FFE066"/>
+                                    </StackPanel>
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Top séries + Top artistes -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🎬" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Top séries'}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <DataGrid x:Name="TopSeriesGrid"
+                                              AutoGenerateColumns="False" CanUserAddRows="False"
+                                              IsReadOnly="True" Height="240">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="{loc:Tr 'Série'}"    Binding="{Binding Label}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Lectures'}" Binding="{Binding Count}" Width="90"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🎵" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Top artistes'}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <DataGrid x:Name="TopArtistesGrid"
+                                              AutoGenerateColumns="False" CanUserAddRows="False"
+                                              IsReadOnly="True" Height="240">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="{loc:Tr 'Artiste'}"  Binding="{Binding Label}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Lectures'}" Binding="{Binding Count}" Width="90"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
                         </Grid>
-                    </TabItem>
 
-                </TabControl>
+                        <!-- Top clients + Médias par client -->
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-            </GroupBox>
-        </Expander>
+                            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="👥" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Top clients'}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <DataGrid x:Name="TopClientsGrid"
+                                              AutoGenerateColumns="False" CanUserAddRows="False"
+                                              IsReadOnly="True" Height="240">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="{loc:Tr 'Client'}"   Binding="{Binding Label}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Lectures'}" Binding="{Binding Count}" Width="90"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
 
-        <!-- TABLEAU EN COURS -->
-        <DataGrid x:Name="FilesGrid"
-                  Grid.Row="3"
-                  Margin="10"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🗂" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Médias par client'}"
+                                                   FontSize="13" FontWeight="SemiBold"
+                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <DataGrid x:Name="PerClientGrid"
+                                              AutoGenerateColumns="False" CanUserAddRows="False"
+                                              IsReadOnly="True" Height="240">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding Client}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Audio'}"  Binding="{Binding Audio}"  Width="55"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Séries'}" Binding="{Binding Serie}"  Width="55"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Vidéos'}" Binding="{Binding Video}"  Width="55"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Images'}" Binding="{Binding Image}"  Width="55"/>
+                                            <DataGridTextColumn Header="REC"             Binding="{Binding Rec}"    Width="55"/>
+                                            <DataGridTextColumn Header="TV"              Binding="{Binding Tv}"     Width="55"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Total'}"  Binding="{Binding Total}"  Width="65"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                </StackPanel>
+                            </Border>
+                        </Grid>
 
-            <DataGrid.Columns>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
 
-                <DataGridTemplateColumn Header="" Width="40">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Image Width="22" Height="22"
-                                   Source="{Binding IconPath}"
-                                   VerticalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+        </TabControl>
 
-                <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
+        <!-- ============================================================ -->
+        <!--  STATUS BAR                                                   -->
+        <!-- ============================================================ -->
+        <Border Grid.Row="2"
+                Background="#252526"
+                BorderBrush="#3C3C3C"
+                BorderThickness="0,1,0,0"
+                Margin="0,10,0,0"
+                Padding="15,6">
+            <TextBlock x:Name="StatusText"
+                       Text="MediaMonitor prêt."
+                       FontSize="12"
+                       Foreground="#B4B4B4"
+                       VerticalAlignment="Center"/>
+        </Border>
 
-                <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Foreground" Value="#E5E5E5"/>
-                            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-                            <Setter Property="BorderThickness" Value="0 0 1 1"/>
-
-                            <Style.Triggers>
-
-                                <!-- Série -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Serie">
-                                    <Setter Property="Background" Value="#80C586C0"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Vidéo -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Video">
-                                    <Setter Property="Background" Value="#80D19A66"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Musique -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Audio">
-                                    <Setter Property="Background" Value="#80007ACC"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Image -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Image">
-                                    <Setter Property="Background" Value="#804CAF50"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-                                
-                                <!-- 🔴 REC -->
-                                <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
-                                    <Setter Property="Background" Value="#80FF0000"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- 🟡 TV -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="TV">
-                                    <Setter Property="Background" Value="#80FFFF00"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </DataTrigger>
-
-                                <!-- Sélection -->
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#4CC2FF"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-
-                <!-- ⭐ NOUVELLE COLONNE CANAL -->
-                <DataGridTextColumn Header="{loc:Tr 'Canal'}"
-                                    Binding="{Binding Channel}"
-                                    Width="120"/>
-
-                <!-- NOM -->
-                <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
-
-                <!-- ICÔNE INFO -->
-                <DataGridTemplateColumn Header="" Width="40">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="i"
-                                    Width="22" Height="22"
-                                    Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
-                                    Style="{StaticResource InfoButtonStyle}"
-                                    ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTextColumn Header="{loc:Tr 'Saison'}" Binding="{Binding Saison}" Width="60"/>
-                <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
-                <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Chemin'}" Binding="{Binding Path}" Width="3*"/>
-
-            </DataGrid.Columns>
-
-        </DataGrid>
-
-        <!-- DERNIERE IMAGE -->
-        <TextBlock x:Name="LastImageText"
-                   Grid.Row="4"
-                   Margin="10"
-                   FontSize="16"
-                   Text="{loc:Tr 'Dernière image ouverte : aucune'}"/>
-
-        <!-- TABLEAU HISTORIQUE -->
-        <DataGrid x:Name="HistoryGrid"
-                  Grid.Row="5"
-                  Margin="10"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
-
-            <DataGrid.Columns>
-
-                <DataGridTemplateColumn Header="" Width="40">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Image Width="22" Height="22"
-                                   Source="{Binding IconPath}"
-                                   VerticalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTextColumn Header="{loc:Tr 'Heure'}"
-                                    Binding="{Binding Timestamp, StringFormat={}{0:dd/MM/yyyy HH:mm:ss}}"
-                                    Width="150"/>
-
-                <DataGridTextColumn Header="{loc:Tr 'Client'}" Binding="{Binding ClientDisplay}" Width="100"/>
-
-                <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
-                    <DataGridTextColumn.CellStyle>
-                        <Style TargetType="DataGridCell">
-                            <Setter Property="Foreground" Value="#E5E5E5"/>
-                            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-                            <Setter Property="BorderThickness" Value="0 0 1 1"/>
-
-                            <Style.Triggers>
-
-                                <!-- Série -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Serie">
-                                    <Setter Property="Background" Value="#80C586C0"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Vidéo -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Video">
-                                    <Setter Property="Background" Value="#80D19A66"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Musique -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Audio">
-                                    <Setter Property="Background" Value="#80007ACC"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Image -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="Image">
-                                    <Setter Property="Background" Value="#804CAF50"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- 🟡 TV -->
-                                <DataTrigger Binding="{Binding MediaType}" Value="tv">
-                                    <Setter Property="Background" Value="#80FFFF00"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </DataTrigger>
-
-                                <!-- 🔴 REC -->
-                                <DataTrigger Binding="{Binding MediaType, Converter={StaticResource RecConverter}}" Value="True">
-                                    <Setter Property="Background" Value="#80FF0000"/>
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-
-                                <!-- Sélection -->
-                                <Trigger Property="IsSelected" Value="True">
-                                    <Setter Property="Background" Value="#4CC2FF"/>
-                                    <Setter Property="Foreground" Value="Black"/>
-                                </Trigger>
-
-                            </Style.Triggers>
-                        </Style>
-                    </DataGridTextColumn.CellStyle>
-                </DataGridTextColumn>
-
-                <!-- ⭐ NOUVELLE COLONNE CANAL -->
-                <DataGridTextColumn Header="{loc:Tr 'Canal'}"
-                                    Binding="{Binding Channel}"
-                                    Width="120"/>
-
-                <!-- NOM -->
-                <DataGridTextColumn Header="{loc:Tr 'Nom'}" Binding="{Binding Nom}" Width="2*"/>
-
-                <!-- ICÔNE INFO -->
-                <DataGridTemplateColumn Header="" Width="40">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Button Content="i"
-                                    Width="22" Height="22"
-                                    Command="{Binding DataContext.ShowInfoCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                    CommandParameter="{Binding}"
-                                    Style="{StaticResource InfoButtonStyle}"
-                                    ToolTip="{loc:Tr 'Informations sur ce fichier'}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-
-                <DataGridTextColumn Header="{loc:Tr 'Saison'}" Binding="{Binding Saison}" Width="60"/>
-                <DataGridTextColumn Header="{loc:Tr 'Episode'}" Binding="{Binding Episode}" Width="60"/>
-                <DataGridTextColumn Header="{loc:Tr 'Fichier'}" Binding="{Binding FileName}" Width="2*"/>
-                <DataGridTextColumn Header="{loc:Tr 'Chemin'}" Binding="{Binding Path}" Width="3*"/>
-
-            </DataGrid.Columns>
-
-        </DataGrid>
     </Grid>
 </Window>
-
