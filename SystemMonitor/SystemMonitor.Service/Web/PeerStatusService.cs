@@ -220,7 +220,9 @@ namespace SystemMonitor.Service.Web
 
                 if (isOnline)
                 {
-                    sb.Append($@"<a class=""peer-btn"" href=""http://localhost:{p.Port}/"" target=""_blank"" title=""{tooltip}"">{inner}</a>");
+                    // target = nom du service ? réutilise l'onglet s'il est déjà ouvert
+                    string targetName = "mm_" + p.Name.Replace(" ", "_");
+                    sb.Append($@"<a class=""peer-btn"" href=""http://localhost:{p.Port}/"" target=""{targetName}"" title=""{tooltip}"">{inner}</a>");
                 }
                 else
                 {
