@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -64,7 +65,7 @@ namespace RomMonitor.Service.Web
                 _listener?.Stop();
                 _listener?.Close();
                 _listener = null;
-                CoreLog.Write("WebServer arrêté");
+                CoreLog.Write("WebServer arreté");
             }
             catch { }
         }
@@ -106,11 +107,10 @@ namespace RomMonitor.Service.Web
                     return;
                 }
 
-                // Langue demandée par l'URL (?lang=fr-FR) — sinon on garde celle du service
+                // Langue demandée par l'URL (?lang=fr-FR)
                 string lang = ctx.Request.QueryString["lang"];
                 if (!string.IsNullOrEmpty(lang))
                 {
-                    // Recharge le MÊME LanguageManager que celui du TemplateEngine
                     LanguageManager.Load(lang);
                 }
 
@@ -121,9 +121,30 @@ namespace RomMonitor.Service.Web
                     string html = WebHandler.BuildRomPage(_engine, _settings);
                     SendHtml(ctx, html);
                 }
+                else if (path == "/ping")
+                {
+                    SendHtml(ctx, "pong");
+                }
+                else if (path == "/peers")
+                {
+                    var peers = PeerStatusService.CheckAllAsync("RomMonitor")
+                                                   .GetAwaiter().GetResult();
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(peers,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                        });
+                    SendJson(ctx, json);
+                }
                 else if (path == "/favicon.ico")
                 {
                     ServeFavicon(ctx);
+                }
+                else if (path.StartsWith("/resources/icons/") ||
+                         path.StartsWith("/resources/images/"))
+                {
+                    ServeStaticFile(ctx, path);
                 }
                 else
                 {
@@ -201,6 +222,77 @@ namespace RomMonitor.Service.Web
             ctx.Response.ContentLength64 = buffer.Length;
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
+        }
+
+        private static void SendJson(HttpListenerContext ctx, string json)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "application/json; charset=utf-8";
+            ctx.Response.ContentLength64 = buffer.Length;
+            ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
+            ctx.Response.OutputStream.Close();
+        }
+
+        private static void ServeStaticFile(HttpListenerContext ctx, string path)
+        {
+            try
+            {
+                // "/resources/images/web-background.png" ? "Resources\Images\web-background.png"
+                string relative = path.TrimStart('/')
+                                      .Replace('/', Path.DirectorySeparatorChar);
+
+                string baseDir = AppContext.BaseDirectory;
+                string fullPath = Path.Combine(baseDir, relative);
+
+                // Sécurité : empecher la remontée de dossier
+                string baseFull = Path.GetFullPath(baseDir);
+                string requestedFull = Path.GetFullPath(fullPath);
+
+                if (!requestedFull.StartsWith(baseFull, StringComparison.OrdinalIgnoreCase))
+                {
+                    ctx.Response.StatusCode = 403;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                if (!File.Exists(fullPath))
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                string ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                string contentType = ext switch
+                {
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".gif" => "image/gif",
+                    ".svg" => "image/svg+xml",
+                    ".webp" => "image/webp",
+                    ".ico" => "image/x-icon",
+                    _ => "application/octet-stream"
+                };
+
+                byte[] data = File.ReadAllBytes(fullPath);
+
+                ctx.Response.ContentType = contentType;
+                ctx.Response.ContentLength64 = data.Length;
+                ctx.Response.OutputStream.Write(data, 0, data.Length);
+                ctx.Response.OutputStream.Close();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("ServeStaticFile ERROR : " + ex.Message);
+
+                try
+                {
+                    ctx.Response.StatusCode = 500;
+                    ctx.Response.Close();
+                }
+                catch { }
+            }
         }
     }
 }

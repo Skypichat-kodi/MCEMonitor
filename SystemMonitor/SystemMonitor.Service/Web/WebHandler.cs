@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using System.Net;
 using MCEMonitor.Languages;
+using SystemMonitor.Service.Web;
 
 namespace SystemMonitor.Service.Web
 {
@@ -253,7 +254,9 @@ namespace SystemMonitor.Service.Web
                     ["NetCount"] = snap.Networks.Count
                 };
 
-                return ViewRenderer.Render("SystemPage.html", model);
+                string html = ViewRenderer.Render("SystemPage.html", model);
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml());
+                return html;
             }
             catch (Exception ex)
             {

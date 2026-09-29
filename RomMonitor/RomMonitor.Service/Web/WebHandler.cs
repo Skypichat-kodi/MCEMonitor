@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using MCEMonitor.Languages;
+using RomMonitor.Service.Web;
 
 namespace RomMonitor.Service.Web
 {
@@ -163,7 +164,9 @@ namespace RomMonitor.Service.Web
                     ["AlertRows"] = alertRows.ToString()
                 };
 
-                return ViewRenderer.Render("RomPage.html", model);
+                string html = ViewRenderer.Render("RomPage.html", model);
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml());
+                return html;
             }
             catch (Exception ex)
             {

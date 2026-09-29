@@ -115,6 +115,22 @@ namespace SystemMonitor.Service.Web
                     string html = WebHandler.BuildSystemPage(_engine, _settings);
                     SendHtml(ctx, html);
                 }
+                else if (path == "/ping")
+                {
+                    SendHtml(ctx, "pong");
+                }
+                else if (path == "/peers")
+                {
+                    var peers = PeerStatusService.CheckAllAsync("SystemMonitor")
+                                                   .GetAwaiter().GetResult();
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(peers,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                        });
+                    SendJson(ctx, json);
+                }
                 else if (path == "/favicon.ico")
                 {
                     ServeFavicon(ctx);
@@ -201,7 +217,17 @@ namespace SystemMonitor.Service.Web
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
         }
-        
+
+        private static void SendJson(HttpListenerContext ctx, string json)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(json);
+            ctx.Response.StatusCode = 200;
+            ctx.Response.ContentType = "application/json; charset=utf-8";
+            ctx.Response.ContentLength64 = buffer.Length;
+            ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
+            ctx.Response.OutputStream.Close();
+        }
+                
         private static void ServeStaticFile(HttpListenerContext ctx, string path)
         {
             try

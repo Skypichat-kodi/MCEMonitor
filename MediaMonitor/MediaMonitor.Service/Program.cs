@@ -65,6 +65,8 @@ namespace MediaMonitor.Service
             ScheduleLogger.Clear();
             CoreLog.Write("=== MediaMonitor.Service démarré (SYSTEM) ===");
 
+            MediaMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("MediaMonitor");
+
             // ============================================================
             //  Engine
             // ============================================================

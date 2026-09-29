@@ -24,6 +24,8 @@ namespace SystemMonitor.Service
                 return;
             }
 
+            SystemMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("SystemMonitor");
+
             // ============================================================
             //  LANGUE
             // ============================================================

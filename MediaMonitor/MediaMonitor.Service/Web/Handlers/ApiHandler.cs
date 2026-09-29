@@ -34,5 +34,12 @@ namespace MediaMonitor.Service.Web.Handlers
             HttpWriter.WriteHtml(ctx.Http,
                 "<html><body><h2>Historique effacé.</h2></body></html>");
         }
+        
+        public void Peers(HandlerContext ctx)
+        {
+            var list = PeerStatusService.CheckAllAsync("MediaMonitor")
+                                           .GetAwaiter().GetResult();
+            HttpWriter.WriteJson(ctx.Http, list);
+        }        
     }
 }

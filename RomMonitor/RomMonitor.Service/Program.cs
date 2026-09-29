@@ -25,6 +25,8 @@ namespace RomMonitor.Service
                 return;
             }
 
+            RomMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("RomMonitor");
+
             // ============================================================
             //  LANGUE : argument -lang xx-XX > fichier language.config > défaut
             // ============================================================

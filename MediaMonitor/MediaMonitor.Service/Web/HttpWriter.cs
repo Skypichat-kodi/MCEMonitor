@@ -24,9 +24,9 @@ namespace MediaMonitor.Service.Web
         {
             string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
             {
-                WriteIndented = true
+                WriteIndented = true,
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
             });
-
             byte[] buffer = Encoding.UTF8.GetBytes(json);
             ctx.Response.ContentType = "application/json; charset=utf-8";
             ctx.Response.ContentLength64 = buffer.Length;

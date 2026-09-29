@@ -68,6 +68,8 @@ namespace MediaMonitor.Service
             _router.Map("/download", ctx => _downloadHandler.Download(ctx));
             _router.Map("/purge",    ctx => _purgeHandler.Purge(ctx));
             _router.Map("/logo",     ctx => _logoHandler.ServeAsync(ctx).GetAwaiter().GetResult());
+            _router.Map("/ping",  ctx => HttpWriter.WriteHtml(ctx.Http, "pong"));
+            _router.Map("/peers", ctx => _apiHandler.Peers(ctx));
 
             // API JSON
             _router.Map("/history",   ctx => _apiHandler.History(ctx));
