@@ -41,7 +41,7 @@ namespace RomMonitor.Service
                 };
 
                 using var p = Process.Start(psi);
-                p?.WaitForExit(5000);   // ?? attendre la fin
+                p?.WaitForExit(5000);
             }
             catch { }
         }
