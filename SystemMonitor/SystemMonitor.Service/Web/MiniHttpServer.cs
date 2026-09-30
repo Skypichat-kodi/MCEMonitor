@@ -112,7 +112,8 @@ namespace SystemMonitor.Service.Web
 
                 if (path == "/" || path == "/system")
                 {
-                    string html = WebHandler.BuildSystemPage(_engine, _settings);
+                    string publicHost = ctx.Request.Url?.Host ?? "localhost";
+                    string html = WebHandler.BuildSystemPage(_engine, _settings, publicHost);
                     SendHtml(ctx, html);
                 }
                 else if (path == "/ping")

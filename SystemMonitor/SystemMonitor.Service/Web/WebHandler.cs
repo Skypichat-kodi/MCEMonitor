@@ -10,7 +10,10 @@ namespace SystemMonitor.Service.Web
 {
     public static class WebHandler
     {
-        public static string BuildSystemPage(SystemMonitorEngine engine, SystemMonitorSettings settings)
+        public static string BuildSystemPage(
+          SystemMonitorEngine engine,
+          SystemMonitorSettings settings,
+          string publicHost = "localhost")
         {
             try
             {
@@ -255,7 +258,7 @@ namespace SystemMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("SystemPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml());
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
                 return html;
             }
             catch (Exception ex)

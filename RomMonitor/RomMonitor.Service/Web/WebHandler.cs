@@ -9,7 +9,10 @@ namespace RomMonitor.Service.Web
 {
     public static class WebHandler
     {
-        public static string BuildRomPage(RomMonitorEngine engine, RomMonitorSettings settings)
+        public static string BuildRomPage(
+            RomMonitorEngine engine,
+            RomMonitorSettings settings,
+            string publicHost = "localhost")
         {
             try
             {
@@ -165,7 +168,7 @@ namespace RomMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("RomPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml());
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
                 return html;
             }
             catch (Exception ex)

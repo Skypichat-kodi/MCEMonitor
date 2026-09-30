@@ -118,9 +118,10 @@ namespace RomMonitor.Service.Web
 
                 if (path == "/" || path == "/rom")
                 {
-                    string html = WebHandler.BuildRomPage(_engine, _settings);
+                    string publicHost = ctx.Request.Url?.Host ?? "localhost";
+                    string html = WebHandler.BuildRomPage(_engine, _settings, publicHost);
                     SendHtml(ctx, html);
-                }
+}
                 else if (path == "/ping")
                 {
                     SendHtml(ctx, "pong");

@@ -20,7 +20,7 @@ namespace MediaMonitor.Service.Web.Handlers
             _port = port;
         }
 
-        public string Render(long requestCount, DateTime lastRequestTime, string lastRequestIp)
+        public string Render(long requestCount, DateTime lastRequestTime, string lastRequestIp, string publicHost = "localhost")
         {
             var live = _engine.GetCurrentOpenFiles();
             var history = _engine.GetHistory();
@@ -74,7 +74,7 @@ namespace MediaMonitor.Service.Web.Handlers
                                         ? "N/A"
                                         : lastRequestTime.ToString("HH:mm:ss"),
                 ["LastRequestIp"]    = WebUtility.HtmlEncode(lastRequestIp),
-                ["PeerBarHtml"]      = MediaMonitor.Service.Web.PeerStatusService.BuildPeerBarHtml(),
+                ["PeerBarHtml"]      = MediaMonitor.Service.Web.PeerStatusService.BuildPeerBarHtml(publicHost),
 
                 // Tableau lecture
                 ["LiveItems"]        = live.Select(i => ViewHelpers.ToViewDict(

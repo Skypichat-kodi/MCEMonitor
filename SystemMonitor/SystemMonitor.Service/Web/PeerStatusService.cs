@@ -197,10 +197,13 @@ namespace SystemMonitor.Service.Web
             }
         }
 
-        public static string BuildPeerBarHtml()
+        public static string BuildPeerBarHtml(string publicHost)
         {
             var peers = GetCachedPeers();
             var sb = new System.Text.StringBuilder();
+
+            if (string.IsNullOrWhiteSpace(publicHost))
+                publicHost = "localhost";
 
             foreach (var p in peers)
             {
@@ -220,9 +223,10 @@ namespace SystemMonitor.Service.Web
 
                 if (isOnline)
                 {
-                    // target = nom du service ? réutilise l'onglet s'il est déjà ouvert
+                    string href = $"http://{publicHost}:{p.Port}/";
                     string targetName = "mm_" + p.Name.Replace(" ", "_");
-                    sb.Append($@"<a class=""peer-btn"" href=""http://localhost:{p.Port}/"" target=""{targetName}"" title=""{tooltip}"">{inner}</a>");
+
+                    sb.Append($@"<a class=""peer-btn"" href=""{href}"" target=""{targetName}"" title=""{tooltip}"">{inner}</a>");
                 }
                 else
                 {
@@ -231,6 +235,6 @@ namespace SystemMonitor.Service.Web
             }
 
             return sb.ToString();
-        }        
+        }
     }
 }

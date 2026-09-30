@@ -59,8 +59,8 @@ namespace MediaMonitor.Service
         private void RegisterRoutes()
         {
             // Pages HTML            
-            _router.Map("/",         ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp)));
-            _router.Map("/back",     ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp)));
+            _router.Map("/",         ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp, ctx.Http.Request.Url?.Host ?? "localhost")));
+            _router.Map("/back",     ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp, ctx.Http.Request.Url?.Host ?? "localhost")));
             _router.Map("/backup",   ctx => HttpWriter.WriteHtml(ctx.Http, _backupHandler.Render(BackupRequest.FromHttp(ctx.Http.Request))));
             _router.Map("/info",     ctx => _infoHandler.Show(ctx));
 
@@ -68,8 +68,8 @@ namespace MediaMonitor.Service
             _router.Map("/download", ctx => _downloadHandler.Download(ctx));
             _router.Map("/purge",    ctx => _purgeHandler.Purge(ctx));
             _router.Map("/logo",     ctx => _logoHandler.ServeAsync(ctx).GetAwaiter().GetResult());
-            _router.Map("/ping",  ctx => HttpWriter.WriteHtml(ctx.Http, "pong"));
-            _router.Map("/peers", ctx => _apiHandler.Peers(ctx));
+            _router.Map("/ping",     ctx => HttpWriter.WriteHtml(ctx.Http, "pong"));
+            _router.Map("/peers",    ctx => _apiHandler.Peers(ctx));
 
             // API JSON
             _router.Map("/history",   ctx => _apiHandler.History(ctx));
@@ -80,9 +80,9 @@ namespace MediaMonitor.Service
             _router.Map("/clear",     ctx => _apiHandler.Clear(ctx));
 
             // Ressources (routes par préfixe)
-            _router.Map("/favicon.ico",         ctx => _resourceHandler.Favicon(ctx));
-            _router.MapPrefix("/resources/icons/",  ctx => _resourceHandler.Icon(ctx));
-            _router.MapPrefix("/resources/images/", ctx => _resourceHandler.Image(ctx));
+            _router.Map("/favicon.ico",               ctx => _resourceHandler.Favicon(ctx));
+            _router.MapPrefix("/resources/icons/",    ctx => _resourceHandler.Icon(ctx));
+            _router.MapPrefix("/resources/images/",   ctx => _resourceHandler.Image(ctx));
         }
 
         public void ReloadSettings()
