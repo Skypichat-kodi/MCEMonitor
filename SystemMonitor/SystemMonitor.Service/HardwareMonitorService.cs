@@ -82,6 +82,22 @@ namespace SystemMonitor.Service
                                 break;
                         }
                     }
+                    
+                    // === DEBUG TEMPÉRATURE ===
+                    foreach (var hw in _computer.Hardware)
+                    {
+                        if (hw.HardwareType == HardwareType.Cpu)
+                        {
+                            CoreLog.Write($"[DEBUG] CPU trouvé : {hw.Name}");
+                            foreach (var s in hw.Sensors)
+                            {
+                                if (s.SensorType == SensorType.Temperature)
+                                {
+                                    CoreLog.Write($"[DEBUG]   Temp sensor : '{s.Name}' = {(s.Value.HasValue ? s.Value.Value.ToString("F1") : "null")}");
+                                }
+                            }
+                        }
+                    }                    
                 }
 
                 // Compléments WMI (plus fiables pour certains cas)

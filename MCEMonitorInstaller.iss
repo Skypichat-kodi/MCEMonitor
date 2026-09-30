@@ -14,6 +14,7 @@ Compression=lzma
 SolidCompression=yes
 UsedUserAreasWarning=no
 WizardSmallImageFile=MCEMonitor.png
+PrivilegesRequired=admin
 
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -34,6 +35,9 @@ Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
 
 [Files]
+; --- PawnIO (pilote de lecture capteurs) ---
+Source: "redist\PawnIO_setup.exe"; DestDir: "{tmp}"; \
+    Flags: deleteafterinstall
 ; --- Fichiers destinés à Program Files (x64) ---
 Source: "MCEMonitor Ver 1.0\ProgramFiles\*"; \
     DestDir: "{autopf}\MCEMonitor"; \
@@ -55,6 +59,13 @@ Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"
 Name: "{commondesktop}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; WorkingDir: "{app}"
 
 [Run]
+; --- Installation silencieuse du pilote PawnIO (si absent) ---
+Filename: "{tmp}\PawnIO_setup.exe"; \
+    Parameters: "-install -silent"; \
+    StatusMsg: "Installation du pilote PawnIO (capteurs matériels)..."; \
+    Flags: runhidden waituntilterminated; \
+    Check: not IsPawnIOInstalled
+    
 Filename: "taskkill.exe"; \
     Parameters: "/IM MediaMonitor.Service.exe /F"; \
     Flags: runhidden waituntilterminated
@@ -96,6 +107,24 @@ fr.RAMError=MCEMonitor nécessite au moins 8 Go de RAM.%nRAM détectée : %1 Go.
 en.RAMError=MCEMonitor requires at least 8 GB of RAM.%nDetected RAM: %1 GB.%n%nSetup will now exit.
 
 [Code]
+// ============================================================
+//  Détection du pilote PawnIO (version fiable)
+//  Vérifie la clé de registre de désinstallation — méthode
+//  utilisée par LibreHardwareMonitor lui-même.
+// ============================================================
+function IsPawnIOInstalled(): Boolean;
+var
+  Version: String;
+begin
+  Result :=
+    RegQueryStringValue(HKLM,
+      'SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO',
+      'DisplayVersion', Version) or
+    RegQueryStringValue(HKLM,
+      'SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall\PawnIO',
+      'DisplayVersion', Version);
+end;
+
 function GetPhysicallyInstalledSystemMemory(var TotalMemoryInKilobytes: Int64): Boolean;
   external 'GetPhysicallyInstalledSystemMemory@kernel32.dll stdcall';
 
@@ -111,6 +140,28 @@ begin
     RAMGo := RAMKb div 1024 div 1024;
     if RAMGo < 8 then
       Result := FmtMessage(CustomMessage('RAMError'), [IntToStr(RAMGo)]);
+  end;
+end;
+
+// ============================================================
+//  Message si PawnIO n'a pas pu être installé
+//  (affiché uniquement en mode interactif, en fin d'installation)
+// ============================================================
+procedure CurStepChanged(CurStep: TSetupStep);
+begin
+  if CurStep = ssPostInstall then
+  begin
+    if not WizardSilent then
+    begin
+      if not IsPawnIOInstalled() then
+      begin
+        MsgBox(
+          'Le pilote PawnIO n''a pas pu être installé.' + #13#10 +
+          'Les températures CPU/GPU ne seront pas disponibles.' + #13#10 +
+          'Installez PawnIO manuellement depuis https://pawnio.eu/',
+          mbInformation, MB_OK);
+      end;
+    end;
   end;
 end;
 
