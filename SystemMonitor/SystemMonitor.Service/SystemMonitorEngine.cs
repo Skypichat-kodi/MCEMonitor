@@ -276,7 +276,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Envoi email d'alerte CPU
+        //  Envoi email d'alerte CPU  (avec top processus)
         // ============================================================
         private async Task SendCpuAlertEmailAsync(CpuInfo cpu)
         {
@@ -290,12 +290,22 @@ namespace SystemMonitor.Service
                     return;
                 }
 
+                // === Capture des top processus (CPU + RAM) ===
+                // Task.Run pour ne pas bloquer le thread du moteur pendant l'échantillonnage.
+                var report = await Task.Run(() =>
+                    TopProcessesCollector.Collect(topN: 5, sampleMs: 1000));
+
+                string processesHtml =
+                    TopProcessesCollector.BuildHtmlBlock(report, forCpu: true) +
+                    TopProcessesCollector.BuildHtmlBlock(report, forCpu: false);
+
                 string body = $@"
                     <p><b>Processeur :</b> {cpu.Name}</p>
                     <p><b>Utilisation :</b> <span style='color:#c0392b'>{cpu.UsagePercent:F1} %</span></p>
                     <p><b>Seuil configuré :</b> {_settings.CpuThresholdPercent} %</p>
                     {(cpu.Temperature.HasValue ? $"<p><b>Température :</b> {cpu.Temperature.Value:F1}°C</p>" : "")}
-                    {(cpu.FrequencyMHz.HasValue ? $"<p><b>Fréquence :</b> {cpu.FrequencyMHz.Value:F0} MHz</p>" : "")}";
+                    {(cpu.FrequencyMHz.HasValue ? $"<p><b>Fréquence :</b> {cpu.FrequencyMHz.Value:F0} MHz</p>" : "")}
+                    {processesHtml}";
 
                 await EmailSender.SendAsync(
                     cfg,
@@ -303,7 +313,7 @@ namespace SystemMonitor.Service
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte CPU envoyée ({cpu.UsagePercent:F1}%)");
+                CoreLog.Write($"[EMAIL] Alerte CPU envoyée ({cpu.UsagePercent:F1}%) avec top processus");
             }
             catch (Exception ex)
             {
@@ -312,7 +322,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Envoi email d'alerte RAM
+        //  Envoi email d'alerte RAM  (avec top processus)
         // ============================================================
         private async Task SendRamAlertEmailAsync(RamInfo ram)
         {
@@ -323,12 +333,21 @@ namespace SystemMonitor.Service
                 if (string.IsNullOrEmpty(cfg.Server))
                     return;
 
+                // === Capture des top processus (RAM + CPU) ===
+                var report = await Task.Run(() =>
+                    TopProcessesCollector.Collect(topN: 5, sampleMs: 1000));
+
+                string processesHtml =
+                    TopProcessesCollector.BuildHtmlBlock(report, forCpu: false) +
+                    TopProcessesCollector.BuildHtmlBlock(report, forCpu: true);
+
                 string body = $@"
                     <p><b>Mémoire utilisée :</b> <span style='color:#c0392b'>{ram.UsagePercent:F1} %</span></p>
                     <p><b>Utilisée :</b> {ram.UsedGB:F1} Go</p>
                     <p><b>Libre :</b> {ram.FreeGB:F1} Go</p>
                     <p><b>Totale :</b> {ram.TotalGB:F1} Go</p>
-                    <p><b>Seuil configuré :</b> {_settings.RamThresholdPercent} %</p>";
+                    <p><b>Seuil configuré :</b> {_settings.RamThresholdPercent} %</p>
+                    {processesHtml}";
 
                 await EmailSender.SendAsync(
                     cfg,
@@ -336,7 +355,7 @@ namespace SystemMonitor.Service
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte RAM envoyée ({ram.UsagePercent:F1}%)");
+                CoreLog.Write($"[EMAIL] Alerte RAM envoyée ({ram.UsagePercent:F1}%) avec top processus");
             }
             catch (Exception ex)
             {
