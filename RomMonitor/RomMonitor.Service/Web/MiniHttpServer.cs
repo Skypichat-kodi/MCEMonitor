@@ -126,6 +126,23 @@ namespace RomMonitor.Service.Web
                 {
                     SendHtml(ctx, "pong");
                 }
+                else if (path == "/clear-history")
+                {
+                    try
+                    {
+                        _engine.ClearAlerts();
+                        CoreLog.Write("WebServer : historique des alertes vidé via web");
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreLog.Write("WebServer clear-history ERROR : " + ex.Message);
+                    }
+
+                    // Redirection vers la page d'accueil
+                    ctx.Response.StatusCode = 302;
+                    ctx.Response.Headers["Location"] = "/";
+                    ctx.Response.Close();
+                }                
                 else if (path == "/peers")
                 {
                     var peers = PeerStatusService.CheckAllAsync("RomMonitor")

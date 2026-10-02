@@ -157,11 +157,13 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["DATE"]          = req.Date,
                 ["SORT"]          = req.Sort,
 
-                ["SEL_ALL"]   = req.Type == "all"   ? "selected" : "",
-                ["SEL_AUDIO"] = req.Type == "audio" ? "selected" : "",
-                ["SEL_SERIE"] = req.Type == "serie" ? "selected" : "",
-                ["SEL_VIDEO"] = req.Type == "video" ? "selected" : "",
-                ["SEL_IMAGE"] = req.Type == "image" ? "selected" : "",
+                ["SEL_ALL"]       = req.Type == "all"   ? "selected" : "",
+                ["SEL_AUDIO"]     = req.Type == "audio" ? "selected" : "",
+                ["SEL_SERIE"]     = req.Type == "serie" ? "selected" : "",
+                ["SEL_VIDEO"]     = req.Type == "video" ? "selected" : "",
+                ["SEL_IMAGE"]     = req.Type == "image" ? "selected" : "",
+                ["SEL_REC"]       = req.Type == "rec"   ? "selected" : "",
+                ["SEL_TV"]        = req.Type == "tv"    ? "selected" : "",                
 
                 ["SEL_DATE_ALL"]       = req.Date == "all"       ? "selected" : "",
                 ["SEL_DATE_TODAY"]     = req.Date == "today"     ? "selected" : "",

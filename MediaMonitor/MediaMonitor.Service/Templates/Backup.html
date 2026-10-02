@@ -30,7 +30,7 @@
     }
 
     #leftColumn {
-        flex: 0 0 55%;
+        flex: 0 0 53%;
     }
 
     #leftColumn.collapsed {
@@ -167,11 +167,13 @@
     <div>
         <label>{{tr:Filtrer par type}} :</label>
         <select onchange="location.href='?type=' + this.value + '&client={{FILTER_CLIENT}}&date={{DATE}}&sort={{SORT}}';">
-            <option value='all' {{SEL_ALL}}>{{tr:Tous}}</option>
-            <option value='audio' {{SEL_AUDIO}}>{{tr:Audio}}</option>
-            <option value='serie' {{SEL_SERIE}}>{{tr:Séries}}</option>
-            <option value='video' {{SEL_VIDEO}}>{{tr:Vidéos}}</option>
-            <option value='image' {{SEL_IMAGE}}>{{tr:Images}}</option>
+            <option value='all'     {{SEL_ALL}}>{{tr:Tous}}</option>
+            <option value='audio'   {{SEL_AUDIO}}>{{tr:Audio}}</option>
+            <option value='serie'   {{SEL_SERIE}}>{{tr:Séries}}</option>
+            <option value='video'   {{SEL_VIDEO}}>{{tr:Vidéos}}</option>
+            <option value='image'   {{SEL_IMAGE}}>{{tr:Images}}</option>
+            <option value='rec'     {{SEL_REC}}>{{tr:REC}}</option>
+            <option value='tv'      {{SEL_TV}}>{{tr:TV}}</option>            
         </select>
     </div>
 

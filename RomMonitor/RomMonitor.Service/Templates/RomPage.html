@@ -180,7 +180,49 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-    }    
+    }
+    /* ============================================================ */
+    /*  Barre d'actions (sous le header)                             */
+    /* ============================================================ */
+    .action-bar {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+    }
+
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: #007acc;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 13px;
+        transition: background 0.15s ease;
+    }
+
+    .action-btn:hover {
+        background: #0088dd;
+    }
+
+    .action-btn.danger {
+        background: #cc3300;
+    }
+
+    .action-btn.danger:hover {
+        background: #e64d1a;
+    }
+
+    .action-btn.secondary {
+        background: #444;
+    }
+
+    .action-btn.secondary:hover {
+        background: #555;
+    }        
 </style>
 
 </head>
@@ -188,8 +230,26 @@
 
 <div class="page-header">
     <h1>{{tr:SURVEILLANCE DISQUES}}</h1>
-    <<div id="peerBar"><!--PEERBAR--></div>
+    <div id="peerBar"><!--PEERBAR--></div>
 </div>
+
+<div class="action-bar">
+    <a href="/" class="action-btn secondary">
+        🔄 {{tr:Rafraîchir}}
+    </a>
+    <a href="#" id="btnClearHistory" class="action-btn danger">
+        🗑 {{tr:Vider l'historique}}
+    </a>
+</div>
+
+<script>
+document.getElementById('btnClearHistory').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des alertes ? Cette action est irréversible.}}")) {
+        window.location.href = '/clear-history';
+    }
+});
+</script>
 
 <div class="info-grid">
     <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
