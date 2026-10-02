@@ -533,5 +533,16 @@
   "Vider l'historique": "Vider l'historique",
   "Voulez-vous vraiment vider tout l'historique des alertes ? Cette action est irréversible.": "Voulez-vous vraiment vider tout l'historique des alertes ? Cette action est irréversible.",
   "Surveillance système de :": "Surveillance système de :",
-  "SURVEILLANCE SYSTEME": "SURVEILLANCE SYSTEME"
+  "SURVEILLANCE SYSTEME": "SURVEILLANCE SYSTEME",
+  "Date_Aujourdhui": "Aujourd'hui",
+  "Erreur IPC :": "Erreur IPC:",
+  "Port invalide.": "Port invalide.",
+  "OK": "OK",
+  "Impossible d’ouvrir la page /backup.\\n": "Impossible d’ouvrir la page /backup.\\n",
+  "Aucun backup disponible.": "Aucun backup disponible.",
+  "Aucun backup à exporter.": "Aucun backup disponible.",
+  "PDF généré avec succès.": "PDF généré avec succès.",
+  "Erreur génération PDF :": "Erreur génération PDF :",
+  "Erreur purge :": "Erreur purge :",
+  "Erreur lors de l'analyse du fichier :": "Erreur lors de l'analyse du fichier :"
 }

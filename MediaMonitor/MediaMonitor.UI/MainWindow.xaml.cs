@@ -328,7 +328,7 @@ namespace MediaMonitor.UI
             catch (Exception ex)
             {
                 StaticUiLog("Erreur IPC : " + ex.Message);
-                LastImageText.Text = "Erreur IPC : " + ex.Message;
+                LastImageText.Text = (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message;
             }
         }
 
@@ -339,14 +339,22 @@ namespace MediaMonitor.UI
                 var result = await ServiceIpcClient.SendReport();
                 MessageBox.Show(result ? "Rapport envoyé." : "Erreur lors de l'envoi du rapport.");
             }
-            catch (Exception ex) { MessageBox.Show("Erreur IPC : " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message);
+            }
         }
 
         private async void btnApplyWebAll_Click(object sender, RoutedEventArgs e)
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
-                MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    LanguageManager.Get("Port invalide.") ?? "Port invalide.",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -355,8 +363,12 @@ namespace MediaMonitor.UI
 
             if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
             {
-                MessageBox.Show("Veuillez entrer un login et un mot de passe.", "Erreur",
-                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show(
+                    LanguageManager.Get("Veuillez entrer un login et un mot de passe.") 
+                        ?? "Veuillez entrer un login et un mot de passe.",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
                 return;
             }
 
@@ -364,15 +376,21 @@ namespace MediaMonitor.UI
             {
                 await ServiceIpcClient.SetWebPort(port);
                 await ServiceIpcClient.SetWebCredentials(login, pass);
-                MessageBox.Show("Paramètres Web mis à jour.", "OK",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(
+                    LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
+                    LanguageManager.Get("OK") ?? "OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
-            catch (Exception ex)
-            {
-                UiLog("Erreur IPC WebAll : " + ex.Message);
-                MessageBox.Show("Erreur IPC : " + ex.Message, "Erreur",
-                                MessageBoxButton.OK, MessageBoxImage.Error);
-            }
+                catch (Exception ex)
+                {
+                    UiLog("Erreur IPC WebAll : " + ex.Message);   // ← log, pas de trad
+                    MessageBox.Show(
+                        (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message,
+                        LanguageManager.Get("Erreur") ?? "Erreur",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Error);
+                }
         }
 
         private bool _passwordVisible = false;
@@ -400,7 +418,11 @@ namespace MediaMonitor.UI
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
-                MessageBox.Show("Port Web invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    LanguageManager.Get("Port Web invalide.") ?? "Port Web invalide.",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
                 return;
             }
 
@@ -415,9 +437,13 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                UiLog("Erreur ouverture /backup : " + ex.Message);
-                MessageBox.Show("Impossible d’ouvrir la page /backup.\n" + ex.Message,
-                                "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                UiLog("Erreur ouverture /backup : " + ex.Message);   // ← log
+                MessageBox.Show(
+                    (LanguageManager.Get("Impossible d’ouvrir la page /backup.\n") 
+                        ?? "Impossible d’ouvrir la page /backup.\n") + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -568,7 +594,7 @@ namespace MediaMonitor.UI
                 {
                     _backupAll.Clear();
                     _backupFiltered.Clear();
-                    BackupInfoText.Text = "Aucun backup disponible.";
+                    BackupInfoText.Text = LanguageManager.Get("Aucun backup disponible.") ?? "Aucun backup disponible.";
                     RefreshStatsFromBackup();
                     return;
                 }
@@ -605,32 +631,36 @@ namespace MediaMonitor.UI
 
             IEnumerable<MediaUsageItem> items = _backupAll;
 
-            string type = (BackupFilterType.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tous";
+            // ─── Filtre par type ──────────────────────────────────────
+            string type = (BackupFilterType.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "all";
+
             items = type switch
             {
-                "Audio" => items.Where(i => i.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase)),
-                "Série" => items.Where(i => i.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase)),
-                "Vidéo" => items.Where(i => i.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase)),
-                "Image" => items.Where(i => i.MediaType.Equals("image", StringComparison.OrdinalIgnoreCase)),
-                "REC"   => items.Where(i => i.MediaType.StartsWith("rec", StringComparison.OrdinalIgnoreCase)),
-                "TV"    => items.Where(i => i.MediaType.Equals("tv", StringComparison.OrdinalIgnoreCase)),
+                "audio" => items.Where(i => i.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase)),
+                "serie" => items.Where(i => i.MediaType.Equals("serie", StringComparison.OrdinalIgnoreCase)),
+                "video" => items.Where(i => i.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase)),
+                "image" => items.Where(i => i.MediaType.Equals("image", StringComparison.OrdinalIgnoreCase)),
+                "rec"   => items.Where(i => i.MediaType.StartsWith("rec", StringComparison.OrdinalIgnoreCase)),
+                "tv"    => items.Where(i => i.MediaType.Equals("tv", StringComparison.OrdinalIgnoreCase)),
                 _       => items
             };
 
-            string client = BackupFilterClient.SelectedItem?.ToString() ?? "Tous";
-            if (client != "Tous")
+            // ─── Filtre par client ────────────────────────────────────
+            string client = BackupFilterClient.SelectedItem?.ToString() ?? "all";
+            if (client != "all" && client != "Tous")
                 items = items.Where(i => i.ClientDisplay != null &&
                                          i.ClientDisplay.Equals(client, StringComparison.OrdinalIgnoreCase));
 
-            string dateF = (BackupFilterDate.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Tout";
+            // ─── Filtre par date ──────────────────────────────────────
+            string dateF = (BackupFilterDate.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "all";
             DateTime now = DateTime.Now;
             items = dateF switch
             {
-                "Aujourd'hui" => items.Where(i => i.Timestamp.Date == now.Date),
-                "Hier"        => items.Where(i => i.Timestamp.Date == now.AddDays(-1).Date),
-                "7 jours"     => items.Where(i => i.Timestamp >= now.AddDays(-7)),
-                "30 jours"    => items.Where(i => i.Timestamp >= now.AddDays(-30)),
-                _             => items
+                "today"     => items.Where(i => i.Timestamp.Date == now.Date),
+                "yesterday" => items.Where(i => i.Timestamp.Date == now.AddDays(-1).Date),
+                "7"         => items.Where(i => i.Timestamp >= now.AddDays(-7)),
+                "30"        => items.Where(i => i.Timestamp >= now.AddDays(-30)),
+                _           => items
             };
 
             _backupFiltered.Clear();
@@ -643,8 +673,11 @@ namespace MediaMonitor.UI
         {
             if (_currentBackup == null)
             {
-                MessageBox.Show("Aucun backup à exporter.", "Info",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(
+                    LanguageManager.Get("Aucun backup à exporter.") ?? "Aucun backup à exporter.",
+                    LanguageManager.Get("Info") ?? "Info",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
                 return;
             }
 
@@ -660,13 +693,20 @@ namespace MediaMonitor.UI
             try
             {
                 PdfBackupGenerator.Generate(_currentBackup, dlg.FileName);
-                MessageBox.Show("PDF généré avec succès.", "OK",
-                                MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(
+                    LanguageManager.Get("PDF généré avec succès.") ?? "PDF généré avec succès.",
+                    LanguageManager.Get("OK") ?? "OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur génération PDF : " + ex.Message,
-                                "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(
+                    (LanguageManager.Get("Erreur génération PDF :") ?? "Erreur génération PDF :") 
+                        + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
             }
         }
 
@@ -694,7 +734,9 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur purge : " + ex.Message);
+                MessageBox.Show(
+                    (LanguageManager.Get("Erreur purge :") ?? "Erreur purge :") 
+                        + " " + ex.Message);
             }
         }
         
@@ -802,7 +844,9 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur lors de l'analyse du fichier : " + ex.Message);
+                MessageBox.Show(
+                    (LanguageManager.Get("Erreur lors de l'analyse du fichier :") 
+                        ?? "Erreur lors de l'analyse du fichier :") + " " + ex.Message);
             }
         }
     }

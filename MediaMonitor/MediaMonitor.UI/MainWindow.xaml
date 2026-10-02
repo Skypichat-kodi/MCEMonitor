@@ -1031,13 +1031,13 @@
                             <ComboBox x:Name="BackupFilterType" Width="120" Margin="0,0,20,0"
                                       Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
                                       SelectionChanged="BackupFilter_Changed">
-                                <ComboBoxItem Content="Tous"/>
-                                <ComboBoxItem Content="Audio"/>
-                                <ComboBoxItem Content="Série"/>
-                                <ComboBoxItem Content="Vidéo"/>
-                                <ComboBoxItem Content="Image"/>
-                                <ComboBoxItem Content="REC"/>
-                                <ComboBoxItem Content="TV"/>
+                                <ComboBoxItem Tag="all"    Content="{loc:Tr 'Tous'}"/>
+                                <ComboBoxItem Tag="audio"  Content="{loc:Tr 'Audio'}"/>
+                                <ComboBoxItem Tag="serie"  Content="{loc:Tr 'Série'}"/>
+                                <ComboBoxItem Tag="video"  Content="{loc:Tr 'Vidéo'}"/>
+                                <ComboBoxItem Tag="image"  Content="{loc:Tr 'Image'}"/>
+                                <ComboBoxItem Tag="rec"    Content="REC"/>
+                                <ComboBoxItem Tag="tv"     Content="TV"/>
                             </ComboBox>
 
                             <TextBlock Text="{loc:Tr 'Filtrer par client : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
@@ -1049,11 +1049,11 @@
                             <ComboBox x:Name="BackupFilterDate" Width="140"
                                       Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
                                       SelectionChanged="BackupFilter_Changed">
-                                <ComboBoxItem Content="Tout"/>
-                                <ComboBoxItem Content="Aujourd'hui"/>
-                                <ComboBoxItem Content="Hier"/>
-                                <ComboBoxItem Content="7 jours"/>
-                                <ComboBoxItem Content="30 jours"/>
+                                <ComboBoxItem Tag="all"        Content="{loc:Tr 'Tout'}"/>
+                                <ComboBoxItem Tag="today"      Content="{loc:Tr 'Date_Aujourdhui'}"/>
+                                <ComboBoxItem Tag="yesterday"  Content="{loc:Tr 'Hier'}"/>
+                                <ComboBoxItem Tag="7"          Content="{loc:Tr '7 jours'}"/>
+                                <ComboBoxItem Tag="30"         Content="{loc:Tr '30 jours'}"/>
                             </ComboBox>
                         </StackPanel>
                     </Border>
@@ -1322,7 +1322,7 @@
                 Margin="0,10,0,0"
                 Padding="15,6">
             <TextBlock x:Name="StatusText"
-                       Text="MediaMonitor prêt."
+                       Text="{loc:Tr 'prêt'}"
                        FontSize="12"
                        Foreground="#B4B4B4"
                        VerticalAlignment="Center"/>

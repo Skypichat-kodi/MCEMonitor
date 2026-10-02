@@ -488,5 +488,19 @@
   "Vider l'historique": "Clear History",
   "Voulez-vous vraiment vider tout l'historique des alertes ? Cette action est irréversible.": "Do you really want to clear the entire history of alerts? This action is irreversible.",
   "Surveillance système de :": "System monitoring of:",
-  "SURVEILLANCE SYSTEME": "SYSTEM MONITORING"
+  "SURVEILLANCE SYSTEME": "SYSTEM MONITORING",
+  "Vidéo": "Video",
+  "Date_Aujourdhui": "Today",
+  "Erreur IPC :": "IPC error:",
+  "Port invalide.": "Invalid port.",
+  "Veuillez entrer un login et un mot de passe.": "Please enter a login and a password.",
+  "OK": "OK",
+  "Port Web invalide.": "Invalid port.",
+  "Impossible d’ouvrir la page /backup.\\n": "Unable to open the /backup page.\\n",
+  "Aucun backup disponible.": "No backup available.",
+  "Aucun backup à exporter.": "No backup available.",
+  "PDF généré avec succès.": "PDF successfully generated.",
+  "Erreur génération PDF :": "PDF generation error:",
+  "Erreur purge :": "Purge error:",
+  "Erreur lors de l'analyse du fichier :": "Error parsing the file:"
 }
