@@ -22,10 +22,19 @@
         min-height: 100vh;
     }
 
-    h1 { 
-        margin:0 0 20px 0;
-        font-size:22px;
-        color:#4CC2FF;
+    h1 {
+        margin: 0 0 20px 0;
+        font-size: 22px;
+        color: #4CC2FF;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    h1 img {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
     }
     
     h2 { margin:25px 0 10px 0; font-size:16px; color:#4CC2FF; }
@@ -386,7 +395,10 @@
 <body>
 
 <div class="page-header">
-    <h1>{{tr:SURVEILLANCE SYSTEME}}</h1>
+    <h1>
+        <img src="/Resources/Icons/cpu.png" alt="">
+        {{tr:SURVEILLANCE SYSTEME}}
+    </h1>
     <div id="peerBar"><!--PEERBAR--></div>
 </div>
 

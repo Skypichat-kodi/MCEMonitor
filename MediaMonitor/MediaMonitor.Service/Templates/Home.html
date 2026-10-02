@@ -21,10 +21,19 @@
         color: #e5e5e5;
         min-height: 100vh;
     }
-    h1 { 
-        margin:0 0 20px 0;
-        font-size:22px;
-        color:#4CC2FF;
+    h1 {
+        margin: 0 0 20px 0;
+        font-size: 22px;
+        color: #4CC2FF;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    h1 img {
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
     }
     .container {
          display:flex; gap:20px; 
@@ -226,7 +235,10 @@ setInterval(autoRefresh, 10000);
 
 <div class='header'>
     <div class="page-header">
-        <h1>{{tr:TABLEAU DE BORD}}</h1>
+        <h1>
+            <img src="/Resources/Icons/media.png" alt="">
+            {{tr:TABLEAU DE BORD}}
+        </h1>
         <div id="peerBar">{{PeerBarHtml}}</div>
     </div>
 </div>
