@@ -97,7 +97,7 @@ namespace MediaMonitor.Service.Web.Handlers
                         <td style=""text-align:right;"">
                             <a class=""info-btn"" href=""#""
                                data-path=""{WebUtility.HtmlEncode(item.Path)}""
-                               onclick=""openInfo(this.dataset.path)"">I</a>
+                               onclick=""openInfo(event, this.dataset.path)"">I</a>
                         </td>
                     </tr>");
             }

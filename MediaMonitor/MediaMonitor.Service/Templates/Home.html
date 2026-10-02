@@ -326,7 +326,7 @@ setInterval(autoRefresh, 10000);
 <td>{{Nom}}</td>
 <td>{{FileName}}</td>
 <td>{{Path}}</td>
-<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(this.dataset.path)">I</a></td>
+<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(event, this.dataset.path)">I</a></td>
 </tr>
 {{/for:LiveItems}}
 {{#IfNoLive}}
@@ -353,7 +353,7 @@ setInterval(autoRefresh, 10000);
 <td>{{Nom}}</td>
 <td>{{FileName}}</td>
 <td>{{Path}}</td>
-<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(this.dataset.path)">I</a></td>
+<td><a class="info-btn" href="#" data-path="{{Path}}" onclick="openInfo(event, this.dataset.path)">I</a></td>
 </tr>
 {{/for:HistoryItems}}
 {{#IfNoHistory}}
@@ -362,7 +362,8 @@ setInterval(autoRefresh, 10000);
 </tbody></table>
 
 <script>
-function openInfo(path) {
+function openInfo(event, path) {
+    if (event) event.preventDefault();
     refreshEnabled = false;
     fetch('/info?path=' + encodeURIComponent(path))
         .then(r => r.text())

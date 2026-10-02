@@ -69,7 +69,7 @@
     #leftColumn.collapsed .collapsed-label {
         display: block;
         position: absolute;
-        top: 60px;
+        top: 160px;
         left: 50%;
         transform: translate(-50%, -50%) rotate(-90deg);
         white-space: nowrap;
@@ -430,7 +430,8 @@ new Chart(document.getElementById("chartClients"), {
 <div id="infoOverlayContainer"></div>
 
 <script>
-function openInfo(path) {
+function openInfo(event, path) {
+    if (event) event.preventDefault();
     refreshEnabled = false;
     fetch('/info?path=' + encodeURIComponent(path))
         .then(r => r.text())
