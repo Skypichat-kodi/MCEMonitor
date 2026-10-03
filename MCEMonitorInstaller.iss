@@ -15,6 +15,8 @@ SolidCompression=yes
 UsedUserAreasWarning=no
 WizardSmallImageFile=MCEMonitor.png
 PrivilegesRequired=admin
+CloseApplications=no
+RestartApplications=no
 
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -33,6 +35,12 @@ DisableDirPage=no
 [Languages]
 Name: "fr"; MessagesFile: "compiler:Languages\French.isl"
 Name: "en"; MessagesFile: "compiler:Default.isl"
+
+[Tasks]
+Name: "deletetasks"; \
+    Description: "Supprimer les tâches planifiées existantes avant l'installation"; \
+    GroupDescription: "Tâches planifiées :"; \
+    Flags: unchecked
 
 [Files]
 ; --- PawnIO (pilote de lecture capteurs) ---
@@ -66,10 +74,6 @@ Filename: "{tmp}\PawnIO_setup.exe"; \
     Flags: runhidden waituntilterminated; \
     Check: not IsPawnIOInstalled
     
-Filename: "taskkill.exe"; \
-    Parameters: "/IM MediaMonitor.Service.exe /F"; \
-    Flags: runhidden waituntilterminated
-    
 ; Lancement AVEC UAC
 Filename: "{app}\MCEMonitor.exe"; \
     Description: "{cm:LaunchProgram,MCEMonitor}"; \
@@ -82,14 +86,23 @@ Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Service.exe /F"; Flags: 
 Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Service.exe /F";   Flags: runhidden; RunOnceId: "KillRomSvc"
 Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillMediaTray"
 Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Tray.exe /F";      Flags: runhidden; RunOnceId: "KillRomTray"
+Filename: "taskkill.exe"; Parameters: "/IM SystemMonitor.Service.exe /F"; Flags: runhidden; RunOnceId: "KillSysSvc"
+Filename: "taskkill.exe"; Parameters: "/IM SystemMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillSysTray"
 
-; --- Suppression des tâches planifiées (noms actuels) ---
+; --- Suppression des tâches planifiées MediaMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_MediaMonitorService"" /F"; Flags: runhidden; RunOnceId: "DelMediaSvcTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_MediaMonitorTray"" /F";    Flags: runhidden; RunOnceId: "DelMediaTrayTask"
+; --- Suppression des tâches planifiées RomMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomMonitorService"" /F";   Flags: runhidden; RunOnceId: "DelRomSvcTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomMonitorTray"" /F";      Flags: runhidden; RunOnceId: "DelRomTrayTask"
+; --- Suppression des tâches planifiées SystemMonitor ---
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_SystemMonitorService"" /F"; Flags: runhidden; RunOnceId: "DelSysSvcTask"
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_SystemMonitorTray"" /F";    Flags: runhidden; RunOnceId: "DelSysTrayTask"
+; --- Suppression des tâches planifiées WakeMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_WakeMonitor"" /F";         Flags: runhidden; RunOnceId: "DelWakeTask"
+; --- Suppression des tâches planifiées On / Off ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_Shutdown"" /F";            Flags: runhidden; RunOnceId: "DelShutdownTask"
+; --- Suppression des tâches planifiées StopMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor_Boot"" /F";    Flags: runhidden; RunOnceId: "DelStopBootTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor_Shutdown"" /F";Flags: runhidden; RunOnceId: "DelStopShutdownTask"
 
@@ -128,15 +141,86 @@ end;
 function GetPhysicallyInstalledSystemMemory(var TotalMemoryInKilobytes: Int64): Boolean;
   external 'GetPhysicallyInstalledSystemMemory@kernel32.dll stdcall';
 
+// ============================================================
+//  Arrêt des process + suppression des tâches
+//  via un fichier batch temporaire (contourne les limites d'Inno)
+// ============================================================
+procedure StopAllAndCleanTasks();
+var
+  BatchFile: string;
+  BatchContent: TStringList;
+  ResultCode: Integer;
+begin
+  BatchFile := ExpandConstant('{tmp}\kill_mcem.bat');
+
+  BatchContent := TStringList.Create;
+  try
+    BatchContent.Add('@echo off');
+
+    // ─── Suppression des tâches UNIQUEMENT si l'utilisateur a coché ───
+    if WizardIsTaskSelected('deletetasks') then
+    begin
+      Log('=== Suppression des tâches planifiées (choix utilisateur) ===');
+
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_MediaMonitorService" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_MediaMonitorTray" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_SystemMonitorService" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_SystemMonitorTray" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_RomMonitorService" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_RomMonitorTray" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_WakeMonitor" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Shutdown" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Boot" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Shutdown" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Tray" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Wake" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Service" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_MediaService" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_RomService" /F >nul 2>&1');
+    end
+    else
+      Log('=== Conservation des tâches planifiées (choix utilisateur) ===');
+
+    // ─── Kill des process (TOUJOURS, obligatoire pour remplacer les fichiers) ───
+    BatchContent.Add('taskkill /F /IM MCEMonitor.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MediaMonitor.Service.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MediaMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM SystemMonitor.Service.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM SystemMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM RomMonitor.Service.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM RomMonitor.Tray.exe /T >nul 2>&1');
+
+    BatchContent.Add('exit /b 0');
+
+    BatchContent.SaveToFile(BatchFile);
+  finally
+    BatchContent.Free;
+  end;
+
+  Log('=== Exécution du script d''arrêt (batch) ===');
+  Exec(BatchFile, '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Log('=== Script terminé (code ' + IntToStr(ResultCode) + ') ===');
+
+  Sleep(3000);
+end;
+
+// ============================================================
+//  Appelé par Inno AVANT que les fichiers ne soient écrits
+//  → arrête les process, supprime les tâches, vérifie la RAM
+// ============================================================
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
   RAMKb: Int64;
   RAMGo: Integer;
 begin
   Result := '';
+
+  // ⚡ 1) Arrêt de tous les process MCEMonitor + tâches planifiées
+  StopAllAndCleanTasks();
+
+  // ⚡ 2) Vérification RAM (min 8 Go)
   if GetPhysicallyInstalledSystemMemory(RAMKb) then
   begin
-    // RAMKb est en kilo-octets -> conversion en Go
     RAMGo := RAMKb div 1024 div 1024;
     if RAMGo < 8 then
       Result := FmtMessage(CustomMessage('RAMError'), [IntToStr(RAMGo)]);
