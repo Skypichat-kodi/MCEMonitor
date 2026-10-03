@@ -148,6 +148,29 @@
         font-family: Arial, sans-serif; transition: background 0.2s;
     }
     .info-btn:hover { background: #217dbb; }
+    /* Cellule Canal avec icône (fallback texte) */
+    .channel-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        gap: 6px;
+    }
+
+    .channel-logo {
+        height: 22px;
+        width: auto;
+        max-width: 60px;
+        object-fit: contain;
+    }
+
+    .channel-name {
+        font-size: 12px;
+        color: #ccc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }    
 </style>
 
 </head>

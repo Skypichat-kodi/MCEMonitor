@@ -38,7 +38,8 @@ namespace MediaMonitor.Service.Web.Handlers
 
                 using var http = new HttpClient(handler);
                 byte[] bytes = await http.GetByteArrayAsync(logoUrl);
-
+                // Cache navigateur : 24 h (les logos ne changent jamais)
+                ctx.Http.Response.Headers.Add("Cache-Control", "public, max-age=86400");
                 ctx.Http.Response.ContentType = "image/png";
                 ctx.Http.Response.ContentLength64 = bytes.Length;
                 await ctx.Http.Response.OutputStream.WriteAsync(bytes, 0, bytes.Length);

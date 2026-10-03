@@ -131,6 +131,29 @@
         background-color: rgba(255, 255, 0, 0.35) !important; 
         color: black !important; 
     }
+    /* Cellule Canal avec icône (fallback texte) */
+    .channel-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        gap: 6px;
+    }
+
+    .channel-logo {
+        height: 22px;
+        width: auto;
+        max-width: 60px;
+        object-fit: contain;
+    }
+
+    .channel-name {
+        font-size: 12px;
+        color: #ccc;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
     .info-btn {
         display: inline-flex; justify-content: center; align-items: center;
         width: 28px; height: 28px; background: #3498db; color: white;
@@ -237,7 +260,7 @@ setInterval(autoRefresh, 10000);
     <div class="page-header">
         <h1>
             <img src="/Resources/Icons/media.png" alt="">
-            {{tr:TABLEAU DE BORD}}
+            {{tr:TABLEAU DE BORD}} - ({{MachineName}})
         </h1>
         <div id="peerBar">{{PeerBarHtml}}</div>
     </div>
@@ -320,7 +343,7 @@ setInterval(autoRefresh, 10000);
 <tr>
 <td>{{ClientDisplay}}</td>
 <td><span class="type-badge {{BadgeClass}}">{{MediaType}}</span></td>
-<td>{{Channel}}</td>
+<td><div class="channel-cell">{{ChannelIcon}}</div></td>
 <td>{{Saison}}</td>
 <td>{{Episode}}</td>
 <td>{{Nom}}</td>
@@ -347,7 +370,7 @@ setInterval(autoRefresh, 10000);
 <td>{{Time}}</td>
 <td>{{ClientDisplay}}</td>
 <td><span class="type-badge {{BadgeClass}}">{{MediaType}}</span></td>
-<td>{{Channel}}</td>
+<td><div class="channel-cell">{{ChannelIcon}}</div></td>
 <td>{{Saison}}</td>
 <td>{{Episode}}</td>
 <td>{{Nom}}</td>

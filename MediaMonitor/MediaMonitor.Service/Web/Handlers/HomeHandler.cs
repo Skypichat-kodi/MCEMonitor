@@ -77,27 +77,32 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["PeerBarHtml"]      = MediaMonitor.Service.Web.PeerStatusService.BuildPeerBarHtml(publicHost),
 
                 // Tableau lecture
-                ["LiveItems"]        = live.Select(i => ViewHelpers.ToViewDict(
+                ["LiveItems"] = live.Select(i =>
+                {
+                    var d = ViewHelpers.ToViewDict(
+                        i.ClientDisplay ?? "", i.MediaType ?? "",
+                        i.Channel ?? "", i.Nom ?? "",
+                        i.FileName ?? "", i.Path ?? "",
+                        i.Saison, i.Episode);
+                    d["ChannelIcon"] = BuildMediaIcon(i.Channel, i.MediaType);
+                    return d;
+                }).ToList(),
+
+                // Tableau historique (200 derniers, ordre décroissant)
+                ["HistoryItems"] = history
+                                    .OrderByDescending(h => h.Timestamp)
+                                    .Take(200)
+                                    .Select(i =>
+                                    {
+                                        var d = ViewHelpers.ToViewDict(
                                             i.ClientDisplay ?? "", i.MediaType ?? "",
                                             i.Channel ?? "", i.Nom ?? "",
                                             i.FileName ?? "", i.Path ?? "",
-                                            i.Saison, i.Episode)).ToList(),
-                ["NoLive"]           = liveCount == 0,
-
-                // Tableau historique (200 derniers, ordre décroissant)
-                ["HistoryItems"]     = history
-                                        .OrderByDescending(h => h.Timestamp)
-                                        .Take(200)
-                                        .Select(i =>
-                                        {
-                                            var d = ViewHelpers.ToViewDict(
-                                                i.ClientDisplay ?? "", i.MediaType ?? "",
-                                                i.Channel ?? "", i.Nom ?? "",
-                                                i.FileName ?? "", i.Path ?? "",
-                                                i.Saison, i.Episode);
-                                            d["Time"] = i.Timestamp.ToString("HH:mm:ss");
-                                            return d;
-                                        }).ToList(),
+                                            i.Saison, i.Episode);
+                                        d["Time"] = i.Timestamp.ToString("HH:mm:ss");
+                                        d["ChannelIcon"] = BuildMediaIcon(i.Channel, i.MediaType);
+                                        return d;
+                                    }).ToList(),
                 ["NoHistory"]        = historyCount == 0
             };
 
@@ -154,6 +159,69 @@ namespace MediaMonitor.Service.Web.Handlers
                 return next;
             }
             return DateTime.MinValue;
+        }
+
+        /// <summary>
+        /// Construit l'icône appropriée selon le type et la chaîne.
+        /// - tv     ? tv.png
+        /// - rec    ? logo de la chaîne (fallback si absent)
+        /// - autres ? rom.png (fichiers locaux)
+        /// </summary>
+        private static string BuildMediaIcon(string channel, string mediaType)
+        {
+            string mt = (mediaType ?? "").ToLowerInvariant();
+
+            // TV ? icône fixe
+            if (mt == "tv")
+                return BuildStaticIcon("tv.png", "TV");
+
+            // REC ? logo de chaîne
+            if (mt == "rec")
+                return BuildChannelIcon(channel);
+
+            // Fichiers locaux ? rom.png
+            if (mt == "serie" || mt == "video" || mt == "image" || mt == "audio")
+                return BuildStaticIcon("rom.png", mediaType);
+
+            // Fallback : si une chaîne est renseignée, on met le logo
+            if (!string.IsNullOrWhiteSpace(channel))
+                return BuildChannelIcon(channel);
+
+            return "";
+        }
+
+        /// <summary>
+        /// Logo de chaîne (avec fallback texte si l'image ne charge pas).
+        /// </summary>
+        private static string BuildChannelIcon(string channel)
+        {
+            if (string.IsNullOrWhiteSpace(channel))
+                return "";
+
+            string encoded  = Uri.EscapeDataString(channel);
+            string safeText = WebUtility.HtmlEncode(channel);
+
+            return $"<img class='channel-logo' " +
+                   $"src='/logo?channel={encoded}' " +
+                   $"alt='' " +
+                   $"title='{safeText}' " +
+                   $"loading='lazy' " +
+                   $"onerror=\"this.style.display='none'; this.nextElementSibling.style.display='inline';\"/>" +
+                   $"<span class='channel-name' style='display:none;'>{safeText}</span>";
+        }
+
+        /// <summary>
+        /// Icône statique depuis /Resources/Icons/.
+        /// </summary>
+        private static string BuildStaticIcon(string iconFile, string title)
+        {
+            string safeTitle = WebUtility.HtmlEncode(title ?? "");
+
+            return $"<img class='channel-logo' " +
+                   $"src='/Resources/Icons/{iconFile}' " +
+                   $"alt='' " +
+                   $"title='{safeTitle}' " +
+                   $"loading='lazy'/>";
         }
     }
 }
