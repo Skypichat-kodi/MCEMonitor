@@ -385,7 +385,8 @@ public class DvbConfig
 
         public static async Task<bool> SetDvbConfig(string url, string user, string pass)
         {
-            string cmd = $"set-dvb-config {url} {user} {pass}";
+            // ?? Le service split sur '|' (le pipe)
+            string cmd = $"set-dvb-config {url}|{user}|{pass}";
 
             string? json = await SendCommand(cmd);
             if (json == null)

@@ -284,11 +284,26 @@ namespace MediaMonitor.Service.Ipc
                     return;
                 }
 
+                // 1) Persistance dans le fichier .config
                 var cfg = WebServerSettings.Load();
-                cfg.DvbViewerUrl = parts[0];
+                cfg.DvbViewerUrl  = parts[0];
                 cfg.DvbViewerUser = parts[1];
                 cfg.DvbViewerPass = parts[2];
                 cfg.Save();
+
+                // 2) ? Propagation à chaud vers l'engine (sans redémarrage)
+                if (Program.Engine != null)
+                {
+                    Program.Engine.DvbViewerUrl  = parts[0];
+                    Program.Engine.DvbViewerUser = parts[1];
+                    Program.Engine.DvbViewerPass = parts[2];
+
+                    CoreLog.Write($"IPC : config DVBViewer propagée à l'engine (URL={parts[0]})");
+                }
+                else
+                {
+                    CoreLog.Write("IPC : ?? Program.Engine est null, propagation impossible");
+                }
 
                 IpcResponse.Ok(writer, server);
             }

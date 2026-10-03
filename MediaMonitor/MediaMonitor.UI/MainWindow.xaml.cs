@@ -531,7 +531,7 @@ namespace MediaMonitor.UI
         private void ToggleDvb_Checked(object sender, RoutedEventArgs e) => SaveDvbSwitch();
         private void ToggleDvb_Unchecked(object sender, RoutedEventArgs e) => SaveDvbSwitch();
 
-        private void btnApplyDvb_Click(object sender, RoutedEventArgs e)
+        private async void btnApplyDvb_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -559,7 +559,14 @@ namespace MediaMonitor.UI
                 if (!fP)  lines.Add("DvbViewerPass=" + pass);
 
                 File.WriteAllLines(path, lines);
-                UiLog("Configuration DVBViewer sauvegardée dans Web.config");
+
+                // ⚡ Propagation à chaud vers le service (sans redémarrage)
+                bool ok = await ServiceIpcClient.SetDvbConfig(url, user, pass);
+
+                if (ok)
+                    UiLog("Configuration DVBViewer sauvegardée + propagée au service");
+                else
+                    UiLog("Configuration DVBViewer sauvegardée (⚠️ propagation IPC échouée)");
             }
             catch (Exception ex) { UiLog("Erreur sauvegarde DVB : " + ex.Message); }
         }
