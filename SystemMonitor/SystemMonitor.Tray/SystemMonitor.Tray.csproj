@@ -20,6 +20,12 @@
     <Content Include="critical.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="alarm.wav"   Condition="Exists('alarm.wav')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="warning.wav" Condition="Exists('warning.wav')">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>  
   </ItemGroup>
 
 </Project>

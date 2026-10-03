@@ -23,18 +23,14 @@ namespace SystemMonitor.Tray
         private Icon _defaultIcon;
         private Icon _warningIcon;
         private Icon _criticalIcon;
+        private System.Media.SoundPlayer? _criticalPlayer;
+        private System.Media.SoundPlayer? _warningPlayer;        
 
         private string _currentSeverity = "";
 
         private int _startupCheckCount = 0;
 
         private const string PIPE_NAME = "MCEMonitor_SystemMonitorPipe";
-
-        public TrayApplicationContext()
-        {
-            LoadIcons();
-            InitializeTray();
-        }
 
         // ------------------------------------------------------------
         //  Chargement des icônes
@@ -74,6 +70,26 @@ namespace SystemMonitor.Tray
             {
                 return null;
             }
+        }
+
+        public TrayApplicationContext()
+        {
+            LoadIcons();
+            LoadSounds();   // <-- NEW
+            InitializeTray();
+        }
+
+        private void LoadSounds()
+        {
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+
+            string crit = Path.Combine(exeDir, "alarm.wav");
+            if (File.Exists(crit))
+                _criticalPlayer = new System.Media.SoundPlayer(crit);
+
+            string warn = Path.Combine(exeDir, "warning.wav");
+            if (File.Exists(warn))
+                _warningPlayer = new System.Media.SoundPlayer(warn);
         }
 
         // ------------------------------------------------------------
@@ -178,11 +194,11 @@ namespace SystemMonitor.Tray
                     {
                         if (severity == "critical")
                         {
-                            System.Media.SystemSounds.Hand.Play();
+                            PlayCriticalAlarm();
                         }
                         else if (severity == "warning")
                         {
-                            System.Media.SystemSounds.Exclamation.Play();
+                            PlayWarningAlarm();
                         }
                     }
 
@@ -444,6 +460,76 @@ namespace SystemMonitor.Tray
                     MessageBoxIcon.Error
                 );
             }
-        }        
+        }
+        
+        // ------------------------------------------------------------
+        //  Alarme CRITIQUE : sirène + double bip final, 3 répétitions
+        //  - Si alarm.wav existe, il est joué 3 fois
+        //  - Sinon, sirène synthétisée via Console.Beep (thread séparé)
+        // ------------------------------------------------------------
+        private void PlayCriticalAlarm()
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    if (_criticalPlayer != null)
+                    {
+                        for (int i = 0; i < 3; i++)
+                        {
+                            _criticalPlayer.PlaySync();
+                            Thread.Sleep(150);
+                        }
+                        return;
+                    }
+
+                    // Sirène : montée 700 -> 1800 Hz puis descente, x3
+                    for (int rep = 0; rep < 3; rep++)
+                    {
+                        for (int f = 700; f <= 1800; f += 80)
+                            Console.Beep(f, 35);
+
+                        for (int f = 1800; f >= 700; f -= 80)
+                            Console.Beep(f, 35);
+
+                        // petit silence entre les cycles
+                        Thread.Sleep(120);
+                    }
+
+                    // coup de grâce : 3 bips stridents qui se suivent
+                    Console.Beep(2200, 250);
+                    Console.Beep(1100, 250);
+                    Console.Beep(2200, 250);
+                    Console.Beep(1100, 400);
+                }
+                catch { /* ignore */ }
+            });
+        }
+
+        // ------------------------------------------------------------
+        //  Alarme WARNING : plus discrète que le critique
+        //  - Si warning.wav existe, joué une fois
+        //  - Sinon, double bip court
+        // ------------------------------------------------------------
+        private void PlayWarningAlarm()
+        {
+            ThreadPool.QueueUserWorkItem(_ =>
+            {
+                try
+                {
+                    if (_warningPlayer != null)
+                    {
+                        _warningPlayer.PlaySync();
+                        return;
+                    }
+
+                    // 2 bips courts, moins agressifs que la sirène critique
+                    Console.Beep(1200, 150);
+                    Thread.Sleep(80);
+                    Console.Beep(1200, 150);
+                }
+                catch { /* ignore */ }
+            });
+        }                
     }
 }
