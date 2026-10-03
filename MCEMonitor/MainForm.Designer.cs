@@ -947,7 +947,7 @@ namespace MCEMonitor
                 "----------------------------------------\n" +
                 "LICENCE MIT\n" +
                 "----------------------------------------\n\n" +
-            @"MCEMonitor (Version 2.1.0)
+            @"MCEMonitor (Version 2.1.5)
             Outil de supervision et d'automatisation pour Media Server (KODI).
 
             MIT License
@@ -968,7 +968,8 @@ namespace MCEMonitor
             FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
             AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
             LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.";
+            OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+            SOFTWARE.";
 
             this.pnlAboutScroll.Controls.Add(this.lblAbout);
             this.grpAboutInfo.Panel.Controls.Add(this.pnlAboutScroll);

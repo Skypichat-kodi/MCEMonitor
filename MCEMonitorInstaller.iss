@@ -5,7 +5,7 @@
 
 [Setup]
 AppName=MCEMonitor
-AppVersion=2.1.0
+AppVersion=2.1.5
 DefaultDirName={autopf}\MCEMonitor
 DefaultGroupName=MCEMonitor
 OutputDir=Installer
@@ -185,10 +185,13 @@ begin
     BatchContent.Add('taskkill /F /IM MCEMonitor.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MediaMonitor.Service.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MediaMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MediaMonitor.UI.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM SystemMonitor.Service.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM SystemMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM SystemMonitor.UI.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM RomMonitor.Service.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM RomMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM RomMonitor.UI.exe /T >nul 2>&1');
 
     BatchContent.Add('exit /b 0');
 
