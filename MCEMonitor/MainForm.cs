@@ -26,12 +26,19 @@ namespace MCEMonitor
         private readonly Dictionary<KryptonPage, int> _originalTabOrder = new();
         private bool _smtpTabsUnlocked = false;
         private DateTime _lastSystemConfigWriteTime = DateTime.MinValue;
-        private long _lastSystemConfigSize = -1;        
+        private long _lastSystemConfigSize = -1;
 
         // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
         private bool _suppressToggleRom = false;
         private bool _suppressToggleSystem = false;
+
+        private bool _taskMediaExists;
+        private bool _taskRomExists;
+        private bool _taskSysExists;
+        private bool _taskWakeExists;
+        private bool _taskShutdownExists;
+        private bool _taskStopExists;
 
         // Anti-double-fermeture
         private bool _closingInProgress = false;
@@ -129,13 +136,22 @@ namespace MCEMonitor
             LoadRomMonitorConfig();
             LoadSystemMonitorConfig();
             LoadWakeConfig();
-            UpdateWakeTaskStatus();
+            RefreshAllAutoButtons();
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
-            UpdateStopTaskStatus();
             UpdateNextReportLabel();
             UpdateLastReportLabel();
             InitializeSmtpTabGating();
+
+            // ? Rafraîchit les pastilles "Automatique" des 3 boutons
+            RefreshAllAutoButtons();
+
+            // Réappliquer les couleurs des boutons Auto quand on change d'onglet
+            this.tabControl.SelectedPageChanged += (s, e) =>
+            {
+                // Petit délai pour laisser Krypton finir son repaint
+                this.BeginInvoke(new Action(() => RefreshAllAutoButtons()));
+            };
 
             this.Shown += async (s, e) => await CheckSmtpAtStartupAsync();
         }
@@ -359,50 +375,43 @@ namespace MCEMonitor
         private void LoadMediaConfig()
         {
             UpdateMediaToggle();
-            UpdateMediaTaskButtons();
+            // ? Les pastilles sont gérées par RefreshAllAutoButtons()
         }
 
-        private void BtnCreateMediaTask_Click(object sender, EventArgs e)
+        private void BtnAutoMedia_Click(object sender, EventArgs e)
         {
             try
             {
-                string result = TaskSchedulerHelper.CreateMediaMonitorServiceTask();
-                PopupHelper.ShowBottomPopup(
-                this,
-                    result,
-                    LanguageManager.Get("Résultat création tâche MediaMonitor") ?? "Résultat création tâche MediaMonitor"
-                );
+                if (_taskMediaExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation MediaMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation MediaMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
 
-                UpdateMediaTaskButtons();
+                    if (!ok)
+                        return;
+
+                    string result = TaskSchedulerHelper.DeleteMediaMonitorServiceTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat suppression tâche MediaMonitor") ?? "Résultat suppression tâche MediaMonitor");
+                }
+                else
+                {
+                    string result = TaskSchedulerHelper.CreateMediaMonitorServiceTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat création tâche MediaMonitor") ?? "Résultat création tâche MediaMonitor");
+                }
+
+                RefreshAllAutoButtons();
             }
             catch (Exception ex)
             {
-                PopupHelper.ShowBottomPopup(
-                this,
-                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message
-                );
-            }
-        }
-
-        private void BtnDeleteMediaTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string result = TaskSchedulerHelper.DeleteMediaMonitorServiceTask();
-                PopupHelper.ShowBottomPopup(
-                this,
-                    result,
-                    LanguageManager.Get("Résultat suppression tâche MediaMonitor") ?? "Résultat suppression tâche MediaMonitor"
-                );
-
-                UpdateMediaTaskButtons();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(
-                this,
-                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message
-                );
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
             }
         }
 
@@ -618,14 +627,7 @@ namespace MCEMonitor
                 return;
 
             UpdateMediaToggle();
-            UpdateMediaTaskButtons();
-        }
-
-        private void UpdateMediaTaskButtons()
-        {
-            bool exists = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
-            btnCreateMediaTask2.Enabled = !exists;
-            btnDeleteMediaTask2.Enabled = exists;
+            RefreshAllAutoButtons();
         }
 
         private void UpdateLastReportLabel()
@@ -743,20 +745,6 @@ namespace MCEMonitor
             );
         }
 
-        private async void BtnCreateWakeTask_Click(object sender, EventArgs e)
-        {
-            TaskSchedulerHelper.CreateWakeTask();
-            await Task.Delay(500);
-            UpdateWakeTaskStatus();
-        }
-
-        private async void BtnDeleteWakeTask_Click(object sender, EventArgs e)
-        {
-            TaskSchedulerHelper.DeleteWakeTask();
-            await Task.Delay(500);
-            UpdateWakeTaskStatus();
-        }
-
         private void BtnRunWake_Click(object sender, EventArgs e)
         {
             try
@@ -804,11 +792,37 @@ namespace MCEMonitor
             }
         }
 
-        private void UpdateWakeTaskStatus()
+        private void BtnAutoWake_Click(object sender, EventArgs e)
         {
-            bool exists = TaskSchedulerHelper.WakeTaskExists();
-            btnCreateWakeTask.Enabled = !exists;
-            btnDeleteWakeTask.Enabled = exists;
+            try
+            {
+                if (_taskWakeExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation WakeMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation WakeMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
+
+                    if (!ok)
+                        return;
+
+                    TaskSchedulerHelper.DeleteWakeTask();
+                }
+                else
+                {
+                    TaskSchedulerHelper.CreateWakeTask();
+                }
+
+                RefreshAllAutoButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
         }
 
         private void BtnManageWolMacs_Click(object sender, EventArgs e)
@@ -827,6 +841,47 @@ namespace MCEMonitor
                     "Impossible d'ouvrir la gestion des MAC autorisées :\n" + ex.Message,
                     "Erreur"
                 );
+            }
+        }
+
+        private void BtnAutoShutdown_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_taskShutdownExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'arrêt programmé ?")
+                            ?? "Voulez-vous vraiment désactiver l'arrêt programmé ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
+
+                    if (!ok)
+                        return;
+
+                    TaskSchedulerHelper.DeleteShutdownTask();
+                }
+                else
+                {
+                    int hour = (int)numShutdownHour.Value;
+                    int minute = (int)numShutdownMinute.Value;
+
+                    string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
+                        ? "sleep"
+                        : "shutdown";
+
+                    TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
+                    SaveShutdownConfig(hour, minute);
+                }
+
+                RefreshAllAutoButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
             }
         }
 
@@ -854,25 +909,12 @@ namespace MCEMonitor
             }
 
             UpdateShutdownTaskStatus();
+            RefreshAllAutoButtons();
         }
 
         // ============================================================
         // STOP MONITOR
         // ============================================================
-
-        private async void BtnCreateStopTask_Click(object sender, EventArgs e)
-        {
-            TaskSchedulerHelper.CreateStopTask();
-            await Task.Delay(500);
-            UpdateStopTaskStatus();
-        }
-
-        private async void BtnDeleteStopTask_Click(object sender, EventArgs e)
-        {
-            TaskSchedulerHelper.DeleteStopTask();
-            await Task.Delay(500);
-            UpdateStopTaskStatus();
-        }
 
         private void BtnRunStopMonitor_Click(object sender, EventArgs e)
         {
@@ -921,11 +963,37 @@ namespace MCEMonitor
             }
         }
 
-        private void UpdateStopTaskStatus()
+        private void BtnAutoStop_Click(object sender, EventArgs e)
         {
-            bool exists = TaskSchedulerHelper.StopTaskExists();
-            btnCreateStopTask.Enabled = !exists;
-            btnDeleteStopTask.Enabled = exists;
+            try
+            {
+                if (_taskStopExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation StopMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation StopMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
+
+                    if (!ok)
+                        return;
+
+                    TaskSchedulerHelper.DeleteStopTask();
+                }
+                else
+                {
+                    TaskSchedulerHelper.CreateStopTask();
+                }
+
+                RefreshAllAutoButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
         }
 
         // ============================================================
@@ -983,8 +1051,6 @@ namespace MCEMonitor
         private void UpdateShutdownTaskStatus()
         {
             bool exists = TaskSchedulerHelper.ShutdownTaskExists();
-            btnCreateShutdownTask.Enabled = !exists;
-            btnDeleteShutdownTask.Enabled = exists;
 
             if (exists)
             {
@@ -997,65 +1063,6 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnCreateShutdownTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                int hour = (int)numShutdownHour.Value;
-                int minute = (int)numShutdownMinute.Value;
-
-                string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
-                    ? "sleep"
-                    : "shutdown";
-
-                TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
-
-                SaveShutdownConfig(hour, minute);
-
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("Tâche planifiée créée avec succès.") ??
-                    "Tâche planifiée créée avec succès.",
-                    "Information"
-                );
-
-                UpdateShutdownTaskStatus();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message,
-                    "Erreur"
-                );
-            }
-        }
-
-        private void BtnDeleteShutdownTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                TaskSchedulerHelper.DeleteShutdownTask();
-
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("Tâche planifiée supprimée avec succès.") ??
-                    "Tâche planifiée supprimée avec succès.",
-                    "Information"
-                );
-
-                UpdateShutdownTaskStatus();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message,
-                    "Erreur"
-                );
-            }
-        }
-
         // ============================================================
         // ROM MONITOR
         // ============================================================
@@ -1063,7 +1070,7 @@ namespace MCEMonitor
         private void LoadRomMonitorConfig()
         {
             UpdateRomMonitorToggle();
-            UpdateRomTaskButtons();
+            // ? Les pastilles sont gérées par RefreshAllAutoButtons()
             LoadRomMonitorSettings();
         }
 
@@ -1318,7 +1325,7 @@ namespace MCEMonitor
         private void LoadSystemMonitorConfig()
         {
             UpdateSystemToggle();
-            UpdateSystemTaskButtons();
+            // ? Les pastilles sont gérées par RefreshAllAutoButtons()
             LoadSystemSettings();
         }
 
@@ -1560,56 +1567,44 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnCreateSystemTask_Click(object sender, EventArgs e)
+        private void BtnAutoSystem_Click(object sender, EventArgs e)
         {
             try
             {
-                string result = TaskSchedulerHelper.CreateSystemMonitorTask();
+                if (_taskSysExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation SystemMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation SystemMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
 
-                if (!ServiceInstaller.SystemTrayTaskExists())
-                    ServiceInstaller.CreateSystemTrayTask();
+                    if (!ok)
+                        return;
 
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    result,
-                    LanguageManager.Get("Résultat création tâche SystemMonitor") ?? "Résultat création tâche SystemMonitor"
-                );
+                    string result = TaskSchedulerHelper.DeleteSystemMonitorTask();
+                    ServiceInstaller.DeleteSystemTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat suppression tâche SystemMonitor") ?? "Résultat suppression tâche SystemMonitor");
+                }
+                else
+                {
+                    string result = TaskSchedulerHelper.CreateSystemMonitorTask();
+                    if (!ServiceInstaller.SystemTrayTaskExists())
+                        ServiceInstaller.CreateSystemTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat création tâche SystemMonitor") ?? "Résultat création tâche SystemMonitor");
+                }
 
-                UpdateSystemTaskButtons();
+                RefreshAllAutoButtons();
             }
             catch (Exception ex)
             {
                 PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
             }
-        }
-
-        private void BtnDeleteSystemTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string result = TaskSchedulerHelper.DeleteSystemMonitorTask();
-
-                ServiceInstaller.DeleteSystemTrayTask();
-
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    result,
-                    LanguageManager.Get("Résultat suppression tâche SystemMonitor") ?? "Résultat suppression tâche SystemMonitor"
-                );
-
-                UpdateSystemTaskButtons();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
-            }
-        }
-
-        private void UpdateSystemTaskButtons()
-        {
-            bool exists = TaskSchedulerHelper.SystemMonitorTaskExists();
-            btnCreateSystemTask.Enabled = !exists;
-            btnDeleteSystemTask.Enabled = exists;
         }
 
         private void SystemMonitorTimer_Tick(object sender, EventArgs e)
@@ -1620,9 +1615,9 @@ namespace MCEMonitor
             CheckSystemConfigFileChanged();
 
             UpdateSystemToggle();
-            UpdateSystemTaskButtons();
+            RefreshAllAutoButtons();
         }
-        
+
         /// <summary>
         /// Démarre le service MediaMonitor et lance le Tray.
         /// Renvoie true si le service tourne à la fin.
@@ -1797,54 +1792,42 @@ namespace MCEMonitor
                 return;
 
             UpdateRomMonitorToggle();
-            UpdateRomTaskButtons();
+            RefreshAllAutoButtons();
         }
 
-        private void UpdateRomTaskButtons()
-        {
-            bool exists = TaskSchedulerHelper.RomMonitorTaskExists();
-            btnCreateRomTask.Enabled = !exists;
-            btnDeleteRomTask.Enabled = exists;
-        }
-
-        private void BtnDeleteRomTask_Click(object sender, EventArgs e)
+        private void BtnAutoRom_Click(object sender, EventArgs e)
         {
             try
             {
-                string result = TaskSchedulerHelper.DeleteRomMonitorTask();
+                if (_taskRomExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation RomMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation RomMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
 
-                ServiceInstaller.DeleteRomTrayTask();
+                    if (!ok)
+                        return;
 
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    result,
-                    LanguageManager.Get("Résultat suppression tâche RomMonitor") ?? "Résultat suppression tâche RomMonitor"
-                );
+                    string result = TaskSchedulerHelper.DeleteRomMonitorTask();
+                    ServiceInstaller.DeleteRomTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat suppression tâche RomMonitor") ?? "Résultat suppression tâche RomMonitor");
+                }
+                else
+                {
+                    string result = TaskSchedulerHelper.CreateRomMonitorTask();
+                    if (!ServiceInstaller.RomTrayTaskExists())
+                        ServiceInstaller.CreateRomTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat création tâche RomMonitor") ?? "Résultat création tâche RomMonitor");
+                }
 
-                UpdateRomTaskButtons();
-            }
-            catch (Exception ex)
-            {
-                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
-            }
-        }
-
-        private void BtnCreateRomTask_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                string result = TaskSchedulerHelper.CreateRomMonitorTask();
-
-                if (!ServiceInstaller.RomTrayTaskExists())
-                    ServiceInstaller.CreateRomTrayTask();
-
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    result,
-                    LanguageManager.Get("Résultat création tâche RomMonitor") ?? "Résultat création tâche RomMonitor"
-                );
-
-                UpdateRomTaskButtons();
+                RefreshAllAutoButtons();
             }
             catch (Exception ex)
             {
@@ -1943,6 +1926,101 @@ namespace MCEMonitor
         }
 
         // ============================================================
+        // BOUTONS "AUTOMATIQUE" : HELPERS
+        // ============================================================
+
+        /// <summary>
+        /// Met à jour la pastille du bouton selon l'existence de la tâche.
+        /// Vert = tâche existe, Rouge = tâche absente.
+        /// </summary>
+        private void UpdateAutoButton(KryptonButton btn, bool taskExists)
+        {
+            // --- Texte ---
+            btn.Text = taskExists
+                ? (LanguageManager.Get("Automatique ON") ?? "Automatique ON")
+                : (LanguageManager.Get("Automatique OFF") ?? "Automatique OFF");
+
+            // --- Couleurs selon l'état ---
+            Color color, colorDark, colorLight;
+
+            if (taskExists)
+            {
+                color      = Color.FromArgb(46, 184, 46);    // Vert principal
+                colorLight = Color.FromArgb(102, 220, 102);  // Vert clair (reflet)
+                colorDark  = Color.FromArgb(20, 110, 20);    // Vert très foncé
+            }
+            else
+            {
+                color      = Color.FromArgb(220, 40, 40);    // Rouge principal
+                colorLight = Color.FromArgb(255, 110, 110);  // Rouge clair (reflet)
+                colorDark  = Color.FromArgb(140, 15, 15);    // Rouge très foncé
+            }
+
+            Color borderColor = Color.FromArgb(200, 200, 200);  // Gris métallique
+
+            // --- Style : dégradé Glass (effet brillant) ---
+            btn.StateCommon.Back.Color1 = colorLight;
+            btn.StateCommon.Back.Color2 = colorDark;
+            btn.StateCommon.Back.ColorStyle = PaletteColorStyle.GlassCenter;
+            btn.StateCommon.Back.GraphicsHint = PaletteGraphicsHint.AntiAlias;
+
+            // --- Bordure grise métallique ---
+            btn.StateCommon.Border.Color1 = Color.FromArgb(60, 60, 60);
+            btn.StateCommon.Border.ColorStyle = PaletteColorStyle.Solid;
+            btn.StateCommon.Border.DrawBorders = PaletteDrawBorders.All;
+            btn.StateCommon.Border.Rounding = 3;
+            btn.StateCommon.Border.Width = 1;
+
+            // --- Texte blanc + ombre ---
+            btn.StateCommon.Content.ShortText.Color1 = Color.White;
+            btn.StateCommon.Content.ShortText.Color2 = Color.White;
+
+            // --- Hover : plus lumineux ---
+            btn.StateTracking.Back.Color1 = Color.FromArgb(
+                Math.Min(255, colorLight.R + 30),
+                Math.Min(255, colorLight.G + 30),
+                Math.Min(255, colorLight.B + 30));
+            btn.StateTracking.Back.Color2 = color;
+            btn.StateTracking.Back.ColorStyle = PaletteColorStyle.GlassCenter;
+            btn.StateTracking.Border.Color1 = Color.FromArgb(60, 60, 60);
+            btn.StateTracking.Border.ColorStyle = PaletteColorStyle.Solid;
+            btn.StateTracking.Border.DrawBorders = PaletteDrawBorders.All;
+            btn.StateTracking.Border.Rounding = 3;
+            btn.StateTracking.Border.Width = 1;
+            btn.StateTracking.Content.ShortText.Color1 = Color.White;
+
+            // --- Pressed : plus sombre ---
+            btn.StatePressed.Border.Color1 = Color.FromArgb(60, 60, 60);
+            btn.StatePressed.Back.ColorStyle = PaletteColorStyle.Solid;
+            btn.StatePressed.Border.DrawBorders = PaletteDrawBorders.All;
+            btn.StatePressed.Border.Rounding = 3;
+            btn.StatePressed.Border.Width = 1;
+            btn.StatePressed.Content.ShortText.Color1 = Color.White;
+
+            btn.Invalidate();
+        }
+
+        /// <summary>
+        /// Rafraîchit les pastilles des 3 boutons "Automatique".
+        /// </summary>
+        private void RefreshAllAutoButtons()
+        {
+            _taskMediaExists    = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
+            _taskRomExists      = TaskSchedulerHelper.RomMonitorTaskExists();
+            _taskSysExists      = TaskSchedulerHelper.SystemMonitorTaskExists();
+            _taskWakeExists     = TaskSchedulerHelper.WakeTaskExists();
+            _taskShutdownExists = TaskSchedulerHelper.ShutdownTaskExists();
+            _taskStopExists     = TaskSchedulerHelper.StopTaskExists();
+
+            UpdateAutoButton(btnAutoMedia,    _taskMediaExists);
+            UpdateAutoButton(btnAutoRom,      _taskRomExists);
+            UpdateAutoButton(btnAutoSystem,   _taskSysExists);
+            UpdateAutoButton(btnAutoWake,     _taskWakeExists);
+            UpdateAutoButton(btnAutoShutdown, _taskShutdownExists);
+            UpdateAutoButton(btnAutoStop,     _taskStopExists);
+        }
+
+        // ============================================================
         // GESTION SMTP : verrouillage / déverrouillage des onglets
         // ============================================================
 
@@ -2010,7 +2088,6 @@ namespace MCEMonitor
                     (LanguageManager.Get("Vous pouvez configurer l'envoi d'emails dans l'onglet Email.")
                         ?? "Vous pouvez configurer l'envoi d'emails dans l'onglet Email.");
 
-                // ? CORRECTION : plus de "this," en premier argument
                 KryptonMessageBox.Show(
                     message,
                     "Configuration Email requise",
@@ -2168,7 +2245,7 @@ namespace MCEMonitor
                             if (int.TryParse(val, out int tt))
                                 numSystemTempThreshold.Value = Math.Max(numSystemTempThreshold.Minimum, Math.Min(numSystemTempThreshold.Maximum, tt));
                             break;
-                            
+
                         case "AlertOnHighGpuTemp":
                             chkSystemAlertGpuTemp.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
                             break;
@@ -2176,7 +2253,7 @@ namespace MCEMonitor
                         case "GpuTempThresholdCelsius":
                             if (int.TryParse(val, out int gtt))
                                 numSystemGpuTempThreshold.Value = Math.Max(numSystemGpuTempThreshold.Minimum, Math.Min(numSystemGpuTempThreshold.Maximum, gtt));
-                            break;                            
+                            break;
                     }
                 }
             }
@@ -2299,7 +2376,7 @@ namespace MCEMonitor
                 );
             }
         }
-        
+
         // ============================================================
         // SÉLECTEUR DE THÈME
         // ============================================================
@@ -2309,7 +2386,7 @@ namespace MCEMonitor
             using var selector = new ThemeSelectorForm();
             selector.ShowDialog(this);
         }
-        
+
         /// <summary>
         /// Détecte si le fichier SystemMonitor.config a été modifié
         /// par un autre processus (SystemMonitor.UI par ex.) et recharge
@@ -2338,6 +2415,6 @@ namespace MCEMonitor
                 LoadSystemSettings();
             }
             catch { }
-        }        
+        }
     }
 }

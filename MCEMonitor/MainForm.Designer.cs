@@ -282,9 +282,10 @@ namespace MCEMonitor
             this.lblNextReport = new KryptonLabel();
             this.lblLastReport = new KryptonLabel();
 
-            this.btnCreateMediaTask2 = new KryptonButton();
-            this.btnDeleteMediaTask2 = new KryptonButton();
+            this.btnAutoMedia = new KryptonButton();
             this.btnOpenMediaUI = new KryptonButton();
+            this.btnAutoMedia.StateCommon.Back.ColorStyle = PaletteColorStyle.Solid;
+            this.btnAutoMedia.StateCommon.Border.DrawBorders = PaletteDrawBorders.All;            
 
             this.grpMediaInfo.Text = LanguageManager.Get("À propos de MediaMonitor") ?? "À propos de MediaMonitor";
             this.grpMediaInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
@@ -316,7 +317,7 @@ namespace MCEMonitor
             this.grpMediaInfo.Panel.Controls.Add(this.pnlMediaInfo);
             this.tabMediaMonitor.Controls.Add(this.grpMediaInfo);
 
-            this.grpMediaActions.Text = LanguageManager.Get("Automatisation du rapport") ?? "Automatisation du rapport";
+            this.grpMediaActions.Text = LanguageManager.Get("Automatisation MediaMonitor") ?? "Automatisation MediaMonitor";
             this.grpMediaActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpMediaActions.Location = new System.Drawing.Point(20, 160);
             this.grpMediaActions.Size = new System.Drawing.Size(640, 160);
@@ -342,30 +343,22 @@ namespace MCEMonitor
             this.lblLastReport.Location = new System.Drawing.Point(330, 28);
             this.lblLastReport.Text = "";
 
-            this.btnCreateMediaTask2.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateMediaTask2.Font = normalFont;
-            this.btnCreateMediaTask2.Size = new System.Drawing.Size(190, 32);
-            this.btnCreateMediaTask2.Location = new System.Drawing.Point(30, 75);
-            this.btnCreateMediaTask2.Click += new System.EventHandler(this.BtnCreateMediaTask_Click);
-
-            this.btnDeleteMediaTask2.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteMediaTask2.Font = normalFont;
-            this.btnDeleteMediaTask2.Size = new System.Drawing.Size(190, 32);
-            this.btnDeleteMediaTask2.Location = new System.Drawing.Point(225, 75);
-            this.btnDeleteMediaTask2.Click += new System.EventHandler(this.BtnDeleteMediaTask_Click);
+            this.btnAutoMedia.Font = normalFont;
+            this.btnAutoMedia.Size = new System.Drawing.Size(190, 32);
+            this.btnAutoMedia.Location = new System.Drawing.Point(110, 75);
+            this.btnAutoMedia.Click += new System.EventHandler(this.BtnAutoMedia_Click);
 
             this.btnOpenMediaUI.Text = LanguageManager.Get("Ouvrir MediaMonitor") ?? "Ouvrir MediaMonitor";
             this.btnOpenMediaUI.Font = normalFont;
             this.btnOpenMediaUI.Size = new System.Drawing.Size(190, 32);
-            this.btnOpenMediaUI.Location = new System.Drawing.Point(420, 75);
+            this.btnOpenMediaUI.Location = new System.Drawing.Point(330, 75);
             this.btnOpenMediaUI.Click += new System.EventHandler(this.BtnOpenUI_Click);
 
             this.grpMediaActions.Panel.Controls.Add(this.toggleMediaService);
             this.grpMediaActions.Panel.Controls.Add(this.lblMediaStatus);
             this.grpMediaActions.Panel.Controls.Add(this.lblNextReport);
             this.grpMediaActions.Panel.Controls.Add(this.lblLastReport);
-            this.grpMediaActions.Panel.Controls.Add(this.btnCreateMediaTask2);
-            this.grpMediaActions.Panel.Controls.Add(this.btnDeleteMediaTask2);
+            this.grpMediaActions.Panel.Controls.Add(this.btnAutoMedia);
             this.grpMediaActions.Panel.Controls.Add(this.btnOpenMediaUI);
             this.tabMediaMonitor.Controls.Add(this.grpMediaActions);
 
@@ -399,9 +392,10 @@ namespace MCEMonitor
             this.numRomCooldown = new KryptonNumericUpDown();
             this.chkRomSmartAlert = new KryptonCheckBox();
             this.lblRomHint = new KryptonLabel();
-            this.btnCreateRomTask = new KryptonButton();
-            this.btnDeleteRomTask = new KryptonButton();
+            this.btnAutoRom = new KryptonButton();
             this.btnOpenRomUI = new KryptonButton();
+            this.btnAutoMedia.StateCommon.Back.ColorStyle = PaletteColorStyle.Solid;
+            this.btnAutoMedia.StateCommon.Border.DrawBorders = PaletteDrawBorders.All;            
             this.btnSaveRomConfig = new KryptonButton();
             this.romMonitorTimer = new System.Windows.Forms.Timer();
 
@@ -451,28 +445,20 @@ namespace MCEMonitor
             this.lblRomStatus.Location = new System.Drawing.Point(120, 10);
             this.lblRomStatus.AutoSize = true;
 
-            this.btnCreateRomTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateRomTask.Font = normalFont;
-            this.btnCreateRomTask.Size = new System.Drawing.Size(190, 32);
-            this.btnCreateRomTask.Location = new System.Drawing.Point(30, 45);
-            this.btnCreateRomTask.Click += new System.EventHandler(this.BtnCreateRomTask_Click);
-
-            this.btnDeleteRomTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteRomTask.Font = normalFont;
-            this.btnDeleteRomTask.Size = new System.Drawing.Size(190, 32);
-            this.btnDeleteRomTask.Location = new System.Drawing.Point(225, 45);
-            this.btnDeleteRomTask.Click += new System.EventHandler(this.BtnDeleteRomTask_Click);
+            this.btnAutoRom.Font = normalFont;
+            this.btnAutoRom.Size = new System.Drawing.Size(190, 32);
+            this.btnAutoRom.Location = new System.Drawing.Point(110, 45);
+            this.btnAutoRom.Click += new System.EventHandler(this.BtnAutoRom_Click);
 
             this.btnOpenRomUI.Text = LanguageManager.Get("Ouvrir RomMonitor") ?? "Ouvrir RomMonitor";
             this.btnOpenRomUI.Font = normalFont;
             this.btnOpenRomUI.Size = new System.Drawing.Size(190, 32);
-            this.btnOpenRomUI.Location = new System.Drawing.Point(420, 45);
+            this.btnOpenRomUI.Location = new System.Drawing.Point(330, 45);
             this.btnOpenRomUI.Click += new System.EventHandler(this.BtnOpenRomUI_Click);
 
             this.grpRomActions.Panel.Controls.Add(this.toggleRomService);
             this.grpRomActions.Panel.Controls.Add(this.lblRomStatus);
-            this.grpRomActions.Panel.Controls.Add(this.btnCreateRomTask);
-            this.grpRomActions.Panel.Controls.Add(this.btnDeleteRomTask);
+            this.grpRomActions.Panel.Controls.Add(this.btnAutoRom);
             this.grpRomActions.Panel.Controls.Add(this.btnOpenRomUI);
             this.tabRomMonitor.Controls.Add(this.grpRomActions);
 
@@ -604,8 +590,7 @@ namespace MCEMonitor
 
             this.btnSaveWakeConfig = new KryptonButton();
             this.btnRunWake = new KryptonButton();
-            this.btnCreateWakeTask = new KryptonButton();
-            this.btnDeleteWakeTask = new KryptonButton();
+            this.btnAutoWake = new KryptonButton();
             this.btnManageWolMacs = new KryptonButton();
 
             this.grpWakeInfo.Text = LanguageManager.Get("À propos de WakeMonitor") ?? "À propos de WakeMonitor";
@@ -681,19 +666,12 @@ namespace MCEMonitor
             this.grpWakeOptions.Panel.Controls.Add(this.chkDuration);
             this.tabWakeMonitor.Controls.Add(this.grpWakeOptions);
 
-            this.btnCreateWakeTask.Location = new System.Drawing.Point(460, 170);
-            this.btnCreateWakeTask.Size = new System.Drawing.Size(200, 35);
-            this.btnCreateWakeTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateWakeTask.Font = normalFont;
-            this.btnCreateWakeTask.Click += new System.EventHandler(this.BtnCreateWakeTask_Click);
+            this.btnAutoWake.Location = new System.Drawing.Point(460, 170);
+            this.btnAutoWake.Size = new System.Drawing.Size(200, 35);
+            this.btnAutoWake.Font = normalFont;
+            this.btnAutoWake.Click += new System.EventHandler(this.BtnAutoWake_Click);
 
-            this.btnDeleteWakeTask.Location = new System.Drawing.Point(460, 215);
-            this.btnDeleteWakeTask.Size = new System.Drawing.Size(200, 35);
-            this.btnDeleteWakeTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteWakeTask.Font = normalFont;
-            this.btnDeleteWakeTask.Click += new System.EventHandler(this.BtnDeleteWakeTask_Click);
-
-            this.btnManageWolMacs.Location = new System.Drawing.Point(460, 260);
+            this.btnManageWolMacs.Location = new System.Drawing.Point(460, 220);
             this.btnManageWolMacs.Size = new System.Drawing.Size(200, 35);
             this.btnManageWolMacs.Text = LanguageManager.Get("Gérer MAC autorisées") ?? "Gérer MAC autorisées";
             this.btnManageWolMacs.Font = normalFont;
@@ -715,8 +693,7 @@ namespace MCEMonitor
 
             this.tabWakeMonitor.Controls.Add(this.btnSaveWakeConfig);
             this.tabWakeMonitor.Controls.Add(this.btnRunWake);
-            this.tabWakeMonitor.Controls.Add(this.btnCreateWakeTask);
-            this.tabWakeMonitor.Controls.Add(this.btnDeleteWakeTask);
+            this.tabWakeMonitor.Controls.Add(this.btnAutoWake);
             this.tabWakeMonitor.Controls.Add(this.btnManageWolMacs);
 
             // ============================================================
@@ -755,30 +732,22 @@ namespace MCEMonitor
             this.grpStopInfo.Panel.Controls.Add(this.pnlStopInfo);
             this.tabStopMonitor.Controls.Add(this.grpStopInfo);
 
-            this.btnCreateStopTask = new KryptonButton();
-            this.btnDeleteStopTask = new KryptonButton();
+            this.btnAutoStop = new KryptonButton();
             this.btnRunStopMonitor = new KryptonButton();
 
-            this.btnCreateStopTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateStopTask.Location = new System.Drawing.Point(20, 170);
-            this.btnCreateStopTask.Size = new System.Drawing.Size(200, 35);
-            this.btnCreateStopTask.Font = normalFont;
-            this.btnCreateStopTask.Click += new System.EventHandler(this.BtnCreateStopTask_Click);
-
-            this.btnDeleteStopTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteStopTask.Location = new System.Drawing.Point(20, 215);
-            this.btnDeleteStopTask.Size = new System.Drawing.Size(200, 35);
-            this.btnDeleteStopTask.Font = normalFont;
-            this.btnDeleteStopTask.Click += new System.EventHandler(this.BtnDeleteStopTask_Click);
+            this.btnAutoStop.Text = LanguageManager.Get("Automatique") ?? "Automatique";
+            this.btnAutoStop.Location = new System.Drawing.Point(20, 170);
+            this.btnAutoStop.Size = new System.Drawing.Size(200, 32);
+            this.btnAutoStop.Font = normalFont;
+            this.btnAutoStop.Click += new System.EventHandler(this.BtnAutoStop_Click);
 
             this.btnRunStopMonitor.Text = LanguageManager.Get("Envoi d'un mail de test") ?? "Envoi d'un mail de test";
-            this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 260);
-            this.btnRunStopMonitor.Size = new System.Drawing.Size(200, 35);
+            this.btnRunStopMonitor.Location = new System.Drawing.Point(20, 220);
+            this.btnRunStopMonitor.Size = new System.Drawing.Size(200, 32);
             this.btnRunStopMonitor.Font = normalFont;
             this.btnRunStopMonitor.Click += new System.EventHandler(this.BtnRunStopMonitor_Click);
 
-            this.tabStopMonitor.Controls.Add(this.btnCreateStopTask);
-            this.tabStopMonitor.Controls.Add(this.btnDeleteStopTask);
+            this.tabStopMonitor.Controls.Add(this.btnAutoStop);
             this.tabStopMonitor.Controls.Add(this.btnRunStopMonitor);
 
             // ============================================================
@@ -826,8 +795,7 @@ namespace MCEMonitor
             this.numShutdownMinute = new KryptonNumericUpDown();
             this.lblShutdownType = new KryptonLabel();
             this.cmbShutdownType = new KryptonComboBox();
-            this.btnCreateShutdownTask = new KryptonButton();
-            this.btnDeleteShutdownTask = new KryptonButton();
+            this.btnAutoShutdown = new KryptonButton();
 
             this.grpShutdown.Text = LanguageManager.Get("Arrêt programmé") ?? "Arrêt programmé";
             this.grpShutdown.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
@@ -869,23 +837,17 @@ namespace MCEMonitor
             this.btnSaveOnOff = new KryptonButton();
             this.btnSaveOnOff.Text = LanguageManager.Get("Sauvegarder") ?? "Sauvegarder";
             this.btnSaveOnOff.Font = normalFont;
-            this.btnSaveOnOff.Location = new System.Drawing.Point(10, 75);
+            this.btnSaveOnOff.Location = new System.Drawing.Point(110, 75);
             this.btnSaveOnOff.Size = new System.Drawing.Size(200, 35);
             this.btnSaveOnOff.Click += new System.EventHandler(this.BtnSaveOnOff_Click);
 
             this.grpShutdown.Panel.Controls.Add(this.btnSaveOnOff);
 
-            this.btnCreateShutdownTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateShutdownTask.Location = new System.Drawing.Point(220, 75);
-            this.btnCreateShutdownTask.Size = new System.Drawing.Size(200, 35);
-            this.btnCreateShutdownTask.Font = normalFont;
-            this.btnCreateShutdownTask.Click += new System.EventHandler(this.BtnCreateShutdownTask_Click);
-
-            this.btnDeleteShutdownTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteShutdownTask.Location = new System.Drawing.Point(430, 75);
-            this.btnDeleteShutdownTask.Size = new System.Drawing.Size(200, 35);
-            this.btnDeleteShutdownTask.Font = normalFont;
-            this.btnDeleteShutdownTask.Click += new System.EventHandler(this.BtnDeleteShutdownTask_Click);
+            this.btnAutoShutdown.Text = LanguageManager.Get("Automatique") ?? "Automatique";
+            this.btnAutoShutdown.Location = new System.Drawing.Point(330, 75);
+            this.btnAutoShutdown.Size = new System.Drawing.Size(200, 35);
+            this.btnAutoShutdown.Font = normalFont;
+            this.btnAutoShutdown.Click += new System.EventHandler(this.BtnAutoShutdown_Click);
 
             this.grpShutdown.Panel.Controls.Add(this.lblShutdownHour);
             this.grpShutdown.Panel.Controls.Add(this.numShutdownHour);
@@ -893,8 +855,7 @@ namespace MCEMonitor
             this.grpShutdown.Panel.Controls.Add(this.numShutdownMinute);
             this.grpShutdown.Panel.Controls.Add(this.lblShutdownType);
             this.grpShutdown.Panel.Controls.Add(this.cmbShutdownType);
-            this.grpShutdown.Panel.Controls.Add(this.btnCreateShutdownTask);
-            this.grpShutdown.Panel.Controls.Add(this.btnDeleteShutdownTask);
+            this.grpShutdown.Panel.Controls.Add(this.btnAutoShutdown);
 
             this.tabOnOff.Controls.Add(this.grpShutdown);
 
@@ -1071,8 +1032,9 @@ namespace MCEMonitor
             this.toggleSystemService = new KryptonCheckButton();
             this.lblSystemStatus = new KryptonLabel();
             this.btnOpenSystemUI = new KryptonButton();
-            this.btnCreateSystemTask = new KryptonButton();
-            this.btnDeleteSystemTask = new KryptonButton();
+            this.btnAutoSystem = new KryptonButton();
+            this.btnAutoMedia.StateCommon.Back.ColorStyle = PaletteColorStyle.Solid;
+            this.btnAutoMedia.StateCommon.Border.DrawBorders = PaletteDrawBorders.All;            
 
             // --- GroupBox Info ---
             this.grpSystemInfo.Text = LanguageManager.Get("À propos de SystemMonitor") ?? "À propos de SystemMonitor";
@@ -1122,28 +1084,20 @@ namespace MCEMonitor
             this.lblSystemStatus.Location = new System.Drawing.Point(120, 10);
             this.lblSystemStatus.AutoSize = true;
 
-            this.btnCreateSystemTask.Text = LanguageManager.Get("Créer tâche planifiée") ?? "Créer tâche planifiée";
-            this.btnCreateSystemTask.Font = normalFont;
-            this.btnCreateSystemTask.Size = new System.Drawing.Size(190, 32);
-            this.btnCreateSystemTask.Location = new System.Drawing.Point(30, 45);
-            this.btnCreateSystemTask.Click += new System.EventHandler(this.BtnCreateSystemTask_Click);
-
-            this.btnDeleteSystemTask.Text = LanguageManager.Get("Supprimer tâche planifiée") ?? "Supprimer tâche planifiée";
-            this.btnDeleteSystemTask.Font = normalFont;
-            this.btnDeleteSystemTask.Size = new System.Drawing.Size(190, 32);
-            this.btnDeleteSystemTask.Location = new System.Drawing.Point(225, 45);
-            this.btnDeleteSystemTask.Click += new System.EventHandler(this.BtnDeleteSystemTask_Click);
+            this.btnAutoSystem.Font = normalFont;
+            this.btnAutoSystem.Size = new System.Drawing.Size(200, 32);
+            this.btnAutoSystem.Location = new System.Drawing.Point(110, 45);
+            this.btnAutoSystem.Click += new System.EventHandler(this.BtnAutoSystem_Click);
 
             this.btnOpenSystemUI.Text = LanguageManager.Get("Ouvrir SystemMonitor") ?? "Ouvrir SystemMonitor";
             this.btnOpenSystemUI.Font = normalFont;
-            this.btnOpenSystemUI.Size = new System.Drawing.Size(190, 32);
-            this.btnOpenSystemUI.Location = new System.Drawing.Point(420, 45);
+            this.btnOpenSystemUI.Size = new System.Drawing.Size(200, 32);
+            this.btnOpenSystemUI.Location = new System.Drawing.Point(330, 45);
             this.btnOpenSystemUI.Click += new System.EventHandler(this.BtnOpenSystemUI_Click);
 
             this.grpSystemActions.Panel.Controls.Add(this.toggleSystemService);
             this.grpSystemActions.Panel.Controls.Add(this.lblSystemStatus);
-            this.grpSystemActions.Panel.Controls.Add(this.btnCreateSystemTask);
-            this.grpSystemActions.Panel.Controls.Add(this.btnDeleteSystemTask);
+            this.grpSystemActions.Panel.Controls.Add(this.btnAutoSystem);
             this.grpSystemActions.Panel.Controls.Add(this.btnOpenSystemUI);
 
             this.tabSystemMonitor.Controls.Add(this.grpSystemActions);
@@ -1361,8 +1315,7 @@ namespace MCEMonitor
         private KryptonLabel lblShutdownType;
         private KryptonComboBox cmbShutdownType;
         private KryptonButton btnSaveOnOff;
-        private KryptonButton btnCreateShutdownTask;
-        private KryptonButton btnDeleteShutdownTask;
+        private KryptonButton btnAutoShutdown;
         private KryptonGroupBox grpWOL;
         private KryptonLabel lblWOLInfo;
 
@@ -1376,8 +1329,7 @@ namespace MCEMonitor
         private KryptonLabel lblMediaStatus;
         private KryptonLabel lblNextReport;
         private KryptonLabel lblLastReport;
-        private KryptonButton btnCreateMediaTask2;
-        private KryptonButton btnDeleteMediaTask2;
+        private KryptonButton btnAutoMedia;
         private KryptonButton btnOpenMediaUI;
         private System.Windows.Forms.Timer logRefreshTimer;
         private System.Windows.Forms.Timer mediaServiceTimer;
@@ -1405,8 +1357,7 @@ namespace MCEMonitor
         private KryptonNumericUpDown numRomCooldown;
         private KryptonCheckBox chkRomSmartAlert;
         private KryptonLabel lblRomHint;
-        private KryptonButton btnCreateRomTask;
-        private KryptonButton btnDeleteRomTask;
+        private KryptonButton btnAutoRom;
         private KryptonButton btnOpenRomUI;
         private KryptonButton btnSaveRomConfig;
         private System.Windows.Forms.Timer romMonitorTimer;
@@ -1421,8 +1372,7 @@ namespace MCEMonitor
         private KryptonCheckButton toggleSystemService;
         private KryptonLabel lblSystemStatus;
         private KryptonButton btnOpenSystemUI;
-        private KryptonButton btnCreateSystemTask;
-        private KryptonButton btnDeleteSystemTask;
+        private KryptonButton btnAutoSystem;
         private System.Windows.Forms.Timer systemMonitorTimer;
         private KryptonGroupBox grpSystemSettings;
         private KryptonCheckBox chkSystemAlertCpu;
@@ -1457,8 +1407,7 @@ namespace MCEMonitor
         private KryptonCheckBox chkDuration;
         private KryptonButton btnSaveWakeConfig;
         private KryptonButton btnRunWake;
-        private KryptonButton btnCreateWakeTask;
-        private KryptonButton btnDeleteWakeTask;
+        private KryptonButton btnAutoWake;
         private KryptonButton btnManageWolMacs;
 
         // ---------- Stop Monitor ----------
@@ -1466,8 +1415,7 @@ namespace MCEMonitor
         private KryptonPanel pnlStopInfo;
         private KryptonPictureBox picStopInfo;
         private KryptonLabel lblStopDescription;
-        private KryptonButton btnCreateStopTask;
-        private KryptonButton btnDeleteStopTask;
+        private KryptonButton btnAutoStop;
         private KryptonButton btnRunStopMonitor;
 
         // ---------- À propos ----------
