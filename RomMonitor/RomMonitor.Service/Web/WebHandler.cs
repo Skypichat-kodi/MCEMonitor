@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Globalization;
 using MCEMonitor.Languages;
 using RomMonitor.Service.Web;
 
@@ -101,6 +102,16 @@ namespace RomMonitor.Service.Web
                                      : d.FreePercent < 15 ? "warning"
                                      : "ok";
 
+                    // Formate avec point décimal (culture invariante) pour que ce soit CSS-compatible
+                    string usedPercent = (100 - d.FreePercent).ToString("F1", CultureInfo.InvariantCulture);
+                    string freePercent = d.FreePercent.ToString("F1", CultureInfo.InvariantCulture);
+                    string totalGo     = d.TotalGo.ToString("F1", CultureInfo.InvariantCulture);
+                    string freeGo      = d.FreeGo.ToString("F1", CultureInfo.InvariantCulture);
+
+                    string barColor = d.FreePercent < 5  ? "#FF6347"   // rouge
+                                    : d.FreePercent < 15 ? "#FFB900"   // jaune
+                                    : "#6CCB5F";                       // vert
+                
                     string smartStatus = match?.Status ?? (LanguageManager.Get("N/A") ?? "N/A");
                     string smartClass = smartStatus == "OK" ? "ok"
                                       : smartStatus == "Warning" ? "warning"
@@ -116,18 +127,28 @@ namespace RomMonitor.Service.Web
                         ? $"{match.PowerOnHours.Value:N0} h"
                         : (LanguageManager.Get("N/A") ?? "N/A");
 
+                    string hoursRaw = match?.PowerOnHours?.ToString(CultureInfo.InvariantCulture) ?? "";
+                    string tempRaw  = match?.Temperature?.ToString(CultureInfo.InvariantCulture) ?? "";
+
                     diskRows.Append($@"
                         <tr>
-                            <td><b>{WebUtility.HtmlEncode(d.Name)}</b></td>
-                            <td>{WebUtility.HtmlEncode(d.Label)}</td>
-                            <td>{WebUtility.HtmlEncode(d.DriveType)}</td>
-                            <td>{d.TotalGo:F1} Go</td>
-                            <td>{d.FreeGo:F1} Go</td>
-                            <td class='{freeClass}'>{d.FreePercent:F1} %</td>
-                            <td><span class='badge {smartClass}'>{smartStatus}</span></td>
-                            <td>{WebUtility.HtmlEncode(match?.Model ?? "")}</td>
-                            <td>{tempText}</td>
-                            <td>{hoursText}</td>
+                            <td data-sort=""{WebUtility.HtmlEncode(d.Name)}""><b>{WebUtility.HtmlEncode(d.Name)}</b></td>
+                            <td data-sort=""{WebUtility.HtmlEncode(d.Label)}"">{WebUtility.HtmlEncode(d.Label)}</td>
+                            <td data-sort=""{WebUtility.HtmlEncode(d.DriveType)}"">{WebUtility.HtmlEncode(d.DriveType)}</td>
+                            <td data-sort=""{d.TotalGo.ToString("F2", CultureInfo.InvariantCulture)}"">{totalGo} Go</td>
+                            <td data-sort=""{d.FreeGo.ToString("F2", CultureInfo.InvariantCulture)}"">{freeGo} Go</td>
+                            <td data-sort=""{d.FreePercent.ToString("F2", CultureInfo.InvariantCulture)}"">
+                                <div class=""progress-cell"">
+                                    <div class=""progress-bar"">
+                                        <div class=""progress-fill"" style=""width:{usedPercent}%;background:{barColor}""></div>
+                                    </div>
+                                    <span class=""progress-text {freeClass}"">{freePercent} %</span>
+                                </div>
+                            </td>
+                            <td data-sort=""{smartClass}""><span class='badge {smartClass}'>{smartStatus}</span></td>
+                            <td data-sort=""{WebUtility.HtmlEncode(match?.Model ?? "")}"">{WebUtility.HtmlEncode(match?.Model ?? "")}</td>
+                            <td data-sort=""{tempRaw}"">{tempText}</td>
+                            <td data-sort=""{hoursRaw}"">{hoursText}</td>
                         </tr>");
                 }
 

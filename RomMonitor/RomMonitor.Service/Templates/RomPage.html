@@ -40,6 +40,16 @@
     
     h2 { margin:25px 0 10px 0; font-size:16px; color:#4CC2FF; }
 
+    thead th {
+        cursor: pointer;
+        user-select: none;
+        transition: background 0.15s ease;
+    }
+
+    thead th:hover {
+        background: #3a3a3d;
+    }
+
     .info {
         background: #252526;
         border: 1px solid #3c3c3c;
@@ -76,6 +86,7 @@
         border-bottom: 1px solid #3c3c3c;
         text-align: left;
     }
+     
     th {
         background: #2d2d30;
         color: #fff;
@@ -102,6 +113,36 @@
     .badge.warning { background: #FFB900; color: black; }
     .badge.danger  { background: #FF6347; color: white; }
     .badge.na      { background: #555; color: #ccc; }
+
+    /* Cellule avec barre de progression */
+    .progress-cell {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 140px;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 14px;
+        background: #2d2d30;
+        border-radius: 7px;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .progress-fill {
+        height: 100%;
+        border-radius: 7px;
+        transition: width 0.3s ease;
+    }
+
+    .progress-text {
+        min-width: 50px;
+        text-align: right;
+        font-weight: bold;
+        font-size: 13px;
+    }
 
     .footer {
         margin-top: 30px;
@@ -248,10 +289,10 @@
 
 <div class="action-bar">
     <a href="/" class="action-btn secondary">
-        🔄 {{tr:Rafraîchir}}
+        {{tr:Rafraîchir}}
     </a>
     <a href="#" id="btnClearHistory" class="action-btn danger">
-        🗑 {{tr:Vider l'historique}}
+        {{tr:Vider l'historique}}
     </a>
 </div>
 
@@ -273,7 +314,7 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
 </div>
 
 <h2>{{tr:État des disques}}</h2>
-<table>
+<table class="disks-table">
     <thead>
         <tr>
             <th>{{tr:Disque}}</th>
@@ -311,6 +352,66 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
 <div class="footer">
     {{tr:RomMonitor - Généré à}} {{LastCheck}}
 </div>
+
+<script>
+(function () {
+    const table = document.querySelector('.disks-table');   // ← à adapter si tu as une classe
+    if (!table) return;
+
+    const headers = table.querySelectorAll('thead th');
+    const tbody   = table.querySelector('tbody');
+    let currentSort = { index: -1, asc: true };
+
+    headers.forEach((th, index) => {
+        th.style.cursor = 'pointer';
+        th.style.userSelect = 'none';
+        th.title = 'Cliquer pour trier';
+
+        th.addEventListener('click', () => {
+            // Toggle direction si on reclique sur la même colonne
+            const asc = (currentSort.index === index) ? !currentSort.asc : true;
+            currentSort = { index, asc };
+
+            // Retirer les indicateurs des autres colonnes
+            headers.forEach(h => {
+                h.textContent = h.textContent.replace(/\s*[▲▼]$/, '');
+            });
+
+            // Ajouter l'indicateur
+            th.textContent += asc ? ' ▲' : ' ▼';
+
+            // Trier les lignes
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                const cellA = a.children[index];
+                const cellB = b.children[index];
+
+                // Récupère la valeur de tri (data-sort) ou le texte
+                let vA = cellA?.dataset?.sort ?? cellA?.textContent.trim() ?? '';
+                let vB = cellB?.dataset?.sort ?? cellB?.textContent.trim() ?? '';
+
+                // Détecte si c'est numérique
+                const nA = parseFloat(vA);
+                const nB = parseFloat(vB);
+                const isNum = !isNaN(nA) && !isNaN(nB) && vA !== '' && vB !== '';
+
+                let cmp;
+                if (isNum) {
+                    cmp = nA - nB;
+                } else {
+                    cmp = vA.localeCompare(vB, undefined, { sensitivity: 'base', numeric: true });
+                }
+
+                return asc ? cmp : -cmp;
+            });
+
+            // Réinjecte les lignes triées
+            rows.forEach(r => tbody.appendChild(r));
+        });
+    });
+})();
+</script>
 
 </body>
 </html>
