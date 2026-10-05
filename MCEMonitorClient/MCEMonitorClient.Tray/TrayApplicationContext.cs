@@ -28,6 +28,7 @@ namespace MCEMonitorClient.Tray
 
         // --- Tray ---
         private NotifyIcon _trayIcon = null!;
+        private bool _initialStateNotified = false;
 
         // --- Sons ---
         private System.Media.SoundPlayer? _alarmPlayer;
@@ -269,6 +270,7 @@ namespace MCEMonitorClient.Tray
 
                 _globalState = state.GlobalState;
 
+                // Met à jour l'icône selon l'état global
                 var icon = state.GlobalState switch
                 {
                     "critical" => _iconCritical,
@@ -289,6 +291,66 @@ namespace MCEMonitorClient.Tray
                     "offline"  => $"MCEMonitorClient - Hors ligne ({online}/{total} en ligne)",
                     _          => $"MCEMonitorClient - OK ({online}/{total} en ligne)"
                 };
+
+                // ? Première fois qu'on récupère l'état ? on notifie les problèmes actuels
+                if (!_initialStateNotified)
+                {
+                    _initialStateNotified = true;
+
+                    foreach (var server in state.Servers)
+                    {
+                        if (server.Status != "ok" && server.Online)
+                        {
+                            CoreLog.Write($"[INIT] Problème au démarrage : {server.ServerName} = {server.Status}");
+
+                            // Convertit PollResult en PushAlert pour réutiliser ShowNotification()
+                            var alert = new PushAlert
+                            {
+                                Type = "alert",
+                                ServerId = server.ServerId,
+                                ServerName = server.ServerName,
+                                ServiceType = server.ServiceType,
+                                BaseUrl = server.BaseUrl,
+                                Status = server.Status,
+                                PreviousStatus = "unknown",   // pas "ok" ? ShowNotification va notifier
+                                ProblemCount = server.ProblemCount,
+                                FirstProblem = server.FirstProblem,
+                                Problems = server.Problems?
+                                    .Select(p => new Ipc.ProblemItem
+                                    {
+                                        Severity = p.Severity,
+                                        Category = p.Category,
+                                        Message  = p.Message
+                                    })
+                                    .ToList() ?? new List<Ipc.ProblemItem>(),
+                                Timestamp = server.Timestamp
+                            };
+
+                            ShowNotification(alert);
+                        }
+                        else if (!server.Online)
+                        {
+                            CoreLog.Write($"[INIT] Serveur hors ligne au démarrage : {server.ServerName}");
+
+                            var alert = new PushAlert
+                            {
+                                Type = "alert",
+                                ServerId = server.ServerId,
+                                ServerName = server.ServerName,
+                                ServiceType = server.ServiceType,
+                                BaseUrl = server.BaseUrl,
+                                Status = "offline",
+                                PreviousStatus = "unknown",
+                                ProblemCount = 0,
+                                FirstProblem = "Le serveur ne répond plus",
+                                Problems = new(),
+                                Timestamp = server.Timestamp
+                            };
+
+                            ShowNotification(alert);
+                        }
+                    }
+                }
             }
             catch { }
         }
@@ -348,15 +410,69 @@ namespace MCEMonitorClient.Tray
 
         private void Exit()
         {
-            _pushListener.Stop();
-            _pollTimer?.Stop();
+            try
+            {
+                CoreLog.Write("Tray en cours d'arrêt...");
 
-            _trayIcon.Visible = false;
-            _trayIcon.Dispose();
+                // 1. Arrête le listener push
+                _pushListener.Stop();
+                _pollTimer?.Stop();
 
-            CoreLog.Write("Tray quitté");
+                // 2. Envoie "shutdown" au Service via IPC
+                try
+                {
+                    using var client = new System.IO.Pipes.NamedPipeClientStream(
+                        ".", "MCEMonitor_ClientPipe", System.IO.Pipes.PipeDirection.InOut);
 
-            Application.Exit();
+                    client.Connect(1000);
+
+                    using var writer = new System.IO.StreamWriter(client);
+                    writer.WriteLine("shutdown");
+                    writer.Flush();
+
+                    System.Threading.Thread.Sleep(800);
+                }
+                catch { }
+
+                // 3. Attend que le Service s'arrête (max 5s)
+                for (int i = 0; i < 50; i++)
+                {
+                    if (Process.GetProcessesByName("MCEMonitorClient.Service").Length == 0)
+                        break;
+
+                    System.Threading.Thread.Sleep(100);
+                }
+
+                // 4. Si le Service tourne encore ? kill
+                foreach (var p in Process.GetProcessesByName("MCEMonitorClient.Service"))
+                {
+                    try { p.Kill(); } catch { }
+                }
+
+                // 5. Ferme le Tray
+                _trayIcon.Visible = false;
+                _trayIcon.Dispose();
+
+                CoreLog.Write("Tray quitté");
+
+                Application.Exit();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Exit ERROR : " + ex.Message);
+
+                // Fallback : on force la sortie
+                try
+                {
+                    foreach (var p in Process.GetProcessesByName("MCEMonitorClient.Service"))
+                    {
+                        try { p.Kill(); } catch { }
+                    }
+                }
+                catch { }
+
+                Application.Exit();
+            }
         }
 
         // ---------------------------------------------
