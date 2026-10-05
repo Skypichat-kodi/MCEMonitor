@@ -19,7 +19,7 @@ namespace MCEMonitorClient.Service.Logs
             {
                 Directory.CreateDirectory(LogFolder);
                 File.AppendAllText(LogPath,
-                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}");
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {message}{Environment.NewLine}", System.Text.Encoding.UTF8);
             }
             catch { }
         }

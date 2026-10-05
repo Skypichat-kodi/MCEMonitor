@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using MCEMonitorClient.Service.Logs;
 using MCEMonitorClient.Service.Models;
+using MCEMonitorClient.Service.Ipc;
 
 namespace MCEMonitorClient.Service.Services
 {
@@ -216,6 +217,7 @@ namespace MCEMonitorClient.Service.Services
             if (stateChanged && previous != null && config.NotifyOnStateChange)
             {
                 OnStateChanged?.Invoke(result, previous);
+                PushChannel.PushAlert(result, previous);
             }
         }
 

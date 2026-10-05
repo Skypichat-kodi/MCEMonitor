@@ -38,7 +38,10 @@ namespace MCEMonitorClient.Service
             _engine = new PollingEngine();
             _engine.Start();
 
-            // Démarrer le serveur IPC
+            // Démarrer le canal de push (vers le Tray)
+            PushChannel.Start();
+
+            // Démarrer le serveur IPC (pour les requêtes du Tray)
             _ipc = new ServiceIpcServer(_engine);
             _ipc.Start();
 
