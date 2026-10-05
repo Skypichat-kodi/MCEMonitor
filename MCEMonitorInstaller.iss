@@ -42,29 +42,105 @@ Name: "deletetasks"; \
     GroupDescription: "Tâches planifiées :"; \
     Flags: unchecked
 
+; Choix des composants à installer
+[Components]
+Name: "core";   Description: "MCEMonitor (application principale, services, tray, UI)"; Types: full
+Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MCE distants)"; Types: full
+
 [Files]
 ; --- PawnIO (pilote de lecture capteurs) ---
 Source: "redist\PawnIO_setup.exe"; DestDir: "{tmp}"; \
-    Flags: deleteafterinstall
+    Flags: deleteafterinstall; \
+    Components: core
+
 ; --- Fichiers destinés à Program Files (x64) ---
+; (tous SAUF les fichiers du Client, les fichiers partagés
+;  et les dossiers partagés Resources\ et Languages\)
 Source: "MCEMonitor Ver 1.0\ProgramFiles\*"; \
     DestDir: "{autopf}\MCEMonitor"; \
-    Flags: ignoreversion recursesubdirs createallsubdirs
+    Excludes: "MCEMonitorClient.*,MCEMonitor.Languages.*,Microsoft.Toolkit.Uwp.Notifications.dll,Microsoft.Windows.SDK.NET.dll,WinRT.Runtime.dll,Resources\*,Languages\*"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs; \
+    Components: core
 
 ; --- ProgramData : .config → ne pas remplacer ---
 Source: "MCEMonitor Ver 1.0\ProgramData\*.config"; \
     DestDir: "{commonappdata}\MCEMonitor"; \
-    Flags: ignoreversion onlyifdoesntexist
+    Flags: ignoreversion onlyifdoesntexist; \
+    Components: core
 
 ; --- Fichiers destinés à ProgramData (sauf .config) ---
+; (sauf aussi les binaires du MCEMonitor Client et les fichiers partagés)
 Source: "MCEMonitor Ver 1.0\ProgramData\*"; \
     DestDir: "{commonappdata}\MCEMonitor"; \
-    Excludes: "*.config"; \
-    Flags: ignoreversion recursesubdirs createallsubdirs
+    Excludes: "*.config,MCEMonitorClient.*,MCEMonitor.Languages.*"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs; \
+    Components: core
+
+; --- MCEMonitor Client : binaires dans Program Files ---
+Source: "MCEMonitor Ver 1.0\ProgramFiles\MCEMonitorClient.*"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: client
+
+; --- MCEMonitor Client : dépendances Toast du Tray ---
+Source: "MCEMonitor Ver 1.0\ProgramFiles\Microsoft.Toolkit.Uwp.Notifications.dll"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: client
+
+Source: "MCEMonitor Ver 1.0\ProgramFiles\Microsoft.Windows.SDK.NET.dll"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: client
+
+Source: "MCEMonitor Ver 1.0\ProgramFiles\WinRT.Runtime.dll"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: client
+
+; --- MCEMonitor Client : binaires du Service dans ProgramData ---
+Source: "MCEMonitor Ver 1.0\ProgramData\MCEMonitorClient.*"; \
+    DestDir: "{commonappdata}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: client
+
+; --- Fichiers partagés entre MCEMonitor (core) et MCEMonitor Client ---
+; (installés si core OU client est sélectionné, jamais dupliqués)
+Source: "MCEMonitor Ver 1.0\ProgramFiles\MCEMonitor.Languages.dll"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: core client
+
+Source: "MCEMonitor Ver 1.0\ProgramFiles\MCEMonitor.Languages.pdb"; \
+    DestDir: "{autopf}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: core client
+
+Source: "MCEMonitor Ver 1.0\ProgramData\MCEMonitor.Languages.dll"; \
+    DestDir: "{commonappdata}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: core client
+
+Source: "MCEMonitor Ver 1.0\ProgramData\MCEMonitor.Languages.pdb"; \
+    DestDir: "{commonappdata}\MCEMonitor"; \
+    Flags: ignoreversion; \
+    Components: core client
+
+; --- Dossiers partagés (icônes, sons, traductions) ---
+Source: "MCEMonitor Ver 1.0\ProgramFiles\Resources\*"; \
+    DestDir: "{autopf}\MCEMonitor\Resources"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs; \
+    Components: core client
+
+Source: "MCEMonitor Ver 1.0\ProgramFiles\Languages\*"; \
+    DestDir: "{autopf}\MCEMonitor\Languages"; \
+    Flags: ignoreversion recursesubdirs createallsubdirs; \
+    Components: core client
 
 [Icons]
-Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"
-Name: "{commondesktop}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; WorkingDir: "{app}"
+Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; Components: core
+Name: "{commondesktop}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; WorkingDir: "{app}"; Components: core
+Name: "{group}\MCEMonitor Client - Configuration"; Filename: "{app}\MCEMonitorClient.Config.exe"; Components: client
 
 [Run]
 ; --- Installation silencieuse du pilote PawnIO (si absent) ---
@@ -77,11 +153,15 @@ Filename: "{tmp}\PawnIO_setup.exe"; \
 ; Lancement AVEC UAC
 Filename: "{app}\MCEMonitor.exe"; \
     Description: "{cm:LaunchProgram,MCEMonitor}"; \
-    Flags: shellexec postinstall skipifsilent
+    Flags: shellexec postinstall skipifsilent; \
+    Components: core
 
 [UninstallRun]
 ; --- Arrêt des processus ---
 Filename: "taskkill.exe"; Parameters: "/IM MCEMonitor.exe /F";           Flags: runhidden; RunOnceId: "KillMCEM"
+Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Service.exe /F"; Flags: runhidden; RunOnceId: "KillClientSvc"
+Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillClientTray"
+Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Config.exe /F";  Flags: runhidden; RunOnceId: "KillClientCfg"
 Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Service.exe /F"; Flags: runhidden; RunOnceId: "KillMediaSvc"
 Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Service.exe /F";   Flags: runhidden; RunOnceId: "KillRomSvc"
 Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillMediaTray"
@@ -114,6 +194,10 @@ Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_MediaService"" /
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomService"" /F";          Flags: runhidden; RunOnceId: "DelOldRomServiceTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_RomTray"" /F";             Flags: runhidden; RunOnceId: "DelOldRomTrayTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor"" /F";         Flags: runhidden; RunOnceId: "DelOldStopTask"
+
+; --- Suppression des tâches planifiées MCEMonitor Client ---
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitorClient_Service"" /F";       Flags: runhidden; RunOnceId: "DelClientSvcTask"
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitorClient_Tray"" /F";          Flags: runhidden; RunOnceId: "DelClientTrayTask"
 
 [CustomMessages]
 fr.RAMError=MCEMonitor nécessite au moins 8 Go de RAM.%nRAM détectée : %1 Go.%n%nL'installation va s'arrêter.
@@ -172,6 +256,10 @@ begin
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Shutdown" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Boot" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Shutdown" /F >nul 2>&1');
+      // --- MCEMonitor Client ---
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitorClient_Service" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitorClient_Tray" /F >nul 2>&1');
+      // --- Anciens noms (migration) ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Tray" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Wake" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Service" /F >nul 2>&1');
@@ -183,6 +271,9 @@ begin
 
     // ─── Kill des process (TOUJOURS, obligatoire pour remplacer les fichiers) ───
     BatchContent.Add('taskkill /F /IM MCEMonitor.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MCEMonitorClient.Service.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MCEMonitorClient.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM MCEMonitorClient.Config.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MediaMonitor.Service.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MediaMonitor.Tray.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MediaMonitor.UI.exe /T >nul 2>&1');
