@@ -113,5 +113,42 @@ namespace MCEMonitorClient.Config.Services
                 return "ERREUR : " + ex.Message;
             }
         }
+        
+        public static string CreateClientTrayTask()
+        {
+            string exePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "MCEMonitor",
+                "MCEMonitorClient.Tray.exe");
+
+            if (!File.Exists(exePath))
+            {
+                // Fallback x86
+                exePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    "MCEMonitor",
+                    "MCEMonitorClient.Tray.exe");
+            }
+
+            if (!File.Exists(exePath))
+                return "ERREUR : MCEMonitorClient.Tray.exe introuvable.";
+
+            // ONLOGON : au démarrage de session (utilisateur normal, pas SYSTEM)
+            return RunAdmin(
+                "schtasks /Create /TN \"MCEMonitorClient_Tray\" " +
+                "/SC ONLOGON " +
+                $"/TR \"\\\"{exePath}\\\"\" /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteClientTrayTask()
+        {
+            return RunAdmin("schtasks /Delete /TN \"MCEMonitorClient_Tray\" /F");
+        }
+
+        public static bool ClientTrayTaskExists()
+        {
+            return QueryTask("MCEMonitorClient_Tray");
+        }        
     }
 }

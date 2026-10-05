@@ -45,6 +45,9 @@ namespace MCEMonitorClient.Config
             RefreshGrid();
             LoadOptions();
 
+            // ? Vérifie/crée la tâche Tray au démarrage (comme MCEMonitor)
+            EnsureTrayTaskExists();
+
             // --- Polling d'état des serveurs ---
             _ = RefreshAllStatesAsync();
 
@@ -58,6 +61,24 @@ namespace MCEMonitorClient.Config
             _serviceWatchdog.Start();
 
             UpdateServiceStatus();
+        }
+
+        // ---------------------------------------------
+        //  Création automatique de la tâche Tray
+        // ---------------------------------------------
+        private void EnsureTrayTaskExists()
+        {
+            try
+            {
+                if (ServiceInstaller.TrayTaskExists())
+                    return;
+
+                ServiceInstaller.CreateTrayTask();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("EnsureTrayTaskExists : " + ex.Message);
+            }
         }
 
         // ---------------------------------------------
@@ -163,7 +184,7 @@ namespace MCEMonitorClient.Config
             };
             Controls.Add(lblService);
 
-            // Bouton 1 : Automatique ON/OFF (tâche planifiée)
+            // Bouton 1 : Automatique ON/OFF (tâche planifiée Service)
             _btnAutoService = CreateButton("Automatique OFF", 20, 400, 220,
                 Color.FromArgb(220, 60, 60), Color.White, true);
             _btnAutoService.Click += (s, e) => ToggleAutomaticTask();
@@ -178,7 +199,7 @@ namespace MCEMonitorClient.Config
             // Label d'état
             _lblServiceStatus = new Label
             {
-                Text = "? Service arrêté",
+                Text = "Service arrêté",
                 Location = new Point(340, 407),
                 Width = 500,
                 ForeColor = Theme.TextDim
@@ -465,7 +486,7 @@ namespace MCEMonitorClient.Config
         }
 
         // ---------------------------------------------
-        //  Test de CONNEXION aux serveurs (pas de défaillances)
+        //  Test de CONNEXION aux serveurs
         // ---------------------------------------------
         private async Task RefreshAllStatesAsync()
         {
@@ -489,7 +510,6 @@ namespace MCEMonitorClient.Config
 
                     using var resp = await http.GetAsync(server.ApiSummaryUrl);
 
-                    // ? Test de connexion uniquement : OK si le serveur répond (200)
                     _serverStates[server.Id] = resp.IsSuccessStatusCode ? "ok" : "offline";
                 }
                 catch
@@ -514,34 +534,47 @@ namespace MCEMonitorClient.Config
 
         private void UpdateServiceStatus()
         {
-            bool running = IsServiceRunning();
+            bool serviceRunning = IsServiceRunning();
+            bool trayRunning = IsTrayRunning();
             bool taskExists = TaskSchedulerHelper.ClientServiceTaskExists();
+            bool trayTaskExists = ServiceInstaller.TrayTaskExists();
 
-            // --- Bouton 1 : Automatique ON/OFF (tâche planifiée) ---
+            // --- Bouton 1 : Automatique ON/OFF (tâche Service) ---
             _btnAutoService.Text = taskExists ? "Automatique ON" : "Automatique OFF";
             _btnAutoService.BackColor = taskExists
                 ? Color.FromArgb(76, 175, 80)
                 : Color.FromArgb(220, 60, 60);
 
-            // --- Bouton 2 : ON/OFF (service en cours) ---
-            _btnServiceOnOff.Text = running ? "ON" : "OFF";
-            _btnServiceOnOff.BackColor = running
+            // --- Bouton 2 : ON/OFF (service + tray en cours) ---
+            // ON = Service ET Tray tournent
+            // OFF = au moins un des deux est arrêté
+            bool allRunning = serviceRunning && trayRunning;
+
+            _btnServiceOnOff.Text = allRunning ? "ON" : "OFF";
+            _btnServiceOnOff.BackColor = allRunning
                 ? Color.FromArgb(76, 175, 80)
                 : Color.FromArgb(220, 60, 60);
 
             // --- Label d'état ---
-            string status = running ? "Service en cours" : "Service arrêté";
+            var parts = new List<string>();
 
-            if (taskExists)
-                status += " — Auto au démarrage";
+            parts.Add(serviceRunning ? "Service ?" : "Service ?");
+            parts.Add(trayRunning ? "Tray ?" : "Tray ?");
+
+            string status = string.Join("  |  ", parts);
+
+            if (taskExists && trayTaskExists)
+                status += "  —  Auto (Service + Tray)";
+            else if (taskExists)
+                status += "  —  Auto Service uniquement";
             else
-                status += " — Pas de démarrage auto";
+                status += "  —  Pas de démarrage auto";
 
             _lblServiceStatus.Text = status;
-            _lblServiceStatus.ForeColor = running ? Theme.Ok : Theme.TextDim;
+            _lblServiceStatus.ForeColor = allRunning ? Theme.Ok : Theme.TextDim;
         }
 
-        // --- Bouton 1 : Automatique (tâche planifiée) ---
+        // --- Bouton 1 : Automatique (tâche Service) ---
         private void ToggleAutomaticTask()
         {
             try
@@ -559,6 +592,7 @@ namespace MCEMonitorClient.Config
                         return;
 
                     TaskSchedulerHelper.DeleteClientServiceTask();
+
                     MessageBox.Show("Démarrage automatique désactivé.", "OK",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
@@ -576,16 +610,9 @@ namespace MCEMonitorClient.Config
 
                     TaskSchedulerHelper.CreateClientServiceTask();
 
-                    // Vérification silencieuse
-                    if (!TaskSchedulerHelper.ClientServiceTaskExists())
-                    {
-                        MessageBox.Show("Erreur : la tâche n'a pas pu être créée.",
-                            "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        return;
-                    }
-
                     MessageBox.Show("Démarrage automatique activé.", "OK",
-                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
                 }
 
                 UpdateServiceStatus();
@@ -600,9 +627,15 @@ namespace MCEMonitorClient.Config
         private void ToggleServiceManual()
         {
             if (IsServiceRunning())
+            {
                 StopService();
+                StopTray();      // ? Arrête aussi le Tray
+            }
             else
+            {
                 StartService();
+                StartTray();     // ? Démarre aussi le Tray
+            }
         }
 
         private void StartService()
@@ -631,14 +664,13 @@ namespace MCEMonitorClient.Config
                 });
 
                 System.Threading.Thread.Sleep(1200);
-                UpdateServiceStatus();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Erreur au démarrage du service : " + ex.Message);
             }
         }
-
+        
         private void StopService()
         {
             try
@@ -649,12 +681,84 @@ namespace MCEMonitorClient.Config
                 }
 
                 System.Threading.Thread.Sleep(500);
-                UpdateServiceStatus();
             }
             catch (Exception ex)
             {
                 MessageBox.Show("Erreur à l'arrêt du service : " + ex.Message);
             }
         }
+        
+        // ---------------------------------------------
+        //  TRAY : démarrage / arrêt manuel
+        // ---------------------------------------------
+        private bool IsTrayRunning()
+        {
+            return System.Diagnostics.Process.GetProcessesByName("MCEMonitorClient.Tray").Length > 0;
+        }
+
+        private void StartTray()
+        {
+            try
+            {
+                if (IsTrayRunning())
+                    return;   // Déjà lancé
+
+                string trayPath = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "MCEMonitorClient.Tray.exe");
+
+                if (!System.IO.File.Exists(trayPath))
+                {
+                    // Fallback x86
+                    trayPath = System.IO.Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "MCEMonitorClient.Tray.exe");
+                }
+
+                if (!System.IO.File.Exists(trayPath))
+                {
+                    MessageBox.Show(
+                        $"Impossible de trouver :\n{trayPath}",
+                        "Erreur",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Error);
+                    return;
+                }
+
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = trayPath,
+                    UseShellExecute = true
+                });
+
+                System.Threading.Thread.Sleep(800);
+
+                UpdateServiceStatus();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur au démarrage du Tray : " + ex.Message);
+            }
+        }
+
+        private void StopTray()
+        {
+            try
+            {
+                foreach (var p in System.Diagnostics.Process.GetProcessesByName("MCEMonitorClient.Tray"))
+                {
+                    try { p.Kill(); } catch { }
+                }
+
+                System.Threading.Thread.Sleep(500);
+                UpdateServiceStatus();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur à l'arrêt du Tray : " + ex.Message);
+            }
+        }        
     }
 }
