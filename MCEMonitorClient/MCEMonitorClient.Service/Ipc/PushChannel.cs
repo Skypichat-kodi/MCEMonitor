@@ -120,8 +120,32 @@ namespace MCEMonitorClient.Service.Ipc
                 previousStatus = previous?.Status ?? "unknown",
                 problemCount = result.ProblemCount,
                 firstProblem = result.FirstProblem,
+                // ? NOUVEAU : liste complète des problèmes
+                problems = result.Problems,
                 timestamp = result.Timestamp
             });
         }
+        
+        /// <summary>
+        /// Envoie un événement sur un média (démarré ou terminé).
+        /// </summary>
+        public static void PushMediaEvent(PollResult server, MediaItem media, string eventType)
+        {
+            Broadcast(new
+            {
+                type = "media",
+                eventType = eventType,        // "started" ou "stopped"
+                serverId = server.ServerId,
+                serverName = server.ServerName,
+                serviceType = server.ServiceType,
+                baseUrl = server.BaseUrl,
+                client = media.Client,
+                mediaType = media.Type,
+                title = media.Title,
+                saison = media.Saison,
+                episode = media.Episode,
+                timestamp = DateTime.Now
+            });
+        }        
     }
 }

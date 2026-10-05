@@ -21,6 +21,7 @@ namespace MCEMonitorClient.Tray.Ipc
         /// Event déclenché quand le Service envoie une alerte.
         /// </summary>
         public event Action<PushAlert>? OnAlert;
+        public event Action<PushMedia>? OnMedia;
 
         public void Start()
         {
@@ -72,13 +73,41 @@ namespace MCEMonitorClient.Tray.Ipc
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
 
+                        CoreLog.Write($"PushListener : message reçu = {line.Substring(0, Math.Min(150, line.Length))}...");
+
                         try
                         {
-                            var alert = JsonSerializer.Deserialize<PushAlert>(line,
-                                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+                            using var doc = JsonDocument.Parse(line);
+                            var root = doc.RootElement;
 
-                            if (alert != null)
-                                OnAlert?.Invoke(alert);
+                            if (root.TryGetProperty("type", out var typeProp))
+                            {
+                                string evtType = typeProp.GetString() ?? "";
+                                CoreLog.Write($"PushListener : type = '{evtType}'");
+
+                                if (evtType == "alert")
+                                {
+                                    var alert = JsonSerializer.Deserialize<PushAlert>(line,
+                                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                                    if (alert != null)
+                                    {
+                                        CoreLog.Write($"PushListener : ? OnAlert ({alert.ServerName} = {alert.Status})");
+                                        OnAlert?.Invoke(alert);
+                                    }
+                                }
+                                else if (evtType == "media")
+                                {
+                                    var media = JsonSerializer.Deserialize<PushMedia>(line,
+                                        new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                                    if (media != null)
+                                    {
+                                        CoreLog.Write($"PushListener : ? OnMedia ({media.ServerName} = {media.EventType} '{media.Title}')");
+                                        OnMedia?.Invoke(media);
+                                    }
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -114,6 +143,33 @@ namespace MCEMonitorClient.Tray.Ipc
         public string PreviousStatus { get; set; } = "unknown";
         public int ProblemCount { get; set; }
         public string FirstProblem { get; set; } = "";
+
+        // ? NOUVEAU : liste complète
+        public System.Collections.Generic.List<ProblemItem> Problems { get; set; } = new();
+
         public DateTime Timestamp { get; set; }
     }
+
+    public class ProblemItem
+    {
+        public string Severity { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+    
+    public class PushMedia
+    {
+        public string Type { get; set; } = "";
+        public string EventType { get; set; } = "";    // "started" / "stopped"
+        public string ServerId { get; set; } = "";
+        public string ServerName { get; set; } = "";
+        public string ServiceType { get; set; } = "";
+        public string BaseUrl { get; set; } = "";
+        public string Client { get; set; } = "";
+        public string MediaType { get; set; } = "";
+        public string Title { get; set; } = "";
+        public int Saison { get; set; }
+        public int Episode { get; set; }
+        public DateTime Timestamp { get; set; }
+    }    
 }

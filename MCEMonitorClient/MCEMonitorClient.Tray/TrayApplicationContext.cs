@@ -33,10 +33,16 @@ namespace MCEMonitorClient.Tray
         private System.Media.SoundPlayer? _alarmPlayer;
         private System.Media.SoundPlayer? _warningPlayer;
 
+        // ---------------------------------------------
+        //  Constructeur (UN SEUL)
+        // ---------------------------------------------
         public TrayApplicationContext()
         {
             CoreLog.Clear();
             CoreLog.Write("=== Tray démarré ===");
+
+            // ? Enregistre l'app pour les notifications modernes
+            ToastHelper.Initialize();
 
             LoadIcons();
             LoadSounds();
@@ -52,11 +58,9 @@ namespace MCEMonitorClient.Tray
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
 
-            // Icône de l'exe (à la racine du dossier de sortie)
             string ico = Path.Combine(exeDir, "MCEMonitorClient.ico");
             var defaultIcon = File.Exists(ico) ? new Icon(ico) : SystemIcons.Application;
 
-            // Icônes d'état (dans Resources\Icons)
             string iconsDir = Path.Combine(exeDir, "Resources", "Icons");
 
             _iconOk       = LoadIconFromPng(Path.Combine(iconsDir, "dot-green.png"))  ?? defaultIcon;
@@ -82,8 +86,6 @@ namespace MCEMonitorClient.Tray
         private void LoadSounds()
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-            // Sons (dans Resources\Sounds)
             string soundsDir = Path.Combine(exeDir, "Resources", "Sounds");
 
             string alarmPath = Path.Combine(soundsDir, "alarm.wav");
@@ -126,22 +128,18 @@ namespace MCEMonitorClient.Tray
         private void InitializePushListener()
         {
             _pushListener.OnAlert += OnAlertReceived;
+            _pushListener.OnMedia += OnMediaReceived;
             _pushListener.Start();
         }
 
         private void OnAlertReceived(PushAlert alert)
         {
-            // Met à jour l'icône selon le statut
             UpdateIconFromAlert(alert);
-
-            // Notification Windows
             ShowNotification(alert);
         }
 
         private void UpdateIconFromAlert(PushAlert alert)
         {
-            // ? Icône : on ne change que si l'état global a évolué
-            // Pour simplifier, on met l'icône selon le statut du serveur concerné
             var icon = alert.Status switch
             {
                 "critical" => _iconCritical,
@@ -162,84 +160,77 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Notifications
+        //  Notifications (Toast)
         // ---------------------------------------------
         private void ShowNotification(PushAlert alert)
         {
             try
             {
-                string title, message;
-                ToolTipIcon icon;
+                string title;
+                string message;
+                bool isCritical = false;
 
-                switch (alert.Status)
+                // --- Cas 1 : retour à la normale ---
+                if (alert.Status == "ok" && alert.PreviousStatus != "ok")
                 {
-                    case "critical":
-                        title = $"{alert.ServerName} - CRITIQUE";
-                        message = string.IsNullOrEmpty(alert.FirstProblem)
-                            ? "Problème critique détecté"
-                            : alert.FirstProblem;
-                        icon = ToolTipIcon.Error;
-                        PlayAlarm();
-                        break;
+                    title = $"{alert.ServerName} - Retour à la normale";
+                    message = "Le serveur est de nouveau joignable";
+                }
+                // --- Cas 2 : serveur hors ligne ---
+                else if (alert.Status == "offline")
+                {
+                    title = $"{alert.ServerName} - Hors ligne";
+                    message = "Le serveur ne répond plus";
+                    isCritical = true;
+                }
+                // --- Cas 3 : problèmes détectés ---
+                else if (alert.Problems != null && alert.Problems.Count > 0)
+                {
+                    int count = alert.Problems.Count;
 
-                    case "warning":
-                        title = $"{alert.ServerName} - Alerte";
-                        message = string.IsNullOrEmpty(alert.FirstProblem)
-                            ? "Avertissement détecté"
-                            : alert.FirstProblem;
-                        icon = ToolTipIcon.Warning;
-                        break;
+                    title = count == 1
+                        ? $"{alert.ServerName} - 1 problème détecté"
+                        : $"{alert.ServerName} - {count} problèmes détectés";
 
-                    case "offline":
-                        title = $"{alert.ServerName} - Hors ligne";
-                        message = "Le serveur ne répond plus";
-                        icon = ToolTipIcon.Error;
-                        PlayAlarm();
-                        break;
+                    var lines = new List<string>();
+                    int maxShown = 3;
 
-                    case "ok" when alert.PreviousStatus != "ok":
-                        title = $"{alert.ServerName} - Retour à la normale";
-                        message = "Le serveur est de nouveau joignable";
-                        icon = ToolTipIcon.Info;
-                        break;
+                    for (int i = 0; i < Math.Min(count, maxShown); i++)
+                    {
+                        var p = alert.Problems[i];
 
-                    default:
-                        return;   // Pas de notif si on reste en "ok"
+                        // ? Marqueur ASCII (compatible Toast)
+                        string prefix = p.Severity == "critical" ? "[CRIT]" : "[WARN]";
+                        lines.Add($"{prefix} {p.Message}");
+                    }
+
+                    if (count > maxShown)
+                        lines.Add($"... et {count - maxShown} autre(s)");
+
+                    message = string.Join("\n", lines);
+
+                    if (alert.Status == "critical")
+                        isCritical = true;
+                }
+                // --- Cas 4 : changement générique ---
+                else
+                {
+                    title = $"{alert.ServerName} - Changement d'état";
+                    message = string.IsNullOrEmpty(alert.FirstProblem)
+                        ? $"État : {alert.Status}"
+                        : alert.FirstProblem;
                 }
 
-                _trayIcon.BalloonTipTitle = title;
-                _trayIcon.BalloonTipText = message;
-                _trayIcon.BalloonTipIcon = icon;
+                // ? Envoie la notification Toast
+                ToastHelper.Show(title, message, alert.BaseUrl);
 
-                // Clic sur la notif ? ouvrir l'URL
-                _trayIcon.BalloonTipClicked -= BalloonClickedHandler;
-                _trayIcon.Tag = alert.BaseUrl;   // stocke l'URL pour le handler
-                _trayIcon.BalloonTipClicked += BalloonClickedHandler;
-
-                _trayIcon.ShowBalloonTip(10000);
+                if (isCritical)
+                    PlayAlarm();
             }
             catch (Exception ex)
             {
                 CoreLog.Write("ShowNotification ERROR : " + ex.Message);
             }
-        }
-
-        private void BalloonClickedHandler(object? sender, EventArgs e)
-        {
-            try
-            {
-                string? url = _trayIcon.Tag as string;
-
-                if (!string.IsNullOrWhiteSpace(url))
-                {
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = url,
-                        UseShellExecute = true
-                    });
-                }
-            }
-            catch { }
         }
 
         private void PlayAlarm()
@@ -278,7 +269,6 @@ namespace MCEMonitorClient.Tray
 
                 _globalState = state.GlobalState;
 
-                // Met à jour l'icône selon l'état global
                 var icon = state.GlobalState switch
                 {
                     "critical" => _iconCritical,
@@ -367,6 +357,53 @@ namespace MCEMonitorClient.Tray
             CoreLog.Write("Tray quitté");
 
             Application.Exit();
+        }
+
+        // ---------------------------------------------
+        //  Notifications média
+        // ---------------------------------------------
+        private void OnMediaReceived(PushMedia media)
+        {
+            CoreLog.Write($"OnMediaReceived : {media.EventType} '{media.Title}' sur {media.ServerName}");
+
+            try
+            {
+                if (media.EventType == "started")
+                {
+                    string title = $"{media.ServerName} - Lecture en cours";
+
+                    string info = string.IsNullOrEmpty(media.Title)
+                        ? media.MediaType
+                        : media.Title;
+
+                    if (media.Saison > 0 || media.Episode > 0)
+                        info += $"  ({media.Saison:00}x{media.Episode:00})";
+
+                    if (!string.IsNullOrEmpty(media.Client))
+                        info += $"\nClient : {media.Client}";
+
+                    // ? Notification Toast
+                    ToastHelper.Show(title, info, media.BaseUrl);
+                }
+                else if (media.EventType == "stopped")
+                {
+                    string title = $"{media.ServerName} - Lecture terminée";
+
+                    string info = string.IsNullOrEmpty(media.Title)
+                        ? media.MediaType
+                        : media.Title;
+
+                    if (media.Saison > 0 || media.Episode > 0)
+                        info += $"  ({media.Saison:00}x{media.Episode:00})";
+
+                    // ? Notification Toast
+                    ToastHelper.Show(title, info, media.BaseUrl);
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("OnMediaReceived ERROR : " + ex.Message);
+            }
         }
     }
 }

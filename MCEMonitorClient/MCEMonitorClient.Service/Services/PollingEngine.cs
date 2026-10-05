@@ -170,18 +170,56 @@ namespace MCEMonitorClient.Service.Services
                 if (root.TryGetProperty("worstSeverity", out var sevProp))
                     result.WorstSeverity = sevProp.GetString() ?? "ok";
 
+                // ? Parser les problèmes
                 if (root.TryGetProperty("problems", out var problemsProp)
                     && problemsProp.ValueKind == JsonValueKind.Array)
                 {
-                    int count = 0;
                     foreach (var p in problemsProp.EnumerateArray())
                     {
-                        count++;
+                        var item = new ProblemItem();
 
-                        if (count == 1 && p.TryGetProperty("message", out var msgProp))
-                            result.FirstProblem = msgProp.GetString() ?? "";
+                        if (p.TryGetProperty("severity", out var probSev))
+                            item.Severity = probSev.GetString() ?? "";
+
+                        if (p.TryGetProperty("category", out var probCat))
+                            item.Category = probCat.GetString() ?? "";
+
+                        if (p.TryGetProperty("message", out var probMsg))
+                            item.Message = probMsg.GetString() ?? "";
+
+                        result.Problems.Add(item);
                     }
-                    result.ProblemCount = count;
+
+                    result.ProblemCount = result.Problems.Count;
+
+                    if (result.Problems.Count > 0)
+                        result.FirstProblem = result.Problems[0].Message;
+                }
+                // ? Parser les médias en cours (pour MediaMonitor)
+                if (root.TryGetProperty("media", out var mediaProp)
+                    && mediaProp.ValueKind == JsonValueKind.Array)
+                {
+                    foreach (var m in mediaProp.EnumerateArray())
+                    {
+                        var item = new MediaItem();
+
+                        if (m.TryGetProperty("client", out var cProp))
+                            item.Client = cProp.GetString() ?? "";
+
+                        if (m.TryGetProperty("type", out var tProp))
+                            item.Type = tProp.GetString() ?? "";
+
+                        if (m.TryGetProperty("title", out var tiProp))
+                            item.Title = tiProp.GetString() ?? "";
+
+                        if (m.TryGetProperty("saison", out var saisonProp) && saisonProp.TryGetInt32(out int saisonVal))
+                            item.Saison = saisonVal;
+
+                        if (m.TryGetProperty("episode", out var episodeProp) && episodeProp.TryGetInt32(out int episodeVal))
+                            item.Episode = episodeVal;
+
+                        result.Media.Add(item);
+                    }
                 }
             }
             catch
@@ -207,17 +245,48 @@ namespace MCEMonitorClient.Service.Services
                 _lastResults[result.ServerId] = result;
             }
 
-            // Met à jour l'état global
             UpdateGlobalState();
 
-            // Log systématique (utile pour debug)
             CoreLog.Write($"[POLL] {result.ServerName} : {result.Status}");
 
-            // Si changement d'état ? notifier
+            // ? Changement d'état (problèmes)
             if (stateChanged && previous != null && config.NotifyOnStateChange)
             {
                 OnStateChanged?.Invoke(result, previous);
                 PushChannel.PushAlert(result, previous);
+            }
+
+            // ? Changement de médias (pour MediaMonitor)
+            if (result.ServiceType == "MediaMonitor" && config.NotifyOnStateChange)
+            {
+                DetectMediaChanges(result, previous);
+            }
+        }
+
+        private void DetectMediaChanges(PollResult current, PollResult? previous)
+        {
+            var prevKeys = previous?.Media.Select(m => m.Key).ToHashSet() ?? new HashSet<string>();
+            var currKeys = current.Media.Select(m => m.Key).ToHashSet();
+
+            // Nouveaux médias
+            foreach (var media in current.Media)
+            {
+                if (!prevKeys.Contains(media.Key))
+                {
+                    PushChannel.PushMediaEvent(current, media, "started");
+                }
+            }
+
+            // Médias terminés
+            if (previous != null)
+            {
+                foreach (var media in previous.Media)
+                {
+                    if (!currKeys.Contains(media.Key))
+                    {
+                        PushChannel.PushMediaEvent(current, media, "stopped");
+                    }
+                }
             }
         }
 
