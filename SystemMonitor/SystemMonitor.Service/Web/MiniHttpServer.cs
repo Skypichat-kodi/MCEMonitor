@@ -120,6 +120,35 @@ namespace SystemMonitor.Service.Web
                 {
                     SendHtml(ctx, "pong");
                 }
+                else if (path == "/api/summary")
+                {
+                    var summary = new SystemMonitor.Service.Api.ApiSummary
+                    {
+                        service = "SystemMonitor",
+                        machine = Environment.MachineName,
+                        status = _engine.WorstSeverity,
+                        worstSeverity = _engine.WorstSeverity
+                    };
+
+                    foreach (var p in _engine.GetProblems(20))
+                    {
+                        summary.problems.Add(new SystemMonitor.Service.Api.ApiProblem
+                        {
+                            severity = p.Severity,
+                            category = p.Category,
+                            message = p.Message
+                        });
+                    }
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(summary,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                            WriteIndented = true
+                        });
+
+                    SendJson(ctx, json);
+                }                                
                 else if (path == "/peers")
                 {
                     var peers = PeerStatusService.CheckAllAsync("SystemMonitor")

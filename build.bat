@@ -73,22 +73,25 @@ echo          PUBLISH DES PROJETS
 echo ============================================
 
 REM === ProgramFiles ===
-call :publish "%ROOT%\MCEMonitor"                            "%DEST_PROGRAM%"
-call :publish "%ROOT%\MediaMonitor\MediaMonitor.Core"        "%DEST_PROGRAM%"
-call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"          "%DEST_PROGRAM%"
-call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"        "%DEST_PROGRAM%"
-call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"            "%DEST_PROGRAM%"
-call :publish "%ROOT%\RomMonitor\RomMonitor.UI"              "%DEST_PROGRAM%"
-call :publish "%ROOT%\SystemMonitor\SystemMonitor.Tray"      "%DEST_PROGRAM%"
-call :publish "%ROOT%\SystemMonitor\SystemMonitor.UI"        "%DEST_PROGRAM%"
+call :publish "%ROOT%\MCEMonitor"                               "%DEST_PROGRAM%"
+call :publish "%ROOT%\MediaMonitor\MediaMonitor.Core"           "%DEST_PROGRAM%"
+call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"             "%DEST_PROGRAM%"
+call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"           "%DEST_PROGRAM%"
+call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"               "%DEST_PROGRAM%"
+call :publish "%ROOT%\RomMonitor\RomMonitor.UI"                 "%DEST_PROGRAM%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.Tray"         "%DEST_PROGRAM%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.UI"           "%DEST_PROGRAM%"
+call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Config" "%DEST_PROGRAM%"
+call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Tray"   "%DEST_PROGRAM%"
 
 REM === ProgramData ===
-call :publish "%ROOT%\StopMonitor"                           "%DEST_APPDATA%"
-call :publish "%ROOT%\WakeMonitor"                           "%DEST_APPDATA%"
-call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"     "%DEST_APPDATA%"
-call :publish "%ROOT%\MCEMonitor.Languages"                  "%DEST_APPDATA%"
-call :publish "%ROOT%\RomMonitor\RomMonitor.Service"         "%DEST_APPDATA%"
-call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"   "%DEST_APPDATA%"
+call :publish "%ROOT%\StopMonitor"                               "%DEST_APPDATA%"
+call :publish "%ROOT%\WakeMonitor"                               "%DEST_APPDATA%"
+call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"         "%DEST_APPDATA%"
+call :publish "%ROOT%\MCEMonitor.Languages"                      "%DEST_APPDATA%"
+call :publish "%ROOT%\RomMonitor\RomMonitor.Service"             "%DEST_APPDATA%"
+call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"       "%DEST_APPDATA%"
+call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Service" "%DEST_APPDATA%"
 
 REM === Tools ===
 call :publish_single "%ROOT%\Autotrad"                       "%DEST_TOOLS%"

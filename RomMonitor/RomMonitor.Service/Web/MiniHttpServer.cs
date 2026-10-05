@@ -121,11 +121,76 @@ namespace RomMonitor.Service.Web
                     string publicHost = ctx.Request.Url?.Host ?? "localhost";
                     string html = WebHandler.BuildRomPage(_engine, _settings, publicHost);
                     SendHtml(ctx, html);
-}
+                }
+                
                 else if (path == "/ping")
                 {
                     SendHtml(ctx, "pong");
                 }
+                else if (path == "/api/summary")
+                {
+                    var summary = new RomMonitor.Service.Api.ApiSummary
+                    {
+                        service = "RomMonitor",
+                        machine = Environment.MachineName,
+                        status = _engine.WorstSeverity,
+                        worstSeverity = _engine.WorstSeverity
+                    };
+
+                    // SMART Critical / Warning
+                    foreach (var s in _engine.LastSmart)
+                    {
+                        if (!s.Available) continue;
+                        if (s.Status != "Critical" && s.Status != "Warning") continue;
+
+                        summary.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                        {
+                            severity = s.Status == "Critical" ? "critical" : "warning",
+                            category = "Smart",
+                            message = $"{s.Model} : {s.StatusReason}"
+                        });
+                    }
+
+                    // Espace disque
+                    var settings = RomMonitorSettings.Load();
+
+                    foreach (var d in _engine.LastDisks)
+                    {
+                        bool critical = d.FreePercent < settings.DiskSpaceCriticalPercent
+                                     || d.FreeGo < settings.DiskSpaceCriticalGo;
+
+                        bool warn = d.FreePercent < settings.DiskSpaceWarnPercent
+                                 || d.FreeGo < settings.DiskSpaceWarnGo;
+
+                        if (critical)
+                        {
+                            summary.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                            {
+                                severity = "critical",
+                                category = "DiskSpace",
+                                message = $"Disque {d.Name} : {d.FreePercent:F1}% libre ({d.FreeGo:F1} Go)"
+                            });
+                        }
+                        else if (warn)
+                        {
+                            summary.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                            {
+                                severity = "warning",
+                                category = "DiskSpace",
+                                message = $"Disque {d.Name} : espace faible ({d.FreePercent:F1}%)"
+                            });
+                        }
+                    }
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(summary,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                            WriteIndented = true
+                        });
+
+                    SendJson(ctx, json);
+                }                
                 else if (path == "/clear-history")
                 {
                     try

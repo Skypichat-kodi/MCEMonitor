@@ -72,12 +72,13 @@ namespace MediaMonitor.Service
             _router.Map("/peers",    ctx => _apiHandler.Peers(ctx));
 
             // API JSON
-            _router.Map("/history",   ctx => _apiHandler.History(ctx));
-            _router.Map("/live",      ctx => _apiHandler.Live(ctx));
-            _router.Map("/status",    ctx => _apiHandler.Status(ctx));
-            _router.Map("/lastimage", ctx => _apiHandler.LastImage(ctx));
-            _router.Map("/report",    ctx => _apiHandler.Report(ctx));
-            _router.Map("/clear",     ctx => _apiHandler.Clear(ctx));
+            _router.Map("/history",     ctx => _apiHandler.History(ctx));
+            _router.Map("/live",        ctx => _apiHandler.Live(ctx));
+            _router.Map("/status",      ctx => _apiHandler.Status(ctx));
+            _router.Map("/lastimage",   ctx => _apiHandler.LastImage(ctx));
+            _router.Map("/report",      ctx => _apiHandler.Report(ctx));
+            _router.Map("/clear",       ctx => _apiHandler.Clear(ctx));
+            _router.Map("/api/summary", ctx =>  ApiSummary(ctx));
 
             // Ressources (routes par préfixe)
             _router.Map("/favicon.ico",               ctx => _resourceHandler.Favicon(ctx));
@@ -177,6 +178,34 @@ namespace MediaMonitor.Service
                 return decoded == $"{_settings.Username}:{_settings.Password}";
             }
             catch { return false; }
+        }
+        
+        private void ApiSummary(HandlerContext ctx)
+        {
+            var summary = new MediaMonitor.Service.Api.ApiSummary
+            {
+                service = "MediaMonitor",
+                machine = Environment.MachineName,
+                status = "ok",
+                worstSeverity = "ok"
+            };
+
+            // Récupérer les médias en cours
+            var live = _engine.GetCurrentOpenFiles();
+
+            foreach (var item in live)
+            {
+                summary.media.Add(new MediaMonitor.Service.Api.ApiMedia
+                {
+                    client  = item.ClientDisplay ?? "",
+                    type    = item.MediaType ?? "",
+                    title   = item.Nom ?? "",
+                    saison  = item.Saison,
+                    episode = item.Episode
+                });
+            }
+
+            HttpWriter.WriteJson(ctx.Http, summary);
         }
     }
 }
