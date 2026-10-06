@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using Microsoft.Toolkit.Uwp.Notifications;
 
 namespace MCEMonitorClient.Tray.Services
@@ -47,27 +48,55 @@ namespace MCEMonitorClient.Tray.Services
         /// <summary>
         /// Affiche une notification Windows Toast.
         /// </summary>
+        /// <param name="title">Titre (mis en valeur par Windows)</param>
+        /// <param name="message">Corps du message</param>
+        /// <param name="iconFileName">Nom du fichier d'icône dans Resources\Icons (ex: "dot-red.png", "play.png")</param>
+        /// <param name="url">URL à ouvrir au clic (optionnel)</param>
         public static void Show(
             string title,
             string message,
-            string url = "",
-            string icon = "")
+            string iconFileName = "",
+            string url = "")
         {
             try
             {
-                var builder = new ToastContentBuilder()
-                    .AddText(title)
-                    .AddText(message);
+                var builder = new ToastContentBuilder();
 
+                // Titre en gras + grande taille
+                builder.AddText(title, AdaptiveTextStyle.Title);
+                // Corps normal
+                builder.AddText(message, AdaptiveTextStyle.Body);
+
+                // Icône à gauche du toast
+                if (!string.IsNullOrEmpty(iconFileName))
+                {
+                    string iconPath = GetIconPath(iconFileName);
+                    if (File.Exists(iconPath))
+                    {
+                        // URI fichier local obligatoire pour AddAppLogoOverride
+                        string uri = new Uri(iconPath).AbsoluteUri;
+                        builder.AddAppLogoOverride(
+                            new Uri(uri),
+                            ToastGenericAppLogoCrop.Circle);
+                    }
+                }
+
+                // URL d'action au clic
                 if (!string.IsNullOrEmpty(url))
                     builder.AddArgument("url", url);
-
-                if (!string.IsNullOrEmpty(icon))
-                    builder.AddAppLogoOverride(new Uri(icon));
 
                 builder.Show();
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Construit le chemin complet vers une icône de Resources\Icons.
+        /// </summary>
+        private static string GetIconPath(string fileName)
+        {
+            string exeDir = AppDomain.CurrentDomain.BaseDirectory;
+            return Path.Combine(exeDir, "Resources", "Icons", fileName);
         }
     }
 }

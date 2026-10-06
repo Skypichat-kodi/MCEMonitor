@@ -55,14 +55,17 @@ echo Arrêt des services en cours...
 taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.Service.exe /F >nul 2>&1
+taskkill /IM MCEMonitorClient.Service.exe /F >nul 2>&1
 
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
 taskkill /IM RomMonitor.UI.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.UI.exe /F >nul 2>&1
+taskkill /IM MCEMonitorClient.Config.exe /F >nul 2>&1
 
 taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM RomMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.Tray.exe /F >nul 2>&1
+taskkill /IM MCEMonitorClient.Tray.exe /F >nul 2>&1
 
 taskkill /IM MCEMonitor.exe /F >nul 2>&1
 taskkill /IM Autotrad.exe /F >nul 2>&1

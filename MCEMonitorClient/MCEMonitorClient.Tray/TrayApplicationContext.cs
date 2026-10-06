@@ -222,8 +222,16 @@ namespace MCEMonitorClient.Tray
                         : alert.FirstProblem;
                 }
 
-                // ? Envoie la notification Toast
-                ToastHelper.Show(title, message, alert.BaseUrl);
+                // Choisit l'icône selon l'état
+                string iconFile = alert.Status switch
+                {
+                    "critical" => "dot-red.png",
+                    "warning"  => "dot-yellow.png",
+                    "offline"  => "dot-gray.png",
+                    _          => "dot-green.png"
+                };
+
+                ToastHelper.Show(title, message, iconFile, alert.BaseUrl);
 
                 if (isCritical)
                     PlayAlarm();
@@ -487,10 +495,7 @@ namespace MCEMonitorClient.Tray
                 if (media.EventType == "started")
                 {
                     string title = $"{media.ServerName} - Lecture en cours";
-
-                    string info = string.IsNullOrEmpty(media.Title)
-                        ? media.MediaType
-                        : media.Title;
+                    string info = string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
 
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
@@ -498,22 +503,17 @@ namespace MCEMonitorClient.Tray
                     if (!string.IsNullOrEmpty(media.Client))
                         info += $"\nClient : {media.Client}";
 
-                    // ? Notification Toast
-                    ToastHelper.Show(title, info, media.BaseUrl);
+                    ToastHelper.Show(title, info, "play.png", media.BaseUrl);
                 }
                 else if (media.EventType == "stopped")
                 {
                     string title = $"{media.ServerName} - Lecture terminée";
-
-                    string info = string.IsNullOrEmpty(media.Title)
-                        ? media.MediaType
-                        : media.Title;
+                    string info = string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
 
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
 
-                    // ? Notification Toast
-                    ToastHelper.Show(title, info, media.BaseUrl);
+                    ToastHelper.Show(title, info, "stop.png", media.BaseUrl);
                 }
             }
             catch (Exception ex)

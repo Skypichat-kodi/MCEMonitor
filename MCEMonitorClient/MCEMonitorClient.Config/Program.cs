@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Windows.Forms;
 using System.Windows.Interop;
+using MCEMonitor.Languages;
 
 namespace MCEMonitorClient.Config
 {
@@ -32,6 +33,10 @@ namespace MCEMonitorClient.Config
 
             // Enregistre le provider d'encodage (pour Encoding.GetEncoding(850))
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+
+            // Charge la langue du système (fallback en-GB si non trouvée)
+            string lang = System.Globalization.CultureInfo.CurrentUICulture.Name;
+            LanguageManager.Load(lang);
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

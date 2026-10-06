@@ -140,7 +140,19 @@ Source: "MCEMonitor Ver 1.0\ProgramFiles\Languages\*"; \
 [Icons]
 Name: "{group}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; Components: core
 Name: "{commondesktop}\MCEMonitor"; Filename: "{app}\MCEMonitor.exe"; WorkingDir: "{app}"; Components: core
-Name: "{group}\MCEMonitor Client - Configuration"; Filename: "{app}\MCEMonitorClient.Config.exe"; Components: client
+
+; --- MCEMonitor Client (raccourci menu Démarrer + bureau) ---
+Name: "{group}\MCEMonitor Client"; \
+    Filename: "{app}\MCEMonitorClient.Config.exe"; \
+    WorkingDir: "{app}"; \
+    IconFilename: "{app}\MCEMonitorClient.ico"; \
+    Components: client
+
+Name: "{commondesktop}\MCEMonitor Client"; \
+    Filename: "{app}\MCEMonitorClient.Config.exe"; \
+    WorkingDir: "{app}"; \
+    IconFilename: "{app}\MCEMonitorClient.ico"; \
+    Components: client    
 
 [Run]
 ; --- Installation silencieuse du pilote PawnIO (si absent) ---
@@ -198,6 +210,9 @@ Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor"" /F
 ; --- Suppression des tâches planifiées MCEMonitor Client ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitorClient_Service"" /F";       Flags: runhidden; RunOnceId: "DelClientSvcTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitorClient_Tray"" /F";          Flags: runhidden; RunOnceId: "DelClientTrayTask"
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{commonprograms}\MCEMonitor"
 
 [CustomMessages]
 fr.RAMError=MCEMonitor nécessite au moins 8 Go de RAM.%nRAM détectée : %1 Go.%n%nL'installation va s'arrêter.

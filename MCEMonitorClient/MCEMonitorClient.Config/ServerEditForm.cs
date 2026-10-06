@@ -142,21 +142,25 @@ namespace MCEMonitorClient.Config
             };
             Controls.Add(_txtPassword);
 
-            var btnEye = new Button
+            // Charge les deux icônes
+            var imgEye    = LoadIcon("eye.png");
+            var imgEyeOff = LoadIcon("eye-off.png");
+
+            // PictureBox cliquable : œil ouvert = cliquer pour voir,
+            //                       œil barré = cliquer pour masquer
+            var btnEye = new PictureBox
             {
-                Text = "Voir",
-                Location = new Point(fieldX + fieldW - 35, y - 1),
-                Width = 35,
-                Height = 24,
-                BackColor = Theme.Panel,
-                ForeColor = Theme.Text,
-                FlatStyle = FlatStyle.Flat,
+                Image    = imgEye,              // au départ le mot de passe est masqué ? on montre "eye" (voir)
+                Location = new Point(fieldX + fieldW - 26, y),
+                Size     = new Size(22, 22),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent,
                 Cursor = Cursors.Hand
             };
-            btnEye.FlatAppearance.BorderColor = Theme.Border;
             btnEye.Click += (s, e) =>
             {
                 _txtPassword.UseSystemPasswordChar = !_txtPassword.UseSystemPasswordChar;
+                btnEye.Image = _txtPassword.UseSystemPasswordChar ? imgEye : imgEyeOff;
             };
             Controls.Add(btnEye);
 
@@ -352,5 +356,19 @@ namespace MCEMonitorClient.Config
                 _btnTest.Enabled = true;
             }
         }
+        
+        private static Image? LoadIcon(string fileName)
+        {
+            try
+            {
+                string exeDir = System.IO.Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                string path = System.IO.Path.Combine(exeDir, "Resources", "Icons", fileName);
+                if (!System.IO.File.Exists(path)) return null;
+
+                using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                return Image.FromStream(fs);
+            }
+            catch { return null; }
+        }        
     }
 }

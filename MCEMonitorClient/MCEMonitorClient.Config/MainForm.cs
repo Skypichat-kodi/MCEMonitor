@@ -1,9 +1,10 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using MCEMonitorClient.Config.Models;
 using MCEMonitorClient.Config.Services;
 
@@ -16,19 +17,25 @@ namespace MCEMonitorClient.Config
         private System.Windows.Forms.Timer _stateTimer = null!;
         private System.Windows.Forms.Timer _serviceWatchdog = null!;
 
-        // ContrÙles
+        // Contr√¥les
         private DataGridView _grid = null!;
         private Button _btnAdd = null!;
         private Button _btnEdit = null!;
         private Button _btnDelete = null!;
-        private Button _btnAutoService = null!;      // ? Automatique ON/OFF (t‚che planifiÈe)
-        private Button _btnServiceOnOff = null!;     // ? ON/OFF (dÈmarrage manuel)
-        private Label _lblServiceStatus = null!;     // ? Label descriptif ‡ droite
+        private Button _btnAutoService = null!;      // Automatique ON/OFF (t√¢che planifi√©e)
+        private Button _btnServiceOnOff = null!;     // ON/OFF (d√©marrage manuel)
+        private Label _lblServiceStatus = null!;     // Label descriptif √† droite
         private NumericUpDown _numInterval = null!;
         private CheckBox _chkNotify = null!;
         private CheckBox _chkSound = null!;
         private Button _btnSave = null!;
         private Label _lblStatus = null!;
+        private PictureBox _icoService = null!;
+        private PictureBox _icoTray = null!;
+
+        // Ic√¥nes d'√©tat
+        private Image? _imgOk;
+        private Image? _imgKo;
 
         public MainForm()
         {
@@ -39,23 +46,27 @@ namespace MCEMonitorClient.Config
             }
             catch { }
 
+            // Charge les ic√¥nes d'√©tat (une seule fois)
+            _imgOk = LoadStateIcon("check.png");
+            _imgKo = LoadStateIcon("critical.png");
+
             _config = ServerConfigStore.Load();
 
             InitializeUI();
             RefreshGrid();
             LoadOptions();
 
-            // ? VÈrifie/crÈe la t‚che Tray au dÈmarrage (comme MCEMonitor)
+            // V√©rifie/cr√©e la t√¢che Tray au d√©marrage (comme MCEMonitor)
             EnsureTrayTaskExists();
 
-            // --- Polling d'Ètat des serveurs ---
+            // --- Polling d'√©tat des serveurs ---
             _ = RefreshAllStatesAsync();
 
             _stateTimer = new System.Windows.Forms.Timer { Interval = 30000 };
             _stateTimer.Tick += async (s, e) => await RefreshAllStatesAsync();
             _stateTimer.Start();
 
-            // --- Watchdog : met ‡ jour l'Ètat du service ---
+            // --- Watchdog : met √† jour l'√©tat du service ---
             _serviceWatchdog = new System.Windows.Forms.Timer { Interval = 2000 };
             _serviceWatchdog.Tick += (s, e) => UpdateServiceStatus();
             _serviceWatchdog.Start();
@@ -64,7 +75,7 @@ namespace MCEMonitorClient.Config
         }
 
         // ---------------------------------------------
-        //  CrÈation automatique de la t‚che Tray
+        //  Cr√©ation automatique de la t√¢che Tray
         // ---------------------------------------------
         private void EnsureTrayTaskExists()
         {
@@ -86,7 +97,7 @@ namespace MCEMonitorClient.Config
         // ---------------------------------------------
         private void InitializeUI()
         {
-            Text = "MCEMonitorClient - Configuration";
+            Text = LanguageManager.Get("MCEMonitorClient - Configuration") ?? "MCEMonitorClient - Configuration";
             Size = new Size(900, 680);
             MinimumSize = new Size(800, 630);
             StartPosition = FormStartPosition.CenterScreen;
@@ -97,7 +108,7 @@ namespace MCEMonitorClient.Config
             // --- Titre Serveurs ---
             var lblTitle = new Label
             {
-                Text = "Serveurs surveillÈs",
+                Text = LanguageManager.Get("Serveurs surveill√©s") ?? "Serveurs surveill√©s",
                 Location = new Point(20, 15),
                 Width = 400,
                 Height = 24,
@@ -144,12 +155,12 @@ namespace MCEMonitorClient.Config
             _grid.AlternatingRowsDefaultCellStyle.SelectionBackColor = Theme.Accent;
             _grid.AlternatingRowsDefaultCellStyle.SelectionForeColor = Color.Black;
 
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name", HeaderText = "Nom", FillWeight = 200 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Url", HeaderText = "URL", FillWeight = 220 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Type", HeaderText = "Type", FillWeight = 100 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "User", HeaderText = "Login", FillWeight = 80 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Enabled", HeaderText = "Actif", FillWeight = 60 });
-            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "State", HeaderText = "…tat", FillWeight = 60 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Name",    HeaderText = LanguageManager.Get("Nom")   ?? "Nom",   FillWeight = 200 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Url",     HeaderText = LanguageManager.Get("URL")   ?? "URL",   FillWeight = 220 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Type",    HeaderText = LanguageManager.Get("Type")  ?? "Type",  FillWeight = 100 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "User",    HeaderText = LanguageManager.Get("Login") ?? "Login", FillWeight = 80 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Enabled", HeaderText = LanguageManager.Get("Actif") ?? "Actif", FillWeight = 60 });
+            _grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "State",   HeaderText = LanguageManager.Get("√âtat")  ?? "√âtat",  FillWeight = 60 });
 
             _grid.CellPainting += Grid_CellPainting;
             _grid.DoubleClick += (s, e) => EditSelected();
@@ -159,13 +170,13 @@ namespace MCEMonitorClient.Config
             // --- Boutons d'action serveurs ---
             int buttonY = 315;
 
-            _btnAdd = CreateButton("Ajouter", 20, buttonY, 120, Theme.Accent, Color.Black, true);
+            _btnAdd = CreateButton(LanguageManager.Get("Ajouter") ?? "Ajouter", 20, buttonY, 120, Theme.Accent, Color.Black, true);
             _btnAdd.Click += (s, e) => AddServer();
 
-            _btnEdit = CreateButton("Modifier", 150, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnEdit = CreateButton(LanguageManager.Get("Modifier") ?? "Modifier", 150, buttonY, 120, Theme.Panel, Theme.Text, false);
             _btnEdit.Click += (s, e) => EditSelected();
 
-            _btnDelete = CreateButton("Supprimer", 280, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnDelete = CreateButton(LanguageManager.Get("Supprimer") ?? "Supprimer", 280, buttonY, 120, Theme.Panel, Theme.Text, false);
             _btnDelete.Click += (s, e) => DeleteSelected();
 
             Controls.Add(_btnAdd);
@@ -175,7 +186,7 @@ namespace MCEMonitorClient.Config
             // --- Section Service ---
             var lblService = new Label
             {
-                Text = "Service de surveillance",
+                Text = LanguageManager.Get("Service de surveillance") ?? "Service de surveillance",
                 Location = new Point(20, 365),
                 Width = 400,
                 Height = 24,
@@ -184,24 +195,63 @@ namespace MCEMonitorClient.Config
             };
             Controls.Add(lblService);
 
-            // Bouton 1 : Automatique ON/OFF (t‚che planifiÈe Service)
-            _btnAutoService = CreateButton("Automatique OFF", 20, 400, 220,
+            // Bouton 1 : Automatique ON/OFF (t√¢che planifi√©e Service)
+            _btnAutoService = CreateButton(LanguageManager.Get("Automatique OFF") ?? "Automatique OFF", 20, 400, 220,
                 Color.FromArgb(220, 60, 60), Color.White, true);
             _btnAutoService.Click += (s, e) => ToggleAutomaticTask();
             Controls.Add(_btnAutoService);
 
-            // Bouton 2 : ON/OFF (dÈmarrage manuel du service)
-            _btnServiceOnOff = CreateButton("OFF", 250, 400, 80,
+            // Bouton 2 : ON/OFF (d√©marrage manuel du service)
+            _btnServiceOnOff = CreateButton(LanguageManager.Get("OFF") ?? "OFF", 250, 400, 80,
                 Color.FromArgb(220, 60, 60), Color.White, true);
             _btnServiceOnOff.Click += (s, e) => ToggleServiceManual();
             Controls.Add(_btnServiceOnOff);
 
-            // Label d'Ètat
+            // Ic√¥ne d'√©tat + label "Service"
+            _icoService = new PictureBox
+            {
+                Location = new Point(340, 407),
+                Size = new Size(16, 16),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent
+            };
+            Controls.Add(_icoService);
+
+            var lblServiceName = new Label
+            {
+                Text = LanguageManager.Get("Service") ?? "Service",
+                Location = new Point(360, 407),
+                Width = 60,
+                ForeColor = Theme.TextDim
+            };
+            Controls.Add(lblServiceName);
+
+            // Ic√¥ne d'√©tat + label "Tray"
+            _icoTray = new PictureBox
+            {
+                Location = new Point(430, 407),
+                Size = new Size(16, 16),
+                SizeMode = PictureBoxSizeMode.Zoom,
+                BackColor = Color.Transparent
+            };
+            Controls.Add(_icoTray);
+
+            var lblTrayName = new Label
+            {
+                Text = LanguageManager.Get("Tray") ?? "Tray",
+                Location = new Point(450, 407),
+                Width = 60,
+                ForeColor = Theme.TextDim
+            };
+            Controls.Add(lblTrayName);
+
+            // Label texte restant (Auto / pas de d√©marrage auto)
             _lblServiceStatus = new Label
             {
-                Text = "Service arrÍtÈ",
-                Location = new Point(340, 407),
-                Width = 500,
+                Text = "",
+                Location = new Point(530, 407),
+                Width = ClientSize.Width - 550,
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
                 ForeColor = Theme.TextDim
             };
             Controls.Add(_lblServiceStatus);
@@ -209,7 +259,7 @@ namespace MCEMonitorClient.Config
             // --- Section Options ---
             var lblOptions = new Label
             {
-                Text = "Options",
+                Text = LanguageManager.Get("Options") ?? "Options",
                 Location = new Point(20, 455),
                 Width = 400,
                 Height = 24,
@@ -220,7 +270,7 @@ namespace MCEMonitorClient.Config
 
             var lblInterval = new Label
             {
-                Text = "Intervalle de polling :",
+                Text = LanguageManager.Get("Intervalle de polling :") ?? "Intervalle de polling :",
                 Location = new Point(20, 495),
                 Width = 180,
                 ForeColor = Theme.TextDim
@@ -242,22 +292,22 @@ namespace MCEMonitorClient.Config
 
             var lblSeconds = new Label
             {
-                Text = "secondes",
+                Text = LanguageManager.Get("secondes") ?? "secondes",
                 Location = new Point(295, 495),
                 Width = 100,
                 ForeColor = Theme.TextDim
             };
             Controls.Add(lblSeconds);
 
-            _chkNotify = CreateCheckBox("Notifier les changements d'Ètat", 20, 530);
-            _chkSound = CreateCheckBox("Jouer un son sur alerte critique", 20, 555);
+            _chkNotify = CreateCheckBox(LanguageManager.Get("Notifier les changements d'√©tat") ?? "Notifier les changements d'√©tat", 20, 530);
+            _chkSound = CreateCheckBox(LanguageManager.Get("Jouer un son sur alerte critique") ?? "Jouer un son sur alerte critique", 20, 555);
 
             Controls.Add(_chkNotify);
             Controls.Add(_chkSound);
 
             // --- Bouton Enregistrer ---
             _btnSave = CreateButton(
-                "Enregistrer",
+                LanguageManager.Get("Enregistrer") ?? "Enregistrer",
                 ClientSize.Width - 170,
                 ClientSize.Height - 60,
                 150,
@@ -273,7 +323,9 @@ namespace MCEMonitorClient.Config
                 Width = ClientSize.Width - 200,
                 Height = 20,
                 ForeColor = Theme.TextDim,
-                Text = $"Fichier : {ServerConfigStore.GetConfigPath()}",
+                Text = string.Format(
+                    LanguageManager.Get("Fichier : {0}") ?? "Fichier : {0}",
+                    ServerConfigStore.GetConfigPath()),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
             Controls.Add(_lblStatus);
@@ -326,7 +378,9 @@ namespace MCEMonitorClient.Config
                     server.FullUrl,
                     server.ServiceType,
                     server.Username,
-                    server.Enabled ? "Oui" : "Non",
+                    server.Enabled
+                        ? (LanguageManager.Get("Oui") ?? "Oui")
+                        : (LanguageManager.Get("Non") ?? "Non"),
                     ""
                 );
 
@@ -344,7 +398,7 @@ namespace MCEMonitorClient.Config
         }
 
         // ---------------------------------------------
-        //  Paint custom : pastille d'Ètat
+        //  Paint custom : pastille d'√©tat
         // ---------------------------------------------
         private void Grid_CellPainting(object? sender, DataGridViewCellPaintingEventArgs e)
         {
@@ -423,7 +477,9 @@ namespace MCEMonitorClient.Config
             var server = GetSelectedServer();
             if (server == null)
             {
-                MessageBox.Show("SÈlectionnez un serveur.", "Info",
+                MessageBox.Show(
+                    LanguageManager.Get("S√©lectionnez un serveur.") ?? "S√©lectionnez un serveur.",
+                    LanguageManager.Get("Info") ?? "Info",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
@@ -441,14 +497,18 @@ namespace MCEMonitorClient.Config
             var server = GetSelectedServer();
             if (server == null)
             {
-                MessageBox.Show("SÈlectionnez un serveur.", "Info",
+                MessageBox.Show(
+                    LanguageManager.Get("S√©lectionnez un serveur.") ?? "S√©lectionnez un serveur.",
+                    LanguageManager.Get("Info") ?? "Info",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
             var result = MessageBox.Show(
-                $"Voulez-vous vraiment supprimer le serveur :\n\n{server.Name} ?",
-                "Confirmation",
+                string.Format(
+                    LanguageManager.Get("Voulez-vous vraiment supprimer le serveur :\n\n{0} ?") ?? "Voulez-vous vraiment supprimer le serveur :\n\n{0} ?",
+                    server.Name),
+                LanguageManager.Get("Confirmation") ?? "Confirmation",
                 MessageBoxButtons.YesNo,
                 MessageBoxIcon.Warning);
 
@@ -473,14 +533,18 @@ namespace MCEMonitorClient.Config
 
             if (ok)
             {
-                MessageBox.Show("Configuration enregistrÈe.", "OK",
+                MessageBox.Show(
+                    LanguageManager.Get("Configuration enregistr√©e.") ?? "Configuration enregistr√©e.",
+                    LanguageManager.Get("OK") ?? "OK",
                     MessageBoxButtons.OK, MessageBoxIcon.Information);
 
                 _ = RefreshAllStatesAsync();
             }
             else
             {
-                MessageBox.Show("Erreur lors de la sauvegarde.", "Erreur",
+                MessageBox.Show(
+                    LanguageManager.Get("Erreur lors de la sauvegarde.") ?? "Erreur lors de la sauvegarde.",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
@@ -525,7 +589,7 @@ namespace MCEMonitorClient.Config
         }
 
         // ---------------------------------------------
-        //  SERVICE : Ètat, ON/OFF manuel, t‚che auto
+        //  SERVICE : √©tat, ON/OFF manuel, t√¢che auto
         // ---------------------------------------------
         private bool IsServiceRunning()
         {
@@ -539,42 +603,42 @@ namespace MCEMonitorClient.Config
             bool taskExists = TaskSchedulerHelper.ClientServiceTaskExists();
             bool trayTaskExists = ServiceInstaller.TrayTaskExists();
 
-            // --- Bouton 1 : Automatique ON/OFF (t‚che Service) ---
-            _btnAutoService.Text = taskExists ? "Automatique ON" : "Automatique OFF";
+            // --- Bouton 1 : Automatique ON/OFF (t√¢che Service) ---
+            _btnAutoService.Text = taskExists
+                ? (LanguageManager.Get("Automatique ON")  ?? "Automatique ON")
+                : (LanguageManager.Get("Automatique OFF") ?? "Automatique OFF");
             _btnAutoService.BackColor = taskExists
                 ? Color.FromArgb(76, 175, 80)
                 : Color.FromArgb(220, 60, 60);
 
             // --- Bouton 2 : ON/OFF (service + tray en cours) ---
-            // ON = Service ET Tray tournent
-            // OFF = au moins un des deux est arrÍtÈ
             bool allRunning = serviceRunning && trayRunning;
 
-            _btnServiceOnOff.Text = allRunning ? "ON" : "OFF";
+            _btnServiceOnOff.Text = allRunning
+                ? (LanguageManager.Get("ON")  ?? "ON")
+                : (LanguageManager.Get("OFF") ?? "OFF");
             _btnServiceOnOff.BackColor = allRunning
                 ? Color.FromArgb(76, 175, 80)
                 : Color.FromArgb(220, 60, 60);
 
-            // --- Label d'Ètat ---
-            var parts = new List<string>();
+            // --- Ic√¥nes d'√©tat ---
+            _icoService.Image = serviceRunning ? _imgOk : _imgKo;
+            _icoTray.Image    = trayRunning    ? _imgOk : _imgKo;
 
-            parts.Add(serviceRunning ? "Service ?" : "Service ?");
-            parts.Add(trayRunning ? "Tray ?" : "Tray ?");
-
-            string status = string.Join("  |  ", parts);
-
+            // --- Texte explicatif √† droite ---
+            string status;
             if (taskExists && trayTaskExists)
-                status += "  ó  Auto (Service + Tray)";
+                status = LanguageManager.Get("Auto (Service + Tray)") ?? "Auto (Service + Tray)";
             else if (taskExists)
-                status += "  ó  Auto Service uniquement";
+                status = LanguageManager.Get("Auto Service uniquement") ?? "Auto Service uniquement";
             else
-                status += "  ó  Pas de dÈmarrage auto";
+                status = LanguageManager.Get("Pas de d√©marrage auto") ?? "Pas de d√©marrage auto";
 
             _lblServiceStatus.Text = status;
             _lblServiceStatus.ForeColor = allRunning ? Theme.Ok : Theme.TextDim;
         }
 
-        // --- Bouton 1 : Automatique (t‚che Service) ---
+        // --- Bouton 1 : Automatique (t√¢che Service) ---
         private void ToggleAutomaticTask()
         {
             try
@@ -582,9 +646,8 @@ namespace MCEMonitorClient.Config
                 if (TaskSchedulerHelper.ClientServiceTaskExists())
                 {
                     var result = MessageBox.Show(
-                        "Voulez-vous vraiment dÈsactiver le dÈmarrage automatique ?\n" +
-                        "Le service ne sera plus lancÈ au dÈmarrage de Windows.",
-                        "Confirmation",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver le d√©marrage automatique ?\nLe service ne sera plus lanc√© au d√©marrage de Windows.") ?? "Voulez-vous vraiment d√©sactiver le d√©marrage automatique ?\nLe service ne sera plus lanc√© au d√©marrage de Windows.",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Question);
 
@@ -593,15 +656,16 @@ namespace MCEMonitorClient.Config
 
                     TaskSchedulerHelper.DeleteClientServiceTask();
 
-                    MessageBox.Show("DÈmarrage automatique dÈsactivÈ.", "OK",
+                    MessageBox.Show(
+                        LanguageManager.Get("D√©marrage automatique d√©sactiv√©.") ?? "D√©marrage automatique d√©sactiv√©.",
+                        LanguageManager.Get("OK") ?? "OK",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
                 else
                 {
                     var result = MessageBox.Show(
-                        "Voulez-vous activer le dÈmarrage automatique du service ?\n" +
-                        "Le service sera lancÈ au dÈmarrage de Windows.",
-                        "Confirmation",
+                        LanguageManager.Get("Voulez-vous activer le d√©marrage automatique du service ?\nLe service sera lanc√© au d√©marrage de Windows.") ?? "Voulez-vous activer le d√©marrage automatique du service ?\nLe service sera lanc√© au d√©marrage de Windows.",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
                         MessageBoxButtons.YesNo,
                         MessageBoxIcon.Question);
 
@@ -610,16 +674,17 @@ namespace MCEMonitorClient.Config
 
                     TaskSchedulerHelper.CreateClientServiceTask();
 
-                    MessageBox.Show("DÈmarrage automatique activÈ.", "OK",
-                        MessageBoxButtons.OK,
-                        MessageBoxIcon.Information);
+                    MessageBox.Show(
+                        LanguageManager.Get("D√©marrage automatique activ√©.") ?? "D√©marrage automatique activ√©.",
+                        LanguageManager.Get("OK") ?? "OK",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
 
                 UpdateServiceStatus();
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur") ?? "Erreur") + " : " + ex.Message);
             }
         }
 
@@ -629,12 +694,12 @@ namespace MCEMonitorClient.Config
             if (IsServiceRunning())
             {
                 StopService();
-                StopTray();      // ? ArrÍte aussi le Tray
+                StopTray();      // Arr√™te aussi le Tray
             }
             else
             {
                 StartService();
-                StartTray();     // ? DÈmarre aussi le Tray
+                StartTray();     // D√©marre aussi le Tray
             }
         }
 
@@ -650,8 +715,10 @@ namespace MCEMonitorClient.Config
                 if (!System.IO.File.Exists(servicePath))
                 {
                     MessageBox.Show(
-                        $"Impossible de trouver :\n{servicePath}",
-                        "Erreur",
+                        string.Format(
+                            LanguageManager.Get("Impossible de trouver :\n{0}") ?? "Impossible de trouver :\n{0}",
+                            servicePath),
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     return;
@@ -667,10 +734,13 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur au dÈmarrage du service : " + ex.Message);
+                MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Erreur au d√©marrage du service : {0}") ?? "Erreur au d√©marrage du service : {0}",
+                        ex.Message));
             }
         }
-        
+
         private void StopService()
         {
             try
@@ -684,12 +754,15 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur ‡ l'arrÍt du service : " + ex.Message);
+                MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Erreur √† l'arr√™t du service : {0}") ?? "Erreur √† l'arr√™t du service : {0}",
+                        ex.Message));
             }
         }
-        
+
         // ---------------------------------------------
-        //  TRAY : dÈmarrage / arrÍt manuel
+        //  TRAY : d√©marrage / arr√™t manuel
         // ---------------------------------------------
         private bool IsTrayRunning()
         {
@@ -701,7 +774,7 @@ namespace MCEMonitorClient.Config
             try
             {
                 if (IsTrayRunning())
-                    return;   // DÈj‡ lancÈ
+                    return;   // D√©j√† lanc√©
 
                 string trayPath = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
@@ -720,8 +793,10 @@ namespace MCEMonitorClient.Config
                 if (!System.IO.File.Exists(trayPath))
                 {
                     MessageBox.Show(
-                        $"Impossible de trouver :\n{trayPath}",
-                        "Erreur",
+                        string.Format(
+                            LanguageManager.Get("Impossible de trouver :\n{0}") ?? "Impossible de trouver :\n{0}",
+                            trayPath),
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error);
                     return;
@@ -739,7 +814,10 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur au dÈmarrage du Tray : " + ex.Message);
+                MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Erreur au d√©marrage du Tray : {0}") ?? "Erreur au d√©marrage du Tray : {0}",
+                        ex.Message));
             }
         }
 
@@ -757,8 +835,29 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur ‡ l'arrÍt du Tray : " + ex.Message);
+                MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Erreur √† l'arr√™t du Tray : {0}") ?? "Erreur √† l'arr√™t du Tray : {0}",
+                        ex.Message));
             }
-        }        
+        }
+
+        // ---------------------------------------------
+        //  Chargement d'une ic√¥ne d'√©tat
+        // ---------------------------------------------
+        private static Image? LoadStateIcon(string fileName)
+        {
+            try
+            {
+                string exeDir = System.IO.Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                string path = System.IO.Path.Combine(exeDir, "Resources", "Icons", fileName);
+                if (!System.IO.File.Exists(path)) return null;
+
+                // Charge depuis un flux pour √©viter de verrouiller le fichier
+                using var fs = new System.IO.FileStream(path, System.IO.FileMode.Open, System.IO.FileAccess.Read);
+                return Image.FromStream(fs);
+            }
+            catch { return null; }
+        }
     }
 }
