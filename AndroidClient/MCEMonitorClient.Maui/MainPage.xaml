@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:MCEMonitorClient.Maui.Converters"
+             x:Class="MCEMonitorClient.Maui.MainPage"
+             Title="Serveurs"
+             BackgroundColor="#1E1E1E">
+             
+            <ContentPage.Resources>
+                <ResourceDictionary>
+                    <converters:BoolToYesNoConverter x:Key="EnabledConverter" />
+                </ResourceDictionary>
+            </ContentPage.Resources>
+            
+    <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="12" RowSpacing="12">
+
+        <!-- Titre + état du service -->
+        <VerticalStackLayout Grid.Row="0" Spacing="4">
+            <Label Text="Serveurs surveillés"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF" />
+            <Label x:Name="lblServiceStatus"
+                   Text="Service arrêté"
+                   FontSize="12"
+                   TextColor="#888888" />
+        </VerticalStackLayout>
+
+        <!-- Liste des serveurs -->
+        <CollectionView Grid.Row="1"
+                        x:Name="serversList"
+                        SelectionMode="Single"
+                        SelectionChanged="OnServerSelected">
+
+            <CollectionView.ItemTemplate>
+                <DataTemplate>
+                    <Border Margin="0,4" Padding="12" StrokeShape="RoundRectangle 8"
+                            BackgroundColor="#252526" Stroke="#3C3C3C" StrokeThickness="1">
+                        <Border.GestureRecognizers>
+                            <TapGestureRecognizer Tapped="OnServerTapped" />
+                        </Border.GestureRecognizers>
+                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
+                            <Label Grid.Row="0" Grid.Column="0"
+                                   Text="{Binding Name}"
+                                   FontSize="16"
+                                   FontAttributes="Bold"
+                                   TextColor="#E5E5E5" />
+                            <Label Grid.Row="1" Grid.Column="0"
+                                   Text="{Binding FullUrl}"
+                                   FontSize="12"
+                                   TextColor="#B4B4B4" />
+                            <Label Grid.Row="2" Grid.Column="0"
+                                   Text="{Binding ServiceType}"
+                                   FontSize="11"
+                                   TextColor="#888888" />
+                            <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
+                                   Text="{Binding Enabled, Converter={StaticResource EnabledConverter}}"
+                                   FontSize="12"
+                                   VerticalOptions="Center"
+                                   TextColor="#B4B4B4" />
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Boutons du bas -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+            <Button Grid.Column="0"
+                    Text="Ajouter"
+                    BackgroundColor="#4CC2FF"
+                    TextColor="Black"
+                    FontAttributes="Bold"
+                    Clicked="OnAddClicked" />
+            <Button Grid.Column="1"
+                    Text="Modifier"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnEditClicked" />
+            <Button Grid.Column="2"
+                    Text="Supprimer"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnDeleteClicked" />
+        </Grid>
+
+        <!-- Options + démarrer/arrêter le service -->
+        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Button Grid.Column="0"
+                    Text="Options"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnOptionsClicked" />
+            <Button Grid.Column="1"
+                    x:Name="btnToggleService"
+                    Text="Démarrer"
+                    BackgroundColor="#4CAF50"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    Clicked="OnToggleServiceClicked" />
+        </Grid>
+
+    </Grid>
+
+</ContentPage>

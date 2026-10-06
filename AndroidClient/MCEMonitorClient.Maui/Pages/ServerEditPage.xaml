@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MCEMonitorClient.Maui.Pages.ServerEditPage"
+             Title="Serveur"
+             BackgroundColor="#1E1E1E">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
+
+            <Label x:Name="lblTitle"
+                   Text="Ajouter un serveur"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF" />
+
+            <Label Text="Nom" TextColor="#B4B4B4" />
+            <Entry x:Name="txtName"
+                   Placeholder="Mon serveur"
+                   TextColor="#E5E5E5"
+                   PlaceholderColor="#666666"
+                   BackgroundColor="#252526" />
+
+            <Label Text="URL" TextColor="#B4B4B4" />
+            <Entry x:Name="txtUrl"
+                   Placeholder="http://192.168.1.19"
+                   Keyboard="Url"
+                   TextColor="#E5E5E5"
+                   PlaceholderColor="#666666"
+                   BackgroundColor="#252526" />
+
+            <Label Text="Port" TextColor="#B4B4B4" />
+            <Entry x:Name="txtPort"
+                   Placeholder="8083"
+                   Keyboard="Numeric"
+                   TextColor="#E5E5E5"
+                   PlaceholderColor="#666666"
+                   BackgroundColor="#252526" />
+
+            <Label Text="Type" TextColor="#B4B4B4" />
+            <Picker x:Name="cmbType"
+                    TextColor="#E5E5E5"
+                    BackgroundColor="#252526">
+                <Picker.ItemsSource>
+                    <x:Array Type="{x:Type x:String}">
+                        <x:String>SystemMonitor</x:String>
+                        <x:String>RomMonitor</x:String>
+                        <x:String>MediaMonitor</x:String>
+                    </x:Array>
+                </Picker.ItemsSource>
+            </Picker>
+
+            <Label Text="Login" TextColor="#B4B4B4" />
+            <Entry x:Name="txtUsername"
+                   TextColor="#E5E5E5"
+                   BackgroundColor="#252526" />
+
+            <Label Text="Mot de passe" TextColor="#B4B4B4" />
+            <Entry x:Name="txtPassword"
+                   IsPassword="True"
+                   TextColor="#E5E5E5"
+                   BackgroundColor="#252526" />
+
+            <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
+                <Label Text="Actif" TextColor="#B4B4B4" VerticalOptions="Center" />
+                <Switch x:Name="swEnabled" IsToggled="True" />
+            </HorizontalStackLayout>
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,20,0,0">
+                <Button Grid.Column="0"
+                        Text="Annuler"
+                        BackgroundColor="#3C3C3C"
+                        TextColor="#E5E5E5"
+                        Clicked="OnCancelClicked" />
+                <Button Grid.Column="1"
+                        Text="Enregistrer"
+                        BackgroundColor="#4CC2FF"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        Clicked="OnSaveClicked" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
+
+</ContentPage>
