@@ -50,13 +50,15 @@ namespace MCEMonitorClient.Tray.Services
         /// </summary>
         /// <param name="title">Titre (mis en valeur par Windows)</param>
         /// <param name="message">Corps du message</param>
-        /// <param name="iconFileName">Nom du fichier d'icône dans Resources\Icons (ex: "dot-red.png", "play.png")</param>
+        /// <param name="iconFileName">Nom du fichier d'icône dans Resources\Icons</param>
         /// <param name="url">URL à ouvrir au clic (optionnel)</param>
+        /// <param name="silent">Si true, désactive le son système Windows (pour jouer notre propre son)</param>
         public static void Show(
             string title,
             string message,
             string iconFileName = "",
-            string url = "")
+            string url = "",
+            bool silent = false)
         {
             try
             {
@@ -73,7 +75,6 @@ namespace MCEMonitorClient.Tray.Services
                     string iconPath = GetIconPath(iconFileName);
                     if (File.Exists(iconPath))
                     {
-                        // URI fichier local obligatoire pour AddAppLogoOverride
                         string uri = new Uri(iconPath).AbsoluteUri;
                         builder.AddAppLogoOverride(
                             new Uri(uri),
@@ -84,6 +85,10 @@ namespace MCEMonitorClient.Tray.Services
                 // URL d'action au clic
                 if (!string.IsNullOrEmpty(url))
                     builder.AddArgument("url", url);
+
+                // Désactive le son système Windows
+                if (silent)
+                    builder.AddAudio(new ToastAudio { Silent = true });
 
                 builder.Show();
             }

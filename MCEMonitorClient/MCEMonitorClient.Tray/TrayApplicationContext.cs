@@ -120,7 +120,13 @@ namespace MCEMonitorClient.Tray
             menu.Items.Add("Quitter", null, (s, e) => Exit());
 
             _trayIcon.ContextMenuStrip = menu;
-            _trayIcon.DoubleClick += (s, e) => ShowServersPopup();
+
+            // Clic gauche ? ouvre la configuration
+            _trayIcon.MouseClick += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Left)
+                    OpenConfig();
+            };
         }
 
         // ---------------------------------------------
@@ -170,6 +176,7 @@ namespace MCEMonitorClient.Tray
                 string title;
                 string message;
                 bool isCritical = false;
+                bool isWarning  = false;
 
                 // --- Cas 1 : retour à la normale ---
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok")
@@ -212,6 +219,8 @@ namespace MCEMonitorClient.Tray
 
                     if (alert.Status == "critical")
                         isCritical = true;
+                    else if (alert.Status == "warning")
+                        isWarning = true;
                 }
                 // --- Cas 4 : changement générique ---
                 else
@@ -231,10 +240,17 @@ namespace MCEMonitorClient.Tray
                     _          => "dot-green.png"
                 };
 
-                ToastHelper.Show(title, message, iconFile, alert.BaseUrl);
+                // Le toast est silencieux si on joue notre propre son
+                bool silent = isCritical || isWarning;
 
+                // ? Envoie la notification Toast
+                ToastHelper.Show(title, message, iconFile, alert.BaseUrl, silent);
+
+                // ? Joue le son custom (alarm.wav ou warning.wav)
                 if (isCritical)
                     PlayAlarm();
+                else if (isWarning)
+                    PlayWarning();
             }
             catch (Exception ex)
             {
@@ -252,6 +268,21 @@ namespace MCEMonitorClient.Tray
                         _alarmPlayer.PlaySync();
                     else
                         Console.Beep(2200, 250);
+                }
+                catch { }
+            });
+        }
+
+        private void PlayWarning()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    if (_warningPlayer != null)
+                        _warningPlayer.PlaySync();
+                    else
+                        Console.Beep(1200, 200);
                 }
                 catch { }
             });
@@ -495,20 +526,27 @@ namespace MCEMonitorClient.Tray
                 if (media.EventType == "started")
                 {
                     string title = $"{media.ServerName} - Lecture en cours";
-                    string info = string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
+
+                    string info = "";
+                    if (!string.IsNullOrEmpty(media.Client))
+                        info += $"Depuis : {media.Client}\n";
+
+                    info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
 
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
-
-                    if (!string.IsNullOrEmpty(media.Client))
-                        info += $"\nClient : {media.Client}";
 
                     ToastHelper.Show(title, info, "play.png", media.BaseUrl);
                 }
                 else if (media.EventType == "stopped")
                 {
                     string title = $"{media.ServerName} - Lecture terminée";
-                    string info = string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
+
+                    string info = "";
+                    if (!string.IsNullOrEmpty(media.Client))
+                        info += $"Depuis : {media.Client}\n";
+
+                    info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
 
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";

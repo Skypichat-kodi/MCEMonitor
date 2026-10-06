@@ -25,8 +25,8 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.10240
 
 ; Icônes
-SetupIconFile="MediaMonitor\MediaMonitor.Tray\MediaMonitor.ico"
-UninstallDisplayIcon="{app}\MediaMonitor.ico"
+SetupIconFile="MCEMonitor\Assets\MCEMonitor.ico"
+UninstallDisplayIcon="{app}\MCEMonitor.ico"
 
 ; Langues
 ShowLanguageDialog=yes

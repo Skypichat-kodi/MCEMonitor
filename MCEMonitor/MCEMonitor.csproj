@@ -6,14 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <ApplicationIcon>Assets\MediaMonitor.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\MCEMonitor.ico</ApplicationIcon>
 
     <!-- ? Fix RDP : rendu texte en GDI (stable avec Krypton en session RDP/VNC) -->
     <ApplicationUseCompatibleTextRendering>true</ApplicationUseCompatibleTextRendering>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Assets\MediaMonitor.ico" CopyToOutputDirectory="Always" />
+    <Content Include="Assets\MCEMonitor.ico" CopyToOutputDirectory="Always" />
     <Content Include="Assets\**\*" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Resources\**\*" CopyToOutputDirectory="PreserveNewest" />
     <PackageReference Include="Krypton.Navigator" Version="105.26.7.201" />
