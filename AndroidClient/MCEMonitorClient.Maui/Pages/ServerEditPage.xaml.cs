@@ -1,3 +1,7 @@
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Linq;
 using MCEMonitorClient.Maui.Services;
 using MCEMonitorClient.Shared.Models;
 
@@ -80,16 +84,109 @@ public partial class ServerEditPage : ContentPage
         }
         else
         {
-            _existing.Name = name;
-            _existing.BaseUrl = url.TrimEnd('/');
-            _existing.Port = port;
-            _existing.Username = txtUsername.Text?.Trim() ?? "";
-            _existing.Password = txtPassword.Text ?? "";
-            _existing.ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor";
-            _existing.Enabled = swEnabled.IsToggled;
+            // Récupère la même instance dans la liste fraîchement chargée
+            var existing = config.Servers.FirstOrDefault(s => s.Id == _existing!.Id);
+
+            if (existing != null)
+            {
+                existing.Name = name;
+                existing.BaseUrl = url.TrimEnd('/');
+                existing.Port = port;
+                existing.Username = txtUsername.Text?.Trim() ?? "";
+                existing.Password = txtPassword.Text ?? "";
+                existing.ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor";
+                existing.Enabled = swEnabled.IsToggled;
+            }
+            else
+            {
+                // Cas improbable : le serveur a été supprimé entre-temps
+                await DisplayAlert("Erreur", "Serveur introuvable.", "OK");
+                return;
+            }
         }
 
         ConfigService.Save(config);
         await Navigation.PopModalAsync();
     }
+    
+    private async void OnTestClicked(object sender, EventArgs e)
+    {
+        string url = txtUrl.Text?.Trim() ?? "";
+        string portStr = txtPort.Text?.Trim() ?? "8083";
+        string user = txtUsername.Text?.Trim() ?? "";
+        string pass = txtPassword.Text ?? "";
+
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            lblTestResult.TextColor = Color.FromArgb("#FF6347");
+            lblTestResult.Text = "URL vide.";
+            return;
+        }
+
+        if (!int.TryParse(portStr, out int port) || port < 1 || port > 65535)
+        {
+            lblTestResult.TextColor = Color.FromArgb("#FF6347");
+            lblTestResult.Text = "Port invalide.";
+            return;
+        }
+
+        // Construit l'URL de test
+        string baseUrl = url.TrimEnd('/');
+        if (!baseUrl.Contains("://"))
+            baseUrl = "http://" + baseUrl;
+
+        string testUrl = $"{baseUrl}:{port}/api/summary";
+
+        btnTest.IsEnabled = false;
+        btnTest.Text = "Test en cours...";
+        lblTestResult.TextColor = Color.FromArgb("#B4B4B4");
+        lblTestResult.Text = "Connexion à " + testUrl;
+
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+
+            if (!string.IsNullOrEmpty(user))
+            {
+                string raw = $"{user}:{pass}";
+                string b64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(raw));
+                http.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Basic", b64);
+            }
+
+            using var resp = await http.GetAsync(testUrl);
+
+            if (resp.IsSuccessStatusCode)
+            {
+                lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
+                lblTestResult.Text = $"[OK] Connexion réussie ({(int)resp.StatusCode})";
+            }
+            else
+            {
+                lblTestResult.TextColor = Color.FromArgb("#FF6347");
+                lblTestResult.Text = $"[KO] Erreur HTTP {(int)resp.StatusCode}";
+            }
+        }
+        catch (TaskCanceledException)
+        {
+            lblTestResult.TextColor = Color.FromArgb("#FFB900");
+            lblTestResult.Text = "[KO] Timeout (8s)";
+        }
+        catch (Exception ex)
+        {
+            lblTestResult.TextColor = Color.FromArgb("#FF6347");
+            lblTestResult.Text = "[KO] " + ex.Message;
+        }
+        finally
+        {
+            btnTest.IsEnabled = true;
+            btnTest.Text = "Tester la connexion";
+        }
+    }
+    
+    private void OnTogglePasswordClicked(object sender, EventArgs e)
+    {
+        txtPassword.IsPassword = !txtPassword.IsPassword;
+        btnTogglePass.Source = txtPassword.IsPassword ? "eye.png" : "eye_off.png";
+    }       
 }

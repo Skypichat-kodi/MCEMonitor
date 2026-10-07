@@ -1,6 +1,7 @@
 ﻿using System.Collections.ObjectModel;
 using MCEMonitorClient.Maui.Pages;
 using MCEMonitorClient.Maui.Services;
+using MCEMonitorClient.Maui.ViewModels;
 using MCEMonitorClient.Shared.Models;
 #if ANDROID
 using MCEMonitorClient.Maui.Platforms.Android.Services;
@@ -12,8 +13,9 @@ public partial class MainPage : ContentPage
 {
     private const string PrefKeyServiceRunning = "service_running";
 
-    private readonly ObservableCollection<ServerEntry> _servers = new();
+    private readonly ObservableCollection<ServerItemViewModel> _servers = new();
     private bool _serviceRunning;
+    private IDispatcherTimer? _refreshTimer;
 
     public MainPage()
     {
@@ -27,6 +29,20 @@ public partial class MainPage : ContentPage
         base.OnAppearing();
         LoadServers();
         UpdateServiceStatus();
+        RefreshStatusColors();
+
+        // Timer pour rafraîchir les pastilles toutes les 2s
+        _refreshTimer = Dispatcher.CreateTimer();
+        _refreshTimer.Interval = TimeSpan.FromSeconds(2);
+        _refreshTimer.Tick += (s, e) => RefreshStatusColors();
+        _refreshTimer.Start();
+    }
+
+    protected override void OnDisappearing()
+    {
+        base.OnDisappearing();
+        _refreshTimer?.Stop();
+        _refreshTimer = null;
     }
 
     private void LoadServers()
@@ -34,7 +50,30 @@ public partial class MainPage : ContentPage
         _servers.Clear();
         var config = ConfigService.Load();
         foreach (var s in config.Servers)
-            _servers.Add(s);
+            _servers.Add(new ServerItemViewModel(s));
+    }
+
+    private void RefreshStatusColors()
+    {
+        foreach (var vm in _servers)
+        {
+            if (!vm.Server.Enabled)
+            {
+                vm.StatusColor = Color.FromArgb("#4C4C4C");
+                continue;
+            }
+
+            string status = PollingState.GetStatus(vm.Server.Id);
+
+            vm.StatusColor = status switch
+            {
+                "ok"       => Color.FromArgb("#6CCB5F"),
+                "warning"  => Color.FromArgb("#FFB900"),
+                "critical" => Color.FromArgb("#FF6347"),
+                "offline"  => Color.FromArgb("#888888"),
+                _          => Color.FromArgb("#4C4C4C")
+            };
+        }
     }
 
     private void UpdateServiceStatus()
@@ -49,9 +88,9 @@ public partial class MainPage : ContentPage
             : "Service arrêté";
     }
 
-    private ServerEntry? GetSelected()
+    private ServerItemViewModel? GetSelected()
     {
-        return serversList.SelectedItem as ServerEntry;
+        return serversList.SelectedItem as ServerItemViewModel;
     }
 
     private async void OnAddClicked(object sender, EventArgs e)
@@ -62,38 +101,39 @@ public partial class MainPage : ContentPage
 
     private async void OnEditClicked(object sender, EventArgs e)
     {
-        var server = GetSelected();
-        if (server == null)
+        var vm = GetSelected();
+        if (vm == null)
         {
             await DisplayAlert("Info", "Sélectionnez un serveur.", "OK");
             return;
         }
 
-        var page = new ServerEditPage(server);
+        var page = new ServerEditPage(vm.Server);
         await Navigation.PushModalAsync(page);
     }
 
     private async void OnDeleteClicked(object sender, EventArgs e)
     {
-        var server = GetSelected();
-        if (server == null)
+        var vm = GetSelected();
+        if (vm == null)
         {
             await DisplayAlert("Info", "Sélectionnez un serveur.", "OK");
             return;
         }
 
         bool ok = await DisplayAlert("Confirmation",
-            $"Supprimer le serveur \"{server.Name}\" ?", "Oui", "Non");
+            $"Supprimer le serveur \"{vm.Name}\" ?", "Oui", "Non");
 
         if (!ok) return;
 
         var config = ConfigService.Load();
-        var toRemove = config.Servers.FirstOrDefault(s => s.Id == server.Id);
+        var toRemove = config.Servers.FirstOrDefault(s => s.Id == vm.Server.Id);
         if (toRemove != null)
         {
             config.Servers.Remove(toRemove);
             ConfigService.Save(config);
             LoadServers();
+            RefreshStatusColors();
         }
     }
 
@@ -127,14 +167,14 @@ public partial class MainPage : ContentPage
 
     private void OnServerSelected(object sender, SelectionChangedEventArgs e)
     {
-        // La sélection est déjà stockée dans serversList.SelectedItem
+        // La sélection est stockée dans serversList.SelectedItem
     }
 
     private void OnServerTapped(object sender, TappedEventArgs e)
     {
-        if (sender is Border border && border.BindingContext is ServerEntry entry)
+        if (sender is Border border && border.BindingContext is ServerItemViewModel vm)
         {
-            serversList.SelectedItem = entry;
+            serversList.SelectedItem = vm;
         }
     }
 }

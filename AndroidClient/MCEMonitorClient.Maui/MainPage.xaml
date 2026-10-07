@@ -5,12 +5,6 @@
              x:Class="MCEMonitorClient.Maui.MainPage"
              Title="Serveurs"
              BackgroundColor="#1E1E1E">
-             
-            <ContentPage.Resources>
-                <ResourceDictionary>
-                    <converters:BoolToYesNoConverter x:Key="EnabledConverter" />
-                </ResourceDictionary>
-            </ContentPage.Resources>
             
     <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="12" RowSpacing="12">
 
@@ -39,22 +33,33 @@
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnServerTapped" />
                         </Border.GestureRecognizers>
-                        <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto">
-                            <Label Grid.Row="0" Grid.Column="0"
-                                   Text="{Binding Name}"
-                                   FontSize="16"
-                                   FontAttributes="Bold"
-                                   TextColor="#E5E5E5" />
-                            <Label Grid.Row="1" Grid.Column="0"
-                                   Text="{Binding FullUrl}"
-                                   FontSize="12"
-                                   TextColor="#B4B4B4" />
-                            <Label Grid.Row="2" Grid.Column="0"
-                                   Text="{Binding ServiceType}"
-                                   FontSize="11"
-                                   TextColor="#888888" />
-                            <Label Grid.Row="0" Grid.Column="1" Grid.RowSpan="3"
-                                   Text="{Binding Enabled, Converter={StaticResource EnabledConverter}}"
+
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <!-- Pastille de couleur -->
+                            <Ellipse Grid.Column="0"
+                                     WidthRequest="14"
+                                     HeightRequest="14"
+                                     Fill="{Binding StatusColor}"
+                                     VerticalOptions="Center"
+                                     Margin="0,0,12,0" />
+
+                            <!-- Infos serveur -->
+                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                <Label Text="{Binding Name}"
+                                       FontSize="16"
+                                       FontAttributes="Bold"
+                                       TextColor="#E5E5E5" />
+                                <Label Text="{Binding FullUrl}"
+                                       FontSize="12"
+                                       TextColor="#B4B4B4" />
+                                <Label Text="{Binding ServiceType}"
+                                       FontSize="11"
+                                       TextColor="#888888" />
+                            </VerticalStackLayout>
+
+                            <!-- Actif/Inactif -->
+                            <Label Grid.Column="2"
+                                   Text="{Binding EnabledText}"
                                    FontSize="12"
                                    VerticalOptions="Center"
                                    TextColor="#B4B4B4" />

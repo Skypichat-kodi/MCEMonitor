@@ -5,47 +5,106 @@
              Title="Options"
              BackgroundColor="#1E1E1E">
 
-    <VerticalStackLayout Padding="20" Spacing="16">
+    <ScrollView>
+        <VerticalStackLayout Padding="20" Spacing="16">
 
-        <Label Text="Options"
-               FontSize="20"
-               FontAttributes="Bold"
-               TextColor="#4CC2FF" />
+            <Label Text="Options"
+                   FontSize="20"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF" />
 
-        <Label Text="Intervalle de polling (secondes)" TextColor="#B4B4B4" />
-        <Entry x:Name="txtInterval"
-               Keyboard="Numeric"
-               TextColor="#E5E5E5"
-               BackgroundColor="#252526" />
+            <Label Text="Intervalle de polling (secondes)" TextColor="#B4B4B4" />
+            <Entry x:Name="txtInterval"
+                   Keyboard="Numeric"
+                   TextColor="#E5E5E5"
+                   BackgroundColor="#252526" />
 
-        <HorizontalStackLayout Spacing="8">
-            <Switch x:Name="swNotify" />
-            <Label Text="Notifier les changements d'état"
-                   TextColor="#B4B4B4"
-                   VerticalOptions="Center" />
-        </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+                <Switch x:Name="swNotify" />
+                <Label Text="Notifier les changements d'état"
+                       TextColor="#B4B4B4"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
 
-        <HorizontalStackLayout Spacing="8">
-            <Switch x:Name="swSound" />
-            <Label Text="Son sur alerte critique"
-                   TextColor="#B4B4B4"
-                   VerticalOptions="Center" />
-        </HorizontalStackLayout>
+            <HorizontalStackLayout Spacing="8">
+                <Switch x:Name="swSound" />
+                <Label Text="Son sur alerte critique"
+                       TextColor="#B4B4B4"
+                       VerticalOptions="Center" />
+            </HorizontalStackLayout>
 
-        <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,20,0,0">
-            <Button Grid.Column="0"
-                    Text="Annuler"
+            <Label Text="Configuration"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF"
+                   Margin="0,20,0,0" />
+
+            <Label Text="Exporte ou importe la liste des serveurs dans un fichier."
+                   FontSize="12"
+                   TextColor="#888888" />
+
+            <Button Text="Exporter la configuration"
                     BackgroundColor="#3C3C3C"
                     TextColor="#E5E5E5"
-                    Clicked="OnCancelClicked" />
-            <Button Grid.Column="1"
-                    Text="Enregistrer"
-                    BackgroundColor="#4CC2FF"
-                    TextColor="Black"
-                    FontAttributes="Bold"
-                    Clicked="OnSaveClicked" />
-        </Grid>
+                    Clicked="OnExportClicked" />
 
-    </VerticalStackLayout>
+            <Button Text="Importer une configuration"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnImportClicked" />
+
+            <Label Text="Arrière-plan"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF"
+                   Margin="0,20,0,0" />
+
+            <Label Text="Pour que le service reste actif après redémarrage et en arrière-plan, autorise MCEMonitor Client dans les réglages système."
+                   FontSize="12"
+                   TextColor="#888888" />
+
+            <Button x:Name="btnBattery"
+                    Text="Autoriser l'optimisation batterie"
+                    BackgroundColor="#F44336"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    Clicked="OnBatteryClicked" />
+
+            <Button Text="Autoriser le lancement auto (Honor)"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnStartupManagerClicked" />
+
+            <Label Text="Notifications"
+                   FontSize="16"
+                   FontAttributes="Bold"
+                   TextColor="#4CC2FF"
+                   Margin="0,20,0,0" />
+
+            <Label Text="Si tu ne reçois pas les notifications, vérifie qu'elles sont autorisées pour MCEMonitor Client."
+                   FontSize="12"
+                   TextColor="#888888" />
+
+            <Button Text="Ouvrir les paramètres de notifications"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    Clicked="OnNotificationSettingsClicked" />
+
+            <Grid ColumnDefinitions="*,*" ColumnSpacing="8" Margin="0,20,0,0">
+                <Button Grid.Column="0"
+                        Text="Annuler"
+                        BackgroundColor="#3C3C3C"
+                        TextColor="#E5E5E5"
+                        Clicked="OnCancelClicked" />
+                <Button Grid.Column="1"
+                        Text="Enregistrer"
+                        BackgroundColor="#4CC2FF"
+                        TextColor="Black"
+                        FontAttributes="Bold"
+                        Clicked="OnSaveClicked" />
+            </Grid>
+
+        </VerticalStackLayout>
+    </ScrollView>
 
 </ContentPage>
