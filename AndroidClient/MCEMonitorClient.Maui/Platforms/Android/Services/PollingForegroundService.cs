@@ -72,30 +72,51 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             return StartCommandResult.Sticky;
         }
 
-private async Task LoopAsync(CancellationToken ct)
-{
-    while (!ct.IsCancellationRequested)
-    {
-        try
+        private async Task LoopAsync(CancellationToken ct)
         {
-            var config = _store!.Load();
-            int interval = Math.Max(15, config.PollIntervalSeconds);
+            global::Android.Util.Log.Info(Tag, "Boucle de polling démarrée");
 
-            await _engine!.PollAllAsync(config, ct);
+            while (!ct.IsCancellationRequested)
+            {
+                try
+                {
+                    var config = _store!.Load();
 
-            // Publie l'état pour l'UI
-            MCEMonitorClient.Maui.Services.PollingState.Update(_engine.GetSnapshot());
+                    global::Android.Util.Log.Info(Tag,
+                        $"Polling : {config.Servers.Count} serveur(s) configuré(s), " +
+                        $"intervalle = {config.PollIntervalSeconds}s");
 
-            await Task.Delay(TimeSpan.FromSeconds(interval), ct);
+                    foreach (var s in config.Servers)
+                    {
+                        global::Android.Util.Log.Info(Tag,
+                            $"  ? {s.Name} ({s.ApiSummaryUrl}) enabled={s.Enabled}");
+                    }
+
+                    int interval = Math.Max(15, config.PollIntervalSeconds);
+
+                    await _engine!.PollAllAsync(config, ct);
+                    // Publie l'état courant pour que l'UI puisse afficher les pastilles
+                    MCEMonitorClient.Maui.Services.PollingState.Update(_engine.GetSnapshot());
+
+                    global::Android.Util.Log.Info(Tag,
+                        $"Poll terminé, global={_engine.GlobalState}");
+
+                    await Task.Delay(TimeSpan.FromSeconds(interval), ct);
+                }
+                catch (TaskCanceledException)
+                {
+                    global::Android.Util.Log.Info(Tag, "Boucle annulée");
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    global::Android.Util.Log.Error(Tag, "Polling error: " + ex);
+                    await Task.Delay(TimeSpan.FromSeconds(30), ct);
+                }
+            }
+
+            global::Android.Util.Log.Info(Tag, "Boucle de polling terminée");
         }
-        catch (TaskCanceledException) { break; }
-        catch (Exception ex)
-        {
-            global::Android.Util.Log.Error(Tag, "Polling error: " + ex);
-            await Task.Delay(TimeSpan.FromSeconds(30), ct);
-        }
-    }
-}
 
         private void OnStateChanged(PollResult current, PollResult? previous)
         {
