@@ -232,13 +232,7 @@ namespace MCEMonitorClient.Tray
                 }
 
                 // Choisit l'icône selon l'état
-                string iconFile = alert.Status switch
-                {
-                    "critical" => "dot-red.png",
-                    "warning"  => "dot-yellow.png",
-                    "offline"  => "dot-gray.png",
-                    _          => "dot-green.png"
-                };
+                string iconFile = GetAlertIcon(alert);
 
                 // Le toast est silencieux si on joue notre propre son
                 bool silent = isCritical || isWarning;
@@ -523,6 +517,8 @@ namespace MCEMonitorClient.Tray
 
             try
             {
+                string iconFile = GetMediaIcon(media.MediaType, media.EventType);
+
                 if (media.EventType == "started")
                 {
                     string title = $"{media.ServerName} - Lecture en cours";
@@ -536,7 +532,7 @@ namespace MCEMonitorClient.Tray
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
 
-                    ToastHelper.Show(title, info, "play.png", media.BaseUrl);
+                    ToastHelper.Show(title, info, iconFile, media.BaseUrl);
                 }
                 else if (media.EventType == "stopped")
                 {
@@ -551,7 +547,7 @@ namespace MCEMonitorClient.Tray
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
 
-                    ToastHelper.Show(title, info, "stop.png", media.BaseUrl);
+                    ToastHelper.Show(title, info, iconFile, media.BaseUrl);
                 }
             }
             catch (Exception ex)
@@ -559,5 +555,114 @@ namespace MCEMonitorClient.Tray
                 CoreLog.Write("OnMediaReceived ERROR : " + ex.Message);
             }
         }
+        
+        private static string GetMediaIcon(string? mediaType, string eventType)
+        {
+            bool isStop = eventType == "stopped";
+            string prefix = isStop ? "stop-" : "play-";
+            string fallback = isStop ? "stop.png" : "play.png";
+
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+
+            string suffix = t switch
+            {
+                "audio"  or "music" or "musique"            => "audio",
+                "video"  or "movie" or "film"               => "video",
+                "serie"  or "series" or "tv" or "episode"   => "tv",
+                "image"  or "photo" or "picture"            => "image",
+                _                                            => ""
+            };
+
+            return string.IsNullOrEmpty(suffix) ? fallback : prefix + suffix + ".png";
+        }
+        
+        private static string GetAlertIcon(PushAlert alert)
+        {
+            if (alert.Problems != null)
+            {
+                foreach (var p in alert.Problems)
+                    CoreLog.Write($"[ICON] Severity={p.Severity} Category='{p.Category}' Message='{p.Message}'");
+            }        
+            // Parcourt les problèmes : cherche le plus prioritaire
+            // On regarde les critiques d'abord, puis les warnings
+
+            if (alert.Problems != null && alert.Problems.Count > 0)
+            {
+                // 1) Cherche un problème critique disque
+                foreach (var p in alert.Problems)
+                {
+                    if (p.Severity != "critical") continue;
+                    if (IsDiskProblem(p)) return "hdd-critical.png";
+                }
+
+                // 2) Cherche un problème critique CPU température
+                foreach (var p in alert.Problems)
+                {
+                    if (p.Severity != "critical") continue;
+                    if (IsCpuTempProblem(p)) return "cpu-temp.png";
+                }
+
+                // 3) Cherche un problème critique CPU surcharge
+                foreach (var p in alert.Problems)
+                {
+                    if (p.Severity != "critical") continue;
+                    if (IsCpuProblem(p)) return "cpu-overload.png";
+                }
+
+                // 4) Warning disque
+                foreach (var p in alert.Problems)
+                {
+                    if (p.Severity != "warning") continue;
+                    if (IsDiskProblem(p)) return "hdd-warning.png";
+                }
+            }
+
+            // Fallback : icônes génériques selon l'état global
+            return alert.Status switch
+            {
+                "critical" => "critical.png",
+                "warning"  => "warning.png",
+                "offline"  => "disconnected.png",
+                _          => "connected.png"
+            };
+        }
+
+        private static bool IsDiskProblem(Ipc.ProblemItem p)
+        {
+            string cat = (p.Category ?? "").ToLowerInvariant();
+            string msg = (p.Message ?? "").ToLowerInvariant();
+
+            return cat.Contains("disk")
+                || cat.Contains("smart")
+                || cat.Contains("hdd")
+                || cat.Contains("ssd")
+                || cat.Contains("storage")
+                || msg.Contains("disk")
+                || msg.Contains("disque")
+                || msg.Contains("smart")
+                || msg.Contains("hdd");
+        }
+
+        private static bool IsCpuTempProblem(Ipc.ProblemItem p)
+        {
+            string cat = (p.Category ?? "").ToLowerInvariant();
+            string msg = (p.Message ?? "").ToLowerInvariant();
+
+            return (cat.Contains("cpu") && (cat.Contains("temp") || cat.Contains("thermal")))
+                || (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("chaud") || msg.Contains("°c")))
+                || cat.Contains("temperature")
+                || cat.Contains("thermal");
+        }
+
+        private static bool IsCpuProblem(Ipc.ProblemItem p)
+        {
+            string cat = (p.Category ?? "").ToLowerInvariant();
+            string msg = (p.Message ?? "").ToLowerInvariant();
+
+            return cat.Contains("cpu")
+                || cat.Contains("processor")
+                || msg.Contains("cpu")
+                || msg.Contains("processeur");
+        }                
     }
 }

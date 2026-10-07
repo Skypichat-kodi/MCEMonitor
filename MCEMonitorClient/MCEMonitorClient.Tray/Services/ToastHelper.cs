@@ -78,7 +78,7 @@ namespace MCEMonitorClient.Tray.Services
                         string uri = new Uri(iconPath).AbsoluteUri;
                         builder.AddAppLogoOverride(
                             new Uri(uri),
-                            ToastGenericAppLogoCrop.Circle);
+                            ToastGenericAppLogoCrop.None);
                     }
                 }
 
