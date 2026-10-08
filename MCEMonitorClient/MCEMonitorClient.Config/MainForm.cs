@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEMonitor.Languages;
@@ -21,10 +22,12 @@ namespace MCEMonitorClient.Config
         private DataGridView _grid = null!;
         private Button _btnAdd = null!;
         private Button _btnEdit = null!;
+        private Button _btnExport = null!;
+        private Button _btnImport = null!;
         private Button _btnDelete = null!;
-        private Button _btnAutoService = null!;      // Automatique ON/OFF (tâche planifiée)
-        private Button _btnServiceOnOff = null!;     // ON/OFF (démarrage manuel)
-        private Label _lblServiceStatus = null!;     // Label descriptif à droite
+        private Button _btnAutoService = null!;
+        private Button _btnServiceOnOff = null!;
+        private Label _lblServiceStatus = null!;
         private NumericUpDown _numInterval = null!;
         private CheckBox _chkNotify = null!;
         private CheckBox _chkSound = null!;
@@ -99,8 +102,12 @@ namespace MCEMonitorClient.Config
         {
             Text = LanguageManager.Get("MCEMonitorClient - Configuration") ?? "MCEMonitorClient - Configuration";
             Size = new Size(900, 680);
-            MinimumSize = new Size(800, 630);
             StartPosition = FormStartPosition.CenterScreen;
+
+            // Empêche le redimensionnement
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            MaximizeBox = false;
+            MinimizeBox = true;
             BackColor = Theme.Background;
             ForeColor = Theme.Text;
             Font = new Font(Theme.FontFamily, 9F);
@@ -176,11 +183,19 @@ namespace MCEMonitorClient.Config
             _btnEdit = CreateButton(LanguageManager.Get("Modifier") ?? "Modifier", 150, buttonY, 120, Theme.Panel, Theme.Text, false);
             _btnEdit.Click += (s, e) => EditSelected();
 
-            _btnDelete = CreateButton(LanguageManager.Get("Supprimer") ?? "Supprimer", 280, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnExport = CreateButton(LanguageManager.Get("Exporter") ?? "Exporter", 280, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnExport.Click += (s, e) => ExportConfig();
+
+            _btnImport = CreateButton(LanguageManager.Get("Importer") ?? "Importer", 410, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnImport.Click += (s, e) => ImportConfig();
+
+            _btnDelete = CreateButton(LanguageManager.Get("Supprimer") ?? "Supprimer", 540, buttonY, 120, Theme.Panel, Theme.Text, false);
             _btnDelete.Click += (s, e) => DeleteSelected();
 
             Controls.Add(_btnAdd);
             Controls.Add(_btnEdit);
+            Controls.Add(_btnExport);
+            Controls.Add(_btnImport);
             Controls.Add(_btnDelete);
 
             // --- Section Service ---
@@ -518,6 +533,148 @@ namespace MCEMonitorClient.Config
             _config.Servers.Remove(server);
             _serverStates.Remove(server.Id);
             RefreshGrid();
+        }
+
+        // ---------------------------------------------
+        //  Export / Import de la configuration
+        // ---------------------------------------------
+        private void ExportConfig()
+        {
+            try
+            {
+                var config = ServerConfigStore.Load();
+
+                using var sfd = new SaveFileDialog
+                {
+                    Title = LanguageManager.Get("Exporter la configuration") ?? "Exporter la configuration",
+                    Filter = "Configuration MCEMonitorClient (*.config)|*.config|Tous les fichiers (*.*)|*.*",
+                    FileName = $"MCEMonitorClient_{DateTime.Now:yyyy-MM-dd}.config",
+                    DefaultExt = "config",
+                    AddExtension = true,
+                    OverwritePrompt = true
+                };
+
+                if (sfd.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                bool ok = ServerConfigStore.Save(config);
+
+                if (!ok)
+                {
+                    MessageBox.Show(
+                        LanguageManager.Get("Erreur lors de la sauvegarde.") ?? "Erreur lors de la sauvegarde.",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Copie du fichier config vers l'emplacement choisi
+                File.Copy(ServerConfigStore.GetConfigPath(), sfd.FileName, overwrite: true);
+
+                MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Configuration exportée : {0}") ?? "Configuration exportée : {0}",
+                        sfd.FileName),
+                    LanguageManager.Get("OK") ?? "OK",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Erreur export : " + ex.Message,
+                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void ImportConfig()
+        {
+            try
+            {
+                using var ofd = new OpenFileDialog
+                {
+                    Title = LanguageManager.Get("Importer une configuration") ?? "Importer une configuration",
+                    Filter = "Configuration MCEMonitorClient (*.config)|*.config|Tous les fichiers (*.*)|*.*",
+                    DefaultExt = "config",
+                    CheckFileExists = true,
+                    Multiselect = false
+                };
+
+                if (ofd.ShowDialog(this) != DialogResult.OK)
+                    return;
+
+                // Lecture + validation JSON
+                string json = File.ReadAllText(ofd.FileName);
+
+                var imported = System.Text.Json.JsonSerializer.Deserialize<ServersConfig>(
+                    json,
+                    new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+
+                if (imported == null)
+                {
+                    MessageBox.Show(
+                        LanguageManager.Get("Le fichier ne contient pas une configuration valide.") 
+                            ?? "Le fichier ne contient pas une configuration valide.",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
+
+                // Confirmation
+                var confirm = MessageBox.Show(
+                    string.Format(
+                        LanguageManager.Get("Remplacer la configuration actuelle ?") 
+                            ?? "Remplacer la configuration actuelle ?\n\nServeurs actuels : {0}\nServeurs dans le fichier : {1}",
+                        _config.Servers.Count,
+                        imported.Servers.Count),
+                    LanguageManager.Get("Confirmation") ?? "Confirmation",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Warning);
+
+                if (confirm != DialogResult.Yes)
+                    return;
+
+                // Sauvegarde de l'ancienne config en .bak
+                try
+                {
+                    string backupPath = ServerConfigStore.GetConfigPath() + ".bak";
+                    File.Copy(ServerConfigStore.GetConfigPath(), backupPath, overwrite: true);
+                }
+                catch { }
+
+                // Écriture de la nouvelle config
+                bool ok = ServerConfigStore.Save(imported);
+
+                if (ok)
+                {
+                    _config = imported;
+                    RefreshGrid();
+                    LoadOptions();
+                    _ = RefreshAllStatesAsync();
+
+                    MessageBox.Show(
+                        string.Format(
+                            LanguageManager.Get("Configuration importée : {0} serveur(s).") 
+                                ?? "Configuration importée : {0} serveur(s).",
+                            imported.Servers.Count),
+                        LanguageManager.Get("OK") ?? "OK",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        LanguageManager.Get("Erreur lors de la sauvegarde.") ?? "Erreur lors de la sauvegarde.",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    "Erreur import : " + ex.Message,
+                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // ---------------------------------------------
