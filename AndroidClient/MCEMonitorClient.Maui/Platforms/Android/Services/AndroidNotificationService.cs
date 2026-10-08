@@ -119,6 +119,12 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void ShowMedia(Context context, PushMedia media)
         {
+            // Ignore les arrêts de lecture audio (trop fréquent, pas utile)
+            if (media.EventType == "stopped" && IsAudioType(media.MediaType))
+            {
+                return;
+            }
+
             string title = media.EventType == "started"
                 ? $"{media.ServerName} - Lecture en cours"
                 : $"{media.ServerName} - Lecture terminée";
@@ -248,6 +254,12 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             return string.IsNullOrEmpty(suffix)
                 ? (isStop ? "stop" : "play")
                 : prefix + suffix;
+        }
+
+        private static bool IsAudioType(string? mediaType)
+        {
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+            return t == "audio" || t == "music" || t == "musique";
         }
 
         private static bool IsDiskProblem(ProblemItem p)
