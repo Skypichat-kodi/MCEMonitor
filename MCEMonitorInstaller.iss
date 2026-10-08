@@ -40,7 +40,8 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "deletetasks"; \
     Description: "Supprimer les tâches planifiées existantes avant l'installation"; \
     GroupDescription: "Tâches planifiées :"; \
-    Flags: unchecked
+    Flags: unchecked; \
+    Components: core
 
 ; Choix des composants à installer
 [Components]
@@ -162,11 +163,17 @@ Filename: "{tmp}\PawnIO_setup.exe"; \
     Flags: runhidden waituntilterminated; \
     Check: not IsPawnIOInstalled
     
-; Lancement AVEC UAC
+; Lancement AVEC UAC — MCEMonitor (core)
 Filename: "{app}\MCEMonitor.exe"; \
     Description: "{cm:LaunchProgram,MCEMonitor}"; \
     Flags: shellexec postinstall skipifsilent; \
     Components: core
+
+; Lancement — MCEMonitor Client (Config)
+Filename: "{app}\MCEMonitorClient.Config.exe"; \
+    Description: "{cm:LaunchProgram,MCEMonitor Client}"; \
+    Flags: shellexec postinstall skipifsilent nowait; \
+    Components: client
 
 [UninstallRun]
 ; --- Arrêt des processus ---
