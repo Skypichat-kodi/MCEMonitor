@@ -517,6 +517,13 @@ namespace MCEMonitorClient.Tray
 
             try
             {
+                // Ignore les arrêts de lecture audio (trop fréquent, pas utile)
+                if (media.EventType == "stopped" && IsAudioType(media.MediaType))
+                {
+                    CoreLog.Write("OnMediaReceived : arrêt audio ignoré");
+                    return;
+                }
+
                 string iconFile = GetMediaIcon(media.MediaType, media.EventType);
 
                 if (media.EventType == "started")
@@ -574,6 +581,12 @@ namespace MCEMonitorClient.Tray
             };
 
             return string.IsNullOrEmpty(suffix) ? fallback : prefix + suffix + ".png";
+        }
+
+        private static bool IsAudioType(string? mediaType)
+        {
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+            return t == "audio" || t == "music" || t == "musique";
         }
         
         private static string GetAlertIcon(PushAlert alert)
