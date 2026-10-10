@@ -11,9 +11,10 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 {
     public static class AndroidNotificationService
     {
-        public const string ChannelCritical = "mcem_critical";
-        public const string ChannelWarning  = "mcem_warning";
-        public const string ChannelInfo     = "mcem_info";
+        public const string ChannelCritical   = "mcem_critical";
+        public const string ChannelWarning    = "mcem_warning";
+        public const string ChannelDisconnect = "mcem_disconnect";   // ? nouveau
+        public const string ChannelInfo       = "mcem_info";
 
         private const string ServiceChannel = "mcem_service";
         private static int _nextId = 1000;
@@ -25,6 +26,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             var manager = (NotificationManager)context.GetSystemService(Context.NotificationService)!;
 
+            // ---------- Canal CRITICAL : alarm.wav ----------
             var criticalSound = global::Android.Net.Uri.Parse(
                 $"android.resource://{context.PackageName}/{Resource.Raw.alarm}");
             var critical = new NotificationChannel(ChannelCritical, "Alertes critiques",
@@ -36,6 +38,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 .SetUsage(AudioUsageKind.Notification).Build());
             critical.EnableVibration(true);
 
+            // ---------- Canal WARNING : warning.wav ----------
             var warningSound = global::Android.Net.Uri.Parse(
                 $"android.resource://{context.PackageName}/{Resource.Raw.warning}");
             var warning = new NotificationChannel(ChannelWarning, "Avertissements",
@@ -46,6 +49,19 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             warning.SetSound(warningSound, new AudioAttributes.Builder()
                 .SetUsage(AudioUsageKind.Notification).Build());
 
+            // ---------- Canal DISCONNECT : son système par défaut ----------
+            // IMPORTANCE_DEFAULT + aucun SetSound() ? Android utilise le son
+            // de notification système par défaut. Non urgent, mais audible.
+            var disconnect = new NotificationChannel(
+                ChannelDisconnect,
+                "Déconnexions serveur",
+                NotificationImportance.Default)
+            {
+                Description = "Notifications de déconnexion / reconnexion des serveurs"
+            };
+            // ? On n'appelle PAS SetSound() ici ? son système par défaut
+
+            // ---------- Canal INFO : silencieux (média) ----------
             var info = new NotificationChannel(ChannelInfo, "Informations",
                 NotificationImportance.Low)
             {
@@ -53,6 +69,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             };
             info.SetSound(null, null);
 
+            // ---------- Canal SERVICE : silencieux (foreground) ----------
             var service = new NotificationChannel(ServiceChannel, "Service de surveillance",
                 NotificationImportance.Low)
             {
@@ -62,16 +79,20 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             manager.CreateNotificationChannel(critical);
             manager.CreateNotificationChannel(warning);
+            manager.CreateNotificationChannel(disconnect);   // ? nouveau
             manager.CreateNotificationChannel(info);
             manager.CreateNotificationChannel(service);
         }
 
         public static void ShowAlert(Context context, PushAlert alert)
         {
+            // Routage par canal selon l'état
             string channel = alert.Status switch
             {
                 "critical" => ChannelCritical,
                 "warning"  => ChannelWarning,
+                "offline"  => ChannelDisconnect,   // ? nouveau : son système par défaut
+                "ok"       => ChannelDisconnect,   // ? retour à la normale, idem
                 _          => ChannelInfo
             };
 
@@ -79,6 +100,8 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             {
                 "critical" => (int)NotificationPriority.High,
                 "warning"  => (int)NotificationPriority.Default,
+                "offline"  => (int)NotificationPriority.Default,
+                "ok"       => (int)NotificationPriority.Default,
                 _          => (int)NotificationPriority.Low
             };
 

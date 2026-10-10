@@ -10,6 +10,7 @@ using MCEMonitorClient.Tray.Ipc;
 using MCEMonitorClient.Tray.Logs;
 using MCEMonitorClient.Tray.Models;
 using MCEMonitorClient.Tray.Services;
+using System.Runtime.InteropServices;
 
 namespace MCEMonitorClient.Tray
 {
@@ -33,6 +34,23 @@ namespace MCEMonitorClient.Tray
         // --- Sons ---
         private System.Media.SoundPlayer? _alarmPlayer;
         private System.Media.SoundPlayer? _warningPlayer;
+
+        // --- Sons système Windows (par alias) ---
+        [DllImport("winmm.dll", CharSet = CharSet.Auto)]
+        private static extern bool PlaySound(string pszSound, IntPtr hmod, uint fdwSound);
+
+        private const uint SND_ALIAS     = 0x00010000;
+        private const uint SND_ASYNC     = 0x0001;
+        private const uint SND_NODEFAULT = 0x0002;
+
+        private static void PlaySystemSound(string alias)
+        {
+            try
+            {
+                PlaySound(alias, IntPtr.Zero, SND_ALIAS | SND_ASYNC);
+            }
+            catch { }
+        }
 
         // ---------------------------------------------
         //  Constructeur (UN SEUL)
@@ -177,6 +195,7 @@ namespace MCEMonitorClient.Tray
                 string message;
                 bool isCritical = false;
                 bool isWarning  = false;
+                bool isOffline  = false;
 
                 // --- Cas 1 : retour à la normale ---
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok")
@@ -189,7 +208,7 @@ namespace MCEMonitorClient.Tray
                 {
                     title = $"{alert.ServerName} - Hors ligne";
                     message = "Le serveur ne répond plus";
-                    isCritical = true;
+                    isOffline = true;   // ? son système "Device Disconnect"
                 }
                 // --- Cas 3 : problèmes détectés ---
                 else if (alert.Problems != null && alert.Problems.Count > 0)
@@ -206,8 +225,6 @@ namespace MCEMonitorClient.Tray
                     for (int i = 0; i < Math.Min(count, maxShown); i++)
                     {
                         var p = alert.Problems[i];
-
-                        // ? Marqueur ASCII (compatible Toast)
                         string prefix = p.Severity == "critical" ? "[CRIT]" : "[WARN]";
                         lines.Add($"{prefix} {p.Message}");
                     }
@@ -217,10 +234,8 @@ namespace MCEMonitorClient.Tray
 
                     message = string.Join("\n", lines);
 
-                    if (alert.Status == "critical")
-                        isCritical = true;
-                    else if (alert.Status == "warning")
-                        isWarning = true;
+                    if (alert.Status == "critical")      isCritical = true;
+                    else if (alert.Status == "warning")  isWarning  = true;
                 }
                 // --- Cas 4 : changement générique ---
                 else
@@ -231,20 +246,17 @@ namespace MCEMonitorClient.Tray
                         : alert.FirstProblem;
                 }
 
-                // Choisit l'icône selon l'état
                 string iconFile = GetAlertIcon(alert);
 
-                // Le toast est silencieux si on joue notre propre son
-                bool silent = isCritical || isWarning;
+                // On rend le toast silencieux dès qu'on joue un son nous-mêmes
+                bool silent = isCritical || isWarning || isOffline;
 
-                // ? Envoie la notification Toast
                 ToastHelper.Show(title, message, iconFile, alert.BaseUrl, silent);
 
-                // ? Joue le son custom (alarm.wav ou warning.wav)
-                if (isCritical)
-                    PlayAlarm();
-                else if (isWarning)
-                    PlayWarning();
+                // Choix du son
+                if (isCritical)       PlayAlarm();
+                else if (isWarning)   PlayWarning();
+                else if (isOffline)   PlaySystemSound("DeviceDisconnect");
             }
             catch (Exception ex)
             {
