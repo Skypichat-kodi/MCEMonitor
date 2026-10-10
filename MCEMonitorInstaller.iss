@@ -4,12 +4,13 @@
 ; ============================================
 
 [Setup]
+#define MyAppVersion "2.1.6"
 AppName=MCEMonitor
-AppVersion=2.1.6
+AppVersion={#MyAppVersion}
+OutputBaseFilename=MCEMonitorSetup-{#MyAppVersion}
 DefaultDirName={autopf}\MCEMonitor
 DefaultGroupName=MCEMonitor
 OutputDir=Installer
-OutputBaseFilename=MCEMonitorSetup
 Compression=lzma
 SolidCompression=yes
 UsedUserAreasWarning=no
@@ -367,9 +368,11 @@ end;
 
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
 var
-  DataDir: String;
-  CRLF: String;
-  MsgText: String;
+  DataDir, BackupDir: String;
+  CRLF, MsgText: String;
+  ConfigFiles: TArrayOfString;
+  i: Integer;
+  SourceFile, DestFile: String;
 begin
   if CurUninstallStep = usPostUninstall then
   begin
@@ -383,14 +386,62 @@ begin
 
     CRLF := Chr(13) + Chr(10);
 
-    MsgText := 'Voulez-vous supprimer les fichiers de configuration et les logs ?' + CRLF + CRLF +
+    MsgText := 'Voulez-vous supprimer les fichiers de log et les fichiers temporaires ?' + CRLF + CRLF +
                'Dossier : ' + DataDir + CRLF + CRLF +
-               'Oui = tout supprimer' + CRLF +
+               'Oui = supprimer les logs et fichiers temporaires' + CRLF +
+               '        (les fichiers de configuration seront CONSERVÉS)' + CRLF +
                'Non = tout conserver';
 
     if MsgBox(MsgText, mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
     begin
+      // ── 1) Liste des fichiers de configuration à conserver ──
+      ConfigFiles := [
+        'email.config',
+        'MCEMonitorClient.config',
+        'MediaMonitor.Web.config',
+        'RomMonitor.config',
+        'Shutdown.config',
+        'SystemMonitor.config',
+        'theme.config',
+        'WakeMonitor.config'
+      ];
+
+      // ── 2) Sauvegarde des .config dans un dossier temporaire ──
+      BackupDir := ExpandConstant('{commonappdata}\MCEMonitor_backup');
+      ForceDirectories(BackupDir);
+
+      for i := 0 to GetArrayLength(ConfigFiles) - 1 do
+      begin
+        SourceFile := AddBackslash(DataDir) + ConfigFiles[i];
+        DestFile   := AddBackslash(BackupDir) + ConfigFiles[i];
+
+        if FileExists(SourceFile) then
+        begin
+          CopyFile(SourceFile, DestFile, False);
+          Log('Config sauvegardé : ' + ConfigFiles[i]);
+        end;
+      end;
+
+      // ── 3) Suppression complète du dossier ──
       DelTree(DataDir, True, True, True);
+
+      // ── 4) Restauration du dossier + des .config ──
+      ForceDirectories(DataDir);
+
+      for i := 0 to GetArrayLength(ConfigFiles) - 1 do
+      begin
+        SourceFile := AddBackslash(BackupDir) + ConfigFiles[i];
+        DestFile   := AddBackslash(DataDir) + ConfigFiles[i];
+
+        if FileExists(SourceFile) then
+        begin
+          CopyFile(SourceFile, DestFile, False);
+          Log('Config restauré : ' + ConfigFiles[i]);
+        end;
+      end;
+
+      // ── 5) Nettoyage du dossier de sauvegarde ──
+      DelTree(BackupDir, True, True, True);
     end;
   end;
 end;
