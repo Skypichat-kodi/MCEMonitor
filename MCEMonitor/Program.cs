@@ -20,15 +20,10 @@ namespace MCEMonitor
         private const string MutexName = "Global\\MCEMonitor_MainUI";
         private const string PipeName  = "MCEMonitor_Activate";
 
-        // Référence partagée vers le KryptonManager (pour le sélecteur de thème)
         public static KryptonManager SharedManager { get; private set; }
 
-        // Référence vers la fenêtre principale (pour l'activation)
         private static MainForm _mainForm;
 
-        // ============================================================
-        //  Win32 imports pour l'activation de fenêtre
-        // ============================================================
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -52,6 +47,19 @@ namespace MCEMonitor
                 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
                 // ============================================================
+                //  MODE TÂCHE PLANIFIÉE (arrêt / veille programmé)
+                //  ? AVANT le mutex, sinon on signale l'instance existante
+                //    et rien ne se passe.
+                // ============================================================
+                if (args.Length >= 2 &&
+                    args[0].Equals("--run-scheduled", StringComparison.OrdinalIgnoreCase))
+                {
+                    AppData.Initialize();
+                    ScheduledActionRunner.Run(args[1]);
+                    return;   // on sort : pas d'UI, pas d'IPC, pas de mutex
+                }
+
+                // ============================================================
                 //  Mutex anti-multi-instance
                 // ============================================================
                 bool createdNew;
@@ -59,7 +67,6 @@ namespace MCEMonitor
 
                 if (!createdNew)
                 {
-                    // Une instance tourne déjà ? lui demander de s'activer
                     SignalExistingInstance();
                     return;
                 }
@@ -70,7 +77,6 @@ namespace MCEMonitor
                 // ============================================================
                 //  GESTION DE LA LANGUE (argument > auto-détection Windows)
                 // ============================================================
-
                 string selectedLang = null;
 
                 if (args.Contains("-EN", StringComparer.OrdinalIgnoreCase))
@@ -96,13 +102,11 @@ namespace MCEMonitor
                 // ============================================================
                 //  INITIALISATION APPLICATION
                 // ============================================================
-
                 AppData.Initialize();
 
                 // ============================================================
                 //  INSTALLATION AUTOMATIQUE TRAY
                 // ============================================================
-
                 if (!ServiceInstaller.TrayTaskExists())
                     ServiceInstaller.CreateTrayTask();
 
@@ -115,7 +119,6 @@ namespace MCEMonitor
                 // ============================================================
                 //  SERVICES LOCAUX
                 // ============================================================
-
                 var media = new MediaMonitorService();
                 var wake  = new WakeMonitorService();
 
@@ -134,15 +137,12 @@ namespace MCEMonitor
                 // ============================================================
                 //  INITIALISATION APPLICATION (une seule fois !)
                 // ============================================================
-
                 ApplicationConfiguration.Initialize();
 
-                // Initialisation du thème Krypton
                 SharedManager = new KryptonManager();
                 SharedManager.GlobalPaletteMode = ThemeSelectorForm.LoadSavedTheme();
                 SharedManager.GlobalApplyToolstrips = true;
 
-                // Lancement de la fenêtre principale
                 _mainForm = new MainForm(media, wake);
                 Application.Run(_mainForm);
             }
@@ -240,14 +240,12 @@ namespace MCEMonitor
         // ============================================================
         private static void OnActivationRequested()
         {
-            // Attendre que la fenêtre soit prête (max 5 s)
             for (int i = 0; i < 50 && _mainForm == null; i++)
                 Thread.Sleep(100);
 
             if (_mainForm == null || _mainForm.IsDisposed)
                 return;
 
-            // Marshalling vers le thread UI WinForms
             if (_mainForm.InvokeRequired)
             {
                 _mainForm.Invoke(new Action(OnActivationRequested));
@@ -256,7 +254,6 @@ namespace MCEMonitor
 
             IntPtr hwnd = _mainForm.Handle;
 
-            // Déjà au premier plan ET pas minimisée ?
             if (GetForegroundWindow() == hwnd &&
                 _mainForm.WindowState != FormWindowState.Minimized)
             {
@@ -268,11 +265,9 @@ namespace MCEMonitor
                 return;
             }
 
-            // Restaurer si minimisée
             if (IsIconic(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 
-            // Ramener au premier plan
             SetForegroundWindow(hwnd);
             _mainForm.Activate();
         }

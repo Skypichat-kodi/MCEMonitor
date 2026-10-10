@@ -82,14 +82,24 @@ namespace MCEMonitor.Utils
 
         public static string CreateShutdownTask(int hour, int minute, string mode)
         {
-            string action = mode == "sleep"
-                ? "rundll32.exe powrprof.dll,SetSuspendState 0,1,0"
-                : "shutdown.exe /s /f /t 0";
+            string exePath = Application.ExecutablePath;
+
+            // La tâche se déclenche 5 minutes AVANT l'heure réelle
+            int taskHour = hour;
+            int taskMinute = minute - 5;
+
+            if (taskMinute < 0)
+            {
+                taskMinute += 60;
+                taskHour -= 1;
+                if (taskHour < 0) taskHour += 24;
+            }
 
             return RunAdmin(
                 "schtasks /Create /TN \"MCEMonitor_Shutdown\" " +
-                "/SC DAILY /ST " + $"{hour:D2}:{minute:D2} " +
-                $"/TR \"{action}\" /RU SYSTEM /RL HIGHEST /F"
+                "/SC DAILY /ST " + $"{taskHour:D2}:{taskMinute:D2} " +
+                $"/TR \"\\\"{exePath}\\\" --run-scheduled {mode}\" " +
+                "/RU SYSTEM /RL HIGHEST /F"
             );
         }
 

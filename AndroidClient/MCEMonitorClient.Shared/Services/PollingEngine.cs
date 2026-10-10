@@ -14,6 +14,12 @@ namespace MCEMonitorClient.Shared.Services
         private readonly Dictionary<string, PollResult> _lastResults = new();
         private readonly object _lock = new();
 
+        // --- Tracking des médias pour éviter les faux started/stopped ---
+        private readonly Dictionary<string, (DateTime LastSeen, MediaItem Media)> _mediaTrack = new();
+
+        // Durée pendant laquelle un média absent est considéré comme "peut-être de retour"
+        private const int MediaStopGraceSeconds = 90;
+
         // Événements pour notifier l'app
         public event Action<PollResult, PollResult?>? OnStateChanged;
         public event Action<PollResult, MediaItem, string>? OnMediaEvent;
@@ -184,25 +190,67 @@ namespace MCEMonitorClient.Shared.Services
 
         private void DetectMediaChanges(PollResult current, PollResult? previous)
         {
-            var prevKeys = previous?.Media.Select(m => m.Key).ToHashSet() ?? new HashSet<string>();
-            var currKeys = current.Media.Select(m => m.Key).ToHashSet();
+            // Premier poll pour ce serveur : on enregistre sans rien notifier
+            if (previous == null)
+            {
+                foreach (var media in current.Media)
+                {
+                    string fullKey = $"{current.ServerId}|{media.Key}";
+                    _mediaTrack[fullKey] = (DateTime.Now, media);
+                }
+                return;
+            }
 
-            // Nouveaux médias
+            var now = DateTime.Now;
+            var currKeys = current.Media.Select(m => $"{current.ServerId}|{m.Key}").ToHashSet();
+
+            // ---------------------------------------------------------
+            // 1) Médias présents : mise à jour du tracking
+            //    "started" uniquement si jamais vu récemment
+            // ---------------------------------------------------------
             foreach (var media in current.Media)
             {
-                if (!prevKeys.Contains(media.Key))
-                    OnMediaEvent?.Invoke(current, media, "started");
-            }
+                string fullKey = $"{current.ServerId}|{media.Key}";
 
-            // Médias terminés
-            if (previous != null)
-            {
-                foreach (var media in previous.Media)
+                bool existedInPrevious = previous.Media.Any(m => m.Key == media.Key);
+                bool existedBefore     = _mediaTrack.ContainsKey(fullKey);
+
+                _mediaTrack[fullKey] = (now, media);
+
+                if (!existedInPrevious && !existedBefore)
                 {
-                    if (!currKeys.Contains(media.Key))
-                        OnMediaEvent?.Invoke(current, media, "stopped");
+                    OnMediaEvent?.Invoke(current, media, "started");
                 }
             }
+
+            // ---------------------------------------------------------
+            // 2) Médias absents : on attend le délai de grâce
+            //    avant de considérer qu'ils sont vraiment terminés
+            // ---------------------------------------------------------
+            var toRemove = new List<string>();
+
+            foreach (var kvp in _mediaTrack)
+            {
+                string fullKey = kvp.Key;
+
+                // On ne traite que les médias de ce serveur
+                if (!fullKey.StartsWith(current.ServerId + "|"))
+                    continue;
+
+                if (currKeys.Contains(fullKey))
+                    continue;
+
+                double secondsAbsent = (now - kvp.Value.LastSeen).TotalSeconds;
+
+                if (secondsAbsent > MediaStopGraceSeconds)
+                {
+                    OnMediaEvent?.Invoke(current, kvp.Value.Media, "stopped");
+                    toRemove.Add(fullKey);
+                }
+            }
+
+            foreach (var k in toRemove)
+                _mediaTrack.Remove(k);
         }
 
         private void UpdateGlobalState()

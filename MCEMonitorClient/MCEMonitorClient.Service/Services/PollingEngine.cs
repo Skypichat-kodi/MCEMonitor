@@ -25,6 +25,12 @@ namespace MCEMonitorClient.Service.Services
         private bool _running;
         private DateTime _lastFullScan = DateTime.MinValue;
 
+        // --- Tracking des médias pour éviter les faux started/stopped ---
+        private readonly Dictionary<string, (DateTime LastSeen, MediaItem Media)> _mediaTrack = new();
+
+        // Durée pendant laquelle un média absent est considéré comme "peut-être de retour"
+        private const int MediaStopGraceSeconds = 90;
+        
         // Événements pour notifier l'IPC
         public event Action<PollResult, PollResult?>? OnStateChanged;   // (nouveau, ancien)
 
@@ -265,29 +271,69 @@ namespace MCEMonitorClient.Service.Services
 
         private void DetectMediaChanges(PollResult current, PollResult? previous)
         {
-            var prevKeys = previous?.Media.Select(m => m.Key).ToHashSet() ?? new HashSet<string>();
-            var currKeys = current.Media.Select(m => m.Key).ToHashSet();
+            // Premier poll : on enregistre les médias sans rien notifier
+            if (previous == null)
+            {
+                foreach (var media in current.Media)
+                {
+                    string fullKey = $"{current.ServerId}|{media.Key}";
+                    _mediaTrack[fullKey] = (DateTime.Now, media);
+                }
+                return;
+            }
 
-            // Nouveaux médias
+            var now = DateTime.Now;
+            var currKeys = current.Media.Select(m => $"{current.ServerId}|{m.Key}").ToHashSet();
+
+            // ---------------------------------------------------------
+            // 1) Médias présents : on met à jour le tracking,
+            //    et on ne fire "started" QUE si vraiment nouveau
+            // ---------------------------------------------------------
             foreach (var media in current.Media)
             {
-                if (!prevKeys.Contains(media.Key))
+                string fullKey = $"{current.ServerId}|{media.Key}";
+
+                bool existedInPrevious = previous.Media.Any(m => m.Key == media.Key);
+                bool existedBefore     = _mediaTrack.ContainsKey(fullKey);
+
+                _mediaTrack[fullKey] = (now, media);
+
+                // "started" uniquement si le média n'était ni dans le poll précédent,
+                // ni connu dans notre tracking (donc jamais vu récemment)
+                if (!existedInPrevious && !existedBefore)
                 {
                     PushChannel.PushMediaEvent(current, media, "started");
                 }
             }
 
-            // Médias terminés
-            if (previous != null)
+            // ---------------------------------------------------------
+            // 2) Médias absents : on attend le délai de grâce avant
+            //    de considérer qu'ils sont vraiment terminés
+            // ---------------------------------------------------------
+            var toRemove = new List<string>();
+
+            foreach (var kvp in _mediaTrack)
             {
-                foreach (var media in previous.Media)
+                string fullKey = kvp.Key;
+
+                if (!fullKey.StartsWith(current.ServerId + "|"))
+                    continue;
+
+                if (currKeys.Contains(fullKey))
+                    continue;
+
+                double secondsAbsent = (now - kvp.Value.LastSeen).TotalSeconds;
+
+                if (secondsAbsent > MediaStopGraceSeconds)
                 {
-                    if (!currKeys.Contains(media.Key))
-                    {
-                        PushChannel.PushMediaEvent(current, media, "stopped");
-                    }
+                    // Vraiment disparu ? on fire "stopped" avec le dernier état connu
+                    PushChannel.PushMediaEvent(current, kvp.Value.Media, "stopped");
+                    toRemove.Add(fullKey);
                 }
             }
+
+            foreach (var k in toRemove)
+                _mediaTrack.Remove(k);
         }
 
         private void UpdateGlobalState()
