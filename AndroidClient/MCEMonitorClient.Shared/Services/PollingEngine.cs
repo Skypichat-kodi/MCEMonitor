@@ -20,6 +20,10 @@ namespace MCEMonitorClient.Shared.Services
         // Durée pendant laquelle un média absent est considéré comme "peut-être de retour"
         private const int MediaStopGraceSeconds = 90;
 
+        // --- Anti-faux-positif "offline" : compteur d'échecs consécutifs par serveur ---
+        private readonly Dictionary<string, int> _consecutiveFailures = new();
+        private const int OfflineThreshold = 2;   // Nombre d'échecs avant de dire "offline"
+
         // Événements pour notifier l'app
         public event Action<PollResult, PollResult?>? OnStateChanged;
         public event Action<PollResult, MediaItem, string>? OnMediaEvent;
@@ -54,7 +58,10 @@ namespace MCEMonitorClient.Shared.Services
                 var validIds = config.Servers.Select(s => s.Id).ToHashSet();
                 var toRemove = _lastResults.Keys.Where(id => !validIds.Contains(id)).ToList();
                 foreach (var id in toRemove)
+                {
                     _lastResults.Remove(id);
+                    _consecutiveFailures.Remove(id);
+                }
             }
         }
 
@@ -169,6 +176,27 @@ namespace MCEMonitorClient.Shared.Services
             {
                 if (_lastResults.TryGetValue(result.ServerId, out previous))
                     stateChanged = previous.Status != result.Status;
+
+                // ----- Anti-faux-positif "offline" -----
+                if (!result.Online || result.Status == "offline")
+                {
+                    _consecutiveFailures.TryGetValue(result.ServerId, out int fails);
+                    fails++;
+                    _consecutiveFailures[result.ServerId] = fails;
+
+                    // Pas encore assez d'échecs ? on garde l'ancien état
+                    if (fails < OfflineThreshold && previous != null)
+                    {
+                        result.Status = previous.Status;
+                        result.Online = previous.Online;
+                        stateChanged = false;
+                    }
+                }
+                else
+                {
+                    // Un succès réinitialise le compteur
+                    _consecutiveFailures[result.ServerId] = 0;
+                }
 
                 _lastResults[result.ServerId] = result;
             }
