@@ -1,4 +1,5 @@
-using System;
+Ôªøusing System;
+using System.IO;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -23,14 +24,18 @@ namespace SystemMonitor.Tray
         private void InitializeUI(List<ProblemInfo> problems)
         {
             // ------------------------------------------------------------
-            //  ParamËtres de la fenÍtre
+            //  Param√®tres de la fen√™tre
             // ------------------------------------------------------------
             this.FormBorderStyle = FormBorderStyle.None;
             this.ShowInTaskbar = false;
             this.StartPosition = FormStartPosition.Manual;
             this.TopMost = true;
-            this.BackColor = Color.FromArgb(37, 37, 38);   // #252526
+            this.BackColor = Color.FromArgb(37, 37, 38);
             this.Padding = new Padding(1);
+
+            // Charge les ic√¥nes une seule fois
+            Image? iconWarning  = LoadImage("warning.png");
+            Image? iconCritical = LoadImage("critical.png");
 
             // Bordure subtile via Paint
             this.Paint += (s, e) =>
@@ -47,7 +52,7 @@ namespace SystemMonitor.Tray
             var lblTitle = new Label
             {
                 Text = "SystemMonitor",
-                ForeColor = Color.FromArgb(76, 194, 255),   // #4CC2FF
+                ForeColor = Color.FromArgb(76, 194, 255),
                 Font = new Font("Segoe UI", 11F, FontStyle.Bold),
                 Location = new Point(15, y),
                 AutoSize = true
@@ -56,7 +61,7 @@ namespace SystemMonitor.Tray
             y += 35;
 
             // ------------------------------------------------------------
-            //  SÈparateur
+            //  S√©parateur
             // ------------------------------------------------------------
             var sep1 = new Panel
             {
@@ -68,14 +73,14 @@ namespace SystemMonitor.Tray
             y += 10;
 
             // ------------------------------------------------------------
-            //  Liste des problËmes (max 5)
+            //  Liste des probl√®mes (max 5)
             // ------------------------------------------------------------
             if (problems == null || problems.Count == 0)
             {
                 var lblOk = new Label
                 {
-                    Text = "[OK]  Aucun problËme dÈtectÈ",
-                    ForeColor = Color.FromArgb(108, 203, 95),   // #6CCB5F
+                    Text = "[OK]  Aucun probl√®me d√©tect√©",
+                    ForeColor = Color.FromArgb(108, 203, 95),
                     Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
                     Location = new Point(15, y),
                     Size = new Size(PopupWidth - 30, 24),
@@ -90,19 +95,32 @@ namespace SystemMonitor.Tray
 
                 foreach (var p in shown)
                 {
+                    // Ic√¥ne PNG selon la s√©v√©rit√©
+                    var pic = new PictureBox
+                    {
+                        Image = p.Severity == "critical" ? iconCritical : iconWarning,
+                        SizeMode = PictureBoxSizeMode.Zoom,
+                        Location = new Point(15, y + 3),
+                        Size = new Size(16, 16),
+                        BackColor = Color.Transparent
+                    };
+                    this.Controls.Add(pic);
+
+                    // Texte du probl√®me (sans marqueur [!] / [?])
                     var lbl = new Label
                     {
-                        Text = FormatProblem(p),
+                        Text = FormatProblemText(p),
                         ForeColor = p.Severity == "critical"
-                            ? Color.FromArgb(255, 99, 71)     // #FF6347
-                            : Color.FromArgb(255, 185, 0),    // #FFB900
+                            ? Color.FromArgb(255, 99, 71)
+                            : Color.FromArgb(255, 185, 0),
                         Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                        Location = new Point(15, y),
-                        Size = new Size(PopupWidth - 30, 22),
+                        Location = new Point(38, y),
+                        Size = new Size(PopupWidth - 53, 22),
                         TextAlign = ContentAlignment.MiddleLeft,
                         AutoEllipsis = true
                     };
                     this.Controls.Add(lbl);
+
                     y += 24;
                 }
 
@@ -126,7 +144,7 @@ namespace SystemMonitor.Tray
             y += 8;
 
             // ------------------------------------------------------------
-            //  SÈparateur
+            //  S√©parateur
             // ------------------------------------------------------------
             var sep2 = new Panel
             {
@@ -166,7 +184,7 @@ namespace SystemMonitor.Tray
             this.ClientSize = new Size(PopupWidth, y);
 
             // ------------------------------------------------------------
-            //  Fermer si clic ailleurs (aprËs un dÈlai pour Èviter la fermeture immÈdiate)
+            //  Fermer si clic ailleurs (apr√®s un d√©lai pour √©viter la fermeture imm√©diate)
             // ------------------------------------------------------------
             var deactivateTimer = new System.Windows.Forms.Timer { Interval = 200 };
             bool readyToClose = false;
@@ -215,31 +233,28 @@ namespace SystemMonitor.Tray
             return y + 36;
         }
 
-        private static string FormatProblem(ProblemInfo p)
+        private static string FormatProblemText(ProblemInfo p)
         {
-            // Marqueur selon sÈvÈritÈ
-            string marker = p.Severity == "critical" ? "[!]" : "[?]";
-
-            // CatÈgorie raccourcie
+            // Cat√©gorie raccourcie
             string category = p.Category switch
             {
-                "CpuHigh" => "CPU",
-                "RamHigh" => "RAM",
-                "TempHigh" => "Temp",
-                "GpuTempHigh" => "GPU Temp",
-                "SmartFailure" => "SMART",
-                "DiskSpaceLow" => "Disque",
-                "DiskSpaceCritical" => "Disque",
-                "BSOD" => "BSOD",
-                _ => p.Category
+                "CpuHigh"             => "CPU",
+                "RamHigh"             => "RAM",
+                "TempHigh"            => "Temp",
+                "GpuTempHigh"         => "GPU Temp",
+                "SmartFailure"        => "SMART",
+                "DiskSpaceLow"        => "Disque",
+                "DiskSpaceCritical"   => "Disque",
+                "BSOD"                => "BSOD",
+                _                     => p.Category
             };
 
-            // Message tronquÈ
+            // Message tronqu√©
             string msg = p.Message;
-            if (msg.Length > 60)
-                msg = msg.Substring(0, 57) + "...";
+            if (msg.Length > 55)
+                msg = msg.Substring(0, 52) + "...";
 
-            return $"{marker}  {category}  -  {msg}";
+            return $"{category}  ‚Äî  {msg}";
         }
 
         // ------------------------------------------------------------
@@ -247,7 +262,6 @@ namespace SystemMonitor.Tray
         // ------------------------------------------------------------
         public void ShowAtTrayPosition()
         {
-            // Position : bas-droite de l'Ècran (approximation de la zone Tray)
             var screen = Screen.PrimaryScreen!.WorkingArea;
 
             int x = screen.Right - this.Width - 20;
@@ -257,6 +271,28 @@ namespace SystemMonitor.Tray
 
             this.Show();
             this.Activate();
+        }
+
+        // ------------------------------------------------------------
+        //  Chargement d'une image PNG (d√©tach√©e du flux)
+        // ------------------------------------------------------------
+        private static Image? LoadImage(string fileName)
+        {
+            try
+            {
+                string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                string path = Path.Combine(exeDir, fileName);
+
+                if (!File.Exists(path)) return null;
+
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                using var img = Image.FromStream(fs);
+
+                // ‚ö† On clone pour d√©tacher l'image du flux.
+                // Sinon l'image devient invalide d√®s que le "using" ferme le FileStream.
+                return new Bitmap(img);
+            }
+            catch { return null; }
         }
     }
 }

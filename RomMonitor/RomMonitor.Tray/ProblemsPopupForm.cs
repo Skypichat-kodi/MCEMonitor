@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -29,6 +30,9 @@ namespace RomMonitor.Tray
             this.BackColor = Color.FromArgb(37, 37, 38);
             this.Padding = new Padding(1);
 
+            Image? iconWarning  = LoadImage("warning.png");
+            Image? iconCritical = LoadImage("critical.png");
+
             this.Paint += (s, e) =>
             {
                 using var pen = new Pen(Color.FromArgb(60, 60, 60), 1);
@@ -49,7 +53,7 @@ namespace RomMonitor.Tray
             this.Controls.Add(lblTitle);
             y += 35;
 
-            // S�parateur
+            // Séparateur
             var sep1 = new Panel
             {
                 BackColor = Color.FromArgb(60, 60, 60),
@@ -59,12 +63,12 @@ namespace RomMonitor.Tray
             this.Controls.Add(sep1);
             y += 10;
 
-            // Liste des probl�mes
+            // Liste des problèmes
             if (problems == null || problems.Count == 0)
             {
                 var lblOk = new Label
                 {
-                    Text = "[OK]  Aucun probl�me d�tect�",
+                    Text = "[OK]  Aucun problème détecté",
                     ForeColor = Color.FromArgb(108, 203, 95),
                     Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
                     Location = new Point(15, y),
@@ -80,19 +84,32 @@ namespace RomMonitor.Tray
 
                 foreach (var p in shown)
                 {
+                    // Icône PNG selon la sévérité
+                    var pic = new PictureBox
+                    {
+                        Image = p.Severity == "critical" ? iconCritical : iconWarning,
+                        SizeMode = PictureBoxSizeMode.Zoom,
+                        Location = new Point(15, y + 3),
+                        Size = new Size(16, 16),
+                        BackColor = Color.Transparent
+                    };
+                    this.Controls.Add(pic);
+
+                    // Texte du problème (sans marqueur [!] / [?])
                     var lbl = new Label
                     {
-                        Text = FormatProblem(p),
+                        Text = FormatProblemText(p),
                         ForeColor = p.Severity == "critical"
                             ? Color.FromArgb(255, 99, 71)
                             : Color.FromArgb(255, 185, 0),
                         Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                        Location = new Point(15, y),
-                        Size = new Size(PopupWidth - 30, 22),
+                        Location = new Point(38, y),
+                        Size = new Size(PopupWidth - 53, 22),
                         TextAlign = ContentAlignment.MiddleLeft,
                         AutoEllipsis = true
                     };
                     this.Controls.Add(lbl);
+
                     y += 24;
                 }
 
@@ -114,7 +131,7 @@ namespace RomMonitor.Tray
 
             y += 8;
 
-            // S�parateur
+            // Séparateur
             var sep2 = new Panel
             {
                 BackColor = Color.FromArgb(60, 60, 60),
@@ -147,7 +164,7 @@ namespace RomMonitor.Tray
 
             this.ClientSize = new Size(PopupWidth, y);
 
-            // Fermeture diff�r�e
+            // Fermeture différée
             var deactivateTimer = new System.Windows.Forms.Timer { Interval = 200 };
             bool readyToClose = false;
 
@@ -195,23 +212,21 @@ namespace RomMonitor.Tray
             return y + 36;
         }
 
-        private static string FormatProblem(ProblemInfo p)
+        private static string FormatProblemText(ProblemInfo p)
         {
-            string marker = p.Severity == "critical" ? "[!]" : "[?]";
-
             string category = p.Category switch
             {
-                "SmartFailure" => "SMART",
-                "DiskSpaceLow" => "Disque",
-                "DiskSpaceCritical" => "Disque",
-                _ => p.Category
+                "SmartFailure"       => "SMART",
+                "DiskSpaceLow"       => "Disque",
+                "DiskSpaceCritical"  => "Disque",
+                _                    => p.Category
             };
 
             string msg = p.Message;
-            if (msg.Length > 60)
-                msg = msg.Substring(0, 57) + "...";
+            if (msg.Length > 55)
+                msg = msg.Substring(0, 52) + "...";
 
-            return $"{marker}  {category}  -  {msg}";
+            return $"{category}  —  {msg}";
         }
 
         public void ShowAtTrayPosition()
@@ -225,6 +240,25 @@ namespace RomMonitor.Tray
 
             this.Show();
             this.Activate();
+        }
+
+        private static Image? LoadImage(string fileName)
+        {
+            try
+            {
+                string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
+                string path = Path.Combine(exeDir, fileName);
+
+                if (!File.Exists(path)) return null;
+
+                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
+                using var img = Image.FromStream(fs);
+
+                // ? On clone pour détacher l'image du flux.
+                // Sinon l'image devient invalide dès que le "using" ferme le FileStream.
+                return new Bitmap(img);
+            }
+            catch { return null; }
         }
     }
 }
