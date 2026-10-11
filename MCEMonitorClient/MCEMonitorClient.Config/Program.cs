@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -19,7 +20,7 @@ namespace MCEMonitorClient.Config
         private const string PipeName  = "MCEMonitorClient_Config_Activate";
 
         [STAThread]
-        static void Main()
+        static void Main(string[] args)
         {
             bool createdNew;
             _mutex = new Mutex(true, MutexName, out createdNew);
@@ -34,9 +35,31 @@ namespace MCEMonitorClient.Config
             // Enregistre le provider d'encodage (pour Encoding.GetEncoding(850))
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
-            // Charge la langue du système (fallback en-GB si non trouvée)
-            string lang = System.Globalization.CultureInfo.CurrentUICulture.Name;
-            LanguageManager.Load(lang);
+            // ============================================================
+            //  GESTION DE LA LANGUE (argument > auto-détection Windows)
+            // ============================================================
+
+            string selectedLang = null;
+
+            if (args.Contains("-EN", StringComparer.OrdinalIgnoreCase))
+                selectedLang = "en-GB";
+            else if (args.Contains("-FR", StringComparer.OrdinalIgnoreCase))
+                selectedLang = "fr-FR";
+
+            if (selectedLang == null)
+            {
+                string[] supportedLanguages = { "fr-FR", "en-GB" };
+                string windowsLang = System.Globalization.CultureInfo.InstalledUICulture.Name;
+
+                selectedLang = supportedLanguages.Contains(windowsLang)
+                    ? windowsLang
+                    : "en-GB";
+            }
+
+            System.Threading.Thread.CurrentThread.CurrentUICulture = new System.Globalization.CultureInfo(selectedLang);
+            System.Threading.Thread.CurrentThread.CurrentCulture   = new System.Globalization.CultureInfo(selectedLang);
+
+            LanguageManager.Load(selectedLang);
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);

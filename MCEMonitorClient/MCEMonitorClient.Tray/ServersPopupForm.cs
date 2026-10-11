@@ -358,9 +358,14 @@ namespace MCEMonitorClient.Tray
 
             try
             {
+                // Ajoute le paramètre de langue (comme le font les UI MediaMonitor, RomMonitor et SystemMonitor)
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+                string separator = url.Contains('?') ? "&" : "?";
+                string urlWithLang = $"{url}{separator}lang={lang}";
+
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = url,
+                    FileName = urlWithLang,
                     UseShellExecute = true
                 });
             }
