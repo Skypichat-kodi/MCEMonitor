@@ -1,9 +1,10 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using MCEMonitorClient.Tray.Ipc;
 
 namespace MCEMonitorClient.Tray
@@ -15,8 +16,10 @@ namespace MCEMonitorClient.Tray
         private Button _btnClose = null!;
         private Label _lblStatus = null!;
         private System.Windows.Forms.Timer _refreshTimer = null!;
+        private ToolTip _rowTooltip = null!;
+        private Label _lblHint = null!;
 
-        private const int COL_STATUS_INDEX = 2;   // Index de la colonne "État"
+        private const int COL_STATUS_INDEX = 2;   // Index de la colonne "Ã‰tat"
 
         public ServersPopupForm()
         {
@@ -34,7 +37,7 @@ namespace MCEMonitorClient.Tray
         // ---------------------------------------------
         private void InitializeUI()
         {
-            Text = "Serveurs surveillés";
+            Text = LanguageManager.Get("Serveurs surveillÃ©s") ?? "Serveurs surveillÃ©s";
             Size = new Size(720, 420);
             MinimumSize = new Size(500, 300);
             StartPosition = FormStartPosition.CenterScreen;
@@ -62,19 +65,21 @@ namespace MCEMonitorClient.Tray
                 FullRowSelect = true,
                 GridLines = false,
                 HeaderStyle = ColumnHeaderStyle.Nonclickable,
-                OwnerDraw = true,           // ? Pour dessiner nous-mêmes
+                OwnerDraw = true,
                 MultiSelect = false
             };
 
-            _list.Columns.Add("Serveur", 0);   // largeur calculée dans LayoutColumns()
-            _list.Columns.Add("Type", 130);    // largeur fixe
-            _list.Columns.Add("État", 80);     // largeur fixe
+            _list.Columns.Add(LanguageManager.Get("Serveur") ?? "Serveur", 0);
+            _list.Columns.Add(LanguageManager.Get("Type") ?? "Type", 130);
+            _list.Columns.Add(LanguageManager.Get("Ã‰tat") ?? "Ã‰tat", 80);
 
             _list.DrawColumnHeader += List_DrawColumnHeader;
             _list.DrawItem += List_DrawItem;
             _list.DrawSubItem += List_DrawSubItem;
 
             _list.DoubleClick += (s, e) => OpenSelectedUrl();
+            _list.MouseMove += List_MouseMove;
+            _list.MouseLeave += (s, e) => _list.Cursor = Cursors.Default;
 
             Controls.Add(_list);
 
@@ -82,11 +87,20 @@ namespace MCEMonitorClient.Tray
                 .GetProperty("DoubleBuffered",
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(_list, true);
-    
+
+            // --- ToolTip pour indiquer que les lignes sont cliquables ---
+            _rowTooltip = new ToolTip
+            {
+                AutoPopDelay = 5000,
+                InitialDelay = 400,
+                ReshowDelay = 200,
+                ShowAlways = true
+            };
+
             // --- Bouton Actualiser ---
             _btnRefresh = new Button
             {
-                Text = "Actualiser",
+                Text = LanguageManager.Get("Actualiser") ?? "Actualiser",
                 Location = new Point(15, ClientSize.Height - 50),
                 Size = new Size(150, 30),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left,
@@ -113,10 +127,25 @@ namespace MCEMonitorClient.Tray
             };
             Controls.Add(_lblStatus);
 
+            // --- Label d'astuce (dans l'espace entre la liste et les boutons) ---
+            _lblHint = new Label
+            {
+                Location = new Point(15, ClientSize.Height - 85),
+                Width = ClientSize.Width - 30,
+                Height = 20,
+                Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+                ForeColor = Color.FromArgb(0x88, 0x88, 0x88),
+                Font = new Font("Segoe UI", 8.5F, FontStyle.Italic),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Text = LanguageManager.Get("HintDoubleClickOpen")
+                    ?? "ðŸ’¡  Astuce : double-cliquez sur une ligne pour ouvrir la page web du serveur."
+            };
+            Controls.Add(_lblHint);
+
             // --- Bouton Fermer ---
             _btnClose = new Button
             {
-                Text = "Fermer",
+                Text = LanguageManager.Get("Fermer") ?? "Fermer",
                 Location = new Point(ClientSize.Width - 135, ClientSize.Height - 50),
                 Size = new Size(120, 30),
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Right,
@@ -126,13 +155,45 @@ namespace MCEMonitorClient.Tray
                 Cursor = Cursors.Hand
             };
             _btnClose.FlatAppearance.BorderColor = Color.FromArgb(0x3C, 0x3C, 0x3C);
-            _btnClose.Click += (s, e) => Close();   // ? Utilise Close() au lieu de DialogResult
+            _btnClose.Click += (s, e) => Close();
             Controls.Add(_btnClose);
 
             _list.Resize += (s, e) => LayoutColumns();
             LayoutColumns();
-            
+
             CancelButton = _btnClose;
+        }
+
+        // ---------------------------------------------
+        //  Curseur "main" + tooltip sur les lignes
+        // ---------------------------------------------
+        private void List_MouseMove(object? sender, MouseEventArgs e)
+        {
+            var hit = _list.HitTest(e.Location);
+
+            if (hit.Item != null)
+            {
+                _list.Cursor = Cursors.Hand;
+
+                string url = hit.Item.SubItems[0].Tag as string ?? "";
+                string currentTooltip = _rowTooltip.GetToolTip(_list);
+
+                string hint = string.IsNullOrWhiteSpace(url)
+                    ? (LanguageManager.Get("Aucune URL configurÃ©e") ?? "Aucune URL configurÃ©e")
+                    : string.Format(
+                        LanguageManager.Get("Double-cliquez pour ouvrir : {0}")
+                            ?? "Double-cliquez pour ouvrir : {0}",
+                        url);
+
+                // Ã‰vite de rÃ©initialiser le tooltip en boucle (ce qui le ferait clignoter)
+                if (currentTooltip != hint)
+                    _rowTooltip.SetToolTip(_list, hint);
+            }
+            else
+            {
+                _list.Cursor = Cursors.Default;
+                _rowTooltip.SetToolTip(_list, "");
+            }
         }
 
         // ---------------------------------------------
@@ -140,20 +201,13 @@ namespace MCEMonitorClient.Tray
         // ---------------------------------------------
         private void List_DrawColumnHeader(object? sender, DrawListViewColumnHeaderEventArgs e)
         {
-            // Fond du header
             using (var brush = new SolidBrush(Color.FromArgb(0x2D, 0x2D, 0x30)))
-            {
                 e.Graphics.FillRectangle(brush, e.Bounds);
-            }
 
-            // Bordure droite
             using (var pen = new Pen(Color.FromArgb(0x3C, 0x3C, 0x3C)))
-            {
                 e.Graphics.DrawLine(pen, e.Bounds.Right - 1, e.Bounds.Top,
-                                          e.Bounds.Right - 1, e.Bounds.Bottom);
-            }
+                                         e.Bounds.Right - 1, e.Bounds.Bottom);
 
-            // Texte
             TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? "",
                 new Font("Segoe UI", 9F, FontStyle.Bold),
                 e.Bounds,
@@ -163,29 +217,20 @@ namespace MCEMonitorClient.Tray
 
         private void List_DrawItem(object? sender, DrawListViewItemEventArgs e)
         {
-            // Le fond est dessiné dans DrawSubItem — rien à faire ici.
             e.DrawDefault = false;
         }
 
         private void List_DrawSubItem(object? sender, DrawListViewSubItemEventArgs e)
         {
-            // ---------------------------------------------------------
-            // 1. TOUJOURS remplir le fond du subitem (fix du hover)
-            // ---------------------------------------------------------
             Color bgColor = e.Item!.Selected
-                ? Color.FromArgb(0x4C, 0xC2, 0xFF)                       // bleu sélection
+                ? Color.FromArgb(0x4C, 0xC2, 0xFF)
                 : (e.ItemIndex % 2 == 0
-                    ? Color.FromArgb(0x1F, 0x1F, 0x1F)                   // ligne paire
-                    : Color.FromArgb(0x26, 0x26, 0x26));                 // ligne impaire
+                    ? Color.FromArgb(0x1F, 0x1F, 0x1F)
+                    : Color.FromArgb(0x26, 0x26, 0x26));
 
             using (var brush = new SolidBrush(bgColor))
-            {
                 e.Graphics.FillRectangle(brush, e.Bounds);
-            }
 
-            // ---------------------------------------------------------
-            // 2. Colonne État : on dessine un DOT
-            // ---------------------------------------------------------
             if (e.ColumnIndex == COL_STATUS_INDEX)
             {
                 string state = e.Item?.Tag as string ?? "offline";
@@ -205,19 +250,12 @@ namespace MCEMonitorClient.Tray
                 e.Graphics.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
 
                 using (var brush = new SolidBrush(color))
-                {
                     e.Graphics.FillEllipse(brush, x, y, dotSize, dotSize);
-                }
 
                 return;
             }
 
-            // ---------------------------------------------------------
-            // 3. Autres colonnes : texte normal
-            // ---------------------------------------------------------
-            Color textColor = e.Item!.Selected
-                ? Color.Black
-                : Color.FromArgb(0xE5, 0xE5, 0xE5);
+            Color textColor = e.Item!.Selected ? Color.Black : Color.FromArgb(0xE5, 0xE5, 0xE5);
 
             TextRenderer.DrawText(e.Graphics, e.SubItem!.Text,
                 new Font("Segoe UI", 9F),
@@ -227,7 +265,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Rafraîchissement (pull)
+        //  RafraÃ®chissement (pull)
         // ---------------------------------------------
         private async Task RefreshAsync()
         {
@@ -236,7 +274,8 @@ namespace MCEMonitorClient.Tray
                 var state = await ServiceIpcClient.GetStateAsync();
                 if (state == null)
                 {
-                    _lblStatus.Text = "Service non joignable";
+                    _lblStatus.Text = LanguageManager.Get("Service non joignable")
+                        ?? "Service non joignable";
                     return;
                 }
 
@@ -252,15 +291,13 @@ namespace MCEMonitorClient.Tray
                     {
                         server.ServerName,
                         server.ServiceType,
-                        "",   // colonne État vide (remplie par DrawSubItem)
+                        "",
                     });
 
-                    // ? Tag = état du serveur (utilisé par DrawSubItem pour la couleur du dot)
                     item.Tag = server.Online
                         ? (string.IsNullOrEmpty(server.Status) ? "ok" : server.Status)
                         : "offline";
 
-                    // Tag secondaire pour l'URL (sur le sub-item)
                     item.SubItems[0].Tag = server.BaseUrl;
 
                     _list.Items.Add(item);
@@ -268,51 +305,48 @@ namespace MCEMonitorClient.Tray
 
                 _list.EndUpdate();
 
-                // Résumé dans le label
                 int online = state.Servers.Count(s => s.Online);
                 int total = state.Servers.Count;
 
-                _lblStatus.Text = $"{online}/{total} serveur(s) en ligne  —  Dernière màj : {DateTime.Now:HH:mm:ss}";
+                _lblStatus.Text = string.Format(
+                    LanguageManager.Get("{0}/{1} serveur(s) en ligne  â€”  DerniÃ¨re mise Ã  jour : {2}")
+                        ?? "{0}/{1} serveur(s) en ligne  â€”  DerniÃ¨re mise Ã  jour : {2}",
+                    online, total, DateTime.Now.ToString("HH:mm:ss"));
             }
             catch (Exception ex)
             {
-                _lblStatus.Text = "Erreur : " + ex.Message;
+                _lblStatus.Text = (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message;
             }
         }
 
         // ---------------------------------------------
-        //  Rafraîchissement forcé (force-scan côté Service)
+        //  RafraÃ®chissement forcÃ© (force-scan cÃ´tÃ© Service)
         // ---------------------------------------------
         private async Task ForceRefreshAsync()
         {
             try
             {
                 _btnRefresh.Enabled = false;
-                _btnRefresh.Text = "Actualisation...";
-                _lblStatus.Text = "Scan en cours...";
+                _btnRefresh.Text = LanguageManager.Get("Actualisation...") ?? "Actualisation...";
+                _lblStatus.Text = LanguageManager.Get("Scan en cours...") ?? "Scan en cours...";
 
-                // ? Demande au Service de rescan immédiatement
                 await ServiceIpcClient.ForceScanAsync();
-
-                // Petite pause pour laisser le Service finir son poll
                 await Task.Delay(1500);
-
-                // Puis on rafraîchit l'affichage
                 await RefreshAsync();
             }
             catch (Exception ex)
             {
-                _lblStatus.Text = "Erreur : " + ex.Message;
+                _lblStatus.Text = (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message;
             }
             finally
             {
                 _btnRefresh.Enabled = true;
-                _btnRefresh.Text = "Actualiser";
+                _btnRefresh.Text = LanguageManager.Get("Actualiser") ?? "Actualiser";
             }
         }
 
         // ---------------------------------------------
-        //  Double-clic sur une ligne ? ouvre l'URL
+        //  Double-clic sur une ligne â†’ ouvre l'URL
         // ---------------------------------------------
         private void OpenSelectedUrl()
         {
@@ -339,7 +373,7 @@ namespace MCEMonitorClient.Tray
             _refreshTimer?.Dispose();
             base.OnFormClosing(e);
         }
-        
+
         private void LayoutColumns()
         {
             if (_list.Columns.Count < 3) return;
@@ -350,13 +384,12 @@ namespace MCEMonitorClient.Tray
             int totalWidth = _list.ClientSize.Width - SystemInformation.VerticalScrollBarWidth;
             if (totalWidth <= 0) return;
 
-            // Serveur = tout ce qui reste, avec un minimum raisonnable
             int widthServer = totalWidth - widthType - widthState;
             if (widthServer < 100) widthServer = 100;
 
             _list.Columns[0].Width = widthServer;
             _list.Columns[1].Width = widthType;
             _list.Columns[2].Width = widthState;
-        }        
+        }
     }
 }

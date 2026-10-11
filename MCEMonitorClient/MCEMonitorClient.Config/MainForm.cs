@@ -27,6 +27,7 @@ namespace MCEMonitorClient.Config
         private Button _btnDelete = null!;
         private Button _btnAutoService = null!;
         private Button _btnServiceOnOff = null!;
+        private Button _btnServerStates = null!;
         private Label _lblServiceStatus = null!;
         private NumericUpDown _numInterval = null!;
         private CheckBox _chkNotify = null!;
@@ -177,27 +178,42 @@ namespace MCEMonitorClient.Config
             // --- Boutons d'action serveurs ---
             int buttonY = 315;
 
-            _btnAdd = CreateButton(LanguageManager.Get("Ajouter") ?? "Ajouter", 20, buttonY, 120, Theme.Accent, Color.Black, true);
+            _btnAdd = CreateButton(LanguageManager.Get("Ajouter") ?? "Ajouter", 20, buttonY, 120,
+                Theme.ButtonPrimary, Color.Black, true);
             _btnAdd.Click += (s, e) => AddServer();
 
-            _btnEdit = CreateButton(LanguageManager.Get("Modifier") ?? "Modifier", 150, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnEdit = CreateButton(LanguageManager.Get("Modifier") ?? "Modifier", 150, buttonY, 120,
+                Theme.ButtonNeutral, Theme.Text, false);
+            _btnEdit.FlatAppearance.BorderColor = Theme.ButtonNeutralBorder;
             _btnEdit.Click += (s, e) => EditSelected();
 
-            _btnExport = CreateButton(LanguageManager.Get("Exporter") ?? "Exporter", 280, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnExport = CreateButton(LanguageManager.Get("Exporter") ?? "Exporter", 280, buttonY, 120,
+                Theme.ButtonNeutral, Theme.Text, false);
+            _btnExport.FlatAppearance.BorderColor = Theme.ButtonNeutralBorder;
             _btnExport.Click += (s, e) => ExportConfig();
 
-            _btnImport = CreateButton(LanguageManager.Get("Importer") ?? "Importer", 410, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnImport = CreateButton(LanguageManager.Get("Importer") ?? "Importer", 410, buttonY, 120,
+                Theme.ButtonNeutral, Theme.Text, false);
+            _btnImport.FlatAppearance.BorderColor = Theme.ButtonNeutralBorder;
             _btnImport.Click += (s, e) => ImportConfig();
 
-            _btnDelete = CreateButton(LanguageManager.Get("Supprimer") ?? "Supprimer", 540, buttonY, 120, Theme.Panel, Theme.Text, false);
+            _btnDelete = CreateButton(LanguageManager.Get("Supprimer") ?? "Supprimer", 540, buttonY, 120,
+                Theme.ButtonDanger, Color.White, false);
             _btnDelete.Click += (s, e) => DeleteSelected();
+
+            _btnServerStates = CreateButton(
+                LanguageManager.Get("État des serveurs") ?? "État des serveurs",
+                670, buttonY, 150,
+                Theme.ButtonInfo, Color.White, false);
+            _btnServerStates.Click += (s, e) => ShowServersStateForm();
 
             Controls.Add(_btnAdd);
             Controls.Add(_btnEdit);
             Controls.Add(_btnExport);
             Controls.Add(_btnImport);
             Controls.Add(_btnDelete);
-
+            Controls.Add(_btnServerStates);
+            
             // --- Section Service ---
             var lblService = new Label
             {
@@ -706,6 +722,55 @@ namespace MCEMonitorClient.Config
             }
         }
 
+        private void ShowServersStateForm()
+        {
+            try
+            {
+                if (!IsServiceRunning())
+                {
+                    MessageBox.Show(
+                        LanguageManager.Get("Le Service MCEMonitorClient n'est pas en cours d'exécution.")
+                            ?? "Le Service MCEMonitorClient n'est pas en cours d'exécution.",
+                        LanguageManager.Get("Information") ?? "Information",
+                        MessageBoxButtons.OK,
+                        MessageBoxIcon.Information);
+                    return;
+                }
+
+                var existing = Application.OpenForms
+                    .OfType<MCEMonitorClient.Tray.ServersPopupForm>()
+                    .FirstOrDefault();
+
+                if (existing != null)
+                {
+                    if (existing.WindowState == FormWindowState.Minimized)
+                        existing.WindowState = FormWindowState.Normal;
+
+                    existing.Visible = true;
+                    existing.Activate();
+                    existing.BringToFront();
+                    return;
+                }
+
+                var form = new MCEMonitorClient.Tray.ServersPopupForm();
+                form.Owner = this;
+                form.StartPosition = FormStartPosition.Manual;
+
+                // Centre la popup sur la fenêtre Config
+                int x = this.Left + (this.Width - form.Width) / 2;
+                int y = this.Top + (this.Height - form.Height) / 2;
+                form.Location = new Point(x, y);
+
+                form.Show();
+                form.Activate();
+                form.BringToFront();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
+            }
+        }
+        
         // ---------------------------------------------
         //  Test de CONNEXION aux serveurs
         // ---------------------------------------------
@@ -793,6 +858,25 @@ namespace MCEMonitorClient.Config
 
             _lblServiceStatus.Text = status;
             _lblServiceStatus.ForeColor = allRunning ? Theme.Ok : Theme.TextDim;
+            
+            // --- Bouton "État des serveurs" : actif uniquement si le Service tourne ---
+            if (_btnServerStates != null)
+            {
+                _btnServerStates.Enabled = serviceRunning;
+
+                if (serviceRunning)
+                {
+                    _btnServerStates.BackColor = Theme.ButtonInfo;    // ← violet
+                    _btnServerStates.ForeColor = Color.White;
+                    _btnServerStates.Cursor = Cursors.Hand;
+                }
+                else
+                {
+                    _btnServerStates.BackColor = Color.FromArgb(60, 60, 60);
+                    _btnServerStates.ForeColor = Theme.TextGray;
+                    _btnServerStates.Cursor = Cursors.Default;
+                }
+            }
         }
 
         // --- Bouton 1 : Automatique (tâche Service) ---

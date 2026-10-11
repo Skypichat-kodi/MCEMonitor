@@ -32,5 +32,13 @@ namespace MCEMonitorClient.Config
 
         // --- Police par défaut ---
         public const string FontFamily = "Segoe UI";
+
+        // --- Couleurs sémantiques pour les boutons de la rangée serveurs ---
+        public static readonly Color ButtonPrimary       = Color.FromArgb(0x4C, 0xC2, 0xFF); // Ajouter (bleu accent)
+        public static readonly Color ButtonSecondary     = Color.FromArgb(0x00, 0x7A, 0xCC); // Modifier (bleu foncé)
+        public static readonly Color ButtonNeutral       = Color.FromArgb(0x3C, 0x3C, 0x3C); // Exporter / Importer (gris moyen)
+        public static readonly Color ButtonNeutralBorder = Color.FromArgb(0x5A, 0x5A, 0x5A); // Bordure des boutons neutres
+        public static readonly Color ButtonDanger        = Color.FromArgb(0xCC, 0x33, 0x00); // Supprimer (rouge)
+        public static readonly Color ButtonInfo          = Color.FromArgb(0x7B, 0x4F, 0xE0); // État des serveurs (violet)
     }
 }

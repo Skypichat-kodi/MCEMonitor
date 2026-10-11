@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net8.0-windows</TargetFramework>
+    <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ApplicationIcon>MCEMonitorClient.ico</ApplicationIcon>
@@ -13,12 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="MCEMonitorClient.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <ProjectReference Include="..\MCEMonitorClient.Tray\MCEMonitorClient.Tray.csproj" />
   </ItemGroup>
 
 </Project>

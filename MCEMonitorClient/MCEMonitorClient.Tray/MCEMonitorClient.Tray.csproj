@@ -11,17 +11,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Icône de l'exe -->
+    <!-- ? Nouvelle référence -->
+    <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Content Include="MCEMonitorClient.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 
-    <!-- Icônes d'état (dans Resources\Icons) -->
     <Content Include="Resources\Icons\*.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 
-    <!-- Sons (dans Resources\Sounds) -->
     <Content Include="Resources\Sounds\*.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
