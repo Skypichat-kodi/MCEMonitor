@@ -148,7 +148,7 @@ namespace SystemMonitor.Service.Web
                         });
 
                     SendJson(ctx, json);
-                }                                
+                }
                 else if (path == "/peers")
                 {
                     var peers = PeerStatusService.CheckAllAsync("SystemMonitor")
@@ -161,6 +161,17 @@ namespace SystemMonitor.Service.Web
                         });
                     SendJson(ctx, json);
                 }
+                else if (path == "/clear-history")
+                {
+                    _engine.ClearHistory();
+                    _engine.ClearAlerts();
+
+                    CoreLog.Write("WebServer : historique vidé via /clear-history");
+
+                    ctx.Response.StatusCode = 302;
+                    ctx.Response.Headers["Location"] = "/";
+                    ctx.Response.Close();
+                }
                 else if (path == "/favicon.ico")
                 {
                     ServeFavicon(ctx);
@@ -169,7 +180,7 @@ namespace SystemMonitor.Service.Web
                          path.StartsWith("/resources/images/"))
                 {
                     ServeStaticFile(ctx, path);
-                }                
+                }
                 else
                 {
                     SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
