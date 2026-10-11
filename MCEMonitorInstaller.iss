@@ -18,6 +18,7 @@ WizardSmallImageFile=MCEMonitor.png
 PrivilegesRequired=admin
 CloseApplications=no
 RestartApplications=no
+LicenseFile=LICENSE.txt
 
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -50,6 +51,8 @@ Name: "core";   Description: "MCEMonitor (application principale, services, tray
 Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MCE distants)"; Types: full
 
 [Files]
+Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+
 ; --- PawnIO (pilote de lecture capteurs) ---
 Source: "redist\PawnIO_setup.exe"; DestDir: "{tmp}"; \
     Flags: deleteafterinstall; \
