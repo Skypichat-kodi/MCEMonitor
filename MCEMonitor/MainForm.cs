@@ -27,6 +27,9 @@ namespace MCEMonitor
         private bool _smtpTabsUnlocked = false;
         private DateTime _lastSystemConfigWriteTime = DateTime.MinValue;
         private long _lastSystemConfigSize = -1;
+        private Panel _powerBanner = null!;
+        private bool _bannerShown = false;
+        private const int BannerHeight = 32;        
 
         // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
@@ -154,6 +157,9 @@ namespace MCEMonitor
             };
 
             this.Shown += async (s, e) => await CheckSmtpAtStartupAsync();
+            
+            // --- Bandeau d'avertissement batterie ---
+            InitializePowerBanner();                        
         }
 
         // ============================================================
@@ -2416,5 +2422,69 @@ namespace MCEMonitor
             }
             catch { }
         }
+        
+        // ============================================================
+        //  BANDEAU BATTERIE
+        // ============================================================
+
+        private void InitializePowerBanner()
+        {
+            _powerBanner = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(ClientSize.Width, BannerHeight),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = Color.FromArgb(0xCC, 0x33, 0x00),
+                Visible = false
+            };
+
+            var lblBanner = new Label
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = Color.White,
+                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                Text = LanguageManager.Get("BatteryWarningBanner")
+                    ?? "INFO : Pour un fonctionnement optimal, l'ordinateur doit être branché sur secteur."
+            };
+            _powerBanner.Controls.Add(lblBanner);
+            Controls.Add(_powerBanner);
+
+            UpdatePowerBanner();
+
+            Microsoft.Win32.SystemEvents.PowerModeChanged += (s, e) =>
+            {
+                if (e.Mode == Microsoft.Win32.PowerModes.StatusChange)
+                    BeginInvoke(new Action(UpdatePowerBanner));
+            };
+        }
+
+        private void UpdatePowerBanner()
+        {
+            bool onBattery = SystemInformation.PowerStatus.PowerLineStatus
+                == PowerLineStatus.Offline;
+
+            if (onBattery == _bannerShown)
+                return;
+
+            _bannerShown = onBattery;
+            int delta = onBattery ? BannerHeight : -BannerHeight;
+
+            // Fenêtre fixe ? on décale le tabControl vers le bas et on
+            // réduit sa hauteur pour garder le bas à la même position.
+            if (tabControl != null)
+            {
+                tabControl.Location = new Point(
+                    tabControl.Location.X,
+                    tabControl.Location.Y + delta);
+
+                tabControl.Size = new Size(
+                    tabControl.Size.Width,
+                    tabControl.Size.Height - delta);
+            }
+
+            _powerBanner.Visible = onBattery;
+            _powerBanner.BringToFront();
+        }        
     }
 }

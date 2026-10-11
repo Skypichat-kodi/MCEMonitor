@@ -17,6 +17,9 @@ namespace MCEMonitorClient.Config
         private readonly Dictionary<string, string> _serverStates = new();
         private System.Windows.Forms.Timer _stateTimer = null!;
         private System.Windows.Forms.Timer _serviceWatchdog = null!;
+        private Panel _powerBanner = null!;
+        private bool _bannerShown = false;
+        private const int BannerHeight = 32;
 
         // Contrôles
         private DataGridView _grid = null!;
@@ -76,6 +79,15 @@ namespace MCEMonitorClient.Config
             _serviceWatchdog.Start();
 
             UpdateServiceStatus();
+
+            // --- Vérifie l'alimentation + surveille les changements ---
+            UpdatePowerBanner();
+
+            Microsoft.Win32.SystemEvents.PowerModeChanged += (s, e) =>
+            {
+                if (e.Mode == Microsoft.Win32.PowerModes.StatusChange)
+                    BeginInvoke(new Action(UpdatePowerBanner));
+            };
         }
 
         // ---------------------------------------------
@@ -360,6 +372,29 @@ namespace MCEMonitorClient.Config
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
             Controls.Add(_lblStatus);
+            
+            // --- Bandeau d'avertissement batterie (masqué par défaut) ---
+            _powerBanner = new Panel
+            {
+                Location = new Point(0, 0),
+                Size = new Size(ClientSize.Width, BannerHeight),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                BackColor = Color.FromArgb(0xCC, 0x33, 0x00),
+                Visible = false
+            };
+
+            var lblBanner = new Label
+            {
+                Dock = DockStyle.Fill,
+                TextAlign = ContentAlignment.MiddleCenter,
+                ForeColor = Color.White,
+                Font = new Font(Theme.FontFamily, 9F, FontStyle.Bold),
+                Text = LanguageManager.Get("BatteryWarningBanner")
+                    ?? "⚠  Pour un fonctionnement optimal, l'ordinateur doit être branché sur secteur."
+            };
+            _powerBanner.Controls.Add(lblBanner);
+            Controls.Add(_powerBanner);            
+            
         }
 
         private Button CreateButton(string text, int x, int y, int w,
@@ -1100,5 +1135,35 @@ namespace MCEMonitorClient.Config
             }
             catch { return null; }
         }
+        
+        private void UpdatePowerBanner()
+        {
+            bool onBattery = SystemInformation.PowerStatus.PowerLineStatus
+                == PowerLineStatus.Offline;
+
+            if (onBattery == _bannerShown)
+                return;
+
+            _bannerShown = onBattery;
+            int delta = onBattery ? BannerHeight : -BannerHeight;
+
+            // Agrandit/rétrécit la fenêtre
+            this.ClientSize = new Size(this.ClientSize.Width,
+                                       this.ClientSize.Height + delta);
+
+            // Décale uniquement les contrôles non ancrés en bas
+            foreach (Control c in this.Controls)
+            {
+                if (c == _powerBanner) continue;
+
+                bool anchoredBottom = (c.Anchor & AnchorStyles.Bottom) == AnchorStyles.Bottom;
+                if (anchoredBottom) continue;
+
+                c.Location = new Point(c.Location.X, c.Location.Y + delta);
+            }
+
+            _powerBanner.Visible = onBattery;
+            _powerBanner.BringToFront();
+        }        
     }
 }
