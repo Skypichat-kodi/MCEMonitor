@@ -876,13 +876,10 @@ namespace MCEMonitor
                 {
                     int hour = (int)numShutdownHour.Value;
                     int minute = (int)numShutdownMinute.Value;
-
-                    string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
-                        ? "sleep"
-                        : "shutdown";
+                    string mode = GetSelectedShutdownMode();
 
                     TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
-                    SaveShutdownConfig(hour, minute);
+                    SaveShutdownConfig(hour, minute, mode);
                 }
 
                 RefreshAllAutoButtons();
@@ -897,8 +894,9 @@ namespace MCEMonitor
         {
             int hour = (int)numShutdownHour.Value;
             int minute = (int)numShutdownMinute.Value;
+            string mode = GetSelectedShutdownMode();
 
-            SaveShutdownConfig(hour, minute);
+            SaveShutdownConfig(hour, minute, mode);
 
             PopupHelper.ShowBottomPopup(
                 this,
@@ -908,13 +906,7 @@ namespace MCEMonitor
             );
 
             if (TaskSchedulerHelper.ShutdownTaskExists())
-            {
-                string mode = cmbShutdownType.SelectedItem.ToString() == "Veille"
-                    ? "sleep"
-                    : "shutdown";
-
                 TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
-            }
 
             UpdateShutdownTaskStatus();
             RefreshAllAutoButtons();
@@ -1008,6 +1000,27 @@ namespace MCEMonitor
         // ARRÊT PROGRAMMÉ
         // ============================================================
 
+        private const string ShutdownModeShutdown = "shutdown";
+        private const string ShutdownModeSleep    = "sleep";
+
+        /// <summary>
+        /// Index 0 = Arrêt, Index 1 = Veille (cf. Designer).
+        /// </summary>
+        private string GetSelectedShutdownMode()
+        {
+            return cmbShutdownType.SelectedIndex == 1
+                ? ShutdownModeSleep
+                : ShutdownModeShutdown;
+        }
+
+        private void SetSelectedShutdownMode(string mode)
+        {
+            cmbShutdownType.SelectedIndex =
+                string.Equals(mode, ShutdownModeSleep, StringComparison.OrdinalIgnoreCase)
+                    ? 1
+                    : 0;
+        }
+
         private void LoadShutdownConfig()
         {
             string path = Path.Combine(
@@ -1021,25 +1034,31 @@ namespace MCEMonitor
                 var t = TaskSchedulerHelper.GetShutdownTaskTime();
                 if (t != null)
                 {
-                    numShutdownHour.Value = t.Value.hour;
+                    numShutdownHour.Value   = t.Value.hour;
                     numShutdownMinute.Value = t.Value.minute;
                 }
                 return;
             }
 
-            var lines = File.ReadAllLines(path);
-
-            foreach (var line in lines)
+            foreach (var line in File.ReadAllLines(path))
             {
                 if (line.StartsWith("Hour="))
                     numShutdownHour.Value = int.Parse(line.Substring(5));
 
-                if (line.StartsWith("Minute="))
+                else if (line.StartsWith("Minute="))
                     numShutdownMinute.Value = int.Parse(line.Substring(7));
+
+                else if (line.StartsWith("Mode="))
+                    SetSelectedShutdownMode(line.Substring(5).Trim());
             }
         }
 
         private void SaveShutdownConfig(int hour, int minute)
+        {
+            SaveShutdownConfig(hour, minute, GetSelectedShutdownMode());
+        }
+
+        private void SaveShutdownConfig(int hour, int minute, string mode)
         {
             string path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -1047,27 +1066,21 @@ namespace MCEMonitor
                 "Shutdown.config"
             );
 
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
 
             File.WriteAllLines(path, new[]
             {
                 $"Hour={hour}",
-                $"Minute={minute}"
+                $"Minute={minute}",
+                $"Mode={mode}"
             });
         }
 
         private void UpdateShutdownTaskStatus()
         {
-            bool exists = TaskSchedulerHelper.ShutdownTaskExists();
-
-            if (exists)
+            if (TaskSchedulerHelper.ShutdownTaskExists())
             {
-                string mode = TaskSchedulerHelper.GetShutdownTaskMode();
-
-                if (mode == "sleep")
-                    cmbShutdownType.SelectedItem = "Veille";
-                else
-                    cmbShutdownType.SelectedItem = "Arrêt";
+                SetSelectedShutdownMode(TaskSchedulerHelper.GetShutdownTaskMode());
             }
         }
 

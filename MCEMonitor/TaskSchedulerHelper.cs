@@ -196,22 +196,15 @@ namespace MCEMonitor.Utils
                     StandardOutputEncoding = Encoding.GetEncoding(850)
                 });
 
-                string output = p.StandardOutput.ReadToEnd().ToLower();
+                string output = p.StandardOutput.ReadToEnd().ToLowerInvariant();
                 p.WaitForExit();
 
-                // VERSION 100% UNIVERSELLE : on ignore la langue et on détecte la commande
-                foreach (var line in output.Split('\n'))
-                {
-                    string l = line.ToLower();
+                // La ligne de commande contient : "MCEMonitor.exe" --run-scheduled sleep|shutdown
+                if (output.Contains("--run-scheduled sleep"))
+                    return "sleep";
 
-                    // Détection arrêt
-                    if (l.Contains("shutdown.exe"))
-                        return "shutdown";
-
-                    // Détection veille
-                    if (l.Contains("rundll32.exe") && l.Contains("setsuspendstate"))
-                        return "sleep";
-                }
+                if (output.Contains("--run-scheduled shutdown"))
+                    return "shutdown";
 
                 return null;
             }
