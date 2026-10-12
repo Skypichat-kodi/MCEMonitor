@@ -393,67 +393,135 @@ namespace RomMonitor.Tray
         {
             try
             {
-                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
+                // ---- 1) Seuils depuis la config ----
+                int warnPct = 15, critPct = 5, warnGo = 10, critGo = 5;
 
-                client.Connect(1000);
-
-                if (!client.IsConnected)
-                    return new List<ProblemInfo>();
-
-                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-alerts");
-                client.Write(cmdBytes, 0, cmdBytes.Length);
-                client.Flush();
-
-                byte[] buffer = new byte[16384];
-                using var mem = new MemoryStream();
-
-                while (true)
+                using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
                 {
-                    int bytesRead = client.Read(buffer, 0, buffer.Length);
-                    if (bytesRead <= 0)
-                        break;
+                    c.Connect(1000);
+                    if (!c.IsConnected) return new List<ProblemInfo>();
 
-                    mem.Write(buffer, 0, bytesRead);
+                    byte[] cmd = Encoding.UTF8.GetBytes("get-config");
+                    c.Write(cmd, 0, cmd.Length);
+                    c.Flush();
+
+                    byte[] buf = new byte[8192];
+                    int n = c.Read(buf, 0, buf.Length);
+                    string json = Encoding.UTF8.GetString(buf, 0, n);
+
+                    using var doc = JsonDocument.Parse(json);
+                    var r = doc.RootElement;
+
+                    if (r.TryGetProperty("diskSpaceWarnPercent", out var vWarnPct))
+                        warnPct = vWarnPct.GetInt32();
+
+                    if (r.TryGetProperty("diskSpaceCriticalPercent", out var vCritPct))
+                        critPct = vCritPct.GetInt32();
+
+                    if (r.TryGetProperty("diskSpaceWarnGo", out var vWarnGo))
+                        warnGo = vWarnGo.GetInt32();
+
+                    if (r.TryGetProperty("diskSpaceCriticalGo", out var vCritGo))
+                        critGo = vCritGo.GetInt32();
                 }
 
-                string json = Encoding.UTF8.GetString(mem.ToArray());
-
-                if (string.IsNullOrWhiteSpace(json))
-                    return new List<ProblemInfo>();
-
-                // Parser le JSON brut pour extraire les alertes
-                using var doc = JsonDocument.Parse(json);
-
                 var problems = new List<ProblemInfo>();
-                var limit = DateTime.Now.AddMinutes(-30);
 
-                foreach (var el in doc.RootElement.EnumerateArray())
+                // ---- 2) Disques (état actuel) ----
+                using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
                 {
-                    try
+                    c.Connect(1000);
+                    if (!c.IsConnected) return new List<ProblemInfo>();
+
+                    byte[] cmd = Encoding.UTF8.GetBytes("get-disks");
+                    c.Write(cmd, 0, cmd.Length);
+                    c.Flush();
+
+                    using var mem = new MemoryStream();
+                    byte[] buf = new byte[16384];
+                    while (true)
                     {
-                        var ts = el.GetProperty("timestamp").GetDateTime();
+                        int n = c.Read(buf, 0, buf.Length);
+                        if (n <= 0) break;
+                        mem.Write(buf, 0, n);
+                    }
 
-                        if (ts < limit)
-                            continue;
+                    using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(mem.ToArray()));
 
-                        var severity = el.GetProperty("severity").GetString() ?? "Warning";
-                        var type = el.GetProperty("type").GetString() ?? "";
-                        var message = el.GetProperty("message").GetString() ?? "";
+                    foreach (var d in doc.RootElement.EnumerateArray())
+                    {
+                        string name  = d.GetProperty("name").GetString() ?? "";
+                        double pct   = d.GetProperty("freePercent").GetDouble();
+                        double go    = d.GetProperty("freeGo").GetDouble();
+
+                        bool critical = pct < critPct || go < critGo;
+                        bool warning  = pct < warnPct  || go < warnGo;
+
+                        if (critical)
+                        {
+                            problems.Add(new ProblemInfo
+                            {
+                                Timestamp = DateTime.Now,
+                                Severity  = "critical",
+                                Category  = "DiskSpaceCritical",
+                                Message   = $"Espace critique : {pct:F1}% ({go:F1} Go libre) sur {name}"
+                            });
+                        }
+                        else if (warning)
+                        {
+                            problems.Add(new ProblemInfo
+                            {
+                                Timestamp = DateTime.Now,
+                                Severity  = "warning",
+                                Category  = "DiskSpaceLow",
+                                Message   = $"Espace faible : {pct:F1}% ({go:F1} Go libre) sur {name}"
+                            });
+                        }
+                    }
+                }
+
+                // ---- 3) SMART (état actuel) ----
+                using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
+                {
+                    c.Connect(1000);
+                    if (!c.IsConnected) return problems;
+
+                    byte[] cmd = Encoding.UTF8.GetBytes("get-smart");
+                    c.Write(cmd, 0, cmd.Length);
+                    c.Flush();
+
+                    using var mem = new MemoryStream();
+                    byte[] buf = new byte[16384];
+                    while (true)
+                    {
+                        int n = c.Read(buf, 0, buf.Length);
+                        if (n <= 0) break;
+                        mem.Write(buf, 0, n);
+                    }
+
+                    using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(mem.ToArray()));
+
+                    foreach (var s in doc.RootElement.EnumerateArray())
+                    {
+                        string status = s.GetProperty("status").GetString() ?? "";
+                        if (status != "Critical" && status != "Warning") continue;
+
+                        string model  = s.GetProperty("model").GetString() ?? "";
+                        string reason = s.GetProperty("statusReason").GetString() ?? "";
 
                         problems.Add(new ProblemInfo
                         {
-                            Timestamp = ts,
-                            Severity = severity == "Critical" ? "critical" : "warning",
-                            Category = type,
-                            Message = message
+                            Timestamp = DateTime.Now,
+                            Severity  = status == "Critical" ? "critical" : "warning",
+                            Category  = "SmartFailure",
+                            Message   = $"{model} : {reason}"
                         });
                     }
-                    catch { }
                 }
 
                 return problems
                     .OrderByDescending(p => p.Severity == "critical")
-                    .ThenByDescending(p => p.Timestamp)
+                    .ThenBy(p => p.Category)
                     .Take(20)
                     .ToList();
             }
