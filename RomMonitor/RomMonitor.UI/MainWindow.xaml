@@ -3,8 +3,10 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="RomMonitor"
-        Height="850"
-        Width="1500">
+        Height="750"
+        Width="1300"
+        MinHeight="550"
+        MinWidth="900">
 
     <Window.Resources>
 
@@ -90,6 +92,37 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
+        </Style>
+
+        <!-- Style des onglets internes (identique à SystemMonitor) -->
+        <Style TargetType="TabItem">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="TabItem">
+                        <Border x:Name="border"
+                                Background="#252526"
+                                BorderBrush="#3C3C3C"
+                                BorderThickness="0,0,0,2"
+                                Padding="15,8">
+                            <ContentPresenter ContentSource="Header"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
         <!-- ============================================================ -->
@@ -243,447 +276,599 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>   <!-- Barre titre -->
-            <RowDefinition Height="Auto"/>   <!-- Serveur Web -->
-            <RowDefinition Height="Auto"/>   <!-- Boutons -->
-            <RowDefinition Height="3*"/>     <!-- Tableau disques -->
-            <RowDefinition Height="Auto"/>   <!-- Titre alertes -->
-            <RowDefinition Height="2*"/>     <!-- Tableau alertes -->
-            <RowDefinition Height="Auto"/>   <!-- Status bar -->
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Fond sombre -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="7"/>
-
-        <!-- Overlay background -->
-        <Rectangle Grid.RowSpan="7">
+        <!-- Fond + Overlay -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
+        <Rectangle Grid.RowSpan="3">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
             </Rectangle.Fill>
         </Rectangle>
-        
-        <!-- ✅ Voile sombre pour la lisibilité -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="9" Opacity="0.9"/>
-        
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.9"/>
+
         <!-- ============================================================ -->
         <!--  BARRE TITRE                                                  -->
         <!-- ============================================================ -->
-        <TextBlock Grid.Row="0"
-                   Text="RomMonitor"
-                   FontSize="20"
-                   FontWeight="Bold"
-                   Foreground="#4CC2FF"
-                   Margin="15,12,0,8"/>
+        <Grid Grid.Row="0" Margin="15,12,15,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="RomMonitor"
+                       FontSize="20"
+                       FontWeight="Bold"
+                       Foreground="#4CC2FF"
+                       VerticalAlignment="Center"/>
+
+            <Button Grid.Column="1"
+                    x:Name="btnOpenWebTop"
+                    Height="30"
+                    Padding="15,0"
+                    VerticalContentAlignment="Center"
+                    Click="btnOpenWeb_Click"
+                    ToolTip="{loc:Tr 'Ouvrir la page Web dans le navigateur'}">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Tr 'Ouvrir la page Web'}" VerticalAlignment="Center"/>
+                </StackPanel>
+            </Button>
+        </Grid>
 
         <!-- ============================================================ -->
-        <!--  SERVEUR WEB                                                  -->
+        <!--  TABCONTROL                                                   -->
         <!-- ============================================================ -->
-        <GroupBox Grid.Row="1"
-                  Margin="15,0,15,10"
-                  Padding="10"
-                  Header="{loc:Tr 'Serveur Web'}"
-                  Background="{StaticResource PanelBackground}"
-                  BorderBrush="{StaticResource Win11Border}"
-                  Foreground="{StaticResource Win11Text}">
+        <TabControl x:Name="MainTabControl"
+                    Grid.Row="1"
+                    Margin="15,0,15,0"
+                    Background="Transparent"
+                    BorderThickness="0">
 
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="Auto"/>
-                </Grid.ColumnDefinitions>
+            <!-- ====================================================== -->
+            <!--  ONGLET DISQUES                                        -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Disques'}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,10,5,0">
+                    <StackPanel Margin="0,10,0,0">
 
-                <!-- ZONE 1 : Config (gauche) -->
-                <Grid Grid.Column="0" Margin="0,0,20,0">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click"
+                                    ToolTip="{loc:Tr 'Force un scan immédiat du service'}">
+                                <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
+                            </Button>
+                            <Button Width="140" Click="OpenLogs_Click"
+                                    ToolTip="{loc:Tr 'Ouvrir le dossier des logs'}">
+                                <TextBlock Text="{loc:Tr 'Dossier Logs'}"/>
+                            </Button>
+                        </StackPanel>
+
+                        <DataGrid x:Name="DisksGrid"
+                                  MinHeight="400"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column">
+
+                            <DataGrid.Columns>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Disque'}"
+                                                    Binding="{Binding Name}"
+                                                    Width="55"/>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Nom'}"
+                                                    Binding="{Binding Label}"
+                                                    Width="120"/>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Type'}"
+                                                    Binding="{Binding DriveType}"
+                                                    Width="90"/>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Taille'}"
+                                                    Binding="{Binding TotalGoText}"
+                                                    Width="90"/>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Libre'}"
+                                                    Binding="{Binding FreeGoText}"
+                                                    Width="90"/>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'Espace'}" Width="180">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid Margin="4,2">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="50"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <ProgressBar Grid.Column="0"
+                                                             Style="{StaticResource ProgressBarStyle}"
+                                                             Height="16"
+                                                             Minimum="0"
+                                                             Maximum="100"
+                                                             Value="{Binding UsedPercent, Mode=OneWay}"
+                                                             Foreground="{Binding StatusBrush}"/>
+
+                                                <TextBlock Grid.Column="1"
+                                                           Text="{Binding FreePercentText}"
+                                                           VerticalAlignment="Center"
+                                                           HorizontalAlignment="Right"
+                                                           FontSize="12"
+                                                           Margin="6,0,0,0"/>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'SMART'}" Width="70">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border Background="{Binding SmartBadgeBrush}"
+                                                    CornerRadius="10"
+                                                    Padding="8,2"
+                                                    HorizontalAlignment="Center"
+                                                    Margin="4,0">
+                                                <TextBlock Text="{Binding SmartStatusText}"
+                                                           Foreground="Black"
+                                                           FontWeight="Bold"
+                                                           FontSize="11"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Modèle'}"
+                                                    Binding="{Binding SmartModel}"
+                                                    Width="3*"/>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'État'}" Width="4*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding SmartReasonText}"
+                                                       Foreground="{Binding SmartBadgeBrush}"
+                                                       VerticalAlignment="Center"
+                                                       Margin="4,0"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'Temp.'}" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding TemperatureText}"
+                                                       Foreground="{Binding TemperatureBrush}"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'Heures'}" Width="90">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding PowerOnHoursText}"
+                                                       Foreground="#E5E5E5"
+                                                       FontSize="12"
+                                                       VerticalAlignment="Center"
+                                                       HorizontalAlignment="Center"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET CONFIGURATION                                  -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Configuration'}">
+                <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
                     </Grid.RowDefinitions>
 
-                    <!-- Switch ON/OFF -->
-                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
-                                   VerticalAlignment="Center"
-                                   Margin="0,0,8,0"/>
+                    <!-- ====================================== -->
+                    <!--  SERVEUR WEB (inchangé)                -->
+                    <!-- ====================================== -->
+                    <GroupBox Grid.Row="0"
+                              Margin="0,0,0,10"
+                              Padding="10"
+                              Header="{loc:Tr 'Serveur Web'}"
+                              Background="{StaticResource PanelBackground}"
+                              BorderBrush="{StaticResource Win11Border}"
+                              Foreground="{StaticResource Win11Text}">
 
-                        <ToggleButton x:Name="ToggleWeb"
-                                      Width="40"
-                                      Height="20"
-                                      Checked="ToggleWeb_Checked"
-                                      Unchecked="ToggleWeb_Unchecked">
-                            <ToggleButton.Style>
-                                <Style TargetType="ToggleButton">
-                                    <Setter Property="Template">
-                                        <Setter.Value>
-                                            <ControlTemplate TargetType="ToggleButton">
-                                                <Grid Width="40" Height="20">
-                                                    <Border x:Name="SwitchBackground"
-                                                            CornerRadius="10"
-                                                            Background="#3C3C3C"/>
-                                                    <Ellipse x:Name="SwitchThumb"
-                                                             Width="16" Height="16"
-                                                             Margin="2"
-                                                             Fill="#E5E5E5"
-                                                             HorizontalAlignment="Left"/>
-                                                </Grid>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
 
-                                                <ControlTemplate.Triggers>
-                                                    <Trigger Property="IsChecked" Value="True">
-                                                        <Setter TargetName="SwitchBackground"
-                                                                Property="Background"
-                                                                Value="#4CC2FF"/>
-                                                        <Setter TargetName="SwitchThumb"
-                                                                Property="HorizontalAlignment"
-                                                                Value="Right"/>
-                                                    </Trigger>
-                                                </ControlTemplate.Triggers>
-                                            </ControlTemplate>
-                                        </Setter.Value>
-                                    </Setter>
-                                </Style>
-                            </ToggleButton.Style>
-                        </ToggleButton>
-                    </StackPanel>
+                            <Grid Grid.Column="0" Margin="0,0,20,0">
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                    <!-- Port -->
-                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebPort"
-                                 Width="200"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"/>
-                    </StackPanel>
+                                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,8,0"/>
 
-                    <!-- Login -->
-                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                        <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
-                        <TextBox x:Name="txtWebLogin"
-                                 Width="200"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"/>
-                    </StackPanel>
+                                    <ToggleButton x:Name="ToggleWeb"
+                                                  Width="40"
+                                                  Height="20"
+                                                  Checked="ToggleWeb_Checked"
+                                                  Unchecked="ToggleWeb_Unchecked">
+                                        <ToggleButton.Style>
+                                            <Style TargetType="ToggleButton">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="ToggleButton">
+                                                            <Grid Width="40" Height="20">
+                                                                <Border x:Name="SwitchBackground"
+                                                                        CornerRadius="10"
+                                                                        Background="#3C3C3C"/>
+                                                                <Ellipse x:Name="SwitchThumb"
+                                                                         Width="16" Height="16"
+                                                                         Margin="2"
+                                                                         Fill="#E5E5E5"
+                                                                         HorizontalAlignment="Left"/>
+                                                            </Grid>
 
-                    <!-- Mot de passe -->
-                    <Grid Grid.Row="3">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="120"/>
-                            <ColumnDefinition Width="177"/>
-                            <ColumnDefinition Width="Auto"/>
-                        </Grid.ColumnDefinitions>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsChecked" Value="True">
+                                                                    <Setter TargetName="SwitchBackground"
+                                                                            Property="Background"
+                                                                            Value="#4CC2FF"/>
+                                                                    <Setter TargetName="SwitchThumb"
+                                                                            Property="HorizontalAlignment"
+                                                                            Value="Right"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </ToggleButton.Style>
+                                    </ToggleButton>
+                                </StackPanel>
 
-                        <TextBlock Text="{loc:Tr 'Mot de passe :'}"
-                                   Grid.Column="0"
-                                   VerticalAlignment="Center"/>
+                                <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebPort"
+                                             Width="200"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"/>
+                                </StackPanel>
 
-                        <PasswordBox x:Name="txtWebPassword"
-                                     Grid.Column="1"
-                                     Width="177"
-                                     Background="#1E1E1E"
-                                     Foreground="#E5E5E5"
-                                     BorderBrush="#3C3C3C"
-                                     Visibility="Visible"/>
+                                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                    <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtWebLogin"
+                                             Width="200"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"/>
+                                </StackPanel>
 
-                        <TextBox x:Name="txtWebPasswordVisible"
-                                 Grid.Column="1"
-                                 Width="177"
-                                 Background="#1E1E1E"
-                                 Foreground="#E5E5E5"
-                                 BorderBrush="#3C3C3C"
-                                 Visibility="Collapsed"/>
+                                <Grid Grid.Row="3">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="120"/>
+                                        <ColumnDefinition Width="177"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
 
-                        <Button x:Name="btnShowWebPassword"
-                                Grid.Column="2"
-                                Width="22"
-                                Height="22"
-                                Margin="6,0,0,0"
-                                Padding="0"
-                                Click="btnShowWebPassword_Click"
-                                Background="#2D2D30"
-                                BorderBrush="#3C3C3C"
-                                BorderThickness="1"
-                                Cursor="Hand">
-                            <Image x:Name="imgWebEye"
-                                   Width="14"
-                                   Height="14"
-                                   Source="/Resources/Icons/eye.png"/>
-                        </Button>
-                    </Grid>
-                </Grid>
+                                    <TextBlock Text="{loc:Tr 'Mot de passe :'}"
+                                               Grid.Column="0"
+                                               VerticalAlignment="Center"/>
 
-                <!-- ZONE 2 : Boutons (droite) -->
-                <StackPanel Grid.Column="2"
-                            HorizontalAlignment="Right"
-                            VerticalAlignment="Bottom">
-                    <Button Content="{loc:Tr 'Appliquer'}"
-                            Width="150"
-                            Height="28"
-                            Margin="0,0,0,8"
-                            Padding="0"
-                            VerticalContentAlignment="Center"
-                            Click="btnApplyWeb_Click"/>
+                                    <PasswordBox x:Name="txtWebPassword"
+                                                 Grid.Column="1"
+                                                 Width="177"
+                                                 Background="#1E1E1E"
+                                                 Foreground="#E5E5E5"
+                                                 BorderBrush="#3C3C3C"
+                                                 Visibility="Visible"/>
 
-                    <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
-                            Width="220"
-                            Height="28"
-                            Padding="0"
-                            VerticalContentAlignment="Center"
-                            Click="btnOpenWeb_Click"/>
-                </StackPanel>
-            </Grid>
-        </GroupBox>
+                                    <TextBox x:Name="txtWebPasswordVisible"
+                                             Grid.Column="1"
+                                             Width="177"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             Visibility="Collapsed"/>
 
-        <!-- ============================================================ -->
-        <!--  BOUTONS                                                      -->
-        <!-- ============================================================ -->
-        <Border Grid.Row="2" Style="{StaticResource CardBorder}" Padding="12,8" Margin="15,0,15,10">
-            <StackPanel Orientation="Horizontal">
-                <Button Width="140" Margin="0,0,10,0" Click="Refresh_Click">
-                    <TextBlock Text="{loc:Tr 'Rafraîchir'}"/>
-                </Button>
-                <Button Width="140" Margin="0,0,10,0" Click="OpenLogs_Click">
-                    <TextBlock Text="{loc:Tr 'Dossier Logs'}"/>
-                </Button>
-                <Button Width="140" Margin="0,0,10,0" Click="OpenHistory_Click">
-                    <TextBlock Text="{loc:Tr 'Historique'}"/>
-                </Button>
-                <Button Width="160" Click="ClearHistory_Click">
-                    <TextBlock Text="{loc:Tr 'Réinitialiser'}"/>
-                </Button>
-            </StackPanel>
-        </Border>
-
-        <!-- ============================================================ -->
-        <!--  TABLEAU DISQUES                                              -->
-        <!-- ============================================================ -->
-        <DataGrid x:Name="DisksGrid"
-                  Grid.Row="3"
-                  Margin="15,0,15,0"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  HeadersVisibility="Column">
-
-            <DataGrid.Columns>
-
-                <!-- Nom disque -->
-                <DataGridTextColumn Header="{loc:Tr 'Disque'}"
-                                    Binding="{Binding Name}"
-                                    Width="55"/>
-
-                <!-- Label -->
-                <DataGridTextColumn Header="{loc:Tr 'Nom'}"
-                                    Binding="{Binding Label}"
-                                    Width="120"/>
-
-                <!-- Type -->
-                <DataGridTextColumn Header="{loc:Tr 'Type'}"
-                                    Binding="{Binding DriveType}"
-                                    Width="90"/>
-
-                <!-- Taille -->
-                <DataGridTextColumn Header="{loc:Tr 'Taille'}"
-                                    Binding="{Binding TotalGoText}"
-                                    Width="90"/>
-
-                <!-- Libre -->
-                <DataGridTextColumn Header="{loc:Tr 'Libre'}"
-                                    Binding="{Binding FreeGoText}"
-                                    Width="90"/>
-
-                <!-- % libre avec barre -->
-                <DataGridTemplateColumn Header="{loc:Tr 'Espace'}" Width="180">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid Margin="4,2">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*"/>
-                                    <ColumnDefinition Width="50"/>
-                                </Grid.ColumnDefinitions>
-
-                                <ProgressBar Grid.Column="0"
-                                             Style="{StaticResource ProgressBarStyle}"
-                                             Height="16"
-                                             Minimum="0"
-                                             Maximum="100"
-                                             Value="{Binding UsedPercent, Mode=OneWay}"
-                                             Foreground="{Binding StatusBrush}"/>
-
-                                <TextBlock Grid.Column="1"
-                                           Text="{Binding FreePercentText}"
-                                           VerticalAlignment="Center"
-                                           HorizontalAlignment="Right"
-                                           FontSize="12"
-                                           Margin="6,0,0,0"/>
+                                    <Button x:Name="btnShowWebPassword"
+                                            Grid.Column="2"
+                                            Width="22"
+                                            Height="22"
+                                            Margin="6,0,0,0"
+                                            Padding="0"
+                                            Click="btnShowWebPassword_Click"
+                                            Background="#2D2D30"
+                                            BorderBrush="#3C3C3C"
+                                            BorderThickness="1"
+                                            Cursor="Hand">
+                                        <Image x:Name="imgWebEye"
+                                               Width="14"
+                                               Height="14"
+                                               Source="/Resources/Icons/eye.png"/>
+                                    </Button>
+                                </Grid>
                             </Grid>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
 
-                <!-- SMART status -->
-                <DataGridTemplateColumn Header="{loc:Tr 'SMART'}" Width="70">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Border Background="{Binding SmartBadgeBrush}"
-                                    CornerRadius="10"
-                                    Padding="8,2"
-                                    HorizontalAlignment="Center"
-                                    Margin="4,0">
-                                <TextBlock Text="{Binding SmartStatusText}"
-                                           Foreground="Black"
+                            <StackPanel Grid.Column="2"
+                                        HorizontalAlignment="Right"
+                                        VerticalAlignment="Bottom">
+                                <Button Content="{loc:Tr 'Appliquer'}"
+                                        Width="150"
+                                        Height="28"
+                                        Margin="0,0,0,8"
+                                        Padding="0"
+                                        VerticalContentAlignment="Center"
+                                        Click="btnApplyWeb_Click"/>
+
+                                <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
+                                        Width="220"
+                                        Height="28"
+                                        Padding="0"
+                                        VerticalContentAlignment="Center"
+                                        Click="btnOpenWeb_Click"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- ====================================== -->
+                    <!--  RÉGLAGES DE SURVEILLANCE              -->
+                    <!-- ====================================== -->
+                    <Border Grid.Row="1"
+                            Style="{StaticResource CardBorder}"
+                            VerticalAlignment="Top">
+                        <StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                <TextBlock Text="⚙"
+                                           FontSize="16"
+                                           Margin="0,0,8,0"
+                                           VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Réglages de surveillance'}"
+                                           FontSize="14"
                                            FontWeight="Bold"
-                                           FontSize="11"/>
-                            </Border>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                                           Foreground="#4CC2FF"
+                                           VerticalAlignment="Center"/>
+                            </StackPanel>
 
-                <!-- Modèle -->
-                <DataGridTextColumn Header="{loc:Tr 'Modèle'}"
-                                    Binding="{Binding SmartModel}"
-                                    Width="3*"/>
+                            <!-- Grille : 1 colonne label (fixe) + 1 colonne champ (fixe) -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="260"/>
+                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
 
-                <!-- Raison -->
-                <DataGridTemplateColumn Header="{loc:Tr 'État'}" Width="4*">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding SmartReasonText}"
-                                       Foreground="{Binding SmartBadgeBrush}"
-                                       VerticalAlignment="Center"
-                                       Margin="4,0"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                                <!-- Ligne 0 : Fréquence de contrôle -->
+                                <TextBlock Grid.Row="0" Grid.Column="0"
+                                           Text="{loc:Tr 'Fréquence de contrôle (min) :'}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,10"/>
 
-                <!-- Température -->
-                <DataGridTemplateColumn Header="{loc:Tr 'Temp.'}" Width="90">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding TemperatureText}"
-                                       Foreground="{Binding TemperatureBrush}"
-                                       FontWeight="SemiBold"
-                                       FontSize="13"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
-                
-                <!-- Heures de fonctionnement -->
-                <DataGridTemplateColumn Header="{loc:Tr 'Heures'}" Width="90">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <TextBlock Text="{Binding PowerOnHoursText}"
-                                       Foreground="#E5E5E5"
-                                       FontSize="12"
-                                       VerticalAlignment="Center"
-                                       HorizontalAlignment="Center"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>                
+                                <TextBox x:Name="txtInterval"
+                                         Grid.Row="0" Grid.Column="1"
+                                         Width="100"
+                                         Margin="0,0,0,10"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"
+                                         VerticalContentAlignment="Center"/>
 
-            </DataGrid.Columns>
-        </DataGrid>
+                                <!-- Ligne 1 : Intervalle envoi alertes -->
+                                <TextBlock Grid.Row="1" Grid.Column="0"
+                                           Text="{loc:Tr 'Intervalle envoi alertes (h) :'}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,10"/>
 
-        <!-- ============================================================ -->
-        <!--  TITRE ALERTES                                                -->
-        <!-- ============================================================ -->
-        <TextBlock Grid.Row="4"
-                   Text="{loc:Tr 'Alertes récentes'}"
-                   FontSize="14"
-                   FontWeight="SemiBold"
-                   Foreground="#4CC2FF"
-                   Margin="15,15,0,5"/>
+                                <TextBox x:Name="txtCooldown"
+                                         Grid.Row="1" Grid.Column="1"
+                                         Width="100"
+                                         Margin="0,0,0,10"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"
+                                         VerticalContentAlignment="Center"/>
 
-        <!-- ============================================================ -->
-        <!--  TABLEAU ALERTES                                              -->
-        <!-- ============================================================ -->
-        <DataGrid x:Name="AlertsGrid"
-                  Grid.Row="5"
-                  Margin="15,0,15,0"
-                  AutoGenerateColumns="False"
-                  CanUserAddRows="False"
-                  IsReadOnly="True"
-                  HeadersVisibility="Column">
+                                <!-- Ligne 2 : Seuil warning -->
+                                <TextBlock Grid.Row="2" Grid.Column="0"
+                                           Text="{loc:Tr 'Seuil warning (% libre) :'}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,10"/>
 
-            <DataGrid.Columns>
+                                <TextBox x:Name="txtWarnPct"
+                                         Grid.Row="2" Grid.Column="1"
+                                         Width="100"
+                                         Margin="0,0,0,10"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"
+                                         VerticalContentAlignment="Center"/>
 
-                <DataGridTextColumn Header="{loc:Tr 'Heure'}"
-                                    Binding="{Binding TimeText}"
-                                    Width="140"/>
+                                <!-- Ligne 3 : Seuil critique -->
+                                <TextBlock Grid.Row="3" Grid.Column="0"
+                                           Text="{loc:Tr 'Seuil critique (% libre) :'}"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,10,10"/>
 
-                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="80">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <!-- Icône Warning (par défaut) -->
-                                <Image x:Name="imgSeverity"
-                                       Width="20"
-                                       Height="20"
-                                       Source="/Resources/Icons/warning.png"/>
+                                <TextBox x:Name="txtCritPct"
+                                         Grid.Row="3" Grid.Column="1"
+                                         Width="100"
+                                         Margin="0,0,0,10"
+                                         Background="#1E1E1E"
+                                         Foreground="#E5E5E5"
+                                         BorderBrush="#3C3C3C"
+                                         VerticalContentAlignment="Center"/>
 
-                                <!-- Si Critical → on change l'icône -->
-                                <Image x:Name="imgSeverityCritical"
-                                       Width="20"
-                                       Height="20"
-                                       Source="/Resources/Icons/critical.png"
-                                       Visibility="Collapsed"/>
+                                <!-- Ligne 4 : CheckBox SMART -->
+                                <CheckBox x:Name="chkSmartAlert"
+                                          Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                          Content="{loc:Tr 'Alerte email, SMART et disque plein'}"
+                                          Foreground="#E5E5E5"
+                                          Margin="0,5,0,0"
+                                          VerticalAlignment="Center"/>
                             </Grid>
 
-                            <DataTemplate.Triggers>
-                                <!-- Si Critical → afficher critical, cacher warning -->
-                                <DataTrigger Binding="{Binding Severity}" Value="Critical">
-                                    <Setter TargetName="imgSeverity" Property="Visibility" Value="Collapsed"/>
-                                    <Setter TargetName="imgSeverityCritical" Property="Visibility" Value="Visible"/>
-                                </DataTrigger>
+                            <!-- Info seuils Go -->
+                            <TextBlock Text="{loc:Tr 'Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.'}"
+                                       FontSize="11"
+                                       FontStyle="Italic"
+                                       Foreground="#888"
+                                       Margin="0,15,0,0"
+                                       TextWrapping="Wrap"/>
 
-                                <!-- Si autre chose que Warning/Critical (Info) → cacher warning aussi -->
-                                <DataTrigger Binding="{Binding Severity}" Value="Info">
-                                    <Setter TargetName="imgSeverity" Property="Visibility" Value="Collapsed"/>
-                                </DataTrigger>
-                            </DataTemplate.Triggers>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                            <!-- Bouton Enregistrer -->
+                            <Button x:Name="btnSaveWatchConfig"
+                                    Content="{loc:Tr 'Enregistrer les réglages'}"
+                                    Width="220"
+                                    Height="35"
+                                    Margin="0,20,0,0"
+                                    HorizontalAlignment="Left"
+                                    Click="btnSaveWatchConfig_Click"
+                                    ToolTip="{loc:Tr 'Enregistrer les réglages de surveillance'}"/>
 
-                <DataGridTextColumn Header="{loc:Tr 'Cible'}"
-                                    Binding="{Binding Target}"
-                                    Width="2*"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </TabItem>
 
-                <DataGridTextColumn Header="{loc:Tr 'Message'}"
-                                    Binding="{Binding Message}"
-                                    Width="4*"/>
+            <!-- ====================================================== -->
+            <!--  ONGLET ALERTES                                        -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Alertes'}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,10,5,0">
+                    <StackPanel Margin="0,10,0,0">
 
-                <DataGridTemplateColumn Header="{loc:Tr 'Email'}" Width="70">
-                    <DataGridTemplateColumn.CellTemplate>
-                        <DataTemplate>
-                            <Image Width="16"
-                                   Height="16"
-                                   Source="/Resources/Icons/email.png"
-                                   HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"
-                                   Visibility="{Binding EmailSent, Converter={StaticResource BoolToVisibility}}"/>
-                        </DataTemplate>
-                    </DataGridTemplateColumn.CellTemplate>
-                </DataGridTemplateColumn>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="180" Margin="0,0,10,0" Click="OpenHistory_Click"
+                                    ToolTip="{loc:Tr 'Ouvrir le fichier JSON des alertes'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="📂" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Ouvrir le fichier'}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="160" Click="ClearHistory_Click"
+                                    ToolTip="{loc:Tr 'Vider les alertes'}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Réinitialiser'}" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
 
-            </DataGrid.Columns>
-        </DataGrid>
+                        <DataGrid x:Name="AlertsGrid"
+                                  MinHeight="400"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column">
+
+                            <DataGrid.Columns>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Heure'}"
+                                                    Binding="{Binding TimeText}"
+                                                    Width="140"/>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <Image x:Name="imgSeverity"
+                                                       Width="20"
+                                                       Height="20"
+                                                       Source="/Resources/Icons/warning.png"/>
+
+                                                <Image x:Name="imgSeverityCritical"
+                                                       Width="20"
+                                                       Height="20"
+                                                       Source="/Resources/Icons/critical.png"
+                                                       Visibility="Collapsed"/>
+                                            </Grid>
+
+                                            <DataTemplate.Triggers>
+                                                <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                                                    <Setter TargetName="imgSeverity" Property="Visibility" Value="Collapsed"/>
+                                                    <Setter TargetName="imgSeverityCritical" Property="Visibility" Value="Visible"/>
+                                                </DataTrigger>
+
+                                                <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                                    <Setter TargetName="imgSeverity" Property="Visibility" Value="Collapsed"/>
+                                                </DataTrigger>
+                                            </DataTemplate.Triggers>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Cible'}"
+                                                    Binding="{Binding Target}"
+                                                    Width="2*"/>
+
+                                <DataGridTextColumn Header="{loc:Tr 'Message'}"
+                                                    Binding="{Binding Message}"
+                                                    Width="4*"/>
+
+                                <DataGridTemplateColumn Header="{loc:Tr 'Email'}" Width="70">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Image Width="16"
+                                                   Height="16"
+                                                   Source="/Resources/Icons/email.png"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"
+                                                   Visibility="{Binding EmailSent, Converter={StaticResource BoolToVisibility}}"/>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+        </TabControl>
 
         <!-- ============================================================ -->
         <!--  STATUS BAR                                                   -->
         <!-- ============================================================ -->
-        <Border Grid.Row="6"
+        <Border Grid.Row="2"
                 Background="#252526"
                 BorderBrush="#3C3C3C"
                 BorderThickness="0,1,0,0"
                 Margin="0,10,0,0"
                 Padding="15,6">
             <StackPanel Orientation="Horizontal">
-                <!-- 🆕 Icône d'état (cachée par défaut) -->
                 <Image x:Name="imgStatusIcon"
                        Width="16"
                        Height="16"
@@ -698,6 +883,6 @@
                            VerticalAlignment="Center"/>
             </StackPanel>
         </Border>
-        
+
     </Grid>
 </Window>

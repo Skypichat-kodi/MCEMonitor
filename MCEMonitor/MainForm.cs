@@ -27,6 +27,8 @@ namespace MCEMonitor
         private bool _smtpTabsUnlocked = false;
         private DateTime _lastSystemConfigWriteTime = DateTime.MinValue;
         private long _lastSystemConfigSize = -1;
+        private DateTime _lastRomConfigWriteTime = DateTime.MinValue;
+        private long _lastRomConfigSize = -1;        
         private Panel _powerBanner = null!;
         private bool _bannerShown = false;
         private const int BannerHeight = 32;        
@@ -1245,6 +1247,11 @@ namespace MCEMonitor
 
                 File.WriteAllLines(configPath, lines);
 
+                // eviter l'auto-reload
+                var fi = new FileInfo(configPath);
+                _lastRomConfigWriteTime = fi.LastWriteTime;
+                _lastRomConfigSize = fi.Length;
+
                 // notifier le service de recharger la config
                 _ = RomMonitorIpcClient.ReloadConfigAsync();
 
@@ -1851,6 +1858,7 @@ namespace MCEMonitor
             if (_closingInProgress || this.IsDisposed)
                 return;
 
+            CheckRomConfigFileChanged();   // NOUVEAU
             UpdateRomMonitorToggle();
             RefreshAllAutoButtons();
         }
@@ -2473,6 +2481,35 @@ namespace MCEMonitor
                 _lastSystemConfigSize = fi.Length;
 
                 LoadSystemSettings();
+            }
+            catch { }
+        }
+
+        /// <summary>
+        /// Détecte si RomMonitor.config a été modifié par un autre processus
+        /// (RomMonitor.UI par ex.) et recharge les valeurs dans les contrôles.
+        /// </summary>
+        private void CheckRomConfigFileChanged()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                var fi = new FileInfo(configPath);
+
+                if (fi.LastWriteTime == _lastRomConfigWriteTime && fi.Length == _lastRomConfigSize)
+                    return;
+
+                _lastRomConfigWriteTime = fi.LastWriteTime;
+                _lastRomConfigSize = fi.Length;
+
+                LoadRomMonitorSettings();
             }
             catch { }
         }

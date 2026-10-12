@@ -19,6 +19,10 @@ namespace RomMonitor.UI
         private bool _isRefreshing = false;
         private bool _loadingWebConfig = false;
 
+        // NOUVEAU — sync avec RomMonitor.config
+        private DateTime _lastConfigWriteTime = DateTime.MinValue;
+        private long _lastConfigSize = -1;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -127,6 +131,10 @@ namespace RomMonitor.UI
 
             // Charger la config Web
             _ = LoadWebConfig();
+            
+            _ = LoadWebConfig();
+
+            LoadWatchConfig();
         }
 
         // ------------------------------------------------------------
@@ -190,10 +198,12 @@ namespace RomMonitor.UI
         private async Task RefreshState()
         {
             try
-            {
+            {          
                 // ============================================================
                 //  1. Statut
-                // ============================================================
+                // ============================================================                
+                CheckConfigFileChanged();
+                
                 var status = await RomMonitorIpcClient.GetStatus();
 
                 if (status == null)
@@ -654,6 +664,250 @@ namespace RomMonitor.UI
             catch (Exception ex)
             {
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
+            }
+        }
+
+        // ============================================================
+        //  SYNCHRONISATION CONFIG (si modifiée par MCEMonitor)
+        // ============================================================
+        private void CheckConfigFileChanged()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                var fi = new FileInfo(configPath);
+
+                if (fi.LastWriteTime == _lastConfigWriteTime && fi.Length == _lastConfigSize)
+                    return;
+
+                _lastConfigWriteTime = fi.LastWriteTime;
+                _lastConfigSize = fi.Length;
+
+                LoadWatchConfig();
+            }
+            catch { }
+        }
+
+        // ============================================================
+        //  CHARGEMENT DES RÉGLAGES DE SURVEILLANCE
+        // ============================================================
+        private void LoadWatchConfig()
+        {
+            // Valeurs par défaut
+            txtInterval.Text = "60";
+            txtWarnPct.Text  = "15";
+            txtCritPct.Text  = "5";
+            txtCooldown.Text = "24";
+            chkSmartAlert.IsChecked = true;
+
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Interval":
+                            txtInterval.Text = val;
+                            break;
+
+                        case "DiskSpaceWarnPercent":
+                            txtWarnPct.Text = val;
+                            break;
+
+                        case "DiskSpaceCriticalPercent":
+                            txtCritPct.Text = val;
+                            break;
+
+                        case "AlertCooldownHours":
+                            txtCooldown.Text = val;
+                            break;
+
+                        case "AlertOnSmartFailure":
+                            chkSmartAlert.IsChecked =
+                                val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        // ============================================================
+        //  ENREGISTREMENT DES RÉGLAGES
+        // ============================================================
+        private async void btnSaveWatchConfig_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // 1) Validation numérique
+                if (!int.TryParse(txtInterval.Text.Trim(), out int interval) || interval < 15 || interval > 1440)
+                {
+                    MessageBox.Show("Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!int.TryParse(txtWarnPct.Text.Trim(), out int warnPct) || warnPct < 5 || warnPct > 100)
+                {
+                    MessageBox.Show("Seuil warning : entier entre 5 et 100 (%).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!int.TryParse(txtCritPct.Text.Trim(), out int critPct) || critPct < 1 || critPct > 100)
+                {
+                    MessageBox.Show("Seuil critique : entier entre 1 et 100 (%).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!int.TryParse(txtCooldown.Text.Trim(), out int cooldown) || cooldown < 1 || cooldown > 168)
+                {
+                    MessageBox.Show("Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                // 2) Garde-fou ±3 entre warning et critique (aligné sur MCEMonitor)
+                if (warnPct < critPct + 3)
+                {
+                    warnPct = Math.Min(100, critPct + 3);
+                    txtWarnPct.Text = warnPct.ToString();
+
+                    MessageBox.Show(
+                        "Le seuil warning doit être au moins à 3 unités au-dessus du critique.\n" +
+                        $"Seuil warning ajusté automatiquement à {warnPct} %.",
+                        "Ajustement automatique",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+
+                // 3) Lire les valeurs Web existantes pour les préserver
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config");
+
+                Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                bool   webEnabled  = true;
+                int    webPort     = 8085;
+                string webUsername = "admin";
+                string webPassword = "changeme";
+
+                if (File.Exists(configPath))
+                {
+                    foreach (var line in File.ReadAllLines(configPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                            continue;
+
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+
+                        string key = parts[0].Trim();
+                        string val = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "WebEnabled":  if (bool.TryParse(val, out bool we)) webEnabled = we; break;
+                            case "WebPort":     if (int.TryParse(val, out int wp)) webPort = wp; break;
+                            case "WebUsername": webUsername = val; break;
+                            case "WebPassword": webPassword = val; break;
+                        }
+                    }
+                }
+
+                // 4) Écrire le fichier complet (mêmes clés que MCEMonitor)
+                var lines = new[]
+                {
+                    "# ============================================================",
+                    "# RomMonitor.config",
+                    "# Configuration du service RomMonitor",
+                    "# ============================================================",
+                    "",
+                    "# Fréquence de contrôle (minutes)",
+                    $"Interval={interval}",
+                    "",
+                    "# Seuil d'alerte espace disque (% libre)",
+                    $"DiskSpaceWarnPercent={warnPct}",
+                    $"DiskSpaceCriticalPercent={critPct}",
+                    "",
+                    "# Seuil d'alerte espace disque (Go libre)",
+                    "DiskSpaceWarnGo=10",
+                    "DiskSpaceCriticalGo=5",
+                    "",
+                    "# Alertes email",
+                    $"AlertOnSmartFailure={chkSmartAlert.IsChecked == true}".ToLowerInvariant(),
+                    "AlertOnLowDiskSpace=true",
+                    "",
+                    "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
+                    $"AlertCooldownHours={cooldown}",
+                    "",
+                    "# Serveur Web",
+                    $"WebEnabled={webEnabled.ToString().ToLower()}",
+                    $"WebPort={webPort}",
+                    $"WebUsername={webUsername}",
+                    $"WebPassword={webPassword}"
+                };
+
+                File.WriteAllLines(configPath, lines);
+
+                // 5) Mémoriser la signature pour ne pas se recharger soi-même
+                var fi = new FileInfo(configPath);
+                _lastConfigWriteTime = fi.LastWriteTime;
+                _lastConfigSize      = fi.Length;
+
+                // 6) Demander au service de recharger à chaud
+                bool reloaded = await RomMonitorIpcClient.ReloadConfigAsync();
+
+                if (reloaded)
+                {
+                    MessageBox.Show(
+                        "Réglages de surveillance enregistrés.\n\n" +
+                        "Le service a rechargé la configuration à chaud.",
+                        "OK",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Information);
+                }
+                else
+                {
+                    MessageBox.Show(
+                        "Réglages enregistrés, mais le service n'a pas pu être notifié.\n" +
+                        "Redémarrez-le pour appliquer les modifications.",
+                        "Attention",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message,
+                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         
