@@ -157,7 +157,9 @@ namespace MCEMonitor
             };
 
             this.Shown += async (s, e) => await CheckSmtpAtStartupAsync();
-            
+
+            WireRomThresholdValidation();
+                        
             // --- Bandeau d'avertissement batterie ---
             InitializePowerBanner();                        
         }
@@ -1238,11 +1240,6 @@ namespace MCEMonitor
                     LanguageManager.Get("Réglages RomMonitor enregistrés") ?? "Réglages RomMonitor enregistrés",
                     "Information"
                 );
-                PopupHelper.ShowBottomPopup(
-                    this,
-                    LanguageManager.Get("Réglages RomMonitor enregistrés") ?? "Réglages RomMonitor enregistrés",
-                    "Information"
-                );
             }
             catch (Exception ex)
             {
@@ -1324,6 +1321,50 @@ namespace MCEMonitor
             });
         }
 
+        // ============================================================
+        //  Écart minimum de 3 entre Warning et Critical (RomMonitor)
+        // ============================================================
+        private void WireRomThresholdValidation()
+        {
+            // --- Pourcentages ---
+            numRomCritPct.ValueChanged += (s, e) =>
+            {
+                int crit = (int)numRomCritPct.Value;
+                int minWarn = Math.Min(100, crit + 3);
+
+                if ((int)numRomWarnPct.Value < minWarn)
+                    numRomWarnPct.Value = minWarn;
+            };
+
+            numRomWarnPct.ValueChanged += (s, e) =>
+            {
+                int warn = (int)numRomWarnPct.Value;
+                int maxCrit = Math.Max(1, warn - 3);
+
+                if ((int)numRomCritPct.Value > maxCrit)
+                    numRomCritPct.Value = maxCrit;
+            };
+
+            // --- Go ---
+            numRomCritGo.ValueChanged += (s, e) =>
+            {
+                int crit = (int)numRomCritGo.Value;
+                int minWarn = Math.Min(1000, crit + 3);
+
+                if ((int)numRomWarnGo.Value < minWarn)
+                    numRomWarnGo.Value = minWarn;
+            };
+
+            numRomWarnGo.ValueChanged += (s, e) =>
+            {
+                int warn = (int)numRomWarnGo.Value;
+                int maxCrit = Math.Max(1, warn - 3);
+
+                if ((int)numRomCritGo.Value > maxCrit)
+                    numRomCritGo.Value = maxCrit;
+            };
+        }
+        
         // ============================================================
         // SYSTEM MONITOR
         // ============================================================
