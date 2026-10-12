@@ -98,8 +98,15 @@ namespace RomMonitor.Service.Web
                         match = m;
                     }
 
-                    string freeClass = d.FreePercent < 5 ? "danger"
-                                     : d.FreePercent < 15 ? "warning"
+                    // Priorité : Critical d'abord, puis Warning (même logique que RomMonitorEngine)
+                    bool isCritical = d.FreePercent < settings.DiskSpaceCriticalPercent
+                                      || d.FreeGo < settings.DiskSpaceCriticalGo;
+
+                    bool isWarning  = d.FreePercent < settings.DiskSpaceWarnPercent
+                                      || d.FreeGo < settings.DiskSpaceWarnGo;
+
+                    string freeClass = isCritical ? "danger"
+                                     : isWarning  ? "warning"
                                      : "ok";
 
                     // Formate avec point décimal (culture invariante) pour que ce soit CSS-compatible
@@ -108,9 +115,9 @@ namespace RomMonitor.Service.Web
                     string totalGo     = d.TotalGo.ToString("F1", CultureInfo.InvariantCulture);
                     string freeGo      = d.FreeGo.ToString("F1", CultureInfo.InvariantCulture);
 
-                    string barColor = d.FreePercent < 5  ? "#FF6347"   // rouge
-                                    : d.FreePercent < 15 ? "#FFB900"   // jaune
-                                    : "#6CCB5F";                       // vert
+                    string barColor = isCritical ? "#FF6347"   // rouge
+                                    : isWarning  ? "#FFB900"   // jaune
+                                    : "#6CCB5F";               // vert
                 
                     string smartStatus = match?.Status ?? (LanguageManager.Get("N/A") ?? "N/A");
                     string smartClass = smartStatus == "OK" ? "ok"

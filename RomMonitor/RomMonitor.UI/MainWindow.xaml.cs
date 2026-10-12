@@ -224,6 +224,9 @@ namespace RomMonitor.UI
                 
                 var smart = await RomMonitorIpcClient.GetSmart();
 
+                // Recharge les seuils depuis RomMonitor.config
+                LoadThresholds();
+
                 _disks.Clear();
 
                 if (disks != null)
@@ -653,5 +656,48 @@ namespace RomMonitor.UI
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
         }
+        
+        private static void LoadThresholds()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "RomMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "DiskSpaceWarnPercent":
+                            if (int.TryParse(val, out int wp)) DiskViewModel.WarnPercent = wp;
+                            break;
+                        case "DiskSpaceCriticalPercent":
+                            if (int.TryParse(val, out int cp)) DiskViewModel.CriticalPercent = cp;
+                            break;
+                        case "DiskSpaceWarnGo":
+                            if (int.TryParse(val, out int wg)) DiskViewModel.WarnGo = wg;
+                            break;
+                        case "DiskSpaceCriticalGo":
+                            if (int.TryParse(val, out int cg)) DiskViewModel.CriticalGo = cg;
+                            break;
+                    }
+                }
+            }
+            catch { /* silencieux */ }
+        }        
     }
 }

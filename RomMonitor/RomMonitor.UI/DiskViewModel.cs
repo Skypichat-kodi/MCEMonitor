@@ -11,7 +11,12 @@ namespace RomMonitor.UI
         public double TotalGo { get; set; }
         public double FreeGo { get; set; }
         public double FreePercent { get; set; }
-
+        // Seuils chargés depuis RomMonitor.config (mis à jour par MainWindow à chaque refresh)
+        public static int WarnPercent { get; set; } = 15;
+        public static int CriticalPercent { get; set; } = 5;
+        public static int WarnGo { get; set; } = 10;
+        public static int CriticalGo { get; set; } = 5;
+        
         // Calculs
         public double UsedPercent => 100 - FreePercent;
 
@@ -43,21 +48,24 @@ namespace RomMonitor.UI
         // ------------------------------------------------------------
         public void UpdateBrushes()
         {
-            // Couleur de la barre espace
-            StatusBrush = FreePercent switch
-            {
-                < 5 => new SolidColorBrush(Color.FromRgb(255, 99, 71)),    // rouge
-                < 15 => new SolidColorBrush(Color.FromRgb(255, 185, 0)),   // orange
-                _ => new SolidColorBrush(Color.FromRgb(108, 203, 95))      // vert
-            };
+            // Priorité : Critical d'abord (le plus grave), puis Warning
+            bool isCritical = FreePercent < CriticalPercent || FreeGo < CriticalGo;
+            bool isWarning  = FreePercent < WarnPercent     || FreeGo < WarnGo;
 
-            // Badge SMART
+            if (isCritical)
+                StatusBrush = new SolidColorBrush(Color.FromRgb(255, 99, 71));   // rouge
+            else if (isWarning)
+                StatusBrush = new SolidColorBrush(Color.FromRgb(255, 185, 0));   // orange
+            else
+                StatusBrush = new SolidColorBrush(Color.FromRgb(108, 203, 95));  // vert
+
+            // Badge SMART (inchangé)
             SmartBadgeBrush = SmartStatus switch
             {
-                "OK" => new SolidColorBrush(Color.FromRgb(108, 203, 95)),
-                "Warning" => new SolidColorBrush(Color.FromRgb(255, 185, 0)),
+                "OK"       => new SolidColorBrush(Color.FromRgb(108, 203, 95)),
+                "Warning"  => new SolidColorBrush(Color.FromRgb(255, 185, 0)),
                 "Critical" => new SolidColorBrush(Color.FromRgb(255, 99, 71)),
-                _ => new SolidColorBrush(Color.FromRgb(120, 120, 120))
+                _          => new SolidColorBrush(Color.FromRgb(120, 120, 120))
             };
         }
         

@@ -112,7 +112,7 @@ namespace SystemMonitor.Service
         {
             get
             {
-                int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
+                int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
                 return _cpuHistory.Count < windowSize || _ramHistory.Count < windowSize;
             }
         }
@@ -603,8 +603,8 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedCpuUsage(double currentUsage)
         {
-            // Nombre d'échantillons à garder (60s / intervalle)
-            int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
+            // Nombre d'échantillons à garder (90s / intervalle)
+            int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
 
             _cpuHistory.Enqueue(currentUsage);
 
@@ -616,8 +616,8 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedRamUsage(double currentUsage)
         {
-            // Nombre d'échantillons à garder (60s / intervalle)
-            int windowSize = Math.Max(2, 60 / Math.Max(1, _settings.Interval));
+            // Nombre d'échantillons à garder (90s / intervalle)
+            int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
 
             _ramHistory.Enqueue(currentUsage);
 
