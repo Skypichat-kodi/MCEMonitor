@@ -129,7 +129,7 @@ namespace MCEMonitor
             this.MinimumSize = new Size(716, 579);
             this.MaximumSize = new Size(716, 579);
 
-            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MediaMonitor.ico");
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MCEMonitor.ico");
 
             if (File.Exists(iconPath))
                 this.Icon = new Icon(iconPath);

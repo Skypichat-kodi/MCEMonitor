@@ -281,15 +281,13 @@ namespace SystemMonitor.Tray
             try
             {
                 string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-                string path = Path.Combine(exeDir, fileName);
+                string path = Path.Combine(exeDir, "Resources", "Icons", fileName);
 
                 if (!File.Exists(path)) return null;
 
                 using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
                 using var img = Image.FromStream(fs);
 
-                // ⚠ On clone pour détacher l'image du flux.
-                // Sinon l'image devient invalide dès que le "using" ferme le FileStream.
                 return new Bitmap(img);
             }
             catch { return null; }

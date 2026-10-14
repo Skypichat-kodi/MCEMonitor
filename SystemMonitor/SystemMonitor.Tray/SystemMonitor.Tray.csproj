@@ -6,26 +6,22 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <ApplicationIcon>SystemMonitor.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\SystemMonitor.ico</ApplicationIcon>
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="SystemMonitor.ico">
+    <Content Include="Assets\SystemMonitor.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="warning.png">
+
+    <Content Include="Resources\Icons\*.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="critical.png">
+
+    <Content Include="Resources\Sounds\*.wav">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="alarm.wav"   Condition="Exists('alarm.wav')">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="warning.wav" Condition="Exists('warning.wav')">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>  
   </ItemGroup>
 
 </Project>

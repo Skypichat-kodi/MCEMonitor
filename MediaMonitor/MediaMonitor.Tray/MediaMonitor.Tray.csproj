@@ -10,15 +10,14 @@
     <Win32Resource />
 
     <!-- Icône de l'exécutable -->
-    <ApplicationIcon>MediaMonitor.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\MediaMonitor.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Copie l'icône dans le dossier de sortie -->
-    <Content Include="MediaMonitor.ico">
+    <!-- Copie l'icône dans le dossier de sortie (sous-dossier Assets) -->
+    <Content Include="Assets\MediaMonitor.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
 </Project>
-

@@ -11,23 +11,17 @@
     <Win32Resource />
 
     <!-- Icône de l'exécutable -->
-    <ApplicationIcon>RomMonitor.ico</ApplicationIcon>
+    <ApplicationIcon>Assets\RomMonitor.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Copie l'icône dans le dossier de sortie -->
-    <Content Include="RomMonitor.ico">
+    <Content Include="Assets\RomMonitor.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+
+    <Content Include="Resources\Icons\*.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
-  
-  <ItemGroup>
-    <Content Include="warning.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="critical.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>  
 
 </Project>
