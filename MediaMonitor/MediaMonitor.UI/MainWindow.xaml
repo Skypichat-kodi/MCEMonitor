@@ -393,6 +393,62 @@
             </Style.Triggers>
         </Style>
 
+        <!-- ============================================================ -->
+        <!--  STYLES DE BOUTONS COLORÉS (avec hover/pressed cohérents)    -->
+        <!-- ============================================================ -->
+
+        <!-- Base commune -->
+        <Style x:Key="ColoredButtonBase" TargetType="Button">
+            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Padding" Value="15,6"/>
+            <Setter Property="MinWidth" Value="110"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="bd"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.85"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="bd" Property="Opacity" Value="0.65"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- Bleu — Rafraîchir -->
+        <Style x:Key="BlueButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
+            <Setter Property="Background"  Value="#4CC2FF"/>
+            <Setter Property="BorderBrush" Value="#2A8ABF"/>
+            <Setter Property="Foreground" Value="#1E1E1E"/>
+        </Style>
+
+        <!-- Violet — PDF -->
+        <Style x:Key="PurpleButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
+            <Setter Property="Background"  Value="#7B4FE0"/>
+            <Setter Property="BorderBrush" Value="#5231A0"/>
+        </Style>
+
+        <!-- Rouge — Purger -->
+        <Style x:Key="RedButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
+            <Setter Property="Background"  Value="#CC3300"/>
+            <Setter Property="BorderBrush" Value="#8B1A00"/>
+        </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -1018,9 +1074,9 @@
                                        Foreground="#4CC2FF"
                                        FontWeight="SemiBold"
                                        Text="Chargement..."/>
-                            <Button Content="{loc:Tr 'Rafraîchir'}"     Margin="0,0,8,0" Click="btnRefreshBackup_Click"/>
-                            <Button Content="{loc:Tr 'Exporter PDF'}" Margin="0,0,8,0" Click="btnBackupPdf_Click"/>
-                            <Button Content="{loc:Tr 'Purger'}"         Click="btnPurgeBackup_Click"/>
+                            <Button Content="{loc:Tr 'Rafraîchir'}"    Margin="0,0,8,0" Click="btnRefreshBackup_Click" Style="{StaticResource BlueButton}"/>
+                            <Button Content="{loc:Tr 'Exporter PDF'}" Margin="0,0,8,0" Click="btnBackupPdf_Click"    Style="{StaticResource PurpleButton}"/>
+                            <Button Content="{loc:Tr 'Purger'}"                        Click="btnPurgeBackup_Click"  Style="{StaticResource RedButton}"/>
                         </StackPanel>
                     </Border>
 
