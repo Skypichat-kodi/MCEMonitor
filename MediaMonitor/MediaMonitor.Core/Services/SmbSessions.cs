@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
+using System.Management;
+using MediaMonitor.Core.Services;
 
 public class SmbSession
 {
@@ -14,64 +13,54 @@ public class SmbSession
 
 public static class SmbSessions
 {
-    private const int TimeoutMs = 12000;
-
     public static List<SmbSession> GetSessions(string serverName)
     {
         var result = new List<SmbSession>();
 
         try
         {
-            var psi = new ProcessStartInfo
+            string scopePath = string.IsNullOrWhiteSpace(serverName)
+                ? @"\\.\root\Microsoft\Windows\SMB"
+                : $@"\\{serverName}\root\Microsoft\Windows\SMB";
+
+            var scope = new ManagementScope(scopePath);
+            scope.Connect();
+
+            // ClientIPAddress n'existe PAS dans MSFT_SmbSession ? retirée de la requête
+            var query = new ObjectQuery(
+                "SELECT SessionId, ClientComputerName, ClientUserName " +
+                "FROM MSFT_SmbSession");
+
+            using var searcher = new ManagementObjectSearcher(scope, query);
+
+            foreach (ManagementObject obj in searcher.Get())
             {
-                FileName = "powershell.exe",
-                Arguments =
-                    "-NoProfile -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; " +
-                    "Get-SmbSession | Select-Object SessionId,ClientComputerName,ClientIPAddress,Username | ConvertTo-Json -Depth 4\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            using var process = new Process { StartInfo = psi };
-
-            if (!process.Start())
-                return result;
-
-            var stdoutTask = process.StandardOutput.ReadToEndAsync();
-            var stderrTask = process.StandardError.ReadToEndAsync();
-
-            if (!process.WaitForExit(TimeoutMs))
-            {
-                try { process.Kill(entireProcessTree: true); } catch { }
-                return result;
-            }
-
-            string output = stdoutTask.GetAwaiter().GetResult();
-            _ = stderrTask.GetAwaiter().GetResult();
-
-            if (string.IsNullOrWhiteSpace(output))
-                return result;
-
-            if (output.TrimStart().StartsWith("{"))
-            {
-                var item = JsonSerializer.Deserialize<SmbSession>(output);
-                if (item != null)
-                    result.Add(item);
-            }
-            else
-            {
-                var items = JsonSerializer.Deserialize<List<SmbSession>>(output);
-                if (items != null)
-                    result.AddRange(items);
+                try
+                {
+                    result.Add(new SmbSession
+                    {
+                        SessionId          = Convert.ToUInt64(obj["SessionId"] ?? 0UL),
+                        ClientComputerName = obj["ClientComputerName"]?.ToString() ?? "",
+                        ClientIPAddress    = "",   // propriété inexistante en WMI — laissée vide
+                        Username           = obj["ClientUserName"]?.ToString() ?? ""
+                    });
+                }
+                catch { }
+                finally
+                {
+                    obj.Dispose();
+                }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            CoreLog.Write("SMB SESSIONS ERROR: " + ex.Message);
         }
+
+        // ----- DIAGNOSTIC -----
+        CoreLog.Write($"DEBUG SMB Sessions: {result.Count} session(s)");
+        foreach (var s in result)
+            CoreLog.Write($"  -> SessionId={s.SessionId}, ClientComputerName='{s.ClientComputerName}', Username='{s.Username}'");
 
         return result;
     }

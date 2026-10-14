@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Text;
-using System.Text.Json;
+using System.Linq;
+using System.Management;
+using MediaMonitor.Core.Services;
 
 public class SmbOpenFile
 {
@@ -12,67 +12,48 @@ public class SmbOpenFile
 
 public static class SmbOpenFiles
 {
-    private const int TimeoutMs = 12000;
-
     public static List<SmbOpenFile> GetOpenFiles(string serverName)
     {
         var result = new List<SmbOpenFile>();
 
         try
         {
-            var psi = new ProcessStartInfo
+            string scopePath = string.IsNullOrWhiteSpace(serverName)
+                ? @"\\.\root\Microsoft\Windows\SMB"
+                : $@"\\{serverName}\root\Microsoft\Windows\SMB";
+
+            var scope = new ManagementScope(scopePath);
+            scope.Connect();
+
+            var query = new ObjectQuery("SELECT SessionId, Path FROM MSFT_SmbOpenFile");
+            using var searcher = new ManagementObjectSearcher(scope, query);
+
+            foreach (ManagementObject obj in searcher.Get())
             {
-                FileName = "powershell.exe",
-                Arguments =
-                    "-NoProfile -Command \"[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; " +
-                    "Get-SmbOpenFile | Select-Object SessionId,Path | ConvertTo-Json -Depth 4\"",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8,
-                StandardErrorEncoding = Encoding.UTF8
-            };
-
-            using var process = new Process { StartInfo = psi };
-
-            if (!process.Start())
-                return result;
-
-            // Lecture ASYNCHRONE des deux flux : élimine le deadlock stderr.
-            var stdoutTask = process.StandardOutput.ReadToEndAsync();
-            var stderrTask = process.StandardError.ReadToEndAsync();
-
-            // Timeout dur : si PowerShell ne répond pas (veille, WMI, réseau),
-            // on tue tout l'arbre (powershell + conhost rattaché).
-            if (!process.WaitForExit(TimeoutMs))
-            {
-                try { process.Kill(entireProcessTree: true); } catch { }
-                return result;
-            }
-
-            string output = stdoutTask.GetAwaiter().GetResult();
-            _ = stderrTask.GetAwaiter().GetResult(); // consommé, même si on l'ignore
-
-            if (string.IsNullOrWhiteSpace(output))
-                return result;
-
-            if (output.TrimStart().StartsWith("{"))
-            {
-                var item = JsonSerializer.Deserialize<SmbOpenFile>(output);
-                if (item != null)
-                    result.Add(item);
-            }
-            else
-            {
-                var items = JsonSerializer.Deserialize<List<SmbOpenFile>>(output);
-                if (items != null)
-                    result.AddRange(items);
+                try
+                {
+                    result.Add(new SmbOpenFile
+                    {
+                        SessionId = Convert.ToUInt64(obj["SessionId"] ?? 0UL),
+                        Path      = obj["Path"]?.ToString() ?? ""
+                    });
+                }
+                catch { }
+                finally
+                {
+                    obj.Dispose();
+                }
             }
         }
-        catch
+        catch (Exception ex)
         {
+            CoreLog.Write("SMB OPENFILES ERROR: " + ex.Message);
         }
+
+        // ----- DIAGNOSTIC -----
+        CoreLog.Write($"DEBUG SMB OpenFiles: {result.Count} fichier(s)");
+        foreach (var f in result.Take(3))
+            CoreLog.Write($"  -> SessionId={f.SessionId}, Path='{f.Path}'");
 
         return result;
     }

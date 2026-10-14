@@ -19,6 +19,8 @@ namespace MediaMonitor.Core.Services.Engine
         {
             string clientName = match?.ClientComputerName;
             if (string.IsNullOrWhiteSpace(clientName))
+                clientName = match?.ClientIPAddress;
+            if (string.IsNullOrWhiteSpace(clientName))
                 clientName = match?.Username;
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = "Inconnu";
