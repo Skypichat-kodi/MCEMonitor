@@ -77,7 +77,7 @@ namespace MCEMonitorClient.Tray
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
 
-            string ico = Path.Combine(exeDir, "Assets", "MCEMonitorClient.ico");
+            string ico = Path.Combine(exeDir, "MCEMonitorClient.ico");
             var defaultIcon = File.Exists(ico) ? new Icon(ico) : SystemIcons.Application;
 
             string iconsDir = Path.Combine(exeDir, "Resources", "Icons");

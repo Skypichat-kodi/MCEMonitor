@@ -6,8 +6,7 @@
         Height="750"
         Width="1300"
         MinHeight="550"
-        MinWidth="900"
-        Icon="Assets\MediaMonitor.ico">
+        MinWidth="900">
 
     <Window.Resources>
 

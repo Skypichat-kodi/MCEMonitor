@@ -39,18 +39,18 @@ namespace SystemMonitor.Tray
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
 
-            // Icône par défaut (.ico dans Assets/)
-            string defaultPath = Path.Combine(exeDir, "Assets", "SystemMonitor.ico");
+            // Icône par défaut
+            string defaultPath = Path.Combine(exeDir, "SystemMonitor.ico");
             _defaultIcon = File.Exists(defaultPath)
                 ? new Icon(defaultPath)
                 : SystemIcons.Application;
 
-            // Warning (PNG dans Resources/Icons/)
-            string warningPath = Path.Combine(exeDir, "Resources", "Icons", "warning.png");
+            // Warning
+            string warningPath = Path.Combine(exeDir, "warning.png");
             _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
 
-            // Critical (PNG dans Resources/Icons/)
-            string criticalPath = Path.Combine(exeDir, "Resources", "Icons", "critical.png");
+            // Critical
+            string criticalPath = Path.Combine(exeDir, "critical.png");
             _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
         }
 
@@ -82,13 +82,12 @@ namespace SystemMonitor.Tray
         private void LoadSounds()
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-            string soundsDir = Path.Combine(exeDir, "Resources", "Sounds");
 
-            string crit = Path.Combine(soundsDir, "alarm.wav");
+            string crit = Path.Combine(exeDir, "alarm.wav");
             if (File.Exists(crit))
                 _criticalPlayer = new System.Media.SoundPlayer(crit);
 
-            string warn = Path.Combine(soundsDir, "warning.wav");
+            string warn = Path.Combine(exeDir, "warning.wav");
             if (File.Exists(warn))
                 _warningPlayer = new System.Media.SoundPlayer(warn);
         }

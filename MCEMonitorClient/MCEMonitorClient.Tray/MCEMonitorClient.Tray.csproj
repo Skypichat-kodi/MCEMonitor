@@ -5,17 +5,18 @@
     <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>Assets\MCEMonitorClient.ico</ApplicationIcon>
+    <ApplicationIcon>MCEMonitorClient.ico</ApplicationIcon>
     <AssemblyName>MCEMonitorClient.Tray</AssemblyName>
     <RootNamespace>MCEMonitorClient.Tray</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- ? Nouvelle référence -->
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Assets\MCEMonitorClient.ico">
+    <Content Include="MCEMonitorClient.ico">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
 

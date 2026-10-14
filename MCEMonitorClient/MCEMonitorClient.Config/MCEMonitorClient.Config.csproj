@@ -5,7 +5,7 @@
     <TargetFramework>net8.0-windows10.0.17763.0</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <ApplicationIcon>Assets\MCEMonitorClient.ico</ApplicationIcon>
+    <ApplicationIcon>MCEMonitorClient.ico</ApplicationIcon>
     <AssemblyName>MCEMonitorClient.Config</AssemblyName>
     <RootNamespace>MCEMonitorClient.Config</RootNamespace>
     <ApplicationManifest>app.manifest</ApplicationManifest>

@@ -23,8 +23,8 @@ namespace MediaMonitor.Tray
             // ------------------------------------------------------------
             // Chargement de l'icône
             // ------------------------------------------------------------
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-            string iconPath = Path.Combine(exeDir, "Assets", "MediaMonitor.ico");
+            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
+            string iconPath = Path.Combine(exeDir, "MediaMonitor.ico");
 
             trayIcon = new NotifyIcon()
             {

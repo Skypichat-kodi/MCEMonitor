@@ -44,18 +44,18 @@ namespace RomMonitor.Tray
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
 
-            // Icône par défaut (.ico dans Assets/)
-            string defaultPath = Path.Combine(exeDir, "Assets", "RomMonitor.ico");
+            // Icône par défaut (RomMonitor.ico à côté du Tray)
+            string defaultPath = Path.Combine(exeDir, "RomMonitor.ico");
             _defaultIcon = File.Exists(defaultPath)
                 ? new Icon(defaultPath)
                 : SystemIcons.Application;
 
-            // Icône Warning (PNG dans Resources/Icons/)
-            string warningPath = Path.Combine(exeDir, "Resources", "Icons", "warning.png");
+            // Icône Warning (PNG)
+            string warningPath = Path.Combine(exeDir, "warning.png");
             _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
 
-            // Icône Critical (PNG dans Resources/Icons/)
-            string criticalPath = Path.Combine(exeDir, "Resources", "Icons", "critical.png");
+            // Icône Critical (PNG)
+            string criticalPath = Path.Combine(exeDir, "critical.png");
             _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
         }
 
