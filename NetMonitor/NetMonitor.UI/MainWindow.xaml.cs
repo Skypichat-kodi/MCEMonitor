@@ -162,7 +162,7 @@ namespace NetMonitor.UI
             await RefreshSafe();
         }
 
-        private void BlockSelected_Click(object sender, RoutedEventArgs e)
+        private async void BlockSelected_Click(object sender, RoutedEventArgs e)
         {
             if (AlertsGrid.SelectedItem is not AlertRow row)
             {
@@ -186,13 +186,24 @@ namespace NetMonitor.UI
                 return;
             }
 
+            var confirm = MessageBox.Show(
+                $"Bloquer définitivement l'adresse IP {ip} via le pare-feu Windows ?\n\n" +
+                "Deux règles seront créées (entrée + sortie).\n" +
+                "Elles resteront actives jusqu'à suppression manuelle.",
+                "Confirmation",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes)
+                return;
+
+            bool ok = await NetMonitorIpcClient.BlockIpAsync(ip);
+
             MessageBox.Show(
-                $"Blocage automatique d'IP :\n\nL'IP distante identifiée est {ip}.\n\n" +
-                "Pour bloquer une IP manuellement, utilisez le bouton « Bloquer l'IP » qui sera branché " +
-                "sur la commande IPC `net.blockip` dans une prochaine itération.",
+                ok ? $"IP {ip} bloquée par le pare-feu." : $"Échec du blocage de {ip}.",
                 "NetMonitor",
                 MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                ok ? MessageBoxImage.Information : MessageBoxImage.Error);
         }
 
         private void ClearAlerts_Click(object sender, RoutedEventArgs e)

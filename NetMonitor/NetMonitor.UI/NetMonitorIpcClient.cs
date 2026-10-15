@@ -177,6 +177,12 @@ namespace NetMonitor.UI
                          $"&password={password}";
 
             return IsOk(await SendCommand(cmd));
-        }            
+        }
+
+        public static async Task<bool> BlockIpAsync(string ip)
+            => IsOk(await SendCommand($"net.blockip {ip}"));
+
+        public static async Task<bool> UnblockIpAsync(string ip)
+            => IsOk(await SendCommand($"net.unblockip {ip}"));
     }
 }

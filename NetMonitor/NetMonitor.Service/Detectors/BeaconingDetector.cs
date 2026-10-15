@@ -28,6 +28,10 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
 
         if (hits.Length < ctx.Settings.BeaconMinHits) return null;
 
+        var cooldown = TimeSpan.FromSeconds(ctx.Settings.BeaconWindowSeconds);
+        if (!ctx.TryAcquireAlertSlot($"beacon-{ci.Pid}", cooldown))
+            return null;
+            
         // Calcul des intervalles en secondes
         var intervals = new double[hits.Length - 1];
         for (int i = 1; i < hits.Length; i++)

@@ -1,5 +1,7 @@
 using System;
 using System.IO.Pipes;
+using System.Security.AccessControl;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using NetMonitor.Service.Ipc;
@@ -34,13 +36,7 @@ namespace NetMonitor.Service
             {
                 try
                 {
-                    using var server = new NamedPipeServerStream(
-                        PipeName,
-                        PipeDirection.InOut,
-                        1,
-                        PipeTransmissionMode.Byte,
-                        PipeOptions.None
-                    );
+                    using var server = CreateServerPipe();
 
                     server.WaitForConnection();
 
@@ -70,6 +66,36 @@ namespace NetMonitor.Service
             }
 
             CoreLog.Write("IPC : ServerLoop terminé");
+        }
+
+        /// <summary>
+        /// Crée un NamedPipeServerStream avec une ACL qui autorise
+        /// tout utilisateur authentifié à s'y connecter.
+        /// </summary>
+        private static NamedPipeServerStream CreateServerPipe()
+        {
+            var security = new PipeSecurity();
+
+            // Utilisateurs authentifiés : lecture/écriture
+            security.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null),
+                PipeAccessRights.ReadWrite | PipeAccessRights.CreateNewInstance,
+                AccessControlType.Allow));
+
+            // SYSTEM : contrôle total (par défaut, mais on s'en assure)
+            security.AddAccessRule(new PipeAccessRule(
+                new SecurityIdentifier(WellKnownSidType.LocalSystemSid, null),
+                PipeAccessRights.FullControl,
+                AccessControlType.Allow));
+
+            return NamedPipeServerStreamAcl.Create(
+                PipeName,
+                PipeDirection.InOut,
+                1,
+                PipeTransmissionMode.Byte,
+                PipeOptions.None,
+                0, 0,
+                security);
         }
 
         public void Stop() => _running = false;

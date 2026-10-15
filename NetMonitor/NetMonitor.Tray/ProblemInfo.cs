@@ -9,4 +9,14 @@ namespace NetMonitor.Tray
         public string Category { get; set; } = "";
         public string Message { get; set; } = "";
     }
+    
+    internal sealed class NetAlert
+    {
+        public DateTime timestamp { get; set; }
+        public string severity { get; set; } = "";
+        public string source { get; set; } = "";
+        public string message { get; set; } = "";
+        public string? details { get; set; }
+        public string? remoteIp { get; set; }
+    }  
 }

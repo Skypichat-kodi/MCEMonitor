@@ -46,6 +46,9 @@ public sealed class DetectorContext
 
         foreach (var kv in _beaconHits)
             if (kv.Value.IsEmpty) _beaconHits.TryRemove(kv.Key, out _);
+            
+        foreach (var kv in _lastAlertByIp)
+            if (kv.Value < cutoff) _lastAlertByIp.TryRemove(kv.Key, out _);            
     }
 
     /// <summary>Fenêtre glissante thread-safe basée sur un timestamp par item.</summary>
@@ -76,4 +79,20 @@ public sealed class DetectorContext
 
         public bool IsEmpty { get { lock (_lock) return _items.Count == 0; } }
     }
+    
+    private readonly ConcurrentDictionary<string, DateTime> _lastAlertByIp = new();
+
+    /// <summary>
+    /// Retourne true si on peut émettre une alerte pour cette IP
+    /// (respect d'un cooldown de N secondes).
+    /// </summary>
+    public bool TryAcquireAlertSlot(string remoteIp, TimeSpan cooldown)
+    {
+        var now = DateTime.UtcNow;
+        if (_lastAlertByIp.TryGetValue(remoteIp, out var last) && (now - last) < cooldown)
+            return false;
+
+        _lastAlertByIp[remoteIp] = now;
+        return true;
+    }    
 }

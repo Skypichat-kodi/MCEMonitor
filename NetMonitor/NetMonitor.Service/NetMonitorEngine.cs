@@ -32,12 +32,48 @@ namespace NetMonitor.Service
             {
                 lock (_alertsLock)
                 {
-                    var recent = _alerts.Where(a => (DateTime.Now - a.Timestamp).TotalMinutes < 5).ToList();
+                    // Fenêtre large pour l'icône du Tray : 30 minutes (en UTC)
+                    var utcNow = DateTime.UtcNow;
+                    var recent = _alerts
+                        .Where(a => (utcNow - a.Timestamp).TotalMinutes < 30)
+                        .ToList();
+
                     if (recent.Count == 0) return "ok";
                     if (recent.Any(a => a.Severity == Severity.Critical)) return "critical";
                     return "warning";
                 }
             }
+        }
+
+        public List<ProblemItem> GetProblems(int maxItems = 20)
+        {
+            var problems = new List<ProblemItem>();
+
+            lock (_alertsLock)
+            {
+                // Fenêtre large : 60 minutes en UTC
+                var utcNow = DateTime.UtcNow;
+                var limit = utcNow.AddMinutes(-60);
+
+                foreach (var a in _alerts.Where(a => a.Timestamp >= limit))
+                {
+                    problems.Add(new ProblemItem
+                    {
+                        Timestamp = a.Timestamp,
+                        Severity = a.Severity == Severity.Critical || a.Severity == Severity.High
+                            ? "critical"
+                            : "warning",
+                        Category = a.Source,
+                        Message = a.Message
+                    });
+                }
+            }
+
+            return problems
+                .OrderByDescending(p => p.Severity == "critical")
+                .ThenByDescending(p => p.Timestamp)
+                .Take(maxItems)
+                .ToList();
         }
 
         public NetMonitorEngine(NetMonitorSettings settings)
@@ -95,34 +131,6 @@ namespace NetMonitor.Service
         public void ForceScan()
         {
             CoreLog.Write("ForceScan demandé (no-op en mode ETW).");
-        }
-
-        public List<ProblemItem> GetProblems(int maxItems = 20)
-        {
-            var problems = new List<ProblemItem>();
-
-            lock (_alertsLock)
-            {
-                var limit = DateTime.Now.AddMinutes(-5);
-                foreach (var a in _alerts.Where(a => a.Timestamp >= limit))
-                {
-                    problems.Add(new ProblemItem
-                    {
-                        Timestamp = a.Timestamp,
-                        Severity = a.Severity == Severity.Critical || a.Severity == Severity.High
-                            ? "critical"
-                            : "warning",
-                        Category = a.Source,
-                        Message = a.Message
-                    });
-                }
-            }
-
-            return problems
-                .OrderByDescending(p => p.Severity == "critical")
-                .ThenByDescending(p => p.Timestamp)
-                .Take(maxItems)
-                .ToList();
         }
 
         private void OnConnectionOpened(object? sender, ConnectionInfo ci)

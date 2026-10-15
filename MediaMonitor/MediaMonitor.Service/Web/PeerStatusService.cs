@@ -42,6 +42,12 @@ namespace MediaMonitor.Service.Web
                 new[] { "Port",    "WebPort" },
                 new[] { "Username","WebUsername" },
                 new[] { "Password","WebPassword" }),
+                
+            new PeerDef("NetMonitor", "NetMonitor.config",
+                new[] { "WebEnabled", "Enabled" },
+                new[] { "WebPort",    "Port" },
+                new[] { "WebUsername","Username" },
+                new[] { "WebPassword","Password" }),                
         };
 
         public static async Task<List<PeerStatus>> CheckAllAsync(string selfName)

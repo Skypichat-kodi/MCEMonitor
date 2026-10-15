@@ -29,6 +29,7 @@ namespace NetMonitor.Tray
 
         private string _currentSeverity = "";
         private int _startupCheckCount = 0;
+        private int _watchdogMisses = 0;
 
         private const string PIPE_NAME = "MCEMonitor_NetMonitorPipe";
 
@@ -42,17 +43,16 @@ namespace NetMonitor.Tray
                 string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
                 CoreLog.Info($"LoadIcons : exeDir = {exeDir}");
 
-                string defaultPath = Path.Combine(exeDir, "NetMonitor.ico");
-                CoreLog.Info($"LoadIcons : NetMonitor.ico existe = {File.Exists(defaultPath)}");
-
+                string? defaultPath = ResourceLocator.FindAppIcon("NetMonitor.ico");
+                CoreLog.Info($"LoadIcons : NetMonitor.ico trouvé = {defaultPath != null}");
                 _defaultIcon = SafeLoadIcon(defaultPath) ?? SystemIcons.Application;
 
-                string warningPath = Path.Combine(exeDir, "warning.png");
-                CoreLog.Info($"LoadIcons : warning.png existe = {File.Exists(warningPath)}");
+                string? warningPath = ResourceLocator.FindIcon("warning.png");
+                CoreLog.Info($"LoadIcons : warning.png trouvé = {warningPath != null}");
                 _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
 
-                string criticalPath = Path.Combine(exeDir, "critical.png");
-                CoreLog.Info($"LoadIcons : critical.png existe = {File.Exists(criticalPath)}");
+                string? criticalPath = ResourceLocator.FindIcon("critical.png");
+                CoreLog.Info($"LoadIcons : critical.png trouvé = {criticalPath != null}");
                 _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
 
                 CoreLog.Info("LoadIcons : OK");
@@ -66,14 +66,13 @@ namespace NetMonitor.Tray
             }
         }
 
-        private static Icon? SafeLoadIcon(string path)
+        private static Icon? SafeLoadIcon(string? path)
         {
+            if (string.IsNullOrEmpty(path)) return null;
+
             try
             {
                 if (!File.Exists(path)) return null;
-
-                // Copie en mémoire pour éviter tout verrou fichier,
-                // puis création de l'icône depuis le flux en mémoire.
                 byte[] bytes = File.ReadAllBytes(path);
                 using var ms = new MemoryStream(bytes);
                 return new Icon(ms);
@@ -85,12 +84,13 @@ namespace NetMonitor.Tray
             }
         }
 
-        private static Icon? LoadIconFromPng(string path)
+        private static Icon? LoadIconFromPng(string? path)
         {
+            if (string.IsNullOrEmpty(path)) return null;
+
             try
             {
                 if (!File.Exists(path)) return null;
-
                 using var bmp = new Bitmap(path);
                 IntPtr hIcon = bmp.GetHicon();
                 using var tmp = Icon.FromHandle(hIcon);
@@ -110,17 +110,15 @@ namespace NetMonitor.Tray
         {
             try
             {
-                string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-                string crit = Path.Combine(exeDir, "alarm.wav");
-                if (File.Exists(crit))
+                string? crit = ResourceLocator.FindSound("alarm.wav");
+                if (crit != null)
                     _criticalPlayer = new System.Media.SoundPlayer(crit);
 
-                string warn = Path.Combine(exeDir, "warning.wav");
-                if (File.Exists(warn))
+                string? warn = ResourceLocator.FindSound("warning.wav");
+                if (warn != null)
                     _warningPlayer = new System.Media.SoundPlayer(warn);
 
-                CoreLog.Info($"LoadSounds : critical={( _criticalPlayer != null )}, warning={( _warningPlayer != null )}");
+                CoreLog.Info($"LoadSounds : critical={_criticalPlayer != null}, warning={_warningPlayer != null}");
             }
             catch (Exception ex)
             {
@@ -266,7 +264,7 @@ namespace NetMonitor.Tray
                 client.Connect(1000);
                 if (!client.IsConnected) return new List<ProblemInfo>();
 
-                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-problems");
+                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-alerts");
                 client.Write(cmdBytes, 0, cmdBytes.Length);
                 client.Flush();
 
@@ -283,10 +281,25 @@ namespace NetMonitor.Tray
                 string json = Encoding.UTF8.GetString(mem.ToArray());
                 if (string.IsNullOrWhiteSpace(json)) return new List<ProblemInfo>();
 
-                var problems = JsonSerializer.Deserialize<List<ProblemInfo>>(json,
+                // Le service renvoie un tableau d'IntrusionEvent (camelCase)
+                var alerts = JsonSerializer.Deserialize<List<NetAlert>>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                return problems ?? new List<ProblemInfo>();
+                if (alerts == null) return new List<ProblemInfo>();
+
+                return alerts
+                    .OrderByDescending(a => a.timestamp)
+                    .Take(20)
+                    .Select(a => new ProblemInfo
+                    {
+                        Timestamp = a.timestamp,
+                        Severity = (a.severity == "Critical" || a.severity == "High")
+                                   ? "critical"
+                                   : "warning",
+                        Category = a.source ?? "",
+                        Message = a.message ?? ""
+                    })
+                    .ToList();
             }
             catch (Exception ex)
             {
@@ -398,10 +411,24 @@ namespace NetMonitor.Tray
 
             if (!serviceRunning)
             {
+                _watchdogMisses++;
+
+                // Tolère 4 échecs consécutifs (60 s) avant de quitter.
+                // Laisse le temps à la tâche planifiée SYSTEM de démarrer le service.
+                if (_watchdogMisses < 4)
+                {
+                    CoreLog.Info($"Watchdog : service absent ({_watchdogMisses}/4), on attend...");
+                    return;
+                }
+
                 CoreLog.Info("Watchdog : service arrêté ? fermeture du Tray");
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
                 Application.Exit();
+            }
+            else
+            {
+                _watchdogMisses = 0;
             }
         }
 

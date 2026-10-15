@@ -122,7 +122,7 @@ namespace SystemMonitor.Tray
 
             // Watchdog (5s)
             watchdog = new Timer();
-            watchdog.Interval = 5000;
+            watchdog.Interval = 15000;
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
 

@@ -22,6 +22,35 @@ namespace NetMonitor.Service.Ipc
                 HandleSetWebConfig(command, server);
                 return;
             }
+            if (command.StartsWith("net.blockip ", StringComparison.OrdinalIgnoreCase))
+            {
+                string ip = command.Substring("net.blockip ".Length).Trim();
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    IpcResponse.Error(server, "IP manquante");
+                }
+                else
+                {
+                    bool ok = FirewallHelper.BlockIp(ip);
+                    IpcResponse.Json(server, new { status = ok ? "ok" : "error", blocked = ok, ip });
+                }
+                return;
+            }
+
+            if (command.StartsWith("net.unblockip ", StringComparison.OrdinalIgnoreCase))
+            {
+                string ip = command.Substring("net.unblockip ".Length).Trim();
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    IpcResponse.Error(server, "IP manquante");
+                }
+                else
+                {
+                    bool ok = FirewallHelper.UnblockIp(ip);
+                    IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, ip });
+                }
+                return;
+            }            
             switch (command.ToLowerInvariant())
             {
                 case "get-status":         HandleGetStatus(server); break;
@@ -72,7 +101,7 @@ namespace NetMonitor.Service.Ipc
                 {
                     timestamp = a.Timestamp,
                     source = a.Source,
-                    severity = a.Severity,
+                    severity = a.Severity.ToString(),
                     message = a.Message,
                     remoteIp = a.RemoteIp,
                     remotePort = a.RemotePort,
