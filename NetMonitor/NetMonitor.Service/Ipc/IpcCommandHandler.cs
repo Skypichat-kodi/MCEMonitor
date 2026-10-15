@@ -1,0 +1,240 @@
+using System;
+using System.IO.Pipes;
+using System.Linq;
+
+namespace NetMonitor.Service.Ipc
+{
+    public class IpcCommandHandler
+    {
+        private readonly NetMonitorEngine _engine;
+        private readonly NetMonitorSettings _settings;
+
+        public IpcCommandHandler(NetMonitorEngine engine, NetMonitorSettings settings)
+        {
+            _engine = engine;
+            _settings = settings;
+        }
+
+        public void Handle(string command, NamedPipeServerStream server)
+        {
+            if (command.StartsWith("set-web-config ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetWebConfig(command, server);
+                return;
+            }
+            switch (command.ToLowerInvariant())
+            {
+                case "get-status":         HandleGetStatus(server); break;
+                case "get-problems":       HandleGetProblems(server); break;
+                case "get-alerts":         HandleGetAlerts(server); break;
+                case "get-connections":    HandleGetConnections(server); break;
+                case "get-config":         HandleGetConfig(server); break;
+                case "clear-alerts":       HandleClearAlerts(server); break;
+                case "reload-config":      HandleReloadConfig(server); break;
+                case "force-scan":         HandleForceScan(server); break;
+                case "shutdown":           HandleShutdown(server); break;
+                case "get-web-status":     HandleGetWebStatus(server); break;                           
+                default:                   IpcResponse.Error(server, "unknown command"); break;
+            }
+        }
+
+        private void HandleGetStatus(NamedPipeServerStream server)
+        {
+            IpcResponse.Json(server, new
+            {
+                running = _engine.IsRunning,
+                lastUpdate = _engine.LastUpdateTime,
+                worstSeverity = _engine.WorstSeverity,
+                alertCount = _engine.GetAlerts().Count,
+                connectionCount = _engine.GetRecentConnections(1000).Count
+            });
+        }
+
+        private void HandleGetProblems(NamedPipeServerStream server)
+        {
+            try
+            {
+                var problems = _engine.GetProblems(20);
+                IpcResponse.Json(server, problems);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleGetAlerts(NamedPipeServerStream server)
+        {
+            try
+            {
+                var alerts = _engine.GetAlerts();
+                var projected = alerts.Select(a => new
+                {
+                    timestamp = a.Timestamp,
+                    source = a.Source,
+                    severity = a.Severity,
+                    message = a.Message,
+                    remoteIp = a.RemoteIp,
+                    remotePort = a.RemotePort,
+                    localPort = a.LocalPort,
+                    pid = a.Pid,
+                    processName = a.ProcessName,
+                    details = a.Details
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleGetConnections(NamedPipeServerStream server)
+        {
+            try
+            {
+                var conns = _engine.GetRecentConnections(300);
+
+                var projected = conns.Select(c => new
+                {
+                    pid = c.Pid,
+                    processName = c.ProcessName,
+                    localIp = c.LocalIp,
+                    localPort = c.LocalPort,
+                    remoteIp = c.RemoteIp,
+                    remotePort = c.RemotePort,
+                    protocol = c.Protocol.ToString(),   // <-- enum ? string explicite
+                    timestamp = c.Timestamp
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleGetConfig(NamedPipeServerStream server)
+        {
+            IpcResponse.Json(server, new
+            {
+                portScanWindowSeconds = _settings.PortScanWindowSeconds,
+                portScanThreshold = _settings.PortScanThreshold,
+                beaconWindowSeconds = _settings.BeaconWindowSeconds,
+                beaconMinHits = _settings.BeaconMinHits,
+                beaconJitterTolerancePct = _settings.BeaconJitterTolerancePct,
+                autoBlock = _settings.AutoBlock
+            });
+        }
+
+        private void HandleClearAlerts(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearAlerts();
+                CoreLog.Write("IPC : historique des alertes vidé");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleClearAlerts : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleReloadConfig(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ReloadConfig();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleReloadConfig : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleForceScan(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ForceScan();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleForceScan : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleShutdown(NamedPipeServerStream server)
+        {
+            IpcResponse.Ok(server);
+            CoreLog.Write("IPC : shutdown demandé");
+
+            System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
+        }
+        
+        private void HandleGetWebStatus(NamedPipeServerStream server)
+        {
+            IpcResponse.Json(server, new
+            {
+                enabled = _settings.WebEnabled,
+                port = _settings.WebPort,
+                username = _settings.WebUsername,
+                password = _settings.WebPassword
+            });
+        }
+
+        private void HandleSetWebConfig(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string payload = command.Substring("set-web-config ".Length).Trim();
+                var parts = payload.Split('&');
+
+                foreach (var part in parts)
+                {
+                    var kv = part.Split('=', 2);
+                    if (kv.Length != 2) continue;
+
+                    string key = kv[0].Trim().ToLower();
+                    string val = kv[1].Trim();
+
+                    switch (key)
+                    {
+                        case "enabled":
+                            if (bool.TryParse(val, out bool e)) _settings.WebEnabled = e;
+                            break;
+                        case "port":
+                            if (int.TryParse(val, out int p)) _settings.WebPort = p;
+                            break;
+                        case "username":
+                            _settings.WebUsername = val;
+                            break;
+                        case "password":
+                            _settings.WebPassword = val;
+                            break;
+                    }
+                }
+
+                _settings.Save();
+
+                Program.RestartWebServer();
+
+                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleSetWebConfig : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }        
+    }
+}

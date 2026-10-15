@@ -37,6 +37,7 @@ namespace MCEMonitor
             this.tabMediaMonitor = new KryptonPage();
             this.tabRomMonitor = new KryptonPage();
             this.tabSystemMonitor = new KryptonPage();
+            this.tabNetMonitor = new KryptonPage();            
             this.tabWakeMonitor = new KryptonPage();
             this.tabStopMonitor = new KryptonPage();
             this.tabAbout = new KryptonPage();
@@ -65,6 +66,7 @@ namespace MCEMonitor
             this.tabControl.Pages.Add(this.tabMediaMonitor);
             this.tabControl.Pages.Add(this.tabRomMonitor);
             this.tabControl.Pages.Add(this.tabSystemMonitor);
+            this.tabControl.Pages.Add(this.tabNetMonitor);            
             this.tabControl.Pages.Add(this.tabWakeMonitor);
             this.tabControl.Pages.Add(this.tabStopMonitor);
             this.tabControl.Pages.Add(this.tabAbout);
@@ -76,7 +78,9 @@ namespace MCEMonitor
             this.tabRomMonitor.Text = LanguageManager.Get("Rom Monitor") ?? "Rom Monitor";
             this.tabRomMonitor.Name = "tabRomMonitor";
             this.tabSystemMonitor.Text = LanguageManager.Get("System Monitor") ?? "System Monitor";
-            this.tabSystemMonitor.Name = "tabSystemMonitor";            
+            this.tabSystemMonitor.Name = "tabSystemMonitor";
+            this.tabNetMonitor.Text = LanguageManager.Get("Net Monitor") ?? "Net Monitor";
+            this.tabNetMonitor.Name = "tabNetMonitor";                        
             this.tabWakeMonitor.Text = LanguageManager.Get("Wake Monitor") ?? "Wake Monitor";
             this.tabWakeMonitor.Name = "tabWakeMonitor";
             this.tabStopMonitor.Text = LanguageManager.Get("Stop Monitor") ?? "Stop Monitor";
@@ -1253,7 +1257,209 @@ namespace MCEMonitor
             this.grpSystemSettings.Panel.Controls.Add(this.btnSaveSystemConfig);
 
             this.tabSystemMonitor.Controls.Add(this.grpSystemSettings);
-            
+
+            // ============================================================
+            // NET MONITOR — CONTENU
+            // ============================================================
+            this.grpNetInfo = new KryptonGroupBox();
+            this.pnlNetInfo = new KryptonPanel();
+            this.picNetInfo = new KryptonPictureBox();
+            this.lblNetDescription = new KryptonLabel();
+
+            this.grpNetActions = new KryptonGroupBox();
+            this.toggleNetService = new KryptonCheckButton();
+            this.lblNetStatus = new KryptonLabel();
+            this.btnAutoNet = new KryptonButton();
+            this.btnOpenNetUI = new KryptonButton();
+
+            // --- GroupBox Info ---
+            this.grpNetInfo.Text = LanguageManager.Get("À propos de NetMonitor") ?? "À propos de NetMonitor";
+            this.grpNetInfo.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpNetInfo.Location = new System.Drawing.Point(20, 20);
+            this.grpNetInfo.Size = new System.Drawing.Size(640, 130);
+
+            this.pnlNetInfo.Location = new System.Drawing.Point(15, 8);
+            this.pnlNetInfo.Size = new System.Drawing.Size(610, 80);
+            this.pnlNetInfo.StateCommon.Color1 = System.Drawing.Color.FromArgb(240, 240, 240);
+
+            this.picNetInfo.Location = new System.Drawing.Point(10, 10);
+            this.picNetInfo.Size = new System.Drawing.Size(28, 28);
+            this.picNetInfo.SizeMode = PictureBoxSizeMode.StretchImage;
+            this.picNetInfo.Image = SystemIcons.Information.ToBitmap();
+
+            this.lblNetDescription.AutoSize = false;
+            this.lblNetDescription.Location = new System.Drawing.Point(50, 15);
+            this.lblNetDescription.Size = new System.Drawing.Size(550, 50);
+            this.lblNetDescription.Font = new System.Drawing.Font("Segoe UI", 9F, System.Drawing.FontStyle.Italic);
+            this.lblNetDescription.StateCommon.ShortText.Color1 = System.Drawing.Color.FromArgb(60, 60, 60);
+            this.lblNetDescription.Text =
+                LanguageManager.Get("Net.Description") ??
+                "NetMonitor surveille le trafic réseau et détecte les tentatives d'intrusion " +
+                "(scan de ports, beaconing, connexions suspectes).\n" +
+                "Les alertes sont journalisées et peuvent être envoyées par email.";
+
+            this.pnlNetInfo.Controls.Add(this.picNetInfo);
+            this.pnlNetInfo.Controls.Add(this.lblNetDescription);
+            this.grpNetInfo.Panel.Controls.Add(this.pnlNetInfo);
+            this.tabNetMonitor.Controls.Add(this.grpNetInfo);
+
+            // --- GroupBox Actions ---
+            this.grpNetActions.Text = LanguageManager.Get("Automatisation NetMonitor") ?? "Automatisation NetMonitor";
+            this.grpNetActions.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpNetActions.Location = new System.Drawing.Point(20, 160);
+            this.grpNetActions.Size = new System.Drawing.Size(640, 100);
+
+            this.toggleNetService.Text = "ON / OFF";
+            this.toggleNetService.AutoSize = false;
+            this.toggleNetService.Location = new System.Drawing.Point(20, 5);
+            this.toggleNetService.Size = new System.Drawing.Size(90, 28);
+            this.toggleNetService.CheckedChanged += new System.EventHandler(this.toggleNetService_Click);
+
+            this.lblNetStatus.Text = LanguageManager.Get("Service NetMonitor") ?? "Service NetMonitor";
+            this.lblNetStatus.Font = normalFont;
+            this.lblNetStatus.Location = new System.Drawing.Point(120, 10);
+            this.lblNetStatus.AutoSize = true;
+
+            this.btnAutoNet.Font = normalFont;
+            this.btnAutoNet.Size = new System.Drawing.Size(200, 32);
+            this.btnAutoNet.Location = new System.Drawing.Point(110, 45);
+            this.btnAutoNet.Click += new System.EventHandler(this.BtnAutoNet_Click);
+
+            this.btnOpenNetUI.Text = LanguageManager.Get("Ouvrir NetMonitor") ?? "Ouvrir NetMonitor";
+            this.btnOpenNetUI.Font = normalFont;
+            this.btnOpenNetUI.Size = new System.Drawing.Size(200, 32);
+            this.btnOpenNetUI.Location = new System.Drawing.Point(330, 45);
+            this.btnOpenNetUI.Click += new System.EventHandler(this.BtnOpenNetUI_Click);
+
+            this.grpNetActions.Panel.Controls.Add(this.toggleNetService);
+            this.grpNetActions.Panel.Controls.Add(this.lblNetStatus);
+            this.grpNetActions.Panel.Controls.Add(this.btnAutoNet);
+            this.grpNetActions.Panel.Controls.Add(this.btnOpenNetUI);
+
+            this.tabNetMonitor.Controls.Add(this.grpNetActions);
+
+            // Timer NetMonitor
+            this.netMonitorTimer = new System.Windows.Forms.Timer();
+            this.netMonitorTimer.Interval = 3000;
+            this.netMonitorTimer.Tick += new System.EventHandler(this.NetMonitorTimer_Tick);
+            this.netMonitorTimer.Start();
+
+            // ============================================================
+            // NET MONITOR — RÉGLAGES
+            // ============================================================
+            this.grpNetSettings = new KryptonGroupBox();
+            this.lblNetPortScanWindow = new KryptonLabel();
+            this.numNetPortScanWindow = new KryptonNumericUpDown();
+            this.lblNetPortScanThreshold = new KryptonLabel();
+            this.numNetPortScanThreshold = new KryptonNumericUpDown();
+            this.lblNetBeaconWindow = new KryptonLabel();
+            this.numNetBeaconWindow = new KryptonNumericUpDown();
+            this.lblNetBeaconHits = new KryptonLabel();
+            this.numNetBeaconHits = new KryptonNumericUpDown();
+            this.lblNetBeaconJitter = new KryptonLabel();
+            this.numNetBeaconJitter = new KryptonNumericUpDown();
+            this.chkNetAutoBlock = new KryptonCheckBox();
+            this.btnSaveNetConfig = new KryptonButton();
+
+            this.grpNetSettings.Text = LanguageManager.Get("Réglages") ?? "Réglages";
+            this.grpNetSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
+            this.grpNetSettings.Location = new System.Drawing.Point(20, 270);
+            this.grpNetSettings.Size = new System.Drawing.Size(640, 190);
+
+            // Ligne 1 : PortScan — fenêtre
+            this.lblNetPortScanWindow.Text = LanguageManager.Get("PortScan — fenêtre (s) :") ?? "PortScan — fenêtre (s) :";
+            this.lblNetPortScanWindow.Location = new System.Drawing.Point(20, 10);
+            this.lblNetPortScanWindow.Size = new System.Drawing.Size(220, 20);
+            this.lblNetPortScanWindow.Font = normalFont;
+
+            this.numNetPortScanWindow.Location = new System.Drawing.Point(250, 10);
+            this.numNetPortScanWindow.Size = new System.Drawing.Size(80, 20);
+            this.numNetPortScanWindow.Minimum = 1;
+            this.numNetPortScanWindow.Maximum = 300;
+            this.numNetPortScanWindow.Value = 10;
+            this.numNetPortScanWindow.Font = normalFont;
+
+            // Ligne 2 : PortScan — seuil
+            this.lblNetPortScanThreshold.Text = LanguageManager.Get("PortScan — seuil (ports) :") ?? "PortScan — seuil (ports) :";
+            this.lblNetPortScanThreshold.Location = new System.Drawing.Point(20, 38);
+            this.lblNetPortScanThreshold.Size = new System.Drawing.Size(220, 20);
+            this.lblNetPortScanThreshold.Font = normalFont;
+
+            this.numNetPortScanThreshold.Location = new System.Drawing.Point(250, 38);
+            this.numNetPortScanThreshold.Size = new System.Drawing.Size(80, 20);
+            this.numNetPortScanThreshold.Minimum = 2;
+            this.numNetPortScanThreshold.Maximum = 1000;
+            this.numNetPortScanThreshold.Value = 20;
+            this.numNetPortScanThreshold.Font = normalFont;
+
+            // Ligne 3 : Beaconing — fenêtre
+            this.lblNetBeaconWindow.Text = LanguageManager.Get("Beaconing — fenêtre (s) :") ?? "Beaconing — fenêtre (s) :";
+            this.lblNetBeaconWindow.Location = new System.Drawing.Point(20, 66);
+            this.lblNetBeaconWindow.Size = new System.Drawing.Size(220, 20);
+            this.lblNetBeaconWindow.Font = normalFont;
+
+            this.numNetBeaconWindow.Location = new System.Drawing.Point(250, 66);
+            this.numNetBeaconWindow.Size = new System.Drawing.Size(80, 20);
+            this.numNetBeaconWindow.Minimum = 30;
+            this.numNetBeaconWindow.Maximum = 3600;
+            this.numNetBeaconWindow.Value = 300;
+            this.numNetBeaconWindow.Font = normalFont;
+
+            // Ligne 4 : Beaconing — hits
+            this.lblNetBeaconHits.Text = LanguageManager.Get("Beaconing — hits minimum :") ?? "Beaconing — hits minimum :";
+            this.lblNetBeaconHits.Location = new System.Drawing.Point(20, 94);
+            this.lblNetBeaconHits.Size = new System.Drawing.Size(220, 20);
+            this.lblNetBeaconHits.Font = normalFont;
+
+            this.numNetBeaconHits.Location = new System.Drawing.Point(250, 94);
+            this.numNetBeaconHits.Size = new System.Drawing.Size(80, 20);
+            this.numNetBeaconHits.Minimum = 3;
+            this.numNetBeaconHits.Maximum = 100;
+            this.numNetBeaconHits.Value = 6;
+            this.numNetBeaconHits.Font = normalFont;
+
+            // Ligne 5 : Beaconing — jitter max (%)
+            this.lblNetBeaconJitter.Text = LanguageManager.Get("Beaconing — jitter max (%) :") ?? "Beaconing — jitter max (%) :";
+            this.lblNetBeaconJitter.Location = new System.Drawing.Point(20, 122);
+            this.lblNetBeaconJitter.Size = new System.Drawing.Size(220, 20);
+            this.lblNetBeaconJitter.Font = normalFont;
+
+            this.numNetBeaconJitter.Location = new System.Drawing.Point(250, 122);
+            this.numNetBeaconJitter.Size = new System.Drawing.Size(80, 20);
+            this.numNetBeaconJitter.Minimum = 1;
+            this.numNetBeaconJitter.Maximum = 100;
+            this.numNetBeaconJitter.Value = 20;
+            this.numNetBeaconJitter.Font = normalFont;
+
+            // Ligne 6 : AutoBlock
+            this.chkNetAutoBlock.Text = LanguageManager.Get("Blocage automatique par pare-feu (sévérité High et +)")
+                ?? "Blocage automatique par pare-feu (sévérité High et +)";
+            this.chkNetAutoBlock.Location = new System.Drawing.Point(20, 152);
+            this.chkNetAutoBlock.Size = new System.Drawing.Size(500, 22);
+            this.chkNetAutoBlock.Font = normalFont;
+
+            // Bouton Enregistrer
+            this.btnSaveNetConfig.Text = LanguageManager.Get("Enregistrer les réglages") ?? "Enregistrer les réglages";
+            this.btnSaveNetConfig.Font = normalFont;
+            this.btnSaveNetConfig.Size = new System.Drawing.Size(170, 35);
+            this.btnSaveNetConfig.Location = new System.Drawing.Point(440, 10);
+            this.btnSaveNetConfig.Click += new System.EventHandler(this.BtnSaveNetConfig_Click);
+
+            this.grpNetSettings.Panel.Controls.Add(this.lblNetPortScanWindow);
+            this.grpNetSettings.Panel.Controls.Add(this.numNetPortScanWindow);
+            this.grpNetSettings.Panel.Controls.Add(this.lblNetPortScanThreshold);
+            this.grpNetSettings.Panel.Controls.Add(this.numNetPortScanThreshold);
+            this.grpNetSettings.Panel.Controls.Add(this.lblNetBeaconWindow);
+            this.grpNetSettings.Panel.Controls.Add(this.numNetBeaconWindow);
+            this.grpNetSettings.Panel.Controls.Add(this.lblNetBeaconHits);
+            this.grpNetSettings.Panel.Controls.Add(this.numNetBeaconHits);
+            this.grpNetSettings.Panel.Controls.Add(this.lblNetBeaconJitter);
+            this.grpNetSettings.Panel.Controls.Add(this.numNetBeaconJitter);
+            this.grpNetSettings.Panel.Controls.Add(this.chkNetAutoBlock);
+            this.grpNetSettings.Panel.Controls.Add(this.btnSaveNetConfig);
+
+            this.tabNetMonitor.Controls.Add(this.grpNetSettings);
+                        
             // ============================================================
             // FINALISATION
             // ============================================================
@@ -1392,7 +1598,33 @@ namespace MCEMonitor
         private KryptonLabel lblSystemInterval;
         private KryptonNumericUpDown numSystemInterval;
         private KryptonButton btnSaveSystemConfig;        
-        
+
+        // ---------- Net Monitor ----------
+        private KryptonPage tabNetMonitor;
+        private KryptonGroupBox grpNetInfo;
+        private KryptonPanel pnlNetInfo;
+        private KryptonPictureBox picNetInfo;
+        private KryptonLabel lblNetDescription;
+        private KryptonGroupBox grpNetActions;
+        private KryptonCheckButton toggleNetService;
+        private KryptonLabel lblNetStatus;
+        private KryptonButton btnOpenNetUI;
+        private KryptonButton btnAutoNet;
+        private System.Windows.Forms.Timer netMonitorTimer;
+        private KryptonGroupBox grpNetSettings;
+        private KryptonLabel lblNetPortScanWindow;
+        private KryptonNumericUpDown numNetPortScanWindow;
+        private KryptonLabel lblNetPortScanThreshold;
+        private KryptonNumericUpDown numNetPortScanThreshold;
+        private KryptonLabel lblNetBeaconWindow;
+        private KryptonNumericUpDown numNetBeaconWindow;
+        private KryptonLabel lblNetBeaconHits;
+        private KryptonNumericUpDown numNetBeaconHits;
+        private KryptonLabel lblNetBeaconJitter;
+        private KryptonNumericUpDown numNetBeaconJitter;
+        private KryptonCheckBox chkNetAutoBlock;
+        private KryptonButton btnSaveNetConfig;
+                
         // ---------- Wake Monitor ----------
         private KryptonGroupBox grpWakeInfo;
         private KryptonPanel pnlWakeInfo;

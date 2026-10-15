@@ -245,7 +245,39 @@ namespace MCEMonitor.Utils
         {
             return QueryTask("MCEMonitor_SystemMonitorService");
         }
-        
+
+        // ============================================================
+        // NET MONITOR
+        // ============================================================
+
+        public static string CreateNetMonitorTask()
+        {
+            string exePath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "NetMonitor.Service.exe"
+            );
+
+            if (!File.Exists(exePath))
+                return "ERREUR : NetMonitor.Service.exe introuvable.";
+
+            return RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_NetMonitorService\" " +
+                "/SC ONSTART " +
+                $"/TR \"\\\"{exePath}\\\"\" /RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteNetMonitorTask()
+        {
+            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_NetMonitorService\" /F");
+        }
+
+        public static bool NetMonitorTaskExists()
+        {
+            return QueryTask("MCEMonitor_NetMonitorService");
+        }
+                
         // ============================================================
         // STOP MONITOR
         // ============================================================

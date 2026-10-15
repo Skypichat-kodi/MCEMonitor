@@ -180,18 +180,32 @@ Filename: "{app}\MCEMonitorClient.Config.exe"; \
     Components: client
 
 [UninstallRun]
-; --- Arrêt des processus ---
+; --- Arrêt des processus MCEMonitor ---
 Filename: "taskkill.exe"; Parameters: "/IM MCEMonitor.exe /F";           Flags: runhidden; RunOnceId: "KillMCEM"
+; --- Arrêt des processus MCEMonitorClient ---
 Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Service.exe /F"; Flags: runhidden; RunOnceId: "KillClientSvc"
 Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillClientTray"
 Filename: "taskkill.exe"; Parameters: "/IM MCEMonitorClient.Config.exe /F";  Flags: runhidden; RunOnceId: "KillClientCfg"
+; --- Arrêt des processus MediaMonitor ---
 Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Service.exe /F"; Flags: runhidden; RunOnceId: "KillMediaSvc"
-Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Service.exe /F";   Flags: runhidden; RunOnceId: "KillRomSvc"
 Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillMediaTray"
+Filename: "taskkill.exe"; Parameters: "/IM MediaMonitor.UI.exe /F";    Flags: runhidden; RunOnceId: "KillMediaTray"
+; --- Arrêt des processus RomMonitor ---
+Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Service.exe /F";   Flags: runhidden; RunOnceId: "KillRomSvc"
 Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.Tray.exe /F";      Flags: runhidden; RunOnceId: "KillRomTray"
+Filename: "taskkill.exe"; Parameters: "/IM RomMonitor.UI.exe /F";      Flags: runhidden; RunOnceId: "KillRomTray"
+; --- Arrêt des processus SystemMonitor ---
 Filename: "taskkill.exe"; Parameters: "/IM SystemMonitor.Service.exe /F"; Flags: runhidden; RunOnceId: "KillSysSvc"
 Filename: "taskkill.exe"; Parameters: "/IM SystemMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillSysTray"
+Filename: "taskkill.exe"; Parameters: "/IM SystemMonitor.UI.exe /F";    Flags: runhidden; RunOnceId: "KillSysTray"
+; --- Arrêt des processus NetMonitor ---
+Filename: "taskkill.exe"; Parameters: "/IM NetMonitor.Service.exe /F"; Flags: runhidden; RunOnceId: "KillNetSvc"
+Filename: "taskkill.exe"; Parameters: "/IM NetMonitor.Tray.exe /F";    Flags: runhidden; RunOnceId: "KillNetTray"
+Filename: "taskkill.exe"; Parameters: "/IM NetMonitor.UI.exe /F";      Flags: runhidden; RunOnceId: "KillNetUI"
 
+; --- Suppression des tâches planifiées NetMonitor ---
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_NetMonitorService"" /F"; Flags: runhidden; RunOnceId: "DelNetSvcTask"
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_NetMonitorTray"" /F";    Flags: runhidden; RunOnceId: "DelNetTrayTask"
 ; --- Suppression des tâches planifiées MediaMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_MediaMonitorService"" /F"; Flags: runhidden; RunOnceId: "DelMediaSvcTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_MediaMonitorTray"" /F";    Flags: runhidden; RunOnceId: "DelMediaTrayTask"
@@ -208,6 +222,9 @@ Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_Shutdown"" /F"; 
 ; --- Suppression des tâches planifiées StopMonitor ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor_Boot"" /F";    Flags: runhidden; RunOnceId: "DelStopBootTask"
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_StopMonitor_Shutdown"" /F";Flags: runhidden; RunOnceId: "DelStopShutdownTask"
+; --- Suppression des tâches planifiées NetMonitor ---
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_NetMonitorService"" /F"; Flags: runhidden; RunOnceId: "DelNetSvcTask"
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_NetMonitorTray"" /F";    Flags: runhidden; RunOnceId: "DelNetTrayTask"
 
 ; --- Suppression des anciens noms de tâches (migration) ---
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""MCEMonitor_Tray"" /F";                Flags: runhidden; RunOnceId: "DelOldTrayTask"
@@ -271,20 +288,29 @@ begin
     if WizardIsTaskSelected('deletetasks') then
     begin
       Log('=== Suppression des tâches planifiées (choix utilisateur) ===');
-
+      
+      // --- MediaMonitor ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_MediaMonitorService" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_MediaMonitorTray" /F >nul 2>&1');
+      // --- SystemMonitor ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_SystemMonitorService" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_SystemMonitorTray" /F >nul 2>&1');
+      // --- RomMonitor ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_RomMonitorService" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_RomMonitorTray" /F >nul 2>&1');
+      // --- WakeMonitor ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_WakeMonitor" /F >nul 2>&1');
+      // --- ON/OFF ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Shutdown" /F >nul 2>&1');
+      // --- StopMonitor ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Boot" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_StopMonitor_Shutdown" /F >nul 2>&1');
       // --- MCEMonitor Client ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitorClient_Service" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitorClient_Tray" /F >nul 2>&1');
+      // --- NetMonitor ---
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_NetMonitorService" /F >nul 2>&1');
+      BatchContent.Add('schtasks /Delete /TN "MCEMonitor_NetMonitorTray" /F >nul 2>&1');
       // --- Anciens noms (migration) ---
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Tray" /F >nul 2>&1');
       BatchContent.Add('schtasks /Delete /TN "MCEMonitor_Wake" /F >nul 2>&1');
@@ -309,7 +335,9 @@ begin
     BatchContent.Add('taskkill /F /IM RomMonitor.Service.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM RomMonitor.Tray.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM RomMonitor.UI.exe /T >nul 2>&1');
-
+    BatchContent.Add('taskkill /F /IM NetMonitor.Service.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM NetMonitor.Tray.exe /T >nul 2>&1');
+    BatchContent.Add('taskkill /F /IM NetMonitor.UI.exe /T >nul 2>&1');
     BatchContent.Add('exit /b 0');
 
     BatchContent.SaveToFile(BatchFile);

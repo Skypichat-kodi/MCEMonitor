@@ -56,16 +56,19 @@ taskkill /IM MediaMonitor.Service.exe /F >nul 2>&1
 taskkill /IM RomMonitor.Service.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.Service.exe /F >nul 2>&1
 taskkill /IM MCEMonitorClient.Service.exe /F >nul 2>&1
+taskkill /IM NetMonitor.Service.exe /F >nul 2>&1
 
 taskkill /IM MediaMonitor.UI.exe /F >nul 2>&1
 taskkill /IM RomMonitor.UI.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.UI.exe /F >nul 2>&1
 taskkill /IM MCEMonitorClient.Config.exe /F >nul 2>&1
+taskkill /IM NetMonitor.UI.exe /F >nul 2>&1
 
 taskkill /IM MediaMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM RomMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM SystemMonitor.Tray.exe /F >nul 2>&1
 taskkill /IM MCEMonitorClient.Tray.exe /F >nul 2>&1
+taskkill /IM NetMonitor.Tray.exe /F >nul 2>&1
 
 taskkill /IM MCEMonitor.exe /F >nul 2>&1
 taskkill /IM Autotrad.exe /F >nul 2>&1
@@ -83,7 +86,9 @@ call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"           "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Tray"               "%DEST_PROGRAM%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.UI"                 "%DEST_PROGRAM%"
 call :publish "%ROOT%\SystemMonitor\SystemMonitor.Tray"         "%DEST_PROGRAM%"
+call :publish "%ROOT%\NetMonitor\NetMonitor.Tray"               "%DEST_PROGRAM%"
 call :publish "%ROOT%\SystemMonitor\SystemMonitor.UI"           "%DEST_PROGRAM%"
+call :publish "%ROOT%\NetMonitor\NetMonitor.UI"                 "%DEST_PROGRAM%"
 call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Config" "%DEST_PROGRAM%"
 call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Tray"   "%DEST_PROGRAM%"
 
@@ -94,6 +99,7 @@ call :publish "%ROOT%\MediaMonitor\MediaMonitor.Service"         "%DEST_APPDATA%
 call :publish "%ROOT%\MCEMonitor.Languages"                      "%DEST_APPDATA%"
 call :publish "%ROOT%\RomMonitor\RomMonitor.Service"             "%DEST_APPDATA%"
 call :publish "%ROOT%\SystemMonitor\SystemMonitor.Service"       "%DEST_APPDATA%"
+call :publish "%ROOT%\NetMonitor\NetMonitor.Service"             "%DEST_APPDATA%"
 call :publish "%ROOT%\MCEMonitorClient\MCEMonitorClient.Service" "%DEST_APPDATA%"
 
 REM === Tools ===

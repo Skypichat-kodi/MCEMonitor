@@ -32,7 +32,11 @@ namespace MCEMonitor
         private Panel _powerBanner = null!;
         private bool _bannerShown = false;
         private const int BannerHeight = 32;        
-
+        private bool _suppressToggleNet = false;
+        private bool _taskNetExists;
+        private DateTime _lastNetConfigWriteTime = DateTime.MinValue;
+        private long _lastNetConfigSize = -1;
+        
         // Garde-fous anti-récursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
         private bool _suppressToggleRom = false;
@@ -102,6 +106,7 @@ namespace MCEMonitor
                 logRefreshTimer?.Stop();
                 mediaServiceTimer?.Stop();
                 romMonitorTimer?.Stop();
+                netMonitorTimer?.Stop();
 
                 // 3. Forcer la sortie propre
                 Application.Exit();
@@ -129,7 +134,7 @@ namespace MCEMonitor
             this.MinimumSize = new Size(716, 579);
             this.MaximumSize = new Size(716, 579);
 
-            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MediaMonitor.ico");
+            string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Assets", "MCEMonitor.ico");
 
             if (File.Exists(iconPath))
                 this.Icon = new Icon(iconPath);
@@ -140,6 +145,7 @@ namespace MCEMonitor
             LoadMediaConfig();
             LoadRomMonitorConfig();
             LoadSystemMonitorConfig();
+            LoadNetMonitorConfig();
             LoadWakeConfig();
             RefreshAllAutoButtons();
             LoadShutdownConfig();
@@ -1994,6 +2000,456 @@ namespace MCEMonitor
         }
 
         // ============================================================
+        // NET MONITOR
+        // ============================================================
+
+        private void LoadNetMonitorConfig()
+        {
+            UpdateNetMonitorToggle();
+            LoadNetMonitorSettings();
+        }
+
+        private bool IsNetServiceRunning()
+        {
+            return Process.GetProcessesByName("NetMonitor.Service").Length > 0;
+        }
+
+        private bool IsNetUIRunning()
+        {
+            return Process.GetProcessesByName("NetMonitor.UI").Length > 0;
+        }
+
+        private void UpdateNetMonitorToggle()
+        {
+            _suppressToggleNet = true;
+            try
+            {
+                bool running = IsNetServiceRunning();
+
+                if (running)
+                {
+                    toggleNetService.Checked = true;
+                    lblNetStatus.Text =
+                        LanguageManager.Get("Service NetMonitor : actif") ?? "Service NetMonitor : actif";
+                }
+                else
+                {
+                    toggleNetService.Checked = false;
+                    lblNetStatus.Text =
+                        LanguageManager.Get("Service NetMonitor : arrêté") ?? "Service NetMonitor : arrêté";
+                }
+            }
+            finally
+            {
+                _suppressToggleNet = false;
+            }
+        }
+
+        private void toggleNetService_Click(object sender, EventArgs e)
+        {
+            if (_suppressToggleNet)
+                return;
+
+            _suppressToggleNet = true;
+            try
+            {
+                bool running = IsNetServiceRunning();
+
+                if (running)
+                {
+                    if (IsNetUIRunning())
+                    {
+                        toggleNetService.Checked = true;
+
+                        PopupHelper.ShowBottomPopup(
+                            this,
+                            LanguageManager.Get("Impossible d'arrêter NetMonitor.Service tant que NetMonitor.UI est ouvert. Veuillez fermer NetMonitor.UI d'abord.")
+                                ?? "Impossible d'arrêter NetMonitor.Service tant que NetMonitor.UI est ouvert.\nVeuillez fermer NetMonitor.UI d'abord.",
+                            LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
+                        );
+                        return;
+                    }
+
+                    foreach (var p in Process.GetProcessesByName("NetMonitor.Service"))
+                        p.Kill();
+                }
+                else
+                {
+                    StartNetMonitorService();
+                }
+            }
+            finally
+            {
+                _suppressToggleNet = false;
+            }
+
+            Task.Delay(800).ContinueWith(_ =>
+            {
+                this.Invoke(new Action(UpdateNetMonitorToggle));
+            });
+        }
+
+        private bool StartNetMonitorService()
+        {
+            try
+            {
+                string servicePath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "NetMonitor.Service.exe"
+                );
+
+                if (!File.Exists(servicePath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        LanguageManager.Get("NetMonitor.Service.exe introuvable.") ?? "NetMonitor.Service.exe introuvable.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = servicePath,
+                    Arguments = $"-lang {lang}",
+                    UseShellExecute = true
+                });
+
+                Thread.Sleep(1200);
+
+                if (Process.GetProcessesByName("NetMonitor.Service").Length == 0)
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "Le service NetMonitor n'a pas pu démarrer.",
+                        "Erreur"
+                    );
+                    return false;
+                }
+
+                StartNetMonitorTray();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors du démarrage du service NetMonitor : " + ex.Message,
+                    "Erreur"
+                );
+                return false;
+            }
+        }
+
+        private void StartNetMonitorTray()
+        {
+            try
+            {
+                if (Process.GetProcessesByName("NetMonitor.Tray").Length > 0)
+                    return;
+
+                string trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "NetMonitor.Tray.exe"
+                );
+
+                if (!File.Exists(trayPath))
+                {
+                    trayPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "NetMonitor.Tray.exe"
+                    );
+                }
+
+                if (File.Exists(trayPath))
+                {
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = trayPath,
+                        UseShellExecute = true
+                    });
+                }
+            }
+            catch { }
+        }
+
+        private void BtnOpenNetUI_Click(object sender, EventArgs e)
+        {
+            bool serviceRunning = IsNetServiceRunning();
+
+            if (!serviceRunning)
+            {
+                string message =
+                    (LanguageManager.Get("Le service NetMonitor n'est pas en cours d'exécution.")
+                        ?? "Le service NetMonitor n'est pas en cours d'exécution.")
+                    + "\n\n" +
+                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
+                        ?? "Voulez-vous le démarrer maintenant ?");
+
+                bool confirmed = ConfirmDialog.Show(
+                    this,
+                    message,
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    yesText: LanguageManager.Get("Démarrer") ?? "Démarrer",
+                    noText: LanguageManager.Get("Annuler") ?? "Annuler",
+                    warning: true);
+
+                if (!confirmed)
+                    return;
+
+                if (!StartNetMonitorService())
+                    return;
+
+                UpdateNetMonitorToggle();
+            }
+
+            try
+            {
+                string uiPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                    "MCEMonitor",
+                    "NetMonitor.UI.exe"
+                );
+
+                if (!File.Exists(uiPath))
+                {
+                    uiPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                        "MCEMonitor",
+                        "NetMonitor.UI.exe"
+                    );
+                }
+
+                if (!File.Exists(uiPath))
+                {
+                    PopupHelper.ShowBottomPopup(
+                        this,
+                        "NetMonitor.UI.exe est introuvable.",
+                        "Erreur"
+                    );
+                    return;
+                }
+
+                string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = uiPath,
+                    Arguments = $"--from-mcem -lang {lang}",
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    "Erreur lors de l'ouverture de NetMonitor.UI : " + ex.Message
+                );
+            }
+        }
+
+        private void BtnAutoNet_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                if (_taskNetExists)
+                {
+                    bool ok = ConfirmDialog.Show(
+                        this,
+                        LanguageManager.Get("Voulez-vous vraiment désactiver l'automatisation NetMonitor ?")
+                            ?? "Voulez-vous vraiment désactiver l'automatisation NetMonitor ?",
+                        LanguageManager.Get("Confirmation") ?? "Confirmation",
+                        yesText: LanguageManager.Get("Oui") ?? "Oui",
+                        noText: LanguageManager.Get("Non") ?? "Non",
+                        warning: true);
+
+                    if (!ok)
+                        return;
+
+                    string result = TaskSchedulerHelper.DeleteNetMonitorTask();
+                    ServiceInstaller.DeleteNetTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat suppression tâche NetMonitor") ?? "Résultat suppression tâche NetMonitor");
+                }
+                else
+                {
+                    string result = TaskSchedulerHelper.CreateNetMonitorTask();
+                    if (!ServiceInstaller.NetTrayTaskExists())
+                        ServiceInstaller.CreateNetTrayTask();
+                    PopupHelper.ShowBottomPopup(this, result,
+                        LanguageManager.Get("Résultat création tâche NetMonitor") ?? "Résultat création tâche NetMonitor");
+                }
+
+                RefreshAllAutoButtons();
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(this, (LanguageManager.Get("Erreur : ") ?? "Erreur : ") + ex.Message);
+            }
+        }
+
+        private void NetMonitorTimer_Tick(object sender, EventArgs e)
+        {
+            if (_closingInProgress || this.IsDisposed)
+                return;
+
+            CheckNetConfigFileChanged();
+            UpdateNetMonitorToggle();
+            RefreshAllAutoButtons();
+        }
+
+        private void BtnSaveNetConfig_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "NetMonitor.config"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                var lines = new[]
+                {
+                    "# ============================================================",
+                    "# NetMonitor.config",
+                    "# Configuration du service NetMonitor",
+                    "# ============================================================",
+                    "",
+                    "# --- Détecteur : Scan de ports ---",
+                    $"PortScanWindowSeconds={(int)numNetPortScanWindow.Value}",
+                    $"PortScanThreshold={(int)numNetPortScanThreshold.Value}",
+                    "",
+                    "# --- Détecteur : Beaconing (C2) ---",
+                    $"BeaconWindowSeconds={(int)numNetBeaconWindow.Value}",
+                    $"BeaconMinHits={(int)numNetBeaconHits.Value}",
+                    $"BeaconJitterTolerancePct={((double)numNetBeaconJitter.Value / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture)}",
+                    "",
+                    "# --- Blocage automatique ---",
+                    $"AutoBlock={chkNetAutoBlock.Checked.ToString().ToLower()}"
+                };
+
+                File.WriteAllLines(configPath, lines);
+
+                var fi = new FileInfo(configPath);
+                _lastNetConfigWriteTime = fi.LastWriteTime;
+                _lastNetConfigSize = fi.Length;
+
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    LanguageManager.Get("Réglages NetMonitor enregistrés") ?? "Réglages NetMonitor enregistrés",
+                    "Information"
+                );
+            }
+            catch (Exception ex)
+            {
+                PopupHelper.ShowBottomPopup(
+                    this,
+                    (LanguageManager.Get("Erreur lors de l'enregistrement : ") ?? "Erreur lors de l'enregistrement : ") + ex.Message,
+                    "Erreur"
+                );
+            }
+        }
+
+        private void LoadNetMonitorSettings()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "NetMonitor.config"
+                );
+
+                if (!File.Exists(configPath))
+                    return;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
+                        continue;
+
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    string key = parts[0].Trim();
+                    string val = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "PortScanWindowSeconds":
+                            if (int.TryParse(val, out int psw))
+                                numNetPortScanWindow.Value = Math.Max(numNetPortScanWindow.Minimum, Math.Min(numNetPortScanWindow.Maximum, psw));
+                            break;
+
+                        case "PortScanThreshold":
+                            if (int.TryParse(val, out int pst))
+                                numNetPortScanThreshold.Value = Math.Max(numNetPortScanThreshold.Minimum, Math.Min(numNetPortScanThreshold.Maximum, pst));
+                            break;
+
+                        case "BeaconWindowSeconds":
+                            if (int.TryParse(val, out int bw))
+                                numNetBeaconWindow.Value = Math.Max(numNetBeaconWindow.Minimum, Math.Min(numNetBeaconWindow.Maximum, bw));
+                            break;
+
+                        case "BeaconMinHits":
+                            if (int.TryParse(val, out int bh))
+                                numNetBeaconHits.Value = Math.Max(numNetBeaconHits.Minimum, Math.Min(numNetBeaconHits.Maximum, bh));
+                            break;
+
+                        case "BeaconJitterTolerancePct":
+                            if (double.TryParse(val, System.Globalization.NumberStyles.Float,
+                                    System.Globalization.CultureInfo.InvariantCulture, out double bj))
+                            {
+                                int pct = (int)Math.Round(bj * 100.0);
+                                numNetBeaconJitter.Value = Math.Max(numNetBeaconJitter.Minimum, Math.Min(numNetBeaconJitter.Maximum, pct));
+                            }
+                            break;
+
+                        case "AutoBlock":
+                            chkNetAutoBlock.Checked = val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("Erreur LoadNetMonitorSettings : " + ex.Message);
+            }
+        }
+
+        private void CheckNetConfigFileChanged()
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "NetMonitor.config");
+
+                if (!File.Exists(configPath))
+                    return;
+
+                var fi = new FileInfo(configPath);
+
+                if (fi.LastWriteTime == _lastNetConfigWriteTime && fi.Length == _lastNetConfigSize)
+                    return;
+
+                _lastNetConfigWriteTime = fi.LastWriteTime;
+                _lastNetConfigSize = fi.Length;
+
+                LoadNetMonitorSettings();
+            }
+            catch { }
+        }
+        
+        // ============================================================
         // BOUTONS "AUTOMATIQUE" : HELPERS
         // ============================================================
 
@@ -2076,6 +2532,7 @@ namespace MCEMonitor
             _taskMediaExists    = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
             _taskRomExists      = TaskSchedulerHelper.RomMonitorTaskExists();
             _taskSysExists      = TaskSchedulerHelper.SystemMonitorTaskExists();
+            _taskNetExists      = TaskSchedulerHelper.NetMonitorTaskExists();
             _taskWakeExists     = TaskSchedulerHelper.WakeTaskExists();
             _taskShutdownExists = TaskSchedulerHelper.ShutdownTaskExists();
             _taskStopExists     = TaskSchedulerHelper.StopTaskExists();
@@ -2083,6 +2540,7 @@ namespace MCEMonitor
             UpdateAutoButton(btnAutoMedia,    _taskMediaExists);
             UpdateAutoButton(btnAutoRom,      _taskRomExists);
             UpdateAutoButton(btnAutoSystem,   _taskSysExists);
+            UpdateAutoButton(btnAutoNet,      _taskNetExists);            
             UpdateAutoButton(btnAutoWake,     _taskWakeExists);
             UpdateAutoButton(btnAutoShutdown, _taskShutdownExists);
             UpdateAutoButton(btnAutoStop,     _taskStopExists);
@@ -2102,6 +2560,7 @@ namespace MCEMonitor
             _lockedPages.Add(tabWakeMonitor);
             _lockedPages.Add(tabStopMonitor);
             _lockedPages.Add(tabSystemMonitor);
+            _lockedPages.Add(tabNetMonitor);            
 
             LockTabs();
         }

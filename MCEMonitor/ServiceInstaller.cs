@@ -8,10 +8,11 @@ namespace MCEMonitor
 {
     public static class ServiceInstaller
     {
-        private const string SERVICE_TASK_NAME   = "MCEMonitor_Service";
-        private const string TRAY_TASK_NAME      = "MCEMonitor_MediaMonitorTray";
-        private const string ROM_TRAY_TASK_NAME  = "MCEMonitor_RomMonitorTray";
-        private const string SYSTEM_TRAY_TASK_NAME = "MCEMonitor_SystemMonitorTray";
+        private const string SERVICE_TASK_NAME      = "MCEMonitor_Service";
+        private const string TRAY_TASK_NAME         = "MCEMonitor_MediaMonitorTray";
+        private const string ROM_TRAY_TASK_NAME     = "MCEMonitor_RomMonitorTray";
+        private const string SYSTEM_TRAY_TASK_NAME  = "MCEMonitor_SystemMonitorTray";
+        private const string NET_TRAY_TASK_NAME     = "MCEMonitor_NetMonitorTray";
 
         // ============================================================
         //  Vérifier si la tâche SYSTEM du service existe
@@ -226,5 +227,54 @@ namespace MCEMonitor
                 UseShellExecute = true
             });
         }
+        
+        // ============================================================
+        //  Vérifier si la tâche ONLOGON du Tray NetMonitor existe
+        // ============================================================
+        public static bool NetTrayTaskExists()
+        {
+            return TaskExists(NET_TRAY_TASK_NAME);
+        }
+
+        // ============================================================
+        //  Créer la tâche ONLOGON qui lance NetMonitor.Tray.exe
+        // ============================================================
+        public static void CreateNetTrayTask()
+        {
+            string trayPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                "MCEMonitor",
+                "NetMonitor.Tray.exe"
+            );
+
+            if (!File.Exists(trayPath))
+            {
+                trayPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86),
+                    "MCEMonitor",
+                    "NetMonitor.Tray.exe"
+                );
+            }
+
+            if (!File.Exists(trayPath))
+                return;
+
+            string cmd =
+                "schtasks /Create /TN \"" + NET_TRAY_TASK_NAME + "\" " +
+                "/SC ONLOGON " +
+                $"/TR \"\\\"{trayPath}\\\"\" " +
+                "/RL HIGHEST /F";
+
+            RunAdminCommand(cmd);
+        }
+
+        // ============================================================
+        //  Supprimer la tâche ONLOGON du Tray NetMonitor
+        // ============================================================
+        public static void DeleteNetTrayTask()
+        {
+            string cmd = $"schtasks /Delete /TN \"{NET_TRAY_TASK_NAME}\" /F";
+            RunAdminCommand(cmd);
+        }        
     }
 }
