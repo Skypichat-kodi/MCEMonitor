@@ -74,6 +74,7 @@ namespace NetMonitor.Service
             //  Moteur ETW
             // ============================================================
             _engine = new NetMonitorEngine(settings);
+            _engine.LoadBlockedIps();
             _engine.Start();
 
             // ============================================================

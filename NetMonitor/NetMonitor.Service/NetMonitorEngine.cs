@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using NetMonitor.Service.Detectors;
 using NetMonitor.Service.Models;
@@ -18,44 +19,52 @@ namespace NetMonitor.Service
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
 
+        // Tableau 3 : historique (toutes les alertes)
         private readonly List<IntrusionEvent> _alerts = new();
+
+        // Tableau 1 : intrusions actives (non bloquées)
+        private readonly List<IntrusionEvent> _activeIntrusions = new();
+
+        // Tableau 2 : IP bloquées
+        private readonly List<BlockedIpInfo> _blockedIps = new();
+
         private readonly object _alertsLock = new();
 
         private System.Threading.Timer? _evictTimer;
 
+        private static readonly string BlockedIpsFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "blocked_ips.json");
+
         public bool IsRunning => _etw.IsRunning;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
 
+        // ------------------------------------------------------------
+        //  Sévérité (basée sur les intrusions ACTIVES uniquement)
+        // ------------------------------------------------------------
         public string WorstSeverity
         {
             get
             {
                 lock (_alertsLock)
                 {
-                    // Fenêtre large pour l'icône du Tray : 30 minutes (en UTC)
-                    var utcNow = DateTime.UtcNow;
-                    var recent = _alerts
-                        .Where(a => (utcNow - a.Timestamp).TotalMinutes < 30)
-                        .ToList();
-
-                    if (recent.Count == 0) return "ok";
-                    if (recent.Any(a => a.Severity == Severity.Critical)) return "critical";
+                    if (_activeIntrusions.Count == 0) return "ok";
+                    if (_activeIntrusions.Any(a => a.Severity == Severity.Critical)) return "critical";
                     return "warning";
                 }
             }
         }
 
+        // ------------------------------------------------------------
+        //  Problèmes actifs (pour le Tray : tableau 1 seulement)
+        // ------------------------------------------------------------
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
             var problems = new List<ProblemItem>();
 
             lock (_alertsLock)
             {
-                // Fenêtre large : 60 minutes en UTC
-                var utcNow = DateTime.UtcNow;
-                var limit = utcNow.AddMinutes(-60);
-
-                foreach (var a in _alerts.Where(a => a.Timestamp >= limit))
+                foreach (var a in _activeIntrusions)
                 {
                     problems.Add(new ProblemItem
                     {
@@ -76,6 +85,9 @@ namespace NetMonitor.Service
                 .ToList();
         }
 
+        // ------------------------------------------------------------
+        //  Constructeur
+        // ------------------------------------------------------------
         public NetMonitorEngine(NetMonitorSettings settings)
         {
             _settings = settings;
@@ -110,9 +122,15 @@ namespace NetMonitor.Service
             CoreLog.Write("NetMonitorEngine arrêté.");
         }
 
+        // ------------------------------------------------------------
+        //  Connexions récentes
+        // ------------------------------------------------------------
         public IReadOnlyList<ConnectionInfo> GetRecentConnections(int max = 300)
             => _recentConnections.Reverse().Take(max).ToList();
 
+        // ------------------------------------------------------------
+        //  Tableau 3 : historique
+        // ------------------------------------------------------------
         public List<IntrusionEvent> GetAlerts()
         {
             lock (_alertsLock) return _alerts.ToList();
@@ -121,8 +139,133 @@ namespace NetMonitor.Service
         public void ClearAlerts()
         {
             lock (_alertsLock) _alerts.Clear();
+            CoreLog.Info("Historique des intrusions vidé");
         }
 
+        // ------------------------------------------------------------
+        //  Tableau 1 : intrusions actives
+        // ------------------------------------------------------------
+        public List<IntrusionEvent> GetActiveIntrusions()
+        {
+            lock (_alertsLock) return _activeIntrusions.ToList();
+        }
+
+        public void ClearActiveIntrusions()
+        {
+            lock (_alertsLock) _activeIntrusions.Clear();
+            CoreLog.Info("Intrusions actives vidées");
+        }
+
+        // ------------------------------------------------------------
+        //  Tableau 2 : IP bloquées
+        // ------------------------------------------------------------
+        public List<BlockedIpInfo> GetBlockedIps()
+        {
+            lock (_alertsLock) return _blockedIps.ToList();
+        }
+
+        public bool BlockIp(string ip, string? source = null, string? message = null, string? details = null)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+            if (!FirewallHelper.BlockIp(ip)) return false;
+
+            lock (_alertsLock)
+            {
+                if (!_blockedIps.Any(b => b.Ip == ip))
+                {
+                    _blockedIps.Add(new BlockedIpInfo
+                    {
+                        Ip = ip,
+                        BlockedAt = DateTime.UtcNow,
+                        Source = source ?? "",
+                        Message = message ?? "",
+                        Details = details
+                    });
+                }
+
+                // Retirer les intrusions actives concernant cette IP
+                _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
+            }
+
+            SaveBlockedIps();
+            CoreLog.Info($"IP {ip} bloquée et retirée des intrusions actives");
+            return true;
+        }
+
+        public bool UnblockIp(string ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+
+            bool fw = FirewallHelper.UnblockIp(ip);
+
+            lock (_alertsLock) _blockedIps.RemoveAll(b => b.Ip == ip);
+            SaveBlockedIps();
+
+            CoreLog.Info($"IP {ip} débloquée");
+            return fw;
+        }
+
+        // ------------------------------------------------------------
+        //  Persistance des IP bloquées
+        // ------------------------------------------------------------
+        public void LoadBlockedIps()
+        {
+            try
+            {
+                if (!File.Exists(BlockedIpsFile)) return;
+
+                var json = File.ReadAllText(BlockedIpsFile);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpInfo>>(json);
+
+                if (list == null || list.Count == 0) return;
+
+                lock (_alertsLock)
+                {
+                    _blockedIps.Clear();
+                    _blockedIps.AddRange(list);
+                }
+
+                CoreLog.Info($"Chargement {list.Count} IP bloquées depuis le fichier");
+
+                // Synchro : recrée les règles pare-feu manquantes
+                foreach (var b in list)
+                {
+                    if (!FirewallHelper.IsAlreadyBlocked(b.Ip))
+                    {
+                        CoreLog.Info($"Sync : règle pare-feu manquante pour {b.Ip}, recréation...");
+                        FirewallHelper.BlockIp(b.Ip);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"LoadBlockedIps : {ex.Message}");
+            }
+        }
+
+        private void SaveBlockedIps()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(BlockedIpsFile)!);
+
+                List<BlockedIpInfo> snapshot;
+                lock (_alertsLock) snapshot = _blockedIps.ToList();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+                File.WriteAllText(BlockedIpsFile, json);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"SaveBlockedIps : {ex.Message}");
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Rechargement config / force scan
+        // ------------------------------------------------------------
         public void ReloadConfig()
         {
             _settings.Reload();
@@ -133,6 +276,9 @@ namespace NetMonitor.Service
             CoreLog.Write("ForceScan demandé (no-op en mode ETW).");
         }
 
+        // ------------------------------------------------------------
+        //  Traitement des connexions ETW
+        // ------------------------------------------------------------
         private void OnConnectionOpened(object? sender, ConnectionInfo ci)
         {
             _recentConnections.Enqueue(ci);
@@ -172,21 +318,16 @@ namespace NetMonitor.Service
 
             lock (_alertsLock)
             {
+                // Tableau 3 : historique
                 _alerts.Add(evt);
                 if (_alerts.Count > 500) _alerts.RemoveAt(0);
+
+                // Tableau 1 : intrusions actives
+                _activeIntrusions.Add(evt);
+                if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
             }
 
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
-
-            if (_settings.AutoBlock
-                && r.Severity >= Severity.High
-                && !string.IsNullOrWhiteSpace(ci.RemoteIp))
-            {
-                if (FirewallHelper.BlockIp(ci.RemoteIp))
-                    CoreLog.Write($"AutoBlock : {ci.RemoteIp} bloqué");
-                else
-                    CoreLog.Write($"AutoBlock : échec du blocage de {ci.RemoteIp}");
-            }
         }
     }
 

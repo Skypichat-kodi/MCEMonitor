@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace NetMonitor.UI
 {
     // ============================================================
-    //  Modèles de réponse (noms alignés sur le camelCase du Service)
+    //  Modèles de réponse
     // ============================================================
 
     public class NetStatus
@@ -65,14 +65,23 @@ namespace NetMonitor.UI
         public double beaconJitterTolerancePct { get; set; }
         public bool autoBlock { get; set; }
     }
-    
+
     public class NetWebStatus
     {
         public bool enabled { get; set; }
         public int port { get; set; }
         public string username { get; set; } = "";
         public string? password { get; set; }
-    }    
+    }
+
+    public class BlockedIpDto
+    {
+        public string Ip { get; set; } = "";
+        public DateTime BlockedAt { get; set; }
+        public string Source { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string? Details { get; set; }
+    }
 
     // ============================================================
     //  Client IPC
@@ -138,15 +147,26 @@ namespace NetMonitor.UI
         }
 
         private static bool IsOk(string? json)
-            => !string.IsNullOrWhiteSpace(json) && json.Contains("\"status\":\"ok\"");
+        {
+            if (string.IsNullOrWhiteSpace(json)) return false;
+            // Tolère les deux formes : "status":"ok" et "status": "ok"
+            return json.Contains("\"status\":\"ok\"") ||
+                   json.Contains("\"status\": \"ok\"");
+        }
 
-        // ---------- Commandes ----------
+        // ---------- Status / Listes ----------
 
         public static async Task<NetStatus?> GetStatus()
             => Deserialize<NetStatus>(await SendCommand("get-status"));
 
+        public static async Task<List<NetAlert>?> GetActiveIntrusions()
+            => Deserialize<List<NetAlert>>(await SendCommand("get-active"));
+
         public static async Task<List<NetAlert>?> GetAlerts()
             => Deserialize<List<NetAlert>>(await SendCommand("get-alerts"));
+
+        public static async Task<List<BlockedIpDto>?> GetBlockedIps()
+            => Deserialize<List<BlockedIpDto>>(await SendCommand("get-blocked"));
 
         public static async Task<List<NetConnection>?> GetConnections()
             => Deserialize<List<NetConnection>>(await SendCommand("get-connections"));
@@ -157,6 +177,14 @@ namespace NetMonitor.UI
         public static async Task<NetConfig?> GetConfig()
             => Deserialize<NetConfig>(await SendCommand("get-config"));
 
+        public static async Task<NetWebStatus?> GetWebStatus()
+            => Deserialize<NetWebStatus>(await SendCommand("get-web-status"));
+
+        // ---------- Actions ----------
+
+        public static async Task<bool> ClearActiveIntrusionsAsync()
+            => IsOk(await SendCommand("clear-active"));
+
         public static async Task<bool> ClearAlertsAsync()
             => IsOk(await SendCommand("clear-alerts"));
 
@@ -165,9 +193,16 @@ namespace NetMonitor.UI
 
         public static async Task<bool> ForceScanAsync()
             => IsOk(await SendCommand("force-scan"));
-            
-        public static async Task<NetWebStatus?> GetWebStatus()
-            => Deserialize<NetWebStatus>(await SendCommand("get-web-status"));
+
+        public static async Task<bool> BlockIpAsync(string ip, string? source = null, string? message = null, string? details = null)
+        {
+            // Format : block-ip ip|source|message|details
+            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}";
+            return IsOk(await SendCommand(cmd));
+        }
+
+        public static async Task<bool> UnblockIpAsync(string ip)
+            => IsOk(await SendCommand($"unblock-ip {ip}"));
 
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {
@@ -178,11 +213,5 @@ namespace NetMonitor.UI
 
             return IsOk(await SendCommand(cmd));
         }
-
-        public static async Task<bool> BlockIpAsync(string ip)
-            => IsOk(await SendCommand($"net.blockip {ip}"));
-
-        public static async Task<bool> UnblockIpAsync(string ip)
-            => IsOk(await SendCommand($"net.unblockip {ip}"));
     }
 }

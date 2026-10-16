@@ -4,6 +4,9 @@ namespace NetMonitor.Service
 {
     public static class FirewallHelper
     {
+        private const string WebRuleName = "NetMonitorWebPort";
+        private const string BlockPrefix = "NetMonitor-Block-";
+
         private const string RuleName = "NetMonitorWebPort";
 
         public static void UpdateFirewallRule(int port)
@@ -22,22 +25,29 @@ namespace NetMonitor.Service
         public static bool BlockIp(string ip)
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
-            if (IsAlreadyBlocked(ip)) return true;
 
-            var ruleName = "NetMonitor-Block-" + ip;
-            return RunNetsh(
-                $"advfirewall firewall add rule name=\"{ruleName}\" " +
-                $"dir=in action=block remoteip={ip} enable=yes profile=any") &&
-                   RunNetsh(
-                $"advfirewall firewall add rule name=\"{ruleName}-out\" " +
-                $"dir=out action=block remoteip={ip} enable=yes profile=any");
+            string rule = BlockPrefix + ip;
+
+            // Supprime d'abord les règles existantes (netsh autorise les doublons sinon)
+            ExecuteNetsh($"advfirewall firewall delete rule name=\"{rule}\"");
+            ExecuteNetsh($"advfirewall firewall delete rule name=\"{rule}-out\"");
+
+            bool okIn = ExecuteNetsh($"advfirewall firewall add rule name=\"{rule}\" dir=in action=block remoteip={ip} enable=yes profile=any");
+            bool okOut = ExecuteNetsh($"advfirewall firewall add rule name=\"{rule}-out\" dir=out action=block remoteip={ip} enable=yes profile=any");
+
+            CoreLog.Info($"Firewall : blocage {ip} ? in={okIn} out={okOut}");
+            return okIn && okOut;
         }
 
         public static bool UnblockIp(string ip)
         {
-            var ruleName = "NetMonitor-Block-" + ip;
-            var ok1 = RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}\"");
-            var ok2 = RunNetsh($"advfirewall firewall delete rule name=\"{ruleName}-out\"");
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+
+            string rule = BlockPrefix + ip;
+
+            bool ok1 = ExecuteNetsh($"advfirewall firewall delete rule name=\"{rule}\"");
+            bool ok2 = ExecuteNetsh($"advfirewall firewall delete rule name=\"{rule}-out\"");
+
             return ok1 || ok2;
         }
 
@@ -85,7 +95,7 @@ namespace NetMonitor.Service
             }
         }
 
-        private static void ExecuteNetsh(string args)
+        private static bool ExecuteNetsh(string args)
         {
             try
             {
@@ -96,10 +106,27 @@ namespace NetMonitor.Service
                     RedirectStandardOutput = true,
                     RedirectStandardError = true
                 };
+
                 using var p = Process.Start(psi);
-                p?.WaitForExit(5000);
+                if (p is null) return false;
+
+                string stdout = p.StandardOutput.ReadToEnd();
+                string stderr = p.StandardError.ReadToEnd();
+                p.WaitForExit(5000);
+
+                if (p.ExitCode != 0)
+                {
+                    CoreLog.Warn($"netsh exit={p.ExitCode} : {stderr.Trim()} {stdout.Trim()}");
+                    return false;
+                }
+
+                return true;
             }
-            catch { }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"netsh : {ex.Message}");
+                return false;
+            }
         }
     }
 }

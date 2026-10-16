@@ -13,6 +13,14 @@ namespace NetMonitor.Service
 
         private static readonly string LogPath = Path.Combine(LogFolder, "NetMonitor.Service.log");
 
+        /// <summary>
+        /// Active les logs de diagnostic détaillés ([ETW], [PortScan], etc.).
+        /// À passer à true uniquement en debug (spamme le log).
+        /// Peut être activé via la variable d'environnement MCEMONITOR_VERBOSE=1.
+        /// </summary>
+        public static bool Verbose { get; set; } =
+            Environment.GetEnvironmentVariable("MCEMONITOR_VERBOSE") == "1";
+
         public static void Write(string message)
         {
             try
@@ -24,7 +32,12 @@ namespace NetMonitor.Service
             catch { }
         }
 
-        // --- Wrappers pour compatibilité avec le code existant ---
+        /// <summary>Log de diagnostic : n'écrit que si Verbose=true.</summary>
+        public static void Debug(string message)
+        {
+            if (Verbose) Write(message);
+        }
+
         public static void Info(string message)  => Write(message);
         public static void Warn(string message)  => Write("[WARN] " + message);
         public static void Error(string message) => Write("[ERROR] " + message);

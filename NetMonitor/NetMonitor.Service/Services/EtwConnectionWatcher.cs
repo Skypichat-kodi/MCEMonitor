@@ -63,7 +63,7 @@ public sealed class EtwConnectionWatcher : IDisposable
                 var remoteIp = data.daddr?.ToString() ?? "";
                 if (IsNoise(remoteIp, data.dport)) return;
 
-                CoreLog.Write($"[ETW] {data.saddr}:{data.sport} -> {remoteIp}:{data.dport} PID={data.ProcessID}");
+                CoreLog.Debug($"[ETW] {data.saddr}:{data.sport} -> {remoteIp}:{data.dport} PID={data.ProcessID}");
                 
                 ConnectionOpened?.Invoke(this, new ConnectionInfo
                 {

@@ -17,23 +17,15 @@ namespace NetMonitor.Service.Ipc
 
         public void Handle(string command, NamedPipeServerStream server)
         {
-            if (command.StartsWith("set-web-config ", StringComparison.OrdinalIgnoreCase))
+            if (command.StartsWith("block-ip ", StringComparison.OrdinalIgnoreCase))
             {
-                HandleSetWebConfig(command, server);
+                HandleBlockIp(command, server);
                 return;
             }
-            if (command.StartsWith("net.blockip ", StringComparison.OrdinalIgnoreCase))
+
+            if (command.StartsWith("unblock-ip ", StringComparison.OrdinalIgnoreCase))
             {
-                string ip = command.Substring("net.blockip ".Length).Trim();
-                if (string.IsNullOrWhiteSpace(ip))
-                {
-                    IpcResponse.Error(server, "IP manquante");
-                }
-                else
-                {
-                    bool ok = FirewallHelper.BlockIp(ip);
-                    IpcResponse.Json(server, new { status = ok ? "ok" : "error", blocked = ok, ip });
-                }
+                HandleUnblockIp(command, server);
                 return;
             }
 
@@ -62,7 +54,10 @@ namespace NetMonitor.Service.Ipc
                 case "reload-config":      HandleReloadConfig(server); break;
                 case "force-scan":         HandleForceScan(server); break;
                 case "shutdown":           HandleShutdown(server); break;
-                case "get-web-status":     HandleGetWebStatus(server); break;                           
+                case "get-web-status":     HandleGetWebStatus(server); break;
+                case "get-active":         HandleGetActiveIntrusions(server); break;
+                case "clear-active":       HandleClearActiveIntrusions(server); break;
+                case "get-blocked":        HandleGetBlockedIps(server); break;                           
                 default:                   IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -118,7 +113,7 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Error(server, ex.Message);
             }
         }
-
+        
         private void HandleGetConnections(NamedPipeServerStream server)
         {
             try
@@ -264,6 +259,81 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleSetWebConfig : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }        
+        }
+
+        private void HandleGetActiveIntrusions(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetActiveIntrusions();
+                var projected = list.Select(a => new
+                {
+                    timestamp = a.Timestamp,
+                    source = a.Source,
+                    severity = a.Severity.ToString(),
+                    message = a.Message,
+                    remoteIp = a.RemoteIp,
+                    remotePort = a.RemotePort,
+                    localPort = a.LocalPort,
+                    pid = a.Pid,
+                    processName = a.ProcessName,
+                    details = a.Details
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleClearActiveIntrusions(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearActiveIntrusions();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleGetBlockedIps(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetBlockedIps();
+                IpcResponse.Json(server, list);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleBlockIp(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                // Format : block-ip x.x.x.x|source|message|details
+                // Les 3 derniers sont optionnels
+                string payload = command.Substring("block-ip ".Length).Trim();
+                var parts = payload.Split('|', 4);
+
+                string ip = parts[0].Trim();
+                string? source = parts.Length > 1 ? parts[1] : null;
+                string? message = parts.Length > 2 ? parts[2] : null;
+                string? details = parts.Length > 3 ? parts[3] : null;
+
+                bool ok = _engine.BlockIp(ip, source, message, details);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", blocked = ok, ip });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleUnblockIp(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string ip = command.Substring("unblock-ip ".Length).Trim();
+                bool ok = _engine.UnblockIp(ip);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, ip });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }                
     }
 }

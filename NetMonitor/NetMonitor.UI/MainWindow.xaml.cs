@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -15,8 +14,11 @@ namespace NetMonitor.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ObservableCollection<AlertRow> _alerts = new();
+        private readonly ObservableCollection<AlertRow> _activeIntrusions = new();
+        private readonly ObservableCollection<BlockedIpRow> _blockedIps = new();
+        private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private readonly ObservableCollection<ConnectionRow> _connections = new();
+
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
@@ -27,42 +29,33 @@ namespace NetMonitor.UI
         {
             InitializeComponent();
 
-            // Lancement uniquement depuis MCEMonitor
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
                 MessageBox.Show(
                     "NetMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Error);
+                    "Accès refusé", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
                 return;
             }
 
-            // Service en cours ?
             bool serviceRunning = Process.GetProcessesByName("NetMonitor.Service").Length > 0;
-
             if (!serviceRunning)
             {
                 MessageBox.Show(
                     "Le service NetMonitor n'est pas démarré.\n" +
                     "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
-                    "Service non démarré",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
-
+                    "Service non démarré", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Close();
                 return;
             }
 
-            AlertsGrid.ItemsSource = _alerts;
+            ActiveIntrusionsGrid.ItemsSource = _activeIntrusions;
+            BlockedIpsGrid.ItemsSource = _blockedIps;
+            AlertsHistoryGrid.ItemsSource = _alertsHistory;
             ConnectionsGrid.ItemsSource = _connections;
 
-            _refreshTimer = new DispatcherTimer
-            {
-                Interval = TimeSpan.FromSeconds(2)
-            };
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
             _refreshTimer.Start();
 
@@ -85,7 +78,6 @@ namespace NetMonitor.UI
 
                 // Statut
                 var status = await NetMonitorIpcClient.GetStatus();
-
                 if (status == null)
                 {
                     StatusText.Text = "Service NetMonitor non joignable";
@@ -98,18 +90,19 @@ namespace NetMonitor.UI
                         : new SolidColorBrush(Colors.Orange);
 
                     StatusText.Text = status.running
-                        ? $"Surveillance active  |  {status.alertCount} alerte(s)  |  {status.connectionCount} connexion(s)"
+                        ? $"Surveillance active  |  {_activeIntrusions.Count} active(s)  |  {_blockedIps.Count} bloquée(s)"
                         : "Surveillance arrêtée";
                 }
 
-                // Alertes
-                var alerts = await NetMonitorIpcClient.GetAlerts();
-                if (alerts != null)
+                // ---- Tableau 1 : intrusions actives ----
+                var active = await NetMonitorIpcClient.GetActiveIntrusions();
+                if (active != null)
                 {
-                    _alerts.Clear();
-                    foreach (var a in alerts.OrderByDescending(x => x.timestamp).Take(500))
+                    string? key = GetSelectedAlertKey(ActiveIntrusionsGrid);
+                    _activeIntrusions.Clear();
+                    foreach (var a in active.OrderByDescending(x => x.timestamp))
                     {
-                        _alerts.Add(new AlertRow
+                        _activeIntrusions.Add(new AlertRow
                         {
                             Timestamp = a.timestamp.ToLocalTime(),
                             Severity = a.severity ?? "",
@@ -119,12 +112,55 @@ namespace NetMonitor.UI
                             RemoteIp = a.remoteIp
                         });
                     }
+                    RestoreAlertSelection(ActiveIntrusionsGrid, _activeIntrusions, key);
                 }
 
-                // Connexions
+                // ---- Tableau 2 : IP bloquées ----
+                var blocked = await NetMonitorIpcClient.GetBlockedIps();
+                if (blocked != null)
+                {
+                    string? key = GetSelectedBlockedKey();
+                    _blockedIps.Clear();
+                    foreach (var b in blocked.OrderByDescending(x => x.BlockedAt))
+                    {
+                        _blockedIps.Add(new BlockedIpRow
+                        {
+                            Ip = b.Ip,
+                            BlockedAt = b.BlockedAt.ToLocalTime(),
+                            Source = b.Source,
+                            Message = b.Message,
+                            Details = b.Details
+                        });
+                    }
+                    RestoreBlockedSelection(key);
+                }
+
+                // ---- Tableau 3 : historique ----
+                var history = await NetMonitorIpcClient.GetAlerts();
+                if (history != null)
+                {
+                    string? key = GetSelectedAlertKey(AlertsHistoryGrid);
+                    _alertsHistory.Clear();
+                    foreach (var a in history.OrderByDescending(x => x.timestamp).Take(500))
+                    {
+                        _alertsHistory.Add(new AlertRow
+                        {
+                            Timestamp = a.timestamp.ToLocalTime(),
+                            Severity = a.severity ?? "",
+                            Source = a.source ?? "",
+                            Message = a.message ?? "",
+                            Details = a.details,
+                            RemoteIp = a.remoteIp
+                        });
+                    }
+                    RestoreAlertSelection(AlertsHistoryGrid, _alertsHistory, key);
+                }
+
+                // ---- Connexions ----
                 var conns = await NetMonitorIpcClient.GetConnections();
                 if (conns != null)
                 {
+                    string? key = GetSelectedConnectionKey();
                     _connections.Clear();
                     foreach (var c in conns.Take(300))
                     {
@@ -138,7 +174,7 @@ namespace NetMonitor.UI
                             ProcessName = c.processName ?? ""
                         });
                     }
-
+                    RestoreConnectionSelection(key);
                     txtConnectionCount.Text = $"{_connections.Count} connexion(s) récente(s)";
                 }
 
@@ -155,22 +191,85 @@ namespace NetMonitor.UI
         }
 
         // ------------------------------------------------------------
-        //  Boutons
+        //  Restauration des sélections (évite la perte au refresh)
+        // ------------------------------------------------------------
+        private static string? GetSelectedAlertKey(DataGrid grid)
+        {
+            if (grid.SelectedItem is not AlertRow row) return null;
+            return $"{row.Timestamp:O}|{row.Source}|{row.RemoteIp}|{row.Message}";
+        }
+
+        private static void RestoreAlertSelection(DataGrid grid,
+            ObservableCollection<AlertRow> source, string? key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+
+            foreach (var item in source)
+            {
+                if ($"{item.Timestamp:O}|{item.Source}|{item.RemoteIp}|{item.Message}" == key)
+                {
+                    grid.SelectedItem = item;
+                    grid.ScrollIntoView(item);
+                    return;
+                }
+            }
+        }
+
+        private string? GetSelectedBlockedKey()
+        {
+            if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row) return null;
+            return $"{row.Ip}|{row.BlockedAt:O}";
+        }
+
+        private void RestoreBlockedSelection(string? key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+
+            foreach (var item in _blockedIps)
+            {
+                if ($"{item.Ip}|{item.BlockedAt:O}" == key)
+                {
+                    BlockedIpsGrid.SelectedItem = item;
+                    BlockedIpsGrid.ScrollIntoView(item);
+                    return;
+                }
+            }
+        }
+
+        private string? GetSelectedConnectionKey()
+        {
+            if (ConnectionsGrid.SelectedItem is not ConnectionRow row) return null;
+            return $"{row.Timestamp:O}|{row.LocalEndpoint}|{row.RemoteEndpoint}|{row.Pid}";
+        }
+
+        private void RestoreConnectionSelection(string? key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+
+            foreach (var item in _connections)
+            {
+                if ($"{item.Timestamp:O}|{item.LocalEndpoint}|{item.RemoteEndpoint}|{item.Pid}" == key)
+                {
+                    ConnectionsGrid.SelectedItem = item;
+                    ConnectionsGrid.ScrollIntoView(item);
+                    return;
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Boutons : tableau 1 (intrusions actives)
         // ------------------------------------------------------------
         private async void Refresh_Click(object sender, RoutedEventArgs e)
-        {
-            await RefreshSafe();
-        }
+            => await RefreshSafe();
 
         private async void BlockSelected_Click(object sender, RoutedEventArgs e)
         {
-            if (AlertsGrid.SelectedItem is not AlertRow row)
+            if (ActiveIntrusionsGrid.SelectedItem is not AlertRow row)
             {
                 MessageBox.Show(
-                    "Sélectionnez d'abord une ligne dans la liste des intrusions.",
-                    "NetMonitor",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                    "Sélectionnez d'abord une intrusion dans le tableau du haut.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -180,36 +279,92 @@ namespace NetMonitor.UI
             {
                 MessageBox.Show(
                     "Impossible d'extraire une adresse IP depuis cette ligne.",
-                    "NetMonitor",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Warning);
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
             var confirm = MessageBox.Show(
                 $"Bloquer définitivement l'adresse IP {ip} via le pare-feu Windows ?\n\n" +
                 "Deux règles seront créées (entrée + sortie).\n" +
-                "Elles resteront actives jusqu'à suppression manuelle.",
-                "Confirmation",
-                MessageBoxButton.YesNo,
-                MessageBoxImage.Warning);
+                "L'IP passera dans le tableau « IP bloquées ».",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
-            if (confirm != MessageBoxResult.Yes)
-                return;
+            if (confirm != MessageBoxResult.Yes) return;
 
-            bool ok = await NetMonitorIpcClient.BlockIpAsync(ip);
+            bool ok = await NetMonitorIpcClient.BlockIpAsync(
+                ip, row.Source, row.Message, row.Details);
 
             MessageBox.Show(
                 ok ? $"IP {ip} bloquée par le pare-feu." : $"Échec du blocage de {ip}.",
-                "NetMonitor",
-                MessageBoxButton.OK,
+                "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+
+            await RefreshSafe();
         }
 
-        private void ClearAlerts_Click(object sender, RoutedEventArgs e)
+        private async void ClearActive_Click(object sender, RoutedEventArgs e)
         {
-            _alerts.Clear();
-            StatusText.Text = "Liste des intrusions vidée (côté affichage).";
+            var confirm = MessageBox.Show(
+                "Vider la liste des intrusions détectées ?\n\n" +
+                "Les IP bloquées (tableau 2) et l'historique (tableau 3) sont conservés.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            await NetMonitorIpcClient.ClearActiveIntrusionsAsync();
+            await RefreshSafe();
+        }
+
+        // ------------------------------------------------------------
+        //  Boutons : tableau 2 (IP bloquées)
+        // ------------------------------------------------------------
+        private async void UnblockSelected_Click(object sender, RoutedEventArgs e)
+        {
+            string? ip = null;
+
+            if (BlockedIpsGrid.SelectedItem is BlockedIpRow row)
+                ip = row.Ip;
+
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                var dlg = new InputBoxWindow("Débloquer une IP",
+                    "Entrez l'adresse IP à débloquer :");
+                if (dlg.ShowDialog() == true)
+                    ip = dlg.Value;
+            }
+
+            if (string.IsNullOrWhiteSpace(ip)) return;
+
+            var confirm = MessageBox.Show(
+                $"Retirer les règles de blocage pour l'adresse IP {ip} ?",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            bool ok = await NetMonitorIpcClient.UnblockIpAsync(ip);
+
+            MessageBox.Show(
+                ok ? $"IP {ip} débloquée." : $"Échec du déblocage de {ip}.",
+                "NetMonitor", MessageBoxButton.OK,
+                ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+
+            await RefreshSafe();
+        }
+
+        // ------------------------------------------------------------
+        //  Bouton : tableau 3 (historique)
+        // ------------------------------------------------------------
+        private async void ClearHistory_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Effacer TOUT l'historique des intrusions ?\n\n" +
+                "Cette action est irréversible.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            await NetMonitorIpcClient.ClearAlertsAsync();
+            await RefreshSafe();
         }
 
         // ------------------------------------------------------------
@@ -244,7 +399,6 @@ namespace NetMonitor.UI
                 var cfg = await NetMonitorIpcClient.GetConfig();
                 if (cfg == null)
                 {
-                    // Valeurs par défaut si le service ne répond pas
                     txtPortScanWindow.Text = "10";
                     txtPortScanThreshold.Text = "20";
                     txtBeaconWindow.Text = "300";
@@ -270,9 +424,7 @@ namespace NetMonitor.UI
             {
                 string configPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "NetMonitor.config"
-                );
+                    "MCEMonitor", "NetMonitor.config");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
@@ -311,8 +463,7 @@ namespace NetMonitor.UI
                     reloaded
                         ? "Réglages NetMonitor enregistrés.\n\nLe service a rechargé la configuration à chaud."
                         : "Réglages enregistrés, mais le service n'a pas pu être notifié.\nRedémarrez-le pour appliquer.",
-                    "NetMonitor",
-                    MessageBoxButton.OK,
+                    "NetMonitor", MessageBoxButton.OK,
                     reloaded ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
             catch (Exception ex)
@@ -327,16 +478,12 @@ namespace NetMonitor.UI
             {
                 string configPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "NetMonitor.config");
+                    "MCEMonitor", "NetMonitor.config");
 
-                if (!File.Exists(configPath))
-                    return;
+                if (!File.Exists(configPath)) return;
 
                 var fi = new FileInfo(configPath);
-
-                if (fi.LastWriteTime == _lastConfigWriteTime && fi.Length == _lastConfigSize)
-                    return;
+                if (fi.LastWriteTime == _lastConfigWriteTime && fi.Length == _lastConfigSize) return;
 
                 _lastConfigWriteTime = fi.LastWriteTime;
                 _lastConfigSize = fi.Length;
@@ -345,7 +492,7 @@ namespace NetMonitor.UI
             }
             catch { }
         }
-        
+
         // ------------------------------------------------------------
         //  Serveur Web
         // ------------------------------------------------------------
@@ -365,10 +512,7 @@ namespace NetMonitor.UI
                 txtWebPasswordVisible.Text = status.password ?? "";
             }
             catch { }
-            finally
-            {
-                _loadingWebConfig = false;
-            }
+            finally { _loadingWebConfig = false; }
         }
 
         private async void ToggleWeb_Checked(object sender, RoutedEventArgs e)
@@ -388,11 +532,8 @@ namespace NetMonitor.UI
             bool ok = await ApplyWebConfig();
             if (ok)
             {
-                MessageBox.Show(
-                    "Paramètres Web mis à jour.",
-                    "OK",
-                    MessageBoxButton.OK,
-                    MessageBoxImage.Information);
+                MessageBox.Show("Paramètres Web mis à jour.", "OK",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
             }
         }
 
@@ -402,7 +543,8 @@ namespace NetMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show("Port invalide.", "Erreur",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
@@ -456,7 +598,7 @@ namespace NetMonitor.UI
             {
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
-        }        
+        }
     }
 
     // ============================================================
@@ -472,6 +614,16 @@ namespace NetMonitor.UI
         public string Message { get; set; } = "";
         public string? Details { get; set; }
         public string? RemoteIp { get; set; }
+    }
+
+    public class BlockedIpRow
+    {
+        public string Ip { get; set; } = "";
+        public DateTime BlockedAt { get; set; }
+        public string BlockedAtText => BlockedAt.ToString("dd/MM/yyyy HH:mm:ss");
+        public string Source { get; set; } = "";
+        public string Message { get; set; } = "";
+        public string? Details { get; set; }
     }
 
     public class ConnectionRow

@@ -17,7 +17,7 @@ public sealed class PortScanDetector : IConnectionAwareDetector
         var ports = ctx.RecordSynPort(ci.RemoteIp, ci.RemotePort, window);
         var distinct = ports.Distinct().Count();
 
-        CoreLog.Write($"[PortScan] ip={ci.RemoteIp} port={ci.RemotePort} distinct={distinct}/{ctx.Settings.PortScanThreshold}");
+        CoreLog.Debug($"[PortScan] ip={ci.RemoteIp} port={ci.RemotePort} distinct={distinct}/{ctx.Settings.PortScanThreshold}");
 
         if (distinct < ctx.Settings.PortScanThreshold) return null;
 

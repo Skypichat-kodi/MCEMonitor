@@ -6,14 +6,15 @@ namespace NetMonitor.Service.Ipc
 {
     public static class IpcResponse
     {
+        private static readonly JsonSerializerOptions JsonOpts = new()
+        {
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            WriteIndented = false
+        };
+
         public static void Json(NamedPipeServerStream server, object data)
         {
-            string json = JsonSerializer.Serialize(data, new JsonSerializerOptions
-            {
-                WriteIndented = true,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
+            string json = JsonSerializer.Serialize(data, JsonOpts);
             Raw(server, json);
         }
 

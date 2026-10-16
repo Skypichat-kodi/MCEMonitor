@@ -264,59 +264,136 @@
                     BorderThickness="0">
 
             <!-- ====================================================== -->
-            <!--  ONGLET INTRUSIONS                                     -->
+            <!--  ONGLET INTRUSIONS (3 tableaux)                        -->
             <!-- ====================================================== -->
             <TabItem Header="{loc:Tr 'Intrusions'}">
-                <Grid Margin="0,10,0,0">
-                    <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
-                    </Grid.RowDefinitions>
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,5,0">
+                    <StackPanel Margin="0,10,0,0">
 
-                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                        <Button Width="160" Margin="0,0,10,0" Click="Refresh_Click"
-                                ToolTip="Forcer un rafraîchissement">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Rafraîchir" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                        <!-- ====================================================== -->
+                        <!--  TABLEAU 1 : INTRUSIONS DÉTECTÉES                      -->
+                        <!-- ====================================================== -->
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                            <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
+                                       Foreground="#FFB900" VerticalAlignment="Center"/>
+                            <TextBlock Text="Intrusions détectées"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                        </StackPanel>
 
-                        <Button Width="160" Margin="0,0,10,0" Click="BlockSelected_Click"
-                                ToolTip="Bloquer l'IP de l'intrusion sélectionnée">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🚫" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Bloquer l'IP" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="160" Margin="0,0,10,0" Click="BlockSelected_Click"
+                                    ToolTip="Bloquer l'IP de l'intrusion sélectionnée">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🚫" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Bloquer l'IP" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
 
-                        <Button Width="160" Click="ClearAlerts_Click"
-                                ToolTip="Vider la liste des intrusions">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Réinitialiser" VerticalAlignment="Center"/>
-                            </StackPanel>
-                        </Button>
-                    </StackPanel>
+                            <Button Width="160" Click="ClearActive_Click"
+                                    ToolTip="Vider la liste des intrusions détectées">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Vider la liste" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
 
-                    <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="0">
-                        <DataGrid x:Name="AlertsGrid"
+                        <DataGrid x:Name="ActiveIntrusionsGrid"
+                                  MinHeight="150" MaxHeight="250"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}"     Binding="{Binding TimestampText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Message'}" Binding="{Binding Message}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
-                    </Border>
-                </Grid>
-            </TabItem>
 
+                        <!-- ====================================================== -->
+                        <!--  TABLEAU 2 : IP BLOQUÉES                               -->
+                        <!-- ====================================================== -->
+                        <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
+                            <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
+                                       Foreground="#FF6347" VerticalAlignment="Center"/>
+                            <TextBlock Text="IP bloquées au pare-feu"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="#FF6347" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="200" Click="UnblockSelected_Click"
+                                    ToolTip="Débloquer l'IP sélectionnée">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🔓" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Débloquer l'IP" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <DataGrid x:Name="BlockedIpsGrid"
+                                  MinHeight="120" MaxHeight="220"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"        Binding="{Binding Ip}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}"    Binding="{Binding Message}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <!-- ====================================================== -->
+                        <!--  TABLEAU 3 : HISTORIQUE                                -->
+                        <!-- ====================================================== -->
+                        <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
+                            <TextBlock Text="📜" FontSize="16" Margin="0,0,8,0"
+                                       Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                            <TextBlock Text="Historique des intrusions"
+                                       FontSize="14" FontWeight="SemiBold"
+                                       Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="200" Click="ClearHistory_Click"
+                                    ToolTip="Effacer tout l'historique">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Effacer l'historique" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <DataGrid x:Name="AlertsHistoryGrid"
+                                  MinHeight="150" MaxHeight="300"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  SelectionMode="Single">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}"     Binding="{Binding TimestampText}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+            
             <!-- ====================================================== -->
             <!--  ONGLET CONNEXIONS                                     -->
             <!-- ====================================================== -->
