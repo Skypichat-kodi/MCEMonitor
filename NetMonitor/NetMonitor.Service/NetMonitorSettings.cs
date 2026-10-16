@@ -21,7 +21,9 @@ namespace NetMonitor.Service
 
         public int BeaconWindowSeconds { get; set; } = 300;
         public int BeaconMinHits { get; set; } = 6;
-        public double BeaconJitterTolerancePct { get; set; } = 0.20;
+
+        // Seuil de jitter abaissé à 5% : seuls les beacons très réguliers déclenchent
+        public double BeaconJitterTolerancePct { get; set; } = 0.05;
 
         public bool AutoBlock { get; set; } = false;
 
@@ -34,10 +36,58 @@ namespace NetMonitor.Service
         public string WebPassword { get; set; } = "changeme";
 
         // ============================================================
-        //  Bruit (non éditable pour l'instant)
+        //  Bruit
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
-        public string[] IgnoredProcesses { get; set; } = { "svchost", "System", "Idle" };
+
+        /// <summary>
+        /// Processus ignorés par le détecteur Beaconing.
+        /// Liste des services Windows légitimes qui font du beaconing régulier.
+        /// </summary>
+        public string[] IgnoredProcesses { get; set; } = new[]
+        {
+            // Système de base
+            "svchost",
+            "System",
+            "Idle",
+
+            // Continuité PC ? Téléphone
+            "CrossDeviceService",
+
+            // Cloud et synchronisation
+            "OneDrive",
+            "OneDriveSetup",
+            "MicrosoftEdgeUpdate",
+            "MicrosoftEdgeUpdateSetup",
+            "WidgetService",
+
+            // Windows Update / Télémétrie
+            "MoUsoCoreWorker",
+            "UsoClient",
+            "WaasMedicAgent",
+            "TrustedInstaller",
+
+            // Recherche / Indexation
+            "SearchIndexer",
+            "SearchProtocolHost",
+            "SearchFilterHost",
+
+            // Hôtes UWP et runtime
+            "backgroundTaskHost",
+            "RuntimeBroker",
+            "ShellExperienceHost",
+            "StartMenuExperienceHost",
+            "Widgets",
+
+            // Windows Defender
+            "MsMpEng",
+            "NisSrv",
+            "SecurityHealthService",
+
+            // Push notifications
+            "WpnService",
+            "WpnUserService"
+        };
 
         // ============================================================
         //  Chargement
@@ -85,6 +135,10 @@ namespace NetMonitor.Service
                             break;
                         case "AutoBlock":
                             if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab;
+                            break;
+                        case "IgnoredProcesses":
+                            settings.IgnoredProcesses = value
+                                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                             break;
 
                         case "WebEnabled":
@@ -134,6 +188,9 @@ namespace NetMonitor.Service
                     $"BeaconWindowSeconds={BeaconWindowSeconds}",
                     $"BeaconMinHits={BeaconMinHits}",
                     $"BeaconJitterTolerancePct={BeaconJitterTolerancePct.ToString(CultureInfo.InvariantCulture)}",
+                    "",
+                    "# --- Processus ignorés par le Beaconing (liste séparée par virgule) ---",
+                    $"IgnoredProcesses={string.Join(",", IgnoredProcesses)}",
                     "",
                     "# --- Blocage automatique ---",
                     $"AutoBlock={AutoBlock.ToString().ToLower()}",
@@ -192,6 +249,10 @@ namespace NetMonitor.Service
                             break;
                         case "AutoBlock":
                             if (bool.TryParse(value, out bool ab)) AutoBlock = ab;
+                            break;
+                        case "IgnoredProcesses":
+                            IgnoredProcesses = value
+                                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                             break;
 
                         case "WebEnabled":

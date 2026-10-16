@@ -16,11 +16,14 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
     public DetectorResult? InspectConnection(ConnectionInfo ci, DetectorContext ctx)
     {
         if (ci.Pid <= 0) return null;
-        if (ctx.Settings.IgnoredProcesses.Any(p =>
+
+        // Ignore les processus système/apps légitimes connus pour beaconer
+        if (!string.IsNullOrWhiteSpace(ci.ProcessName) &&
+            ctx.Settings.IgnoredProcesses.Any(p =>
                 string.Equals(p, ci.ProcessName, StringComparison.OrdinalIgnoreCase)))
             return null;
 
-        // On ne "beaconne" pas vers DNS/NTP/HTTPS standard
+        // On ne "beaconne" pas vers DNS/NTP
         if (ctx.Settings.IgnoredRemotePorts.Contains(ci.RemotePort)) return null;
 
         var window = TimeSpan.FromSeconds(ctx.Settings.BeaconWindowSeconds);
@@ -31,7 +34,7 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
         var cooldown = TimeSpan.FromSeconds(ctx.Settings.BeaconWindowSeconds);
         if (!ctx.TryAcquireAlertSlot($"beacon-{ci.Pid}", cooldown))
             return null;
-            
+
         // Calcul des intervalles en secondes
         var intervals = new double[hits.Length - 1];
         for (int i = 1; i < hits.Length; i++)

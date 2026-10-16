@@ -1364,7 +1364,7 @@ namespace MCEMonitor
             this.grpNetSettings.Text = LanguageManager.Get("Réglages") ?? "Réglages";
             this.grpNetSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpNetSettings.Location = new System.Drawing.Point(20, 270);
-            this.grpNetSettings.Size = new System.Drawing.Size(640, 190);
+            this.grpNetSettings.Size = new System.Drawing.Size(640, 210);
 
             // Ligne 1 : PortScan — fenêtre
             this.lblNetPortScanWindow.Text = LanguageManager.Get("PortScan — fenêtre (s) :") ?? "PortScan — fenêtre (s) :";
@@ -1434,7 +1434,7 @@ namespace MCEMonitor
             // Ligne 6 : AutoBlock
             this.chkNetAutoBlock.Text = LanguageManager.Get("Blocage automatique par pare-feu (sévérité High et +)")
                 ?? "Blocage automatique par pare-feu (sévérité High et +)";
-            this.chkNetAutoBlock.Location = new System.Drawing.Point(20, 152);
+            this.chkNetAutoBlock.Location = new System.Drawing.Point(20, 155);
             this.chkNetAutoBlock.Size = new System.Drawing.Size(500, 22);
             this.chkNetAutoBlock.Font = normalFont;
 
