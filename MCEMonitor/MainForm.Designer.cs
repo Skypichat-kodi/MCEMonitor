@@ -73,17 +73,17 @@ namespace MCEMonitor
 
             this.tabEmail.Text = LanguageManager.Get("Email") ?? "Email";
             this.tabEmail.Name = "tabEmail";
-            this.tabMediaMonitor.Text = LanguageManager.Get("Media Monitor") ?? "Media Monitor";
+            this.tabMediaMonitor.Text = LanguageManager.Get("MediaMonitor") ?? "MediaMonitor";
             this.tabMediaMonitor.Name = "tabMediaMonitor";
-            this.tabRomMonitor.Text = LanguageManager.Get("Rom Monitor") ?? "Rom Monitor";
+            this.tabRomMonitor.Text = LanguageManager.Get("RomMonitor") ?? "RomMonitor";
             this.tabRomMonitor.Name = "tabRomMonitor";
-            this.tabSystemMonitor.Text = LanguageManager.Get("System Monitor") ?? "System Monitor";
+            this.tabSystemMonitor.Text = LanguageManager.Get("SystemMonitor") ?? "SystemMonitor";
             this.tabSystemMonitor.Name = "tabSystemMonitor";
-            this.tabNetMonitor.Text = LanguageManager.Get("Net Monitor") ?? "Net Monitor";
+            this.tabNetMonitor.Text = LanguageManager.Get("NetMonitor") ?? "NetMonitor";
             this.tabNetMonitor.Name = "tabNetMonitor";                        
-            this.tabWakeMonitor.Text = LanguageManager.Get("Wake Monitor") ?? "Wake Monitor";
+            this.tabWakeMonitor.Text = LanguageManager.Get("WakeMonitor") ?? "WakeMonitor";
             this.tabWakeMonitor.Name = "tabWakeMonitor";
-            this.tabStopMonitor.Text = LanguageManager.Get("Stop Monitor") ?? "Stop Monitor";
+            this.tabStopMonitor.Text = LanguageManager.Get("StopMonitor") ?? "StopMonitor";
             this.tabStopMonitor.Name = "tabStopMonitor";
             this.tabOnOff.Text = LanguageManager.Get("On/Off") ?? "On/Off";
             this.tabOnOff.Name = "tabOnOff";
@@ -912,7 +912,7 @@ namespace MCEMonitor
                 "----------------------------------------\n" +
                 "LICENCE MIT\n" +
                 "----------------------------------------\n\n" +
-            @"MCEMonitor (Version 2.2.0)
+            @"MCEMonitor (Version 2.2.5)
             Outil de supervision et d'automatisation pour Media Server (KODI).
 
             MIT License
