@@ -38,46 +38,13 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Chargement des icônes (depuis PNG ou ICO)
+        //  Chargement des icônes (embedded resources)
         // ------------------------------------------------------------
         private void LoadIcons()
         {
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-            // Icône par défaut (RomMonitor.ico à côté du Tray)
-            string defaultPath = Path.Combine(exeDir, "RomMonitor.ico");
-            _defaultIcon = File.Exists(defaultPath)
-                ? new Icon(defaultPath)
-                : SystemIcons.Application;
-
-            // Icône Warning (PNG)
-            string warningPath = Path.Combine(exeDir, "warning.png");
-            _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
-
-            // Icône Critical (PNG)
-            string criticalPath = Path.Combine(exeDir, "critical.png");
-            _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
-        }
-
-        /// <summary>
-        /// Charge une icône depuis un PNG et la convertit en Icon.
-        /// </summary>
-        private static Icon? LoadIconFromPng(string path)
-        {
-            try
-            {
-                if (!File.Exists(path))
-                    return null;
-
-                using var bmp = new Bitmap(path);
-                IntPtr hIcon = bmp.GetHicon();
-                using var tmp = Icon.FromHandle(hIcon);
-                return (Icon)tmp.Clone();
-            }
-            catch
-            {
-                return null;
-            }
+            _defaultIcon  = EmbeddedResourceLoader.LoadIcon("RomMonitor.ico")      ?? SystemIcons.Application;
+            _warningIcon  = EmbeddedResourceLoader.LoadPngAsIcon("warning.png")    ?? _defaultIcon;
+            _criticalIcon = EmbeddedResourceLoader.LoadPngAsIcon("critical.png")   ?? _defaultIcon;
         }
 
         // ------------------------------------------------------------

@@ -10,22 +10,20 @@
     <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
 
+  <!-- On empêche le SDK d'inclure implicitement les ressources -->
   <ItemGroup>
-    <Content Include="SystemMonitor.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="warning.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="critical.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="alarm.wav"   Condition="Exists('alarm.wav')">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="warning.wav" Condition="Exists('warning.wav')">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>  
+    <None Remove="*.ico" />
+    <None Remove="*.png" />
+    <None Remove="*.wav" />
+  </ItemGroup>
+
+  <!-- On les embarque dans l'assembly -->
+  <ItemGroup>
+    <EmbeddedResource Include="SystemMonitor.ico" LogicalName="SystemMonitor.ico" />
+    <EmbeddedResource Include="warning.png"       LogicalName="warning.png" />
+    <EmbeddedResource Include="critical.png"      LogicalName="critical.png" />
+    <EmbeddedResource Include="alarm.wav"         LogicalName="alarm.wav" />
+    <EmbeddedResource Include="warning.wav"       LogicalName="warning.wav" />
   </ItemGroup>
 
 </Project>

@@ -40,22 +40,13 @@ namespace NetMonitor.Tray
         {
             try
             {
-                string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-                CoreLog.Info($"LoadIcons : exeDir = {exeDir}");
+                CoreLog.Info("LoadIcons : début (embedded resources)");
 
-                string? defaultPath = ResourceLocator.FindAppIcon("NetMonitor.ico");
-                CoreLog.Info($"LoadIcons : NetMonitor.ico trouvé = {defaultPath != null}");
-                _defaultIcon = SafeLoadIcon(defaultPath) ?? SystemIcons.Application;
+                _defaultIcon = EmbeddedResourceLoader.LoadIcon("NetMonitor.ico") ?? SystemIcons.Application;
+                _warningIcon = EmbeddedResourceLoader.LoadPngAsIcon("warning.png") ?? _defaultIcon;
+                _criticalIcon = EmbeddedResourceLoader.LoadPngAsIcon("critical.png") ?? _defaultIcon;
 
-                string? warningPath = ResourceLocator.FindIcon("warning.png");
-                CoreLog.Info($"LoadIcons : warning.png trouvé = {warningPath != null}");
-                _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
-
-                string? criticalPath = ResourceLocator.FindIcon("critical.png");
-                CoreLog.Info($"LoadIcons : critical.png trouvé = {criticalPath != null}");
-                _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
-
-                CoreLog.Info("LoadIcons : OK");
+                CoreLog.Info($"LoadIcons : default={_defaultIcon != null}, warning={_warningIcon != null}, critical={_criticalIcon != null}");
             }
             catch (Exception ex)
             {
@@ -66,43 +57,6 @@ namespace NetMonitor.Tray
             }
         }
 
-        private static Icon? SafeLoadIcon(string? path)
-        {
-            if (string.IsNullOrEmpty(path)) return null;
-
-            try
-            {
-                if (!File.Exists(path)) return null;
-                byte[] bytes = File.ReadAllBytes(path);
-                using var ms = new MemoryStream(bytes);
-                return new Icon(ms);
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"SafeLoadIcon('{path}') : {ex.Message}");
-                return null;
-            }
-        }
-
-        private static Icon? LoadIconFromPng(string? path)
-        {
-            if (string.IsNullOrEmpty(path)) return null;
-
-            try
-            {
-                if (!File.Exists(path)) return null;
-                using var bmp = new Bitmap(path);
-                IntPtr hIcon = bmp.GetHicon();
-                using var tmp = Icon.FromHandle(hIcon);
-                return (Icon)tmp.Clone();
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"LoadIconFromPng('{path}') : {ex.Message}");
-                return null;
-            }
-        }
-
         // ------------------------------------------------------------
         //  Sons
         // ------------------------------------------------------------
@@ -110,13 +64,8 @@ namespace NetMonitor.Tray
         {
             try
             {
-                string? crit = ResourceLocator.FindSound("alarm.wav");
-                if (crit != null)
-                    _criticalPlayer = new System.Media.SoundPlayer(crit);
-
-                string? warn = ResourceLocator.FindSound("warning.wav");
-                if (warn != null)
-                    _warningPlayer = new System.Media.SoundPlayer(warn);
+                _criticalPlayer = EmbeddedResourceLoader.LoadSound("alarm.wav");
+                _warningPlayer = EmbeddedResourceLoader.LoadSound("warning.wav");
 
                 CoreLog.Info($"LoadSounds : critical={_criticalPlayer != null}, warning={_warningPlayer != null}");
             }
@@ -125,7 +74,7 @@ namespace NetMonitor.Tray
                 CoreLog.Error($"LoadSounds : {ex.Message}");
             }
         }
-
+        
         public TrayApplicationContext()
         {
             try

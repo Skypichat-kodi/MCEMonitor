@@ -33,63 +33,29 @@ namespace SystemMonitor.Tray
         private const string PIPE_NAME = "MCEMonitor_SystemMonitorPipe";
 
         // ------------------------------------------------------------
-        //  Chargement des icônes
+        //  Chargement des icônes (embedded resources)
         // ------------------------------------------------------------
         private void LoadIcons()
         {
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-            // Icône par défaut
-            string defaultPath = Path.Combine(exeDir, "SystemMonitor.ico");
-            _defaultIcon = File.Exists(defaultPath)
-                ? new Icon(defaultPath)
-                : SystemIcons.Application;
-
-            // Warning
-            string warningPath = Path.Combine(exeDir, "warning.png");
-            _warningIcon = LoadIconFromPng(warningPath) ?? _defaultIcon;
-
-            // Critical
-            string criticalPath = Path.Combine(exeDir, "critical.png");
-            _criticalIcon = LoadIconFromPng(criticalPath) ?? _defaultIcon;
+            _defaultIcon = EmbeddedResourceLoader.LoadIcon("SystemMonitor.ico") ?? SystemIcons.Application;
+            _warningIcon = EmbeddedResourceLoader.LoadPngAsIcon("warning.png") ?? _defaultIcon;
+            _criticalIcon = EmbeddedResourceLoader.LoadPngAsIcon("critical.png") ?? _defaultIcon;
         }
 
-        private static Icon? LoadIconFromPng(string path)
+        // ------------------------------------------------------------
+        //  Chargement des sons (embedded resources)
+        // ------------------------------------------------------------
+        private void LoadSounds()
         {
-            try
-            {
-                if (!File.Exists(path))
-                    return null;
-
-                using var bmp = new Bitmap(path);
-                IntPtr hIcon = bmp.GetHicon();
-                using var tmp = Icon.FromHandle(hIcon);
-                return (Icon)tmp.Clone();
-            }
-            catch
-            {
-                return null;
-            }
+            _criticalPlayer = EmbeddedResourceLoader.LoadSound("alarm.wav");
+            _warningPlayer = EmbeddedResourceLoader.LoadSound("warning.wav");
         }
-
+        
         public TrayApplicationContext()
         {
             LoadIcons();
-            LoadSounds();   // <-- NEW
+            LoadSounds();
             InitializeTray();
-        }
-
-        private void LoadSounds()
-        {
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-            string crit = Path.Combine(exeDir, "alarm.wav");
-            if (File.Exists(crit))
-                _criticalPlayer = new System.Media.SoundPlayer(crit);
-
-            string warn = Path.Combine(exeDir, "warning.wav");
-            if (File.Exists(warn))
-                _warningPlayer = new System.Media.SoundPlayer(warn);
         }
 
         // ------------------------------------------------------------

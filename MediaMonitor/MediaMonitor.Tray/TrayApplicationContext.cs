@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Drawing;
 using System.IO.Pipes;
+using Timer = System.Windows.Forms.Timer;
 
 namespace MediaMonitor.Tray
 {
@@ -21,14 +22,13 @@ namespace MediaMonitor.Tray
         private void InitializeTray()
         {
             // ------------------------------------------------------------
-            // Chargement de l'icône
+            // Chargement de l'icône (embedded resource)
             // ------------------------------------------------------------
-            string exeDir = Path.GetDirectoryName(Application.ExecutablePath);
-            string iconPath = Path.Combine(exeDir, "MediaMonitor.ico");
+            Icon icon = EmbeddedResourceLoader.LoadIcon("MediaMonitor.ico") ?? SystemIcons.Application;
 
             trayIcon = new NotifyIcon()
             {
-                Icon = File.Exists(iconPath) ? new Icon(iconPath) : SystemIcons.Application,
+                Icon = icon,
                 Visible = true,
                 Text = "MediaMonitor"
             };

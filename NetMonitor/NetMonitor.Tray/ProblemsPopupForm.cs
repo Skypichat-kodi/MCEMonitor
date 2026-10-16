@@ -274,20 +274,9 @@ namespace NetMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Chargement d'une image PNG (détachée du flux)
+        //  Chargement d'une image PNG
         // ------------------------------------------------------------
         private static Image? LoadImage(string fileName)
-        {
-            try
-            {
-                string? path = ResourceLocator.FindIcon(fileName);
-                if (path == null) return null;
-
-                using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
-                using var img = Image.FromStream(fs);
-                return new Bitmap(img);
-            }
-            catch { return null; }
-        }
+            => EmbeddedResourceLoader.LoadPngAsImage(fileName);
     }
 }

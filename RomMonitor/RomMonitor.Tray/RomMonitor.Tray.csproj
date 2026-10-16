@@ -6,28 +6,24 @@
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
-    <!-- Empêche la console noire -->
-    <Win32Resource />
-
-    <!-- Icône de l'exécutable -->
+    <AssemblyName>RomMonitor.Tray</AssemblyName>
+    <RootNamespace>RomMonitor.Tray</RootNamespace>
+    <Platforms>x64</Platforms>
     <ApplicationIcon>RomMonitor.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <!-- On retire l'inclusion implicite -->
   <ItemGroup>
-    <!-- Copie l'icône dans le dossier de sortie -->
-    <Content Include="RomMonitor.ico">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
+    <None Remove="RomMonitor.ico" />
+    <None Remove="warning.png" />
+    <None Remove="critical.png" />
   </ItemGroup>
-  
+
+  <!-- On les embarque dans l'assembly -->
   <ItemGroup>
-    <Content Include="warning.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="critical.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>  
+    <EmbeddedResource Include="RomMonitor.ico" LogicalName="RomMonitor.ico" />
+    <EmbeddedResource Include="warning.png"    LogicalName="warning.png" />
+    <EmbeddedResource Include="critical.png"   LogicalName="critical.png" />
+  </ItemGroup>
 
 </Project>
