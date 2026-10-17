@@ -19,6 +19,8 @@ namespace NetMonitor.Service
         private readonly List<IDetector> _pktDetectors;
         private readonly DetectorContext _context;
         private readonly EtwConnectionWatcher _etw;
+        
+        private ThreatIntelService? _threatIntel;
 
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
@@ -100,6 +102,8 @@ namespace NetMonitor.Service
         {
             _settings = settings;
             _context = new DetectorContext(settings);
+            _threatIntel = new ThreatIntelService(); // NOUVEAU : init ThreatIntel
+
             _etw = new EtwConnectionWatcher();
             _etw.ConnectionOpened += OnConnectionOpened;
 
@@ -107,6 +111,8 @@ namespace NetMonitor.Service
             {
                 new PortScanDetector(),
                 new BeaconingDetector(),
+                new BlacklistIpDetector(_threatIntel),      // NOUVEAU
+                new SuspiciousOutboundDetector(),           // NOUVEAU
             };
 
             // Liste des détecteurs basés sur les paquets bruts (WinDivert)
@@ -115,11 +121,14 @@ namespace NetMonitor.Service
                 new SynFloodDetector(),
                 new IcmpFloodDetector(),
                 new DnsSpoofDetector(),
+                new BlacklistIpDetector(_threatIntel),      // NOUVEAU (écoute aussi les paquets bruts)
             };
         }
 
         public void Start()
         {
+            _threatIntel?.Start(); // NOUVEAU : démarre le service (charge la blacklist)
+
             _etw.Start();
             _evictTimer = new System.Threading.Timer(
                 _ => _context.EvictStale(TimeSpan.FromMinutes(30)),
@@ -140,6 +149,8 @@ namespace NetMonitor.Service
 
         public void Stop()
         {
+            _threatIntel?.Stop(); // NOUVEAU : arrête le watcher de fichier
+
             _capture?.Stop();
             _packetChannel?.Writer.TryComplete();
             try { _consumerTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }

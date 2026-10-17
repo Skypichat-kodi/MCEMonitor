@@ -63,6 +63,18 @@ namespace NetMonitor.Service
         public bool DisableFilters { get; set; } = false;
 
         // ============================================================
+        //  Détecteurs de périmètre (menaces externes)
+        // ============================================================
+        public int[] SuspiciousRemotePorts { get; set; } = 
+        { 
+            4444,   // Metasploit / Meterpreter
+            1337,   // L33t (backdoors)
+            31337,  // Back Orifice / Elite
+            6667,   // IRC (souvent utilisé pour les botnets)
+            3389    // RDP sortant (suspect si non-admin)
+        };
+        
+        // ============================================================
         //  Chargement
         // ============================================================
         public static NetMonitorSettings Load()
@@ -131,6 +143,13 @@ namespace NetMonitor.Service
                         case "WebPassword":
                             settings.WebPassword = value;
                             break;
+                        case "SuspiciousRemotePorts":
+                            if (value.Contains(','))
+                            {
+                                var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
+                            }
+                            break;                            
                     }
                 }
             }
@@ -179,6 +198,9 @@ namespace NetMonitor.Service
                     "# --- Mode Debug ---",
                     $"DisableFilters={DisableFilters.ToString().ToLower()}",
                     "",
+                    "# --- Détecteurs de périmètre ---",
+                    $"SuspiciousRemotePorts={string.Join(",", SuspiciousRemotePorts)}",
+                    "",                    
                     "# --- Serveur Web ---",
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
                     $"WebPort={WebPort}",
@@ -256,6 +278,13 @@ namespace NetMonitor.Service
                         case "WebPassword":
                             WebPassword = value;
                             break;
+                        case "SuspiciousRemotePorts":
+                            if (value.Contains(','))
+                            {
+                                var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
+                            }
+                            break;                            
                     }
                 }
 
