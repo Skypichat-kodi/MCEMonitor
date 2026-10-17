@@ -1344,7 +1344,7 @@ namespace MCEMonitor
             this.netMonitorTimer.Tick += new System.EventHandler(this.NetMonitorTimer_Tick);
             this.netMonitorTimer.Start();
 
-            // ============================================================
+// ============================================================
             // NET MONITOR — RÉGLAGES
             // ============================================================
             this.grpNetSettings = new KryptonGroupBox();
@@ -1364,7 +1364,7 @@ namespace MCEMonitor
             this.grpNetSettings.Text = LanguageManager.Get("Réglages") ?? "Réglages";
             this.grpNetSettings.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.grpNetSettings.Location = new System.Drawing.Point(20, 270);
-            this.grpNetSettings.Size = new System.Drawing.Size(640, 210);
+            this.grpNetSettings.Size = new System.Drawing.Size(640, 190);
 
             // Ligne 1 : PortScan — fenêtre
             this.lblNetPortScanWindow.Text = LanguageManager.Get("PortScan — fenêtre (s) :") ?? "PortScan — fenêtre (s) :";
@@ -1381,11 +1381,11 @@ namespace MCEMonitor
 
             // Ligne 2 : PortScan — seuil
             this.lblNetPortScanThreshold.Text = LanguageManager.Get("PortScan — seuil (ports) :") ?? "PortScan — seuil (ports) :";
-            this.lblNetPortScanThreshold.Location = new System.Drawing.Point(20, 38);
+            this.lblNetPortScanThreshold.Location = new System.Drawing.Point(20, 34);
             this.lblNetPortScanThreshold.Size = new System.Drawing.Size(220, 20);
             this.lblNetPortScanThreshold.Font = normalFont;
 
-            this.numNetPortScanThreshold.Location = new System.Drawing.Point(250, 38);
+            this.numNetPortScanThreshold.Location = new System.Drawing.Point(250, 34);
             this.numNetPortScanThreshold.Size = new System.Drawing.Size(80, 20);
             this.numNetPortScanThreshold.Minimum = 2;
             this.numNetPortScanThreshold.Maximum = 1000;
@@ -1394,11 +1394,11 @@ namespace MCEMonitor
 
             // Ligne 3 : Beaconing — fenêtre
             this.lblNetBeaconWindow.Text = LanguageManager.Get("Beaconing — fenêtre (s) :") ?? "Beaconing — fenêtre (s) :";
-            this.lblNetBeaconWindow.Location = new System.Drawing.Point(20, 66);
+            this.lblNetBeaconWindow.Location = new System.Drawing.Point(20, 58);
             this.lblNetBeaconWindow.Size = new System.Drawing.Size(220, 20);
             this.lblNetBeaconWindow.Font = normalFont;
 
-            this.numNetBeaconWindow.Location = new System.Drawing.Point(250, 66);
+            this.numNetBeaconWindow.Location = new System.Drawing.Point(250, 58);
             this.numNetBeaconWindow.Size = new System.Drawing.Size(80, 20);
             this.numNetBeaconWindow.Minimum = 30;
             this.numNetBeaconWindow.Maximum = 3600;
@@ -1407,11 +1407,11 @@ namespace MCEMonitor
 
             // Ligne 4 : Beaconing — hits
             this.lblNetBeaconHits.Text = LanguageManager.Get("Beaconing — hits minimum :") ?? "Beaconing — hits minimum :";
-            this.lblNetBeaconHits.Location = new System.Drawing.Point(20, 94);
+            this.lblNetBeaconHits.Location = new System.Drawing.Point(20, 82);
             this.lblNetBeaconHits.Size = new System.Drawing.Size(220, 20);
             this.lblNetBeaconHits.Font = normalFont;
 
-            this.numNetBeaconHits.Location = new System.Drawing.Point(250, 94);
+            this.numNetBeaconHits.Location = new System.Drawing.Point(250, 82);
             this.numNetBeaconHits.Size = new System.Drawing.Size(80, 20);
             this.numNetBeaconHits.Minimum = 3;
             this.numNetBeaconHits.Maximum = 100;
@@ -1420,11 +1420,11 @@ namespace MCEMonitor
 
             // Ligne 5 : Beaconing — jitter max (%)
             this.lblNetBeaconJitter.Text = LanguageManager.Get("Beaconing — jitter max (%) :") ?? "Beaconing — jitter max (%) :";
-            this.lblNetBeaconJitter.Location = new System.Drawing.Point(20, 122);
+            this.lblNetBeaconJitter.Location = new System.Drawing.Point(20, 106);
             this.lblNetBeaconJitter.Size = new System.Drawing.Size(220, 20);
             this.lblNetBeaconJitter.Font = normalFont;
 
-            this.numNetBeaconJitter.Location = new System.Drawing.Point(250, 122);
+            this.numNetBeaconJitter.Location = new System.Drawing.Point(250, 106);
             this.numNetBeaconJitter.Size = new System.Drawing.Size(80, 20);
             this.numNetBeaconJitter.Minimum = 1;
             this.numNetBeaconJitter.Maximum = 100;
@@ -1434,7 +1434,7 @@ namespace MCEMonitor
             // Ligne 6 : AutoBlock
             this.chkNetAutoBlock.Text = LanguageManager.Get("Blocage automatique par pare-feu (sévérité High et +)")
                 ?? "Blocage automatique par pare-feu (sévérité High et +)";
-            this.chkNetAutoBlock.Location = new System.Drawing.Point(20, 155);
+            this.chkNetAutoBlock.Location = new System.Drawing.Point(20, 130); // Remonté de 155 à 130
             this.chkNetAutoBlock.Size = new System.Drawing.Size(500, 22);
             this.chkNetAutoBlock.Font = normalFont;
 
