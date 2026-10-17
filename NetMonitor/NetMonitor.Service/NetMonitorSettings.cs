@@ -21,10 +21,7 @@ namespace NetMonitor.Service
 
         public int BeaconWindowSeconds { get; set; } = 300;
         public int BeaconMinHits { get; set; } = 6;
-
-        // Seuil de jitter abaissé à 5% : seuls les beacons très réguliers déclenchent
         public double BeaconJitterTolerancePct { get; set; } = 0.05;
-
         public bool AutoBlock { get; set; } = false;
 
         // ============================================================
@@ -36,58 +33,34 @@ namespace NetMonitor.Service
         public string WebPassword { get; set; } = "changeme";
 
         // ============================================================
-        //  Bruit
+        //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
 
-        /// <summary>
-        /// Processus ignorés par le détecteur Beaconing.
-        /// Liste des services Windows légitimes qui font du beaconing régulier.
-        /// </summary>
         public string[] IgnoredProcesses { get; set; } = new[]
         {
-            // Système de base
-            "svchost",
-            "System",
-            "Idle",
-
-            // Continuité PC ? Téléphone
-            "CrossDeviceService",
-
-            // Cloud et synchronisation
-            "OneDrive",
-            "OneDriveSetup",
-            "MicrosoftEdgeUpdate",
-            "MicrosoftEdgeUpdateSetup",
-            "WidgetService",
-
-            // Windows Update / Télémétrie
-            "MoUsoCoreWorker",
-            "UsoClient",
-            "WaasMedicAgent",
-            "TrustedInstaller",
-
-            // Recherche / Indexation
-            "SearchIndexer",
-            "SearchProtocolHost",
-            "SearchFilterHost",
-
-            // Hôtes UWP et runtime
-            "backgroundTaskHost",
-            "RuntimeBroker",
-            "ShellExperienceHost",
-            "StartMenuExperienceHost",
-            "Widgets",
-
-            // Windows Defender
-            "MsMpEng",
-            "NisSrv",
-            "SecurityHealthService",
-
-            // Push notifications
-            "WpnService",
-            "WpnUserService"
+            "svchost", "System", "Idle", "CrossDeviceService", "OneDrive",
+            "OneDriveSetup", "MicrosoftEdgeUpdate", "MicrosoftEdgeUpdateSetup",
+            "WidgetService", "MoUsoCoreWorker", "UsoClient", "WaasMedicAgent",
+            "TrustedInstaller", "SearchIndexer", "SearchProtocolHost", "SearchFilterHost",
+            "backgroundTaskHost", "RuntimeBroker", "ShellExperienceHost",
+            "StartMenuExperienceHost", "Widgets", "MsMpEng", "NisSrv",
+            "SecurityHealthService", "WpnService", "WpnUserService"
         };
+
+        public string[] IgnoredNetworks { get; set; } = new[]
+        {
+            "127.0.0.0/8",
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16"
+        };
+
+        /// <summary>
+        /// Mode Debug : désactive toutes les whitelists pour tester les détecteurs.
+        /// À utiliser avec précaution (risque d'inonder le système d'alertes).
+        /// </summary>
+        public bool DisableFilters { get; set; } = false;
 
         // ============================================================
         //  Chargement
@@ -137,8 +110,13 @@ namespace NetMonitor.Service
                             if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab;
                             break;
                         case "IgnoredProcesses":
-                            settings.IgnoredProcesses = value
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            break;
+                        case "IgnoredNetworks":
+                            settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            break;
+                        case "DisableFilters":
+                            if (bool.TryParse(value, out bool df)) settings.DisableFilters = df;
                             break;
 
                         case "WebEnabled":
@@ -189,11 +167,17 @@ namespace NetMonitor.Service
                     $"BeaconMinHits={BeaconMinHits}",
                     $"BeaconJitterTolerancePct={BeaconJitterTolerancePct.ToString(CultureInfo.InvariantCulture)}",
                     "",
-                    "# --- Processus ignorés par le Beaconing (liste séparée par virgule) ---",
+                    "# --- Processus ignorés (séparés par virgule) ---",
                     $"IgnoredProcesses={string.Join(",", IgnoredProcesses)}",
+                    "",
+                    "# --- Réseaux ignorés / locaux (CIDR séparés par virgule) ---",
+                    $"IgnoredNetworks={string.Join(",", IgnoredNetworks)}",
                     "",
                     "# --- Blocage automatique ---",
                     $"AutoBlock={AutoBlock.ToString().ToLower()}",
+                    "",
+                    "# --- Mode Debug ---",
+                    $"DisableFilters={DisableFilters.ToString().ToLower()}",
                     "",
                     "# --- Serveur Web ---",
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
@@ -211,7 +195,7 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  Rechargement à chaud (instance)
+        //  Rechargement à chaud
         // ============================================================
         public void Reload()
         {
@@ -251,8 +235,13 @@ namespace NetMonitor.Service
                             if (bool.TryParse(value, out bool ab)) AutoBlock = ab;
                             break;
                         case "IgnoredProcesses":
-                            IgnoredProcesses = value
-                                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            break;
+                        case "IgnoredNetworks":
+                            IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                            break;
+                        case "DisableFilters":
+                            if (bool.TryParse(value, out bool df)) DisableFilters = df;
                             break;
 
                         case "WebEnabled":

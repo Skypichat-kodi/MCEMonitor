@@ -149,7 +149,9 @@ namespace NetMonitor.Service.Ipc
                 beaconWindowSeconds = _settings.BeaconWindowSeconds,
                 beaconMinHits = _settings.BeaconMinHits,
                 beaconJitterTolerancePct = _settings.BeaconJitterTolerancePct,
-                autoBlock = _settings.AutoBlock
+                autoBlock = _settings.AutoBlock,
+                ignoredNetworks = _settings.IgnoredNetworks,    // NOUVEAU
+                disableFilters = _settings.DisableFilters       // NOUVEAU
             });
         }
 

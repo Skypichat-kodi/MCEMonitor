@@ -408,12 +408,16 @@ namespace NetMonitor.UI
                 var cfg = await NetMonitorIpcClient.GetConfig();
                 if (cfg == null)
                 {
+                    // Valeurs par défaut si le service ne répond pas
                     txtPortScanWindow.Text = "10";
                     txtPortScanThreshold.Text = "20";
                     txtBeaconWindow.Text = "300";
                     txtBeaconHits.Text = "6";
-                    txtBeaconJitter.Text = "5"; // Nouveau défaut à 5%
+                    txtBeaconJitter.Text = "5";
                     chkAutoBlock.IsChecked = false;
+                    
+                    txtIgnoredNetworks.Text = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
+                    chkDisableFilters.IsChecked = false;
                     return;
                 }
 
@@ -423,6 +427,11 @@ namespace NetMonitor.UI
                 txtBeaconHits.Text = cfg.beaconMinHits.ToString();
                 txtBeaconJitter.Text = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
                 chkAutoBlock.IsChecked = cfg.autoBlock;
+
+                if (cfg.ignoredNetworks != null && cfg.ignoredNetworks.Length > 0)
+                    txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
+                
+                chkDisableFilters.IsChecked = cfg.disableFilters;
             }
             catch { }
         }
@@ -439,6 +448,20 @@ namespace NetMonitor.UI
 
                 double jitterPct = 5;
                 if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
+
+                // NOUVEAU : Confirmation si le mode debug est activé
+                if (chkDisableFilters.IsChecked == true)
+                {
+                    var confirm = MessageBox.Show(
+                        "Vous êtes sur le point d'activer le mode Debug.\n\n" +
+                        "Cela va DÉSACTIVER toutes les whitelists. Le système risque d'être inondé de fausses alertes.\n\n" +
+                        "Voulez-vous vraiment continuer ?",
+                        "Confirmation mode Debug",
+                        MessageBoxButton.YesNo,
+                        MessageBoxImage.Warning);
+
+                    if (confirm != MessageBoxResult.Yes) return;
+                }
 
                 var lines = new[]
                 {
@@ -457,7 +480,12 @@ namespace NetMonitor.UI
                     $"BeaconJitterTolerancePct={(jitterPct / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture)}",
                     "",
                     "# --- Blocage automatique ---",
-                    $"AutoBlock={(chkAutoBlock.IsChecked == true).ToString().ToLower()}"
+                    $"AutoBlock={(chkAutoBlock.IsChecked == true).ToString().ToLower()}",
+                    "",
+                    // NOUVEAU
+                    "# --- Filtres et Whitelists ---",
+                    $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
+                    $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}"
                 };
 
                 File.WriteAllLines(configPath, lines);
@@ -502,6 +530,16 @@ namespace NetMonitor.UI
             catch { }
         }
 
+        private void ChkDisableFilters_Checked(object sender, RoutedEventArgs e)
+        {
+            lblDisableFiltersWarning.Visibility = Visibility.Visible;
+        }
+
+        private void ChkDisableFilters_Unchecked(object sender, RoutedEventArgs e)
+        {
+            lblDisableFiltersWarning.Visibility = Visibility.Collapsed;
+        }
+        
         // ------------------------------------------------------------
         //  Serveur Web
         // ------------------------------------------------------------

@@ -12,14 +12,18 @@ public sealed class IcmpFloodDetector : IDetector
     public DetectorResult? Inspect(NetworkEvent evt, DetectorContext ctx)
     {
         if (evt.Protocol != TransportProtocol.Icmp) return null;
-
-        // Type 8 = Echo Request (ping)
         if (evt.IcmpType != 8) return null;
+
+        if (ctx.IsIgnoredNetwork(evt.SourceIp) || ctx.IsIgnoredNetwork(evt.DestIp)) 
+            return null;
 
         if (evt.SourceIp == evt.DestIp) return null;
 
         var window = TimeSpan.FromSeconds(WindowSeconds);
         int count = ctx.RecordIcmpPacket(evt.SourceIp, window);
+
+        // LOG DE DIAGNOSTIC
+        CoreLog.Debug($"[IcmpFlood] ip={evt.SourceIp} dest={evt.DestIp} count={count}/{Threshold}");
 
         if (count < Threshold) return null;
 

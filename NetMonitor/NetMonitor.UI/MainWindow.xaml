@@ -562,6 +562,46 @@
                             </StackPanel>
                         </Border>
 
+                        <!-- ============================================================ -->
+                        <!--  FILTRES ET WHITELISTS                                        -->
+                        <!-- ============================================================ -->
+                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="⚙" FontSize="16" Margin="0,0,8,0"
+                                               VerticalAlignment="Center"/>
+                                    <TextBlock Text="Filtres et Whitelists" FontSize="14"
+                                               FontWeight="Bold" Foreground="#4CC2FF"
+                                               VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Réseaux ignorés (CIDR, séparés par virgule) :"
+                                               Width="280" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtIgnoredNetworks"
+                                             Width="300"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+                                </StackPanel>
+
+                                <CheckBox x:Name="chkDisableFilters"
+                                          Content="Mode Debug : Désactiver les filtres et whitelists"
+                                          Foreground="#FF6347" 
+                                          FontWeight="Bold" 
+                                          Margin="0,10,0,5" 
+                                          Checked="ChkDisableFilters_Checked" 
+                                          Unchecked="ChkDisableFilters_Unchecked"/>
+                                          
+                                <TextBlock x:Name="lblDisableFiltersWarning" 
+                                           Text="⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs. Le système peut être inondé de faux positifs."
+                                           Foreground="#FF6347" 
+                                           FontSize="11" 
+                                           TextWrapping="Wrap" 
+                                           Visibility="Collapsed" 
+                                           Margin="20,0,0,0"/>
+                            </StackPanel>
+                        </Border>
+                        
                         <Button Content="{loc:Tr 'Enregistrer les réglages'}"
                                 Width="220"
                                 Height="35"

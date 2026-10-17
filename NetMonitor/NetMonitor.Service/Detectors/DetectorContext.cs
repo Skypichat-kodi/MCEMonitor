@@ -1,4 +1,5 @@
 using System;
+using System.Net;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,5 +131,53 @@ public sealed class DetectorContext
         var w = _icmpPackets.GetOrAdd(sourceIp, _ => new SlidingWindow<DateTime>(window));
         w.Add(DateTime.UtcNow);
         return w.Count;
-    }    
+    }
+    
+    /// <summary>
+    /// Vérifie si une IP appartient à une plage ignorée (ex: réseau local).
+    /// </summary>
+    public bool IsIgnoredNetwork(string ip)
+    {
+        // Mode Debug : on ignore les filtres
+        if (Settings.DisableFilters) return false;
+
+        if (string.IsNullOrWhiteSpace(ip) || !IPAddress.TryParse(ip, out var addr))
+            return false;
+
+        foreach (var cidr in Settings.IgnoredNetworks)
+        {
+            if (IsInCidr(addr, cidr)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsInCidr(IPAddress ip, string cidr)
+    {
+        var parts = cidr.Split('/');
+        if (parts.Length != 2) return false;
+        if (!IPAddress.TryParse(parts[0], out var network)) return false;
+        if (!int.TryParse(parts[1], out int prefixLength)) return false;
+
+        var ipBytes = ip.GetAddressBytes();
+        var netBytes = network.GetAddressBytes();
+
+        if (ipBytes.Length != netBytes.Length) return false;
+
+        int fullBytes = prefixLength / 8;
+        int remainingBits = prefixLength % 8;
+
+        for (int i = 0; i < fullBytes; i++)
+        {
+            if (ipBytes[i] != netBytes[i]) return false;
+        }
+
+        if (remainingBits > 0)
+        {
+            int mask = 0xFF << (8 - remainingBits);
+            if ((ipBytes[fullBytes] & mask) != (netBytes[fullBytes] & mask))
+                return false;
+        }
+
+        return true;
+    }        
 }
