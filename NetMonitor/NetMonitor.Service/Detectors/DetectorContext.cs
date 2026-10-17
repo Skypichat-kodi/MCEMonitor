@@ -16,6 +16,8 @@ public sealed class DetectorContext
     private readonly ConcurrentDictionary<int, SlidingWindow<DateTime>> _beaconHits = new();
     private readonly ConcurrentDictionary<string, DateTime> _lastSeenIp = new();
     private readonly ConcurrentDictionary<string, DateTime> _lastAlertByIp = new();
+    private readonly ConcurrentDictionary<string, SlidingWindow<DateTime>> _synPackets = new();
+    private readonly ConcurrentDictionary<string, SlidingWindow<DateTime>> _icmpPackets = new();    
 
     public NetMonitorSettings Settings { get; }
 
@@ -47,12 +49,14 @@ public sealed class DetectorContext
         var cutoff = DateTime.UtcNow - maxAge;
         foreach (var kv in _lastSeenIp)
             if (kv.Value < cutoff) { _synPorts.TryRemove(kv.Key, out _); _lastSeenIp.TryRemove(kv.Key, out _); }
-
         foreach (var kv in _beaconHits)
-            if (kv.Value.IsEmpty) _beaconHits.TryRemove(kv.Key, out _);
-            
+            if (kv.Value.IsEmpty) _beaconHits.TryRemove(kv.Key, out _);            
         foreach (var kv in _lastAlertByIp)
             if (kv.Value < cutoff) _lastAlertByIp.TryRemove(kv.Key, out _);            
+        foreach (var kv in _synPackets)
+            if (kv.Value.IsEmpty) _synPackets.TryRemove(kv.Key, out _);
+        foreach (var kv in _icmpPackets)
+            if (kv.Value.IsEmpty) _icmpPackets.TryRemove(kv.Key, out _);                        
     }
 
     /// <summary>
@@ -110,5 +114,21 @@ public sealed class DetectorContext
         }
 
         public bool IsEmpty { get { lock (_lock) return _items.Count == 0; } }
+        
+        public int Count { get { lock (_lock) return _items.Count; } }
     }
+    
+    public int RecordSynPacket(string sourceIp, TimeSpan window)
+    {
+        var w = _synPackets.GetOrAdd(sourceIp, _ => new SlidingWindow<DateTime>(window));
+        w.Add(DateTime.UtcNow);
+        return w.Count;
+    }
+
+    public int RecordIcmpPacket(string sourceIp, TimeSpan window)
+    {
+        var w = _icmpPackets.GetOrAdd(sourceIp, _ => new SlidingWindow<DateTime>(window));
+        w.Add(DateTime.UtcNow);
+        return w.Count;
+    }    
 }

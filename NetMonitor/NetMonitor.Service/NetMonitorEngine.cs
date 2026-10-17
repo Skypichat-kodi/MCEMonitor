@@ -3,6 +3,9 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Channels;
+using System.Threading.Tasks;
+using NetMonitor.Service.Capture;
 using NetMonitor.Service.Detectors;
 using NetMonitor.Service.Models;
 using NetMonitor.Service.Services;
@@ -13,6 +16,7 @@ namespace NetMonitor.Service
     {
         private readonly NetMonitorSettings _settings;
         private readonly List<IConnectionAwareDetector> _connDetectors;
+        private readonly List<IDetector> _pktDetectors;
         private readonly DetectorContext _context;
         private readonly EtwConnectionWatcher _etw;
 
@@ -31,6 +35,10 @@ namespace NetMonitor.Service
         private readonly object _alertsLock = new();
 
         private System.Threading.Timer? _evictTimer;
+
+        private PacketCaptureService? _capture;
+        private Channel<RawPacket>? _packetChannel;
+        private Task? _consumerTask;
 
         private static readonly string BlockedIpsFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -100,6 +108,14 @@ namespace NetMonitor.Service
                 new PortScanDetector(),
                 new BeaconingDetector(),
             };
+
+            // Liste des détecteurs basés sur les paquets bruts (WinDivert)
+            _pktDetectors = new List<IDetector>
+            {
+                new SynFloodDetector(),
+                new IcmpFloodDetector(),
+                new DnsSpoofDetector(),
+            };
         }
 
         public void Start()
@@ -111,15 +127,58 @@ namespace NetMonitor.Service
                 TimeSpan.FromMinutes(5),
                 TimeSpan.FromMinutes(5));
 
-            CoreLog.Write("NetMonitorEngine démarré (surveillance ETW).");
+            // --- Initialisation de la capture WinDivert ---
+            _packetChannel = Channel.CreateBounded<RawPacket>(new BoundedChannelOptions(2000) { FullMode = BoundedChannelFullMode.DropOldest });
+            _capture = new PacketCaptureService("ip", _packetChannel.Writer);
+            _capture.OnError += (s, ex) => CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
+            _capture.Start();
+
+            _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
+
+            CoreLog.Write("NetMonitorEngine démarré (surveillance ETW + WinDivert).");
         }
 
         public void Stop()
         {
+            _capture?.Stop();
+            _packetChannel?.Writer.TryComplete();
+            try { _consumerTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
+            _capture?.Dispose();
+
             _evictTimer?.Dispose();
             _evictTimer = null;
+            
             _etw.Stop();
             CoreLog.Write("NetMonitorEngine arrêté.");
+        }
+
+        // ------------------------------------------------------------
+        //  Consommation des paquets bruts (WinDivert)
+        // ------------------------------------------------------------
+        private async Task ConsumePacketsAsync(ChannelReader<RawPacket> reader)
+        {
+            await foreach (var raw in reader.ReadAllAsync())
+            {
+                var evt = PacketParser.Parse(raw);
+                if (evt == null) continue;
+
+                // Log de debug (seulement si Verbose = true)
+                if (CoreLog.Verbose)
+                {
+                    CoreLog.Debug($"[PKT] {evt.Protocol} {evt.SourceIp}:{evt.SourcePort} -> {evt.DestIp}:{evt.DestPort} (len={evt.Length})");
+                }
+
+                // Appel des détecteurs de paquets
+                foreach (var det in _pktDetectors)
+                {
+                    DetectorResult? result = null;
+                    try { result = det.Inspect(evt, _context); }
+                    catch (Exception ex) { CoreLog.Write($"Détecteur Paquet {det.Name} : {ex.Message}"); }
+
+                    if (result is { IsThreat: true })
+                        RaiseIntrusionPacket(det.Name, result, evt);
+                }
+            }
         }
 
         // ------------------------------------------------------------
@@ -304,6 +363,14 @@ namespace NetMonitor.Service
 
         private void RaiseIntrusion(string source, DetectorResult r, ConnectionInfo ci)
         {
+            // Si l'IP est déjà bloquée, on ignore l'alerte
+            lock (_alertsLock)
+            {
+                if (!string.IsNullOrWhiteSpace(ci.RemoteIp) &&
+                    _blockedIps.Any(b => b.Ip == ci.RemoteIp))
+                    return;
+            }
+
             var evt = new IntrusionEvent
             {
                 Timestamp = ci.Timestamp,
@@ -318,6 +385,44 @@ namespace NetMonitor.Service
                 Details = r.Details
             };
 
+            AddIntrusion(evt);
+        }
+
+        // ------------------------------------------------------------
+        //  Traitement des paquets bruts (WinDivert)
+        // ------------------------------------------------------------
+        private void RaiseIntrusionPacket(string source, DetectorResult r, NetworkEvent evt)
+        {
+            // Si l'IP source est déjà bloquée, on ignore
+            lock (_alertsLock)
+            {
+                if (!string.IsNullOrWhiteSpace(evt.SourceIp) &&
+                    _blockedIps.Any(b => b.Ip == evt.SourceIp))
+                    return;
+            }
+
+            var intrusion = new IntrusionEvent
+            {
+                Timestamp = evt.Timestamp,
+                Source = source,
+                Severity = r.Severity,
+                Message = r.Message,
+                RemoteIp = evt.SourceIp,
+                RemotePort = evt.SourcePort,
+                LocalPort = evt.DestPort,
+                Pid = 0, // Pas de PID avec un paquet brut
+                ProcessName = "Network Packet",
+                Details = r.Details
+            };
+
+            AddIntrusion(intrusion);
+        }
+
+        // ------------------------------------------------------------
+        //  Méthode commune d'ajout d'alerte
+        // ------------------------------------------------------------
+        private void AddIntrusion(IntrusionEvent evt)
+        {
             lock (_alertsLock)
             {
                 // Tableau 3 : historique

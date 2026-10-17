@@ -16,6 +16,9 @@
     <PackageReference Include="MailKit" Version="4.16.0" />
     <PackageReference Include="MimeKit" Version="4.16.0" />
     <PackageReference Include="System.IO.Pipes.AccessControl" Version="5.0.0" />
+    
+    <!-- Le package natif reste, mais on n'extrait plus manuellement les DLL -->
+    <PackageReference Include="Native.WinDivert" Version="2.2.2" />
   </ItemGroup>
 
   <ItemGroup>

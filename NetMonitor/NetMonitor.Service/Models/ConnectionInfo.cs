@@ -12,4 +12,4 @@ public sealed class ConnectionInfo
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }
 
-public enum TransportProtocol { Tcp, Udp }
+public enum TransportProtocol { Tcp, Udp, Icmp, Arp }
