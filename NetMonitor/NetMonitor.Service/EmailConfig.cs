@@ -1,21 +1,49 @@
-namespace NetMonitor.Service;
+using System;
+using System.IO;
 
-public sealed class EmailConfig
+namespace NetMonitor.Service // <-- DOIT ETRE NetMonitor.Service
 {
-    public bool Enabled { get; set; } = false;
-    public string SmtpHost { get; set; } = "";
-    public int SmtpPort { get; set; } = 587;
-    public bool UseStartTls { get; set; } = true;
-    public bool UseSsl { get; set; } = false;
-    public string User { get; set; } = "";
-    public string Password { get; set; } = "";
-    public string From { get; set; } = "";
-    public string To { get; set; } = "";
-    public string SubjectPrefix { get; set; } = "[NetMonitor]";
+    public class EmailConfig
+    {
+        public string Server { get; set; } = "";
+        public int Port { get; set; } = 465;
+        public string From { get; set; } = "";
+        public string Password { get; set; } = "";
+        public string To { get; set; } = "";
+        public string SecurityMode { get; set; } = "SSL";
 
-    /// <summary>N'envoie un mail que si la sévérité >= ce seuil.</summary>
-    public Models.Severity MinSeverity { get; set; } = Models.Severity.High;
+        private static readonly string ConfigPath = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor",
+            "email.config"
+        );
 
-    /// <summary>Anti-spam : ne pas envoyer plus d'un mail par ce délai.</summary>
-    public int ThrottleSeconds { get; set; } = 60;
+        public static EmailConfig Load()
+        {
+            var cfg = new EmailConfig();
+            try
+            {
+                if (!File.Exists(ConfigPath)) return cfg;
+                foreach (var line in File.ReadAllLines(ConfigPath))
+                {
+                    if (string.IsNullOrWhiteSpace(line) || !line.Contains('=')) continue;
+                    var parts = line.Split('=', 2);
+                    string key = parts[0].Trim();
+                    string value = parts[1].Trim();
+
+                    switch (key)
+                    {
+                        case "Server": cfg.Server = value; break;
+                        case "Port": if (int.TryParse(value, out int p)) cfg.Port = p; break;
+                        case "From": cfg.From = value; break;
+                        case "Password": cfg.Password = value; break;
+                        case "To": cfg.To = value; break;
+                        case "SecurityMode": cfg.SecurityMode = value; break;
+                    }
+                }
+            }
+            catch (Exception ex) { CoreLog.Write("Erreur Load EmailConfig : " + ex.Message); }
+            return cfg;
+        }
+    }
 }

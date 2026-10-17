@@ -456,7 +456,6 @@ namespace NetMonitor.UI
                 double jitterPct = 5;
                 if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
 
-                // NOUVEAU : Confirmation si le mode debug est activé
                 if (chkDisableFilters.IsChecked == true)
                 {
                     var confirm = MessageBox.Show(
@@ -469,6 +468,15 @@ namespace NetMonitor.UI
 
                     if (confirm != MessageBoxResult.Yes) return;
                 }
+
+                // Récupération des paramètres Web actuels depuis l'UI
+                // (pour ne pas les perdre lors de la réécriture du fichier)
+                string webEnabled = (ToggleWeb.IsChecked == true).ToString().ToLower();
+                string webPort = txtWebPort.Text.Trim();
+                string webLogin = txtWebLogin.Text.Trim();
+                string webPass = txtWebPassword.Visibility == Visibility.Visible
+                    ? txtWebPassword.Password
+                    : txtWebPasswordVisible.Text;
 
                 var lines = new[]
                 {
@@ -492,10 +500,16 @@ namespace NetMonitor.UI
                     "# --- Filtres et Whitelists ---",
                     $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
                     $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",
+                    "",
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",
                     $"BlacklistLastUpdate={(DateTime.TryParse(lblBlacklistLastUpdate.Text.Replace("Dernière MAJ : ", ""), out var dt) ? dt.ToUniversalTime().ToString("O") : DateTime.UtcNow.ToString("O"))}",
-                    "",                    
+                    "",
+                    "# --- Serveur Web ---",
+                    $"WebEnabled={webEnabled}",
+                    $"WebPort={webPort}",
+                    $"WebUsername={webLogin}",
+                    $"WebPassword={webPass}"
                 };
 
                 File.WriteAllLines(configPath, lines);
@@ -587,10 +601,16 @@ namespace NetMonitor.UI
         private async void btnApplyWeb_Click(object sender, RoutedEventArgs e)
         {
             bool ok = await ApplyWebConfig();
+
             if (ok)
             {
-                MessageBox.Show("Paramètres Web mis à jour.", "OK",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show(
+                    "Paramètres Web mis à jour.",
+                    "OK",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Information);
+
+                await LoadWebConfig(); // <-- NOUVEAU : Recharge les champs
             }
         }
 

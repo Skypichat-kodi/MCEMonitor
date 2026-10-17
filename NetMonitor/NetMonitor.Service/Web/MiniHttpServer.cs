@@ -99,8 +99,24 @@ namespace NetMonitor.Service.Web
 
                 if (path == "/" || path == "/net")
                 {
-                    string html = WebHandler.BuildNetPage(_engine, _settings);
+                    string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
                     SendHtml(ctx, html);
+                }
+                else if (path == "/clear-active")
+                {
+                    _engine.ClearActiveIntrusions();
+                    CoreLog.Write("WebServer : intrusions actives purgées");
+                    ctx.Response.StatusCode = 302;
+                    ctx.Response.Headers["Location"] = "/";
+                    ctx.Response.Close();
+                }
+                else if (path == "/clear-history")
+                {
+                    _engine.ClearAlerts();
+                    CoreLog.Write("WebServer : historique purgé");
+                    ctx.Response.StatusCode = 302;
+                    ctx.Response.Headers["Location"] = "/";
+                    ctx.Response.Close();
                 }
                 else if (path == "/ping")
                 {
@@ -108,35 +124,30 @@ namespace NetMonitor.Service.Web
                 }
                 else if (path == "/api/summary")
                 {
-                    var status = new
+                    // Prêt pour MCEMonitorClient / Android
+                    var summary = new
                     {
                         service = "NetMonitor",
                         machine = Environment.MachineName,
-                        running = _engine.IsRunning,
+                        status = _engine.WorstSeverity,
                         worstSeverity = _engine.WorstSeverity,
-                        alertCount = _engine.GetAlerts().Count,
-                        connectionCount = _engine.GetRecentConnections(1000).Count,
-                        timestamp = DateTime.Now
+                        activeCount = _engine.GetActiveIntrusions().Count,
+                        blockedCount = _engine.GetBlockedIps().Count
                     };
-
-                    string json = System.Text.Json.JsonSerializer.Serialize(status,
-                        new System.Text.Json.JsonSerializerOptions
-                        {
-                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
-                            WriteIndented = true
-                        });
-
+                    string json = System.Text.Json.JsonSerializer.Serialize(summary,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                     SendJson(ctx, json);
+                }
+                else if (path.StartsWith("/resources/icons/") || path.StartsWith("/resources/images/"))
+                {
+                    ServeStaticFile(ctx, path);
                 }
                 else
                 {
                     SendHtml(ctx, "<html><body><h2>404 - Not Found</h2></body></html>", 404);
                 }
             }
-            catch (Exception ex)
-            {
-                CoreLog.Write("WebServer ERROR : " + ex.Message);
-            }
+            catch (Exception ex) { CoreLog.Write("WebServer ERROR : " + ex.Message); }
         }
 
         private bool CheckAuth(HttpListenerContext ctx)
@@ -174,5 +185,38 @@ namespace NetMonitor.Service.Web
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
         }
+        
+        private static void ServeStaticFile(HttpListenerContext ctx, string path)
+        {
+            try
+            {
+                string relative = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                string baseDir = AppContext.BaseDirectory;
+                string fullPath = Path.Combine(baseDir, relative);
+
+                if (!File.Exists(fullPath))
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                string ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                string contentType = ext switch
+                {
+                    ".png" => "image/png",
+                    ".jpg" or ".jpeg" => "image/jpeg",
+                    ".ico" => "image/x-icon",
+                    _ => "application/octet-stream"
+                };
+
+                byte[] data = File.ReadAllBytes(fullPath);
+                ctx.Response.ContentType = contentType;
+                ctx.Response.ContentLength64 = data.Length;
+                ctx.Response.OutputStream.Write(data, 0, data.Length);
+                ctx.Response.OutputStream.Close();
+            }
+            catch { try { ctx.Response.StatusCode = 500; ctx.Response.Close(); } catch { } }
+        }        
     }
 }

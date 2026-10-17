@@ -12,13 +12,13 @@ namespace NetMonitor.Service
         );
 
         private static readonly string ConfigPath = Path.Combine(ConfigFolder, "NetMonitor.config");
+        private static readonly string WebConfigPath = Path.Combine(ConfigFolder, "NetMonitor.Web.config");
 
         // ============================================================
         //  Détecteurs
         // ============================================================
         public int PortScanWindowSeconds { get; set; } = 10;
         public int PortScanThreshold { get; set; } = 20;
-
         public int BeaconWindowSeconds { get; set; } = 300;
         public int BeaconMinHits { get; set; } = 6;
         public double BeaconJitterTolerancePct { get; set; } = 0.05;
@@ -36,7 +36,6 @@ namespace NetMonitor.Service
         //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
-
         public string[] IgnoredProcesses { get; set; } = new[]
         {
             "svchost", "System", "Idle", "CrossDeviceService", "OneDrive",
@@ -47,39 +46,12 @@ namespace NetMonitor.Service
             "StartMenuExperienceHost", "Widgets", "MsMpEng", "NisSrv",
             "SecurityHealthService", "WpnService", "WpnUserService"
         };
-
-        public string[] IgnoredNetworks { get; set; } = new[]
-        {
-            "127.0.0.0/8",
-            "10.0.0.0/8",
-            "172.16.0.0/12",
-            "192.168.0.0/16"
-        };
-
-        /// <summary>
-        /// Mode Debug : désactive toutes les whitelists pour tester les détecteurs.
-        /// À utiliser avec précaution (risque d'inonder le système d'alertes).
-        /// </summary>
+        public string[] IgnoredNetworks { get; set; } = new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
         public bool DisableFilters { get; set; } = false;
-
-        // ============================================================
-        //  Détecteurs de périmètre (menaces externes)
-        // ============================================================
-        public int[] SuspiciousRemotePorts { get; set; } = 
-        { 
-            4444,   // Metasploit / Meterpreter
-            1337,   // L33t (backdoors)
-            31337,  // Back Orifice / Elite
-            6667,   // IRC (souvent utilisé pour les botnets)
-            3389    // RDP sortant (suspect si non-admin)
-        };
-
-        // ============================================================
-        //  Threat Intelligence
-        // ============================================================
+        public int[] SuspiciousRemotePorts { get; set; } = { 4444, 1337, 31337, 6667, 3389 };
         public int BlacklistLevel { get; set; } = 3;
         public DateTime BlacklistLastUpdate { get; set; } = DateTime.MinValue;
-                
+
         // ============================================================
         //  Chargement
         // ============================================================
@@ -89,80 +61,60 @@ namespace NetMonitor.Service
 
             try
             {
-                if (!File.Exists(ConfigPath))
+                // 1. Chargement de la config principale (Détecteurs)
+                if (File.Exists(ConfigPath))
                 {
-                    settings.Save();
-                    return settings;
+                    foreach (var line in File.ReadAllLines(ConfigPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+
+                        string key = parts[0].Trim();
+                        string value = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "PortScanWindowSeconds": if (int.TryParse(value, out int psw)) settings.PortScanWindowSeconds = psw; break;
+                            case "PortScanThreshold": if (int.TryParse(value, out int pst)) settings.PortScanThreshold = pst; break;
+                            case "BeaconWindowSeconds": if (int.TryParse(value, out int bw)) settings.BeaconWindowSeconds = bw; break;
+                            case "BeaconMinHits": if (int.TryParse(value, out int bh)) settings.BeaconMinHits = bh; break;
+                            case "BeaconJitterTolerancePct": if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) settings.BeaconJitterTolerancePct = bj; break;
+                            case "AutoBlock": if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
+                            case "IgnoredProcesses": settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "IgnoredNetworks": settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "DisableFilters": if (bool.TryParse(value, out bool df)) settings.DisableFilters = df; break;
+                            case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
+                            case "BlacklistLevel": if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
+                            case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu; break;
+                        }
+                    }
                 }
 
-                foreach (var line in File.ReadAllLines(ConfigPath))
+                // 2. Chargement de la config Web (priorité absolue)
+                if (File.Exists(WebConfigPath))
                 {
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#"))
-                        continue;
-
-                    var parts = line.Split('=', 2);
-                    if (parts.Length != 2) continue;
-
-                    string key = parts[0].Trim();
-                    string value = parts[1].Trim();
-
-                    switch (key)
+                    foreach (var line in File.ReadAllLines(WebConfigPath))
                     {
-                        case "PortScanWindowSeconds":
-                            if (int.TryParse(value, out int psw)) settings.PortScanWindowSeconds = psw;
-                            break;
-                        case "PortScanThreshold":
-                            if (int.TryParse(value, out int pst)) settings.PortScanThreshold = pst;
-                            break;
-                        case "BeaconWindowSeconds":
-                            if (int.TryParse(value, out int bw)) settings.BeaconWindowSeconds = bw;
-                            break;
-                        case "BeaconMinHits":
-                            if (int.TryParse(value, out int bh)) settings.BeaconMinHits = bh;
-                            break;
-                        case "BeaconJitterTolerancePct":
-                            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj))
-                                settings.BeaconJitterTolerancePct = bj;
-                            break;
-                        case "AutoBlock":
-                            if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab;
-                            break;
-                        case "IgnoredProcesses":
-                            settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                            break;
-                        case "IgnoredNetworks":
-                            settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                            break;
-                        case "DisableFilters":
-                            if (bool.TryParse(value, out bool df)) settings.DisableFilters = df;
-                            break;
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
 
-                        case "WebEnabled":
-                            if (bool.TryParse(value, out bool we)) settings.WebEnabled = we;
-                            break;
-                        case "WebPort":
-                            if (int.TryParse(value, out int wp)) settings.WebPort = wp;
-                            break;
-                        case "WebUsername":
-                            settings.WebUsername = value;
-                            break;
-                        case "WebPassword":
-                            settings.WebPassword = value;
-                            break;
-                        case "SuspiciousRemotePorts":
-                            if (value.Contains(','))
-                            {
-                                var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                                if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
-                            }
-                            break;
-                        case "BlacklistLevel":
-                            if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl;
-                            break;
-                        case "BlacklistLastUpdate":
-                            if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu;
-                            break;                                                        
+                        string key = parts[0].Trim();
+                        string value = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "WebEnabled": if (bool.TryParse(value, out bool we)) settings.WebEnabled = we; break;
+                            case "WebPort": if (int.TryParse(value, out int wp)) settings.WebPort = wp; break;
+                            case "WebUsername": settings.WebUsername = value; break;
+                            case "WebPassword": settings.WebPassword = value; break;
+                        }
                     }
+                }
+                else
+                {
+                    settings.SaveWeb(); // Crée le fichier s'il n'existe pas
                 }
             }
             catch (Exception ex)
@@ -174,19 +126,18 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  Sauvegarde
+        //  Sauvegarde Détecteurs
         // ============================================================
         public void Save()
         {
             try
             {
                 Directory.CreateDirectory(ConfigFolder);
-
                 var lines = new[]
                 {
                     "# ============================================================",
                     "# NetMonitor.config",
-                    "# Configuration du service NetMonitor",
+                    "# Configuration du service NetMonitor (Détecteurs)",
                     "# ============================================================",
                     "",
                     "# --- Détecteur : Scan de ports ---",
@@ -198,10 +149,10 @@ namespace NetMonitor.Service
                     $"BeaconMinHits={BeaconMinHits}",
                     $"BeaconJitterTolerancePct={BeaconJitterTolerancePct.ToString(CultureInfo.InvariantCulture)}",
                     "",
-                    "# --- Processus ignorés (séparés par virgule) ---",
+                    "# --- Processus ignorés ---",
                     $"IgnoredProcesses={string.Join(",", IgnoredProcesses)}",
                     "",
-                    "# --- Réseaux ignorés / locaux (CIDR séparés par virgule) ---",
+                    "# --- Réseaux ignorés ---",
                     $"IgnoredNetworks={string.Join(",", IgnoredNetworks)}",
                     "",
                     "# --- Blocage automatique ---",
@@ -215,21 +166,36 @@ namespace NetMonitor.Service
                     "",
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={BlacklistLevel}",
-                    $"BlacklistLastUpdate={BlacklistLastUpdate:O}",
-                    "",                                        
-                    "# --- Serveur Web ---",
+                    $"BlacklistLastUpdate={BlacklistLastUpdate:O}"
+                };
+                File.WriteAllLines(ConfigPath, lines);
+            }
+            catch (Exception ex) { CoreLog.Write("Erreur Save NetMonitorSettings : " + ex.Message); }
+        }
+
+        // ============================================================
+        //  Sauvegarde Web UNIQUEMENT
+        // ============================================================
+        public void SaveWeb()
+        {
+            try
+            {
+                Directory.CreateDirectory(ConfigFolder);
+                var lines = new[]
+                {
+                    "# ============================================================",
+                    "# NetMonitor.Web.config",
+                    "# Configuration du serveur Web de NetMonitor",
+                    "# ============================================================",
+                    "",
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
                     $"WebPort={WebPort}",
                     $"WebUsername={WebUsername}",
                     $"WebPassword={WebPassword}"
                 };
-
-                File.WriteAllLines(ConfigPath, lines);
+                File.WriteAllLines(WebConfigPath, lines);
             }
-            catch (Exception ex)
-            {
-                CoreLog.Write("Erreur Save NetMonitorSettings : " + ex.Message);
-            }
+            catch (Exception ex) { CoreLog.Write("Erreur SaveWeb NetMonitorSettings : " + ex.Message); }
         }
 
         // ============================================================
@@ -239,83 +205,56 @@ namespace NetMonitor.Service
         {
             try
             {
-                if (!File.Exists(ConfigPath)) return;
-
-                foreach (var line in File.ReadAllLines(ConfigPath))
+                if (File.Exists(ConfigPath))
                 {
-                    if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
-
-                    var parts = line.Split('=', 2);
-                    if (parts.Length != 2) continue;
-
-                    string key = parts[0].Trim();
-                    string value = parts[1].Trim();
-
-                    switch (key)
+                    foreach (var line in File.ReadAllLines(ConfigPath))
                     {
-                        case "PortScanWindowSeconds":
-                            if (int.TryParse(value, out int psw)) PortScanWindowSeconds = psw;
-                            break;
-                        case "PortScanThreshold":
-                            if (int.TryParse(value, out int pst)) PortScanThreshold = pst;
-                            break;
-                        case "BeaconWindowSeconds":
-                            if (int.TryParse(value, out int bw)) BeaconWindowSeconds = bw;
-                            break;
-                        case "BeaconMinHits":
-                            if (int.TryParse(value, out int bh)) BeaconMinHits = bh;
-                            break;
-                        case "BeaconJitterTolerancePct":
-                            if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj))
-                                BeaconJitterTolerancePct = bj;
-                            break;
-                        case "AutoBlock":
-                            if (bool.TryParse(value, out bool ab)) AutoBlock = ab;
-                            break;
-                        case "IgnoredProcesses":
-                            IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                            break;
-                        case "IgnoredNetworks":
-                            IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                            break;
-                        case "DisableFilters":
-                            if (bool.TryParse(value, out bool df)) DisableFilters = df;
-                            break;
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+                        string key = parts[0].Trim();
+                        string value = parts[1].Trim();
 
-                        case "WebEnabled":
-                            if (bool.TryParse(value, out bool we)) WebEnabled = we;
-                            break;
-                        case "WebPort":
-                            if (int.TryParse(value, out int wp)) WebPort = wp;
-                            break;
-                        case "WebUsername":
-                            WebUsername = value;
-                            break;
-                        case "WebPassword":
-                            WebPassword = value;
-                            break;
-                        case "SuspiciousRemotePorts":
-                            if (value.Contains(','))
-                            {
-                                var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                                if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
-                            }
-                            break;
-                        case "BlacklistLevel":
-                            if (int.TryParse(value, out int bl)) BlacklistLevel = bl;
-                            break;
-                        case "BlacklistLastUpdate":
-                            if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu;
-                            break;                                             
+                        switch (key)
+                        {
+                            case "PortScanWindowSeconds": if (int.TryParse(value, out int psw)) PortScanWindowSeconds = psw; break;
+                            case "PortScanThreshold": if (int.TryParse(value, out int pst)) PortScanThreshold = pst; break;
+                            case "BeaconWindowSeconds": if (int.TryParse(value, out int bw)) BeaconWindowSeconds = bw; break;
+                            case "BeaconMinHits": if (int.TryParse(value, out int bh)) BeaconMinHits = bh; break;
+                            case "BeaconJitterTolerancePct": if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) BeaconJitterTolerancePct = bj; break;
+                            case "AutoBlock": if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
+                            case "IgnoredProcesses": IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "IgnoredNetworks": IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "DisableFilters": if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
+                            case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
+                            case "BlacklistLevel": if (int.TryParse(value, out int bl)) BlacklistLevel = bl; break;
+                            case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu; break;
+                        }
                     }
                 }
 
+                if (File.Exists(WebConfigPath))
+                {
+                    foreach (var line in File.ReadAllLines(WebConfigPath))
+                    {
+                        if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
+                        var parts = line.Split('=', 2);
+                        if (parts.Length != 2) continue;
+                        string key = parts[0].Trim();
+                        string value = parts[1].Trim();
+
+                        switch (key)
+                        {
+                            case "WebEnabled": if (bool.TryParse(value, out bool we)) WebEnabled = we; break;
+                            case "WebPort": if (int.TryParse(value, out int wp)) WebPort = wp; break;
+                            case "WebUsername": WebUsername = value; break;
+                            case "WebPassword": WebPassword = value; break;
+                        }
+                    }
+                }
                 CoreLog.Write("Config NetMonitor rechargée à chaud");
             }
-            catch (Exception ex)
-            {
-                CoreLog.Write("Erreur Reload NetMonitorSettings : " + ex.Message);
-            }
+            catch (Exception ex) { CoreLog.Write("Erreur Reload NetMonitorSettings : " + ex.Message); }
         }
     }
 }

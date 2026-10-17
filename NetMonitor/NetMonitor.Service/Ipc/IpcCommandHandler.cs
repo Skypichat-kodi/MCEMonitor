@@ -17,6 +17,13 @@ namespace NetMonitor.Service.Ipc
 
         public void Handle(string command, NamedPipeServerStream server)
         {
+            // NOUVEAU : Interception de la commande Web
+            if (command.StartsWith("set-web-config ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetWebConfig(command, server);
+                return;
+            }
+
             if (command.StartsWith("block-ip ", StringComparison.OrdinalIgnoreCase))
             {
                 HandleBlockIp(command, server);
@@ -251,8 +258,7 @@ namespace NetMonitor.Service.Ipc
                     }
                 }
 
-                _settings.Save();
-
+                _settings.SaveWeb();
                 Program.RestartWebServer();
 
                 CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");

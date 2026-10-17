@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="refresh" content="10">
+    <title>NetMonitor - {{MachineName}}</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            color: #E5E5E5; 
+            margin: 0; 
+            padding: 0;
+            background: #1E1E1E url('/resources/images/Web-background.png') no-repeat center center fixed; 
+            background-size: cover;
+        }
+        /* Voile sombre pour lire le texte par-dessus l'image */
+        .overlay {
+            background: rgba(30, 30, 30, 0.85);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header { display: flex; align-items: center; margin-bottom: 20px; }
+        .header img { width: 32px; height: 32px; margin-right: 15px; }
+        h1 { color: #4CC2FF; margin: 0; font-size: 28px; }
+        
+        .subtitle { color: #888; margin-bottom: 20px; font-size: 13px; }
+        
+        .peer-bar { display: flex; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #3C3C3C; flex-wrap: wrap; }
+        .peer-btn { display: flex; align-items: center; padding: 6px 12px; border-radius: 6px; text-decoration: none; color: #E5E5E5; background: #2D2D30; border: 1px solid #3C3C3C; font-size: 13px; cursor: pointer; transition: 0.2s; }
+        .peer-btn:hover { border-color: #4CC2FF; }
+        .peer-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+        .peer-dot { width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; }
+        .peer-dot.online { background: #6CCB5F; }
+        .peer-dot.offline { background: #FF6347; }
+        .peer-dot.disabled { background: #888; }
+
+        .action-bar { display: flex; gap: 10px; margin-bottom: 15px; }
+        .btn { padding: 6px 12px; border-radius: 4px; text-decoration: none; font-size: 13px; font-weight: bold; display: inline-flex; align-items: center; border: 1px solid #3C3C3C; background: #2D2D30; color: #E5E5E5; }
+        .btn:hover { background: #3A3A3D; border-color: #4CC2FF; }
+        .btn-danger { color: #FF6347; border-color: #FF6347; }
+        .btn-danger:hover { background: #FF6347; color: #1E1E1E; }
+        
+        h2 { color: #4CC2FF; font-size: 16px; margin-top: 30px; border-bottom: 1px solid #3C3C3C; padding-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+        th { background: #2D2D30; color: #FFF; padding: 8px; text-align: left; border: 1px solid #3C3C3C; }
+        td { padding: 6px 8px; border: 1px solid #2D2D30; color: #CCC; }
+        tr:nth-child(even) { background: #252526; }
+        .badge { padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: bold; color: #1E1E1E; }
+        .badge.danger { background: #FF6347; }
+        .badge.warning { background: #FFB900; }
+        .badge.ok { background: #6CCB5F; }
+    </style>
+</head>
+<body>
+    <div class="overlay">
+        <div class="header">
+            <img src="/resources/icons/lan.png" alt="LAN">
+            <h1>NetMonitor</h1>
+        </div>
+        <div class="subtitle">Machine : {{MachineName}} - Mise à jour : {{LastUpdate}}</div>
+        
+        <!-- Barre de navigation vers les autres moniteurs -->
+        <div class="peer-bar">
+            {{PeerBar}}
+        </div>
+
+        <h2>Intrusions Actives</h2>
+        <div class="action-bar">
+            <a href="/clear-active" class="btn btn-danger" onclick="return confirm('Voulez-vous vraiment vider la liste des intrusions actives ?');">🗑 Purger les intrusions actives</a>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Sévérité</th><th>Détecteur</th><th>IP</th><th>Message</th></tr>
+            </thead>
+            <tbody>
+                {{ActiveRows}}
+            </tbody>
+        </table>
+
+        <h2>IP Bloquées au Pare-feu</h2>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>IP</th><th>Détecteur</th><th>Raison</th></tr>
+            </thead>
+            <tbody>
+                {{BlockedRows}}
+            </tbody>
+        </table>
+
+        <h2>Historique des Intrusions</h2>
+        <div class="action-bar">
+            <a href="/clear-history" class="btn btn-danger" onclick="return confirm('Effacer tout l\'historique ? Cette action est irréversible.');">🗑 Effacer l'historique</a>
+        </div>
+        <table>
+            <thead>
+                <tr><th>Date</th><th>Sévérité</th><th>Détecteur</th><th>IP</th><th>Message</th></tr>
+            </thead>
+            <tbody>
+                {{HistoryRows}}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

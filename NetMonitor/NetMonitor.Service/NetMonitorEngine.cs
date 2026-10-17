@@ -436,16 +436,44 @@ namespace NetMonitor.Service
         {
             lock (_alertsLock)
             {
-                // Tableau 3 : historique
                 _alerts.Add(evt);
                 if (_alerts.Count > 500) _alerts.RemoveAt(0);
 
-                // Tableau 1 : intrusions actives
                 _activeIntrusions.Add(evt);
                 if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
             }
 
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
+
+            // Envoi d'email asynchrone pour les alertes critiques
+            if (evt.Severity == Severity.Critical || evt.Severity == Severity.High)
+            {
+                _ = SendAlertEmailAsync(evt);
+            }
+        }
+
+        private async Task SendAlertEmailAsync(IntrusionEvent evt)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+                if (string.IsNullOrEmpty(cfg.Server)) return;
+
+                string body = $@"
+                    <p><b>Détecteur :</b> {evt.Source}</p>
+                    <p><b>Sévérité :</b> <span style='color:#c0392b'>{evt.Severity}</span></p>
+                    <p><b>IP distante :</b> {evt.RemoteIp}:{evt.RemotePort}</p>
+                    <p><b>Processus :</b> {evt.ProcessName} (PID {evt.Pid})</p>
+                    <p><b>Message :</b> {evt.Message}</p>
+                    {(string.IsNullOrEmpty(evt.Details) ? "" : $"<pre style='background:#f4f4f4;padding:8px'>{evt.Details}</pre>")}";
+
+                await EmailSender.SendAsync(cfg, $"[ALERTE] Intrusion détectée sur {Environment.MachineName}", body, isHtml: true);
+                CoreLog.Write($"[EMAIL] Alerte envoyée pour {evt.Source}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email alerte : " + ex.Message);
+            }
         }
     }
 
