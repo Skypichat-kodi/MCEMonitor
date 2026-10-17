@@ -14,6 +14,7 @@ namespace NetMonitor.Service.Services
         private readonly string _manualBlacklistFile;
         private readonly string _autoBlacklistFile;
         private Timer? _refreshTimer;
+        private FileSystemWatcher? _watcher;
         private readonly HttpClient _httpClient = new();
 
         public ThreatIntelService()
@@ -27,56 +28,88 @@ namespace NetMonitor.Service.Services
 
         public void Start()
         {
-            LoadManualBlacklist();
-            LoadCache(); // Charge le cache local au démarrage
-            _ = RefreshAutoBlacklistAsync(); // Télécharge en arrière-plan
+            // 1. Charge la blacklist (manuelle + cache auto)
+            LoadBlacklist();
 
-            // Rafraîchit toutes les 24h
+            // 2. Surveille le fichier manuel pour recharger à chaud
+            try
+            {
+                var dir = Path.GetDirectoryName(_manualBlacklistFile);
+                if (dir != null)
+                {
+                    Directory.CreateDirectory(dir);
+                    _watcher = new FileSystemWatcher(dir, "blacklist.txt");
+                    _watcher.NotifyFilter = NotifyFilters.LastWrite;
+                    _watcher.Changed += (s, e) => {
+                        System.Threading.Thread.Sleep(500); // Laisse le temps au fichier d'être écrit
+                        LoadBlacklist();
+                    };
+                    _watcher.EnableRaisingEvents = true;
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"ThreatIntel Watcher : {ex.Message}");
+            }
+
+            // 3. Télécharge la liste auto en arrière-plan
+            _ = RefreshAutoBlacklistAsync();
+
+            // 4. Rafraîchit toutes les 24h
             _refreshTimer = new Timer(async _ => await RefreshAutoBlacklistAsync(), null,
                 TimeSpan.FromHours(24), TimeSpan.FromHours(24));
         }
 
-        private void LoadManualBlacklist()
+        /// <summary>
+        /// Charge la blacklist globale (manuel + auto) en mémoire.
+        /// Appelé au démarrage et à chaque modification de blacklist.txt.
+        /// </summary>
+        private void LoadBlacklist()
         {
             try
             {
+                var tempList = new HashSet<string>();
+
+                // --- 1. Charge la liste manuelle ---
                 if (!File.Exists(_manualBlacklistFile))
                 {
                     File.WriteAllText(_manualBlacklistFile, 
                         "# Liste noire manuelle (une IP par ligne)\n" +
                         "# Les IPs ajoutées ici sont bloquées par le détecteur BlacklistIpDetector.\n");
-                    return;
                 }
-
-                foreach (var line in File.ReadLines(_manualBlacklistFile))
+                else
                 {
-                    var trimmed = line.Trim();
-                    if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
-                        lock (_lock) _blacklist.Add(trimmed);
-                }
-            }
-            catch (Exception ex) { CoreLog.Warn($"ThreatIntel manual : {ex.Message}"); }
-        }
-
-        private void LoadCache()
-        {
-            try
-            {
-                if (!File.Exists(_autoBlacklistFile)) return;
-                
-                int count = 0;
-                foreach (var line in File.ReadLines(_autoBlacklistFile))
-                {
-                    var ip = line.Trim();
-                    if (!string.IsNullOrWhiteSpace(ip))
+                    foreach (var line in File.ReadLines(_manualBlacklistFile))
                     {
-                        lock (_lock) _blacklist.Add(ip);
-                        count++;
+                        var trimmed = line.Trim();
+                        if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
+                            tempList.Add(trimmed);
                     }
                 }
-                CoreLog.Info($"ThreatIntel : {count} IP chargées depuis le cache local.");
+
+                // --- 2. Charge la liste auto (cache local) ---
+                if (File.Exists(_autoBlacklistFile))
+                {
+                    foreach (var line in File.ReadLines(_autoBlacklistFile))
+                    {
+                        var ip = line.Trim();
+                        if (!string.IsNullOrWhiteSpace(ip) && !ip.StartsWith("#"))
+                            tempList.Add(ip);
+                    }
+                }
+
+                // --- 3. Met à jour la liste globale ---
+                lock (_lock)
+                {
+                    _blacklist = tempList;
+                }
+
+                CoreLog.Info($"ThreatIntel : {_blacklist.Count} IP chargées au total.");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"Erreur chargement blacklist : {ex.Message}");
+            }
         }
 
         private async Task RefreshAutoBlacklistAsync()
@@ -84,7 +117,6 @@ namespace NetMonitor.Service.Services
             try
             {
                 CoreLog.Info("ThreatIntel : téléchargement de la liste IPsum (niveau 3)...");
-                // Niveau 3 = IP présentes sur au moins 3 listes (bon compromis)
                 string content = await _httpClient.GetStringAsync("https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt");
                 
                 var newIps = new HashSet<string>();
@@ -95,33 +127,17 @@ namespace NetMonitor.Service.Services
                         newIps.Add(ip);
                 }
 
-                // Remplace la partie auto dans la blacklist globale
-                lock (_lock)
-                {
-                    // On retire les anciennes IP auto (simplifié : on recharge tout proprement)
-                    _blacklist.Clear();
-                    LoadManualBlacklistInternal();
-                    _blacklist.UnionWith(newIps);
-                }
-
                 // Sauvegarde locale pour les redémarrages hors-ligne
                 await File.WriteAllTextAsync(_autoBlacklistFile, string.Join("\n", newIps));
+                
+                // Recharge la blacklist globale (qui va fusionner manuel + auto)
+                LoadBlacklist();
+                
                 CoreLog.Info($"ThreatIntel : mise à jour réussie. {newIps.Count} IP dans la liste auto.");
             }
             catch (Exception ex)
             {
                 CoreLog.Warn($"ThreatIntel download échoué : {ex.Message}. Utilisation du cache.");
-            }
-        }
-
-        private void LoadManualBlacklistInternal()
-        {
-            if (!File.Exists(_manualBlacklistFile)) return;
-            foreach (var line in File.ReadLines(_manualBlacklistFile))
-            {
-                var trimmed = line.Trim();
-                if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
-                    _blacklist.Add(trimmed);
             }
         }
 
@@ -131,6 +147,10 @@ namespace NetMonitor.Service.Services
             lock (_lock) return _blacklist.Contains(ip);
         }
 
-        public void Stop() => _refreshTimer?.Dispose();
+        public void Stop()
+        {
+            _watcher?.Dispose();
+            _refreshTimer?.Dispose();
+        }
     }
 }
