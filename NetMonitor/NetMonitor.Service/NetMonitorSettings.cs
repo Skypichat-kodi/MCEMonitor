@@ -73,7 +73,13 @@ namespace NetMonitor.Service
             6667,   // IRC (souvent utilisé pour les botnets)
             3389    // RDP sortant (suspect si non-admin)
         };
-        
+
+        // ============================================================
+        //  Threat Intelligence
+        // ============================================================
+        public int BlacklistLevel { get; set; } = 3;
+        public DateTime BlacklistLastUpdate { get; set; } = DateTime.MinValue;
+                
         // ============================================================
         //  Chargement
         // ============================================================
@@ -149,7 +155,13 @@ namespace NetMonitor.Service
                                 var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                 if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
                             }
-                            break;                            
+                            break;
+                        case "BlacklistLevel":
+                            if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl;
+                            break;
+                        case "BlacklistLastUpdate":
+                            if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu;
+                            break;                                                        
                     }
                 }
             }
@@ -200,7 +212,11 @@ namespace NetMonitor.Service
                     "",
                     "# --- Détecteurs de périmètre ---",
                     $"SuspiciousRemotePorts={string.Join(",", SuspiciousRemotePorts)}",
-                    "",                    
+                    "",
+                    "# --- Threat Intelligence ---",
+                    $"BlacklistLevel={BlacklistLevel}",
+                    $"BlacklistLastUpdate={BlacklistLastUpdate:O}",
+                    "",                                        
                     "# --- Serveur Web ---",
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
                     $"WebPort={WebPort}",
@@ -284,7 +300,13 @@ namespace NetMonitor.Service
                                 var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                 if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse);
                             }
-                            break;                            
+                            break;
+                        case "BlacklistLevel":
+                            if (int.TryParse(value, out int bl)) BlacklistLevel = bl;
+                            break;
+                        case "BlacklistLastUpdate":
+                            if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu;
+                            break;                                             
                     }
                 }
 

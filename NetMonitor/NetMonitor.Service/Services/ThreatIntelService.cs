@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Net;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetMonitor.Service.Services
 {
@@ -9,39 +11,117 @@ namespace NetMonitor.Service.Services
     {
         private HashSet<string> _blacklist = new();
         private readonly object _lock = new();
-        private readonly string _blacklistFile;
-        private FileSystemWatcher? _watcher;
+        private readonly string _manualBlacklistFile;
+        private readonly string _autoBlacklistFile;
+        private Timer? _refreshTimer;
+        private readonly HttpClient _httpClient = new();
 
         public ThreatIntelService()
         {
-            _blacklistFile = Path.Combine(
+            var baseDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "MCEMonitor", "NetMonitor", "blacklist.txt");
+                "MCEMonitor", "NetMonitor");
+            _manualBlacklistFile = Path.Combine(baseDir, "blacklist.txt");
+            _autoBlacklistFile = Path.Combine(baseDir, "blacklist_auto.txt");
         }
 
         public void Start()
         {
-            LoadBlacklist();
+            LoadManualBlacklist();
+            LoadCache(); // Charge le cache local au démarrage
+            _ = RefreshAutoBlacklistAsync(); // Télécharge en arrière-plan
 
-            // Surveille le fichier pour recharger à chaud si on le modifie
+            // Rafraîchit toutes les 24h
+            _refreshTimer = new Timer(async _ => await RefreshAutoBlacklistAsync(), null,
+                TimeSpan.FromHours(24), TimeSpan.FromHours(24));
+        }
+
+        private void LoadManualBlacklist()
+        {
             try
             {
-                var dir = Path.GetDirectoryName(_blacklistFile);
-                if (dir != null)
+                if (!File.Exists(_manualBlacklistFile))
                 {
-                    Directory.CreateDirectory(dir);
-                    _watcher = new FileSystemWatcher(dir, "blacklist.txt");
-                    _watcher.NotifyFilter = NotifyFilters.LastWrite;
-                    _watcher.Changed += (s, e) => {
-                        System.Threading.Thread.Sleep(500); // Laisse le temps au fichier d'être écrit
-                        LoadBlacklist();
-                    };
-                    _watcher.EnableRaisingEvents = true;
+                    File.WriteAllText(_manualBlacklistFile, 
+                        "# Liste noire manuelle (une IP par ligne)\n" +
+                        "# Les IPs ajoutées ici sont bloquées par le détecteur BlacklistIpDetector.\n");
+                    return;
                 }
+
+                foreach (var line in File.ReadLines(_manualBlacklistFile))
+                {
+                    var trimmed = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
+                        lock (_lock) _blacklist.Add(trimmed);
+                }
+            }
+            catch (Exception ex) { CoreLog.Warn($"ThreatIntel manual : {ex.Message}"); }
+        }
+
+        private void LoadCache()
+        {
+            try
+            {
+                if (!File.Exists(_autoBlacklistFile)) return;
+                
+                int count = 0;
+                foreach (var line in File.ReadLines(_autoBlacklistFile))
+                {
+                    var ip = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(ip))
+                    {
+                        lock (_lock) _blacklist.Add(ip);
+                        count++;
+                    }
+                }
+                CoreLog.Info($"ThreatIntel : {count} IP chargées depuis le cache local.");
+            }
+            catch { }
+        }
+
+        private async Task RefreshAutoBlacklistAsync()
+        {
+            try
+            {
+                CoreLog.Info("ThreatIntel : téléchargement de la liste IPsum (niveau 3)...");
+                // Niveau 3 = IP présentes sur au moins 3 listes (bon compromis)
+                string content = await _httpClient.GetStringAsync("https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt");
+                
+                var newIps = new HashSet<string>();
+                foreach (var line in content.Split('\n'))
+                {
+                    var ip = line.Trim();
+                    if (!string.IsNullOrWhiteSpace(ip) && !ip.StartsWith("#"))
+                        newIps.Add(ip);
+                }
+
+                // Remplace la partie auto dans la blacklist globale
+                lock (_lock)
+                {
+                    // On retire les anciennes IP auto (simplifié : on recharge tout proprement)
+                    _blacklist.Clear();
+                    LoadManualBlacklistInternal();
+                    _blacklist.UnionWith(newIps);
+                }
+
+                // Sauvegarde locale pour les redémarrages hors-ligne
+                await File.WriteAllTextAsync(_autoBlacklistFile, string.Join("\n", newIps));
+                CoreLog.Info($"ThreatIntel : mise à jour réussie. {newIps.Count} IP dans la liste auto.");
             }
             catch (Exception ex)
             {
-                CoreLog.Warn($"ThreatIntelService Watcher : {ex.Message}");
+                CoreLog.Warn($"ThreatIntel download échoué : {ex.Message}. Utilisation du cache.");
+            }
+        }
+
+        private void LoadManualBlacklistInternal()
+        {
+            if (!File.Exists(_manualBlacklistFile)) return;
+            foreach (var line in File.ReadLines(_manualBlacklistFile))
+            {
+                var trimmed = line.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmed) && !trimmed.StartsWith("#"))
+                    _blacklist.Add(trimmed);
             }
         }
 
@@ -51,47 +131,6 @@ namespace NetMonitor.Service.Services
             lock (_lock) return _blacklist.Contains(ip);
         }
 
-        private void LoadBlacklist()
-        {
-            try
-            {
-                if (!File.Exists(_blacklistFile))
-                {
-                    // Crée un fichier vide avec un commentaire explicatif
-                    File.WriteAllText(_blacklistFile, 
-                        "# Liste noire d'IP (une par ligne)\n" +
-                        "# Exemple: 192.0.2.1\n" +
-                        "# Les lignes commençant par # sont ignorées.\n");
-                    return;
-                }
-
-                var newList = new HashSet<string>();
-                foreach (var line in File.ReadLines(_blacklistFile))
-                {
-                    var trimmed = line.Trim();
-                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith("#")) continue;
-                    
-                    // Vérifie que c'est une IP valide (IPv4 ou IPv6)
-                    if (IPAddress.TryParse(trimmed, out _))
-                        newList.Add(trimmed);
-                }
-
-                lock (_lock)
-                {
-                    _blacklist = newList;
-                }
-
-                CoreLog.Info($"ThreatIntel : {_blacklist.Count} IPs chargées depuis la blacklist.");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"Erreur chargement blacklist : {ex.Message}");
-            }
-        }
-
-        public void Stop()
-        {
-            _watcher?.Dispose();
-        }
+        public void Stop() => _refreshTimer?.Dispose();
     }
 }

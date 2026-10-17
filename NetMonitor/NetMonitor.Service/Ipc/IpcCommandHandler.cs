@@ -150,8 +150,10 @@ namespace NetMonitor.Service.Ipc
                 beaconMinHits = _settings.BeaconMinHits,
                 beaconJitterTolerancePct = _settings.BeaconJitterTolerancePct,
                 autoBlock = _settings.AutoBlock,
-                ignoredNetworks = _settings.IgnoredNetworks,    // NOUVEAU
-                disableFilters = _settings.DisableFilters       // NOUVEAU
+                ignoredNetworks = _settings.IgnoredNetworks,
+                disableFilters = _settings.DisableFilters,
+                blacklistLevel = _settings.BlacklistLevel,              // NOUVEAU
+                blacklistLastUpdate = _settings.BlacklistLastUpdate     // NOUVEAU
             });
         }
 

@@ -64,8 +64,10 @@ namespace NetMonitor.UI
         public int beaconMinHits { get; set; }
         public double beaconJitterTolerancePct { get; set; }
         public bool autoBlock { get; set; }
-        public string[] ignoredNetworks { get; set; } = Array.Empty<string>(); // NOUVEAU
-        public bool disableFilters { get; set; } // NOUVEAU
+        public string[] ignoredNetworks { get; set; } = Array.Empty<string>();
+        public bool disableFilters { get; set; }
+        public int blacklistLevel { get; set; }             
+        public DateTime blacklistLastUpdate { get; set; }  
     }
 
     public class NetWebStatus

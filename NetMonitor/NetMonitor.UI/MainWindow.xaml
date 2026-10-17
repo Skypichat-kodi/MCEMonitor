@@ -599,6 +599,16 @@
                                            TextWrapping="Wrap" 
                                            Visibility="Collapsed" 
                                            Margin="20,0,0,0"/>
+                                           
+                                <StackPanel Orientation="Horizontal" Margin="0,15,0,10">
+                                    <TextBlock Text="Niveau Blacklist IPsum (1-6) :" Width="250" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtBlacklistLevel" Width="80" 
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>
+                                
+                                <TextBlock x:Name="lblBlacklistLastUpdate" 
+                                           Foreground="#888" FontSize="11" Text="Dernière MAJ : inconnue" Margin="0,0,0,5"/>
+                                                                                      
                             </StackPanel>
                         </Border>
                         

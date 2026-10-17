@@ -432,6 +432,13 @@ namespace NetMonitor.UI
                     txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
                 
                 chkDisableFilters.IsChecked = cfg.disableFilters;
+                
+                txtBlacklistLevel.Text = cfg.blacklistLevel.ToString();
+                
+                if (cfg.blacklistLastUpdate != DateTime.MinValue)
+                    lblBlacklistLastUpdate.Text = $"Dernière MAJ : {cfg.blacklistLastUpdate.ToLocalTime():dd/MM/yyyy HH:mm}";
+                else
+                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";                
             }
             catch { }
         }
@@ -482,10 +489,13 @@ namespace NetMonitor.UI
                     "# --- Blocage automatique ---",
                     $"AutoBlock={(chkAutoBlock.IsChecked == true).ToString().ToLower()}",
                     "",
-                    // NOUVEAU
                     "# --- Filtres et Whitelists ---",
                     $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
-                    $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}"
+                    $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",
+                    "# --- Threat Intelligence ---",
+                    $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",
+                    $"BlacklistLastUpdate={(DateTime.TryParse(lblBlacklistLastUpdate.Text.Replace("Dernière MAJ : ", ""), out var dt) ? dt.ToUniversalTime().ToString("O") : DateTime.UtcNow.ToString("O"))}",
+                    "",                    
                 };
 
                 File.WriteAllLines(configPath, lines);
