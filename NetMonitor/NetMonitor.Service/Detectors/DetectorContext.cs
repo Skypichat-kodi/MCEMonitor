@@ -1,4 +1,7 @@
+using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
+using System.Linq;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Detectors;
@@ -12,6 +15,7 @@ public sealed class DetectorContext
     private readonly ConcurrentDictionary<string, SlidingWindow<int>> _synPorts = new();
     private readonly ConcurrentDictionary<int, SlidingWindow<DateTime>> _beaconHits = new();
     private readonly ConcurrentDictionary<string, DateTime> _lastSeenIp = new();
+    private readonly ConcurrentDictionary<string, DateTime> _lastAlertByIp = new();
 
     public NetMonitorSettings Settings { get; }
 
@@ -51,6 +55,34 @@ public sealed class DetectorContext
             if (kv.Value < cutoff) _lastAlertByIp.TryRemove(kv.Key, out _);            
     }
 
+    /// <summary>
+    /// Efface l'historique de détection pour une IP donnée.
+    /// Appelé quand une IP est bloquée : les détecteurs repartent de zéro.
+    /// </summary>
+    public void ForgetIp(string ip)
+    {
+        if (string.IsNullOrWhiteSpace(ip)) return;
+
+        _synPorts.TryRemove(ip, out _);
+        _lastSeenIp.TryRemove(ip, out _);
+        _lastAlertByIp.TryRemove(ip, out _);
+        
+        // Note : le beaconing étant indexé par PID, on ne peut pas 
+        // le purger par IP, mais le NetMonitorEngine filtrera les alertes 
+        // si l'IP est bloquée.
+    }
+
+    /// <summary>Retourne true si on peut émettre une alerte pour cette IP (respect d'un cooldown).</summary>
+    public bool TryAcquireAlertSlot(string remoteIp, TimeSpan cooldown)
+    {
+        var now = DateTime.UtcNow;
+        if (_lastAlertByIp.TryGetValue(remoteIp, out var last) && (now - last) < cooldown)
+            return false;
+
+        _lastAlertByIp[remoteIp] = now;
+        return true;
+    }    
+
     /// <summary>Fenêtre glissante thread-safe basée sur un timestamp par item.</summary>
     private sealed class SlidingWindow<T>
     {
@@ -79,20 +111,4 @@ public sealed class DetectorContext
 
         public bool IsEmpty { get { lock (_lock) return _items.Count == 0; } }
     }
-    
-    private readonly ConcurrentDictionary<string, DateTime> _lastAlertByIp = new();
-
-    /// <summary>
-    /// Retourne true si on peut émettre une alerte pour cette IP
-    /// (respect d'un cooldown de N secondes).
-    /// </summary>
-    public bool TryAcquireAlertSlot(string remoteIp, TimeSpan cooldown)
-    {
-        var now = DateTime.UtcNow;
-        if (_lastAlertByIp.TryGetValue(remoteIp, out var last) && (now - last) < cooldown)
-            return false;
-
-        _lastAlertByIp[remoteIp] = now;
-        return true;
-    }    
 }

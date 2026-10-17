@@ -164,10 +164,9 @@ namespace NetMonitor.Service
             lock (_alertsLock) return _blockedIps.ToList();
         }
 
-        public bool BlockIp(string ip, string? source = null, string? message = null, string? details = null)
+        public bool BlockIp(string ip, out string errorMessage, string? source = null, string? message = null, string? details = null)
         {
-            if (string.IsNullOrWhiteSpace(ip)) return false;
-            if (!FirewallHelper.BlockIp(ip)) return false;
+            if (!FirewallHelper.BlockIp(ip, out errorMessage)) return false;
 
             lock (_alertsLock)
             {
@@ -182,15 +181,18 @@ namespace NetMonitor.Service
                         Details = details
                     });
                 }
-
-                // Retirer les intrusions actives concernant cette IP
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
             }
 
+            _context.ForgetIp(ip);
             SaveBlockedIps();
             CoreLog.Info($"IP {ip} bloquée et retirée des intrusions actives");
             return true;
         }
+
+        // Surcharge pour compatibilité
+        public bool BlockIp(string ip, string? source = null, string? message = null, string? details = null)
+            => BlockIp(ip, out _, source, message, details);
 
         public bool UnblockIp(string ip)
         {

@@ -149,7 +149,6 @@ namespace NetMonitor.UI
         private static bool IsOk(string? json)
         {
             if (string.IsNullOrWhiteSpace(json)) return false;
-            // Tolère les deux formes : "status":"ok" et "status": "ok"
             return json.Contains("\"status\":\"ok\"") ||
                    json.Contains("\"status\": \"ok\"");
         }
@@ -194,13 +193,6 @@ namespace NetMonitor.UI
         public static async Task<bool> ForceScanAsync()
             => IsOk(await SendCommand("force-scan"));
 
-        public static async Task<bool> BlockIpAsync(string ip, string? source = null, string? message = null, string? details = null)
-        {
-            // Format : block-ip ip|source|message|details
-            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}";
-            return IsOk(await SendCommand(cmd));
-        }
-
         public static async Task<bool> UnblockIpAsync(string ip)
             => IsOk(await SendCommand($"unblock-ip {ip}"));
 
@@ -212,6 +204,38 @@ namespace NetMonitor.UI
                          $"&password={password}";
 
             return IsOk(await SendCommand(cmd));
+        }
+
+        // ---------- Commandes avec résultat détaillé ----------
+
+        public static async Task<bool> BlockIpAsync(string ip, string? source = null, string? message = null, string? details = null)
+        {
+            var result = await BlockIpWithResultAsync(ip, source, message, details);
+            return result.Success;
+        }
+
+        public static async Task<(bool Success, string? Error)> BlockIpWithResultAsync(string ip, string? source = null, string? message = null, string? details = null)
+        {
+            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}";
+            string? json = await SendCommand(cmd);
+
+            if (string.IsNullOrWhiteSpace(json))
+                return (false, "Service injoignable.");
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                bool ok = root.TryGetProperty("blocked", out var b) && b.GetBoolean();
+                string? err = root.TryGetProperty("message", out var m) ? m.GetString() : null;
+
+                return (ok, err);
+            }
+            catch
+            {
+                return (false, "Erreur de lecture de la réponse IPC.");
+            }
         }
     }
 }

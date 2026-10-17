@@ -309,8 +309,6 @@ namespace NetMonitor.Service.Ipc
         {
             try
             {
-                // Format : block-ip x.x.x.x|source|message|details
-                // Les 3 derniers sont optionnels
                 string payload = command.Substring("block-ip ".Length).Trim();
                 var parts = payload.Split('|', 4);
 
@@ -319,8 +317,12 @@ namespace NetMonitor.Service.Ipc
                 string? message = parts.Length > 2 ? parts[2] : null;
                 string? details = parts.Length > 3 ? parts[3] : null;
 
-                bool ok = _engine.BlockIp(ip, source, message, details);
-                IpcResponse.Json(server, new { status = ok ? "ok" : "error", blocked = ok, ip });
+                bool ok = _engine.BlockIp(ip, out string error, source, message, details);
+                
+                if (ok)
+                    IpcResponse.Json(server, new { status = "ok", blocked = true, ip });
+                else
+                    IpcResponse.Json(server, new { status = "error", blocked = false, ip, message = error });
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }

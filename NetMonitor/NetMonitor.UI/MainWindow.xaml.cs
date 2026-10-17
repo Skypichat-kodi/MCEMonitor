@@ -291,13 +291,22 @@ namespace NetMonitor.UI
 
             if (confirm != MessageBoxResult.Yes) return;
 
-            bool ok = await NetMonitorIpcClient.BlockIpAsync(
+            // Utilisation de la nouvelle méthode avec résultat détaillé (garde-fou)
+            var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
                 ip, row.Source, row.Message, row.Details);
 
-            MessageBox.Show(
-                ok ? $"IP {ip} bloquée par le pare-feu." : $"Échec du blocage de {ip}.",
-                "NetMonitor", MessageBoxButton.OK,
-                ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+            if (ok)
+            {
+                MessageBox.Show(
+                    $"IP {ip} bloquée par le pare-feu.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(
+                    $"Échec du blocage de {ip}.\n\n{errorMsg}",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
 
             await RefreshSafe();
         }
@@ -403,7 +412,7 @@ namespace NetMonitor.UI
                     txtPortScanThreshold.Text = "20";
                     txtBeaconWindow.Text = "300";
                     txtBeaconHits.Text = "6";
-                    txtBeaconJitter.Text = "20";
+                    txtBeaconJitter.Text = "5"; // Nouveau défaut à 5%
                     chkAutoBlock.IsChecked = false;
                     return;
                 }
@@ -428,7 +437,7 @@ namespace NetMonitor.UI
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
-                double jitterPct = 20;
+                double jitterPct = 5;
                 if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
 
                 var lines = new[]
