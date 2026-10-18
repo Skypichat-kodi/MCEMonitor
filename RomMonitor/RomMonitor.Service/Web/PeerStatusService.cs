@@ -43,7 +43,7 @@ namespace RomMonitor.Service.Web
                 new[] { "Username","WebUsername" },
                 new[] { "Password","WebPassword" }),
                 
-            new PeerDef("NetMonitor", "NetMonitor.config",
+            new PeerDef("NetMonitor", "NetMonitor.Web.config",
                 new[] { "WebEnabled", "Enabled" },
                 new[] { "WebPort",    "Port" },
                 new[] { "WebUsername","Username" },

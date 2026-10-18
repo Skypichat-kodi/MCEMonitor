@@ -124,7 +124,6 @@ namespace NetMonitor.Service.Web
                 }
                 else if (path == "/api/summary")
                 {
-                    // Prêt pour MCEMonitorClient / Android
                     var summary = new
                     {
                         service = "NetMonitor",
@@ -137,6 +136,10 @@ namespace NetMonitor.Service.Web
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,
                         new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                     SendJson(ctx, json);
+                }
+                else if (path == "/favicon.ico")
+                {
+                    ServeFavicon(ctx);
                 }
                 else if (path.StartsWith("/resources/icons/") || path.StartsWith("/resources/images/"))
                 {
@@ -217,6 +220,43 @@ namespace NetMonitor.Service.Web
                 ctx.Response.OutputStream.Close();
             }
             catch { try { ctx.Response.StatusCode = 500; ctx.Response.Close(); } catch { } }
-        }        
+        }
+        
+        private static void ServeFavicon(HttpListenerContext ctx)
+        {
+            try
+            {
+                string icoPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "NetMonitor.ico"
+                );
+
+                if (!File.Exists(icoPath))
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                    return;
+                }
+
+                byte[] ico = File.ReadAllBytes(icoPath);
+
+                ctx.Response.ContentType = "image/x-icon";
+                ctx.Response.ContentLength64 = ico.Length;
+                ctx.Response.OutputStream.Write(ico, 0, ico.Length);
+                ctx.Response.OutputStream.Close();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebServer favicon ERROR : " + ex.Message);
+
+                try
+                {
+                    ctx.Response.StatusCode = 404;
+                    ctx.Response.Close();
+                }
+                catch { }
+            }
+        }                
     }
 }

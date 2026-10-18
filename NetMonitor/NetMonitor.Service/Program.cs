@@ -25,6 +25,8 @@ namespace NetMonitor.Service
                 return;
             }
 
+            NetMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("NetMonitor");
+            
             // ============================================================
             //  LANGUE
             // ============================================================

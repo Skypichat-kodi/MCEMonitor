@@ -79,8 +79,8 @@ namespace NetMonitor.Service.Web
 
                 string html = ViewRenderer.Render("NetPage.html", model);
                 
-                // Injection de la PeerBar (Barre de navigation entre les modules)
-                html = html.Replace("{{PeerBar}}", PeerStatusService.BuildPeerBarHtml(publicHost));
+                // Injection de la PeerBar (doit correspondre au commentaire HTML exact)
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
                 
                 return html;
             }
