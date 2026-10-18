@@ -64,7 +64,10 @@ namespace NetMonitor.Service.Ipc
                 case "get-web-status":     HandleGetWebStatus(server); break;
                 case "get-active":         HandleGetActiveIntrusions(server); break;
                 case "clear-active":       HandleClearActiveIntrusions(server); break;
-                case "get-blocked":        HandleGetBlockedIps(server); break;                           
+                case "get-blocked":        HandleGetBlockedIps(server); break;
+                case "get-audit":          HandleGetAudit(server); break;
+                case "clear-audit":        HandleClearAudit(server); break;
+                case "export-pdf":         HandleExportPdf(server); break;                                                           
                 default:                   IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -346,6 +349,61 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, ip });
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
-        }                
+        }
+        
+        private void HandleGetAudit(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetAuditHistory();
+                var projected = list.Select(a => new
+                {
+                    timestamp = a.Timestamp,
+                    source = a.Source,
+                    severity = a.Severity.ToString(),
+                    message = a.Message,
+                    remoteIp = a.RemoteIp,
+                    remotePort = a.RemotePort,
+                    localPort = a.LocalPort,
+                    pid = a.Pid,
+                    processName = a.ProcessName,
+                    details = a.Details
+                }).ToList();
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleClearAudit(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearAudit();
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+        
+        private void HandleExportPdf(NamedPipeServerStream server)
+        {
+            try
+            {
+                var history = _engine.GetAlerts();
+                var blocked = _engine.GetBlockedIps();
+                var audit = _engine.GetAuditHistory();
+
+                byte[] pdfBytes = PdfExporter.GenerateReport(
+                    Environment.MachineName, history, blocked, audit);
+
+                // On renvoie le PDF encodé en Base64 pour passer dans le pipe
+                string base64 = Convert.ToBase64String(pdfBytes);
+                IpcResponse.Raw(server, base64);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleExportPdf : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                
     }
 }

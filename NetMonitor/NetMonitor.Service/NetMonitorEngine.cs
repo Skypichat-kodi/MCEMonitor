@@ -46,6 +46,17 @@ namespace NetMonitor.Service
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "blocked_ips.json");
 
+        private static readonly string HistoryFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "alert_history.json"); 
+                    
+        // Journal d'audit pour les alertes ignorées (whitelist)
+        private readonly List<IntrusionEvent> _auditHistory = new();
+
+        private static readonly string AuditFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "audit_history.json");
+            
         public bool IsRunning => _etw.IsRunning;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
 
@@ -209,6 +220,7 @@ namespace NetMonitor.Service
         public void ClearAlerts()
         {
             lock (_alertsLock) _alerts.Clear();
+            SaveHistory();
             CoreLog.Info("Historique des intrusions vidé");
         }
 
@@ -275,6 +287,46 @@ namespace NetMonitor.Service
 
             CoreLog.Info($"IP {ip} débloquée");
             return fw;
+        }
+
+        // ------------------------------------------------------------
+        //  Persistance de l'historique (Problème 1)
+        // ------------------------------------------------------------
+        public void LoadHistory()
+        {
+            try
+            {
+                if (!File.Exists(HistoryFile)) return;
+                var json = File.ReadAllText(HistoryFile);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
+                if (list == null) return;
+
+                lock (_alertsLock)
+                {
+                    _alerts.Clear();
+                    _alerts.AddRange(list);
+                    // On restaure aussi les intrusions actives (moins de 24h) pour l'UI
+                    _activeIntrusions.Clear();
+                    _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
+                }
+                CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
+            }
+            catch (Exception ex) { CoreLog.Warn($"LoadHistory : {ex.Message}"); }
+        }
+
+        private void SaveHistory()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(HistoryFile)!);
+                List<IntrusionEvent> snapshot;
+                lock (_alertsLock) snapshot = _alerts.ToList();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(HistoryFile, json);
+            }
+            catch (Exception ex) { CoreLog.Warn($"SaveHistory : {ex.Message}"); }
         }
 
         // ------------------------------------------------------------
@@ -434,6 +486,27 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         private void AddIntrusion(IntrusionEvent evt)
         {
+            bool isNewAlert = false;
+            bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
+
+            if (isWhitelisted)
+            {
+                // --- NOUVEAU : Audit ---
+                evt.Severity = Severity.Info; // On force la sévérité à Info
+                evt.Message = $"[WHITELIST] {evt.Message}";
+                
+                lock (_alertsLock)
+                {
+                    _auditHistory.Add(evt);
+                    if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0); // On garde les 500 dernières
+                }
+                SaveAudit();
+                
+                CoreLog.Debug($"[FILTRÉ] Alerte ignorée pour IP critique : {evt.RemoteIp} ({evt.Source})");
+                return; // On ne va pas plus loin (pas d'ajout à l'historique principal, pas d'email)
+            }
+
+            // Si ce n'est pas whitelisté, on continue le traitement normal
             lock (_alertsLock)
             {
                 _alerts.Add(evt);
@@ -441,17 +514,70 @@ namespace NetMonitor.Service
 
                 _activeIntrusions.Add(evt);
                 if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
+
+                var limit = DateTime.UtcNow.AddMinutes(-60);
+                var recentDuplicates = _alerts.Where(a =>
+                    a.RemoteIp == evt.RemoteIp &&
+                    a.Source == evt.Source &&
+                    a.Timestamp >= limit).ToList();
+
+                if (recentDuplicates.Count == 1) isNewAlert = true;
             }
 
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
+            SaveHistory();
 
-            // Envoi d'email asynchrone pour les alertes critiques
-            if (evt.Severity == Severity.Critical || evt.Severity == Severity.High)
+            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
             {
                 _ = SendAlertEmailAsync(evt);
             }
         }
+        public void LoadAudit()
+        {
+            try
+            {
+                if (!File.Exists(AuditFile)) return;
+                var json = File.ReadAllText(AuditFile);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
+                if (list != null)
+                {
+                    lock (_alertsLock)
+                    {
+                        _auditHistory.Clear();
+                        _auditHistory.AddRange(list);
+                    }
+                }
+            }
+            catch (Exception ex) { CoreLog.Warn($"LoadAudit : {ex.Message}"); }
+        }
 
+        private void SaveAudit()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(AuditFile)!);
+                List<IntrusionEvent> snapshot;
+                lock (_alertsLock) snapshot = _auditHistory.ToList();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(AuditFile, json);
+            }
+            catch (Exception ex) { CoreLog.Warn($"SaveAudit : {ex.Message}"); }
+        }
+
+        public List<IntrusionEvent> GetAuditHistory()
+        {
+            lock (_alertsLock) return _auditHistory.ToList();
+        }
+        
+        public void ClearAudit()
+        {
+            lock (_alertsLock) _auditHistory.Clear();
+            SaveAudit();
+            CoreLog.Info("Historique d'audit (whitelist) vidé");
+        }
+        
         private async Task SendAlertEmailAsync(IntrusionEvent evt)
         {
             try

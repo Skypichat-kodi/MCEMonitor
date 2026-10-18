@@ -118,6 +118,21 @@ namespace NetMonitor.Service.Web
                     ctx.Response.Headers["Location"] = "/";
                     ctx.Response.Close();
                 }
+                else if (path == "/export-pdf")
+                {
+                    var history = _engine.GetAlerts();
+                    var blocked = _engine.GetBlockedIps();
+                    var audit = _engine.GetAuditHistory();
+
+                    byte[] pdfBytes = PdfExporter.GenerateReport(Environment.MachineName, history, blocked, audit);
+
+                    ctx.Response.StatusCode = 200;
+                    ctx.Response.ContentType = "application/pdf";
+                    ctx.Response.AddHeader("Content-Disposition", $"attachment; filename=NetMonitor_{DateTime.Now:yyyyMMdd_HHmmss}.pdf");
+                    ctx.Response.ContentLength64 = pdfBytes.Length;
+                    ctx.Response.OutputStream.Write(pdfBytes, 0, pdfBytes.Length);
+                    ctx.Response.OutputStream.Close();
+                }
                 else if (path == "/ping")
                 {
                     SendHtml(ctx, "pong");

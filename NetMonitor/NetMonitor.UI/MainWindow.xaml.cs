@@ -18,6 +18,7 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<BlockedIpRow> _blockedIps = new();
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private readonly ObservableCollection<ConnectionRow> _connections = new();
+        private readonly ObservableCollection<AlertRow> _auditAlerts = new(); // NOUVEAU
 
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
@@ -54,6 +55,7 @@ namespace NetMonitor.UI
             BlockedIpsGrid.ItemsSource = _blockedIps;
             AlertsHistoryGrid.ItemsSource = _alertsHistory;
             ConnectionsGrid.ItemsSource = _connections;
+            AuditGrid.ItemsSource = _auditAlerts; // NOUVEAU
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
@@ -154,6 +156,27 @@ namespace NetMonitor.UI
                         });
                     }
                     RestoreAlertSelection(AlertsHistoryGrid, _alertsHistory, key);
+                }
+
+                // ---- Tableau 4 : audit (whitelist) ----
+                var audit = await NetMonitorIpcClient.GetAuditHistory();
+                if (audit != null)
+                {
+                    string? key = GetSelectedAlertKey(AuditGrid);
+                    _auditAlerts.Clear();
+                    foreach (var a in audit.OrderByDescending(x => x.timestamp).Take(500))
+                    {
+                        _auditAlerts.Add(new AlertRow
+                        {
+                            Timestamp = a.timestamp.ToLocalTime(),
+                            Severity = a.severity ?? "",
+                            Source = a.source ?? "",
+                            Message = a.message ?? "",
+                            Details = a.details,
+                            RemoteIp = a.remoteIp
+                        });
+                    }
+                    RestoreAlertSelection(AuditGrid, _auditAlerts, key);
                 }
 
                 // ---- Connexions ----
@@ -291,7 +314,6 @@ namespace NetMonitor.UI
 
             if (confirm != MessageBoxResult.Yes) return;
 
-            // Utilisation de la nouvelle méthode avec résultat détaillé (garde-fou)
             var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
                 ip, row.Source, row.Message, row.Details);
 
@@ -377,6 +399,21 @@ namespace NetMonitor.UI
         }
 
         // ------------------------------------------------------------
+        //  Bouton : tableau 4 (audit)
+        // ------------------------------------------------------------
+        private async void ClearAudit_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Vider l'historique des alertes ignorées (IP de confiance) ?",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            await NetMonitorIpcClient.ClearAuditAsync();
+            await RefreshSafe();
+        }
+
+        // ------------------------------------------------------------
         //  Extraction IP
         // ------------------------------------------------------------
         private static string? ExtractIpFromMessage(string message)
@@ -408,16 +445,16 @@ namespace NetMonitor.UI
                 var cfg = await NetMonitorIpcClient.GetConfig();
                 if (cfg == null)
                 {
-                    // Valeurs par défaut si le service ne répond pas
                     txtPortScanWindow.Text = "10";
                     txtPortScanThreshold.Text = "20";
                     txtBeaconWindow.Text = "300";
                     txtBeaconHits.Text = "6";
                     txtBeaconJitter.Text = "5";
                     chkAutoBlock.IsChecked = false;
-                    
                     txtIgnoredNetworks.Text = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
                     chkDisableFilters.IsChecked = false;
+                    txtBlacklistLevel.Text = "3";
+                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
                     return;
                 }
 
@@ -432,7 +469,6 @@ namespace NetMonitor.UI
                     txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
                 
                 chkDisableFilters.IsChecked = cfg.disableFilters;
-                
                 txtBlacklistLevel.Text = cfg.blacklistLevel.ToString();
                 
                 if (cfg.blacklistLastUpdate != DateTime.MinValue)
@@ -469,8 +505,6 @@ namespace NetMonitor.UI
                     if (confirm != MessageBoxResult.Yes) return;
                 }
 
-                // Récupération des paramètres Web actuels depuis l'UI
-                // (pour ne pas les perdre lors de la réécriture du fichier)
                 string webEnabled = (ToggleWeb.IsChecked == true).ToString().ToLower();
                 string webPort = txtWebPort.Text.Trim();
                 string webLogin = txtWebLogin.Text.Trim();
@@ -610,7 +644,7 @@ namespace NetMonitor.UI
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
 
-                await LoadWebConfig(); // <-- NOUVEAU : Recharge les champs
+                await LoadWebConfig();
             }
         }
 
@@ -674,6 +708,52 @@ namespace NetMonitor.UI
             catch (Exception ex)
             {
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
+            }
+        }
+        
+        private void OpenLogs_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string logFolder = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "Logs");
+
+                if (!Directory.Exists(logFolder)) Directory.CreateDirectory(logFolder);
+                Process.Start("explorer.exe", logFolder);
+            }
+            catch (Exception ex) { MessageBox.Show("Impossible d'ouvrir le dossier Logs.\n" + ex.Message); }
+        }
+
+        private async void ExportPdf_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string? base64 = await NetMonitorIpcClient.ExportPdfAsync();
+                if (string.IsNullOrEmpty(base64))
+                {
+                    MessageBox.Show("Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                byte[] pdfBytes = Convert.FromBase64String(base64);
+
+                var sfd = new Microsoft.Win32.SaveFileDialog
+                {
+                    FileName = $"NetMonitor_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf",
+                    Filter = "Fichier PDF (*.pdf)|*.pdf",
+                    Title = "Enregistrer le rapport PDF"
+                };
+
+                if (sfd.ShowDialog() == true)
+                {
+                    File.WriteAllBytes(sfd.FileName, pdfBytes);
+                    MessageBox.Show("Rapport PDF enregistré avec succès.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message);
             }
         }
     }

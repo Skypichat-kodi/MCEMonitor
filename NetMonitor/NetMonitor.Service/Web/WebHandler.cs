@@ -14,7 +14,9 @@ namespace NetMonitor.Service.Web
                 var active = engine.GetActiveIntrusions();
                 var blocked = engine.GetBlockedIps();
                 var history = engine.GetAlerts();
+                var audit = engine.GetAuditHistory();
 
+                // --- Tableau 1 : Intrusions Actives ---
                 var activeRows = new System.Text.StringBuilder();
                 if (active.Count > 0)
                 {
@@ -34,6 +36,7 @@ namespace NetMonitor.Service.Web
                 }
                 else activeRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
 
+                // --- Tableau 2 : IP Bloquées ---
                 var blockedRows = new System.Text.StringBuilder();
                 if (blocked.Count > 0)
                 {
@@ -49,6 +52,7 @@ namespace NetMonitor.Service.Web
                 }
                 else blockedRows.Append("<tr><td colspan='4' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
+                // --- Tableau 3 : Historique ---
                 var historyRows = new System.Text.StringBuilder();
                 if (history.Count > 0)
                 {
@@ -66,20 +70,47 @@ namespace NetMonitor.Service.Web
                         </tr>");
                     }
                 }
-                else historyRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                else
+                {
+                    historyRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                }
 
+                // --- Tableau 4 : Audit Whitelist ---
+                var auditRows = new System.Text.StringBuilder();
+                if (audit.Count > 0)
+                {
+                    foreach (var a in audit.OrderByDescending(x => x.Timestamp).Take(100))
+                    {
+                        auditRows.Append($@"<tr>
+                            <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
+                            <td>{WebUtility.HtmlEncode(a.Source)}</td>
+                            <td>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
+                            <td style='color:#888;'>{WebUtility.HtmlEncode(a.Message)}</td>
+                        </tr>");
+                    }
+                }
+                else
+                {
+                    auditRows.Append("<tr><td colspan='4' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                }
+
+                // --- Modèle ---
                 var model = new Dictionary<string, object?>
                 {
                     ["MachineName"] = Environment.MachineName,
                     ["LastUpdate"] = engine.LastUpdateTime == DateTime.MinValue ? "Jamais" : engine.LastUpdateTime.ToString("dd/MM/yyyy HH:mm:ss"),
                     ["ActiveRows"] = activeRows.ToString(),
                     ["BlockedRows"] = blockedRows.ToString(),
-                    ["HistoryRows"] = historyRows.ToString()
+                    ["HistoryRows"] = historyRows.ToString(),
+                    
+                    // NOUVEAU : Variables pour l'audit
+                    ["AuditCount"] = audit.Count,
+                    ["AuditRows"] = auditRows.ToString()
                 };
 
                 string html = ViewRenderer.Render("NetPage.html", model);
                 
-                // Injection de la PeerBar (doit correspondre au commentaire HTML exact)
+                // Injection de la PeerBar
                 html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
                 
                 return html;

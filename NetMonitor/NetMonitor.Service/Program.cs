@@ -77,6 +77,7 @@ namespace NetMonitor.Service
             // ============================================================
             _engine = new NetMonitorEngine(settings);
             _engine.LoadBlockedIps();
+            _engine.LoadHistory();
             _engine.Start();
 
             // ============================================================

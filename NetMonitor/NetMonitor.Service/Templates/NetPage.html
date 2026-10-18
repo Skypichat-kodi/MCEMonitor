@@ -234,6 +234,9 @@
     <a href="#" id="btnClearHistory" class="action-btn danger">
         {{tr:Vider l'historique}}
     </a>
+    <a href="/export-pdf" class="action-btn secondary">
+        {{tr:Exporter PDF}}
+    </a>        
 </div>
 
 <script>
@@ -296,6 +299,24 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
     </thead>
     <tbody>
         {{HistoryRows}}
+    </tbody>
+</table>
+
+<h2>
+    <span style="font-size:20px">🛡</span>
+    {{tr:Alertes ignorées (IP de confiance)}} - {{AuditCount}}
+</h2>
+<table>
+    <thead>
+        <tr>
+            <th>{{tr:Date}}</th>
+            <th>{{tr:Détecteur}}</th>
+            <th>{{tr:IP}}</th>
+            <th>{{tr:Message}}</th>
+        </tr>
+    </thead>
+    <tbody>
+        {{AuditRows}}
     </tbody>
 </table>
 

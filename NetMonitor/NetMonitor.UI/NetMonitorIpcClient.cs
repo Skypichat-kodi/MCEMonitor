@@ -241,5 +241,14 @@ namespace NetMonitor.UI
                 return (false, "Erreur de lecture de la réponse IPC.");
             }
         }
+        
+        public static async Task<List<NetAlert>?> GetAuditHistory()
+            => Deserialize<List<NetAlert>>(await SendCommand("get-audit"));
+
+        public static async Task<bool> ClearAuditAsync()
+            => IsOk(await SendCommand("clear-audit"));
+            
+        public static async Task<string?> ExportPdfAsync()
+            => await SendCommand("export-pdf");                    
     }
 }
