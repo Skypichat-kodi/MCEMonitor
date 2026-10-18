@@ -79,9 +79,12 @@ namespace MCEMonitorClient.Config
             {
                 "SystemMonitor",
                 "RomMonitor",
-                "MediaMonitor"
+                "MediaMonitor",
+                "NetMonitor", 
+                "Inconnu" 
             });
             _cmbType.SelectedIndex = 0;
+            
             Controls.Add(_cmbType);
             y += step;
 
@@ -284,27 +287,28 @@ namespace MCEMonitorClient.Config
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_txtUrl.Text) || !Uri.TryCreate(_txtUrl.Text, UriKind.Absolute, out _))
+            if (string.IsNullOrWhiteSpace(_txtUrl.Text))
             {
-                MessageBox.Show("L'URL est invalide.", "Erreur",
+                MessageBox.Show("L'URL est obligatoire.", "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            // Mise à jour de l'entrée
+            // On ne rejette plus les URLs sans port explicite :
+            // FullUrl sera reconstruite avec le champ Port.
             _entry.Name = _txtName.Text.Trim();
             _entry.BaseUrl = _txtUrl.Text.Trim().TrimEnd('/');
             _entry.Port = (int)_numPort.Value;
             _entry.Username = _txtUsername.Text.Trim();
             _entry.Password = _txtPassword.Text;
-            _entry.ServiceType = _cmbType.SelectedItem?.ToString() ?? "SystemMonitor";
+            _entry.ServiceType = _cmbType.SelectedItem?.ToString() ?? "Inconnu";
 
             DialogResult = DialogResult.OK;
             Close();
         }
 
         // ---------------------------------------------
-        //  Test de connexion HTTP
+        //  Test de connexion HTTP + Détection du service
         // ---------------------------------------------
         private async Task TestConnectionAsync()
         {
@@ -329,16 +333,55 @@ namespace MCEMonitorClient.Config
                 using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(5) };
                 using var resp = await http.GetAsync(url);
 
-                if (resp.IsSuccessStatusCode)
-                {
-                    // Connexion OK — peu importe ce que dit le JSON
-                    _lblTestResult.ForeColor = Theme.Ok;
-                    _lblTestResult.Text = "[OK] Connexion réussie";
-                }
-                else
+                if (!resp.IsSuccessStatusCode)
                 {
                     _lblTestResult.ForeColor = Theme.Critical;
                     _lblTestResult.Text = $"[KO] Erreur HTTP {(int)resp.StatusCode}";
+                    return;
+                }
+
+                // Lecture du JSON pour extraire le champ "service"
+                string json = await resp.Content.ReadAsStringAsync();
+                string detectedService = "Inconnu";
+
+                try
+                {
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    if (doc.RootElement.TryGetProperty("service", out var serviceProp))
+                        detectedService = serviceProp.GetString() ?? "Inconnu";
+                }
+                catch { /* JSON invalide, on garde "Inconnu" */ }
+
+                // --- Mise à jour de l'UI ---
+                _lblTestResult.ForeColor = Theme.Ok;
+                _lblTestResult.Text = $"[OK] Service détecté : {detectedService}";
+
+                // 1) Mise à jour du ComboBox (si le service est dans la liste)
+                int idx = _cmbType.Items.IndexOf(detectedService);
+                if (idx >= 0)
+                    _cmbType.SelectedIndex = idx;
+
+                // 2) Mise à jour du nom si vide (ou si c'est encore le nom par défaut)
+                if (string.IsNullOrWhiteSpace(_txtName.Text) ||
+                    _txtName.Text == "http://")
+                {
+                    _txtName.Text = $"{detectedService} ({_txtUrl.Text.Trim()}:{port})";
+                }
+
+                // 3) Popup de confirmation
+                var result = MessageBox.Show(
+                    $"Connexion réussie !\n\n" +
+                    $"Service détecté : {detectedService}\n" +
+                    $"Serveur : {baseUrl}:{port}\n\n" +
+                    $"Voulez-vous utiliser ce nom ?\n" +
+                    $"? {detectedService} ({_txtUrl.Text.Trim()}:{port})",
+                    "Service détecté",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information);
+
+                if (result == DialogResult.Yes)
+                {
+                    _txtName.Text = $"{detectedService} ({_txtUrl.Text.Trim()}:{port})";
                 }
             }
             catch (TaskCanceledException)
