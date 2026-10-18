@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Linq;
 using System.Threading;
 using MCEMonitor.Languages;
 
@@ -106,17 +107,43 @@ namespace NetMonitor.Service.Web
                 {
                     _engine.ClearActiveIntrusions();
                     CoreLog.Write("WebServer : intrusions actives purgées");
-                    ctx.Response.StatusCode = 302;
-                    ctx.Response.Headers["Location"] = "/";
-                    ctx.Response.Close();
+                    Redirect(ctx);
                 }
                 else if (path == "/clear-history")
                 {
                     _engine.ClearAlerts();
                     CoreLog.Write("WebServer : historique purgé");
-                    ctx.Response.StatusCode = 302;
-                    ctx.Response.Headers["Location"] = "/";
-                    ctx.Response.Close();
+                    Redirect(ctx);
+                }
+                else if (path == "/block-ip" && ctx.Request.HttpMethod == "POST")
+                {
+                    string ip = ReadFormValue(ctx, "ip");
+                    if (string.IsNullOrWhiteSpace(ip))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    bool ok = _engine.BlockIp(ip, out string error);
+                    CoreLog.Write(ok
+                        ? $"WebServer : IP {ip} bloquée"
+                        : $"WebServer : échec blocage {ip} — {error}");
+                    Redirect(ctx);
+                }
+                else if (path == "/unblock-ip" && ctx.Request.HttpMethod == "POST")
+                {
+                    string ip = ReadFormValue(ctx, "ip");
+                    if (string.IsNullOrWhiteSpace(ip))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    bool ok = _engine.UnblockIp(ip);
+                    CoreLog.Write($"WebServer : IP {ip} débloquée (ok={ok})");
+                    Redirect(ctx);
                 }
                 else if (path == "/export-pdf")
                 {
@@ -139,15 +166,26 @@ namespace NetMonitor.Service.Web
                 }
                 else if (path == "/api/summary")
                 {
+                    var activeIntrusions = _engine.GetActiveIntrusions();
+
+                    var problemsList = activeIntrusions.Select(a => new
+                    {
+                        severity = a.Severity.ToString().ToLower(),
+                        category = a.Source,
+                        message = a.Message
+                    }).ToList();
+
                     var summary = new
                     {
                         service = "NetMonitor",
                         machine = Environment.MachineName,
                         status = _engine.WorstSeverity,
                         worstSeverity = _engine.WorstSeverity,
-                        activeCount = _engine.GetActiveIntrusions().Count,
-                        blockedCount = _engine.GetBlockedIps().Count
+                        activeCount = activeIntrusions.Count,
+                        blockedCount = _engine.GetBlockedIps().Count,
+                        problems = problemsList
                     };
+
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,
                         new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                     SendJson(ctx, json);
@@ -184,6 +222,31 @@ namespace NetMonitor.Service.Web
             catch { return false; }
         }
 
+        // ============================================================
+        //  Helpers HTTP
+        // ============================================================
+        private static void Redirect(HttpListenerContext ctx)
+        {
+            ctx.Response.StatusCode = 302;
+            ctx.Response.Headers["Location"] = "/";
+            ctx.Response.Close();
+        }
+
+        private static string ReadFormValue(HttpListenerContext ctx, string name)
+        {
+            if (!ctx.Request.HasEntityBody) return "";
+            using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+            string body = reader.ReadToEnd();
+
+            foreach (var pair in body.Split('&'))
+            {
+                var kv = pair.Split('=', 2);
+                if (kv.Length == 2 && kv[0] == name)
+                    return Uri.UnescapeDataString(kv[1].Replace('+', ' '));
+            }
+            return "";
+        }
+
         private static void SendHtml(HttpListenerContext ctx, string html, int status = 200)
         {
             byte[] buffer = Encoding.UTF8.GetBytes(html);
@@ -203,7 +266,7 @@ namespace NetMonitor.Service.Web
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
         }
-        
+
         private static void ServeStaticFile(HttpListenerContext ctx, string path)
         {
             try
@@ -236,7 +299,7 @@ namespace NetMonitor.Service.Web
             }
             catch { try { ctx.Response.StatusCode = 500; ctx.Response.Close(); } catch { } }
         }
-        
+
         private static void ServeFavicon(HttpListenerContext ctx)
         {
             try
@@ -272,6 +335,6 @@ namespace NetMonitor.Service.Web
                 }
                 catch { }
             }
-        }                
+        }
     }
 }

@@ -83,6 +83,11 @@
     tr:nth-child(even) td { background: #262626; }
     tr:nth-child(odd)  td { background: #1f1f1f; }
 
+    /* Sélection de ligne (équivalent du SelectedItem WPF) */
+    tr.selectable { cursor: pointer; }
+    tr.selectable:hover td { background: #2a2a2a; }
+    tr.selected td { background: #1a3a5c !important; }
+
     .badge {
         display: inline-block;
         padding: 2px 8px;
@@ -203,6 +208,8 @@
         text-decoration: none;
         border-radius: 4px;
         font-size: 13px;
+        border: none;
+        cursor: pointer;
         transition: background 0.15s ease;
     }
 
@@ -239,21 +246,6 @@
     </a>        
 </div>
 
-<script>
-document.getElementById('btnClearActive').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (confirm("{{tr:Voulez-vous vraiment vider la liste des intrusions actives ?}}")) {
-        window.location.href = '/clear-active';
-    }
-});
-document.getElementById('btnClearHistory').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des intrusions ? Cette action est irréversible.}}")) {
-        window.location.href = '/clear-history';
-    }
-});
-</script>
-
 <div class="info">
     <div class="info-grid">
         <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
@@ -267,9 +259,17 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
     <span style="font-size:20px">⚠</span>
     {{tr:Intrusions Actives}}
 </h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <button type="button" id="btnBlockIp" class="action-btn danger">
+        🚫 {{tr:Bloquer l'IP sélectionnée}}
+    </button>
+</div>
 <table>
     <thead>
-        <tr><th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th></tr>
+        <tr>
+            <th style="width:30px"></th>
+            <th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th>
+        </tr>
     </thead>
     <tbody>
         {{ActiveRows}}
@@ -280,9 +280,17 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
     <span style="font-size:20px">🛡</span>
     {{tr:IP Bloquées au Pare-feu}}
 </h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <button type="button" id="btnUnblockIp" class="action-btn secondary">
+        🔓 {{tr:Débloquer l'IP sélectionnée}}
+    </button>
+</div>
 <table>
     <thead>
-        <tr><th>{{tr:Date}}</th><th>{{tr:IP}}</th><th>{{tr:Détecteur}}</th><th>{{tr:Raison}}</th></tr>
+        <tr>
+            <th style="width:30px"></th>
+            <th>{{tr:Date}}</th><th>{{tr:IP}}</th><th>{{tr:Détecteur}}</th><th>{{tr:Raison}}</th>
+        </tr>
     </thead>
     <tbody>
         {{BlockedRows}}
@@ -323,6 +331,107 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
 <div class="footer">
     {{tr:NetMonitor - Généré à}} {{LastUpdate}}
 </div>
+
+<script>
+// ============================================================
+//  Actions globales (purge / historique)
+// ============================================================
+document.getElementById('btnClearActive').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (confirm("{{tr:Voulez-vous vraiment vider la liste des intrusions actives ?}}")) {
+        window.location.href = '/clear-active';
+    }
+});
+document.getElementById('btnClearHistory').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des intrusions ? Cette action est irréversible.}}")) {
+        window.location.href = '/clear-history';
+    }
+});
+
+// ============================================================
+//  Sélection de ligne (équivalent du SelectedItem WPF)
+// ============================================================
+function rowClick(tr, radioName) {
+    var radio = tr.querySelector('input[name="' + radioName + '"]');
+    if (!radio) return;
+    radio.checked = true;
+    sessionStorage.setItem('sel-' + radioName, radio.value);
+
+    var siblings = tr.parentNode.querySelectorAll('tr.selectable');
+    for (var i = 0; i < siblings.length; i++)
+        siblings[i].classList.remove('selected');
+
+    tr.classList.add('selected');
+}
+
+// Restauration de la sélection à travers les refreshs (meta refresh 15s)
+(function restoreSelection() {
+    ['active-sel', 'blocked-sel'].forEach(function (name) {
+        var saved = sessionStorage.getItem('sel-' + name);
+        if (!saved) return;
+        var radio = document.querySelector(
+            'input[name="' + name + '"][value="' + saved.replace(/"/g, '\\"') + '"]');
+        if (radio) {
+            radio.checked = true;
+            var tr = radio.closest('tr');
+            if (tr) tr.classList.add('selected');
+        }
+    });
+})();
+
+// ============================================================
+//  Bloquer l'IP sélectionnée (tableau 1)
+// ============================================================
+function blockSelectedIp() {
+    var r = document.querySelector('input[name="active-sel"]:checked');
+    if (!r) {
+        alert("{{tr:Sélectionnez d'abord une intrusion dans le tableau.}}");
+        return;
+    }
+    var ip = r.value;
+    if (!confirm("{{tr:Bloquer définitivement l'adresse IP}} " + ip + " ?"))
+        return;
+
+    fetch('/block-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'ip=' + encodeURIComponent(ip)
+    }).then(function () {
+        sessionStorage.removeItem('sel-active-sel');
+        location.reload();
+    });
+}
+
+// ============================================================
+//  Débloquer l'IP sélectionnée (tableau 2)
+// ============================================================
+function unblockSelectedIp() {
+    var r = document.querySelector('input[name="blocked-sel"]:checked');
+    if (!r) {
+        alert("{{tr:Sélectionnez d'abord une IP bloquée dans le tableau.}}");
+        return;
+    }
+    var ip = r.value;
+    if (!confirm("{{tr:Retirer les règles de blocage pour l'adresse IP}} " + ip + " ?"))
+        return;
+
+    fetch('/unblock-ip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'ip=' + encodeURIComponent(ip)
+    }).then(function () {
+        sessionStorage.removeItem('sel-blocked-sel');
+        location.reload();
+    });
+}
+
+// ============================================================
+//  Câblage des boutons
+// ============================================================
+document.getElementById('btnBlockIp').addEventListener('click', blockSelectedIp);
+document.getElementById('btnUnblockIp').addEventListener('click', unblockSelectedIp);
+</script>
 
 </body>
 </html>
