@@ -8,6 +8,7 @@
     <SingleProject>true</SingleProject>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <CheckEolWorkloads>false</CheckEolWorkloads>
 
     <ApplicationTitle>MCEMonitor Client</ApplicationTitle>
     <ApplicationId>com.mcemonitor.client</ApplicationId>

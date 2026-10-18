@@ -130,7 +130,6 @@ public partial class ServerEditPage : ContentPage
             return;
         }
 
-        // Construit l'URL de test
         string baseUrl = url.TrimEnd('/');
         if (!baseUrl.Contains("://"))
             baseUrl = "http://" + baseUrl;
@@ -140,7 +139,7 @@ public partial class ServerEditPage : ContentPage
         btnTest.IsEnabled = false;
         btnTest.Text = "Test en cours...";
         lblTestResult.TextColor = Color.FromArgb("#B4B4B4");
-        lblTestResult.Text = "Connexion à " + testUrl;
+        lblTestResult.Text = "Connexion r " + testUrl;
 
         try
         {
@@ -156,16 +155,52 @@ public partial class ServerEditPage : ContentPage
 
             using var resp = await http.GetAsync(testUrl);
 
-            if (resp.IsSuccessStatusCode)
-            {
-                lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
-                lblTestResult.Text = $"[OK] Connexion réussie ({(int)resp.StatusCode})";
-            }
-            else
+            if (!resp.IsSuccessStatusCode)
             {
                 lblTestResult.TextColor = Color.FromArgb("#FF6347");
                 lblTestResult.Text = $"[KO] Erreur HTTP {(int)resp.StatusCode}";
+                return;
             }
+
+            // --- NOUVEAU : Détection automatique du service ---
+            string json = await resp.Content.ReadAsStringAsync();
+            string detectedService = "Inconnu";
+
+            try
+            {
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                if (doc.RootElement.TryGetProperty("service", out var serviceProp))
+                    detectedService = serviceProp.GetString() ?? "Inconnu";
+            }
+            catch { /* JSON invalide */ }
+
+            lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
+            lblTestResult.Text = $"[OK] Connexion réussie — Service : {detectedService}";
+
+            // Met r jour le Picker
+            if (cmbType.ItemsSource is System.Collections.IList list)
+            {
+                int idx = list.IndexOf(detectedService);
+                if (idx >= 0)
+                    cmbType.SelectedIndex = idx;
+            }
+
+            // Propose un nom si vide
+            if (string.IsNullOrWhiteSpace(txtName.Text))
+                txtName.Text = $"{detectedService} ({url}:{port})";
+
+            // Popup de confirmation
+            bool confirm = await DisplayAlert(
+                "Service détecté",
+                $"Connexion réussie !\n\n" +
+                $"Service : {detectedService}\n" +
+                $"Serveur : {url}:{port}\n\n" +
+                $"Utiliser ce nom ?\n? {detectedService} ({url}:{port})",
+                "Oui",
+                "Non");
+
+            if (confirm)
+                txtName.Text = $"{detectedService} ({url}:{port})";
         }
         catch (TaskCanceledException)
         {

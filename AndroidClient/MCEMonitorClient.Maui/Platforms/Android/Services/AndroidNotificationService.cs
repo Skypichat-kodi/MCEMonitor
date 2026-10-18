@@ -199,7 +199,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 for (int i = 0; i < System.Math.Min(alert.Problems.Count, maxShown); i++)
                 {
                     var p = alert.Problems[i];
-                    string prefix = p.Severity == "critical" ? "[CRIT]" : "[WARN]";
+                    string prefix = (p.Severity == "critical" || p.Severity == "high") ? "[CRIT]" : "[WARN]";
                     lines.Add($"{prefix} {p.Message}");
                 }
 

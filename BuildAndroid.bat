@@ -11,7 +11,7 @@ set DEST_DIR=Z:\Compilations Programmes\Projet MCEMonitor\MCEMonitor Ver 1.0\And
 set KEYSTORE=mcemonitor.keystore
 set ALIAS=mcemonitor
 
-REM --- Mot de passe du keystore (a remplacer) ---
+REM --- Mot de passe du keystore ---
 set /p KEYPASS=Mot de passe keystore :
 
 REM ============================================
@@ -34,11 +34,41 @@ if not exist "%PROJECT_DIR%\%KEYSTORE%" (
     exit /b 1
 )
 
-if "%KEYPASS%"=="TON_MOT_DE_PASSE_ICI" (
-    echo [ERREUR] Remplace KEYPASS par ton vrai mot de passe keystore dans ce .bat
+if "%KEYPASS%"=="" (
+    echo [ERREUR] Mot de passe keystore vide.
     pause
     exit /b 1
 )
+
+REM ============================================
+REM  Verification / restauration des workloads
+REM ============================================
+echo.
+echo ============================================
+echo   Verification des charges de travail .NET
+echo ============================================
+echo.
+
+cd /d "%PROJECT_DIR%"
+
+dotnet workload restore
+if errorlevel 1 (
+    echo.
+    echo ============================================
+    echo   [ERREUR] Restauration des workloads echouee
+    echo ============================================
+    echo.
+    echo Essaie manuellement :
+    echo   dotnet workload install maui-android
+    echo.
+    echo Si necessaire, lance le terminal en administrateur.
+    pause
+    exit /b 1
+)
+
+echo.
+echo Workloads OK.
+echo.
 
 REM ============================================
 REM  Compilation
@@ -49,8 +79,6 @@ echo   Compilation APK Release Android
 echo   Projet : MCEMonitorClient.Maui
 echo ============================================
 echo.
-
-cd /d "%PROJECT_DIR%"
 
 dotnet publish -f net8.0-android -c Release ^
     -p:AndroidKeyStore=true ^

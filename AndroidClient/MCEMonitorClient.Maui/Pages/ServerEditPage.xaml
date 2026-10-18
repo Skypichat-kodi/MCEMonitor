@@ -46,6 +46,8 @@
                         <x:String>SystemMonitor</x:String>
                         <x:String>RomMonitor</x:String>
                         <x:String>MediaMonitor</x:String>
+                        <x:String>NetMonitor</x:String>
+                        <x:String>Inconnu</x:String>
                     </x:Array>
                 </Picker.ItemsSource>
             </Picker>
