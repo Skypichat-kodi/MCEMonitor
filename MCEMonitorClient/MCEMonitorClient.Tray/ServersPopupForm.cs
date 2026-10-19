@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEMonitor.Languages;
 using MCEMonitorClient.Tray.Ipc;
+using MCEMonitorClient.Tray.Models;   // ← ajouté (PollResult)
 
 namespace MCEMonitorClient.Tray
 {
@@ -19,14 +20,19 @@ namespace MCEMonitorClient.Tray
         private ToolTip _rowTooltip = null!;
         private Label _lblHint = null!;
 
-        private const int COL_STATUS_INDEX = 2;   // Index de la colonne "État"
+        private const int COL_STATUS_INDEX = 2;
+
+        // Priorité d'affichage : critical(0) > warning(1) > ok(2) > offline(3)
+        private const int RANK_CRITICAL = 0;
+        private const int RANK_WARNING  = 1;
+        private const int RANK_OK       = 2;
+        private const int RANK_OFFLINE  = 3;
 
         public ServersPopupForm()
         {
             InitializeUI();
             _ = RefreshAsync();
 
-            // Auto-refresh toutes les 10s
             _refreshTimer = new System.Windows.Forms.Timer { Interval = 10000 };
             _refreshTimer.Tick += async (s, e) => await RefreshAsync();
             _refreshTimer.Start();
@@ -52,7 +58,6 @@ namespace MCEMonitorClient.Tray
             }
             catch { }
 
-            // --- ListView avec OwnerDraw (pour dessiner les dots) ---
             _list = new ListView
             {
                 Location = new Point(15, 15),
@@ -88,7 +93,6 @@ namespace MCEMonitorClient.Tray
                     System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)
                 ?.SetValue(_list, true);
 
-            // --- ToolTip pour indiquer que les lignes sont cliquables ---
             _rowTooltip = new ToolTip
             {
                 AutoPopDelay = 5000,
@@ -97,7 +101,6 @@ namespace MCEMonitorClient.Tray
                 ShowAlways = true
             };
 
-            // --- Bouton Actualiser ---
             _btnRefresh = new Button
             {
                 Text = LanguageManager.Get("Actualiser") ?? "Actualiser",
@@ -114,7 +117,6 @@ namespace MCEMonitorClient.Tray
             _btnRefresh.Click += async (s, e) => await ForceRefreshAsync();
             Controls.Add(_btnRefresh);
 
-            // --- Label de statut ---
             _lblStatus = new Label
             {
                 Location = new Point(180, ClientSize.Height - 45),
@@ -127,7 +129,6 @@ namespace MCEMonitorClient.Tray
             };
             Controls.Add(_lblStatus);
 
-            // --- Label d'astuce (dans l'espace entre la liste et les boutons) ---
             _lblHint = new Label
             {
                 Location = new Point(15, ClientSize.Height - 85),
@@ -142,7 +143,6 @@ namespace MCEMonitorClient.Tray
             };
             Controls.Add(_lblHint);
 
-            // --- Bouton Fermer ---
             _btnClose = new Button
             {
                 Text = LanguageManager.Get("Fermer") ?? "Fermer",
@@ -165,7 +165,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Curseur "main" + tooltip sur les lignes
+        //  Curseur + tooltip sur les lignes
         // ---------------------------------------------
         private void List_MouseMove(object? sender, MouseEventArgs e)
         {
@@ -185,7 +185,6 @@ namespace MCEMonitorClient.Tray
                             ?? "Double-cliquez pour ouvrir : {0}",
                         url);
 
-                // Évite de réinitialiser le tooltip en boucle (ce qui le ferait clignoter)
                 if (currentTooltip != hint)
                     _rowTooltip.SetToolTip(_list, hint);
             }
@@ -197,7 +196,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Owner Draw : header + rows + dot
+        //  Owner Draw
         // ---------------------------------------------
         private void List_DrawColumnHeader(object? sender, DrawListViewColumnHeaderEventArgs e)
         {
@@ -283,9 +282,8 @@ namespace MCEMonitorClient.Tray
                 _list.Items.Clear();
 
                 foreach (var server in state.Servers
-                    .OrderByDescending(s => s.Status == "critical")
-                    .ThenByDescending(s => s.Status == "warning")
-                    .ThenByDescending(s => !s.Online))
+                    .OrderBy(s => GetPriorityRank(s))
+                    .ThenBy(s => s.ServerName))
                 {
                     var item = new ListViewItem(new[]
                     {
@@ -320,7 +318,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Rafraîchissement forcé (force-scan côté Service)
+        //  Rafraîchissement forcé
         // ---------------------------------------------
         private async Task ForceRefreshAsync()
         {
@@ -346,19 +344,17 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Double-clic sur une ligne → ouvre l'URL
+        //  Double-clic → ouvre l'URL
         // ---------------------------------------------
         private void OpenSelectedUrl()
         {
             if (_list.SelectedItems.Count == 0) return;
 
             string? url = _list.SelectedItems[0].SubItems[0].Tag as string;
-
             if (string.IsNullOrWhiteSpace(url)) return;
 
             try
             {
-                // Ajoute le paramètre de langue (comme le font les UI MediaMonitor, RomMonitor et SystemMonitor)
                 string lang = LanguageManager.CurrentLanguage ?? "fr-FR";
                 string separator = url.Contains('?') ? "&" : "?";
                 string urlWithLang = $"{url}{separator}lang={lang}";
@@ -395,6 +391,21 @@ namespace MCEMonitorClient.Tray
             _list.Columns[0].Width = widthServer;
             _list.Columns[1].Width = widthType;
             _list.Columns[2].Width = widthState;
+        }
+
+        // ---------------------------------------------
+        //  Priorité d'affichage : critical > warning > ok > offline
+        // ---------------------------------------------
+        private static int GetPriorityRank(PollResult s)
+        {
+            // Un serveur offline est TOUJOURS relégué en bas,
+            // même si son Status contient un ancien "critical" obsolète.
+            if (!s.Online) return RANK_OFFLINE;
+
+            string st = (s.Status ?? "ok").ToLowerInvariant();
+            if (st == "critical") return RANK_CRITICAL;
+            if (st == "warning")  return RANK_WARNING;
+            return RANK_OK;
         }
     }
 }

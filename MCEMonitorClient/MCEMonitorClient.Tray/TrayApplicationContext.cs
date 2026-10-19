@@ -21,11 +21,16 @@ namespace MCEMonitorClient.Tray
         private readonly PushListener _pushListener = new();
         private System.Windows.Forms.Timer? _pollTimer;
 
+        // ? MODIFIÉ : map ServerId ? status ("ok"|"warning"|"critical"|"offline")
+        //            pour recalculer l'icône dans le bon ordre de priorité
+        private readonly Dictionary<string, string> _serverStatuses = new();
+        private readonly object _statusLock = new object();
+
         // --- Icônes ---
-        private Icon _iconOk = null!;
-        private Icon _iconWarning = null!;
-        private Icon _iconCritical = null!;
-        private Icon _iconOffline = null!;
+        private Icon _iconOk = null!;        // connected.png
+        private Icon _iconWarning = null!;   // warning.png
+        private Icon _iconCritical = null!;  // critical.png
+        private Icon _iconOffline = null!;   // icône app (fallback)
 
         // --- Tray ---
         private NotifyIcon _trayIcon = null!;
@@ -45,22 +50,17 @@ namespace MCEMonitorClient.Tray
 
         private static void PlaySystemSound(string alias)
         {
-            try
-            {
-                PlaySound(alias, IntPtr.Zero, SND_ALIAS | SND_ASYNC);
-            }
-            catch { }
+            try { PlaySound(alias, IntPtr.Zero, SND_ALIAS | SND_ASYNC); } catch { }
         }
 
         // ---------------------------------------------
-        //  Constructeur (UN SEUL)
+        //  Constructeur
         // ---------------------------------------------
         public TrayApplicationContext()
         {
             CoreLog.Clear();
             CoreLog.Write("=== Tray démarré ===");
 
-            // ? Enregistre l'app pour les notifications modernes
             ToastHelper.Initialize();
 
             LoadIcons();
@@ -71,35 +71,69 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Icônes
+        //  Icônes  ? MODIFIÉ
         // ---------------------------------------------
         private void LoadIcons()
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
-
-            string ico = Path.Combine(exeDir, "MCEMonitorClient.ico");
-            var defaultIcon = File.Exists(ico) ? new Icon(ico) : SystemIcons.Application;
-
             string iconsDir = Path.Combine(exeDir, "Resources", "Icons");
 
-            _iconOk       = LoadIconFromPng(Path.Combine(iconsDir, "dot-green.png"))  ?? defaultIcon;
-            _iconWarning  = LoadIconFromPng(Path.Combine(iconsDir, "dot-yellow.png")) ?? defaultIcon;
-            _iconCritical = LoadIconFromPng(Path.Combine(iconsDir, "dot-red.png"))    ?? defaultIcon;
-            _iconOffline  = LoadIconFromPng(Path.Combine(iconsDir, "dot-gray.png"))   ?? defaultIcon;
+            // Icône app par défaut (utilisée pour l'état offline + fallback de chargement)
+            string appIco = Path.Combine(exeDir, "MCEMonitorClient.ico");
+            var defaultIcon = File.Exists(appIco) ? new Icon(appIco) : SystemIcons.Application;
+
+            // Ordre de priorité : critical.png > warning.png > connected.png > icône app
+            _iconOk       = LoadIconFromPng(Path.Combine(iconsDir, "connected.png")) ?? defaultIcon;
+            _iconWarning  = LoadIconFromPng(Path.Combine(iconsDir, "warning.png"))   ?? defaultIcon;
+            _iconCritical = LoadIconFromPng(Path.Combine(iconsDir, "critical.png"))  ?? defaultIcon;
+            _iconOffline  = defaultIcon; // offline = icône app (pas de PNG dédié)
         }
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool DestroyIcon(IntPtr hIcon);
 
         private static Icon? LoadIconFromPng(string path)
         {
             try
             {
-                if (!File.Exists(path)) return null;
+                if (!File.Exists(path))
+                {
+                    CoreLog.Write($"[ICON] Fichier introuvable : {path}");
+                    return null;
+                }
 
-                using var bmp = new Bitmap(path);
-                IntPtr hIcon = bmp.GetHicon();
-                using var tmp = Icon.FromHandle(hIcon);
-                return (Icon)tmp.Clone();
+                using var original = new Bitmap(path);
+
+                const int size = 16;
+                using var resized = new Bitmap(size, size);
+                using (var g = Graphics.FromImage(resized))
+                {
+                    g.SmoothingMode     = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                    g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                    g.PixelOffsetMode   = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                    g.DrawImage(original, 0, 0, size, size);
+                }
+
+                IntPtr hIcon = resized.GetHicon();
+                try
+                {
+                    using var tmp = Icon.FromHandle(hIcon);
+                    Icon clone = (Icon)tmp.Clone();
+                    CoreLog.Write($"[ICON] OK : {Path.GetFileName(path)} " +
+                                  $"({original.Width}×{original.Height} ? {size}×{size})");
+                    return clone;
+                }
+                finally
+                {
+                    DestroyIcon(hIcon);
+                }
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                CoreLog.Write($"[ICON] Erreur chargement '{path}' : {ex.Message}");
+                return null;
+            }
         }
 
         private void LoadSounds()
@@ -108,12 +142,10 @@ namespace MCEMonitorClient.Tray
             string soundsDir = Path.Combine(exeDir, "Resources", "Sounds");
 
             string alarmPath = Path.Combine(soundsDir, "alarm.wav");
-            if (File.Exists(alarmPath))
-                _alarmPlayer = new System.Media.SoundPlayer(alarmPath);
+            if (File.Exists(alarmPath)) _alarmPlayer = new System.Media.SoundPlayer(alarmPath);
 
             string warningPath = Path.Combine(soundsDir, "warning.wav");
-            if (File.Exists(warningPath))
-                _warningPlayer = new System.Media.SoundPlayer(warningPath);
+            if (File.Exists(warningPath)) _warningPlayer = new System.Media.SoundPlayer(warningPath);
         }
 
         // ---------------------------------------------
@@ -129,7 +161,6 @@ namespace MCEMonitorClient.Tray
             };
 
             var menu = new ContextMenuStrip();
-
             menu.Items.Add("Ouvrir la configuration", null, (s, e) => OpenConfig());
             menu.Items.Add("Voir les serveurs", null, (s, e) => ShowServersPopup());
             menu.Items.Add(new ToolStripSeparator());
@@ -139,11 +170,9 @@ namespace MCEMonitorClient.Tray
 
             _trayIcon.ContextMenuStrip = menu;
 
-            // Clic gauche ? ouvre la configuration
             _trayIcon.MouseClick += (s, e) =>
             {
-                if (e.Button == MouseButtons.Left)
-                    OpenConfig();
+                if (e.Button == MouseButtons.Left) OpenConfig();
             };
         }
 
@@ -157,30 +186,80 @@ namespace MCEMonitorClient.Tray
             _pushListener.Start();
         }
 
+        // ? MODIFIÉ : met à jour la map + recalcule l'icône (au lieu d'utiliser
+        //             aveuglément alert.Status, ce qui écrasait un état plus prioritaire)
         private void OnAlertReceived(PushAlert alert)
         {
-            UpdateIconFromAlert(alert);
+            SetServerStatus(alert.ServerId, alert.Status);
+            UpdateTrayIcon();
             ShowNotification(alert);
         }
 
-        private void UpdateIconFromAlert(PushAlert alert)
+        // ---------------------------------------------
+        //  ? NOUVEAU : gestion priorité des icônes
+        // ---------------------------------------------
+        private void SetServerStatus(string serverId, string status)
         {
-            var icon = alert.Status switch
+            if (string.IsNullOrEmpty(serverId)) return;
+            lock (_statusLock) _serverStatuses[serverId] = string.IsNullOrEmpty(status) ? "ok" : status;
+        }
+
+        /// <summary>
+        /// Calcule l'état global en respectant l'ordre de priorité :
+        /// critical > warning > tous online > offline (fallback icône app).
+        /// </summary>
+        private string ComputeWorstState()
+        {
+            lock (_statusLock)
+            {
+                if (_serverStatuses.Count == 0) return "ok";
+
+                // P1 : Critique
+                if (_serverStatuses.Values.Any(s => s == "critical")) return "critical";
+
+                // P2 : Warning
+                if (_serverStatuses.Values.Any(s => s == "warning")) return "warning";
+
+                // P3 : Tous online (aucun offline)
+                if (!_serverStatuses.Values.Any(s => s == "offline")) return "ok";
+
+                // P4 : Fallback (au moins un serveur offline)
+                return "offline";
+            }
+        }
+
+        /// <summary>
+        /// Applique l'icône et le tooltip en fonction de l'état global recalculé.
+        /// </summary>
+        private void UpdateTrayIcon()
+        {
+            string worst = ComputeWorstState();
+            _globalState = worst;
+
+            var icon = worst switch
             {
                 "critical" => _iconCritical,
                 "warning"  => _iconWarning,
-                "offline"  => _iconOffline,
-                _          => _iconOk
+                "ok"       => _iconOk,
+                _          => _iconOffline
             };
 
             _trayIcon.Icon = icon;
 
-            _trayIcon.Text = alert.Status switch
+            int total, offline;
+            lock (_statusLock)
             {
-                "critical" => $"MCEMonitorClient - CRITIQUE : {alert.ServerName}",
-                "warning"  => $"MCEMonitorClient - Alerte : {alert.ServerName}",
-                "offline"  => $"MCEMonitorClient - Hors ligne : {alert.ServerName}",
-                _          => $"MCEMonitorClient - OK : {alert.ServerName}"
+                total = _serverStatuses.Count;
+                offline = _serverStatuses.Values.Count(s => s == "offline");
+            }
+            int online = total - offline;
+
+            _trayIcon.Text = worst switch
+            {
+                "critical" => $"MCEMonitorClient - CRITIQUE ({online}/{total} en ligne)",
+                "warning"  => $"MCEMonitorClient - Alerte ({online}/{total} en ligne)",
+                "offline"  => $"MCEMonitorClient - Hors ligne ({online}/{total} en ligne)",
+                _          => $"MCEMonitorClient - OK ({online}/{total} en ligne)"
             };
         }
 
@@ -197,47 +276,38 @@ namespace MCEMonitorClient.Tray
                 bool isWarning  = false;
                 bool isOffline  = false;
 
-                // --- Cas 1 : retour à la normale ---
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok")
                 {
                     title = $"{alert.ServerName} - Retour à la normale";
                     message = "Le serveur est de nouveau joignable";
                 }
-                // --- Cas 2 : serveur hors ligne ---
                 else if (alert.Status == "offline")
                 {
                     title = $"{alert.ServerName} - Hors ligne";
                     message = "Le serveur ne répond plus";
-                    isOffline = true;   // ? son système "Device Disconnect"
+                    isOffline = true;
                 }
-                // --- Cas 3 : problèmes détectés ---
                 else if (alert.Problems != null && alert.Problems.Count > 0)
                 {
                     int count = alert.Problems.Count;
-
                     title = count == 1
                         ? $"{alert.ServerName} - 1 problème détecté"
                         : $"{alert.ServerName} - {count} problèmes détectés";
 
                     var lines = new List<string>();
                     int maxShown = 3;
-
                     for (int i = 0; i < Math.Min(count, maxShown); i++)
                     {
                         var p = alert.Problems[i];
                         string prefix = p.Severity == "critical" ? "[CRIT]" : "[WARN]";
                         lines.Add($"{prefix} {p.Message}");
                     }
-
-                    if (count > maxShown)
-                        lines.Add($"... et {count - maxShown} autre(s)");
-
+                    if (count > maxShown) lines.Add($"... et {count - maxShown} autre(s)");
                     message = string.Join("\n", lines);
 
-                    if (alert.Status == "critical")      isCritical = true;
-                    else if (alert.Status == "warning")  isWarning  = true;
+                    if (alert.Status == "critical")     isCritical = true;
+                    else if (alert.Status == "warning") isWarning  = true;
                 }
-                // --- Cas 4 : changement générique ---
                 else
                 {
                     title = $"{alert.ServerName} - Changement d'état";
@@ -247,16 +317,13 @@ namespace MCEMonitorClient.Tray
                 }
 
                 string iconFile = GetAlertIcon(alert);
-
-                // On rend le toast silencieux dès qu'on joue un son nous-mêmes
                 bool silent = isCritical || isWarning || isOffline;
 
                 ToastHelper.Show(title, message, iconFile, alert.BaseUrl, silent);
 
-                // Choix du son
-                if (isCritical)       PlayAlarm();
-                else if (isWarning)   PlayWarning();
-                else if (isOffline)   PlaySystemSound("DeviceDisconnect");
+                if (isCritical)     PlayAlarm();
+                else if (isWarning) PlayWarning();
+                else if (isOffline) PlaySystemSound("DeviceDisconnect");
             }
             catch (Exception ex)
             {
@@ -270,10 +337,8 @@ namespace MCEMonitorClient.Tray
             {
                 try
                 {
-                    if (_alarmPlayer != null)
-                        _alarmPlayer.PlaySync();
-                    else
-                        Console.Beep(2200, 250);
+                    if (_alarmPlayer != null) _alarmPlayer.PlaySync();
+                    else Console.Beep(2200, 250);
                 }
                 catch { }
             });
@@ -285,10 +350,8 @@ namespace MCEMonitorClient.Tray
             {
                 try
                 {
-                    if (_warningPlayer != null)
-                        _warningPlayer.PlaySync();
-                    else
-                        Console.Beep(1200, 200);
+                    if (_warningPlayer != null) _warningPlayer.PlaySync();
+                    else Console.Beep(1200, 200);
                 }
                 catch { }
             });
@@ -306,6 +369,7 @@ namespace MCEMonitorClient.Tray
             _ = RefreshFromServiceAsync();
         }
 
+        // ? MODIFIÉ : reconstruit la map des statuts puis recalcule l'icône
         private async Task RefreshFromServiceAsync()
         {
             try
@@ -313,31 +377,26 @@ namespace MCEMonitorClient.Tray
                 var state = await ServiceIpcClient.GetStateAsync();
                 if (state == null) return;
 
-                _globalState = state.GlobalState;
-
-                // Met à jour l'icône selon l'état global
-                var icon = state.GlobalState switch
+                // Reconstruit la map ServerId ? status (source de vérité)
+                var newStatuses = new Dictionary<string, string>();
+                foreach (var s in state.Servers)
                 {
-                    "critical" => _iconCritical,
-                    "warning"  => _iconWarning,
-                    "offline"  => _iconOffline,
-                    _          => _iconOk
-                };
+                    string st = !s.Online
+                        ? "offline"
+                        : (string.IsNullOrEmpty(s.Status) ? "ok" : s.Status);
+                    newStatuses[s.ServerId] = st;
+                }
 
-                _trayIcon.Icon = icon;
-
-                int online = state.Servers.Count(s => s.Online);
-                int total = state.Servers.Count;
-
-                _trayIcon.Text = state.GlobalState switch
+                lock (_statusLock)
                 {
-                    "critical" => $"MCEMonitorClient - CRITIQUE ({online}/{total} en ligne)",
-                    "warning"  => $"MCEMonitorClient - Alerte ({online}/{total} en ligne)",
-                    "offline"  => $"MCEMonitorClient - Hors ligne ({online}/{total} en ligne)",
-                    _          => $"MCEMonitorClient - OK ({online}/{total} en ligne)"
-                };
+                    _serverStatuses.Clear();
+                    foreach (var kv in newStatuses) _serverStatuses[kv.Key] = kv.Value;
+                }
 
-                // ? Première fois qu'on récupère l'état ? on notifie les problèmes actuels
+                // Applique l'icône via la logique de priorité
+                UpdateTrayIcon();
+
+                // Première notif au démarrage (inchangé)
                 if (!_initialStateNotified)
                 {
                     _initialStateNotified = true;
@@ -348,7 +407,6 @@ namespace MCEMonitorClient.Tray
                         {
                             CoreLog.Write($"[INIT] Problème au démarrage : {server.ServerName} = {server.Status}");
 
-                            // Convertit PollResult en PushAlert pour réutiliser ShowNotification()
                             var alert = new PushAlert
                             {
                                 Type = "alert",
@@ -357,7 +415,7 @@ namespace MCEMonitorClient.Tray
                                 ServiceType = server.ServiceType,
                                 BaseUrl = server.BaseUrl,
                                 Status = server.Status,
-                                PreviousStatus = "unknown",   // pas "ok" ? ShowNotification va notifier
+                                PreviousStatus = "unknown",
                                 ProblemCount = server.ProblemCount,
                                 FirstProblem = server.FirstProblem,
                                 Problems = server.Problems?
@@ -459,54 +517,41 @@ namespace MCEMonitorClient.Tray
             {
                 CoreLog.Write("Tray en cours d'arrêt...");
 
-                // 1. Arrête le listener push
                 _pushListener.Stop();
                 _pollTimer?.Stop();
 
-                // 2. Envoie "shutdown" au Service via IPC
                 try
                 {
                     using var client = new System.IO.Pipes.NamedPipeClientStream(
                         ".", "MCEMonitor_ClientPipe", System.IO.Pipes.PipeDirection.InOut);
-
                     client.Connect(1000);
-
                     using var writer = new System.IO.StreamWriter(client);
                     writer.WriteLine("shutdown");
                     writer.Flush();
-
                     System.Threading.Thread.Sleep(800);
                 }
                 catch { }
 
-                // 3. Attend que le Service s'arrête (max 5s)
                 for (int i = 0; i < 50; i++)
                 {
-                    if (Process.GetProcessesByName("MCEMonitorClient.Service").Length == 0)
-                        break;
-
+                    if (Process.GetProcessesByName("MCEMonitorClient.Service").Length == 0) break;
                     System.Threading.Thread.Sleep(100);
                 }
 
-                // 4. Si le Service tourne encore ? kill
                 foreach (var p in Process.GetProcessesByName("MCEMonitorClient.Service"))
                 {
                     try { p.Kill(); } catch { }
                 }
 
-                // 5. Ferme le Tray
                 _trayIcon.Visible = false;
                 _trayIcon.Dispose();
 
                 CoreLog.Write("Tray quitté");
-
                 Application.Exit();
             }
             catch (Exception ex)
             {
                 CoreLog.Write("Exit ERROR : " + ex.Message);
-
-                // Fallback : on force la sortie
                 try
                 {
                     foreach (var p in Process.GetProcessesByName("MCEMonitorClient.Service"))
@@ -515,7 +560,6 @@ namespace MCEMonitorClient.Tray
                     }
                 }
                 catch { }
-
                 Application.Exit();
             }
         }
@@ -529,7 +573,6 @@ namespace MCEMonitorClient.Tray
 
             try
             {
-                // Ignore les arrêts de lecture audio (trop fréquent, pas utile)
                 if (media.EventType == "stopped" && IsAudioType(media.MediaType))
                 {
                     CoreLog.Write("OnMediaReceived : arrêt audio ignoré");
@@ -538,31 +581,15 @@ namespace MCEMonitorClient.Tray
 
                 string iconFile = GetMediaIcon(media.MediaType, media.EventType);
 
-                if (media.EventType == "started")
+                if (media.EventType == "started" || media.EventType == "stopped")
                 {
-                    string title = $"{media.ServerName} - Lecture en cours";
+                    string title = media.EventType == "started"
+                        ? $"{media.ServerName} - Lecture en cours"
+                        : $"{media.ServerName} - Lecture terminée";
 
                     string info = "";
-                    if (!string.IsNullOrEmpty(media.Client))
-                        info += $"Depuis : {media.Client}\n";
-
+                    if (!string.IsNullOrEmpty(media.Client)) info += $"Depuis : {media.Client}\n";
                     info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
-
-                    if (media.Saison > 0 || media.Episode > 0)
-                        info += $"  ({media.Saison:00}x{media.Episode:00})";
-
-                    ToastHelper.Show(title, info, iconFile, media.BaseUrl);
-                }
-                else if (media.EventType == "stopped")
-                {
-                    string title = $"{media.ServerName} - Lecture terminée";
-
-                    string info = "";
-                    if (!string.IsNullOrEmpty(media.Client))
-                        info += $"Depuis : {media.Client}\n";
-
-                    info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
-
                     if (media.Saison > 0 || media.Episode > 0)
                         info += $"  ({media.Saison:00}x{media.Episode:00})";
 
@@ -574,13 +601,12 @@ namespace MCEMonitorClient.Tray
                 CoreLog.Write("OnMediaReceived ERROR : " + ex.Message);
             }
         }
-        
+
         private static string GetMediaIcon(string? mediaType, string eventType)
         {
             bool isStop = eventType == "stopped";
             string prefix = isStop ? "stop-" : "play-";
             string fallback = isStop ? "stop.png" : "play.png";
-
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
 
             string suffix = t switch
@@ -600,49 +626,28 @@ namespace MCEMonitorClient.Tray
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
             return t == "audio" || t == "music" || t == "musique";
         }
-        
+
         private static string GetAlertIcon(PushAlert alert)
         {
-            if (alert.Problems != null)
-            {
-                foreach (var p in alert.Problems)
-                    CoreLog.Write($"[ICON] Severity={p.Severity} Category='{p.Category}' Message='{p.Message}'");
-            }        
-            // Parcourt les problèmes : cherche le plus prioritaire
-            // On regarde les critiques d'abord, puis les warnings
-
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
-                // 1) Cherche un problème critique disque
+                // 1) Critique disque
                 foreach (var p in alert.Problems)
-                {
-                    if (p.Severity != "critical") continue;
-                    if (IsDiskProblem(p)) return "hdd-critical.png";
-                }
+                    if (p.Severity == "critical" && IsDiskProblem(p)) return "hdd-critical.png";
 
-                // 2) Cherche un problème critique CPU température
+                // 2) Critique CPU température
                 foreach (var p in alert.Problems)
-                {
-                    if (p.Severity != "critical") continue;
-                    if (IsCpuTempProblem(p)) return "cpu-temp.png";
-                }
+                    if (p.Severity == "critical" && IsCpuTempProblem(p)) return "cpu-temp.png";
 
-                // 3) Cherche un problème critique CPU surcharge
+                // 3) Critique CPU surcharge
                 foreach (var p in alert.Problems)
-                {
-                    if (p.Severity != "critical") continue;
-                    if (IsCpuProblem(p)) return "cpu-overload.png";
-                }
+                    if (p.Severity == "critical" && IsCpuProblem(p)) return "cpu-overload.png";
 
                 // 4) Warning disque
                 foreach (var p in alert.Problems)
-                {
-                    if (p.Severity != "warning") continue;
-                    if (IsDiskProblem(p)) return "hdd-warning.png";
-                }
+                    if (p.Severity == "warning" && IsDiskProblem(p)) return "hdd-warning.png";
             }
 
-            // Fallback : icônes génériques selon l'état global
             return alert.Status switch
             {
                 "critical" => "critical.png",
@@ -656,38 +661,26 @@ namespace MCEMonitorClient.Tray
         {
             string cat = (p.Category ?? "").ToLowerInvariant();
             string msg = (p.Message ?? "").ToLowerInvariant();
-
-            return cat.Contains("disk")
-                || cat.Contains("smart")
-                || cat.Contains("hdd")
-                || cat.Contains("ssd")
-                || cat.Contains("storage")
-                || msg.Contains("disk")
-                || msg.Contains("disque")
-                || msg.Contains("smart")
-                || msg.Contains("hdd");
+            return cat.Contains("disk") || cat.Contains("smart") || cat.Contains("hdd")
+                || cat.Contains("ssd")  || cat.Contains("storage")
+                || msg.Contains("disk") || msg.Contains("disque") || msg.Contains("smart") || msg.Contains("hdd");
         }
 
         private static bool IsCpuTempProblem(Ipc.ProblemItem p)
         {
             string cat = (p.Category ?? "").ToLowerInvariant();
             string msg = (p.Message ?? "").ToLowerInvariant();
-
             return (cat.Contains("cpu") && (cat.Contains("temp") || cat.Contains("thermal")))
                 || (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("chaud") || msg.Contains("°c")))
-                || cat.Contains("temperature")
-                || cat.Contains("thermal");
+                || cat.Contains("temperature") || cat.Contains("thermal");
         }
 
         private static bool IsCpuProblem(Ipc.ProblemItem p)
         {
             string cat = (p.Category ?? "").ToLowerInvariant();
             string msg = (p.Message ?? "").ToLowerInvariant();
-
-            return cat.Contains("cpu")
-                || cat.Contains("processor")
-                || msg.Contains("cpu")
-                || msg.Contains("processeur");
-        }                
+            return cat.Contains("cpu") || cat.Contains("processor")
+                || msg.Contains("cpu") || msg.Contains("processeur");
+        }
     }
 }
