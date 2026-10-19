@@ -218,6 +218,54 @@
     .action-btn.danger:hover { background: #e64d1a; }
     .action-btn.secondary { background: #444; }
     .action-btn.secondary:hover { background: #555; }
+    
+    /* ============================================================ */
+    /*  Tableaux scrollables (hauteur max + entêtes figés)          */
+    /* ============================================================ */
+    .table-wrapper {
+        max-height: 350px;      /* ajustez : 250 = compact, 500 = large */
+        overflow-y: auto;
+        overflow-x: hidden;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        margin-top: 10px;
+    }
+
+    /* La table perd sa bordure propre : le wrapper la porte */
+    .table-wrapper table {
+        margin-top: 0;
+        border: none;
+        border-radius: 0;
+    }
+
+    /* Entêtes figés lors du scroll */
+    .table-wrapper thead th {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #2d2d30;
+        box-shadow: 0 1px 0 #3c3c3c;
+    }
+
+    /* Scrollbar sombre cohérente avec le thème */
+    .table-wrapper::-webkit-scrollbar {
+        width: 10px;
+    }
+    .table-wrapper::-webkit-scrollbar-track {
+        background: #1e1e1e;
+        border-radius: 6px;
+    }
+    .table-wrapper::-webkit-scrollbar-thumb {
+        background: #4a4a4d;
+        border-radius: 5px;
+        border: 2px solid #1e1e1e;
+    }
+    .table-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #5a5a5e;
+    }
+    .table-wrapper::-webkit-scrollbar-thumb:active {
+        background: #4cc2ff;
+    }    
 </style>
 
 </head>
@@ -264,17 +312,19 @@
         🚫 {{tr:Bloquer l'IP sélectionnée}}
     </button>
 </div>
-<table>
-    <thead>
-        <tr>
-            <th style="width:30px"></th>
-            <th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{ActiveRows}}
-    </tbody>
-</table>
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px"></th>
+                <th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ActiveRows}}
+        </tbody>
+    </table>
+</div>
 
 <h2>
     <span style="font-size:20px">🛡</span>
@@ -285,48 +335,54 @@
         🔓 {{tr:Débloquer l'IP sélectionnée}}
     </button>
 </div>
-<table>
-    <thead>
-        <tr>
-            <th style="width:30px"></th>
-            <th>{{tr:Date}}</th><th>{{tr:IP}}</th><th>{{tr:Détecteur}}</th><th>{{tr:Raison}}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{BlockedRows}}
-    </tbody>
-</table>
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px"></th>
+                <th>{{tr:Date}}</th><th>{{tr:IP}}</th><th>{{tr:Détecteur}}</th><th>{{tr:Raison}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{BlockedRows}}
+        </tbody>
+    </table>
+</div>
 
 <h2>
     <span style="font-size:20px">📜</span>
     {{tr:Historique des Intrusions}}
 </h2>
-<table>
-    <thead>
-        <tr><th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th></tr>
-    </thead>
-    <tbody>
-        {{HistoryRows}}
-    </tbody>
-</table>
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr><th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th></tr>
+        </thead>
+        <tbody>
+            {{HistoryRows}}
+        </tbody>
+    </table>
+</div>
 
 <h2>
     <span style="font-size:20px">🛡</span>
     {{tr:Alertes ignorées (IP de confiance)}} - {{AuditCount}}
 </h2>
-<table>
-    <thead>
-        <tr>
-            <th>{{tr:Date}}</th>
-            <th>{{tr:Détecteur}}</th>
-            <th>{{tr:IP}}</th>
-            <th>{{tr:Message}}</th>
-        </tr>
-    </thead>
-    <tbody>
-        {{AuditRows}}
-    </tbody>
-</table>
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th>{{tr:Date}}</th>
+                <th>{{tr:Détecteur}}</th>
+                <th>{{tr:IP}}</th>
+                <th>{{tr:Message}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{AuditRows}}
+        </tbody>
+    </table>
+</div>
 
 <div class="footer">
     {{tr:NetMonitor - Généré à}} {{LastUpdate}}
