@@ -488,7 +488,10 @@ namespace NetMonitor.UI
                     "MCEMonitor", "NetMonitor.config");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-
+                
+                // Préserve IpLookupUrl existant (pas configurable depuis l'UI pour l'instant)
+                string currentIpLookupUrl = LoadIpLookupUrl();
+                
                 double jitterPct = 5;
                 if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
 
@@ -543,7 +546,10 @@ namespace NetMonitor.UI
                     $"WebEnabled={webEnabled}",
                     $"WebPort={webPort}",
                     $"WebUsername={webLogin}",
-                    $"WebPassword={webPass}"
+                    $"WebPassword={webPass}",
+                    "",
+                    "# --- Recherche d'IP (lien externe) ---",
+                    $"IpLookupUrl={currentIpLookupUrl}"                    
                 };
 
                 File.WriteAllLines(configPath, lines);
@@ -756,6 +762,58 @@ namespace NetMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message);
             }
         }
+        
+        // ------------------------------------------------------------
+        //  Lookup IP : ouvre AbuseIPDB (ou l'URL configurée)
+        // ------------------------------------------------------------
+        private void LookupIp_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn) return;
+            string? ip = btn.Tag as string;
+            if (string.IsNullOrWhiteSpace(ip)) return;
+
+            try
+            {
+                string template = LoadIpLookupUrl();
+                string url = template.Replace("{ip}", Uri.EscapeDataString(ip));
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // Lit IpLookupUrl depuis NetMonitor.config (fallback AbuseIPDB)
+        private static string LoadIpLookupUrl()
+        {
+            const string fallback = "https://www.abuseipdb.com/check/{ip}";
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "NetMonitor.config");
+
+                if (!File.Exists(configPath)) return fallback;
+
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    if (line.StartsWith("IpLookupUrl=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string val = line.Substring("IpLookupUrl=".Length).Trim();
+                        if (!string.IsNullOrWhiteSpace(val)) return val;
+                    }
+                }
+            }
+            catch { }
+            return fallback;
+        }        
     }
 
     // ============================================================

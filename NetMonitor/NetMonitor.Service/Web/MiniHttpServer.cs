@@ -125,10 +125,32 @@ namespace NetMonitor.Service.Web
                         return;
                     }
 
-                    bool ok = _engine.BlockIp(ip, out string error);
+                    // Enrichit avec les infos de l'alerte active correspondante
+                    // (prend la plus sévère, puis la plus récente en cas d'égalité)
+                    string? source  = null;
+                    string? message = null;
+                    string? details = null;
+
+                    var matching = _engine.GetActiveIntrusions()
+                        .Where(a => string.Equals(a.RemoteIp, ip, StringComparison.OrdinalIgnoreCase))
+                        .OrderByDescending(a => (int)a.Severity)
+                        .ThenByDescending(a => a.Timestamp)
+                        .FirstOrDefault();
+
+                    if (matching != null)
+                    {
+                        source  = matching.Source;
+                        message = matching.Message;
+                        details = matching.Details;
+                    }
+
+                    bool ok = _engine.BlockIp(ip, out string error, source, message, details);
                     CoreLog.Write(ok
-                        ? $"WebServer : IP {ip} bloquée"
+                        ? $"WebServer : IP {ip} bloquée" + (matching != null
+                            ? $" (source={source})"
+                            : " (aucune alerte active — champs vides)")
                         : $"WebServer : échec blocage {ip} — {error}");
+
                     Redirect(ctx);
                 }
                 else if (path == "/unblock-ip" && ctx.Request.HttpMethod == "POST")

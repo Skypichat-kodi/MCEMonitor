@@ -235,8 +235,18 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
+        <!-- Fond sombre -->
         <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
-        <Rectangle Grid.RowSpan="3" Opacity="0.83" Fill="#1E1E1E"/>
+
+        <!-- Overlay background (image) -->
+        <Rectangle Grid.RowSpan="3">
+            <Rectangle.Fill>
+                <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- Voile sombre pour la lisibilité -->
+        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
 
         <!-- BARRE TITRE -->
         <Grid Grid.Row="0" Margin="15,12,15,8">
@@ -328,6 +338,35 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
+                                
+                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Click="LookupIp_Click"
+                                                    Tag="{Binding RemoteIp}"
+                                                    Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Padding="0">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                
                                 <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -360,6 +399,35 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"        Binding="{Binding Ip}" Width="140"/>
+                                
+                            <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Click="LookupIp_Click"
+                                                Tag="{Binding Ip}"
+                                                Cursor="Hand"
+                                                ToolTip="Voir les informations sur cette IP"
+                                                Padding="0">
+                                            <Button.Style>
+                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                    <Setter Property="Background" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding Ip}" Value="{x:Null}">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding Ip}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Button.Style>
+                                            <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
+                                        </Button>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>                            
+                                
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Raison'}"    Binding="{Binding Message}" Width="*"/>
                             </DataGrid.Columns>
@@ -395,6 +463,35 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
+                                
+                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Click="LookupIp_Click"
+                                                    Tag="{Binding RemoteIp}"
+                                                    Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Padding="0">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>                                
+                                
                                 <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>
@@ -428,6 +525,35 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}"     Binding="{Binding TimestampText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
+                                
+                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Click="LookupIp_Click"
+                                                    Tag="{Binding RemoteIp}"
+                                                    Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Padding="0">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding RemoteIp}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>                                
+                                                               
                                 <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
                             </DataGrid.Columns>
                         </DataGrid>                        

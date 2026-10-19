@@ -265,7 +265,31 @@
     }
     .table-wrapper::-webkit-scrollbar-thumb:active {
         background: #4cc2ff;
-    }    
+    } 
+
+    /* ============================================================ */
+    /*  Badge ℹ de lookup IP (AbuseIPDB)                            */
+    /* ============================================================ */
+    .ip-info {
+        display: inline-block;
+        margin-left: 4px;
+        padding: 1px 5px;
+        font-size: 11px;
+        font-weight: bold;
+        color: #4CC2FF;
+        text-decoration: none;
+        border: 1px solid #4CC2FF;
+        border-radius: 8px;
+        line-height: 1;
+        transition: background 0.15s ease, color 0.15s ease;
+        vertical-align: middle;
+    }
+
+    .ip-info:hover {
+        background: #4CC2FF;
+        color: #1e1e1e;
+        text-decoration: none;
+    }       
 </style>
 
 </head>
@@ -317,7 +341,12 @@
         <thead>
             <tr>
                 <th style="width:30px"></th>
-                <th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th>
+                <th>{{tr:Date}}</th>
+                <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Détecteur}}</th>
+                <th>{{tr:IP}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
+                <th>{{tr:Message}}</th>
             </tr>
         </thead>
         <tbody>
@@ -340,7 +369,11 @@
         <thead>
             <tr>
                 <th style="width:30px"></th>
-                <th>{{tr:Date}}</th><th>{{tr:IP}}</th><th>{{tr:Détecteur}}</th><th>{{tr:Raison}}</th>
+                <th>{{tr:Date}}</th>
+                <th>{{tr:IP}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
+                <th>{{tr:Détecteur}}</th>
+                <th>{{tr:Raison}}</th>
             </tr>
         </thead>
         <tbody>
@@ -356,7 +389,14 @@
 <div class="table-wrapper">
     <table>
         <thead>
-            <tr><th>{{tr:Date}}</th><th>{{tr:Sévérité}}</th><th>{{tr:Détecteur}}</th><th>{{tr:IP}}</th><th>{{tr:Message}}</th></tr>
+            <tr>
+                <th>{{tr:Date}}</th>
+                <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Détecteur}}</th>
+                <th>{{tr:IP}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
+                <th>{{tr:Message}}</th>
+            </tr>
         </thead>
         <tbody>
             {{HistoryRows}}
@@ -375,6 +415,7 @@
                 <th>{{tr:Date}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Message}}</th>
             </tr>
         </thead>

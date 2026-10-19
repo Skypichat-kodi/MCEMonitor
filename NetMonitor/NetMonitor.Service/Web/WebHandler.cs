@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -15,6 +15,10 @@ namespace NetMonitor.Service.Web
                 var blocked = engine.GetBlockedIps();
                 var history = engine.GetAlerts();
                 var audit = engine.GetAuditHistory();
+
+                string lookupUrl = string.IsNullOrWhiteSpace(settings.IpLookupUrl)
+                    ? "https://www.abuseipdb.com/check/{ip}"
+                    : settings.IpLookupUrl;
 
                 // --- Tableau 1 : Intrusions Actives ---
                 var activeRows = new System.Text.StringBuilder();
@@ -43,13 +47,14 @@ namespace NetMonitor.Service.Web
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td>{ipEnc}</td>
+                            <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
-                else activeRows.Append("<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                else activeRows.Append("<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
 
-                // --- Tableau 2 : IP BloquÈes ---
+                // --- Tableau 2 : IP Bloqu√©es ---
                 var blockedRows = new System.Text.StringBuilder();
                 if (blocked.Count > 0)
                 {
@@ -61,12 +66,13 @@ namespace NetMonitor.Service.Web
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td><b>{ipEnc}</b></td>
+                            <td class='info-cell'>{BuildIpInfoLink(b.Ip, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquÈe</td></tr>");
+                else blockedRows.Append("<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>Aucune IP bloqu√©e</td></tr>");
 
                 // --- Tableau 3 : Historique ---
                 var historyRows = new System.Text.StringBuilder();
@@ -82,13 +88,14 @@ namespace NetMonitor.Service.Web
                             <td><span class='badge {sevClass}'>{h.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
                             <td>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
+                            <td class='info-cell'>{BuildIpInfoLink(h.RemoteIp, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(h.Message)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit Whitelist ---
@@ -101,16 +108,17 @@ namespace NetMonitor.Service.Web
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
+                            <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
                             <td style='color:#888;'>{WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='4' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorÈe</td></tr>");
+                    auditRows.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignor√©e</td></tr>");
                 }
 
-                // --- ModËle ---
+                // --- Mod√®le ---
                 var model = new Dictionary<string, object?>
                 {
                     ["MachineName"]  = Environment.MachineName,
@@ -127,8 +135,6 @@ namespace NetMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("NetPage.html", model);
-
-                // Injection de la PeerBar
                 html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
 
                 return html;
@@ -138,6 +144,21 @@ namespace NetMonitor.Service.Web
                 CoreLog.Write("WebHandler ERROR : " + ex.Message);
                 return $"<html><body><h2>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
+        }
+
+        /// <summary>
+        /// Retourne le badge "i" cliquable qui ouvre la fiche AbuseIPDB de l'IP.
+        /// Pure ASCII ("i" + CSS) pour √©viter tout probl√®me d'encodage.
+        /// </summary>
+        private static string BuildIpInfoLink(string? ip, string lookupUrlTemplate)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return "";
+
+            string url = lookupUrlTemplate.Replace("{ip}", Uri.EscapeDataString(ip));
+            string urlEnc = WebUtility.HtmlEncode(url);
+
+            return $"<a href='{urlEnc}' target='_blank' rel='noopener noreferrer' " +
+                   $"class='ip-info' title='Voir les informations sur cette IP (AbuseIPDB)'>i</a>";
         }
     }
 }

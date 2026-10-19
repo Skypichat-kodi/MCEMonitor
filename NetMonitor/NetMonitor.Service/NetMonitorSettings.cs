@@ -33,6 +33,11 @@ namespace NetMonitor.Service
         public string WebPassword { get; set; } = "changeme";
 
         // ============================================================
+        //  Recherche d'IP (lien externe vers un service d'analyse)
+        // ============================================================
+        public string IpLookupUrl { get; set; } = "https://www.abuseipdb.com/check/{ip}";
+
+        // ============================================================
         //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
@@ -61,7 +66,6 @@ namespace NetMonitor.Service
 
             try
             {
-                // 1. Chargement de la config principale (Détecteurs)
                 if (File.Exists(ConfigPath))
                 {
                     foreach (var line in File.ReadAllLines(ConfigPath))
@@ -87,11 +91,11 @@ namespace NetMonitor.Service
                             case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
                             case "BlacklistLevel": if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
                             case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu; break;
+                            case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) settings.IpLookupUrl = value; break;
                         }
                     }
                 }
 
-                // 2. Chargement de la config Web (priorité absolue)
                 if (File.Exists(WebConfigPath))
                 {
                     foreach (var line in File.ReadAllLines(WebConfigPath))
@@ -114,7 +118,7 @@ namespace NetMonitor.Service
                 }
                 else
                 {
-                    settings.SaveWeb(); // Crée le fichier s'il n'existe pas
+                    settings.SaveWeb();
                 }
             }
             catch (Exception ex)
@@ -125,9 +129,6 @@ namespace NetMonitor.Service
             return settings;
         }
 
-        // ============================================================
-        //  Sauvegarde Détecteurs
-        // ============================================================
         public void Save()
         {
             try
@@ -166,16 +167,16 @@ namespace NetMonitor.Service
                     "",
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={BlacklistLevel}",
-                    $"BlacklistLastUpdate={BlacklistLastUpdate:O}"
+                    $"BlacklistLastUpdate={BlacklistLastUpdate:O}",
+                    "",
+                    "# --- Recherche d'IP (lien externe) ---",
+                    $"IpLookupUrl={IpLookupUrl}"
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
             catch (Exception ex) { CoreLog.Write("Erreur Save NetMonitorSettings : " + ex.Message); }
         }
 
-        // ============================================================
-        //  Sauvegarde Web UNIQUEMENT
-        // ============================================================
         public void SaveWeb()
         {
             try
@@ -198,9 +199,6 @@ namespace NetMonitor.Service
             catch (Exception ex) { CoreLog.Write("Erreur SaveWeb NetMonitorSettings : " + ex.Message); }
         }
 
-        // ============================================================
-        //  Rechargement à chaud
-        // ============================================================
         public void Reload()
         {
             try
@@ -229,6 +227,7 @@ namespace NetMonitor.Service
                             case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
                             case "BlacklistLevel": if (int.TryParse(value, out int bl)) BlacklistLevel = bl; break;
                             case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu; break;
+                            case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) IpLookupUrl = value; break;
                         }
                     }
                 }

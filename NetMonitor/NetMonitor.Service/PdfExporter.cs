@@ -23,10 +23,10 @@ namespace NetMonitor.Service
             var page = document.AddPage();
             var gfx = XGraphics.FromPdfPage(page);
 
-            var fontTitle = new XFont("Arial", 20, XFontStyle.Bold);
-            var fontSub = new XFont("Arial", 12, XFontStyle.Regular);
+            var fontTitle  = new XFont("Arial", 20, XFontStyle.Bold);
+            var fontSub    = new XFont("Arial", 12, XFontStyle.Regular);
             var fontHeader = new XFont("Arial", 10, XFontStyle.Bold);
-            var fontText = new XFont("Arial", 9, XFontStyle.Regular);
+            var fontText   = new XFont("Arial", 9, XFontStyle.Regular);
 
             double y = 40;
             double margin = 40;
@@ -44,7 +44,7 @@ namespace NetMonitor.Service
             y += 15;
 
             gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 5;
+            y += 15;   // ? FIX : 5 ? 15 (marge suffisante pour éviter le chevauchement)
 
             foreach (var item in history.OrderByDescending(x => x.Timestamp).Take(30))
             {
@@ -72,7 +72,7 @@ namespace NetMonitor.Service
             gfx.DrawString($"IP Bloquées au pare-feu ({blocked.Count})", fontHeader, XBrushes.Black, new XPoint(margin, y));
             y += 15;
             gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 5;
+            y += 15;   // ? FIX : 5 ? 15
 
             foreach (var item in blocked.OrderByDescending(x => x.BlockedAt).Take(20))
             {
@@ -100,7 +100,7 @@ namespace NetMonitor.Service
             gfx.DrawString($"Alertes ignorées (IP de confiance) ({audit.Count})", fontHeader, XBrushes.Black, new XPoint(margin, y));
             y += 15;
             gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 5;
+            y += 15;   // ? FIX : 5 ? 15
 
             foreach (var item in audit.OrderByDescending(x => x.Timestamp).Take(20))
             {
