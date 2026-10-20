@@ -74,17 +74,16 @@ namespace NetMonitor.Service.Web
                 try
                 {
                     var ctx = _listener!.GetContext();
-                    ThreadPool.QueueUserWorkItem(_ => HandleRequest(ctx));
+                    _ = Task.Run(async () => await HandleRequestAsync(ctx));
                 }
                 catch
                 {
-                    if (_running)
-                        CoreLog.Write("WebServer : erreur dans ServerLoop");
+                    if (_running) CoreLog.Write("WebServer : erreur dans ServerLoop");
                 }
             }
         }
 
-        private void HandleRequest(HttpListenerContext ctx)
+        private async Task HandleRequestAsync(HttpListenerContext ctx)
         {
             try
             {
@@ -102,6 +101,18 @@ namespace NetMonitor.Service.Web
                 {
                     string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
                     SendHtml(ctx, html);
+                }
+                else if (path == "/stats")
+                {
+                    string html = await WebHandler.BuildStatsPageAsync(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
+                    SendHtml(ctx, html);
+                }
+                else if (path == "/api/stats")
+                {
+                    var stats = await _engine.GetStatsAsync();
+                    string json = System.Text.Json.JsonSerializer.Serialize(stats,
+                        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
+                    SendJson(ctx, json);
                 }
                 else if (path == "/clear-active")
                 {
@@ -216,7 +227,9 @@ namespace NetMonitor.Service.Web
                 {
                     ServeFavicon(ctx);
                 }
-                else if (path.StartsWith("/resources/icons/") || path.StartsWith("/resources/images/"))
+                else if (path.StartsWith("/resources/icons/") ||
+                         path.StartsWith("/resources/images/") ||
+                         path.StartsWith("/data/"))
                 {
                     ServeStaticFile(ctx, path);
                 }
@@ -307,10 +320,12 @@ namespace NetMonitor.Service.Web
                 string ext = Path.GetExtension(fullPath).ToLowerInvariant();
                 string contentType = ext switch
                 {
-                    ".png" => "image/png",
+                    ".png"     => "image/png",
                     ".jpg" or ".jpeg" => "image/jpeg",
-                    ".ico" => "image/x-icon",
-                    _ => "application/octet-stream"
+                    ".ico"     => "image/x-icon",
+                    ".json"    => "application/json",
+                    ".geojson" => "application/json",
+                    _          => "application/octet-stream"
                 };
 
                 byte[] data = File.ReadAllBytes(fullPath);

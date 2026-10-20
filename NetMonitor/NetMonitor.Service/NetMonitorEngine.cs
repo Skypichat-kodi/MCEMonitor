@@ -21,6 +21,7 @@ namespace NetMonitor.Service
         private readonly EtwConnectionWatcher _etw;
         
         private ThreatIntelService? _threatIntel;
+        private GeoIpService? _geoIp;
 
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
@@ -113,7 +114,8 @@ namespace NetMonitor.Service
         {
             _settings = settings;
             _context = new DetectorContext(settings);
-            _threatIntel = new ThreatIntelService(); // NOUVEAU : init ThreatIntel
+            _threatIntel = new ThreatIntelService();
+            _geoIp = new GeoIpService(settings.GeoIpProvider, settings.GeoIpEnabled, settings.ReverseDnsEnabled);
 
             _etw = new EtwConnectionWatcher();
             _etw.ConnectionOpened += OnConnectionOpened;
@@ -310,6 +312,18 @@ namespace NetMonitor.Service
                     _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
                 }
                 CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
+                
+                if (_geoIp != null)
+                {
+                    var distinctIps = _alerts
+                        .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
+                        .Select(a => a.RemoteIp!)
+                        .Distinct()
+                        .ToList();
+
+                    foreach (var ip in distinctIps)
+                        _geoIp.ResolveInBackground(ip);
+                }                
             }
             catch (Exception ex) { CoreLog.Warn($"LoadHistory : {ex.Message}"); }
         }
@@ -501,7 +515,10 @@ namespace NetMonitor.Service
                     if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0); // On garde les 500 dernières
                 }
                 SaveAudit();
-                
+
+                if (!string.IsNullOrWhiteSpace(evt.RemoteIp))
+                    _geoIp?.ResolveInBackground(evt.RemoteIp);
+                    
                 CoreLog.Debug($"[FILTRÉ] Alerte ignorée pour IP critique : {evt.RemoteIp} ({evt.Source})");
                 return; // On ne va pas plus loin (pas d'ajout à l'historique principal, pas d'email)
             }
@@ -601,8 +618,15 @@ namespace NetMonitor.Service
                 CoreLog.Write("Erreur envoi email alerte : " + ex.Message);
             }
         }
+        
+        public async Task<GlobalStats> GetStatsAsync(int topIps = 30, int topCountries = 15)
+        {
+            if (_geoIp == null)
+                _geoIp = new GeoIpService(_settings.GeoIpProvider, _settings.GeoIpEnabled, _settings.ReverseDnsEnabled);
+            return await StatsBuilder.BuildAsync(this, _geoIp, topIps, topCountries);
+        }        
     }
-
+    
     public class ProblemItem
     {
         public DateTime Timestamp { get; set; }

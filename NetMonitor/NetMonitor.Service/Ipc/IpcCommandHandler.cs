@@ -67,7 +67,8 @@ namespace NetMonitor.Service.Ipc
                 case "get-blocked":        HandleGetBlockedIps(server); break;
                 case "get-audit":          HandleGetAudit(server); break;
                 case "clear-audit":        HandleClearAudit(server); break;
-                case "export-pdf":         HandleExportPdf(server); break;                                                           
+                case "export-pdf":         HandleExportPdf(server); break;
+                case "get-stats":          HandleGetStats(server); break;                                                           
                 default:                   IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -404,6 +405,16 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleExportPdf : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                                
+        }
+        
+        private void HandleGetStats(NamedPipeServerStream server)
+        {
+            try
+            {
+                var stats = Task.Run(() => _engine.GetStatsAsync()).Result;
+                IpcResponse.Json(server, stats);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }                                        
     }
 }

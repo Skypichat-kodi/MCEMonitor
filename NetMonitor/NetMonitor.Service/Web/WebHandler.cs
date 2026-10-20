@@ -160,5 +160,105 @@ namespace NetMonitor.Service.Web
             return $"<a href='{urlEnc}' target='_blank' rel='noopener noreferrer' " +
                    $"class='ip-info' title='Voir les informations sur cette IP (AbuseIPDB)'>i</a>";
         }
+
+        // ============================================================
+        //  ⚠ NOUVEAU : page Statistiques
+        // ============================================================
+        public static async System.Threading.Tasks.Task<string> BuildStatsPageAsync(
+            NetMonitorEngine engine,
+            NetMonitorSettings settings,
+            string publicHost = "localhost")
+        {
+            try
+            {
+                var stats = await engine.GetStatsAsync();
+
+                // --- Tableau Top IPs ---
+                var ipRows = new System.Text.StringBuilder();
+                if (stats.TopIps.Count > 0)
+                {
+                    foreach (var item in stats.TopIps)
+                    {
+                        string sevClass = item.MaxSeverity == "Critical" ? "danger" :
+                                          item.MaxSeverity == "High" ? "danger" :
+                                          item.MaxSeverity == "Warning" ? "warning" : "ok";
+
+                        string country = string.IsNullOrEmpty(item.CountryCode)
+                            ? (item.Country ?? "")
+                            : $"{item.Country} ({item.CountryCode})";
+
+                        string detectors = string.Join(", ", item.Detectors);
+
+                        ipRows.Append($@"<tr>
+                            <td><b>{WebUtility.HtmlEncode(item.Ip)}</b></td>
+                            <td>{WebUtility.HtmlEncode(item.ReverseDns ?? "—")}</td>
+                            <td>{WebUtility.HtmlEncode(country)}</td>
+                            <td>{WebUtility.HtmlEncode(item.City ?? "")}</td>
+                            <td>{WebUtility.HtmlEncode(item.Isp ?? "")}</td>
+                            <td><span class='badge {sevClass}'>{item.MaxSeverity}</span></td>
+                            <td style='text-align:right'>{item.Count}</td>
+                            <td>{WebUtility.HtmlEncode(detectors)}</td>
+                            <td>{item.LastSeen.ToLocalTime():dd/MM HH:mm}</td>
+                        </tr>");
+                    }
+                }
+                else ipRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
+
+                // --- Tableau Pays ---
+                var countryRows = new System.Text.StringBuilder();
+                foreach (var c in stats.TopCountries)
+                {
+                    string code = string.IsNullOrEmpty(c.CountryCode) ? "" : $" ({c.CountryCode})";
+                    countryRows.Append($@"<tr>
+                        <td>{WebUtility.HtmlEncode(c.Country)}{code}</td>
+                        <td style='text-align:right'>{c.Count}</td>
+                        <td style='text-align:right'>{c.DistinctIps}</td>
+                    </tr>");
+                }
+                if (stats.TopCountries.Count == 0)
+                    countryRows.Append("<tr><td colspan='3' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
+
+                // --- Tableau Détecteurs ---
+                var detectorRows = new System.Text.StringBuilder();
+                foreach (var d in stats.TopDetectors)
+                {
+                    detectorRows.Append($@"<tr>
+                        <td>{WebUtility.HtmlEncode(d.Detector)}</td>
+                        <td style='text-align:right'>{d.Count}</td>
+                    </tr>");
+                }
+                if (stats.TopDetectors.Count == 0)
+                    detectorRows.Append("<tr><td colspan='2' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
+
+                string worstClass = stats.WorstSeverity == "critical" ? "danger"
+                                  : stats.WorstSeverity == "warning" ? "warning" : "ok";
+
+                // --- Modèle ---
+                var model = new Dictionary<string, object?>
+                {
+                    ["MachineName"]       = Environment.MachineName,
+                    ["GeneratedAt"]       = stats.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss"),
+                    ["TotalAlerts"]       = stats.TotalAlerts,
+                    ["DistinctIps"]       = stats.DistinctIps,
+                    ["DistinctCountries"] = stats.DistinctCountries,
+                    ["WorstSeverity"]     = stats.WorstSeverity,
+                    ["WorstClass"]        = worstClass,
+                    ["IpRows"]            = ipRows.ToString(),
+                    ["CountryRows"]       = countryRows.ToString(),
+                    ["DetectorRows"]      = detectorRows.ToString(),
+                    ["MapDataActive"]     = System.Text.Json.JsonSerializer.Serialize(stats.AlertsByCountryCodeActive),
+                    ["MapDataBlocked"]    = System.Text.Json.JsonSerializer.Serialize(stats.AlertsByCountryCodeBlocked)
+                };
+
+                string html = ViewRenderer.Render("Stats.html", model);
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                return html;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebHandler.BuildStatsPageAsync ERROR : " + ex.Message);
+                return $"<html><body><h2>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
+            }
+        }
     }
 }

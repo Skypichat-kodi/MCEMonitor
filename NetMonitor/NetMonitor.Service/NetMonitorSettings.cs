@@ -38,6 +38,13 @@ namespace NetMonitor.Service
         public string IpLookupUrl { get; set; } = "https://www.abuseipdb.com/check/{ip}";
 
         // ============================================================
+        //  Géolocalisation IP
+        // ============================================================
+        public bool GeoIpEnabled { get; set; } = true;
+        public string GeoIpProvider { get; set; } = "https://ipwho.is/{ip}";
+        public bool ReverseDnsEnabled { get; set; } = true;
+
+        // ============================================================
         //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
@@ -92,6 +99,9 @@ namespace NetMonitor.Service
                             case "BlacklistLevel": if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
                             case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu; break;
                             case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) settings.IpLookupUrl = value; break;
+                            case "GeoIpEnabled": if (bool.TryParse(value, out bool gi)) settings.GeoIpEnabled = gi; break;
+                            case "GeoIpProvider": if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
+                            case "ReverseDnsEnabled": if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                         }
                     }
                 }
@@ -170,7 +180,12 @@ namespace NetMonitor.Service
                     $"BlacklistLastUpdate={BlacklistLastUpdate:O}",
                     "",
                     "# --- Recherche d'IP (lien externe) ---",
-                    $"IpLookupUrl={IpLookupUrl}"
+                    $"IpLookupUrl={IpLookupUrl}",
+                    "",
+                    "# --- Géolocalisation IP ---",
+                    $"GeoIpEnabled={GeoIpEnabled.ToString().ToLower()}",
+                    $"GeoIpProvider={GeoIpProvider}",
+                    $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}"
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -228,6 +243,9 @@ namespace NetMonitor.Service
                             case "BlacklistLevel": if (int.TryParse(value, out int bl)) BlacklistLevel = bl; break;
                             case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu; break;
                             case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) IpLookupUrl = value; break;
+                            case "GeoIpEnabled": if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
+                            case "GeoIpProvider": if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
+                            case "ReverseDnsEnabled": if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
                         }
                     }
                 }
