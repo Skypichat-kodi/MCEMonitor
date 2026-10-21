@@ -21,39 +21,87 @@ namespace NetMonitor.Service.Web
                     ? "https://www.abuseipdb.com/check/{ip}"
                     : settings.IpLookupUrl;
 
-                // --- Tableau 1 : Intrusions Actives ---
+                // --- Tableau 1 : Intrusions Actives (groupées par IP) ---
                 var activeRows = new System.Text.StringBuilder();
                 if (active.Count > 0)
                 {
-                    foreach (var a in active.OrderByDescending(x => x.Timestamp).Take(50))
+                    // Groupe par IP (les événements sans IP restent isolés en bas)
+                    var grouped = active
+                        .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
+                        .GroupBy(a => a.RemoteIp!)
+                        .Select(g =>
+                        {
+                            var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
+                            var mostRecent = g.OrderByDescending(x => x.Timestamp).First();
+
+                            string detectorList = string.Join(", ",
+                                g.Select(x => x.Source).Distinct().OrderBy(x => x));
+
+                            return new
+                            {
+                                Ip        = g.Key,
+                                Count     = g.Count(),
+                                Severity  = mostSevere.Severity,
+                                Detectors = detectorList,
+                                FirstSeen = g.Min(x => x.Timestamp),
+                                LastSeen  = g.Max(x => x.Timestamp),
+                                Message   = mostRecent.Message
+                            };
+                        })
+                        .OrderByDescending(x => (int)x.Severity)
+                        .ThenByDescending(x => x.Count)
+                        .ThenByDescending(x => x.LastSeen)
+                        .Take(50)
+                        .ToList();
+
+                    foreach (var item in grouped)
+                    {
+                        string sevClass = item.Severity.ToString() == "Critical" ? "danger" :
+                                          item.Severity.ToString() == "High" ? "danger" :
+                                          item.Severity.ToString() == "Warning" ? "warning" : "ok";
+
+                        string ipEnc = WebUtility.HtmlEncode(item.Ip);
+
+                        string countClass = item.Count >= 10 ? "c10" :
+                                            item.Count >= 5  ? "c5"  :
+                                            item.Count >= 2  ? "c2"  : "c1";
+
+                        activeRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'active-sel')"">
+                            <td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>
+                            <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
+                            <td><span class='badge {sevClass}'>{item.Severity}</span></td>
+                            <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
+                            <td>{ipEnc}</td>
+                            <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
+                            <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
+                            <td>{WebUtility.HtmlEncode(item.Message)}</td>
+                        </tr>");
+                    }
+
+                    // Événements sans IP (cas rare)
+                    foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.RemoteIp))
+                                            .OrderByDescending(x => x.Timestamp).Take(20))
                     {
                         string sevClass = a.Severity.ToString() == "Critical" ? "danger" :
                                           a.Severity.ToString() == "High" ? "danger" :
                                           a.Severity.ToString() == "Warning" ? "warning" : "ok";
 
-                        bool hasIp = !string.IsNullOrWhiteSpace(a.RemoteIp);
-                        string ipEnc = WebUtility.HtmlEncode(a.RemoteIp ?? "");
-
-                        string radioCell = hasIp
-                            ? $"<td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>"
-                            : "<td></td>";
-
-                        string trAttrs = hasIp
-                            ? "class='selectable' onclick=\"rowClick(this, 'active-sel')\""
-                            : "";
-
-                        activeRows.Append($@"<tr {trAttrs}>
-                            {radioCell}
+                        activeRows.Append($@"<tr>
+                            <td></td>
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
-                            <td>{ipEnc}</td>
-                            <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
+                            <td></td>
+                            <td></td>
+                            <td class='count-cell'><span class='count-badge c1'>—</span></td>
                             <td>{WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
-                else activeRows.Append("<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                else
+                {
+                    activeRows.Append("<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                }
 
                 // --- Tableau 2 : IP Bloquées ---
                 var blockedRows = new System.Text.StringBuilder();

@@ -289,7 +289,71 @@
         background: #4CC2FF;
         color: #1e1e1e;
         text-decoration: none;
-    }       
+    }
+    
+    /* ============================================================ */
+    /*  Thème ROUGE : IP bloquées au pare-feu                       */
+    /* ============================================================ */
+    h2.h2-danger { color: #FF6347; }
+
+    .table-wrapper.theme-danger {
+        border-color: #6B2D1A;
+    }
+
+    .table-wrapper.theme-danger thead th {
+        background: #4A1F0F;
+        color: #FFC7B5;
+        box-shadow: 0 1px 0 #6B2D1A;
+    }
+
+    .table-wrapper.theme-danger tbody tr:nth-child(even) td { background: #2A1815; }
+    .table-wrapper.theme-danger tbody tr:nth-child(odd)  td { background: #231310; }
+    .table-wrapper.theme-danger tbody tr.selectable:hover td { background: #3A221B; }
+    .table-wrapper.theme-danger tbody tr.selected td { background: #6B2D1A !important; }
+
+    /* ============================================================ */
+    /*  Thème VERT : alertes ignorées (whitelist)                   */
+    /* ============================================================ */
+    h2.h2-success { color: #6CCB5F; }
+
+    .table-wrapper.theme-success {
+        border-color: #2E5A1A;
+    }
+
+    .table-wrapper.theme-success thead th {
+        background: #1F3A15;
+        color: #C0E0A8;
+        box-shadow: 0 1px 0 #2E5A1A;
+    }
+
+    .table-wrapper.theme-success tbody tr:nth-child(even) td { background: #1A2412; }
+    .table-wrapper.theme-success tbody tr:nth-child(odd)  td { background: #141F0D; }
+    
+    /* ============================================================ */
+    /*  Colonne Compteur (groupement par IP)                        */
+    /* ============================================================ */
+    .count-cell {
+        width: 60px;
+        text-align: center;
+    }
+
+    .count-badge {
+        display: inline-block;
+        min-width: 28px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 11px;
+        font-weight: bold;
+        text-align: center;
+        line-height: 1.3;
+        transition: background 0.15s ease;
+    }
+
+    .count-badge.c1  { background: #444;    color: #fff; }
+    .count-badge.c2  { background: #7a1e0f; color: #fff; }
+    .count-badge.c5  { background: #cc3300; color: #fff; }
+    .count-badge.c10 { background: #ff3300; color: #fff; box-shadow: 0 0 6px rgba(255,51,0,0.6); }
+                   
 </style>
 
 </head>
@@ -349,6 +413,7 @@
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
+                <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Message}}</th>
             </tr>
         </thead>
@@ -358,7 +423,7 @@
     </table>
 </div>
 
-<h2>
+<h2 class="h2-danger">
     <span style="font-size:20px">🛡</span>
     {{tr:IP Bloquées au Pare-feu}}
 </h2>
@@ -367,7 +432,7 @@
         🔓 {{tr:Débloquer l'IP sélectionnée}}
     </button>
 </div>
-<div class="table-wrapper">
+<div class="table-wrapper theme-danger">
     <table>
         <thead>
             <tr>
@@ -407,11 +472,11 @@
     </table>
 </div>
 
-<h2>
+<h2 class="h2-success">
     <span style="font-size:20px">🛡</span>
     {{tr:Alertes ignorées (IP de confiance)}} - {{AuditCount}}
 </h2>
-<div class="table-wrapper">
+<div class="table-wrapper theme-success">
     <table>
         <thead>
             <tr>
