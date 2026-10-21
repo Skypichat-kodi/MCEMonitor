@@ -352,5 +352,28 @@ namespace NetMonitor.Service.Web
                 sb.Append("<tr><td colspan='2' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
             return sb.ToString();
         }
+        
+        public static async System.Threading.Tasks.Task<string> BuildMapPageAsync(
+            NetMonitorEngine engine,
+            NetMonitorSettings settings)
+        {
+            try
+            {
+                var stats = await engine.GetStatsAsync();
+
+                var model = new Dictionary<string, object?>
+                {
+                    ["ActiveMapData"]  = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
+                    ["BlockedMapData"] = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode)
+                };
+
+                return ViewRenderer.Render("Map.html", model);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebHandler.BuildMapPageAsync ERROR : " + ex.Message);
+                return $"<html><body><h2 style='color:#FF6347;font-family:sans-serif'>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
+            }
+        }        
     }
 }

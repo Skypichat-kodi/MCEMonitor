@@ -9,22 +9,37 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
 using MCEMonitor.Languages;
+using System.Text;
+using Microsoft.Web.WebView2.Core;
 
 namespace NetMonitor.UI
 {
     public partial class MainWindow : Window
     {
-        private readonly ObservableCollection<AlertRow> _activeIntrusions = new();
+        private readonly ObservableCollection<GroupedAlertRow> _activeIntrusions = new();
         private readonly ObservableCollection<BlockedIpRow> _blockedIps = new();
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private readonly ObservableCollection<ConnectionRow> _connections = new();
-        private readonly ObservableCollection<AlertRow> _auditAlerts = new(); // NOUVEAU
+        private readonly ObservableCollection<AlertRow> _auditAlerts = new();
+        // --- Stats ---
+        private readonly ObservableCollection<StatsIpRow>        _statsActiveIps        = new();
+        private readonly ObservableCollection<StatsCountryRow>   _statsActiveCountries  = new();
+        private readonly ObservableCollection<StatsDetectorRow>  _statsActiveDetectors  = new();
+        private readonly ObservableCollection<StatsIpRow>        _statsBlockedIps       = new();
+        private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries = new();
+        private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors = new();
 
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
         private long _lastConfigSize = -1;
         private bool _loadingWebConfig = false;
+        private bool _mapInitialized = false;
+
+        // ⚠ NOUVEAU : hash pour éviter la reconstruction des intrusions actives
+        private string? _lastActiveHash;
+        // ⚠ NOUVEAU : offset du scroll global (ScrollViewer de l'onglet actif)
+        private double _lastGlobalScroll = 0;
 
         public MainWindow()
         {
@@ -51,11 +66,17 @@ namespace NetMonitor.UI
                 return;
             }
 
-            ActiveIntrusionsGrid.ItemsSource = _activeIntrusions;
-            BlockedIpsGrid.ItemsSource = _blockedIps;
-            AlertsHistoryGrid.ItemsSource = _alertsHistory;
-            ConnectionsGrid.ItemsSource = _connections;
-            AuditGrid.ItemsSource = _auditAlerts; // NOUVEAU
+            ActiveIntrusionsGrid.ItemsSource      = _activeIntrusions;
+            BlockedIpsGrid.ItemsSource            = _blockedIps;
+            AlertsHistoryGrid.ItemsSource         = _alertsHistory;
+            ConnectionsGrid.ItemsSource           = _connections;
+            AuditGrid.ItemsSource                 = _auditAlerts;
+            StatsActiveIpsGrid.ItemsSource        = _statsActiveIps;
+            StatsActiveCountriesGrid.ItemsSource  = _statsActiveCountries;
+            StatsActiveDetectorsGrid.ItemsSource  = _statsActiveDetectors;
+            StatsBlockedIpsGrid.ItemsSource       = _statsBlockedIps;
+            StatsBlockedCountriesGrid.ItemsSource = _statsBlockedCountries;
+            StatsBlockedDetectorsGrid.ItemsSource = _statsBlockedDetectors;
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
@@ -64,6 +85,8 @@ namespace NetMonitor.UI
             _ = RefreshSafe();
             LoadSettings();
             _ = LoadWebConfig();
+            _ = InitMapWebViewAsync();
+            _ = RefreshStatsAsync();
         }
 
         // ------------------------------------------------------------
@@ -78,8 +101,19 @@ namespace NetMonitor.UI
             {
                 CheckConfigFileChanged();
 
+                // ⚠ NOUVEAU : sauvegarde du scroll global (ScrollViewer de l'onglet actif)
+                _lastGlobalScroll = GetActiveTabScrollOffset();
+
+                // Sauvegarde des offsets de scroll des DataGrid
+                double activeOffset  = GetScrollOffset(ActiveIntrusionsGrid);
+                double blockedOffset = GetScrollOffset(BlockedIpsGrid);
+                double historyOffset = GetScrollOffset(AlertsHistoryGrid);
+                double auditOffset   = GetScrollOffset(AuditGrid);
+                double connsOffset   = GetScrollOffset(ConnectionsGrid);
+
                 // Statut
                 var status = await NetMonitorIpcClient.GetStatus();
+
                 if (status == null)
                 {
                     StatusText.Text = "Service NetMonitor non joignable";
@@ -96,25 +130,76 @@ namespace NetMonitor.UI
                         : "Surveillance arrêtée";
                 }
 
-                // ---- Tableau 1 : intrusions actives ----
+                // ---- Tableau 1 : intrusions actives (groupées par IP) ----
                 var active = await NetMonitorIpcClient.GetActiveIntrusions();
                 if (active != null)
                 {
-                    string? key = GetSelectedAlertKey(ActiveIntrusionsGrid);
-                    _activeIntrusions.Clear();
-                    foreach (var a in active.OrderByDescending(x => x.timestamp))
+                    // Ne reconstruire que si le contenu a changé (évite le flicker)
+                    var newHash = string.Join("|", active.Select(a => $"{a.remoteIp}:{a.timestamp:O}"));
+                    if (newHash != _lastActiveHash)
                     {
-                        _activeIntrusions.Add(new AlertRow
+                        _lastActiveHash = newHash;
+
+                        string? selectedIp = (ActiveIntrusionsGrid.SelectedItem as GroupedAlertRow)?.RemoteIp;
+
+                        _activeIntrusions.Clear();
+
+                        // Groupe par IP
+                        var grouped = active
+                            .Where(a => !string.IsNullOrWhiteSpace(a.remoteIp))
+                            .GroupBy(a => a.remoteIp!)
+                            .Select(g =>
+                            {
+                                var mostSevere = g.OrderByDescending(x => SeverityRank(x.severity)).First();
+                                var mostRecent = g.OrderByDescending(x => x.timestamp).First();
+
+                                return new GroupedAlertRow
+                                {
+                                    RemoteIp  = g.Key,
+                                    FirstSeen = g.Min(x => x.timestamp),
+                                    LastSeen  = g.Max(x => x.timestamp),
+                                    Severity  = mostSevere.severity ?? "Info",
+                                    Detectors = string.Join(", ", g.Select(x => x.source).Distinct().OrderBy(x => x)),
+                                    Message   = mostRecent.message ?? "",
+                                    Count     = g.Count()
+                                };
+                            })
+                            .OrderByDescending(x => SeverityRank(x.Severity))
+                            .ThenByDescending(x => x.Count)
+                            .ThenByDescending(x => x.LastSeen)
+                            .ToList();
+
+                        foreach (var row in grouped) _activeIntrusions.Add(row);
+
+                        // Événements sans IP (isolés en bas)
+                        foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.remoteIp))
+                                                .OrderByDescending(x => x.timestamp).Take(20))
                         {
-                            Timestamp = a.timestamp.ToLocalTime(),
-                            Severity = a.severity ?? "",
-                            Source = a.source ?? "",
-                            Message = a.message ?? "",
-                            Details = a.details,
-                            RemoteIp = a.remoteIp
-                        });
+                            _activeIntrusions.Add(new GroupedAlertRow
+                            {
+                                RemoteIp  = null,
+                                FirstSeen = a.timestamp,
+                                LastSeen  = a.timestamp,
+                                Severity  = a.severity ?? "Info",
+                                Detectors = a.source ?? "",
+                                Message   = a.message ?? "",
+                                Count     = 1
+                            });
+                        }
+
+                        // Restauration de la sélection (PAS de ScrollIntoView → le scroll reste où il est)
+                        if (!string.IsNullOrEmpty(selectedIp))
+                        {
+                            foreach (var item in _activeIntrusions)
+                            {
+                                if (item.RemoteIp == selectedIp)
+                                {
+                                    ActiveIntrusionsGrid.SelectedItem = item;
+                                    break;
+                                }
+                            }
+                        }
                     }
-                    RestoreAlertSelection(ActiveIntrusionsGrid, _activeIntrusions, key);
                 }
 
                 // ---- Tableau 2 : IP bloquées ----
@@ -202,6 +287,16 @@ namespace NetMonitor.UI
                 }
 
                 txtLastUpdate.Text = $"Mise à jour : {DateTime.Now:HH:mm:ss}";
+
+                // Restauration des offsets après le re-remplissage
+                RestoreScrollAsync(ActiveIntrusionsGrid, activeOffset);
+                RestoreScrollAsync(BlockedIpsGrid, blockedOffset);
+                RestoreScrollAsync(AlertsHistoryGrid, historyOffset);
+                RestoreScrollAsync(AuditGrid, auditOffset);
+                RestoreScrollAsync(ConnectionsGrid, connsOffset);
+
+                // Restauration du scroll global
+                RestoreActiveTabScroll(_lastGlobalScroll);
             }
             catch (Exception ex)
             {
@@ -212,6 +307,14 @@ namespace NetMonitor.UI
                 _isRefreshing = false;
             }
         }
+
+        private static int SeverityRank(string? severity) => severity switch
+        {
+            "Critical" => 3,
+            "High"     => 2,
+            "Warning"  => 1,
+            _          => 0
+        };
 
         // ------------------------------------------------------------
         //  Restauration des sélections (évite la perte au refresh)
@@ -232,8 +335,7 @@ namespace NetMonitor.UI
                 if ($"{item.Timestamp:O}|{item.Source}|{item.RemoteIp}|{item.Message}" == key)
                 {
                     grid.SelectedItem = item;
-                    grid.ScrollIntoView(item);
-                    return;
+                    return;   // ⚠ pas de ScrollIntoView → le scroll reste où il est
                 }
             }
         }
@@ -253,7 +355,6 @@ namespace NetMonitor.UI
                 if ($"{item.Ip}|{item.BlockedAt:O}" == key)
                 {
                     BlockedIpsGrid.SelectedItem = item;
-                    BlockedIpsGrid.ScrollIntoView(item);
                     return;
                 }
             }
@@ -274,7 +375,6 @@ namespace NetMonitor.UI
                 if ($"{item.Timestamp:O}|{item.LocalEndpoint}|{item.RemoteEndpoint}|{item.Pid}" == key)
                 {
                     ConnectionsGrid.SelectedItem = item;
-                    ConnectionsGrid.ScrollIntoView(item);
                     return;
                 }
             }
@@ -288,7 +388,7 @@ namespace NetMonitor.UI
 
         private async void BlockSelected_Click(object sender, RoutedEventArgs e)
         {
-            if (ActiveIntrusionsGrid.SelectedItem is not AlertRow row)
+            if (ActiveIntrusionsGrid.SelectedItem is not GroupedAlertRow row)
             {
                 MessageBox.Show(
                     "Sélectionnez d'abord une intrusion dans le tableau du haut.",
@@ -315,7 +415,7 @@ namespace NetMonitor.UI
             if (confirm != MessageBoxResult.Yes) return;
 
             var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
-                ip, row.Source, row.Message, row.Details);
+                ip, row.Severity, row.Message, null);
 
             if (ok)
             {
@@ -467,14 +567,14 @@ namespace NetMonitor.UI
 
                 if (cfg.ignoredNetworks != null && cfg.ignoredNetworks.Length > 0)
                     txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
-                
+
                 chkDisableFilters.IsChecked = cfg.disableFilters;
                 txtBlacklistLevel.Text = cfg.blacklistLevel.ToString();
-                
+
                 if (cfg.blacklistLastUpdate != DateTime.MinValue)
                     lblBlacklistLastUpdate.Text = $"Dernière MAJ : {cfg.blacklistLastUpdate.ToLocalTime():dd/MM/yyyy HH:mm}";
                 else
-                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";                
+                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
             }
             catch { }
         }
@@ -488,10 +588,10 @@ namespace NetMonitor.UI
                     "MCEMonitor", "NetMonitor.config");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
-                
+
                 // Préserve IpLookupUrl existant (pas configurable depuis l'UI pour l'instant)
                 string currentIpLookupUrl = LoadIpLookupUrl();
-                
+
                 double jitterPct = 5;
                 if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
 
@@ -549,7 +649,7 @@ namespace NetMonitor.UI
                     $"WebPassword={webPass}",
                     "",
                     "# --- Recherche d'IP (lien externe) ---",
-                    $"IpLookupUrl={currentIpLookupUrl}"                    
+                    $"IpLookupUrl={currentIpLookupUrl}"
                 };
 
                 File.WriteAllLines(configPath, lines);
@@ -603,7 +703,7 @@ namespace NetMonitor.UI
         {
             lblDisableFiltersWarning.Visibility = Visibility.Collapsed;
         }
-        
+
         // ------------------------------------------------------------
         //  Serveur Web
         // ------------------------------------------------------------
@@ -716,7 +816,7 @@ namespace NetMonitor.UI
                 MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
             }
         }
-        
+
         private void OpenLogs_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -762,7 +862,7 @@ namespace NetMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message);
             }
         }
-        
+
         // ------------------------------------------------------------
         //  Lookup IP : ouvre AbuseIPDB (ou l'URL configurée)
         // ------------------------------------------------------------
@@ -813,7 +913,236 @@ namespace NetMonitor.UI
             }
             catch { }
             return fallback;
-        }        
+        }
+
+        // ------------------------------------------------------------
+        //  Statistiques
+        // ------------------------------------------------------------
+        private async void RefreshStats_Click(object sender, RoutedEventArgs e)
+            => await RefreshStatsAsync();
+
+        private async Task RefreshStatsAsync()
+        {
+            try
+            {
+                txtStatsLastUpdate.Text = "Chargement...";
+
+                var stats = await NetMonitorIpcClient.GetStatsAsync();
+                if (stats == null)
+                {
+                    txtStatsLastUpdate.Text = "Service non joignable";
+                    return;
+                }
+
+                // --- Cartes globales ---
+                txtStatsTotalAlerts.Text       = stats.TotalAlerts.ToString();
+                txtStatsDistinctIps.Text       = stats.DistinctIps.ToString();
+                txtStatsDistinctCountries.Text = stats.DistinctCountries.ToString();
+
+                string worst = (stats.WorstSeverity ?? "ok").ToLowerInvariant();
+                txtStatsWorstSeverity.Text = worst switch
+                {
+                    "critical" => "CRITIQUE",
+                    "warning"  => "ALERTE",
+                    _          => "OK"
+                };
+                txtStatsWorstSeverity.Foreground = worst switch
+                {
+                    "critical" => new SolidColorBrush(Color.FromRgb(0xFF, 0x63, 0x47)),
+                    "warning"  => new SolidColorBrush(Color.FromRgb(0xFF, 0xB9, 0x00)),
+                    _          => new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F))
+                };
+
+                // --- Section Active ---
+                txtActiveSummary.Text = $"{stats.Active.TotalAlerts} alertes · " +
+                                        $"{stats.Active.DistinctIps} IPs · " +
+                                        $"{stats.Active.DistinctCountries} pays";
+
+                _statsActiveIps.Clear();
+                foreach (var ip in stats.Active.TopIps)
+                {
+                    _statsActiveIps.Add(new StatsIpRow
+                    {
+                        Ip = ip.Ip,
+                        CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
+                        SeverityDisplay = ip.MaxSeverity,
+                        Count = ip.Count,
+                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "—",
+                        LastSeen = ip.LastSeen.ToLocalTime()
+                    });
+                }
+
+                _statsActiveCountries.Clear();
+                foreach (var c in stats.Active.TopCountries)
+                {
+                    _statsActiveCountries.Add(new StatsCountryRow
+                    {
+                        CountryDisplay = BuildCountryDisplay(c.Country, c.CountryCode),
+                        Count = c.Count,
+                        DistinctIps = c.DistinctIps
+                    });
+                }
+
+                _statsActiveDetectors.Clear();
+                foreach (var d in stats.Active.TopDetectors)
+                    _statsActiveDetectors.Add(new StatsDetectorRow { Detector = d.Detector, Count = d.Count });
+
+                // --- Section Blocked ---
+                txtBlockedSummary.Text = $"{stats.Blocked.TotalAlerts} IPs · " +
+                                         $"{stats.Blocked.DistinctCountries} pays";
+
+                _statsBlockedIps.Clear();
+                foreach (var ip in stats.Blocked.TopIps)
+                {
+                    _statsBlockedIps.Add(new StatsIpRow
+                    {
+                        Ip = ip.Ip,
+                        CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
+                        Isp = string.IsNullOrWhiteSpace(ip.Isp) ? "—" : ip.Isp,
+                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "—",
+                        LastSeen = ip.LastSeen.ToLocalTime()
+                    });
+                }
+
+                _statsBlockedCountries.Clear();
+                foreach (var c in stats.Blocked.TopCountries)
+                {
+                    _statsBlockedCountries.Add(new StatsCountryRow
+                    {
+                        CountryDisplay = BuildCountryDisplay(c.Country, c.CountryCode),
+                        Count = c.Count,
+                        DistinctIps = c.DistinctIps
+                    });
+                }
+
+                _statsBlockedDetectors.Clear();
+                foreach (var d in stats.Blocked.TopDetectors)
+                    _statsBlockedDetectors.Add(new StatsDetectorRow { Detector = d.Detector, Count = d.Count });
+
+                txtStatsLastUpdate.Text = $"Dernière mise à jour : {stats.GeneratedAt.ToLocalTime():HH:mm:ss}";
+            }
+            catch (Exception ex)
+            {
+                txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
+            }
+
+            // Recharger la carte
+            if (_mapInitialized) MapWebView?.Reload();
+        }
+
+        private static string BuildCountryDisplay(string? country, string? code)
+        {
+            if (string.IsNullOrWhiteSpace(country)) return "—";
+            if (string.IsNullOrWhiteSpace(code)) return country;
+            return $"{country} ({code})";
+        }
+
+        private async Task InitMapWebViewAsync()
+        {
+            if (_mapInitialized) return;
+            if (MapWebView == null) return;
+
+            try
+            {
+                var status = await NetMonitorIpcClient.GetWebStatus();
+                if (status == null || !status.enabled) return;
+
+                int port = status.port;
+                string user = status.username ?? "";
+                string pass = status.password ?? "";
+
+                // Dossier user data persistant (évite les conflits si UI élevée)
+                string userDataFolder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MCEMonitor", "WebView2");
+                System.IO.Directory.CreateDirectory(userDataFolder);
+
+                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await MapWebView.EnsureCoreWebView2Async(env);
+
+                // Injecter Authorization: Basic pour toutes les requêtes vers localhost
+                string filter127 = $"http://127.0.0.1:{port}/*";
+                string filterLoc = $"http://localhost:{port}/*";
+                MapWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
+                MapWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
+
+                string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
+                MapWebView.CoreWebView2.WebResourceRequested += (s, e) =>
+                {
+                    try { e.Request.Headers.SetHeader("Authorization", "Basic " + credentials); }
+                    catch { }
+                };
+
+                // Settings sobres
+                MapWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                MapWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                MapWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+                MapWebView.Source = new Uri($"http://127.0.0.1:{port}/map");
+                _mapInitialized = true;
+
+                CoreLog.Write($"WebView2 : carte chargée sur port {port}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("InitMapWebView : " + ex.Message);
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  Préservation du scroll dans les DataGrid au refresh
+        // ------------------------------------------------------------
+        private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+            {
+                var child = VisualTreeHelper.GetChild(parent, i);
+                if (child is T typed) return typed;
+                var result = FindVisualChild<T>(child);
+                if (result != null) return result;
+            }
+            return null;
+        }
+
+        private static double GetScrollOffset(DataGrid grid)
+        {
+            var sv = FindVisualChild<ScrollViewer>(grid);
+            return sv?.VerticalOffset ?? 0;
+        }
+
+        private void RestoreScrollAsync(DataGrid grid, double offset)
+        {
+            if (offset <= 0) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var sv = FindVisualChild<ScrollViewer>(grid);
+                sv?.ScrollToVerticalOffset(offset);
+            }), DispatcherPriority.Loaded);
+        }
+
+        // ------------------------------------------------------------
+        //  Préservation du scroll global (ScrollViewer de l'onglet actif)
+        // ------------------------------------------------------------
+        private ScrollViewer? GetActiveTabScrollViewer()
+        {
+            // Le contenu direct d'un TabItem scrollable EST le ScrollViewer.
+            // Pas besoin de le nommer dans le XAML — SelectedContent le récupère directement.
+            return MainTabControl.SelectedContent as ScrollViewer;
+        }
+
+        private double GetActiveTabScrollOffset()
+        {
+            return GetActiveTabScrollViewer()?.VerticalOffset ?? 0;
+        }
+
+        private void RestoreActiveTabScroll(double offset)
+        {
+            if (offset <= 0) return;
+            Dispatcher.BeginInvoke(new Action(() =>
+            {
+                GetActiveTabScrollViewer()?.ScrollToVerticalOffset(offset);
+            }), DispatcherPriority.Loaded);
+        }
     }
 
     // ============================================================
@@ -850,5 +1179,53 @@ namespace NetMonitor.UI
         public string RemoteEndpoint { get; set; } = "";
         public int Pid { get; set; }
         public string ProcessName { get; set; } = "";
+    }
+
+    // ============================================================
+    //  ViewModels — Intrusions actives groupées
+    // ============================================================
+    public class GroupedAlertRow
+    {
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+        public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string Severity { get; set; } = "";
+        public string Detectors { get; set; } = "";
+        public string? RemoteIp { get; set; }
+        public string Message { get; set; } = "";
+        public int Count { get; set; }
+
+        public string CountClass => Count >= 10 ? "c10" :
+                                     Count >= 5  ? "c5"  :
+                                     Count >= 2  ? "c2"  : "c1";
+    }
+
+    // ============================================================
+    //  ViewModels — Statistiques
+    // ============================================================
+    public class StatsIpRow
+    {
+        public string Ip { get; set; } = "";
+        public string CountryDisplay { get; set; } = "—";
+        public string Isp { get; set; } = "—";
+        public string SeverityDisplay { get; set; } = "ok";
+        public int Count { get; set; }
+        public string DetectorsDisplay { get; set; } = "—";
+        public DateTime LastSeen { get; set; }
+        public string LastSeenText => LastSeen.ToString("dd/MM HH:mm");
+    }
+
+    public class StatsCountryRow
+    {
+        public string CountryDisplay { get; set; } = "";
+        public int Count { get; set; }
+        public int DistinctIps { get; set; }
+    }
+
+    public class StatsDetectorRow
+    {
+        public string Detector { get; set; } = "";
+        public int Count { get; set; }
     }
 }

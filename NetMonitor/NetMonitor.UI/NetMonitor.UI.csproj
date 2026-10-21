@@ -24,5 +24,9 @@
     <Resource Include="Resources\Icons\*.png" />
     <Resource Include="Resources\Images\*.png" />
   </ItemGroup>
+  
+  <ItemGroup>
+      <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.2792.45" />
+  </ItemGroup>  
 
 </Project>

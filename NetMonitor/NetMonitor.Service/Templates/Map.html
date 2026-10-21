@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        html, body {
+            margin: 0; padding: 0;
+            background: #1e1e1e;
+            font-family: Segoe UI, Arial, sans-serif;
+            color: #e5e5e5;
+            height: 100%;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+            height: 100vh;
+        }
+        .card {
+            background: #252526;
+            border: 1px solid #3c3c3c;
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        .card.active  { border-left: 3px solid #FF6347; }
+        .card.blocked { border-left: 3px solid #6CCB5F; }
+
+        .title {
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .title.active  { color: #FF8A72; }
+        .title.blocked { color: #8FDA80; }
+
+        .map {
+            flex: 1;
+            min-height: 0;
+            background: #1a1a1a;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .legend {
+            display: flex;
+            gap: 8px;
+            font-size: 10px;
+            margin-top: 6px;
+            color: #999;
+            flex-wrap: wrap;
+        }
+        .li { display: inline-flex; align-items: center; gap: 3px; }
+        .lc { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #3c3c3c; }
+
+        .leaflet-tooltip {
+            background-color: #252526;
+            border: 1px solid #4CC2FF;
+            color: #e5e5e5;
+            border-radius: 6px;
+            font-size: 12px;
+            padding: 4px 8px;
+        }
+        .leaflet-tooltip-top:before { border-top-color: #4CC2FF; }
+    </style>
+</head>
+<body>
+
+<div class="grid">
+    <div class="card active">
+        <div class="title active"><span>🔥</span><span>Intrusions actives</span></div>
+        <div id="map-active" class="map"></div>
+        <div class="legend">
+            <div class="li"><div class="lc" style="background:#ffffb2"></div>1</div>
+            <div class="li"><div class="lc" style="background:#feb24c"></div>2-5</div>
+            <div class="li"><div class="lc" style="background:#f03b20"></div>6-10</div>
+            <div class="li"><div class="lc" style="background:#b10026"></div>10+</div>
+        </div>
+    </div>
+
+    <div class="card blocked">
+        <div class="title blocked"><span>🛡</span><span>IP bloquées</span></div>
+        <div id="map-blocked" class="map"></div>
+        <div class="legend">
+            <div class="li"><div class="lc" style="background:#e5f5e0"></div>1</div>
+            <div class="li"><div class="lc" style="background:#a1d99b"></div>2-5</div>
+            <div class="li"><div class="lc" style="background:#41ab5d"></div>6-10</div>
+            <div class="li"><div class="lc" style="background:#005a32"></div>10+</div>
+        </div>
+    </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+(function () {
+    var dataActive  = {{ActiveMapData}};
+    var dataBlocked = {{BlockedMapData}};
+
+    var paletteActive  = ['#ffffb2', '#fed976', '#feb24c', '#fd8d3c', '#f03b20', '#bd0026', '#b10026'];
+    var paletteBlocked = ['#e5f5e0', '#c7e9c0', '#a1d99b', '#74c476', '#41ab5d', '#238b45', '#005a32'];
+
+    function colorFor(count, palette) {
+        if (count <= 0) return '#333333';
+        if (count >= 10) return palette[6];
+        if (count >= 6)  return palette[4];
+        if (count >= 2)  return palette[2];
+        return palette[0];
+    }
+
+    function initMap(id, dataMap, palette, label) {
+        var map = L.map(id, { zoomControl: true, worldCopyJump: true })
+            .setView([20, 0], 2);
+
+        L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            maxZoom: 19
+        }).addTo(map);
+
+        var tilePane = map.getPane('tilePane');
+        tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1)';
+
+        fetch('/Data/countries.geojson')
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+            .then(function (geo) {
+                L.geoJSON(geo, {
+                    style: function (f) {
+                        var code = f.properties.ISO_A2;
+                        var c = (code && dataMap[code]) ? dataMap[code] : 0;
+                        return {
+                            fillColor: colorFor(c, palette),
+                            weight: 1, opacity: 1, color: '#3c3c3c',
+                            fillOpacity: 0.85
+                        };
+                    },
+                    onEachFeature: function (f, layer) {
+                        var code = f.properties.ISO_A2;
+                        var name = f.properties.ADMIN || f.properties.NAME || '?';
+                        var c = (code && dataMap[code]) ? dataMap[code] : 0;
+                        layer.bindTooltip('<strong>' + name + '</strong><br/>' + label + ' : ' + c, { sticky: true });
+                    }
+                }).addTo(map);
+            })
+            .catch(function (err) {
+                document.getElementById(id).innerHTML =
+                    '<div style="padding:20px;color:#FF6347;text-align:center">Carte indisponible<br><small>' +
+                    err.message + '</small></div>';
+            });
+    }
+
+    initMap('map-active',  dataActive,  paletteActive,  'Alertes actives');
+    initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées');
+})();
+</script>
+
+</body>
+</html>

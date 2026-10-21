@@ -107,6 +107,11 @@ namespace NetMonitor.Service.Web
                     string html = await WebHandler.BuildStatsPageAsync(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
                     SendHtml(ctx, html);
                 }
+                else if (path == "/map")
+                {
+                    string html = await WebHandler.BuildMapPageAsync(_engine, _settings);
+                    SendHtml(ctx, html);
+                }                
                 else if (path == "/api/stats")
                 {
                     var stats = await _engine.GetStatsAsync();

@@ -88,6 +88,63 @@ namespace NetMonitor.UI
     }
 
     // ============================================================
+    //  Statistiques (miroir de StatsBlock côté serveur)
+    // ============================================================
+    public class IpStatDto
+    {
+        public string Ip { get; set; } = "";
+        public int Count { get; set; }
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+        public string MaxSeverity { get; set; } = "ok";
+        public List<string> Detectors { get; set; } = new();
+        public string? Country { get; set; }
+        public string? CountryCode { get; set; }
+        public string? City { get; set; }
+        public string? Isp { get; set; }
+        public string? ReverseDns { get; set; }
+        public bool IsPrivate { get; set; }
+    }
+
+    public class CountryStatDto
+    {
+        public string Country { get; set; } = "";
+        public string CountryCode { get; set; } = "";
+        public int Count { get; set; }
+        public int DistinctIps { get; set; }
+    }
+
+    public class DetectorStatDto
+    {
+        public string Detector { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class StatsBlockDto
+    {
+        public int TotalAlerts { get; set; }
+        public int DistinctIps { get; set; }
+        public int DistinctCountries { get; set; }
+        public string WorstSeverity { get; set; } = "ok";
+        public List<IpStatDto> TopIps { get; set; } = new();
+        public List<CountryStatDto> TopCountries { get; set; } = new();
+        public List<DetectorStatDto> TopDetectors { get; set; } = new();
+        public Dictionary<string, int> AlertsByCountryCode { get; set; } = new();
+    }
+
+    public class GlobalStatsDto
+    {
+        public int TotalAlerts { get; set; }
+        public int DistinctIps { get; set; }
+        public int DistinctCountries { get; set; }
+        public string WorstSeverity { get; set; } = "ok";
+        public DateTime GeneratedAt { get; set; }
+        public Dictionary<string, int> SeverityCounts { get; set; } = new();
+        public StatsBlockDto Active { get; set; } = new();
+        public StatsBlockDto Blocked { get; set; } = new();
+    }
+
+    // ============================================================
     //  Client IPC
     // ============================================================
 
@@ -249,6 +306,20 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand("clear-audit"));
             
         public static async Task<string?> ExportPdfAsync()
-            => await SendCommand("export-pdf");                    
+            => await SendCommand("export-pdf");
+            
+        // ---------- Statistiques (timeout long : GeoIP peut être lent au 1er appel) ----------
+        public static async Task<GlobalStatsDto?> GetStatsAsync()
+        {
+            await _ipcLock.WaitAsync();
+            try
+            {
+                using var cts = new CancellationTokenSource(15000);
+                string? json = await SendCommandInternal("get-stats", cts.Token);
+                return Deserialize<GlobalStatsDto>(json);
+            }
+            catch { return null; }
+            finally { _ipcLock.Release(); }
+        }                                
     }
 }
