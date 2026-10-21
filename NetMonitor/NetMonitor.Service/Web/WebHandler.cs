@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Web
 {
@@ -173,69 +174,12 @@ namespace NetMonitor.Service.Web
             {
                 var stats = await engine.GetStatsAsync();
 
-                // --- Tableau Top IPs ---
-                var ipRows = new System.Text.StringBuilder();
-                if (stats.TopIps.Count > 0)
-                {
-                    foreach (var item in stats.TopIps)
-                    {
-                        string sevClass = item.MaxSeverity == "Critical" ? "danger" :
-                                          item.MaxSeverity == "High" ? "danger" :
-                                          item.MaxSeverity == "Warning" ? "warning" : "ok";
-
-                        string country = string.IsNullOrEmpty(item.CountryCode)
-                            ? (item.Country ?? "")
-                            : $"{item.Country} ({item.CountryCode})";
-
-                        string detectors = string.Join(", ", item.Detectors);
-
-                        ipRows.Append($@"<tr>
-                            <td><b>{WebUtility.HtmlEncode(item.Ip)}</b></td>
-                            <td>{WebUtility.HtmlEncode(item.ReverseDns ?? "—")}</td>
-                            <td>{WebUtility.HtmlEncode(country)}</td>
-                            <td>{WebUtility.HtmlEncode(item.City ?? "")}</td>
-                            <td>{WebUtility.HtmlEncode(item.Isp ?? "")}</td>
-                            <td><span class='badge {sevClass}'>{item.MaxSeverity}</span></td>
-                            <td style='text-align:right'>{item.Count}</td>
-                            <td>{WebUtility.HtmlEncode(detectors)}</td>
-                            <td>{item.LastSeen.ToLocalTime():dd/MM HH:mm}</td>
-                        </tr>");
-                    }
-                }
-                else ipRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
-
-                // --- Tableau Pays ---
-                var countryRows = new System.Text.StringBuilder();
-                foreach (var c in stats.TopCountries)
-                {
-                    string code = string.IsNullOrEmpty(c.CountryCode) ? "" : $" ({c.CountryCode})";
-                    countryRows.Append($@"<tr>
-                        <td>{WebUtility.HtmlEncode(c.Country)}{code}</td>
-                        <td style='text-align:right'>{c.Count}</td>
-                        <td style='text-align:right'>{c.DistinctIps}</td>
-                    </tr>");
-                }
-                if (stats.TopCountries.Count == 0)
-                    countryRows.Append("<tr><td colspan='3' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
-
-                // --- Tableau Détecteurs ---
-                var detectorRows = new System.Text.StringBuilder();
-                foreach (var d in stats.TopDetectors)
-                {
-                    detectorRows.Append($@"<tr>
-                        <td>{WebUtility.HtmlEncode(d.Detector)}</td>
-                        <td style='text-align:right'>{d.Count}</td>
-                    </tr>");
-                }
-                if (stats.TopDetectors.Count == 0)
-                    detectorRows.Append("<tr><td colspan='2' style='text-align:center;color:#888;padding:20px'>Aucune donnée</td></tr>");
-
                 string worstClass = stats.WorstSeverity == "critical" ? "danger"
                                   : stats.WorstSeverity == "warning" ? "warning" : "ok";
 
-                // --- Modèle ---
                 var model = new Dictionary<string, object?>
                 {
+                    // --- Global ---
                     ["MachineName"]       = Environment.MachineName,
                     ["GeneratedAt"]       = stats.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss"),
                     ["TotalAlerts"]       = stats.TotalAlerts,
@@ -243,11 +187,24 @@ namespace NetMonitor.Service.Web
                     ["DistinctCountries"] = stats.DistinctCountries,
                     ["WorstSeverity"]     = stats.WorstSeverity,
                     ["WorstClass"]        = worstClass,
-                    ["IpRows"]            = ipRows.ToString(),
-                    ["CountryRows"]       = countryRows.ToString(),
-                    ["DetectorRows"]      = detectorRows.ToString(),
-                    ["MapDataActive"]     = System.Text.Json.JsonSerializer.Serialize(stats.AlertsByCountryCodeActive),
-                    ["MapDataBlocked"]    = System.Text.Json.JsonSerializer.Serialize(stats.AlertsByCountryCodeBlocked)
+
+                    // --- Bloc ACTIF ---
+                    ["ActiveTotal"]        = stats.Active.TotalAlerts,
+                    ["ActiveIps"]          = stats.Active.DistinctIps,
+                    ["ActiveCountries"]    = stats.Active.DistinctCountries,
+                    ["ActiveIpRows"]       = BuildActiveIpRows(stats.Active.TopIps),
+                    ["ActiveCountryRows"]  = BuildCountryRows(stats.Active.TopCountries),
+                    ["ActiveDetectorRows"] = BuildDetectorRows(stats.Active.TopDetectors),
+                    ["ActiveMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
+
+                    // --- Bloc BLOQUÉ ---
+                    ["BlockedTotal"]        = stats.Blocked.TotalAlerts,
+                    ["BlockedIps"]          = stats.Blocked.DistinctIps,
+                    ["BlockedCountries"]    = stats.Blocked.DistinctCountries,
+                    ["BlockedIpRows"]       = BuildBlockedIpRows(stats.Blocked.TopIps),
+                    ["BlockedCountryRows"]  = BuildCountryRows(stats.Blocked.TopCountries),
+                    ["BlockedDetectorRows"] = BuildDetectorRows(stats.Blocked.TopDetectors),
+                    ["BlockedMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode)
                 };
 
                 string html = ViewRenderer.Render("Stats.html", model);
@@ -259,6 +216,93 @@ namespace NetMonitor.Service.Web
                 CoreLog.Write("WebHandler.BuildStatsPageAsync ERROR : " + ex.Message);
                 return $"<html><body><h2>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
+        }
+
+        // -------------------------------------------------------------
+        //  Helpers de génération de lignes
+        // -------------------------------------------------------------
+        private static string BuildActiveIpRows(IEnumerable<IpStats> list)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var item in list)
+            {
+                string sevClass = item.MaxSeverity == "Critical" ? "danger" :
+                                  item.MaxSeverity == "High" ? "danger" :
+                                  item.MaxSeverity == "Warning" ? "warning" : "ok";
+
+                string country = string.IsNullOrEmpty(item.CountryCode)
+                    ? (item.Country ?? "—")
+                    : $"{item.Country} ({item.CountryCode})";
+
+                sb.Append($@"<tr>
+                    <td><b>{WebUtility.HtmlEncode(item.Ip)}</b></td>
+                    <td>{WebUtility.HtmlEncode(country)}</td>
+                    <td><span class='badge {sevClass}'>{item.MaxSeverity}</span></td>
+                    <td style='text-align:right'>{item.Count}</td>
+                    <td>{item.LastSeen.ToLocalTime():dd/MM HH:mm}</td>
+                </tr>");
+            }
+            if (list.Count() == 0)
+                sb.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
+            return sb.ToString();
+        }
+
+        private static string BuildBlockedIpRows(IEnumerable<IpStats> list)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var item in list)
+            {
+                string country = string.IsNullOrEmpty(item.CountryCode)
+                    ? (item.Country ?? "—")
+                    : $"{item.Country} ({item.CountryCode})";
+
+                string detector = item.Detectors != null && item.Detectors.Count > 0
+                    ? string.Join(", ", item.Detectors)
+                    : "—";
+
+                sb.Append($@"<tr>
+                    <td><b>{WebUtility.HtmlEncode(item.Ip)}</b></td>
+                    <td>{WebUtility.HtmlEncode(country)}</td>
+                    <td>{WebUtility.HtmlEncode(item.Isp ?? "—")}</td>
+                    <td>{WebUtility.HtmlEncode(detector)}</td>
+                    <td>{item.LastSeen.ToLocalTime():dd/MM HH:mm}</td>
+                </tr>");
+            }
+            if (list.Count() == 0)
+                sb.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
+            return sb.ToString();
+        }
+
+        private static string BuildCountryRows(IEnumerable<CountryStats> list)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var c in list)
+            {
+                string code = string.IsNullOrEmpty(c.CountryCode) ? "" : $" ({c.CountryCode})";
+                sb.Append($@"<tr>
+                    <td>{WebUtility.HtmlEncode(c.Country)}{code}</td>
+                    <td style='text-align:right'>{c.Count}</td>
+                    <td style='text-align:right'>{c.DistinctIps}</td>
+                </tr>");
+            }
+            if (list.Count() == 0)
+                sb.Append("<tr><td colspan='3' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
+            return sb.ToString();
+        }
+
+        private static string BuildDetectorRows(IEnumerable<DetectorStats> list)
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var d in list)
+            {
+                sb.Append($@"<tr>
+                    <td>{WebUtility.HtmlEncode(d.Detector)}</td>
+                    <td style='text-align:right'>{d.Count}</td>
+                </tr>");
+            }
+            if (list.Count() == 0)
+                sb.Append("<tr><td colspan='2' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
+            return sb.ToString();
         }
     }
 }

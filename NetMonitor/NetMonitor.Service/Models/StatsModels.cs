@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace NetMonitor.Service.Models;
 
 public sealed class IpStats
@@ -31,17 +34,32 @@ public sealed class DetectorStats
     public int Count { get; set; }
 }
 
-public sealed class GlobalStats
+/// <summary>
+/// Bloc de statistiques pour un groupe (actives OU bloquées).
+/// </summary>
+public sealed class StatsBlock
 {
     public int TotalAlerts { get; set; }
     public int DistinctIps { get; set; }
     public int DistinctCountries { get; set; }
     public string WorstSeverity { get; set; } = "ok";
-    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
     public List<IpStats> TopIps { get; set; } = new();
     public List<CountryStats> TopCountries { get; set; } = new();
     public List<DetectorStats> TopDetectors { get; set; } = new();
+    public Dictionary<string, int> AlertsByCountryCode { get; set; } = new();
+}
+
+public sealed class GlobalStats
+{
+    // --- Résumé global (toutes alertes) ---
+    public int TotalAlerts { get; set; }
+    public int DistinctIps { get; set; }
+    public int DistinctCountries { get; set; }
+    public string WorstSeverity { get; set; } = "ok";
+    public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
     public Dictionary<string, int> SeverityCounts { get; set; } = new();
-    public Dictionary<string, int> AlertsByCountryCodeActive { get; set; } = new();
-    public Dictionary<string, int> AlertsByCountryCodeBlocked { get; set; } = new();
+
+    // --- Blocs détaillés ---
+    public StatsBlock Active { get; set; } = new();
+    public StatsBlock Blocked { get; set; } = new();
 }

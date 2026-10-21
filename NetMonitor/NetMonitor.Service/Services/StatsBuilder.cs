@@ -11,18 +11,75 @@ public static class StatsBuilder
         int topCountriesLimit = 15,
         int topDetectorsLimit = 15)
     {
+        var stats = new GlobalStats { GeneratedAt = DateTime.UtcNow };
+
+        // ========= Global summary (toutes les alertes) =========
         var alerts = engine.GetAlerts();
-        var validEvents = alerts.Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp)).ToList();
+        var validAlerts = alerts.Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp)).ToList();
+        stats.TotalAlerts = validAlerts.Count;
+        stats.DistinctIps = validAlerts.Select(e => e.RemoteIp).Distinct().Count();
 
-        var stats = new GlobalStats { TotalAlerts = validEvents.Count };
-
-        foreach (var ev in validEvents)
+        foreach (var ev in validAlerts)
         {
             string sev = ev.Severity.ToString();
             stats.SeverityCounts[sev] = stats.SeverityCounts.GetValueOrDefault(sev) + 1;
         }
 
-        var byIp = validEvents
+        stats.WorstSeverity = validAlerts.Any(e => e.Severity == Severity.Critical) ? "critical"
+                            : validAlerts.Any(e => e.Severity == Severity.High) ? "warning"
+                            : "ok";
+
+        var globalCountries = new HashSet<string>();
+        foreach (var ev in validAlerts)
+        {
+            var gi = geo.TryGetCached(ev.RemoteIp!);
+            if (gi == null) { geo.ResolveInBackground(ev.RemoteIp!); continue; }
+            if (!gi.IsPrivate && !string.IsNullOrEmpty(gi.CountryCode))
+                globalCountries.Add(gi.CountryCode);
+        }
+        stats.DistinctCountries = globalCountries.Count;
+
+        // ========= Bloc 1 : intrusions actives =========
+        var activeEvents = engine.GetActiveIntrusions()
+            .Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp))
+            .ToList();
+        stats.Active = await BuildBlockFromEventsAsync(activeEvents, geo,
+            topIpsLimit, topCountriesLimit, topDetectorsLimit);
+
+        // ========= Bloc 2 : IP bloquées =========
+        var blockedList = engine.GetBlockedIps()
+            .Where(b => !string.IsNullOrWhiteSpace(b.Ip))
+            .ToList();
+        stats.Blocked = await BuildBlockFromBlockedAsync(blockedList, geo,
+            topIpsLimit, topCountriesLimit, topDetectorsLimit);
+
+        return stats;
+    }
+
+    // -------------------------------------------------------------
+    //  Bloc à partir d'une liste d'IntrusionEvent (actives)
+    // -------------------------------------------------------------
+    private static async Task<StatsBlock> BuildBlockFromEventsAsync(
+        List<IntrusionEvent> events,
+        GeoIpService geo,
+        int topIpsLimit, int topCountriesLimit, int topDetectorsLimit)
+    {
+        var block = new StatsBlock
+        {
+            TotalAlerts = events.Count,
+            DistinctIps = events.Select(e => e.RemoteIp).Distinct().Count()
+        };
+
+        // --- Pré-résolution GeoIP (cache local pour éviter les appels en double) ---
+        var geoMap = new Dictionary<string, GeoInfo>();
+        foreach (var ip in events.Select(e => e.RemoteIp!).Distinct())
+        {
+            var gi = geo.TryGetCached(ip) ?? await geo.ResolveAsync(ip);
+            if (gi != null) geoMap[ip] = gi;
+        }
+
+        // --- Top IPs ---
+        var byIp = events
             .GroupBy(e => e.RemoteIp!)
             .Select(g =>
             {
@@ -44,7 +101,7 @@ public static class StatsBuilder
         var ipStatsList = new List<IpStats>();
         foreach (var item in byIp)
         {
-            var geoInfo = geo.TryGetCached(item.Ip) ?? await geo.ResolveAsync(item.Ip);
+            geoMap.TryGetValue(item.Ip, out var gi);
             ipStatsList.Add(new IpStats
             {
                 Ip = item.Ip,
@@ -53,17 +110,18 @@ public static class StatsBuilder
                 LastSeen = item.LastSeen,
                 MaxSeverity = item.MaxSeverity,
                 Detectors = item.Detectors,
-                Country = geoInfo.Country,
-                CountryCode = geoInfo.CountryCode,
-                City = geoInfo.City,
-                Isp = geoInfo.Isp,
-                ReverseDns = geoInfo.ReverseDns,
-                IsPrivate = geoInfo.IsPrivate
+                Country = gi?.Country,
+                CountryCode = gi?.CountryCode,
+                City = gi?.City,
+                Isp = gi?.Isp,
+                ReverseDns = gi?.ReverseDns,
+                IsPrivate = gi?.IsPrivate ?? false
             });
         }
-        stats.TopIps = ipStatsList;
+        block.TopIps = ipStatsList;
 
-        var countries = ipStatsList
+        // --- Pays ---
+        block.TopCountries = ipStatsList
             .Where(x => !string.IsNullOrEmpty(x.Country) && !x.IsPrivate)
             .GroupBy(x => new { x.Country, x.CountryCode })
             .Select(g => new CountryStats
@@ -76,85 +134,134 @@ public static class StatsBuilder
             .OrderByDescending(x => x.Count)
             .Take(topCountriesLimit)
             .ToList();
-        stats.TopCountries = countries;
-        stats.DistinctCountries = countries.Count;
 
-        stats.TopDetectors = validEvents
+        block.DistinctCountries = geoMap.Values
+            .Where(g => !g.IsPrivate && !string.IsNullOrEmpty(g.CountryCode))
+            .Select(g => g.CountryCode)
+            .Distinct()
+            .Count();
+
+        // --- Détecteurs ---
+        block.TopDetectors = events
             .GroupBy(e => e.Source)
             .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(topDetectorsLimit)
             .ToList();
 
-        stats.DistinctIps = validEvents.Select(e => e.RemoteIp).Distinct().Count();
-        stats.WorstSeverity = validEvents.Any(e => e.Severity == Severity.Critical) ? "critical"
-                            : validEvents.Any(e => e.Severity == Severity.High) ? "warning"
+        // --- Worst severity ---
+        block.WorstSeverity = events.Any(e => e.Severity == Severity.Critical) ? "critical"
+                            : events.Any(e => e.Severity == Severity.High) ? "warning"
                             : "ok";
 
-        // ============================================================
-        //  Carte 1 : intrusions actives
-        // ============================================================
-        var activeEvents = engine.GetActiveIntrusions()
-            .Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp))
-            .ToList();
-
-        var activeGrouped = activeEvents
-            .GroupBy(e => e.RemoteIp!)
-            .ToDictionary(g => g.Key, g => g.Count());
-
-        var activeByCountry = new Dictionary<string, int>();
-        foreach (var kv in activeGrouped)
+        // --- Map data : alertes par pays (sur TOUTES les alertes, pas seulement le top) ---
+        var countryMap = new Dictionary<string, int>();
+        foreach (var ev in events)
         {
-            var geoInfo = geo.TryGetCached(kv.Key);
-            if (geoInfo == null)
-                geoInfo = await geo.ResolveAsync(kv.Key);
-
-            if (geoInfo != null && !geoInfo.IsPrivate &&
-                !string.IsNullOrEmpty(geoInfo.CountryCode))
-            {
-                activeByCountry[geoInfo.CountryCode] =
-                    activeByCountry.GetValueOrDefault(geoInfo.CountryCode) + kv.Value;
-            }
+            if (!geoMap.TryGetValue(ev.RemoteIp!, out var gi)) continue;
+            if (gi.IsPrivate || string.IsNullOrEmpty(gi.CountryCode)) continue;
+            countryMap[gi.CountryCode] = countryMap.GetValueOrDefault(gi.CountryCode) + 1;
         }
-        stats.AlertsByCountryCodeActive = activeByCountry;
+        block.AlertsByCountryCode = countryMap;
 
-        // ============================================================
-        //  Carte 2 : IP bloquées
-        // ============================================================
-        var blockedList = engine.GetBlockedIps()
-            .Where(b => !string.IsNullOrWhiteSpace(b.Ip))
-            .ToList();
+        return block;
+    }
 
-        var blockedByCountry = new Dictionary<string, int>();
-        int resolveBudget = 50;   // limite les lookups synchrones par appel
+    // -------------------------------------------------------------
+    //  Bloc à partir d'une liste de BlockedIpInfo (bloquées)
+    // -------------------------------------------------------------
+    private static async Task<StatsBlock> BuildBlockFromBlockedAsync(
+        List<BlockedIpInfo> blockedList,
+        GeoIpService geo,
+        int topIpsLimit, int topCountriesLimit, int topDetectorsLimit)
+    {
+        var block = new StatsBlock
+        {
+            TotalAlerts = blockedList.Count,
+            DistinctIps = blockedList.Count,
+            WorstSeverity = "blocked"
+        };
 
+        // --- Résolution avec budget (50 lookups synchrones max) ---
+        var geoMap = new Dictionary<string, GeoInfo>();
+        int budget = 50;
         foreach (var b in blockedList)
         {
-            var geoInfo = geo.TryGetCached(b.Ip);
-
-            if (geoInfo == null)
+            var gi = geo.TryGetCached(b.Ip);
+            if (gi == null)
             {
-                if (resolveBudget > 0)
-                {
-                    geoInfo = await geo.ResolveAsync(b.Ip);
-                    resolveBudget--;
-                }
-                else
-                {
-                    geo.ResolveInBackground(b.Ip);   // résolution en arrière-plan
-                    continue;
-                }
+                if (budget > 0) { gi = await geo.ResolveAsync(b.Ip); budget--; }
+                else { geo.ResolveInBackground(b.Ip); continue; }
             }
-
-            if (geoInfo != null && !geoInfo.IsPrivate &&
-                !string.IsNullOrEmpty(geoInfo.CountryCode))
-            {
-                blockedByCountry[geoInfo.CountryCode] =
-                    blockedByCountry.GetValueOrDefault(geoInfo.CountryCode) + 1;
-            }
+            if (gi != null) geoMap[b.Ip] = gi;
         }
-        stats.AlertsByCountryCodeBlocked = blockedByCountry;
 
-        return stats;
+        // --- Top IPs ---
+        var ipStatsList = blockedList
+            .Select(b =>
+            {
+                geoMap.TryGetValue(b.Ip, out var gi);
+                return new IpStats
+                {
+                    Ip = b.Ip,
+                    Count = 1,
+                    FirstSeen = b.BlockedAt,
+                    LastSeen = b.BlockedAt,
+                    MaxSeverity = "blocked",
+                    Detectors = new List<string> { b.Source },
+                    Country = gi?.Country,
+                    CountryCode = gi?.CountryCode,
+                    City = gi?.City,
+                    Isp = gi?.Isp,
+                    ReverseDns = gi?.ReverseDns,
+                    IsPrivate = gi?.IsPrivate ?? false
+                };
+            })
+            .OrderBy(x => x.Country ?? "")
+            .ThenBy(x => x.Ip)
+            .Take(topIpsLimit)
+            .ToList();
+        block.TopIps = ipStatsList;
+
+        // --- Pays ---
+        block.TopCountries = ipStatsList
+            .Where(x => !string.IsNullOrEmpty(x.Country) && !x.IsPrivate)
+            .GroupBy(x => new { x.Country, x.CountryCode })
+            .Select(g => new CountryStats
+            {
+                Country = g.Key.Country ?? "",
+                CountryCode = g.Key.CountryCode ?? "",
+                Count = g.Count(),
+                DistinctIps = g.Select(x => x.Ip).Distinct().Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .Take(topCountriesLimit)
+            .ToList();
+
+        block.DistinctCountries = geoMap.Values
+            .Where(g => !g.IsPrivate && !string.IsNullOrEmpty(g.CountryCode))
+            .Select(g => g.CountryCode)
+            .Distinct()
+            .Count();
+
+        // --- Détecteurs ---
+        block.TopDetectors = blockedList
+            .GroupBy(b => b.Source)
+            .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(topDetectorsLimit)
+            .ToList();
+
+        // --- Map data ---
+        var countryMap = new Dictionary<string, int>();
+        foreach (var b in blockedList)
+        {
+            if (!geoMap.TryGetValue(b.Ip, out var gi)) continue;
+            if (gi.IsPrivate || string.IsNullOrEmpty(gi.CountryCode)) continue;
+            countryMap[gi.CountryCode] = countryMap.GetValueOrDefault(gi.CountryCode) + 1;
+        }
+        block.AlertsByCountryCode = countryMap;
+
+        return block;
     }
 }
