@@ -604,10 +604,16 @@ namespace MCEMonitorClient.Tray
 
         private static string GetMediaIcon(string? mediaType, string eventType)
         {
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+
+            // --- Cas particulier : enregistrement ? icône fixe "dot-red.png" ---
+            // (indépendant de started/stopped : c'est le point rouge d'enregistrement)
+            if (t == "rec" || t == "recording" || t == "enregistrement")
+                return "dot-red.png";
+
             bool isStop = eventType == "stopped";
             string prefix = isStop ? "stop-" : "play-";
             string fallback = isStop ? "stop.png" : "play.png";
-            string t = (mediaType ?? "").Trim().ToLowerInvariant();
 
             string suffix = t switch
             {
