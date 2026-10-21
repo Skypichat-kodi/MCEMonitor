@@ -80,6 +80,8 @@ namespace NetMonitor.Service
             _engine.LoadHistory();
             _engine.Start();
 
+            CoreLog.Write($"Scanners whitelistés : {string.Join(", ", settings.TrustedScannerPatterns)}");
+            
             // ============================================================
             //  IPC
             // ============================================================

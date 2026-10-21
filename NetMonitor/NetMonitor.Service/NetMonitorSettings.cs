@@ -45,6 +45,20 @@ namespace NetMonitor.Service
         public bool ReverseDnsEnabled { get; set; } = true;
 
         // ============================================================
+        //  Scanners de recherche légitimes (whitelist reverse DNS)
+        // ============================================================
+        public string[] TrustedScannerPatterns { get; set; } = new[]
+        {
+            "shadowserver.org",
+            "censys.io",
+            "shodan.io",
+            "binaryedge.io",
+            "internet-measurement.com",   // RIPE Atlas
+            "rapid7.com",                 // Project Sonar
+            "stretchoid.com"
+        };
+        
+        // ============================================================
         //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
@@ -86,22 +100,23 @@ namespace NetMonitor.Service
 
                         switch (key)
                         {
-                            case "PortScanWindowSeconds": if (int.TryParse(value, out int psw)) settings.PortScanWindowSeconds = psw; break;
-                            case "PortScanThreshold": if (int.TryParse(value, out int pst)) settings.PortScanThreshold = pst; break;
-                            case "BeaconWindowSeconds": if (int.TryParse(value, out int bw)) settings.BeaconWindowSeconds = bw; break;
-                            case "BeaconMinHits": if (int.TryParse(value, out int bh)) settings.BeaconMinHits = bh; break;
-                            case "BeaconJitterTolerancePct": if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) settings.BeaconJitterTolerancePct = bj; break;
-                            case "AutoBlock": if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
-                            case "IgnoredProcesses": settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "IgnoredNetworks": settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "DisableFilters": if (bool.TryParse(value, out bool df)) settings.DisableFilters = df; break;
-                            case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
-                            case "BlacklistLevel": if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
-                            case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu; break;
-                            case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) settings.IpLookupUrl = value; break;
-                            case "GeoIpEnabled": if (bool.TryParse(value, out bool gi)) settings.GeoIpEnabled = gi; break;
-                            case "GeoIpProvider": if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
-                            case "ReverseDnsEnabled": if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
+                            case "PortScanWindowSeconds"        : if (int.TryParse(value, out int psw)) settings.PortScanWindowSeconds = psw; break;
+                            case "PortScanThreshold"            : if (int.TryParse(value, out int pst)) settings.PortScanThreshold = pst; break;
+                            case "BeaconWindowSeconds"          : if (int.TryParse(value, out int bw)) settings.BeaconWindowSeconds = bw; break;
+                            case "BeaconMinHits"                : if (int.TryParse(value, out int bh)) settings.BeaconMinHits = bh; break;
+                            case "BeaconJitterTolerancePct"     : if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) settings.BeaconJitterTolerancePct = bj; break;
+                            case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
+                            case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "DisableFilters"               : if (bool.TryParse(value, out bool df)) settings.DisableFilters = df; break;
+                            case "SuspiciousRemotePorts"        : if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
+                            case "BlacklistLevel"               : if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
+                            case "BlacklistLastUpdate"          : if (DateTime.TryParse(value, out DateTime blu)) settings.BlacklistLastUpdate = blu; break;
+                            case "IpLookupUrl"                  : if (!string.IsNullOrWhiteSpace(value)) settings.IpLookupUrl = value; break;
+                            case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) settings.GeoIpEnabled = gi; break;
+                            case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
+                            case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
+                            case "TrustedScannerPatterns"       : settings.TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                         }
                     }
                 }
@@ -185,7 +200,10 @@ namespace NetMonitor.Service
                     "# --- Géolocalisation IP ---",
                     $"GeoIpEnabled={GeoIpEnabled.ToString().ToLower()}",
                     $"GeoIpProvider={GeoIpProvider}",
-                    $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}"
+                    $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}",
+                    "",
+                    "# --- Scanners de recherche légitimes (reverse DNS, séparés par virgule) ---",
+                    $"TrustedScannerPatterns={string.Join(",", TrustedScannerPatterns)}"
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -230,22 +248,23 @@ namespace NetMonitor.Service
 
                         switch (key)
                         {
-                            case "PortScanWindowSeconds": if (int.TryParse(value, out int psw)) PortScanWindowSeconds = psw; break;
-                            case "PortScanThreshold": if (int.TryParse(value, out int pst)) PortScanThreshold = pst; break;
-                            case "BeaconWindowSeconds": if (int.TryParse(value, out int bw)) BeaconWindowSeconds = bw; break;
-                            case "BeaconMinHits": if (int.TryParse(value, out int bh)) BeaconMinHits = bh; break;
-                            case "BeaconJitterTolerancePct": if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) BeaconJitterTolerancePct = bj; break;
-                            case "AutoBlock": if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
-                            case "IgnoredProcesses": IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "IgnoredNetworks": IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "DisableFilters": if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
-                            case "SuspiciousRemotePorts": if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
-                            case "BlacklistLevel": if (int.TryParse(value, out int bl)) BlacklistLevel = bl; break;
-                            case "BlacklistLastUpdate": if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu; break;
-                            case "IpLookupUrl": if (!string.IsNullOrWhiteSpace(value)) IpLookupUrl = value; break;
-                            case "GeoIpEnabled": if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
-                            case "GeoIpProvider": if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
-                            case "ReverseDnsEnabled": if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
+                            case "PortScanWindowSeconds"        : if (int.TryParse(value, out int psw)) PortScanWindowSeconds = psw; break;
+                            case "PortScanThreshold"            : if (int.TryParse(value, out int pst)) PortScanThreshold = pst; break;
+                            case "BeaconWindowSeconds"          : if (int.TryParse(value, out int bw)) BeaconWindowSeconds = bw; break;
+                            case "BeaconMinHits"                : if (int.TryParse(value, out int bh)) BeaconMinHits = bh; break;
+                            case "BeaconJitterTolerancePct"     : if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) BeaconJitterTolerancePct = bj; break;
+                            case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
+                            case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
+                            case "SuspiciousRemotePorts"        : if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
+                            case "BlacklistLevel"               : if (int.TryParse(value, out int bl)) BlacklistLevel = bl; break;
+                            case "BlacklistLastUpdate"          : if (DateTime.TryParse(value, out DateTime blu)) BlacklistLastUpdate = blu; break;
+                            case "IpLookupUrl"                  : if (!string.IsNullOrWhiteSpace(value)) IpLookupUrl = value; break;
+                            case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
+                            case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
+                            case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
+                            case "TrustedScannerPatterns"       : TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                         }
                     }
                 }

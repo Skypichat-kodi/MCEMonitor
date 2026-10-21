@@ -21,6 +21,7 @@ namespace NetMonitor.Service
         private readonly EtwConnectionWatcher _etw;
         
         private ThreatIntelService? _threatIntel;
+        private TrustedScannerService? _trustedScanners;
         private GeoIpService? _geoIp;
 
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
@@ -115,6 +116,7 @@ namespace NetMonitor.Service
             _settings = settings;
             _context = new DetectorContext(settings);
             _threatIntel = new ThreatIntelService();
+            _trustedScanners = new TrustedScannerService(settings.TrustedScannerPatterns);
             _geoIp = new GeoIpService(settings.GeoIpProvider, settings.GeoIpEnabled, settings.ReverseDnsEnabled);
 
             _etw = new EtwConnectionWatcher();
@@ -312,6 +314,20 @@ namespace NetMonitor.Service
                     _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
                 }
                 CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
+
+                // Pré-charger les scanners légitimes connus (popule le cache en arrière-plan)
+                if (_trustedScanners != null)
+                {
+                    var distinctIps = _alerts
+                        .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
+                        .Select(a => a.RemoteIp!)
+                        .Distinct()
+                        .Take(200)
+                        .ToList();
+
+                    foreach (var ip in distinctIps)
+                        _trustedScanners.CheckInBackground(ip);
+                }
                 
                 if (_geoIp != null)
                 {
@@ -503,6 +519,31 @@ namespace NetMonitor.Service
             bool isNewAlert = false;
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
+            // --- Détection des scanners de recherche légitimes (Shadowserver, Censys…) ---
+            if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            {
+                var known = _trustedScanners.TryGetCached(evt.RemoteIp);
+
+                if (known == true)
+                {
+                    evt.Severity = Severity.Info;
+                    evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
+
+                    lock (_alertsLock)
+                    {
+                        _auditHistory.Add(evt);
+                        if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
+                    }
+                    SaveAudit();
+
+                    CoreLog.Debug($"[SCANNER] Alerte ignorée : {evt.RemoteIp} est un scanner de recherche légitime ({evt.Source})");
+                    return;
+                }
+
+                if (!known.HasValue)
+                    _trustedScanners.CheckInBackground(evt.RemoteIp);
+            }
+            
             if (isWhitelisted)
             {
                 // --- NOUVEAU : Audit ---
