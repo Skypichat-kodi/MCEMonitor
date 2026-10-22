@@ -92,7 +92,7 @@ namespace NetMonitor.Service.Web
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td></td>
                             <td></td>
-                            <td class='count-cell'><span class='count-badge c1'>—</span></td>
+                            <td class='count-cell'><span class='count-badge c1'>-</span></td>
                             <td>{WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
@@ -110,17 +110,22 @@ namespace NetMonitor.Service.Web
                     {
                         string ipEnc = WebUtility.HtmlEncode(b.Ip);
 
+                        string sevClass = b.Severity == "Critical" ? "danger" :
+                                          b.Severity == "High" ? "danger" :
+                                          b.Severity == "Warning" ? "warning" : "ok";
+
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td><b>{ipEnc}</b></td>
                             <td class='info-cell'>{BuildIpInfoLink(b.Ip, lookupUrl)}</td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span></td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
+                else blockedRows.Append("<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
                 // --- Tableau 3 : Historique (enrichi) ---
                 var historyRows = new System.Text.StringBuilder();
@@ -133,11 +138,11 @@ namespace NetMonitor.Service.Web
                                           h.Severity.ToString() == "Warning" ? "warning" : "ok";
 
                         string processText = string.IsNullOrWhiteSpace(h.ProcessName)
-                            ? "—"
+                            ? "-"
                             : (h.Pid > 0 ? $"{h.ProcessName} ({h.Pid})" : h.ProcessName);
 
                         string detailsText = string.IsNullOrWhiteSpace(h.Details)
-                            ? "—"
+                            ? "-"
                             : (h.Details.Length > 120 ? h.Details.Substring(0, 117) + "…" : h.Details);
 
                         string detailsTitle = WebUtility.HtmlEncode(h.Details ?? "");
@@ -167,11 +172,11 @@ namespace NetMonitor.Service.Web
                     foreach (var a in audit.OrderByDescending(x => x.Timestamp).Take(100))
                     {
                         string processText = string.IsNullOrWhiteSpace(a.ProcessName)
-                            ? "—"
+                            ? "-"
                             : (a.Pid > 0 ? $"{a.ProcessName} ({a.Pid})" : a.ProcessName);
 
                         string detailsText = string.IsNullOrWhiteSpace(a.Details)
-                            ? "—"
+                            ? "-"
                             : (a.Details.Length > 120 ? a.Details.Substring(0, 117) + "…" : a.Details);
 
                         string detailsTitle = WebUtility.HtmlEncode(a.Details ?? "");
@@ -299,7 +304,7 @@ namespace NetMonitor.Service.Web
                                   item.MaxSeverity == "Warning" ? "warning" : "ok";
 
                 string country = string.IsNullOrEmpty(item.CountryCode)
-                    ? (item.Country ?? "—")
+                    ? (item.Country ?? "-")
                     : $"{item.Country} ({item.CountryCode})";
 
                 sb.Append($@"<tr>
@@ -321,17 +326,17 @@ namespace NetMonitor.Service.Web
             foreach (var item in list)
             {
                 string country = string.IsNullOrEmpty(item.CountryCode)
-                    ? (item.Country ?? "—")
+                    ? (item.Country ?? "-")
                     : $"{item.Country} ({item.CountryCode})";
 
                 string detector = item.Detectors != null && item.Detectors.Count > 0
                     ? string.Join(", ", item.Detectors)
-                    : "—";
+                    : "-";
 
                 sb.Append($@"<tr>
                     <td><b>{WebUtility.HtmlEncode(item.Ip)}</b></td>
                     <td>{WebUtility.HtmlEncode(country)}</td>
-                    <td>{WebUtility.HtmlEncode(item.Isp ?? "—")}</td>
+                    <td>{WebUtility.HtmlEncode(item.Isp ?? "-")}</td>
                     <td>{WebUtility.HtmlEncode(detector)}</td>
                     <td>{item.LastSeen.ToLocalTime():dd/MM HH:mm}</td>
                 </tr>");

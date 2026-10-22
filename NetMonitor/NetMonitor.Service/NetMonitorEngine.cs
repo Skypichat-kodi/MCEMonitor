@@ -250,13 +250,32 @@ namespace NetMonitor.Service
             lock (_alertsLock) return _blockedIps.ToList();
         }
 
-        public bool BlockIp(string ip, out string errorMessage, string? source = null, string? message = null, string? details = null)
+        public bool BlockIp(string ip, out string errorMessage,
+                            string? source = null, string? message = null,
+                            string? details = null, string? severity = null)
         {
-            if (!FirewallHelper.BlockIp(ip, out errorMessage)) return false;
+            errorMessage = "";
+
+            if (string.IsNullOrWhiteSpace(ip))
+            {
+                errorMessage = "IP vide.";
+                return false;
+            }
+
+            if (FirewallHelper.IsCriticalIp(ip))
+            {
+                errorMessage = $"L'adresse {ip} fait partie d'une plage critique et ne peut pas être bloquée.";
+                CoreLog.Warn($"Blocage refusé : {ip} (IP critique)");
+                return false;
+            }
+
+            bool alreadyBlocked = false;
 
             lock (_alertsLock)
             {
-                if (!_blockedIps.Any(b => b.Ip == ip))
+                alreadyBlocked = _blockedIps.Any(b => b.Ip == ip);
+
+                if (!alreadyBlocked)
                 {
                     _blockedIps.Add(new BlockedIpInfo
                     {
@@ -264,10 +283,25 @@ namespace NetMonitor.Service
                         BlockedAt = DateTime.UtcNow,
                         Source = source ?? "",
                         Message = message ?? "",
-                        Details = details
+                        Details = details,
+                        Severity = severity ?? "-"
                     });
                 }
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
+            }
+
+            // Si déjà bloquée : rien de plus à faire
+            if (alreadyBlocked)
+                return true;
+
+            // Resynchronisation complète des règles (recalcul de tous les blocs)
+            var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
+            bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
+
+            if (!syncOk)
+            {
+                errorMessage = "Erreur lors de la synchronisation des règles pare-feu (netsh).";
+                return false;
             }
 
             _context.ForgetIp(ip);
@@ -275,22 +309,30 @@ namespace NetMonitor.Service
             CoreLog.Info($"IP {ip} bloquée et retirée des intrusions actives");
             return true;
         }
-
-        // Surcharge pour compatibilité
-        public bool BlockIp(string ip, string? source = null, string? message = null, string? details = null)
-            => BlockIp(ip, out _, source, message, details);
+        
+        public bool BlockIp(string ip, string? source, string? message, string? details)
+            => BlockIp(ip, out _, source, message, details, null);
 
         public bool UnblockIp(string ip)
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
 
-            bool fw = FirewallHelper.UnblockIp(ip);
+            bool removed = false;
 
-            lock (_alertsLock) _blockedIps.RemoveAll(b => b.Ip == ip);
+            lock (_alertsLock)
+            {
+                removed = _blockedIps.RemoveAll(b => b.Ip == ip) > 0;
+            }
+
+            if (!removed) return false;
+
+            // Resynchronisation complète des règles sans cette IP
+            var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
+            bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
+
             SaveBlockedIps();
-
-            CoreLog.Info($"IP {ip} débloquée");
-            return fw;
+            CoreLog.Info($"IP {ip} débloquée (sync pare-feu: {(syncOk ? "OK" : "ÉCHEC")})");
+            return syncOk;
         }
 
         // ------------------------------------------------------------
@@ -371,7 +413,12 @@ namespace NetMonitor.Service
                 var json = File.ReadAllText(BlockedIpsFile);
                 var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpInfo>>(json);
 
-                if (list == null || list.Count == 0) return;
+                if (list == null || list.Count == 0)
+                {
+                    // Fichier vide : s'assure qu'il n'y a pas de règles orphelines
+                    FirewallHelper.SyncFirewallRules(Enumerable.Empty<string>());
+                    return;
+                }
 
                 lock (_alertsLock)
                 {
@@ -381,15 +428,10 @@ namespace NetMonitor.Service
 
                 CoreLog.Info($"Chargement {list.Count} IP bloquées depuis le fichier");
 
-                // Synchro : recrée les règles pare-feu manquantes
-                foreach (var b in list)
-                {
-                    if (!FirewallHelper.IsAlreadyBlocked(b.Ip))
-                    {
-                        CoreLog.Info($"Sync : règle pare-feu manquante pour {b.Ip}, recréation...");
-                        FirewallHelper.BlockIp(b.Ip);
-                    }
-                }
+                // Reconstruit TOUTES les règles d'un coup (migration des anciennes règles
+                // individuelles vers les blocs groupés incluse)
+                bool syncOk = FirewallHelper.SyncFirewallRules(list.Select(b => b.Ip));
+                CoreLog.Info($"Sync pare-feu au démarrage : {(syncOk ? "OK" : "ÉCHEC")}");
             }
             catch (Exception ex)
             {
@@ -519,7 +561,7 @@ namespace NetMonitor.Service
             bool isNewAlert = false;
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
-            // --- Détection des scanners de recherche légitimes (Shadowserver, Censys…) ---
+            // --- 1. Détection des scanners de recherche légitimes (Shadowserver, Censys…) ---
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
@@ -543,28 +585,47 @@ namespace NetMonitor.Service
                 if (!known.HasValue)
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
             }
-            
+
+            // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, réseau local) ---
             if (isWhitelisted)
             {
-                // --- NOUVEAU : Audit ---
-                evt.Severity = Severity.Info; // On force la sévérité à Info
+                evt.Severity = Severity.Info;
                 evt.Message = $"[WHITELIST] {evt.Message}";
-                
+
                 lock (_alertsLock)
                 {
                     _auditHistory.Add(evt);
-                    if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0); // On garde les 500 dernières
+                    if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
                 }
                 SaveAudit();
 
                 if (!string.IsNullOrWhiteSpace(evt.RemoteIp))
                     _geoIp?.ResolveInBackground(evt.RemoteIp);
-                    
+
                 CoreLog.Debug($"[FILTRÉ] Alerte ignorée pour IP critique : {evt.RemoteIp} ({evt.Source})");
-                return; // On ne va pas plus loin (pas d'ajout à l'historique principal, pas d'email)
+                return;
             }
 
-            // Si ce n'est pas whitelisté, on continue le traitement normal
+            // --- 3. BLOCAGE AUTOMATIQUE (après filtres de sécurité) ---
+            if (_settings.AutoBlock
+                && (evt.Severity == Severity.High || evt.Severity == Severity.Critical)
+                && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            {
+                if (BlockIp(evt.RemoteIp, out string fwError,
+                            evt.Source, evt.Message, evt.Details, evt.Severity.ToString()))
+                {
+                    CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
+                                  $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");
+                    return;
+                }
+                else
+                {
+                    CoreLog.Warn($"[AUTO-BLOCK] Échec du blocage de {evt.RemoteIp} : {fwError}");
+                    // Le blocage échoue ? on laisse l'alerte continuer normalement
+                }
+            }
+
+            // --- 4. Traitement normal (ajout aux listes) ---
             lock (_alertsLock)
             {
                 _alerts.Add(evt);
@@ -590,6 +651,7 @@ namespace NetMonitor.Service
                 _ = SendAlertEmailAsync(evt);
             }
         }
+        
         public void LoadAudit()
         {
             try

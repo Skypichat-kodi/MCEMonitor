@@ -226,7 +226,36 @@
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-        </Style>        
+        </Style>
+        
+        <!-- Style scrollbar horizontale ultra-fine et discrète (pour DataGrid) -->
+        <Style x:Key="ThinHorizontalScrollBar" TargetType="ScrollBar">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Height" Value="6"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ScrollBar">
+                        <Grid Background="Transparent">
+                            <Track x:Name="PART_Track"
+                                   IsDirectionReversed="False">
+                                <Track.DecreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageLeftCommand"
+                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
+                                </Track.DecreaseRepeatButton>
+                                <Track.Thumb>
+                                    <Thumb Style="{StaticResource ScrollBarThumbStyle}"/>
+                                </Track.Thumb>
+                                <Track.IncreaseRepeatButton>
+                                    <RepeatButton Command="ScrollBar.PageRightCommand"
+                                                  Style="{StaticResource ScrollBarPageButtonStyle}"/>
+                                </Track.IncreaseRepeatButton>
+                            </Track>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+                        
     </Window.Resources>
 
     <Grid>
@@ -333,7 +362,8 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                                  Margin="0,0,0,17"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
@@ -429,7 +459,8 @@
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
                                   AlternationCount="2"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                                  Margin="0,0,0,17"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#4A1F0F"/>
@@ -454,6 +485,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"        Binding="{Binding Ip}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}"  Binding="{Binding Severity}" Width="90"/>
                                 <!-- ⚠ AJOUT : Colonne Info (binding Ip) -->
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -512,7 +544,8 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                                  Margin="0,0,0,17"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
@@ -584,7 +617,8 @@
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
                                   AlternationCount="2"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                                  Margin="0,0,0,17"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#1F3A15"/>

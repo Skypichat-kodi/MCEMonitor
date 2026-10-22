@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 
 namespace NetMonitor.Service.Models
 {
@@ -6,8 +6,9 @@ namespace NetMonitor.Service.Models
     {
         public string Ip { get; set; } = "";
         public DateTime BlockedAt { get; set; } = DateTime.UtcNow;
-        public string Source { get; set; } = "";      // Détecteur
-        public string Message { get; set; } = "";     // Message de l'alerte originale
+        public string Source { get; set; } = "";
+        public string Message { get; set; } = "";
         public string? Details { get; set; }
+        public string Severity { get; set; } = "-";
     }
 }

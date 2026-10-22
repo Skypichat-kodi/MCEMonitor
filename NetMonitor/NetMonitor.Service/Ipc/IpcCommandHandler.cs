@@ -45,11 +45,13 @@ namespace NetMonitor.Service.Ipc
                 }
                 else
                 {
-                    bool ok = FirewallHelper.UnblockIp(ip);
+                    // Utilise le moteur pour retirer l'IP de la liste interne
+                    // ET resynchroniser les règles pare-feu (blocks groupés)
+                    bool ok = _engine.UnblockIp(ip);
                     IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, ip });
                 }
                 return;
-            }            
+            }
             switch (command.ToLowerInvariant())
             {
                 case "get-status":         HandleGetStatus(server); break;
@@ -324,14 +326,15 @@ namespace NetMonitor.Service.Ipc
             try
             {
                 string payload = command.Substring("block-ip ".Length).Trim();
-                var parts = payload.Split('|', 4);
+                var parts = payload.Split('|', 5);   // ? 5 au lieu de 4
 
                 string ip = parts[0].Trim();
-                string? source = parts.Length > 1 ? parts[1] : null;
-                string? message = parts.Length > 2 ? parts[2] : null;
-                string? details = parts.Length > 3 ? parts[3] : null;
+                string? source   = parts.Length > 1 ? parts[1] : null;
+                string? message  = parts.Length > 2 ? parts[2] : null;
+                string? details  = parts.Length > 3 ? parts[3] : null;
+                string? severity = parts.Length > 4 ? parts[4] : null;
 
-                bool ok = _engine.BlockIp(ip, out string error, source, message, details);
+                bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity);
                 
                 if (ok)
                     IpcResponse.Json(server, new { status = "ok", blocked = true, ip });

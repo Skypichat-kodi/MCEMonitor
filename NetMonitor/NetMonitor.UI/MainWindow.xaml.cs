@@ -169,7 +169,7 @@ namespace NetMonitor.UI
                                          .Distinct()
                                          .OrderBy(p => p)
                                          .Take(5))
-                                        is { Length: > 0 } s ? s : "—",
+                                        is { Length: > 0 } s ? s : "-",
                                     Details = mostRecent.details
                                 };
                             })
@@ -193,7 +193,7 @@ namespace NetMonitor.UI
                                 Detectors = a.source ?? "",
                                 Message   = a.message ?? "",
                                 Count     = 1,
-                                RemotePortsDisplay = a.remotePort > 0 ? a.remotePort.ToString() : "—",
+                                RemotePortsDisplay = a.remotePort > 0 ? a.remotePort.ToString() : "-",
                                 Details = a.details
                             });
                         }
@@ -227,7 +227,8 @@ namespace NetMonitor.UI
                             BlockedAt = b.BlockedAt.ToLocalTime(),
                             Source = b.Source,
                             Message = b.Message,
-                            Details = b.Details
+                            Details = b.Details,
+                            Severity = b.Severity
                         });
                     }
                     RestoreBlockedSelection(key);
@@ -433,8 +434,14 @@ namespace NetMonitor.UI
 
             if (confirm != MessageBoxResult.Yes) return;
 
+            // Prend le premier détecteur ("PortScan" au lieu de "PortScan, Blacklist")
+            string primaryDetector = row.Detectors?
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .FirstOrDefault() ?? "-";
+
             var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
-                ip, row.Severity, row.Message, null);
+                ip, primaryDetector, row.Message, null, row.Severity);
 
             if (ok)
             {
@@ -986,7 +993,7 @@ namespace NetMonitor.UI
                         CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
                         SeverityDisplay = ip.MaxSeverity,
                         Count = ip.Count,
-                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "—",
+                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "-",
                         LastSeen = ip.LastSeen.ToLocalTime()
                     });
                 }
@@ -1017,8 +1024,8 @@ namespace NetMonitor.UI
                     {
                         Ip = ip.Ip,
                         CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
-                        Isp = string.IsNullOrWhiteSpace(ip.Isp) ? "—" : ip.Isp,
-                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "—",
+                        Isp = string.IsNullOrWhiteSpace(ip.Isp) ? "-" : ip.Isp,
+                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "-",
                         LastSeen = ip.LastSeen.ToLocalTime()
                     });
                 }
@@ -1051,7 +1058,7 @@ namespace NetMonitor.UI
 
         private static string BuildCountryDisplay(string? country, string? code)
         {
-            if (string.IsNullOrWhiteSpace(country)) return "—";
+            if (string.IsNullOrWhiteSpace(country)) return "-";
             if (string.IsNullOrWhiteSpace(code)) return country;
             return $"{country} ({code})";
         }
@@ -1145,7 +1152,7 @@ namespace NetMonitor.UI
         private ScrollViewer? GetActiveTabScrollViewer()
         {
             // Le contenu direct d'un TabItem scrollable EST le ScrollViewer.
-            // Pas besoin de le nommer dans le XAML — SelectedContent le récupère directement.
+            // Pas besoin de le nommer dans le XAML - SelectedContent le récupère directement.
             return MainTabControl.SelectedContent as ScrollViewer;
         }
 
@@ -1182,12 +1189,12 @@ namespace NetMonitor.UI
         public int Pid { get; set; }
         public string? ProcessName { get; set; }
 
-        // Affichage Processus : "chrome.exe (1234)" ou "—"
+        // Affichage Processus : "chrome.exe (1234)" ou "-"
         public string ProcessDisplay
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(ProcessName)) return "—";
+                if (string.IsNullOrWhiteSpace(ProcessName)) return "-";
                 if (Pid > 0) return $"{ProcessName} ({Pid})";
                 return ProcessName;   // ← si Pid=0, affiche juste le nom
             }
@@ -1198,7 +1205,7 @@ namespace NetMonitor.UI
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(Details)) return "—";
+                if (string.IsNullOrWhiteSpace(Details)) return "-";
                 return Details.Length <= 120
                     ? Details
                     : Details.Substring(0, 117) + "…";
@@ -1214,6 +1221,7 @@ namespace NetMonitor.UI
         public string Source { get; set; } = "";
         public string Message { get; set; } = "";
         public string? Details { get; set; }
+        public string Severity { get; set; } = "-";
     }
 
     public class ConnectionRow
@@ -1228,7 +1236,7 @@ namespace NetMonitor.UI
     }
 
     // ============================================================
-    //  ViewModels — Intrusions actives groupées
+    //  ViewModels - Intrusions actives groupées
     // ============================================================
     public class GroupedAlertRow
     {
@@ -1243,7 +1251,7 @@ namespace NetMonitor.UI
         public int Count { get; set; }
 
         // ⚠ NOUVEAU
-        public string RemotePortsDisplay { get; set; } = "—";
+        public string RemotePortsDisplay { get; set; } = "-";
         public string? Details { get; set; }
 
         public string CountClass => Count >= 10 ? "c10" :
@@ -1254,7 +1262,7 @@ namespace NetMonitor.UI
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(Details)) return "—";
+                if (string.IsNullOrWhiteSpace(Details)) return "-";
                 return Details.Length <= 120
                     ? Details
                     : Details.Substring(0, 117) + "…";
@@ -1263,16 +1271,16 @@ namespace NetMonitor.UI
     }
 
     // ============================================================
-    //  ViewModels — Statistiques
+    //  ViewModels - Statistiques
     // ============================================================
     public class StatsIpRow
     {
         public string Ip { get; set; } = "";
-        public string CountryDisplay { get; set; } = "—";
-        public string Isp { get; set; } = "—";
+        public string CountryDisplay { get; set; } = "-";
+        public string Isp { get; set; } = "-";
         public string SeverityDisplay { get; set; } = "ok";
         public int Count { get; set; }
-        public string DetectorsDisplay { get; set; } = "—";
+        public string DetectorsDisplay { get; set; } = "-";
         public DateTime LastSeen { get; set; }
         public string LastSeenText => LastSeen.ToString("dd/MM HH:mm");
     }

@@ -85,6 +85,7 @@ namespace NetMonitor.UI
         public string Source { get; set; } = "";
         public string Message { get; set; } = "";
         public string? Details { get; set; }
+        public string Severity { get; set; } = "—";
     }
 
     // ============================================================
@@ -269,15 +270,18 @@ namespace NetMonitor.UI
 
         // ---------- Commandes avec résultat détaillé ----------
 
-        public static async Task<bool> BlockIpAsync(string ip, string? source = null, string? message = null, string? details = null)
+        public static async Task<bool> BlockIpAsync(string ip, string? source = null,
+            string? message = null, string? details = null, string? severity = null)
         {
-            var result = await BlockIpWithResultAsync(ip, source, message, details);
+            var result = await BlockIpWithResultAsync(ip, source, message, details, severity);
             return result.Success;
         }
 
-        public static async Task<(bool Success, string? Error)> BlockIpWithResultAsync(string ip, string? source = null, string? message = null, string? details = null)
+        public static async Task<(bool Success, string? Error)> BlockIpWithResultAsync(
+            string ip, string? source = null, string? message = null,
+            string? details = null, string? severity = null)
         {
-            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}";
+            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}|{severity ?? ""}";
             string? json = await SendCommand(cmd);
 
             if (string.IsNullOrWhiteSpace(json))
