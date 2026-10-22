@@ -332,13 +332,13 @@
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
-                                  SelectionMode="Single">
+                                  SelectionMode="Single"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="140"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
-                                <!-- ⚠ AJOUT : Colonne Info -->
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -366,7 +366,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" Width="80">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" Width="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
@@ -392,7 +392,14 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" Width="110"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding Details}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -421,7 +428,8 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  AlternationCount="2">
+                                  AlternationCount="2"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#4A1F0F"/>
@@ -503,13 +511,13 @@
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
-                                  SelectionMode="Single">
+                                  SelectionMode="Single"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}"     Binding="{Binding TimestampText}" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
-                                
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -537,8 +545,16 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                
-                                <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessDisplay}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding Details}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
                         
@@ -567,7 +583,8 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  AlternationCount="2">
+                                  AlternationCount="2"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#1F3A15"/>
@@ -590,10 +607,9 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}"     Binding="{Binding TimestampText}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="140"/>
-                                <!-- ⚠ AJOUT : Colonne Info -->
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -621,7 +637,16 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Message'}"  Binding="{Binding Message}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessDisplay}" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding Details}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 

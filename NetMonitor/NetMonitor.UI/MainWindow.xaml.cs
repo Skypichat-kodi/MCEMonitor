@@ -161,7 +161,16 @@ namespace NetMonitor.UI
                                     Severity  = mostSevere.severity ?? "Info",
                                     Detectors = string.Join(", ", g.Select(x => x.source).Distinct().OrderBy(x => x)),
                                     Message   = mostRecent.message ?? "",
-                                    Count     = g.Count()
+                                    Count     = g.Count(),
+                                    // ⚠ NOUVEAU
+                                    RemotePortsDisplay = string.Join(", ",
+                                        g.Select(x => x.remotePort)
+                                         .Where(p => p > 0)
+                                         .Distinct()
+                                         .OrderBy(p => p)
+                                         .Take(5))
+                                        is { Length: > 0 } s ? s : "—",
+                                    Details = mostRecent.details
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -183,7 +192,9 @@ namespace NetMonitor.UI
                                 Severity  = a.severity ?? "Info",
                                 Detectors = a.source ?? "",
                                 Message   = a.message ?? "",
-                                Count     = 1
+                                Count     = 1,
+                                RemotePortsDisplay = a.remotePort > 0 ? a.remotePort.ToString() : "—",
+                                Details = a.details
                             });
                         }
 
@@ -232,12 +243,16 @@ namespace NetMonitor.UI
                     {
                         _alertsHistory.Add(new AlertRow
                         {
-                            Timestamp = a.timestamp.ToLocalTime(),
-                            Severity = a.severity ?? "",
-                            Source = a.source ?? "",
-                            Message = a.message ?? "",
-                            Details = a.details,
-                            RemoteIp = a.remoteIp
+                            Timestamp  = a.timestamp.ToLocalTime(),
+                            Severity   = a.severity ?? "",
+                            Source     = a.source ?? "",
+                            Message    = a.message ?? "",
+                            Details    = a.details,
+                            RemoteIp   = a.remoteIp,
+                            RemotePort = a.remotePort,
+                            LocalPort  = a.localPort,
+                            Pid        = a.pid,
+                            ProcessName = a.processName
                         });
                     }
                     RestoreAlertSelection(AlertsHistoryGrid, _alertsHistory, key);
@@ -253,12 +268,16 @@ namespace NetMonitor.UI
                     {
                         _auditAlerts.Add(new AlertRow
                         {
-                            Timestamp = a.timestamp.ToLocalTime(),
-                            Severity = a.severity ?? "",
-                            Source = a.source ?? "",
-                            Message = a.message ?? "",
-                            Details = a.details,
-                            RemoteIp = a.remoteIp
+                            Timestamp  = a.timestamp.ToLocalTime(),
+                            Severity   = a.severity ?? "",
+                            Source     = a.source ?? "",
+                            Message    = a.message ?? "",
+                            Details    = a.details,
+                            RemoteIp   = a.remoteIp,
+                            RemotePort = a.remotePort,
+                            LocalPort  = a.localPort,
+                            Pid        = a.pid,
+                            ProcessName = a.processName
                         });
                     }
                     RestoreAlertSelection(AuditGrid, _auditAlerts, key);
@@ -1152,12 +1171,39 @@ namespace NetMonitor.UI
     public class AlertRow
     {
         public DateTime Timestamp { get; set; }
-        public string TimestampText => Timestamp.ToString("dd/MM/yyyy HH:mm:ss");
+        public string TimestampText => Timestamp.ToString("dd/MM HH:mm:ss");
         public string Severity { get; set; } = "";
         public string Source { get; set; } = "";
         public string Message { get; set; } = "";
         public string? Details { get; set; }
         public string? RemoteIp { get; set; }
+        public int RemotePort { get; set; }
+        public int LocalPort { get; set; }
+        public int Pid { get; set; }
+        public string? ProcessName { get; set; }
+
+        // Affichage Processus : "chrome.exe (1234)" ou "—"
+        public string ProcessDisplay
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(ProcessName)) return "—";
+                if (Pid > 0) return $"{ProcessName} ({Pid})";
+                return ProcessName;   // ← si Pid=0, affiche juste le nom
+            }
+        }
+
+        // Affichage Détails : tronqué à 120 chars
+        public string DetailsDisplay
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(Details)) return "—";
+                return Details.Length <= 120
+                    ? Details
+                    : Details.Substring(0, 117) + "…";
+            }
+        }
     }
 
     public class BlockedIpRow
@@ -1196,9 +1242,24 @@ namespace NetMonitor.UI
         public string Message { get; set; } = "";
         public int Count { get; set; }
 
+        // ⚠ NOUVEAU
+        public string RemotePortsDisplay { get; set; } = "—";
+        public string? Details { get; set; }
+
         public string CountClass => Count >= 10 ? "c10" :
                                      Count >= 5  ? "c5"  :
                                      Count >= 2  ? "c2"  : "c1";
+
+        public string DetailsDisplay
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(Details)) return "—";
+                return Details.Length <= 120
+                    ? Details
+                    : Details.Substring(0, 117) + "…";
+            }
+        }
     }
 
     // ============================================================

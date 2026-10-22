@@ -223,9 +223,9 @@
     /*  Tableaux scrollables (hauteur max + entêtes figés)          */
     /* ============================================================ */
     .table-wrapper {
-        max-height: 350px;      /* ajustez : 250 = compact, 500 = large */
+        max-height: 350px;
         overflow-y: auto;
-        overflow-x: hidden;
+        overflow-x: auto;   /* ← était hidden */
         border: 1px solid #3c3c3c;
         border-radius: 6px;
         margin-top: 10px;
@@ -236,6 +236,8 @@
         margin-top: 0;
         border: none;
         border-radius: 0;
+        min-width: 100%;
+        width: max-content;
     }
 
     /* Entêtes figés lors du scroll */
@@ -463,7 +465,10 @@
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
-                <th>{{tr:Message}}</th>
+                <th>{{tr:Port dst}}</th>
+                <th>{{tr:Port loc}}</th>
+                <th>{{tr:Processus}}</th>
+                <th>{{tr:Détails}}</th>
             </tr>
         </thead>
         <tbody>
@@ -484,7 +489,10 @@
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
-                <th>{{tr:Message}}</th>
+                <th>{{tr:Port dst}}</th>
+                <th>{{tr:Port loc}}</th>
+                <th>{{tr:Processus}}</th>
+                <th>{{tr:Détails}}</th>
             </tr>
         </thead>
         <tbody>
