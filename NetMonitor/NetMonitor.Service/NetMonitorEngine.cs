@@ -39,7 +39,13 @@ namespace NetMonitor.Service
         private readonly object _alertsLock = new();
 
         private System.Threading.Timer? _evictTimer;
+        private System.Threading.Timer? _autoBlockCleanupTimer;
 
+        // IPs auto-bloquées à retirer des actives après expiration
+        private readonly ConcurrentDictionary<string, DateTime> _autoBlockedTempIps = new();
+
+        private const int AutoBlockVisibilitySeconds = 60;   // ? Ajustable
+        
         private PacketCaptureService? _capture;
         private Channel<RawPacket>? _packetChannel;
         private Task? _consumerTask;
@@ -158,8 +164,39 @@ namespace NetMonitor.Service
             _capture.Start();
 
             _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
+            
+            // Timer de nettoyage des IPs auto-bloquées (toutes les 10 s)
+            _autoBlockCleanupTimer = new System.Threading.Timer(
+                _ => CleanupAutoBlockedIps(),
+                null,
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(10));            
 
             CoreLog.Write("NetMonitorEngine démarré (surveillance ETW + WinDivert).");
+        }
+
+        private void CleanupAutoBlockedIps()
+        {
+            var now = DateTime.UtcNow;
+
+            var expired = _autoBlockedTempIps
+                .Where(kv => kv.Value <= now)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            if (expired.Count == 0) return;
+
+            lock (_alertsLock)
+            {
+                foreach (var ip in expired)
+                {
+                    int removed = _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
+                    _autoBlockedTempIps.TryRemove(ip, out _);
+
+                    if (removed > 0)
+                        CoreLog.Debug($"[AUTO-BLOCK] IP {ip} retirée des actives après {AutoBlockVisibilitySeconds}s ({removed} entrée(s))");
+                }
+            }
         }
 
         public void Stop()
@@ -172,6 +209,11 @@ namespace NetMonitor.Service
             _capture?.Dispose();
 
             _evictTimer?.Dispose();
+            _evictTimer?.Dispose();
+            _evictTimer = null;
+
+            _autoBlockCleanupTimer?.Dispose();
+            _autoBlockCleanupTimer = null;            
             _evictTimer = null;
             
             _etw.Stop();
@@ -317,8 +359,10 @@ namespace NetMonitor.Service
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
 
-            bool removed = false;
+            // ? NOUVEAU : arrête le maintien en actives (si auto-bloquée récemment)
+            _autoBlockedTempIps.TryRemove(ip, out _);
 
+            bool removed = false;
             lock (_alertsLock)
             {
                 removed = _blockedIps.RemoveAll(b => b.Ip == ip) > 0;
@@ -326,7 +370,6 @@ namespace NetMonitor.Service
 
             if (!removed) return false;
 
-            // Resynchronisation complète des règles sans cette IP
             var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
             bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
 
@@ -606,7 +649,9 @@ namespace NetMonitor.Service
                 return;
             }
 
-            // --- 3. BLOCAGE AUTOMATIQUE (après filtres de sécurité) ---
+            // --- 3. BLOCAGE AUTOMATIQUE ---
+            bool wasAutoBlocked = false;
+
             if (_settings.AutoBlock
                 && (evt.Severity == Severity.High || evt.Severity == Severity.Critical)
                 && !string.IsNullOrWhiteSpace(evt.RemoteIp))
@@ -616,13 +661,80 @@ namespace NetMonitor.Service
                 {
                     CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
                                   $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");
-                    return;
+                    wasAutoBlocked = true;
+
+                    // ? NOUVEAU : on garde l'IP visible dans les actives pendant 60s
+                    // (BlockIp a vidé les actives ? on la remet pour le Tray)
+                    _autoBlockedTempIps[evt.RemoteIp!] = DateTime.UtcNow.AddSeconds(AutoBlockVisibilitySeconds);
                 }
                 else
                 {
                     CoreLog.Warn($"[AUTO-BLOCK] Échec du blocage de {evt.RemoteIp} : {fwError}");
-                    // Le blocage échoue ? on laisse l'alerte continuer normalement
                 }
+            }
+
+            // --- 4. Traitement normal ---
+            lock (_alertsLock)
+            {
+                // Toujours dans l'historique
+                _alerts.Add(evt);
+                if (_alerts.Count > 500) _alerts.RemoveAt(0);
+
+                // ? NOUVEAU : ajouter aux actives si :
+                //    - pas auto-bloquée (comportement normal)
+                //    - OU auto-bloquée (visibilité 60s pour le Tray)
+                _activeIntrusions.Add(evt);
+                if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
+
+                var limit = DateTime.UtcNow.AddMinutes(-60);
+                var recentDuplicates = _alerts.Where(a =>
+                    a.RemoteIp == evt.RemoteIp &&
+                    a.Source == evt.Source &&
+                    a.Timestamp >= limit).ToList();
+
+                if (recentDuplicates.Count == 1) isNewAlert = true;
+            }
+
+            CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
+            SaveHistory();
+
+            // Email : toujours envoyé (même si auto-bloquée)
+            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
+            {
+                _ = SendAlertEmailAsync(evt);
+            }
+
+            // --- 4. Traitement normal ---
+            lock (_alertsLock)
+            {
+                // Toujours ajouter à l'historique (traçabilité)
+                _alerts.Add(evt);
+                if (_alerts.Count > 500) _alerts.RemoveAt(0);
+
+                // Ajouter aux intrusions actives UNIQUEMENT si pas auto-bloquée
+                // (si bloquée, elle est déjà traitée ? pas besoin de la voir dans les actives)
+                if (!wasAutoBlocked)
+                {
+                    _activeIntrusions.Add(evt);
+                    if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
+                }
+
+                var limit = DateTime.UtcNow.AddMinutes(-60);
+                var recentDuplicates = _alerts.Where(a =>
+                    a.RemoteIp == evt.RemoteIp &&
+                    a.Source == evt.Source &&
+                    a.Timestamp >= limit).ToList();
+
+                if (recentDuplicates.Count == 1) isNewAlert = true;
+            }
+
+            CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
+            SaveHistory();
+
+            // Email + notification Tray : toujours envoyés (même si auto-bloquée)
+            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
+            {
+                _ = SendAlertEmailAsync(evt);
             }
 
             // --- 4. Traitement normal (ajout aux listes) ---
