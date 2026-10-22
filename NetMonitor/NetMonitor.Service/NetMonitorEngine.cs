@@ -397,6 +397,21 @@ namespace NetMonitor.Service
                     // On restaure aussi les intrusions actives (moins de 24h) pour l'UI
                     _activeIntrusions.Clear();
                     _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
+
+                    // ? NOUVEAU : retire des actives les IPs déjà bloquées
+                    // (évite le doublon visuel après un redémarrage rapide)
+                    var blockedIps = new HashSet<string>(
+                        _blockedIps.Select(b => b.Ip),
+                        StringComparer.OrdinalIgnoreCase);
+
+                    if (blockedIps.Count > 0)
+                    {
+                        int removed = _activeIntrusions.RemoveAll(a =>
+                            !string.IsNullOrWhiteSpace(a.RemoteIp) && blockedIps.Contains(a.RemoteIp));
+
+                        if (removed > 0)
+                            CoreLog.Info($"LoadHistory : {removed} alerte(s) retirée(s) des actives (IP déjà bloquée)");
+                    }
                 }
                 CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
 

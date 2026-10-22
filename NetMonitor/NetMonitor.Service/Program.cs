@@ -78,6 +78,7 @@ namespace NetMonitor.Service
             _engine = new NetMonitorEngine(settings);
             _engine.LoadBlockedIps();
             _engine.LoadHistory();
+            _engine.LoadAudit();
             _engine.Start();
 
             CoreLog.Write($"Scanners whitelistés : {string.Join(", ", settings.TrustedScannerPatterns)}");
