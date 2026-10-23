@@ -91,9 +91,12 @@
         <div id="map-blocked" class="map"></div>
         <div class="legend">
             <div class="li"><div class="lc" style="background:#e5f5e0"></div>1</div>
-            <div class="li"><div class="lc" style="background:#a1d99b"></div>2-5</div>
-            <div class="li"><div class="lc" style="background:#41ab5d"></div>6-10</div>
-            <div class="li"><div class="lc" style="background:#005a32"></div>10+</div>
+            <div class="li"><div class="lc" style="background:#c7e9c0"></div>2-9</div>
+            <div class="li"><div class="lc" style="background:#a1d99b"></div>10-49</div>
+            <div class="li"><div class="lc" style="background:#74c476"></div>50-99</div>
+            <div class="li"><div class="lc" style="background:#41ab5d"></div>100-499</div>
+            <div class="li"><div class="lc" style="background:#238b45"></div>500-999</div>
+            <div class="li"><div class="lc" style="background:#005a32"></div>1000+</div>
         </div>
     </div>
 </div>
@@ -107,7 +110,8 @@
     var paletteActive  = ['#ffffb2', '#fed976', '#feb24c', '#fd8d3c', '#f03b20', '#bd0026', '#b10026'];
     var paletteBlocked = ['#e5f5e0', '#c7e9c0', '#a1d99b', '#74c476', '#41ab5d', '#238b45', '#005a32'];
 
-    function colorFor(count, palette) {
+    // Échelle active : 1 / 2-5 / 6-10 / 10+
+    function colorForActive(count, palette) {
         if (count <= 0) return '#333333';
         if (count >= 10) return palette[6];
         if (count >= 6)  return palette[4];
@@ -115,9 +119,24 @@
         return palette[0];
     }
 
-    function initMap(id, dataMap, palette, label) {
-        var map = L.map(id, { zoomControl: true, worldCopyJump: true })
-            .setView([20, 0], 2);
+    // Échelle bloquée : 1 / 2-9 / 10-49 / 50-99 / 100-499 / 500-999 / 1000+
+    function colorForBlocked(count, palette) {
+        if (count <= 0)    return '#333333';
+        if (count >= 1000) return palette[6];
+        if (count >= 500)  return palette[5];
+        if (count >= 100)  return palette[4];
+        if (count >= 50)   return palette[3];
+        if (count >= 10)   return palette[2];
+        if (count >= 2)    return palette[1];
+        return palette[0];
+    }
+
+    function initMap(id, dataMap, palette, label, colorFn) {
+        var map = L.map(id, {
+            zoomControl: true,
+            worldCopyJump: true,
+            scrollWheelZoom: false   // ⚠ désactive le zoom molette
+        }).setView([20, 0], 2);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap',
@@ -133,17 +152,19 @@
                 L.geoJSON(geo, {
                     style: function (f) {
                         var code = f.properties.ISO_A2;
+                        if (!code || code === '-99') code = f.properties.ISO_A2_EH;
                         var c = (code && dataMap[code]) ? dataMap[code] : 0;
                         return {
-                            fillColor: colorFor(c, palette),
+                            fillColor: colorFn(c, palette),
                             weight: 1, opacity: 1, color: '#3c3c3c',
                             fillOpacity: 0.85
                         };
                     },
                     onEachFeature: function (f, layer) {
                         var code = f.properties.ISO_A2;
-                        var name = f.properties.ADMIN || f.properties.NAME || '?';
+                        if (!code || code === '-99') code = f.properties.ISO_A2_EH;
                         var c = (code && dataMap[code]) ? dataMap[code] : 0;
+                        var name = f.properties.ADMIN || f.properties.NAME || '?';
                         layer.bindTooltip('<strong>' + name + '</strong><br/>' + label + ' : ' + c, { sticky: true });
                     }
                 }).addTo(map);
@@ -155,8 +176,8 @@
             });
     }
 
-    initMap('map-active',  dataActive,  paletteActive,  'Alertes actives');
-    initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées');
+    initMap('map-active',  dataActive,  paletteActive,  'Alertes actives', colorForActive);
+    initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées',     colorForBlocked);
 })();
 </script>
 

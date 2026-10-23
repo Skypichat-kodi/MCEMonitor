@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -16,6 +18,9 @@ namespace NetMonitor.UI
 {
     public partial class MainWindow : Window
     {
+        // Limite d'affichage par défaut des tableaux
+        private const int DisplayLimit = 12;
+
         private readonly ObservableCollection<GroupedAlertRow> _activeIntrusions = new();
         private readonly ObservableCollection<BlockedIpRow> _blockedIps = new();
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
@@ -29,6 +34,18 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries = new();
         private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors = new();
 
+        // Données complètes (pour le dépliage Voir plus)
+        private List<GroupedAlertRow> _allActiveGrouped = new();
+        private List<BlockedIpRow> _allBlockedIps = new();
+        private List<AlertRow> _allAlertsHistory = new();
+        private List<AlertRow> _allAuditAlerts = new();
+
+        // Flags "Voir plus" par tableau
+        private bool _showAllActive = false;
+        private bool _showAllBlocked = false;
+        private bool _showAllHistory = false;
+        private bool _showAllAudit = false;
+
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
@@ -37,9 +54,9 @@ namespace NetMonitor.UI
         private bool _mapInitialized = false;
         private bool _chartsInitialized = false;
 
-        // ⚠ NOUVEAU : hash pour éviter la reconstruction des intrusions actives
+        // ⚠ hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
-        // ⚠ NOUVEAU : offset du scroll global (ScrollViewer de l'onglet actif)
+        // ⚠ offset du scroll global (ScrollViewer de l'onglet actif)
         private double _lastGlobalScroll = 0;
 
         public MainWindow()
@@ -67,17 +84,23 @@ namespace NetMonitor.UI
                 return;
             }
 
-            ActiveIntrusionsGrid.ItemsSource      = _activeIntrusions;
-            BlockedIpsGrid.ItemsSource            = _blockedIps;
-            AlertsHistoryGrid.ItemsSource         = _alertsHistory;
-            ConnectionsGrid.ItemsSource           = _connections;
-            AuditGrid.ItemsSource                 = _auditAlerts;
-            StatsActiveIpsGrid.ItemsSource        = _statsActiveIps;
-            StatsActiveCountriesGrid.ItemsSource  = _statsActiveCountries;
-            StatsActiveDetectorsGrid.ItemsSource  = _statsActiveDetectors;
-            StatsBlockedIpsGrid.ItemsSource       = _statsBlockedIps;
-            StatsBlockedCountriesGrid.ItemsSource = _statsBlockedCountries;
-            StatsBlockedDetectorsGrid.ItemsSource = _statsBlockedDetectors;
+            ActiveIntrusionsGrid.ItemsSource            = _activeIntrusions;
+            BlockedIpsGrid.ItemsSource                  = _blockedIps;
+            AlertsHistoryGrid.ItemsSource               = _alertsHistory;
+            ConnectionsGrid.ItemsSource                 = _connections;
+            AuditGrid.ItemsSource                       = _auditAlerts;
+            StatsActiveIpsGrid.ItemsSource              = _statsActiveIps;
+            StatsActiveCountriesGrid.ItemsSource        = _statsActiveCountries;
+            StatsActiveDetectorsGrid.ItemsSource        = _statsActiveDetectors;
+            StatsBlockedIpsGrid.ItemsSource             = _statsBlockedIps;
+            StatsBlockedCountriesGrid.ItemsSource       = _statsBlockedCountries;
+            StatsBlockedDetectorsGrid.ItemsSource       = _statsBlockedDetectors;
+            ActiveIntrusionsGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
+            BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
+            AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
+            AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+            MapWebView.PreviewMouseWheel                += WebView_PreviewMouseWheel;
+            ChartsWebView.PreviewMouseWheel             += WebView_PreviewMouseWheel;            
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
@@ -103,10 +126,8 @@ namespace NetMonitor.UI
             {
                 CheckConfigFileChanged();
 
-                // ⚠ NOUVEAU : sauvegarde du scroll global (ScrollViewer de l'onglet actif)
                 _lastGlobalScroll = GetActiveTabScrollOffset();
 
-                // Sauvegarde des offsets de scroll des DataGrid
                 double activeOffset  = GetScrollOffset(ActiveIntrusionsGrid);
                 double blockedOffset = GetScrollOffset(BlockedIpsGrid);
                 double historyOffset = GetScrollOffset(AlertsHistoryGrid);
@@ -136,7 +157,6 @@ namespace NetMonitor.UI
                 var active = await NetMonitorIpcClient.GetActiveIntrusions();
                 if (active != null)
                 {
-                    // Ne reconstruire que si le contenu a changé (évite le flicker)
                     var newHash = string.Join("|", active.Select(a => $"{a.remoteIp}:{a.timestamp:O}"));
                     if (newHash != _lastActiveHash)
                     {
@@ -144,9 +164,6 @@ namespace NetMonitor.UI
 
                         string? selectedIp = (ActiveIntrusionsGrid.SelectedItem as GroupedAlertRow)?.RemoteIp;
 
-                        _activeIntrusions.Clear();
-
-                        // Groupe par IP
                         var grouped = active
                             .Where(a => !string.IsNullOrWhiteSpace(a.remoteIp))
                             .GroupBy(a => a.remoteIp!)
@@ -164,7 +181,6 @@ namespace NetMonitor.UI
                                     Detectors = string.Join(", ", g.Select(x => x.source).Distinct().OrderBy(x => x)),
                                     Message   = mostRecent.message ?? "",
                                     Count     = g.Count(),
-                                    // ⚠ NOUVEAU
                                     RemotePortsDisplay = string.Join(", ",
                                         g.Select(x => x.remotePort)
                                          .Where(p => p > 0)
@@ -180,13 +196,11 @@ namespace NetMonitor.UI
                             .ThenByDescending(x => x.LastSeen)
                             .ToList();
 
-                        foreach (var row in grouped) _activeIntrusions.Add(row);
-
-                        // Événements sans IP (isolés en bas)
+                        // Événements sans IP
                         foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.remoteIp))
                                                 .OrderByDescending(x => x.timestamp).Take(20))
                         {
-                            _activeIntrusions.Add(new GroupedAlertRow
+                            grouped.Add(new GroupedAlertRow
                             {
                                 RemoteIp  = null,
                                 FirstSeen = a.timestamp,
@@ -200,7 +214,12 @@ namespace NetMonitor.UI
                             });
                         }
 
-                        // Restauration de la sélection (PAS de ScrollIntoView → le scroll reste où il est)
+                        _allActiveGrouped = grouped;
+                        ApplyDisplayLimit(_activeIntrusions, _allActiveGrouped, _showAllActive);
+                        UpdateMoreIndicator(panelActiveMore, txtActiveMoreLabel, _allActiveGrouped.Count, _showAllActive);
+                        if (!_showAllActive)
+                            ActiveIntrusionsGrid.Height = CalculateDataGridHeight(_activeIntrusions.Count);
+
                         if (!string.IsNullOrEmpty(selectedIp))
                         {
                             foreach (var item in _activeIntrusions)
@@ -220,10 +239,9 @@ namespace NetMonitor.UI
                 if (blocked != null)
                 {
                     string? key = GetSelectedBlockedKey();
-                    _blockedIps.Clear();
-                    foreach (var b in blocked.OrderByDescending(x => x.BlockedAt))
-                    {
-                        _blockedIps.Add(new BlockedIpRow
+                    _allBlockedIps = blocked
+                        .OrderByDescending(x => x.BlockedAt)
+                        .Select(b => new BlockedIpRow
                         {
                             Ip = b.Ip,
                             BlockedAt = b.BlockedAt.ToLocalTime(),
@@ -231,8 +249,13 @@ namespace NetMonitor.UI
                             Message = b.Message,
                             Details = b.Details,
                             Severity = b.Severity
-                        });
-                    }
+                        })
+                        .ToList();
+
+                    ApplyDisplayLimit(_blockedIps, _allBlockedIps, _showAllBlocked);
+                    UpdateMoreIndicator(panelBlockedMore, txtBlockedMoreLabel, _allBlockedIps.Count, _showAllBlocked);
+                    if (!_showAllBlocked)
+                        BlockedIpsGrid.Height = CalculateDataGridHeight(_blockedIps.Count);
                     RestoreBlockedSelection(key);
                 }
 
@@ -241,10 +264,10 @@ namespace NetMonitor.UI
                 if (history != null)
                 {
                     string? key = GetSelectedAlertKey(AlertsHistoryGrid);
-                    _alertsHistory.Clear();
-                    foreach (var a in history.OrderByDescending(x => x.timestamp).Take(500))
-                    {
-                        _alertsHistory.Add(new AlertRow
+                    _allAlertsHistory = history
+                        .OrderByDescending(x => x.timestamp)
+                        .Take(500)
+                        .Select(a => new AlertRow
                         {
                             Timestamp  = a.timestamp.ToLocalTime(),
                             Severity   = a.severity ?? "",
@@ -256,8 +279,13 @@ namespace NetMonitor.UI
                             LocalPort  = a.localPort,
                             Pid        = a.pid,
                             ProcessName = a.processName
-                        });
-                    }
+                        })
+                        .ToList();
+
+                    ApplyDisplayLimit(_alertsHistory, _allAlertsHistory, _showAllHistory);
+                    UpdateMoreIndicator(panelHistoryMore, txtHistoryMoreLabel, _allAlertsHistory.Count, _showAllHistory);
+                    if (!_showAllHistory)
+                        AlertsHistoryGrid.Height = CalculateDataGridHeight(_alertsHistory.Count);
                     RestoreAlertSelection(AlertsHistoryGrid, _alertsHistory, key);
                 }
 
@@ -266,10 +294,10 @@ namespace NetMonitor.UI
                 if (audit != null)
                 {
                     string? key = GetSelectedAlertKey(AuditGrid);
-                    _auditAlerts.Clear();
-                    foreach (var a in audit.OrderByDescending(x => x.timestamp).Take(500))
-                    {
-                        _auditAlerts.Add(new AlertRow
+                    _allAuditAlerts = audit
+                        .OrderByDescending(x => x.timestamp)
+                        .Take(500)
+                        .Select(a => new AlertRow
                         {
                             Timestamp  = a.timestamp.ToLocalTime(),
                             Severity   = a.severity ?? "",
@@ -281,8 +309,13 @@ namespace NetMonitor.UI
                             LocalPort  = a.localPort,
                             Pid        = a.pid,
                             ProcessName = a.processName
-                        });
-                    }
+                        })
+                        .ToList();
+
+                    ApplyDisplayLimit(_auditAlerts, _allAuditAlerts, _showAllAudit);
+                    UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditAlerts.Count, _showAllAudit);
+                    if (!_showAllAudit)
+                        AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
                     RestoreAlertSelection(AuditGrid, _auditAlerts, key);
                 }
 
@@ -310,14 +343,12 @@ namespace NetMonitor.UI
 
                 txtLastUpdate.Text = $"Mise à jour : {DateTime.Now:HH:mm:ss}";
 
-                // Restauration des offsets après le re-remplissage
                 RestoreScrollAsync(ActiveIntrusionsGrid, activeOffset);
                 RestoreScrollAsync(BlockedIpsGrid, blockedOffset);
                 RestoreScrollAsync(AlertsHistoryGrid, historyOffset);
                 RestoreScrollAsync(AuditGrid, auditOffset);
                 RestoreScrollAsync(ConnectionsGrid, connsOffset);
 
-                // Restauration du scroll global
                 RestoreActiveTabScroll(_lastGlobalScroll);
             }
             catch (Exception ex)
@@ -330,6 +361,103 @@ namespace NetMonitor.UI
             }
         }
 
+        // ------------------------------------------------------------
+        //  Helpers "Voir plus"
+        // ------------------------------------------------------------
+        private void ApplyDisplayLimit<T>(
+            ObservableCollection<T> target, List<T> source, bool showAll)
+        {
+            target.Clear();
+            var items = showAll ? source : source.Take(DisplayLimit);
+            foreach (var item in items) target.Add(item);
+        }
+
+        private void UpdateMoreIndicator(
+            StackPanel container, TextBlock label, int total, bool expanded)
+        {
+            if (total <= DisplayLimit)
+            {
+                container.Visibility = Visibility.Collapsed;
+                return;
+            }
+            container.Visibility = Visibility.Visible;
+            label.Text = expanded
+                ? $"▲  {total} / {total}"
+                : $"▼  {DisplayLimit} / {total}";
+        }
+
+        private void ToggleActiveMore_Click(object sender, RoutedEventArgs e)
+        {
+            _showAllActive = !_showAllActive;
+            ApplyDisplayLimit(_activeIntrusions, _allActiveGrouped, _showAllActive);
+            UpdateMoreIndicator(panelActiveMore, txtActiveMoreLabel, _allActiveGrouped.Count, _showAllActive);
+
+            if (_showAllActive)
+            {
+                ActiveIntrusionsGrid.Height = double.NaN;   // Auto
+                ActiveIntrusionsGrid.MaxHeight = 700;
+            }
+            else
+            {
+                ActiveIntrusionsGrid.MaxHeight = double.PositiveInfinity;
+                ActiveIntrusionsGrid.Height = CalculateDataGridHeight(_activeIntrusions.Count);
+            }
+        }
+
+        private void ToggleBlockedMore_Click(object sender, RoutedEventArgs e)
+        {
+            _showAllBlocked = !_showAllBlocked;
+            ApplyDisplayLimit(_blockedIps, _allBlockedIps, _showAllBlocked);
+            UpdateMoreIndicator(panelBlockedMore, txtBlockedMoreLabel, _allBlockedIps.Count, _showAllBlocked);
+
+            if (_showAllBlocked)
+            {
+                BlockedIpsGrid.Height = double.NaN;
+                BlockedIpsGrid.MaxHeight = 700;
+            }
+            else
+            {
+                BlockedIpsGrid.MaxHeight = double.PositiveInfinity;
+                BlockedIpsGrid.Height = CalculateDataGridHeight(_blockedIps.Count);
+            }
+        }
+
+        private void ToggleHistoryMore_Click(object sender, RoutedEventArgs e)
+        {
+            _showAllHistory = !_showAllHistory;
+            ApplyDisplayLimit(_alertsHistory, _allAlertsHistory, _showAllHistory);
+            UpdateMoreIndicator(panelHistoryMore, txtHistoryMoreLabel, _allAlertsHistory.Count, _showAllHistory);
+
+            if (_showAllHistory)
+            {
+                AlertsHistoryGrid.Height = double.NaN;
+                AlertsHistoryGrid.MaxHeight = 700;
+            }
+            else
+            {
+                AlertsHistoryGrid.MaxHeight = double.PositiveInfinity;
+                AlertsHistoryGrid.Height = CalculateDataGridHeight(_alertsHistory.Count);
+            }
+        }
+
+        private void ToggleAuditMore_Click(object sender, RoutedEventArgs e)
+        {
+            _showAllAudit = !_showAllAudit;
+            ApplyDisplayLimit(_auditAlerts, _allAuditAlerts, _showAllAudit);
+            UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditAlerts.Count, _showAllAudit);
+
+            if (_showAllAudit)
+            {
+                AuditGrid.Height = double.NaN;
+                AuditGrid.MaxHeight = 700;
+            }
+            else
+            {
+                AuditGrid.MaxHeight = double.PositiveInfinity;
+                AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
+            }
+        }
+
         private static int SeverityRank(string? severity) => severity switch
         {
             "Critical" => 3,
@@ -339,7 +467,7 @@ namespace NetMonitor.UI
         };
 
         // ------------------------------------------------------------
-        //  Restauration des sélections (évite la perte au refresh)
+        //  Restauration des sélections
         // ------------------------------------------------------------
         private static string? GetSelectedAlertKey(DataGrid grid)
         {
@@ -357,7 +485,7 @@ namespace NetMonitor.UI
                 if ($"{item.Timestamp:O}|{item.Source}|{item.RemoteIp}|{item.Message}" == key)
                 {
                     grid.SelectedItem = item;
-                    return;   // ⚠ pas de ScrollIntoView → le scroll reste où il est
+                    return;
                 }
             }
         }
@@ -436,7 +564,6 @@ namespace NetMonitor.UI
 
             if (confirm != MessageBoxResult.Yes) return;
 
-            // Prend le premier détecteur ("PortScan" au lieu de "PortScan, Blacklist")
             string primaryDetector = row.Detectors?
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => s.Trim())
@@ -617,7 +744,6 @@ namespace NetMonitor.UI
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
-                // Préserve IpLookupUrl existant (pas configurable depuis l'UI pour l'instant)
                 string currentIpLookupUrl = LoadIpLookupUrl();
 
                 double jitterPct = 5;
@@ -892,7 +1018,7 @@ namespace NetMonitor.UI
         }
 
         // ------------------------------------------------------------
-        //  Lookup IP : ouvre AbuseIPDB (ou l'URL configurée)
+        //  Lookup IP : ouvre AbuseIPDB
         // ------------------------------------------------------------
         private void LookupIp_Click(object sender, RoutedEventArgs e)
         {
@@ -918,7 +1044,6 @@ namespace NetMonitor.UI
             }
         }
 
-        // Lit IpLookupUrl depuis NetMonitor.config (fallback AbuseIPDB)
         private static string LoadIpLookupUrl()
         {
             const string fallback = "https://www.abuseipdb.com/check/{ip}";
@@ -962,7 +1087,6 @@ namespace NetMonitor.UI
                     return;
                 }
 
-                // --- Cartes globales ---
                 txtStatsTotalAlerts.Text       = stats.TotalAlerts.ToString();
                 txtStatsDistinctIps.Text       = stats.DistinctIps.ToString();
                 txtStatsDistinctCountries.Text = stats.DistinctCountries.ToString();
@@ -981,7 +1105,6 @@ namespace NetMonitor.UI
                     _          => new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F))
                 };
 
-                // --- Section Active ---
                 txtActiveSummary.Text = $"{stats.Active.TotalAlerts} alertes · " +
                                         $"{stats.Active.DistinctIps} IPs · " +
                                         $"{stats.Active.DistinctCountries} pays";
@@ -1015,7 +1138,6 @@ namespace NetMonitor.UI
                 foreach (var d in stats.Active.TopDetectors)
                     _statsActiveDetectors.Add(new StatsDetectorRow { Detector = d.Detector, Count = d.Count });
 
-                // --- Section Blocked ---
                 txtBlockedSummary.Text = $"{stats.Blocked.TotalAlerts} IPs · " +
                                          $"{stats.Blocked.DistinctCountries} pays";
 
@@ -1054,7 +1176,6 @@ namespace NetMonitor.UI
                 txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
             }
 
-            // Recharger la carte + les graphiques
             if (_mapInitialized) MapWebView?.Reload();
             if (_chartsInitialized) ChartsWebView?.Reload();
         }
@@ -1080,7 +1201,6 @@ namespace NetMonitor.UI
                 string user = status.username ?? "";
                 string pass = status.password ?? "";
 
-                // Dossier user data persistant (évite les conflits si UI élevée)
                 string userDataFolder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "MCEMonitor", "WebView2");
@@ -1089,7 +1209,6 @@ namespace NetMonitor.UI
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 await MapWebView.EnsureCoreWebView2Async(env);
 
-                // Injecter Authorization: Basic pour toutes les requêtes vers localhost
                 string filter127 = $"http://127.0.0.1:{port}/*";
                 string filterLoc = $"http://localhost:{port}/*";
                 MapWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
@@ -1102,7 +1221,6 @@ namespace NetMonitor.UI
                     catch { }
                 };
 
-                // Settings sobres
                 MapWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 MapWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 MapWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
@@ -1168,7 +1286,7 @@ namespace NetMonitor.UI
         }
 
         // ------------------------------------------------------------
-        //  Préservation du scroll dans les DataGrid au refresh
+        //  Préservation du scroll
         // ------------------------------------------------------------
         private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
         {
@@ -1180,6 +1298,39 @@ namespace NetMonitor.UI
                 if (result != null) return result;
             }
             return null;
+        }
+
+        private void DataGrid_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is not DataGrid dg) return;
+
+            var sv = FindVisualChild<ScrollViewer>(dg);
+            if (sv == null) return;
+
+            bool atTop    = sv.VerticalOffset <= 0;
+            bool atBottom = sv.VerticalOffset >= sv.ScrollableHeight;
+
+            if ((e.Delta > 0 && atTop) || (e.Delta < 0 && atBottom))
+            {
+                e.Handled = true;
+
+                var parent = GetActiveTabScrollViewer();
+                if (parent != null)
+                {
+                    parent.ScrollToVerticalOffset(parent.VerticalOffset - e.Delta);
+                }
+            }
+        }
+
+        private void WebView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            // Redirige la molette vers la page principale
+            e.Handled = true;
+            var parent = GetActiveTabScrollViewer();
+            if (parent != null)
+            {
+                parent.ScrollToVerticalOffset(parent.VerticalOffset - e.Delta);
+            }
         }
 
         private static double GetScrollOffset(DataGrid grid)
@@ -1198,13 +1349,8 @@ namespace NetMonitor.UI
             }), DispatcherPriority.Loaded);
         }
 
-        // ------------------------------------------------------------
-        //  Préservation du scroll global (ScrollViewer de l'onglet actif)
-        // ------------------------------------------------------------
         private ScrollViewer? GetActiveTabScrollViewer()
         {
-            // Le contenu direct d'un TabItem scrollable EST le ScrollViewer.
-            // Pas besoin de le nommer dans le XAML - SelectedContent le récupère directement.
             return MainTabControl.SelectedContent as ScrollViewer;
         }
 
@@ -1221,10 +1367,30 @@ namespace NetMonitor.UI
                 GetActiveTabScrollViewer()?.ScrollToVerticalOffset(offset);
             }), DispatcherPriority.Loaded);
         }
+
+        // ------------------------------------------------------------
+        //  Calcule la hauteur d'un DataGrid selon le nombre de lignes
+        // ------------------------------------------------------------
+        private static double CalculateDataGridHeight(int rowCount)
+        {
+            const double headerHeight = 36;       // en-tête + bordure (33 + 3 de sécurité)
+            const double rowHeight    = 28;       // hauteur d'une ligne (RowHeight="28")
+            const double scrollbarH   = 14;       // scrollbar horizontale (+2 de sécurité)
+            const double border       = 2;        // bordures du DataGrid (haut + bas)
+            const double margin       = 6;        // marge de sécurité
+
+            int visibleRows;
+            if (rowCount <= 0)
+                visibleRows = 1;                  // 1 ligne vide minimum
+            else
+                visibleRows = Math.Min(rowCount, DisplayLimit);
+
+            return headerHeight + (visibleRows * rowHeight) + scrollbarH + border + margin;
+        }
     }
 
     // ============================================================
-    //  ViewModels pour les DataGrid
+    //  ViewModels
     // ============================================================
 
     public class AlertRow
@@ -1241,18 +1407,16 @@ namespace NetMonitor.UI
         public int Pid { get; set; }
         public string? ProcessName { get; set; }
 
-        // Affichage Processus : "chrome.exe (1234)" ou "-"
         public string ProcessDisplay
         {
             get
             {
                 if (string.IsNullOrWhiteSpace(ProcessName)) return "-";
                 if (Pid > 0) return $"{ProcessName} ({Pid})";
-                return ProcessName;   // ← si Pid=0, affiche juste le nom
+                return ProcessName;
             }
         }
 
-        // Affichage Détails : tronqué à 120 chars
         public string DetailsDisplay
         {
             get
@@ -1287,9 +1451,6 @@ namespace NetMonitor.UI
         public string ProcessName { get; set; } = "";
     }
 
-    // ============================================================
-    //  ViewModels - Intrusions actives groupées
-    // ============================================================
     public class GroupedAlertRow
     {
         public DateTime FirstSeen { get; set; }
@@ -1301,8 +1462,6 @@ namespace NetMonitor.UI
         public string? RemoteIp { get; set; }
         public string Message { get; set; } = "";
         public int Count { get; set; }
-
-        // ⚠ NOUVEAU
         public string RemotePortsDisplay { get; set; } = "-";
         public string? Details { get; set; }
 
@@ -1322,9 +1481,6 @@ namespace NetMonitor.UI
         }
     }
 
-    // ============================================================
-    //  ViewModels - Statistiques
-    // ============================================================
     public class StatsIpRow
     {
         public string Ip { get; set; } = "";

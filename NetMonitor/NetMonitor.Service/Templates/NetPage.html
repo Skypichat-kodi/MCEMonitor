@@ -224,9 +224,8 @@
     /*  Tableaux scrollables (hauteur max + entêtes figés)          */
     /* ============================================================ */
     .table-wrapper {
-        max-height: 350px;
         overflow-y: auto;
-        overflow-x: auto;   /* ← était hidden */
+        overflow-x: auto;
         border: 1px solid #3c3c3c;
         border-radius: 6px;
         margin-top: 10px;
@@ -356,7 +355,38 @@
     .count-badge.c2  { background: #7a1e0f; color: #fff; }
     .count-badge.c5  { background: #cc3300; color: #fff; }
     .count-badge.c10 { background: #ff3300; color: #fff; box-shadow: 0 0 6px rgba(255,51,0,0.6); }
-                   
+
+    /* ============================================================ */
+    /*  Voir plus / Voir moins (bas de tableau)                     */
+    /* ============================================================ */
+    .more-indicator {
+        text-align: center;
+        margin-top: 4px;
+        user-select: none;
+    }
+
+    .more-indicator button {
+        background: transparent;
+        border: none;
+        color: #4CC2FF;
+        font-size: 11px;
+        font-family: inherit;
+        cursor: pointer;
+        padding: 4px 10px;
+        border-radius: 4px;
+        transition: background 0.15s ease;
+    }
+
+    .more-indicator button:hover {
+        background: rgba(76, 194, 255, 0.1);
+    }
+
+    /* Couleur du bouton selon le thème du tableau */
+    .table-wrapper.theme-danger + .more-indicator button { color: #FF8A72; }
+    .table-wrapper.theme-danger + .more-indicator button:hover { background: rgba(255, 99, 71, 0.1); }
+
+    .table-wrapper.theme-success + .more-indicator button { color: #8FDA80; }
+    .table-wrapper.theme-success + .more-indicator button:hover { background: rgba(108, 203, 95, 0.1); }                   
 </style>
 
 </head>
@@ -608,5 +638,73 @@ document.getElementById('btnBlockIp').addEventListener('click', blockSelectedIp)
 document.getElementById('btnUnblockIp').addEventListener('click', unblockSelectedIp);
 </script>
 
+<script>
+// ============================================================
+//  Voir plus / Voir moins (limite à 12 lignes par tableau)
+// ============================================================
+(function () {
+    var LIMIT = 12;
+    var wrappers = document.querySelectorAll('.table-wrapper');
+
+    wrappers.forEach(function (wrapper, idx) {
+        var table = wrapper.querySelector('table');
+        if (!table) return;
+
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        // Exclut les lignes "Aucune donnée" (td avec colspan)
+        var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+        var realRows = allRows.filter(function (r) {
+            return !r.querySelector('td[colspan]');
+        });
+
+        if (realRows.length <= LIMIT) return;   // rien à faire
+
+        // Clé de persistance pour survivre au meta refresh 15s
+        var storageKey = 'more-' + idx;
+        var expanded = sessionStorage.getItem(storageKey) === '1';
+
+        function applyState(isExpanded) {
+            realRows.forEach(function (r, i) {
+                if (i >= LIMIT) {
+                    r.style.display = isExpanded ? '' : 'none';
+                }
+            });
+        }
+
+        // État initial
+        applyState(expanded);
+
+        // Bouton
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.dataset.expanded = expanded ? '1' : '0';
+
+        function updateLabel() {
+            var isExpanded = btn.dataset.expanded === '1';
+            btn.textContent = isExpanded
+                ? '▲  ' + realRows.length + ' / ' + realRows.length
+                : '▼  ' + LIMIT + ' / ' + realRows.length;
+        }
+
+        updateLabel();
+
+        btn.addEventListener('click', function () {
+            var isExpanded = btn.dataset.expanded === '1';
+            var nextExpanded = !isExpanded;
+            btn.dataset.expanded = nextExpanded ? '1' : '0';
+            applyState(nextExpanded);
+            updateLabel();
+            sessionStorage.setItem(storageKey, nextExpanded ? '1' : '0');
+        });
+
+        var indicator = document.createElement('div');
+        indicator.className = 'more-indicator';
+        indicator.appendChild(btn);
+        wrapper.parentNode.insertBefore(indicator, wrapper.nextSibling);
+    });
+})();
+</script>
 </body>
 </html>

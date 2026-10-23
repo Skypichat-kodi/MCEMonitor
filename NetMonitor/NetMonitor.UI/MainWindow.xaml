@@ -356,14 +356,14 @@
                         </StackPanel>
 
                         <DataGrid x:Name="ActiveIntrusionsGrid"
-                                  MinHeight="150" MaxHeight="250"
-                                  AutoGenerateColumns="False"
+                                  RowHeight="28"
+                                  AutoGenerateColumns="False"                                
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  Margin="0,0,0,17"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                  Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
@@ -433,6 +433,19 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
+                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
+                        <StackPanel x:Name="panelActiveMore" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" Margin="0,4,0,0"
+                                    Visibility="Collapsed">
+                            <Button Click="ToggleActiveMore_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="8,2" Cursor="Hand"
+                                    ToolTip="Afficher toutes les lignes">
+                                <TextBlock x:Name="txtActiveMoreLabel" Text="▼ 12 / 0"
+                                           Foreground="#4CC2FF" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+
                         <!-- Tableau 2 : IP bloquées -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
@@ -452,15 +465,15 @@
                         </StackPanel>
 
                         <DataGrid x:Name="BlockedIpsGrid"
-                                  MinHeight="120" MaxHeight="220"
+                                  RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
                                   AlternationCount="2"
-                                  Margin="0,0,0,17"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                  Margin="0,0,0,0">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#4A1F0F"/>
@@ -486,7 +499,6 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"        Binding="{Binding Ip}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}"  Binding="{Binding Severity}" Width="90"/>
-                                <!-- ⚠ AJOUT : Colonne Info (binding Ip) -->
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -519,6 +531,19 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
+                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
+                        <StackPanel x:Name="panelBlockedMore" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" Margin="0,4,0,0"
+                                    Visibility="Collapsed">
+                            <Button Click="ToggleBlockedMore_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="8,2" Cursor="Hand"
+                                    ToolTip="Afficher toutes les lignes">
+                                <TextBlock x:Name="txtBlockedMoreLabel" Text="▼ 12 / 0"
+                                           Foreground="#4CC2FF" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+
                         <!-- Tableau 3 : historique -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="📜" FontSize="16" Margin="0,0,8,0"
@@ -538,14 +563,14 @@
                         </StackPanel>
 
                         <DataGrid x:Name="AlertsHistoryGrid"
-                                  MinHeight="150" MaxHeight="300"
+                                  RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
-                                  Margin="0,0,0,17"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                  Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
@@ -590,6 +615,19 @@
                                 </DataGridTextColumn>
                             </DataGrid.Columns>
                         </DataGrid>
+
+                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
+                        <StackPanel x:Name="panelHistoryMore" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" Margin="0,4,0,0"
+                                    Visibility="Collapsed">
+                            <Button Click="ToggleHistoryMore_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="8,2" Cursor="Hand"
+                                    ToolTip="Afficher toutes les lignes">
+                                <TextBlock x:Name="txtHistoryMoreLabel" Text="▼ 12 / 0"
+                                           Foreground="#4CC2FF" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
                         
                         <!-- Tableau 4 : Audit Whitelist -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
@@ -610,15 +648,15 @@
                         </StackPanel>
 
                         <DataGrid x:Name="AuditGrid"
-                                  MinHeight="120" MaxHeight="200"
+                                  RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
                                   AlternationCount="2"
-                                  Margin="0,0,0,17"
-                                  ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                  Margin="0,0,0,0">
                             <DataGrid.ColumnHeaderStyle>
                                 <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
                                     <Setter Property="Background" Value="#1F3A15"/>
@@ -684,6 +722,19 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
+                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
+                        <StackPanel x:Name="panelAuditMore" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" Margin="0,4,0,10"
+                                    Visibility="Collapsed">
+                            <Button Click="ToggleAuditMore_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="8,2" Cursor="Hand"
+                                    ToolTip="Afficher toutes les lignes">
+                                <TextBlock x:Name="txtAuditMoreLabel" Text="▼ 12 / 0"
+                                           Foreground="#4CC2FF" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -713,6 +764,7 @@
 
                     <Border Grid.Row="1" Style="{StaticResource CardBorder}" Padding="0">
                         <DataGrid x:Name="ConnectionsGrid"
+                                  RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
