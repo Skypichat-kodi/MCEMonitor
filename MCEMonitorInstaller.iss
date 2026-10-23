@@ -4,7 +4,7 @@
 ; ============================================
 
 [Setup]
-#define MyAppVersion "2.3.5"
+#define MyAppVersion "2.3.8"
 AppName=MCEMonitor
 AppVersion={#MyAppVersion}
 OutputBaseFilename=MCEMonitorSetup-{#MyAppVersion}
