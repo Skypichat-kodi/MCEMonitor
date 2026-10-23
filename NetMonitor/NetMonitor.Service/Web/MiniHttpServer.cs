@@ -141,11 +141,10 @@ namespace NetMonitor.Service.Web
                         return;
                     }
 
-                    // Enrichit avec les infos de l'alerte active correspondante
-                    // (prend la plus sévère, puis la plus récente en cas d'égalité)
-                    string? source  = null;
-                    string? message = null;
-                    string? details = null;
+                    string? source   = null;
+                    string? message  = null;
+                    string? details  = null;
+                    string? severity = null;
 
                     var matching = _engine.GetActiveIntrusions()
                         .Where(a => string.Equals(a.RemoteIp, ip, StringComparison.OrdinalIgnoreCase))
@@ -155,12 +154,13 @@ namespace NetMonitor.Service.Web
 
                     if (matching != null)
                     {
-                        source  = matching.Source;
-                        message = matching.Message;
-                        details = matching.Details;
+                        source   = matching.Source;
+                        message  = matching.Message;
+                        details  = matching.Details;
+                        severity = matching.Severity.ToString();
                     }
 
-                    bool ok = _engine.BlockIp(ip, out string error, source, message, details);
+                    bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity);
                     CoreLog.Write(ok
                         ? $"WebServer : IP {ip} bloquée" + (matching != null
                             ? $" (source={source})"

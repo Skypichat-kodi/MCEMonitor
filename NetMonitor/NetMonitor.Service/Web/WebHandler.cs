@@ -110,9 +110,12 @@ namespace NetMonitor.Service.Web
                     {
                         string ipEnc = WebUtility.HtmlEncode(b.Ip);
 
-                        string sevClass = b.Severity == "Critical" ? "danger" :
-                                          b.Severity == "High" ? "danger" :
-                                          b.Severity == "Warning" ? "warning" : "ok";
+                        string sevClass = string.IsNullOrWhiteSpace(b.Severity) || b.Severity == "-"
+                            ? "unknown"
+                            : b.Severity == "Critical" ? "danger"
+                            : b.Severity == "High"     ? "danger"
+                            : b.Severity == "Warning"  ? "warning"
+                            : "ok";
 
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>

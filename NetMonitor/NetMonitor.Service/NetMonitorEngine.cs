@@ -383,65 +383,92 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public void LoadHistory()
         {
-            try
+        try
+        {
+            if (!File.Exists(HistoryFile)) return;
+            var json = File.ReadAllText(HistoryFile);
+            var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
+            if (list == null) return;
+
+            lock (_alertsLock)
             {
-                if (!File.Exists(HistoryFile)) return;
-                var json = File.ReadAllText(HistoryFile);
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
-                if (list == null) return;
+                _alerts.Clear();
+                _alerts.AddRange(list);
+                // On restaure aussi les intrusions actives (moins de 24h) pour l'UI
+                _activeIntrusions.Clear();
+                _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
 
-                lock (_alertsLock)
+                // ? NOUVEAU : retire des actives les IPs déjà bloquées
+                // (évite le doublon visuel après un redémarrage rapide)
+                var blockedIps = new HashSet<string>(
+                    _blockedIps.Select(b => b.Ip),
+                    StringComparer.OrdinalIgnoreCase);
+
+                if (blockedIps.Count > 0)
                 {
-                    _alerts.Clear();
-                    _alerts.AddRange(list);
-                    // On restaure aussi les intrusions actives (moins de 24h) pour l'UI
-                    _activeIntrusions.Clear();
-                    _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
+                    int removed = _activeIntrusions.RemoveAll(a =>
+                        !string.IsNullOrWhiteSpace(a.RemoteIp) && blockedIps.Contains(a.RemoteIp));
 
-                    // ? NOUVEAU : retire des actives les IPs déjà bloquées
-                    // (évite le doublon visuel après un redémarrage rapide)
-                    var blockedIps = new HashSet<string>(
-                        _blockedIps.Select(b => b.Ip),
-                        StringComparer.OrdinalIgnoreCase);
+                    if (removed > 0)
+                        CoreLog.Info($"LoadHistory : {removed} alerte(s) retirée(s) des actives (IP déjà bloquée)");
+                }
 
-                    if (blockedIps.Count > 0)
+                // ? NOUVEAU : migration des blocked_ips sans severity
+                // (récupère la sévérité depuis l'historique des alertes)
+                int migrated = 0;
+                foreach (var b in _blockedIps)
+                {
+                    if (!string.IsNullOrWhiteSpace(b.Severity) && b.Severity != "-")
+                        continue;   // déjà renseignée
+
+                    var original = _alerts.FirstOrDefault(a =>
+                        string.Equals(a.RemoteIp, b.Ip, StringComparison.OrdinalIgnoreCase));
+
+                    if (original != null && original.Severity != Severity.Info)
                     {
-                        int removed = _activeIntrusions.RemoveAll(a =>
-                            !string.IsNullOrWhiteSpace(a.RemoteIp) && blockedIps.Contains(a.RemoteIp));
-
-                        if (removed > 0)
-                            CoreLog.Info($"LoadHistory : {removed} alerte(s) retirée(s) des actives (IP déjà bloquée)");
+                        b.Severity = original.Severity.ToString();
+                        migrated++;
                     }
                 }
-                CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
 
-                // Pré-charger les scanners légitimes connus (popule le cache en arrière-plan)
-                if (_trustedScanners != null)
+                if (migrated > 0)
                 {
-                    var distinctIps = _alerts
-                        .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
-                        .Select(a => a.RemoteIp!)
-                        .Distinct()
-                        .Take(200)
-                        .ToList();
-
-                    foreach (var ip in distinctIps)
-                        _trustedScanners.CheckInBackground(ip);
+                    CoreLog.Info($"LoadHistory : {migrated} IP(s) bloquée(s) enrichie(s) avec la sévérité de l'historique");
                 }
-                
-                if (_geoIp != null)
-                {
-                    var distinctIps = _alerts
-                        .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
-                        .Select(a => a.RemoteIp!)
-                        .Distinct()
-                        .ToList();
-
-                    foreach (var ip in distinctIps)
-                        _geoIp.ResolveInBackground(ip);
-                }                
             }
-            catch (Exception ex) { CoreLog.Warn($"LoadHistory : {ex.Message}"); }
+
+            // ? SaveBlockedIps est appelé HORS du lock (il prend son propre lock en interne)
+            SaveBlockedIps();
+
+            CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
+
+            // Pré-charger les scanners légitimes connus (popule le cache en arrière-plan)
+            if (_trustedScanners != null)
+            {
+                var distinctIps = _alerts
+                    .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
+                    .Select(a => a.RemoteIp!)
+                    .Distinct()
+                    .Take(200)
+                    .ToList();
+
+                foreach (var ip in distinctIps)
+                    _trustedScanners.CheckInBackground(ip);
+            }
+            
+            if (_geoIp != null)
+            {
+                var distinctIps = _alerts
+                    .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
+                    .Select(a => a.RemoteIp!)
+                    .Distinct()
+                    .ToList();
+
+                foreach (var ip in distinctIps)
+                    _geoIp.ResolveInBackground(ip);
+            }                
+        }
+        catch (Exception ex) { CoreLog.Warn($"LoadHistory : {ex.Message}"); }
         }
 
         private void SaveHistory()
