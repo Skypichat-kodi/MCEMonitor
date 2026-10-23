@@ -108,6 +108,25 @@ call :publish_single "%ROOT%\Autotrad"                       "%DEST_TOOLS%"
 echo.
 echo ============================================
 
+REM === Audit robustesse processus externes ===
+echo.
+echo ============================================
+echo  AUDIT : Robustesse processus externes
+echo ============================================
+
+if not exist "%ROOT%\audit-process.ps1" (
+    echo %ESC%[33m[WARN] audit-process.ps1 introuvable - audit ignore%ESC%[0m
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%ROOT%\audit-process.ps1"
+    if errorlevel 1 (
+        echo %ESC%[31m[ERREUR] Audit echoue - voir details ci-dessus%ESC%[0m
+        set ERROR=1
+    )
+)
+
+echo.
+echo ============================================
+
 if %ERROR%==0 (
     echo %ESC%[32m[OK] AUCUNE ERREUR DE PUBLISH%ESC%[0m
     echo ============================================
