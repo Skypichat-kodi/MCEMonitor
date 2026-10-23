@@ -58,8 +58,47 @@ public sealed class GlobalStats
     public string WorstSeverity { get; set; } = "ok";
     public DateTime GeneratedAt { get; set; } = DateTime.UtcNow;
     public Dictionary<string, int> SeverityCounts { get; set; } = new();
+    public List<PortStats> TopLocalPorts { get; set; } = new();
+    public List<PortStats> TopRemotePorts { get; set; } = new();
+    public List<HourlyStats> ActivityByHour { get; set; } = new();
+    public List<DailyStats> ActivityByDay { get; set; } = new();
+    public List<ProcessStats> TopProcesses { get; set; } = new();
+    public List<SeverityStat> SeverityDistribution { get; set; } = new();
+    public List<DetectorStats> TopDetectors { get; set; } = new();    
 
     // --- Blocs détaillés ---
     public StatsBlock Active { get; set; } = new();
     public StatsBlock Blocked { get; set; } = new();
+}
+public sealed class PortStats
+{
+    public int Port { get; set; }
+    public int Count { get; set; }
+    public List<string> TopDetectors { get; set; } = new();
+}
+
+public sealed class HourlyStats
+{
+    public int Hour { get; set; }
+    public int Count { get; set; }
+    public int CriticalCount { get; set; }
+}
+
+public sealed class DailyStats
+{
+    public int DayOfWeek { get; set; }
+    public string DayName { get; set; } = "";
+    public int Count { get; set; }
+}
+
+public sealed class ProcessStats
+{
+    public string ProcessName { get; set; } = "";
+    public int Count { get; set; }
+}
+
+public sealed class SeverityStat
+{
+    public string Severity { get; set; } = "";
+    public int Count { get; set; }
 }

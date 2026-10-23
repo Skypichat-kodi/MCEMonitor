@@ -7,6 +7,7 @@
     <meta http-equiv="refresh" content="60">
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
     <style>
         html { background-color: #1e1e1e; }
@@ -155,6 +156,36 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
         }
         .leaflet-tooltip-top:before { border-top-color: #4CC2FF; }
+        
+    /* --- Section Graphiques --- */
+    .charts-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+    @media (max-width: 1100px) {
+        .charts-grid { grid-template-columns: 1fr; }
+    }
+    .chart-card {
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        padding: 15px;
+    }
+    .chart-card h3 {
+        margin: 0 0 10px 0;
+        font-size: 13px;
+        font-weight: 600;
+        color: #4CC2FF;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .chart-container {
+        position: relative;
+        height: 220px;
+    }        
     </style>
 </head>
 <body>
@@ -328,6 +359,51 @@
 
 </div>
 
+<!-- ============================================================ -->
+<!--  ANALYSES (graphiques Chart.js)                               -->
+<!-- ============================================================ -->
+<h2>{{tr:Analyses}}</h2>
+
+<div class="charts-grid">
+
+    <!-- Top 10 ports ciblés -->
+    <div class="chart-card">
+        <h3>🎯 {{tr:Top 10 ports locaux ciblés}}</h3>
+        <div class="chart-container"><canvas id="chartPorts"></canvas></div>
+    </div>
+
+    <!-- Distribution sévérité -->
+    <div class="chart-card">
+        <h3>⚠️ {{tr:Distribution des sévérités}}</h3>
+        <div class="chart-container"><canvas id="chartSeverity"></canvas></div>
+    </div>
+
+    <!-- Activité par heure -->
+    <div class="chart-card">
+        <h3>🕐 {{tr:Activité par heure (0-23h)}}</h3>
+        <div class="chart-container"><canvas id="chartHours"></canvas></div>
+    </div>
+
+    <!-- Activité par jour -->
+    <div class="chart-card">
+        <h3>📅 {{tr:Activité par jour}}</h3>
+        <div class="chart-container"><canvas id="chartDays"></canvas></div>
+    </div>
+
+    <!-- Types d'attaque (détecteurs) -->
+    <div class="chart-card">
+        <h3>⚔️ {{tr:Types d'attaque}}</h3>
+        <div class="chart-container"><canvas id="chartDetectors"></canvas></div>
+    </div>
+
+    <!-- Top ports distants (source d'attaque) -->
+    <div class="chart-card">
+        <h3>🌐 {{tr:Top 10 ports distants (source)}}</h3>
+        <div class="chart-container"><canvas id="chartRemotePorts"></canvas></div>
+    </div>
+
+</div>
+
 <div class="footer">
     {{tr:Généré le}} {{GeneratedAt}}
 </div>
@@ -406,6 +482,246 @@
 
     initChoropleth('map-active',  dataActive,  paletteActive,  'Alertes actives');
     initChoropleth('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées');
+})();
+</script>
+
+<script>
+(function () {
+    // ============================================================
+    //  Données injectées depuis le backend
+    // ============================================================
+    var topLocalPorts        = {{TopLocalPortsJson}};
+    var activityByHour       = {{ActivityByHourJson}};
+    var activityByDay        = {{ActivityByDayJson}};
+    var topProcesses         = {{TopProcessesJson}};
+    var severityDistribution = {{SeverityDistributionJson}};
+
+    // ============================================================
+    //  Configuration globale Chart.js (thème sombre)
+    // ============================================================
+    Chart.defaults.color = '#e5e5e5';
+    Chart.defaults.borderColor = '#3c3c3c';
+    Chart.defaults.font.family = 'Segoe UI, Arial, sans-serif';
+
+    const COLORS = {
+        blue:   '#4CC2FF',
+        red:    '#FF6347',
+        orange: '#FFB900',
+        green:  '#6CCB5F',
+        purple: '#7B4FE0',
+        gray:   '#666'
+    };
+
+    // ============================================================
+    //  Palette pour les doughnuts
+    // ============================================================
+    const palette = ['#4CC2FF', '#FF6347', '#FFB900', '#6CCB5F',
+                     '#7B4FE0', '#FF8A72', '#41AB5D', '#9ECAE1'];
+
+    // ============================================================
+    //  1. Top 10 ports locaux ciblés (bar horizontal)
+    // ============================================================
+    if (topLocalPorts && topLocalPorts.length > 0) {
+        new Chart(document.getElementById('chartPorts'), {
+            type: 'bar',
+            data: {
+                labels: topLocalPorts.map(p => ':' + p.Port),
+                datasets: [{
+                    label: 'Alertes',
+                    data: topLocalPorts.map(p => p.Count),
+                    backgroundColor: COLORS.blue,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(ctx) {
+                                var port = topLocalPorts[ctx.dataIndex];
+                                if (port.TopDetectors && port.TopDetectors.length > 0)
+                                    return 'Détecteurs : ' + port.TopDetectors.join(', ');
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#3c3c3c' } },
+                    y: { grid: { color: '#3c3c3c' } }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    //  2. Distribution des sévérités (doughnut)
+    // ============================================================
+    if (severityDistribution && severityDistribution.length > 0) {
+        const sevColors = {
+            'Critical': COLORS.red,
+            'High':     '#FF8A72',
+            'Warning':  COLORS.orange,
+            'Info':     COLORS.green
+        };
+        new Chart(document.getElementById('chartSeverity'), {
+            type: 'doughnut',
+            data: {
+                labels: severityDistribution.map(s => s.Severity),
+                datasets: [{
+                    data: severityDistribution.map(s => s.Count),
+                    backgroundColor: severityDistribution.map(s => sevColors[s.Severity] || COLORS.gray),
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    //  3. Activité par heure (bar)
+    // ============================================================
+    if (activityByHour && activityByHour.length > 0) {
+        const maxHour = Math.max(...activityByHour.map(h => h.Count));
+        new Chart(document.getElementById('chartHours'), {
+            type: 'bar',
+            data: {
+                labels: activityByHour.map(h => h.Hour + 'h'),
+                datasets: [{
+                    label: 'Alertes',
+                    data: activityByHour.map(h => h.Count),
+                    backgroundColor: activityByHour.map(h => {
+                        // Dégradé : plus c'est chargé, plus c'est rouge
+                        if (maxHour === 0) return COLORS.gray;
+                        const ratio = h.Count / maxHour;
+                        if (ratio > 0.7) return COLORS.red;
+                        if (ratio > 0.4) return COLORS.orange;
+                        return COLORS.blue;
+                    }),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#3c3c3c' } },
+                    y: { beginAtZero: true, grid: { color: '#3c3c3c' } }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    //  4. Activité par jour (bar)
+    // ============================================================
+    if (activityByDay && activityByDay.length > 0) {
+        const maxDay = Math.max(...activityByDay.map(d => d.Count));
+        new Chart(document.getElementById('chartDays'), {
+            type: 'bar',
+            data: {
+                labels: activityByDay.map(d => d.DayName.substring(0, 3)),
+                datasets: [{
+                    label: 'Alertes',
+                    data: activityByDay.map(d => d.Count),
+                    backgroundColor: activityByDay.map(d => {
+                        if (maxDay === 0) return COLORS.gray;
+                        const ratio = d.Count / maxDay;
+                        if (ratio > 0.7) return COLORS.red;
+                        if (ratio > 0.4) return COLORS.orange;
+                        return COLORS.blue;
+                    }),
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: '#3c3c3c' } },
+                    y: { beginAtZero: true, grid: { color: '#3c3c3c' } }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    //  5. Top 10 ports distants (source d'attaque)
+    // ============================================================
+    var topRemotePorts = {{TopRemotePortsJson}};
+    if (topRemotePorts && topRemotePorts.length > 0) {
+        new Chart(document.getElementById('chartRemotePorts'), {
+            type: 'bar',
+            data: {
+                labels: topRemotePorts.map(p => ':' + p.Port),
+                datasets: [{
+                    label: 'Alertes',
+                    data: topRemotePorts.map(p => p.Count),
+                    backgroundColor: COLORS.orange,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            afterLabel: function(ctx) {
+                                var port = topRemotePorts[ctx.dataIndex];
+                                if (port.TopDetectors && port.TopDetectors.length > 0)
+                                    return 'Détecteurs : ' + port.TopDetectors.join(', ');
+                                return '';
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: '#3c3c3c' } },
+                    y: { grid: { color: '#3c3c3c' } }
+                }
+            }
+        });
+    }
+
+    // ============================================================
+    //  6. Types d'attaque (doughnut) — données injectées
+    // ============================================================
+    var topDetectors = {{TopDetectorsJson}};
+    if (topDetectors && topDetectors.length > 0) {
+        new Chart(document.getElementById('chartDetectors'), {
+            type: 'doughnut',
+            data: {
+                labels: topDetectors.map(d => d.Detector),
+                datasets: [{
+                    data: topDetectors.map(d => d.Count),
+                    backgroundColor: palette,
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' }
+                }
+            }
+        });
+    }
 })();
 </script>
 

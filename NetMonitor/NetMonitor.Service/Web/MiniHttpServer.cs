@@ -111,7 +111,12 @@ namespace NetMonitor.Service.Web
                 {
                     string html = await WebHandler.BuildMapPageAsync(_engine, _settings);
                     SendHtml(ctx, html);
-                }                
+                }
+                else if (path == "/charts")
+                {
+                    string html = await WebHandler.BuildChartsPageAsync(_engine, _settings);
+                    SendHtml(ctx, html);
+                }                                
                 else if (path == "/api/stats")
                 {
                     var stats = await _engine.GetStatsAsync();

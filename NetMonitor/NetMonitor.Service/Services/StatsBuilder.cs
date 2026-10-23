@@ -53,6 +53,104 @@ public static class StatsBuilder
         stats.Blocked = await BuildBlockFromBlockedAsync(blockedList, geo,
             topIpsLimit, topCountriesLimit, topDetectorsLimit);
 
+        // ============================================================
+        //  Analyses enrichies (ports, heures, jours, processus…)
+        // ============================================================
+
+        // --- Top 10 ports locaux ciblés ---
+        stats.TopLocalPorts = validAlerts
+            .Where(e => e.LocalPort > 0)
+            .GroupBy(e => e.LocalPort)
+            .Select(g => new PortStats
+            {
+                Port = g.Key,
+                Count = g.Count(),
+                TopDetectors = g.Select(e => e.Source).Distinct().Take(3).ToList()
+            })
+            .OrderByDescending(p => p.Count)
+            .Take(10)
+            .ToList();
+
+        // --- Top 10 ports distants (source d'attaque) ---
+        stats.TopRemotePorts = validAlerts
+            .Where(e => e.RemotePort > 0)
+            .GroupBy(e => e.RemotePort)
+            .Select(g => new PortStats
+            {
+                Port = g.Key,
+                Count = g.Count(),
+                TopDetectors = g.Select(e => e.Source).Distinct().Take(3).ToList()
+            })
+            .OrderByDescending(p => p.Count)
+            .Take(10)
+            .ToList();
+
+        // --- Activité par heure (24 buckets, y compris heures vides) ---
+        var hourMap = validAlerts
+            .GroupBy(e => e.Timestamp.Hour)
+            .ToDictionary(g => g.Key, g => new
+            {
+                Count = g.Count(),
+                Critical = g.Count(e => e.Severity == Severity.Critical)
+            });
+
+        stats.ActivityByHour = Enumerable.Range(0, 24)
+            .Select(h => new HourlyStats
+            {
+                Hour = h,
+                Count = hourMap.TryGetValue(h, out var v) ? v.Count : 0,
+                CriticalCount = hourMap.TryGetValue(h, out var cv) ? cv.Critical : 0
+            })
+            .ToList();
+
+        // --- Activité par jour de la semaine (7 buckets) ---
+        string[] dayNames = { "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi" };
+        var dayMap = validAlerts
+            .GroupBy(e => (int)e.Timestamp.DayOfWeek)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        stats.ActivityByDay = Enumerable.Range(0, 7)
+            .Select(d => new DailyStats
+            {
+                DayOfWeek = d,
+                DayName = dayNames[d],
+                Count = dayMap.TryGetValue(d, out var c) ? c : 0
+            })
+            // Lundi en premier
+            .OrderBy(d => (d.DayOfWeek + 6) % 7)
+            .ToList();
+
+        // --- Top 10 processus visés ---
+        stats.TopProcesses = validAlerts
+            .Where(e => !string.IsNullOrWhiteSpace(e.ProcessName) && e.ProcessName != "Network Packet")
+            .GroupBy(e => e.ProcessName!)
+            .Select(g => new ProcessStats
+            {
+                ProcessName = g.Key,
+                Count = g.Count()
+            })
+            .OrderByDescending(p => p.Count)
+            .Take(10)
+            .ToList();
+
+        // --- Distribution des sévérités (toujours 4 entrées, y compris à 0) ---
+        var sevOrder = new[] { Severity.Critical, Severity.High, Severity.Warning, Severity.Info };
+        stats.SeverityDistribution = sevOrder
+            .Select(s => new SeverityStat
+            {
+                Severity = s.ToString(),
+                Count = validAlerts.Count(e => e.Severity == s)
+            })
+            .ToList();
+
+        // --- Top détecteurs globaux ---
+        stats.TopDetectors = validAlerts
+            .GroupBy(e => e.Source)
+            .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
+            .OrderByDescending(x => x.Count)
+            .Take(15)
+            .ToList();
+
         return stats;
     }
 

@@ -35,6 +35,7 @@ namespace NetMonitor.UI
         private long _lastConfigSize = -1;
         private bool _loadingWebConfig = false;
         private bool _mapInitialized = false;
+        private bool _chartsInitialized = false;
 
         // ⚠ NOUVEAU : hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
@@ -86,6 +87,7 @@ namespace NetMonitor.UI
             LoadSettings();
             _ = LoadWebConfig();
             _ = InitMapWebViewAsync();
+            _ = InitChartsWebViewAsync();
             _ = RefreshStatsAsync();
         }
 
@@ -1052,8 +1054,9 @@ namespace NetMonitor.UI
                 txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
             }
 
-            // Recharger la carte
+            // Recharger la carte + les graphiques
             if (_mapInitialized) MapWebView?.Reload();
+            if (_chartsInitialized) ChartsWebView?.Reload();
         }
 
         private static string BuildCountryDisplay(string? country, string? code)
@@ -1112,6 +1115,55 @@ namespace NetMonitor.UI
             catch (Exception ex)
             {
                 CoreLog.Write("InitMapWebView : " + ex.Message);
+            }
+        }
+
+        private async Task InitChartsWebViewAsync()
+        {
+            if (_chartsInitialized) return;
+            if (ChartsWebView == null) return;
+
+            try
+            {
+                var status = await NetMonitorIpcClient.GetWebStatus();
+                if (status == null || !status.enabled) return;
+
+                int port = status.port;
+                string user = status.username ?? "";
+                string pass = status.password ?? "";
+
+                string userDataFolder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MCEMonitor", "WebView2-Charts");
+                System.IO.Directory.CreateDirectory(userDataFolder);
+
+                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await ChartsWebView.EnsureCoreWebView2Async(env);
+
+                string filter127 = $"http://127.0.0.1:{port}/*";
+                string filterLoc = $"http://localhost:{port}/*";
+                ChartsWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
+                ChartsWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
+
+                string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
+                ChartsWebView.CoreWebView2.WebResourceRequested += (s, e) =>
+                {
+                    try { e.Request.Headers.SetHeader("Authorization", "Basic " + credentials); }
+                    catch { }
+                };
+
+                ChartsWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                ChartsWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                ChartsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+                ChartsWebView.Source = new Uri($"http://127.0.0.1:{port}/charts");
+                _chartsInitialized = true;
+
+                CoreLog.Write($"WebView2 Charts : graphiques chargés sur port {port}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("InitChartsWebView : " + ex.Message);
             }
         }
 

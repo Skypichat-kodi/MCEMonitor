@@ -283,7 +283,16 @@ namespace NetMonitor.Service.Web
                     ["BlockedIpRows"]       = BuildBlockedIpRows(stats.Blocked.TopIps),
                     ["BlockedCountryRows"]  = BuildCountryRows(stats.Blocked.TopCountries),
                     ["BlockedDetectorRows"] = BuildDetectorRows(stats.Blocked.TopDetectors),
-                    ["BlockedMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode)
+                    ["BlockedMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode),
+                    
+                    // --- Analyses (graphiques) ---
+                    ["TopLocalPortsJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.TopLocalPorts),
+                    ["TopRemotePortsJson"]       = System.Text.Json.JsonSerializer.Serialize(stats.TopRemotePorts),
+                    ["ActivityByHourJson"]       = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByHour),
+                    ["ActivityByDayJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByDay),
+                    ["TopProcessesJson"]         = System.Text.Json.JsonSerializer.Serialize(stats.TopProcesses),
+                    ["TopDetectorsJson"]         = System.Text.Json.JsonSerializer.Serialize(stats.TopDetectors),
+                    ["SeverityDistributionJson"] = System.Text.Json.JsonSerializer.Serialize(stats.SeverityDistribution)                    
                 };
 
                 string html = ViewRenderer.Render("Stats.html", model);
@@ -403,5 +412,32 @@ namespace NetMonitor.Service.Web
                 return $"<html><body><h2 style='color:#FF6347;font-family:sans-serif'>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
         }
+        
+        public static async System.Threading.Tasks.Task<string> BuildChartsPageAsync(
+            NetMonitorEngine engine,
+            NetMonitorSettings settings)
+        {
+            try
+            {
+                var stats = await engine.GetStatsAsync();
+
+                var model = new Dictionary<string, object?>
+                {
+                    ["TopLocalPortsJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.TopLocalPorts),
+                    ["TopRemotePortsJson"]       = System.Text.Json.JsonSerializer.Serialize(stats.TopRemotePorts),
+                    ["ActivityByHourJson"]       = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByHour),
+                    ["ActivityByDayJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByDay),
+                    ["TopDetectorsJson"]         = System.Text.Json.JsonSerializer.Serialize(stats.TopDetectors),
+                    ["SeverityDistributionJson"] = System.Text.Json.JsonSerializer.Serialize(stats.SeverityDistribution)
+                };
+
+                return ViewRenderer.Render("Charts.html", model);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebHandler.BuildChartsPageAsync ERROR : " + ex.Message);
+                return $"<html><body><h2 style='color:#FF6347;font-family:sans-serif'>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
+            }
+        }        
     }
 }
