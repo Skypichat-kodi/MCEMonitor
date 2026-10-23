@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using MCEMonitor.Languages;
 
 namespace RomMonitor.Service
@@ -101,45 +102,65 @@ namespace RomMonitor.Service
         {
             var result = new List<string>();
 
-            var psi = new ProcessStartInfo
+            try
             {
-                FileName = smartctl,
-                Arguments = "--scan --json=o",
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8
-            };
-
-            using var p = Process.Start(psi);
-            if (p == null) return result;
-
-            string json = p.StandardOutput.ReadToEnd();
-
-            if (!p.WaitForExit(SmartctlTimeoutMs))
-            {
-                try { p.Kill(true); } catch { }
-                CoreLog.Write("SMART : timeout sur --scan");
-                return result;
-            }
-
-            if (string.IsNullOrWhiteSpace(json))
-                return result;
-
-            using var doc = JsonDocument.Parse(json);
-
-            if (doc.RootElement.TryGetProperty("devices", out var devices))
-            {
-                foreach (var dev in devices.EnumerateArray())
+                var psi = new ProcessStartInfo
                 {
-                    if (dev.TryGetProperty("name", out var nameEl))
+                    FileName               = smartctl,
+                    Arguments              = "--scan --json=o",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = Encoding.UTF8,
+                    StandardErrorEncoding  = Encoding.UTF8
+                };
+
+                using var p = Process.Start(psi);
+                if (p == null) return result;
+
+                // ?? CRITIQUE : lire stdout ET stderr en parallèle AVANT WaitForExit.
+                // Sinon, si smartctl écrit sur stderr (ce qu'il fait souvent), le
+                // buffer stderr se remplit ? smartctl se bloque en écriture ?
+                // stdout n'est jamais fermé ? ReadToEnd() synchrone se bloque ?
+                // WaitForExit(ms) n'est JAMAIS atteint ? deadlock infini.
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(SmartctlTimeoutMs))
+                {
+                    try { p.Kill(true); } catch { }
+                    CoreLog.Write($"SMART : timeout sur --scan ({SmartctlTimeoutMs} ms)");
+                    return result;
+                }
+
+                string json = SafeResult(outTask);
+                string err  = SafeResult(errTask);
+
+                if (!string.IsNullOrWhiteSpace(err))
+                    CoreLog.Write($"SMART : stderr --scan : {err.Trim()}");
+
+                if (string.IsNullOrWhiteSpace(json))
+                    return result;
+
+                using var doc = JsonDocument.Parse(json);
+
+                if (doc.RootElement.TryGetProperty("devices", out var devices))
+                {
+                    foreach (var dev in devices.EnumerateArray())
                     {
-                        string name = nameEl.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(name))
-                            result.Add(name);
+                        if (dev.TryGetProperty("name", out var nameEl))
+                        {
+                            string name = nameEl.GetString() ?? "";
+                            if (!string.IsNullOrEmpty(name))
+                                result.Add(name);
+                        }
                     }
                 }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write($"SMART : erreur scan : {ex.Message}");
             }
 
             return result;
@@ -152,26 +173,38 @@ namespace RomMonitor.Service
         {
             var psi = new ProcessStartInfo
             {
-                FileName = smartctl,
-                Arguments = $"-a --json=o {device}",
+                FileName               = smartctl,
+                Arguments              = $"-a --json=o {device}",
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.UTF8
+                RedirectStandardError  = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+                StandardOutputEncoding = Encoding.UTF8,
+                StandardErrorEncoding  = Encoding.UTF8
             };
 
             using var p = Process.Start(psi);
             if (p == null) return null;
 
-            string json = p.StandardOutput.ReadToEnd();
+            // ?? CRITIQUE : lecture parallèle stdout + stderr AVANT WaitForExit.
+            // Même raison que dans ScanDevices : smartctl est bavard sur stderr.
+            Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+            Task<string> errTask = p.StandardError.ReadToEndAsync();
 
             if (!p.WaitForExit(SmartctlTimeoutMs))
             {
                 try { p.Kill(true); } catch { }
-                CoreLog.Write($"SMART : timeout sur {device}");
+                CoreLog.Write($"SMART : timeout sur {device} ({SmartctlTimeoutMs} ms)");
                 return null;
             }
+
+            string json = SafeResult(outTask);
+            string err  = SafeResult(errTask);
+
+            // Les messages d'erreur smartctl (device non supporté, accès refusé,
+            // etc.) arrivent sur stderr : on les log mais on ne bloque pas.
+            if (!string.IsNullOrWhiteSpace(err))
+                CoreLog.Write($"SMART : stderr {device} : {err.Trim()}");
 
             if (string.IsNullOrWhiteSpace(json))
                 return null;
@@ -346,6 +379,15 @@ namespace RomMonitor.Service
             }
 
             return info;
+        }
+
+        // ------------------------------------------------------------------
+        //  Utilitaire : lecture sûre d'une Task<string> déjà terminée
+        // ------------------------------------------------------------------
+        private static string SafeResult(Task<string> t)
+        {
+            try { return t.Wait(1000) ? (t.Result ?? "") : ""; }
+            catch { return ""; }
         }
     }
 }

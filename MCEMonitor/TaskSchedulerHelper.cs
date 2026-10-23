@@ -1,27 +1,29 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Security.Principal;
 using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace MCEMonitor.Utils
 {
     public static class TaskSchedulerHelper
     {
+        private const int QUERY_TIMEOUT_MS = 5000;   // schtasks /Query
+        private const int ADMIN_TIMEOUT_MS = 30000;  // schtasks /Create|Delete|Run avec UAC
+
         // ============================================================
         // WAKE MONITOR
         // ============================================================
-
         public static string CreateWakeTask()
         {
-            // Remplacement : WakeMonitor.exe au lieu de MCEMonitor.exe
             string exe = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "MCEMonitor",
                 "WakeMonitor.exe"
             );
 
-            // Déclencheur filtré UNIQUEMENT sur Power-Troubleshooter
             string query =
                 "\"*[System[Provider[@Name='Microsoft-Windows-Power-Troubleshooter'] and EventID=1]]\"";
 
@@ -33,20 +35,14 @@ namespace MCEMonitor.Utils
         }
 
         public static string DeleteWakeTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_WakeMonitor\" /F");
-        }
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_WakeMonitor\" /F");
 
         public static bool WakeTaskExists()
-        {
-            return QueryTask("MCEMonitor_WakeMonitor");
-        }
-
+            => QueryTask("MCEMonitor_WakeMonitor");
 
         // ============================================================
-        // MEDIA MONITOR — SERVICE (DÉMARRAGE AUTOMATIQUE)
+        // MEDIA MONITOR – SERVICE (DÉMARRAGE AUTOMATIQUE)
         // ============================================================
-
         public static string CreateMediaMonitorServiceTask()
         {
             string exePath = Path.Combine(
@@ -66,32 +62,25 @@ namespace MCEMonitor.Utils
         }
 
         public static string DeleteMediaMonitorServiceTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_MediaMonitorService\" /F");
-        }
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_MediaMonitorService\" /F");
 
         public static bool MediaMonitorServiceTaskExists()
-        {
-            return QueryTask("MCEMonitor_MediaMonitorService");
-        }
-
+            => QueryTask("MCEMonitor_MediaMonitorService");
 
         // ============================================================
         // SHUTDOWN (ON / OFF)
         // ============================================================
-
         public static string CreateShutdownTask(int hour, int minute, string mode)
         {
             string exePath = Application.ExecutablePath;
 
-            // La tâche se déclenche 5 minutes AVANT l'heure réelle
-            int taskHour = hour;
-            int taskMinute = minute - 5;
+            int taskHour   = hour;
+            int taskMinute = minute - 5;   // 5 min avant l'heure réelle
 
             if (taskMinute < 0)
             {
                 taskMinute += 60;
-                taskHour -= 1;
+                taskHour   -= 1;
                 if (taskHour < 0) taskHour += 24;
             }
 
@@ -103,10 +92,116 @@ namespace MCEMonitor.Utils
             );
         }
 
+        public static string DeleteShutdownTask()
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_Shutdown\" /F");
+
+        public static bool ShutdownTaskExists()
+            => QueryTask("MCEMonitor_Shutdown");
+
+        public static (int hour, int minute)? GetShutdownTaskTime()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "schtasks.exe",
+                    Arguments              = "/Query /TN \"MCEMonitor_Shutdown\" /V /FO LIST",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = Encoding.GetEncoding(850),
+                    StandardErrorEncoding  = Encoding.GetEncoding(850)
+                };
+
+                using var p = Process.Start(psi);
+                if (p == null) return null;
+
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(QUERY_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    return null;
+                }
+
+                string output = SafeResult(outTask);
+
+                foreach (var line in output.Split('\n'))
+                {
+                    // Attention : selon la locale, "Heure de début" peut être mal encodé
+                    // (dtbut dans le fichier source d'origine). On reste tolérant.
+                    string trimmed = line.Trim();
+                    if (trimmed.StartsWith("Heure de d", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string[] parts = trimmed.Split(':');
+                        if (parts.Length >= 2)
+                        {
+                            string time = parts[^1].Trim();
+                            string[] hhmm = time.Split(':');
+                            if (hhmm.Length >= 2 &&
+                                int.TryParse(hhmm[0], out int h) &&
+                                int.TryParse(hhmm[1], out int m))
+                            {
+                                return (h, m);
+                            }
+                        }
+                    }
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public static string GetShutdownTaskMode()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo
+                {
+                    FileName               = "schtasks.exe",
+                    Arguments              = "/Query /TN \"MCEMonitor_Shutdown\" /V /FO LIST",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = Encoding.GetEncoding(850),
+                    StandardErrorEncoding  = Encoding.GetEncoding(850)
+                };
+
+                using var p = Process.Start(psi);
+                if (p == null) return null;
+
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(QUERY_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    return null;
+                }
+
+                string output = SafeResult(outTask).ToLowerInvariant();
+
+                if (output.Contains("--run-scheduled sleep"))    return "sleep";
+                if (output.Contains("--run-scheduled shutdown")) return "shutdown";
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         // ============================================================
         // ROM MONITOR
         // ============================================================
-
         public static string CreateRomMonitorTask()
         {
             string exePath = Path.Combine(
@@ -126,98 +221,14 @@ namespace MCEMonitor.Utils
         }
 
         public static string DeleteRomMonitorTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_RomMonitorService\" /F");
-        }
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_RomMonitorService\" /F");
 
         public static bool RomMonitorTaskExists()
-        {
-            return QueryTask("MCEMonitor_RomMonitorService");
-        }
-
-        public static string DeleteShutdownTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_Shutdown\" /F");
-        }
-
-        public static bool ShutdownTaskExists()
-        {
-            return QueryTask("MCEMonitor_Shutdown");
-        }
-
-        public static (int hour, int minute)? GetShutdownTaskTime()
-        {
-            try
-            {
-                var p = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "schtasks.exe",
-                    Arguments = "/Query /TN \"MCEMonitor_Shutdown\" /V /FO LIST",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.GetEncoding(850)
-                });
-
-                string output = p.StandardOutput.ReadToEnd();
-                p.WaitForExit();
-
-                foreach (var line in output.Split('\n'))
-                {
-                    if (line.Trim().StartsWith("Heure de début", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string time = line.Split(':')[1].Trim();
-                        string[] parts = time.Split(':');
-
-                        return (int.Parse(parts[0]), int.Parse(parts[1]));
-                    }
-                }
-
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
-
-        // ? REMPLACEMENT : version fiable et universelle
-        public static string GetShutdownTaskMode()
-        {
-            try
-            {
-                var p = Process.Start(new ProcessStartInfo
-                {
-                    FileName = "schtasks.exe",
-                    Arguments = "/Query /TN \"MCEMonitor_Shutdown\" /V /FO LIST",
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.GetEncoding(850)
-                });
-
-                string output = p.StandardOutput.ReadToEnd().ToLowerInvariant();
-                p.WaitForExit();
-
-                // La ligne de commande contient : "MCEMonitor.exe" --run-scheduled sleep|shutdown
-                if (output.Contains("--run-scheduled sleep"))
-                    return "sleep";
-
-                if (output.Contains("--run-scheduled shutdown"))
-                    return "shutdown";
-
-                return null;
-            }
-            catch
-            {
-                return null;
-            }
-        }
+            => QueryTask("MCEMonitor_RomMonitorService");
 
         // ============================================================
         // SYSTEM MONITOR
         // ============================================================
-
         public static string CreateSystemMonitorTask()
         {
             string exePath = Path.Combine(
@@ -237,19 +248,14 @@ namespace MCEMonitor.Utils
         }
 
         public static string DeleteSystemMonitorTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_SystemMonitorService\" /F");
-        }
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_SystemMonitorService\" /F");
 
         public static bool SystemMonitorTaskExists()
-        {
-            return QueryTask("MCEMonitor_SystemMonitorService");
-        }
+            => QueryTask("MCEMonitor_SystemMonitorService");
 
         // ============================================================
         // NET MONITOR
         // ============================================================
-
         public static string CreateNetMonitorTask()
         {
             string exePath = Path.Combine(
@@ -269,19 +275,14 @@ namespace MCEMonitor.Utils
         }
 
         public static string DeleteNetMonitorTask()
-        {
-            return RunAdmin("schtasks /Delete /TN \"MCEMonitor_NetMonitorService\" /F");
-        }
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_NetMonitorService\" /F");
 
         public static bool NetMonitorTaskExists()
-        {
-            return QueryTask("MCEMonitor_NetMonitorService");
-        }
-                
+            => QueryTask("MCEMonitor_NetMonitorService");
+
         // ============================================================
         // STOP MONITOR
         // ============================================================
-
         public static string CreateStopTask()
         {
             string exe = Path.Combine(
@@ -292,7 +293,6 @@ namespace MCEMonitor.Utils
 
             StringBuilder sb = new StringBuilder();
 
-            // --- Tâche 1 : arrêt du système ---
             sb.AppendLine(RunAdmin(
                 "schtasks /Create /TN \"MCEMonitor_StopMonitor_Shutdown\" " +
                 "/SC ONEVENT /EC System " +
@@ -300,7 +300,6 @@ namespace MCEMonitor.Utils
                 $"/TR \"\\\"{exe}\\\" shutdown\" /RU SYSTEM /RL HIGHEST /F"
             ));
 
-            // --- Tâche 2 : démarrage du système ---
             sb.AppendLine(RunAdmin(
                 "schtasks /Create /TN \"MCEMonitor_StopMonitor_Boot\" " +
                 "/SC ONSTART " +
@@ -313,42 +312,48 @@ namespace MCEMonitor.Utils
         public static string DeleteStopTask()
         {
             StringBuilder sb = new StringBuilder();
-
             sb.AppendLine(RunAdmin("schtasks /Delete /TN \"MCEMonitor_StopMonitor_Shutdown\" /F"));
             sb.AppendLine(RunAdmin("schtasks /Delete /TN \"MCEMonitor_StopMonitor_Boot\" /F"));
-
             return sb.ToString();
         }
 
         public static bool StopTaskExists()
-        {
-            return
-                QueryTask("MCEMonitor_StopMonitor_Shutdown") ||
-                QueryTask("MCEMonitor_StopMonitor_Boot");
-        }
+            => QueryTask("MCEMonitor_StopMonitor_Shutdown") ||
+               QueryTask("MCEMonitor_StopMonitor_Boot");
 
         // ============================================================
         // OUTILS COMMUNS
         // ============================================================
-
         private static bool QueryTask(string taskName)
         {
             try
             {
-                var p = Process.Start(new ProcessStartInfo
+                var psi = new ProcessStartInfo
                 {
-                    FileName = "schtasks.exe",
-                    Arguments = $"/Query /TN \"{taskName}\"",
+                    FileName               = "schtasks.exe",
+                    Arguments              = $"/Query /TN \"{taskName}\"",
                     RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = Encoding.GetEncoding(850)
-                });
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = Encoding.GetEncoding(850),
+                    StandardErrorEncoding  = Encoding.GetEncoding(850)
+                };
 
-                string output = p.StandardOutput.ReadToEnd();
-                p.WaitForExit();
+                using var p = Process.Start(psi);
+                if (p == null) return false;
 
-                return output.Contains(taskName);
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(QUERY_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    return false;
+                }
+
+                string output = SafeResult(outTask);
+                return output.Contains(taskName, StringComparison.OrdinalIgnoreCase);
             }
             catch
             {
@@ -356,30 +361,100 @@ namespace MCEMonitor.Utils
             }
         }
 
+        /// <summary>
+        /// Exécute une commande schtasks avec élévation UAC et timeout dur.
+        /// - Si le processus est déjà élevé ? capture stdout/stderr normalement.
+        /// - Sinon ? UAC (UseShellExecute=true, pas de capture), timeout 30 s.
+        /// </summary>
         private static string RunAdmin(string args)
         {
+            const string exe = "schtasks.exe";
+
+            // Extraire les arguments après "schtasks" si présents
+            string realArgs = args.StartsWith("schtasks ", StringComparison.OrdinalIgnoreCase)
+                ? args.Substring("schtasks ".Length)
+                : args;
+
+            bool isElevated = IsProcessElevated();
+            bool needUac    = !isElevated;
+
             var psi = new ProcessStartInfo
             {
-                FileName = "cmd.exe",
-                Arguments = "/c " + args,
-                Verb = "runas",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                StandardOutputEncoding = Encoding.GetEncoding(850),
-                StandardErrorEncoding = Encoding.GetEncoding(850)
+                FileName               = exe,
+                Arguments              = realArgs,
+                UseShellExecute        = needUac,          // obligatoire avec runas
+                RedirectStandardOutput = !needUac,
+                RedirectStandardError  = !needUac,
+                CreateNoWindow         = !needUac,
+                StandardOutputEncoding = needUac ? null : Encoding.GetEncoding(850),
+                StandardErrorEncoding  = needUac ? null : Encoding.GetEncoding(850)
             };
 
-            using (var p = Process.Start(psi))
+            if (needUac)
+                psi.Verb = "runas";
+
+            try
             {
-                string output = p.StandardOutput.ReadToEnd();
-                string error = p.StandardError.ReadToEnd();
-                p.WaitForExit();
+                using var p = Process.Start(psi);
+                if (p == null) return "ERREUR : démarrage schtasks impossible.";
+
+                if (needUac)
+                {
+                    // Mode UAC : pas de capture possible
+                    if (!p.WaitForExit(ADMIN_TIMEOUT_MS))
+                    {
+                        try { p.Kill(true); } catch { }
+                        return "ERREUR : timeout UAC/schtasks (30s).";
+                    }
+
+                    return p.ExitCode == 0
+                        ? "OK"
+                        : $"ERREUR : schtasks code {p.ExitCode}.";
+                }
+
+                // Mode capturé
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(ADMIN_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    return "ERREUR : timeout schtasks (30s).";
+                }
+
+                string output = SafeResult(outTask);
+                string error  = SafeResult(errTask);
 
                 return string.IsNullOrWhiteSpace(error) ? output : error;
             }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                return "ERREUR : UAC refusé par l'utilisateur.";
+            }
+            catch (Exception ex)
+            {
+                return "ERREUR : " + ex.Message;
+            }
+        }
+
+        private static bool IsProcessElevated()
+        {
+            try
+            {
+                using var identity = WindowsIdentity.GetCurrent();
+                var principal = new WindowsPrincipal(identity);
+                return principal.IsInRole(WindowsBuiltInRole.Administrator);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string SafeResult(Task<string> t)
+        {
+            try { return t.Wait(1000) ? (t.Result ?? "") : ""; }
+            catch { return ""; }
         }
     }
 }
-

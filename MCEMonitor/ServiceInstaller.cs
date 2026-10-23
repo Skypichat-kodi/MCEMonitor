@@ -1,6 +1,8 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using Krypton.Toolkit;
 
@@ -14,47 +16,60 @@ namespace MCEMonitor
         private const string SYSTEM_TRAY_TASK_NAME  = "MCEMonitor_SystemMonitorTray";
         private const string NET_TRAY_TASK_NAME     = "MCEMonitor_NetMonitorTray";
 
+        private const int QUERY_TIMEOUT_MS = 5000;   // schtasks /Query
+        private const int ADMIN_TIMEOUT_MS = 30000;  // schtasks /Create|Delete|Run avec UAC
+
         // ============================================================
         //  Vérifier si la tâche SYSTEM du service existe
         // ============================================================
-        public static bool ServiceTaskExists()
-        {
-            return TaskExists(SERVICE_TASK_NAME);
-        }
-
-        // ============================================================
-        //  Vérifier si la tâche ONLOGON du Tray MediaMonitor existe
-        // ============================================================
-        public static bool TrayTaskExists()
-        {
-            return TaskExists(TRAY_TASK_NAME);
-        }
-
-        // ============================================================
-        //  Vérifier si la tâche ONLOGON du Tray RomMonitor existe
-        // ============================================================
-        public static bool RomTrayTaskExists()
-        {
-            return TaskExists(ROM_TRAY_TASK_NAME);
-        }
+        public static bool ServiceTaskExists()      => TaskExists(SERVICE_TASK_NAME);
+        public static bool TrayTaskExists()         => TaskExists(TRAY_TASK_NAME);
+        public static bool RomTrayTaskExists()      => TaskExists(ROM_TRAY_TASK_NAME);
+        public static bool SystemTrayTaskExists()   => TaskExists(SYSTEM_TRAY_TASK_NAME);
+        public static bool NetTrayTaskExists()      => TaskExists(NET_TRAY_TASK_NAME);
 
         private static bool TaskExists(string taskName)
         {
             var psi = new ProcessStartInfo
             {
-                FileName = "schtasks.exe",
-                Arguments = $"/Query /TN \"{taskName}\"",
+                FileName               = "schtasks.exe",
+                Arguments              = $"/Query /TN \"{taskName}\"",
                 RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                UseShellExecute = false,
-                CreateNoWindow = true
+                RedirectStandardError  = true,
+                UseShellExecute        = false,
+                CreateNoWindow         = true,
+                StandardOutputEncoding = Encoding.GetEncoding(850),
+                StandardErrorEncoding  = Encoding.GetEncoding(850)
             };
 
-            using var p = Process.Start(psi);
-            string output = p.StandardOutput.ReadToEnd();
-            p.WaitForExit();
+            try
+            {
+                using var p = Process.Start(psi);
+                if (p == null) return false;
 
-            return output.Contains(taskName);
+                // Lecture parallèle + timeout dur (évite deadlock et blocage infini)
+                Task<string> outTask = p.StandardOutput.ReadToEndAsync();
+                Task<string> errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(QUERY_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    return false;   // tâche considérée absente si schtasks ne répond pas
+                }
+
+                string output = SafeResult(outTask);
+                return output.Contains(taskName, StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static string SafeResult(Task<string> t)
+        {
+            try { return t.Wait(1000) ? (t.Result ?? "") : ""; }
+            catch { return ""; }
         }
 
         // ============================================================
@@ -70,7 +85,9 @@ namespace MCEMonitor
 
             if (!File.Exists(servicePath))
             {
-                KryptonMessageBox.Show(LanguageManager.Get("MediaMonitor.Service.exe introuvable dans ProgramData.") ?? "MediaMonitor.Service.exe introuvable dans ProgramData.");
+                KryptonMessageBox.Show(
+                    LanguageManager.Get("MediaMonitor.Service.exe introuvable dans ProgramData.")
+                    ?? "MediaMonitor.Service.exe introuvable dans ProgramData.");
                 return;
             }
 
@@ -133,10 +150,7 @@ namespace MCEMonitor
             }
 
             if (!File.Exists(trayPath))
-            {
-                // Pas la peine de créer une tâche vers un exe inexistant
-                return;
-            }
+                return;   // pas la peine de créer une tâche vers un exe inexistant
 
             string cmd =
                 "schtasks /Create /TN \"" + ROM_TRAY_TASK_NAME + "\" " +
@@ -152,16 +166,7 @@ namespace MCEMonitor
         // ============================================================
         public static void DeleteRomTrayTask()
         {
-            string cmd = $"schtasks /Delete /TN \"{ROM_TRAY_TASK_NAME}\" /F";
-            RunAdminCommand(cmd);
-        }
-
-        // ============================================================
-        //  Vérifier si la tâche ONLOGON du Tray SystemMonitor existe
-        // ============================================================
-        public static bool SystemTrayTaskExists()
-        {
-            return TaskExists(SYSTEM_TRAY_TASK_NAME);
+            RunAdminCommand($"schtasks /Delete /TN \"{ROM_TRAY_TASK_NAME}\" /F");
         }
 
         // ============================================================
@@ -196,44 +201,9 @@ namespace MCEMonitor
             RunAdminCommand(cmd);
         }
 
-        // ============================================================
-        //  Supprimer la tâche ONLOGON du Tray SystemMonitor
-        // ============================================================
         public static void DeleteSystemTrayTask()
         {
-            string cmd = $"schtasks /Delete /TN \"{SYSTEM_TRAY_TASK_NAME}\" /F";
-            RunAdminCommand(cmd);
-        }
-        
-        // ============================================================
-        //  Démarrer immédiatement la tâche SYSTEM du service
-        // ============================================================
-        public static void StartServiceTask()
-        {
-            string cmd = $"schtasks /Run /TN \"{SERVICE_TASK_NAME}\"";
-            RunAdminCommand(cmd);
-        }
-
-        // ============================================================
-        //  Exécuter une commande en admin (UAC)
-        // ============================================================
-        private static void RunAdminCommand(string cmd)
-        {
-            Process.Start(new ProcessStartInfo
-            {
-                FileName = "cmd.exe",
-                Arguments = "/c " + cmd,
-                Verb = "runas",
-                UseShellExecute = true
-            });
-        }
-        
-        // ============================================================
-        //  Vérifier si la tâche ONLOGON du Tray NetMonitor existe
-        // ============================================================
-        public static bool NetTrayTaskExists()
-        {
-            return TaskExists(NET_TRAY_TASK_NAME);
+            RunAdminCommand($"schtasks /Delete /TN \"{SYSTEM_TRAY_TASK_NAME}\" /F");
         }
 
         // ============================================================
@@ -268,13 +238,60 @@ namespace MCEMonitor
             RunAdminCommand(cmd);
         }
 
-        // ============================================================
-        //  Supprimer la tâche ONLOGON du Tray NetMonitor
-        // ============================================================
         public static void DeleteNetTrayTask()
         {
-            string cmd = $"schtasks /Delete /TN \"{NET_TRAY_TASK_NAME}\" /F";
-            RunAdminCommand(cmd);
-        }        
+            RunAdminCommand($"schtasks /Delete /TN \"{NET_TRAY_TASK_NAME}\" /F");
+        }
+
+        // ============================================================
+        //  Démarrer immédiatement la tâche SYSTEM du service
+        // ============================================================
+        public static void StartServiceTask()
+        {
+            RunAdminCommand($"schtasks /Run /TN \"{SERVICE_TASK_NAME}\"");
+        }
+
+        // ============================================================
+        //  Exécuter une commande schtasks en admin (UAC) avec timeout
+        // ============================================================
+        private static void RunAdminCommand(string cmd)
+        {
+            // On passe directement par schtasks.exe (pas de cmd.exe)
+            // ? pas de fenêtre console inutile, pas de conhost parasite.
+            const string exe = "schtasks.exe";
+
+            // Extraire les arguments après "schtasks"
+            string args = cmd.StartsWith("schtasks ", StringComparison.OrdinalIgnoreCase)
+                ? cmd.Substring("schtasks ".Length)
+                : cmd;
+
+            var psi = new ProcessStartInfo
+            {
+                FileName        = exe,
+                Arguments       = args,
+                Verb            = "runas",       // déclenche l'UAC
+                UseShellExecute = true           // ?? OBLIGATOIRE avec runas
+            };
+
+            try
+            {
+                using var p = Process.Start(psi);
+                if (p == null) return;
+
+                // Timeout dur : 30 s (le temps que l'utilisateur valide l'UAC + schtasks réponde)
+                if (!p.WaitForExit(ADMIN_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                }
+            }
+            catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
+            {
+                // UAC refusé par l'utilisateur — silencieux ou log si besoin
+            }
+            catch
+            {
+                // Autre erreur — silencieux ou log si besoin
+            }
+        }
     }
 }
