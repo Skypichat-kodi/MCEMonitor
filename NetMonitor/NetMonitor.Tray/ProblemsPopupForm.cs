@@ -235,7 +235,7 @@ namespace NetMonitor.Tray
 
         private static string FormatProblemText(ProblemInfo p)
         {
-            // Catégorie raccourcie
+            // ... (le début de ta méthode avec le switch sur la catégorie reste identique)
             string category = p.Category switch
             {
                 "CpuHigh"             => "CPU",
@@ -253,6 +253,8 @@ namespace NetMonitor.Tray
             string msg = p.Message;
             if (msg.Length > 55)
                 msg = msg.Substring(0, 52) + "...";
+                
+            string countPrefix = p.Count > 1 ? $"[x{p.Count}] " : "";    
 
             return $"{category}  —  {msg}";
         }

@@ -213,7 +213,7 @@ namespace NetMonitor.Tray
                 client.Connect(1000);
                 if (!client.IsConnected) return new List<ProblemInfo>();
 
-                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-alerts");
+                byte[] cmdBytes = Encoding.UTF8.GetBytes("get-active");
                 client.Write(cmdBytes, 0, cmdBytes.Length);
                 client.Flush();
 
@@ -237,17 +237,24 @@ namespace NetMonitor.Tray
                 if (alerts == null) return new List<ProblemInfo>();
 
                 return alerts
-                    .OrderByDescending(a => a.timestamp)
-                    .Take(20)
-                    .Select(a => new ProblemInfo
+                    .GroupBy(a => a.remoteIp ?? a.source) // ? On groupe par IP (ou par détecteur si pas d'IP)
+                    .Select(g =>
                     {
-                        Timestamp = a.timestamp,
-                        Severity = (a.severity == "Critical" || a.severity == "High")
-                                   ? "critical"
-                                   : "warning",
-                        Category = a.source ?? "",
-                        Message = a.message ?? ""
+                        var mostSevere = g.OrderByDescending(x => 
+                            x.severity == "Critical" ? 3 : 
+                            x.severity == "High" ? 2 : 1).First();
+
+                        return new ProblemInfo
+                        {
+                            Timestamp = mostSevere.timestamp,
+                            Severity = (mostSevere.severity == "Critical" || mostSevere.severity == "High") ? "critical" : "warning",
+                            Category = mostSevere.source ?? "",
+                            Message = mostSevere.message ?? "",
+                            Count = g.Count() // ? On compte les occurrences
+                        };
                     })
+                    .OrderByDescending(p => p.Timestamp)
+                    .Take(20)
                     .ToList();
             }
             catch (Exception ex)

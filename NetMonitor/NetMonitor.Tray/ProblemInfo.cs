@@ -8,7 +8,8 @@ namespace NetMonitor.Tray
         public string Severity { get; set; } = "";
         public string Category { get; set; } = "";
         public string Message { get; set; } = "";
-    }
+        public int Count { get; set; } = 1; // ? NOUVEAU
+    }   
     
     internal sealed class NetAlert
     {
@@ -18,5 +19,5 @@ namespace NetMonitor.Tray
         public string message { get; set; } = "";
         public string? details { get; set; }
         public string? remoteIp { get; set; }
-    }  
+    }   
 }
