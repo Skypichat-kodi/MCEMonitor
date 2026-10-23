@@ -146,13 +146,27 @@
         var tilePane = map.getPane('tilePane');
         tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1)';
 
+        // ⚠ NOUVEAU : Fonction pour trouver le bon code pays
+        function getCountryCode(properties) {
+            var keys = ['ISO_A2', 'ISO_A2_EH', 'ADM0_A3', 'SOV_A3', 'GU_A3', 'WB_A2', 'WB_A3'];
+            // 1. On cherche une correspondance directe avec les données de l'API
+            for (var i = 0; i < keys.length; i++) {
+                var k = keys[i];
+                if (properties[k] && properties[k] !== '-99' && dataMap[properties[k]] !== undefined) {
+                    return properties[k];
+                }
+            }
+            // 2. Fallback : on renvoie le code par défaut (pour l'affichage au survol)
+            var fallback = properties['ISO_A2_EH'] || properties['ISO_A2'];
+            return (fallback && fallback !== '-99') ? fallback : null;
+        }
+
         fetch('/Data/countries.geojson')
             .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
             .then(function (geo) {
                 L.geoJSON(geo, {
                     style: function (f) {
-                        var code = f.properties.ISO_A2;
-                        if (!code || code === '-99') code = f.properties.ISO_A2_EH;
+                        var code = getCountryCode(f.properties);
                         var c = (code && dataMap[code]) ? dataMap[code] : 0;
                         return {
                             fillColor: colorFn(c, palette),
@@ -161,8 +175,7 @@
                         };
                     },
                     onEachFeature: function (f, layer) {
-                        var code = f.properties.ISO_A2;
-                        if (!code || code === '-99') code = f.properties.ISO_A2_EH;
+                        var code = getCountryCode(f.properties);
                         var c = (code && dataMap[code]) ? dataMap[code] : 0;
                         var name = f.properties.ADMIN || f.properties.NAME || '?';
                         layer.bindTooltip('<strong>' + name + '</strong><br/>' + label + ' : ' + c, { sticky: true });
