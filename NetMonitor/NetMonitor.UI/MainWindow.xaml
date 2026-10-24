@@ -26,6 +26,9 @@
             <Setter Property="Padding" Value="6,4"/>
         </Style>
 
+        <!-- ============================================================ -->
+        <!-- LE FIX EST ICI : On force le ContentPresenter à se centrer    -->
+        <!-- ============================================================ -->
         <Style TargetType="DataGridCell">
             <Setter Property="Background" Value="#1E1E1E"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
@@ -33,6 +36,22 @@
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <ContentPresenter VerticalAlignment="Center" 
+                                              HorizontalAlignment="Stretch"
+                                              SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="#4CC2FF"/>
@@ -88,6 +107,7 @@
 
         <Style TargetType="TextBlock">
             <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
         <Style x:Key="CardBorder" TargetType="Border">
@@ -478,6 +498,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*" MinWidth="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -550,6 +571,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -584,6 +606,7 @@
                                 <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -591,6 +614,7 @@
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -692,6 +716,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" Width="*" MinWidth="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -701,6 +726,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Raison'}"    Binding="{Binding Message}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding Message}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -786,6 +812,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -793,6 +820,7 @@
                                 <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -800,6 +828,7 @@
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -807,6 +836,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -914,6 +944,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -921,6 +952,7 @@
                                 <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -928,6 +960,7 @@
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
@@ -935,6 +968,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
