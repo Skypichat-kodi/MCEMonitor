@@ -834,6 +834,10 @@ namespace MCEMonitorClient.Tray
                 // 4) Warning disque
                 foreach (var p in alert.Problems)
                     if (p.Severity == "warning" && IsDiskProblem(p)) return "hdd-warning.png";
+
+                // 5) Surcharge RAM (warning ou critical)
+                foreach (var p in alert.Problems)
+                    if (IsRamProblem(p)) return "ram-overload.png";
             }
 
             return alert.Status switch
@@ -870,5 +874,13 @@ namespace MCEMonitorClient.Tray
             return cat.Contains("cpu") || cat.Contains("processor")
                 || msg.Contains("cpu") || msg.Contains("processeur");
         }
+        
+        private static bool IsRamProblem(Ipc.ProblemItem p)
+        {
+            string cat = (p.Category ?? "").ToLowerInvariant();
+            string msg = (p.Message ?? "").ToLowerInvariant();
+            return cat.Contains("ram") || cat.Contains("memory") || cat.Contains("memoire")
+                || msg.Contains("ram") || msg.Contains("memory") || msg.Contains("memoire");
+        }        
     }
 }
