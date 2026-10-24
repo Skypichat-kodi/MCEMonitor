@@ -51,6 +51,14 @@ public sealed class GeoIpService
             DateTime.UtcNow - cached.ResolvedAt < CacheTtl)
             return cached;
 
+        // Sécurité : si ce n'est pas une IP valide, ne pas appeler l'API
+        if (!IPAddress.TryParse(ip, out _))
+        {
+            var invalid = new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.UtcNow };
+            _cache[ip] = invalid;
+            return invalid;
+        }
+
         if (IsPrivateIp(ip))
         {
             var priv = GeoInfo.Private(ip);

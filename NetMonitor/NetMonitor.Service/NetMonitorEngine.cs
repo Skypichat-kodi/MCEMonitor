@@ -738,6 +738,27 @@ namespace NetMonitor.Service
                     string.Equals(p.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase));
             }
 
+            // Trace dans l'audit
+            lock (_alertsLock)
+            {
+                _auditHistory.Add(new IntrusionEvent
+                {
+                    Timestamp = DateTime.UtcNow,
+                    Source = "UntrustedProcess",
+                    Severity = Severity.Info,
+                    Message = $"[WHITELIST MANUELLE] {pending.ProcessName} ajouté à la liste blanche",
+                    RemoteIp = pending.RemoteIp,
+                    RemotePort = pending.RemotePort,
+                    Pid = pending.Pid,
+                    ProcessName = pending.ProcessName,
+                    ProcessPath = pending.ProcessPath,
+                    TrustReason = "Ajouté à la liste blanche manuellement",
+                    Details = processPath
+                });
+                if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
+            }
+            SaveAudit();
+
             CoreLog.Info($"Processus whitelisté : {pending.ProcessName} ({processPath})");
             return true;
         }
@@ -859,6 +880,7 @@ namespace NetMonitor.Service
                 {
                     evt.Severity = Severity.Info;
                     evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
+                    evt.TrustReason = "Scanner de recherche légitime (reverse DNS)";
 
                     lock (_alertsLock)
                     {
@@ -880,6 +902,7 @@ namespace NetMonitor.Service
             {
                 evt.Severity = Severity.Info;
                 evt.Message = $"[WHITELIST] {evt.Message}";
+                evt.TrustReason = "IP de confiance (Microsoft / Google / Cloudflare / réseau local)";
 
                 lock (_alertsLock)
                 {

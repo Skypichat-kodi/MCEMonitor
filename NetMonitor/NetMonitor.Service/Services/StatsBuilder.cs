@@ -47,8 +47,10 @@ public static class StatsBuilder
             topIpsLimit, topCountriesLimit, topDetectorsLimit);
 
         // ========= Bloc 2 : IP bloquées =========
+        // On EXCLUT les processus bloqués : ils n'ont pas d'IP résolvable,
+        // fausseraient DistinctIps / DistinctCountries et le GeoIP.
         var blockedList = engine.GetBlockedIps()
-            .Where(b => !string.IsNullOrWhiteSpace(b.Ip))
+            .Where(b => !string.IsNullOrWhiteSpace(b.Ip) && !b.IsProcess)
             .ToList();
         stats.Blocked = await BuildBlockFromBlockedAsync(blockedList, geo,
             topIpsLimit, topCountriesLimit, topDetectorsLimit);
@@ -273,6 +275,11 @@ public static class StatsBuilder
         GeoIpService geo,
         int topIpsLimit, int topCountriesLimit, int topDetectorsLimit)
     {
+        // Double sécurité : si l'appelant n'a pas filtré, on le fait ici.
+        blockedList = blockedList
+            .Where(b => !b.IsProcess && !string.IsNullOrWhiteSpace(b.Ip))
+            .ToList();
+
         var block = new StatsBlock
         {
             TotalAlerts = blockedList.Count,
