@@ -99,28 +99,44 @@ namespace NetMonitor.UI
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
-            MapWebView.PreviewMouseWheel                += WebView_PreviewMouseWheel;
-            ChartsWebView.PreviewMouseWheel             += WebView_PreviewMouseWheel;
 
-            // ⚠ NOUVEAU : intercepte la molette DANS le WebView2 (Chromium)
             MapWebView.CoreWebView2InitializationCompleted += (s, e) =>
             {
                 MapWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
                 {
-                    if (ee.TryGetWebMessageAsString() == "scroll-up") ScrollParent(-120);
-                    if (ee.TryGetWebMessageAsString() == "scroll-down") ScrollParent(120);
+                    var msg = ee.TryGetWebMessageAsString();
+                    if (msg != null && msg.StartsWith("scroll:"))
+                    {
+                        if (double.TryParse(msg.Substring(7),
+                                            System.Globalization.NumberStyles.Float,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            out double delta))
+                        {
+                            ScrollParent((int)delta);
+                        }
+                    }
                 };
             };
+            
             ChartsWebView.CoreWebView2InitializationCompleted += (s, e) =>
             {
                 ChartsWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
                 {
-                    if (ee.TryGetWebMessageAsString() == "scroll-up") ScrollParent(-120);
-                    if (ee.TryGetWebMessageAsString() == "scroll-down") ScrollParent(120);
+                    var msg = ee.TryGetWebMessageAsString();
+                    if (msg != null && msg.StartsWith("scroll:"))
+                    {
+                        if (double.TryParse(msg.Substring(7),
+                                            System.Globalization.NumberStyles.Float,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            out double delta))
+                        {
+                            ScrollParent((int)delta);
+                        }
+                    }
                 };
-            };                    
+            };
 
-            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
+            _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
             _refreshTimer.Start();
 
@@ -1090,7 +1106,12 @@ namespace NetMonitor.UI
         //  Statistiques
         // ------------------------------------------------------------
         private async void RefreshStats_Click(object sender, RoutedEventArgs e)
-            => await RefreshStatsAsync();
+        {
+            await RefreshStatsAsync();
+            // Reload uniquement sur action utilisateur explicite (pas à chaque tick)
+            if (_mapInitialized)   MapWebView?.Reload();
+            if (_chartsInitialized) ChartsWebView?.Reload();
+        }
 
         private async Task RefreshStatsAsync()
         {
@@ -1194,8 +1215,9 @@ namespace NetMonitor.UI
                 txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
             }
 
-            if (_mapInitialized) MapWebView?.Reload();
-            if (_chartsInitialized) ChartsWebView?.Reload();
+            // Ne PAS recharger les WebView ici : ça bloque la molette pendant le reload.
+            // Les pages /map et /charts ont un <meta refresh> ou font leur propre fetch.
+            // On force juste un rechargement des données quand l'utilisateur clique explicitement "Actualiser".
         }
 
         private static string BuildCountryDisplay(string? country, string? code)
@@ -1226,6 +1248,9 @@ namespace NetMonitor.UI
 
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 await MapWebView.EnsureCoreWebView2Async(env);
+                // Évite que la WebView2 avale la molette pendant le chargement
+                MapWebView.NavigationStarting   += (s, e) => MapWebView.IsHitTestVisible = false;
+                MapWebView.NavigationCompleted  += (s, e) => MapWebView.IsHitTestVisible = true;             
 
                 string filter127 = $"http://127.0.0.1:{port}/*";
                 string filterLoc = $"http://localhost:{port}/*";
@@ -1243,11 +1268,10 @@ namespace NetMonitor.UI
                 MapWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 MapWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
 
-                // ⚠ NOUVEAU : redirige la molette vers WPF
                 string jsScroll = @"
                     window.addEventListener('wheel', function(e) {
-                        if (e.deltaY < 0) window.chrome.webview.postMessage('scroll-up');
-                        else if (e.deltaY > 0) window.chrome.webview.postMessage('scroll-down');
+                        window.chrome.webview.postMessage('scroll:' + e.deltaY);
+                        e.preventDefault();
                     }, { passive: false });
                 ";
                 await MapWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
@@ -1284,6 +1308,8 @@ namespace NetMonitor.UI
 
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
                 await ChartsWebView.EnsureCoreWebView2Async(env);
+                ChartsWebView.NavigationStarting  += (s, e) => ChartsWebView.IsHitTestVisible = false;
+                ChartsWebView.NavigationCompleted += (s, e) => ChartsWebView.IsHitTestVisible = true;
 
                 string filter127 = $"http://127.0.0.1:{port}/*";
                 string filterLoc = $"http://localhost:{port}/*";
@@ -1301,11 +1327,10 @@ namespace NetMonitor.UI
                 ChartsWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 ChartsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
 
-                // ⚠ NOUVEAU : redirige la molette vers WPF
                 string jsScroll = @"
                     window.addEventListener('wheel', function(e) {
-                        if (e.deltaY < 0) window.chrome.webview.postMessage('scroll-up');
-                        else if (e.deltaY > 0) window.chrome.webview.postMessage('scroll-down');
+                        window.chrome.webview.postMessage('scroll:' + e.deltaY);
+                        e.preventDefault();
                     }, { passive: false });
                 ";
                 await ChartsWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
@@ -1358,23 +1383,13 @@ namespace NetMonitor.UI
             }
         }
 
-        private void WebView_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
-        {
-            // Redirige la molette vers la page principale
-            e.Handled = true;
-            var parent = GetActiveTabScrollViewer();
-            if (parent != null)
-            {
-                parent.ScrollToVerticalOffset(parent.VerticalOffset - e.Delta);
-            }
-        }
-
         private void ScrollParent(int delta)
         {
             var parent = GetActiveTabScrollViewer();
             if (parent != null)
             {
-                parent.ScrollToVerticalOffset(parent.VerticalOffset - delta);
+                // delta positif (molette vers le bas) = offset +
+                parent.ScrollToVerticalOffset(parent.VerticalOffset + delta);
             }
         }
 
@@ -1411,6 +1426,15 @@ namespace NetMonitor.UI
             {
                 GetActiveTabScrollViewer()?.ScrollToVerticalOffset(offset);
             }), DispatcherPriority.Loaded);
+        }
+
+        private void StatsScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            if (sender is ScrollViewer sv)
+            {
+                sv.ScrollToVerticalOffset(sv.VerticalOffset - e.Delta);
+                e.Handled = true;
+            }
         }
 
         // ------------------------------------------------------------
