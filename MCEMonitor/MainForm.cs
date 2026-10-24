@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -37,7 +37,7 @@ namespace MCEMonitor
         private DateTime _lastNetConfigWriteTime = DateTime.MinValue;
         private long _lastNetConfigSize = -1;
         
-        // Garde-fous anti-rÈcursion pour les toggles KryptonCheckButton
+        // Garde-fous anti-r√©cursion pour les toggles KryptonCheckButton
         private bool _suppressToggleMedia = false;
         private bool _suppressToggleRom = false;
         private bool _suppressToggleSystem = false;
@@ -48,13 +48,15 @@ namespace MCEMonitor
         private bool _taskWakeExists;
         private bool _taskShutdownExists;
         private bool _taskStopExists;
+        private System.Windows.Forms.Timer _taskCacheTimer = null!;
+        private readonly SemaphoreSlim _taskCacheSem = new(1, 1);        
 
         // Anti-double-fermeture
         private bool _closingInProgress = false;
 
         protected override void WndProc(ref Message m)
         {
-            // WM_NCHITTEST = 0x0084 : dÈtermine la zone sous le curseur
+            // WM_NCHITTEST = 0x0084 : d√©termine la zone sous le curseur
             const int WM_NCHITTEST = 0x0084;
 
             // Codes de retour pour les zones de redimensionnement
@@ -98,15 +100,16 @@ namespace MCEMonitor
             {
                 _closingInProgress = true;
 
-                // 1. Cacher la fenÍtre immÈdiatement (Èvite le clignotement)
+                // 1. Cacher la fen√™tre imm√©diatement (√©vite le clignotement)
                 this.SuspendLayout();
                 this.Visible = false;
 
-                // 2. ArrÍter tous les timers
+                // 2. Arr√™ter tous les timers
                 logRefreshTimer?.Stop();
                 mediaServiceTimer?.Stop();
                 romMonitorTimer?.Stop();
                 netMonitorTimer?.Stop();
+                _taskCacheTimer?.Stop();
 
                 // 3. Forcer la sortie propre
                 Application.Exit();
@@ -120,11 +123,11 @@ namespace MCEMonitor
 
             InitializeComponent();
 
-            // Double-buffering pour Èliminer les repaints parasites
+            // Double-buffering pour √©liminer les repaints parasites
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
             this.UpdateStyles();
 
-            // FenÍtre non redimensionnable
+            // Fen√™tre non redimensionnable
             this.MaximizeBox = false;
             this.MinimizeBox = true;
 
@@ -147,20 +150,17 @@ namespace MCEMonitor
             LoadSystemMonitorConfig();
             LoadNetMonitorConfig();
             LoadWakeConfig();
-            RefreshAllAutoButtons();
             LoadShutdownConfig();
             UpdateShutdownTaskStatus();
             UpdateNextReportLabel();
             UpdateLastReportLabel();
             InitializeSmtpTabGating();
+            StartTaskCacheTimer();
 
-            // ? RafraÓchit les pastilles "Automatique" des 3 boutons
-            RefreshAllAutoButtons();
-
-            // RÈappliquer les couleurs des boutons Auto quand on change d'onglet
+            // R√©appliquer les couleurs des boutons Auto quand on change d'onglet
             this.tabControl.SelectedPageChanged += (s, e) =>
             {
-                // Petit dÈlai pour laisser Krypton finir son repaint
+                // Petit d√©lai pour laisser Krypton finir son repaint
                 this.BeginInvoke(new Action(() => RefreshAllAutoButtons()));
             };
 
@@ -222,7 +222,7 @@ namespace MCEMonitor
 
             PopupHelper.ShowBottomPopup(
             this,
-                LanguageManager.Get("Configuration Email enregistrÈe") ?? "Configuration Email enregistrÈe"
+                LanguageManager.Get("Configuration Email enregistr√©e") ?? "Configuration Email enregistr√©e"
             );
         }
 
@@ -248,13 +248,13 @@ namespace MCEMonitor
 
             var logForm = new SmtpTestForm();
             logForm.Show();
-            logForm.Log(LanguageManager.Get("DÈmarrage du test SMTPÖ") ?? "DÈmarrage du test SMTPÖ");
+            logForm.Log(LanguageManager.Get("D√©marrage du test SMTP‚Ä¶") ?? "D√©marrage du test SMTP‚Ä¶");
 
             try
             {
                 logForm.Log(
-                    (LanguageManager.Get("RÈsolution DNS du serveur") ?? "RÈsolution DNS du serveur") +
-                    $" {cfg.Server}Ö"
+                    (LanguageManager.Get("R√©solution DNS du serveur") ?? "R√©solution DNS du serveur") +
+                    $" {cfg.Server}‚Ä¶"
                 );
 
                 var addresses = await Dns.GetHostAddressesAsync(cfg.Server);
@@ -263,7 +263,7 @@ namespace MCEMonitor
 
                 logForm.Log(
                     (LanguageManager.Get("Connexion au serveur SMTP sur le port") ?? "Connexion au serveur SMTP sur le port") +
-                    $" {cfg.Port}Ö"
+                    $" {cfg.Port}‚Ä¶"
                 );
 
                 var options = cfg.SecurityMode.ToUpper() switch
@@ -278,13 +278,13 @@ namespace MCEMonitor
                 using var client = new SmtpClient();
 
                 await client.ConnectAsync(cfg.Server, cfg.Port, options);
-                logForm.Log($"Connexion Ètablie ({options})");
+                logForm.Log($"Connexion √©tablie ({options})");
 
-                logForm.Log(LanguageManager.Get("AuthentificationÖ") ?? "AuthentificationÖ");
+                logForm.Log(LanguageManager.Get("Authentification‚Ä¶") ?? "Authentification‚Ä¶");
                 await client.AuthenticateAsync(cfg.From, cfg.Password);
-                logForm.Log(LanguageManager.Get("Authentification rÈussie.") ?? "Authentification rÈussie.");
+                logForm.Log(LanguageManager.Get("Authentification r√©ussie.") ?? "Authentification r√©ussie.");
 
-                logForm.Log(LanguageManager.Get("Envoi du message de testÖ") ?? "Envoi du message de testÖ");
+                logForm.Log(LanguageManager.Get("Envoi du message de test‚Ä¶") ?? "Envoi du message de test‚Ä¶");
 
                 var msg = new MimeMessage();
                 msg.From.Add(new MailboxAddress("MCEMonitor", cfg.From));
@@ -293,10 +293,10 @@ namespace MCEMonitor
                 msg.Body = new TextPart("plain") { Text = "Ceci est un test SMTP." };
 
                 await client.SendAsync(msg);
-                logForm.Log(LanguageManager.Get("Email envoyÈ avec succËs !") ?? "Email envoyÈ avec succËs !");
+                logForm.Log(LanguageManager.Get("Email envoy√© avec succƒçs !") ?? "Email envoy√© avec succƒçs !");
 
                 await client.DisconnectAsync(true);
-                logForm.Log(LanguageManager.Get("DÈconnexion du serveur.") ?? "DÈconnexion du serveur.");
+                logForm.Log(LanguageManager.Get("D√©connexion du serveur.") ?? "D√©connexion du serveur.");
 
                 _ = RefreshSmtpStatusAsync();
 
@@ -328,8 +328,8 @@ namespace MCEMonitor
                 string heure = parts.Length > 0 ? parts[0] : "";
                 string dans  = parts.Length > 1 ? parts[1] : "";
 
-                string label = LanguageManager.Get("Prochain envoi du rapport prÈvu ‡")
-                               ?? "Prochain envoi du rapport prÈvu ‡";
+                string label = LanguageManager.Get("Prochain envoi du rapport pr√©vu √†")
+                               ?? "Prochain envoi du rapport pr√©vu √†";
                 string labelDans = LanguageManager.Get("dans") ?? "dans";
 
                 return $"{label} {heure} ({labelDans} {dans})";
@@ -340,9 +340,9 @@ namespace MCEMonitor
                 string value = rawLine.Substring("[CODE02]|".Length).Trim();
 
                 if (value == "AUCUN")
-                    return LanguageManager.Get("Aucun rapport envoyÈ") ?? "Aucun rapport envoyÈ";
+                    return LanguageManager.Get("Aucun rapport envoy√©") ?? "Aucun rapport envoy√©";
 
-                string label = LanguageManager.Get("Rapport envoyÈ ‡") ?? "Rapport envoyÈ ‡";
+                string label = LanguageManager.Get("Rapport envoy√© √†") ?? "Rapport envoy√© √†";
                 return $"{label} {value}";
             }
 
@@ -391,10 +391,10 @@ namespace MCEMonitor
         private void LoadMediaConfig()
         {
             UpdateMediaToggle();
-            // ? Les pastilles sont gÈrÈes par RefreshAllAutoButtons()
+            // ? Les pastilles sont g√©r√©es par RefreshAllAutoButtons()
         }
 
-        private void BtnAutoMedia_Click(object sender, EventArgs e)
+        private async void BtnAutoMedia_Click(object sender, EventArgs e)
         {
             try
             {
@@ -402,8 +402,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation MediaMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation MediaMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation MediaMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation MediaMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -414,16 +414,16 @@ namespace MCEMonitor
 
                     string result = TaskSchedulerHelper.DeleteMediaMonitorServiceTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat suppression t‚che MediaMonitor") ?? "RÈsultat suppression t‚che MediaMonitor");
+                        LanguageManager.Get("R√©sultat suppression t√¢che MediaMonitor") ?? "R√©sultat suppression t√¢che MediaMonitor");
                 }
                 else
                 {
                     string result = TaskSchedulerHelper.CreateMediaMonitorServiceTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat crÈation t‚che MediaMonitor") ?? "RÈsultat crÈation t‚che MediaMonitor");
+                        LanguageManager.Get("R√©sultat cr√©ation t√¢che MediaMonitor") ?? "R√©sultat cr√©ation t√¢che MediaMonitor");
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -438,17 +438,17 @@ namespace MCEMonitor
             if (!serviceRunning)
             {
                 string message =
-                    (LanguageManager.Get("Le service MediaMonitor n'est pas en cours d'exÈcution.")
-                        ?? "Le service MediaMonitor n'est pas en cours d'exÈcution.")
+                    (LanguageManager.Get("Le service MediaMonitor n'est pas en cours d'ex√©cution.")
+                        ?? "Le service MediaMonitor n'est pas en cours d'ex√©cution.")
                     + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le dÈmarrer maintenant ?")
-                        ?? "Voulez-vous le dÈmarrer maintenant ?");
+                    (LanguageManager.Get("Voulez-vous le d√©marrer maintenant ?")
+                        ?? "Voulez-vous le d√©marrer maintenant ?");
 
                 bool confirmed = ConfirmDialog.Show(
                     this,
                     message,
-                    LanguageManager.Get("Service non dÈmarrÈ") ?? "Service non dÈmarrÈ",
-                    yesText: LanguageManager.Get("DÈmarrer") ?? "DÈmarrer",
+                    LanguageManager.Get("Service non d√©marr√©") ?? "Service non d√©marr√©",
+                    yesText: LanguageManager.Get("D√©marrer") ?? "D√©marrer",
                     noText: LanguageManager.Get("Annuler") ?? "Annuler",
                     warning: true);
 
@@ -521,8 +521,8 @@ namespace MCEMonitor
                 {
                     toggleMediaService.Checked = false;
                     lblMediaStatus.Text =
-                        LanguageManager.Get("Service MediaMonitor : arrÍtÈ") ??
-                        "Service MediaMonitor : arrÍtÈ";
+                        LanguageManager.Get("Service MediaMonitor : arr√™t√©") ??
+                        "Service MediaMonitor : arr√™t√©";
                 }
             }
             finally
@@ -549,8 +549,8 @@ namespace MCEMonitor
 
                         PopupHelper.ShowBottomPopup(
                             this,
-                            LanguageManager.Get("Impossible d'arrÍter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.") ??
-                            "Impossible d'arrÍter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
+                            LanguageManager.Get("Impossible d'arr√™ter MediaMonitor.Service tant que MediaMonitor.UI est ouvert. Veuillez fermer MediaMonitor.UI d'abord.") ??
+                            "Impossible d'arr√™ter MediaMonitor.Service tant que MediaMonitor.UI est ouvert.\nVeuillez fermer MediaMonitor.UI d'abord.",
                             LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
                         );
                         return;
@@ -595,7 +595,7 @@ namespace MCEMonitor
                         toggleMediaService.Checked = false;
                         PopupHelper.ShowBottomPopup(
                             this,
-                            "Le service MediaMonitor.Service n'a pas pu dÈmarrer.",
+                            "Le service MediaMonitor.Service n'a pas pu d√©marrer.",
                             "Erreur"
                         );
                         return;
@@ -643,7 +643,6 @@ namespace MCEMonitor
                 return;
 
             UpdateMediaToggle();
-            RefreshAllAutoButtons();
         }
 
         private void UpdateLastReportLabel()
@@ -756,7 +755,7 @@ namespace MCEMonitor
 
             PopupHelper.ShowBottomPopup(
                 this,
-                LanguageManager.Get("Configuration WakeMonitor enregistrÈe") ?? "Configuration WakeMonitor enregistrÈe",
+                LanguageManager.Get("Configuration WakeMonitor enregistr√©e") ?? "Configuration WakeMonitor enregistr√©e",
                 "Information"
             );
         }
@@ -793,7 +792,7 @@ namespace MCEMonitor
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("WakeMonitor exÈcutÈ") ?? "WakeMonitor exÈcutÈ",
+                    LanguageManager.Get("WakeMonitor ex√©cut√©") ?? "WakeMonitor ex√©cut√©",
                     "Information"
                 );
             }
@@ -801,14 +800,14 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    (LanguageManager.Get("Impossible d'exÈcuter WakeMonitor.exe : ") ??
-                    "Impossible d'exÈcuter WakeMonitor.exe :\n") + ex.Message,
+                    (LanguageManager.Get("Impossible d'ex√©cuter WakeMonitor.exe : ") ??
+                    "Impossible d'ex√©cuter WakeMonitor.exe :\n") + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur"
                 );
             }
         }
 
-        private void BtnAutoWake_Click(object sender, EventArgs e)
+        private async void BtnAutoWake_Click(object sender, EventArgs e)
         {
             try
             {
@@ -816,8 +815,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation WakeMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation WakeMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation WakeMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation WakeMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -833,7 +832,7 @@ namespace MCEMonitor
                     TaskSchedulerHelper.CreateWakeTask();
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -854,13 +853,13 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Impossible d'ouvrir la gestion des MAC autorisÈes :\n" + ex.Message,
+                    "Impossible d'ouvrir la gestion des MAC autoris√©es :\n" + ex.Message,
                     "Erreur"
                 );
             }
         }
 
-        private void BtnAutoShutdown_Click(object sender, EventArgs e)
+        private async void BtnAutoShutdown_Click(object sender, EventArgs e)
         {
             try
             {
@@ -868,8 +867,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'arrÍt programmÈ ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'arrÍt programmÈ ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'arr√™t programm√© ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'arr√™t programm√© ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -890,7 +889,7 @@ namespace MCEMonitor
                     SaveShutdownConfig(hour, minute, mode);
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -898,7 +897,7 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnSaveOnOff_Click(object sender, EventArgs e)
+        private async void BtnSaveOnOff_Click(object sender, EventArgs e)
         {
             int hour = (int)numShutdownHour.Value;
             int minute = (int)numShutdownMinute.Value;
@@ -908,8 +907,8 @@ namespace MCEMonitor
 
             PopupHelper.ShowBottomPopup(
                 this,
-                LanguageManager.Get("Configuration enregistrÈe.") ??
-                "Configuration enregistrÈe.",
+                LanguageManager.Get("Configuration enregistr√©e.") ??
+                "Configuration enregistr√©e.",
                 "Information"
             );
 
@@ -917,7 +916,7 @@ namespace MCEMonitor
                 TaskSchedulerHelper.CreateShutdownTask(hour, minute, mode);
 
             UpdateShutdownTaskStatus();
-            RefreshAllAutoButtons();
+            await RefreshTaskCacheAsync();
         }
 
         // ============================================================
@@ -956,7 +955,7 @@ namespace MCEMonitor
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("StopMonitor exÈcutÈ") ?? "StopMonitor exÈcutÈ",
+                    LanguageManager.Get("StopMonitor ex√©cut√©") ?? "StopMonitor ex√©cut√©",
                     "Information"
                 );
             }
@@ -964,14 +963,14 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    (LanguageManager.Get("Impossible d'exÈcuter StopMonitor.exe :") ??
-                    "Impossible d'exÈcuter StopMonitor.exe :\n") + ex.Message,
+                    (LanguageManager.Get("Impossible d'ex√©cuter StopMonitor.exe :") ??
+                    "Impossible d'ex√©cuter StopMonitor.exe :\n") + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur"
                 );
             }
         }
 
-        private void BtnAutoStop_Click(object sender, EventArgs e)
+        private async void BtnAutoStop_Click(object sender, EventArgs e)
         {
             try
             {
@@ -979,8 +978,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation StopMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation StopMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation StopMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation StopMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -996,7 +995,7 @@ namespace MCEMonitor
                     TaskSchedulerHelper.CreateStopTask();
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -1005,14 +1004,14 @@ namespace MCEMonitor
         }
 
         // ============================================================
-        // ARR T PROGRAMM…
+        // ARRET PROGRAMM√â
         // ============================================================
 
         private const string ShutdownModeShutdown = "shutdown";
         private const string ShutdownModeSleep    = "sleep";
 
         /// <summary>
-        /// Index 0 = ArrÍt, Index 1 = Veille (cf. Designer).
+        /// Index 0 = Arr√™t, Index 1 = Veille (cf. Designer).
         /// </summary>
         private string GetSelectedShutdownMode()
         {
@@ -1099,7 +1098,7 @@ namespace MCEMonitor
         private void LoadRomMonitorConfig()
         {
             UpdateRomMonitorToggle();
-            // ? Les pastilles sont gÈrÈes par RefreshAllAutoButtons()
+            // ? Les pastilles sont g√©r√©es par RefreshAllAutoButtons()
             LoadRomMonitorSettings();
         }
 
@@ -1226,7 +1225,7 @@ namespace MCEMonitor
                     "# Configuration du service RomMonitor",
                     "# ============================================================",
                     "",
-                    "# FrÈquence de contrÙle (minutes)",
+                    "# Fr√©quence de contr√¥le (minutes)",
                     $"Interval={(int)numRomInterval.Value}",
                     "",
                     "# Seuil d'alerte espace disque (% libre)",
@@ -1241,7 +1240,7 @@ namespace MCEMonitor
                     $"AlertOnSmartFailure={chkRomSmartAlert.Checked.ToString().ToLower()}",
                     "AlertOnLowDiskSpace=true",
                     "",
-                    "# Anti-spam : dÈlai minimum entre 2 alertes email du mÍme type (heures)",
+                    "# Anti-spam : d√©lai minimum entre 2 alertes email du m√™me type (heures)",
                     $"AlertCooldownHours={(int)numRomCooldown.Value}",
                     "",
                     "# Serveur Web",
@@ -1263,7 +1262,7 @@ namespace MCEMonitor
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("RÈglages RomMonitor enregistrÈs") ?? "RÈglages RomMonitor enregistrÈs",
+                    LanguageManager.Get("R√©glages RomMonitor enregistr√©s") ?? "R√©glages RomMonitor enregistr√©s",
                     "Information"
                 );
             }
@@ -1294,7 +1293,7 @@ namespace MCEMonitor
                 {
                     toggleRomService.Checked = false;
                     lblRomStatus.Text =
-                        LanguageManager.Get("Service RomMonitor : arrÍtÈ") ?? "Service RomMonitor : arrÍtÈ";
+                        LanguageManager.Get("Service RomMonitor : arr√™t√©") ?? "Service RomMonitor : arr√™t√©";
                 }
             }
             finally
@@ -1321,8 +1320,8 @@ namespace MCEMonitor
 
                         PopupHelper.ShowBottomPopup(
                             this,
-                            LanguageManager.Get("Impossible d'arrÍter RomMonitor.Service tant que RomMonitor.UI est ouvert. Veuillez fermer RomMonitor.UI d'abord.")
-                                ?? "Impossible d'arrÍter RomMonitor.Service tant que RomMonitor.UI est ouvert.\nVeuillez fermer RomMonitor.UI d'abord.",
+                            LanguageManager.Get("Impossible d'arr√™ter RomMonitor.Service tant que RomMonitor.UI est ouvert. Veuillez fermer RomMonitor.UI d'abord.")
+                                ?? "Impossible d'arr√™ter RomMonitor.Service tant que RomMonitor.UI est ouvert.\nVeuillez fermer RomMonitor.UI d'abord.",
                             LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
                         );
                         return;
@@ -1348,7 +1347,7 @@ namespace MCEMonitor
         }
 
         // ============================================================
-        //  …cart minimum de 3 entre Warning et Critical (RomMonitor)
+        //  √âcart minimum de 3 entre Warning et Critical (RomMonitor)
         // ============================================================
         private void WireRomThresholdValidation()
         {
@@ -1398,7 +1397,7 @@ namespace MCEMonitor
         private void LoadSystemMonitorConfig()
         {
             UpdateSystemToggle();
-            // ? Les pastilles sont gÈrÈes par RefreshAllAutoButtons()
+            // ? Les pastilles sont g√©r√©es par RefreshAllAutoButtons()
             LoadSystemSettings();
         }
 
@@ -1424,7 +1423,7 @@ namespace MCEMonitor
                 {
                     toggleSystemService.Checked = false;
                     lblSystemStatus.Text =
-                        LanguageManager.Get("Service SystemMonitor : arrÍtÈ") ?? "Service SystemMonitor : arrÍtÈ";
+                        LanguageManager.Get("Service SystemMonitor : arr√™t√©") ?? "Service SystemMonitor : arr√™t√©";
                 }
             }
             finally
@@ -1445,15 +1444,15 @@ namespace MCEMonitor
 
                 if (running)
                 {
-                    // EmpÍcher l'arrÍt si l'UI est ouverte
+                    // Emp√™cher l'arr√™t si l'UI est ouverte
                     if (Process.GetProcessesByName("SystemMonitor.UI").Length > 0)
                     {
                         toggleSystemService.Checked = true;
 
                         PopupHelper.ShowBottomPopup(
                             this,
-                            LanguageManager.Get("Impossible d'arrÍter SystemMonitor.Service tant que SystemMonitor.UI est ouvert. Veuillez fermer SystemMonitor.UI d'abord.")
-                                ?? "Impossible d'arrÍter SystemMonitor.Service tant que SystemMonitor.UI est ouvert.\nVeuillez fermer SystemMonitor.UI d'abord.",
+                            LanguageManager.Get("Impossible d'arr√™ter SystemMonitor.Service tant que SystemMonitor.UI est ouvert. Veuillez fermer SystemMonitor.UI d'abord.")
+                                ?? "Impossible d'arr√™ter SystemMonitor.Service tant que SystemMonitor.UI est ouvert.\nVeuillez fermer SystemMonitor.UI d'abord.",
                             LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
                         );
                         return;
@@ -1513,7 +1512,7 @@ namespace MCEMonitor
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        "Le service SystemMonitor n'a pas pu dÈmarrer.",
+                        "Le service SystemMonitor n'a pas pu d√©marrer.",
                         "Erreur"
                     );
                     return false;
@@ -1527,7 +1526,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Erreur lors du dÈmarrage du service SystemMonitor : " + ex.Message,
+                    "Erreur lors du d√©marrage du service SystemMonitor : " + ex.Message,
                     "Erreur"
                 );
                 return false;
@@ -1575,17 +1574,17 @@ namespace MCEMonitor
             if (!serviceRunning)
             {
                 string message =
-                    (LanguageManager.Get("Le service SystemMonitor n'est pas en cours d'exÈcution.")
-                        ?? "Le service SystemMonitor n'est pas en cours d'exÈcution.")
+                    (LanguageManager.Get("Le service SystemMonitor n'est pas en cours d'ex√©cution.")
+                        ?? "Le service SystemMonitor n'est pas en cours d'ex√©cution.")
                     + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le dÈmarrer maintenant ?")
-                        ?? "Voulez-vous le dÈmarrer maintenant ?");
+                    (LanguageManager.Get("Voulez-vous le d√©marrer maintenant ?")
+                        ?? "Voulez-vous le d√©marrer maintenant ?");
 
                 bool confirmed = ConfirmDialog.Show(
                     this,
                     message,
-                    LanguageManager.Get("Service non dÈmarrÈ") ?? "Service non dÈmarrÈ",
-                    yesText: LanguageManager.Get("DÈmarrer") ?? "DÈmarrer",
+                    LanguageManager.Get("Service non d√©marr√©") ?? "Service non d√©marr√©",
+                    yesText: LanguageManager.Get("D√©marrer") ?? "D√©marrer",
                     noText: LanguageManager.Get("Annuler") ?? "Annuler",
                     warning: true);
 
@@ -1640,7 +1639,7 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnAutoSystem_Click(object sender, EventArgs e)
+        private async void BtnAutoSystem_Click(object sender, EventArgs e)
         {
             try
             {
@@ -1648,8 +1647,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation SystemMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation SystemMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation SystemMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation SystemMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -1661,7 +1660,7 @@ namespace MCEMonitor
                     string result = TaskSchedulerHelper.DeleteSystemMonitorTask();
                     ServiceInstaller.DeleteSystemTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat suppression t‚che SystemMonitor") ?? "RÈsultat suppression t‚che SystemMonitor");
+                        LanguageManager.Get("R√©sultat suppression t√¢che SystemMonitor") ?? "R√©sultat suppression t√¢che SystemMonitor");
                 }
                 else
                 {
@@ -1669,10 +1668,10 @@ namespace MCEMonitor
                     if (!ServiceInstaller.SystemTrayTaskExists())
                         ServiceInstaller.CreateSystemTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat crÈation t‚che SystemMonitor") ?? "RÈsultat crÈation t‚che SystemMonitor");
+                        LanguageManager.Get("R√©sultat cr√©ation t√¢che SystemMonitor") ?? "R√©sultat cr√©ation t√¢che SystemMonitor");
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -1686,14 +1685,12 @@ namespace MCEMonitor
                 return;
 
             CheckSystemConfigFileChanged();
-
             UpdateSystemToggle();
-            RefreshAllAutoButtons();
         }
 
         /// <summary>
-        /// DÈmarre le service MediaMonitor et lance le Tray.
-        /// Renvoie true si le service tourne ‡ la fin.
+        /// D√©marre le service MediaMonitor et lance le Tray.
+        /// Renvoie true si le service tourne √† la fin.
         /// </summary>
         private bool StartMediaMonitorService()
         {
@@ -1723,18 +1720,18 @@ namespace MCEMonitor
 
                 Thread.Sleep(1200);
 
-                // VÈrifier que le service tourne
+                // V√©rifier que le service tourne
                 if (Process.GetProcessesByName("MediaMonitor.Service").Length == 0)
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        "Le service MediaMonitor n'a pas pu dÈmarrer.",
+                        "Le service MediaMonitor n'a pas pu d√©marrer.",
                         "Erreur"
                     );
                     return false;
                 }
 
-                // DÈmarrer le Tray
+                // D√©marrer le Tray
                 StartMediaMonitorTray();
 
                 return true;
@@ -1743,7 +1740,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Erreur lors du dÈmarrage du service MediaMonitor : " + ex.Message,
+                    "Erreur lors du d√©marrage du service MediaMonitor : " + ex.Message,
                     "Erreur"
                 );
                 return false;
@@ -1751,7 +1748,7 @@ namespace MCEMonitor
         }
 
         /// <summary>
-        /// Lance le Tray MediaMonitor s'il n'est pas dÈj‡ en cours.
+        /// Lance le Tray MediaMonitor s'il n'est pas d√©j√† en cours.
         /// </summary>
         private void StartMediaMonitorTray()
         {
@@ -1794,17 +1791,17 @@ namespace MCEMonitor
             if (!serviceRunning)
             {
                 string message =
-                    (LanguageManager.Get("Le service RomMonitor n'est pas en cours d'exÈcution.")
-                        ?? "Le service RomMonitor n'est pas en cours d'exÈcution.")
+                    (LanguageManager.Get("Le service RomMonitor n'est pas en cours d'ex√©cution.")
+                        ?? "Le service RomMonitor n'est pas en cours d'ex√©cution.")
                     + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le dÈmarrer maintenant ?")
-                        ?? "Voulez-vous le dÈmarrer maintenant ?");
+                    (LanguageManager.Get("Voulez-vous le d√©marrer maintenant ?")
+                        ?? "Voulez-vous le d√©marrer maintenant ?");
 
                 bool confirmed = ConfirmDialog.Show(
                     this,
                     message,
-                    LanguageManager.Get("Service non dÈmarrÈ") ?? "Service non dÈmarrÈ",
-                    yesText: LanguageManager.Get("DÈmarrer") ?? "DÈmarrer",
+                    LanguageManager.Get("Service non d√©marr√©") ?? "Service non d√©marr√©",
+                    yesText: LanguageManager.Get("D√©marrer") ?? "D√©marrer",
                     noText: LanguageManager.Get("Annuler") ?? "Annuler",
                     warning: true);
 
@@ -1866,10 +1863,9 @@ namespace MCEMonitor
 
             CheckRomConfigFileChanged();   // NOUVEAU
             UpdateRomMonitorToggle();
-            RefreshAllAutoButtons();
         }
 
-        private void BtnAutoRom_Click(object sender, EventArgs e)
+        private async void BtnAutoRom_Click(object sender, EventArgs e)
         {
             try
             {
@@ -1877,8 +1873,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation RomMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation RomMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation RomMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation RomMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -1890,7 +1886,7 @@ namespace MCEMonitor
                     string result = TaskSchedulerHelper.DeleteRomMonitorTask();
                     ServiceInstaller.DeleteRomTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat suppression t‚che RomMonitor") ?? "RÈsultat suppression t‚che RomMonitor");
+                        LanguageManager.Get("R√©sultat suppression t√¢che RomMonitor") ?? "R√©sultat suppression t√¢che RomMonitor");
                 }
                 else
                 {
@@ -1898,10 +1894,10 @@ namespace MCEMonitor
                     if (!ServiceInstaller.RomTrayTaskExists())
                         ServiceInstaller.CreateRomTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat crÈation t‚che RomMonitor") ?? "RÈsultat crÈation t‚che RomMonitor");
+                        LanguageManager.Get("R√©sultat cr√©ation t√¢che RomMonitor") ?? "R√©sultat cr√©ation t√¢che RomMonitor");
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -1944,7 +1940,7 @@ namespace MCEMonitor
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        "Le service RomMonitor n'a pas pu dÈmarrer.",
+                        "Le service RomMonitor n'a pas pu d√©marrer.",
                         "Erreur"
                     );
                     return false;
@@ -1958,7 +1954,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Erreur lors du dÈmarrage du service RomMonitor : " + ex.Message,
+                    "Erreur lors du d√©marrage du service RomMonitor : " + ex.Message,
                     "Erreur"
                 );
                 return false;
@@ -2036,7 +2032,7 @@ namespace MCEMonitor
                 {
                     toggleNetService.Checked = false;
                     lblNetStatus.Text =
-                        LanguageManager.Get("Service NetMonitor : arrÍtÈ") ?? "Service NetMonitor : arrÍtÈ";
+                        LanguageManager.Get("Service NetMonitor : arr√™t√©") ?? "Service NetMonitor : arr√™t√©";
                 }
             }
             finally
@@ -2063,8 +2059,8 @@ namespace MCEMonitor
 
                         PopupHelper.ShowBottomPopup(
                             this,
-                            LanguageManager.Get("Impossible d'arrÍter NetMonitor.Service tant que NetMonitor.UI est ouvert. Veuillez fermer NetMonitor.UI d'abord.")
-                                ?? "Impossible d'arrÍter NetMonitor.Service tant que NetMonitor.UI est ouvert.\nVeuillez fermer NetMonitor.UI d'abord.",
+                            LanguageManager.Get("Impossible d'arr√™ter NetMonitor.Service tant que NetMonitor.UI est ouvert. Veuillez fermer NetMonitor.UI d'abord.")
+                                ?? "Impossible d'arr√™ter NetMonitor.Service tant que NetMonitor.UI est ouvert.\nVeuillez fermer NetMonitor.UI d'abord.",
                             LanguageManager.Get("Service en cours d'utilisation") ?? "Service en cours d'utilisation"
                         );
                         return;
@@ -2124,7 +2120,7 @@ namespace MCEMonitor
                 {
                     PopupHelper.ShowBottomPopup(
                         this,
-                        "Le service NetMonitor n'a pas pu dÈmarrer.",
+                        "Le service NetMonitor n'a pas pu d√©marrer.",
                         "Erreur"
                     );
                     return false;
@@ -2137,7 +2133,7 @@ namespace MCEMonitor
             {
                 PopupHelper.ShowBottomPopup(
                     this,
-                    "Erreur lors du dÈmarrage du service NetMonitor : " + ex.Message,
+                    "Erreur lors du d√©marrage du service NetMonitor : " + ex.Message,
                     "Erreur"
                 );
                 return false;
@@ -2185,17 +2181,17 @@ namespace MCEMonitor
             if (!serviceRunning)
             {
                 string message =
-                    (LanguageManager.Get("Le service NetMonitor n'est pas en cours d'exÈcution.")
-                        ?? "Le service NetMonitor n'est pas en cours d'exÈcution.")
+                    (LanguageManager.Get("Le service NetMonitor n'est pas en cours d'ex√©cution.")
+                        ?? "Le service NetMonitor n'est pas en cours d'ex√©cution.")
                     + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le dÈmarrer maintenant ?")
-                        ?? "Voulez-vous le dÈmarrer maintenant ?");
+                    (LanguageManager.Get("Voulez-vous le d√©marrer maintenant ?")
+                        ?? "Voulez-vous le d√©marrer maintenant ?");
 
                 bool confirmed = ConfirmDialog.Show(
                     this,
                     message,
-                    LanguageManager.Get("Service non dÈmarrÈ") ?? "Service non dÈmarrÈ",
-                    yesText: LanguageManager.Get("DÈmarrer") ?? "DÈmarrer",
+                    LanguageManager.Get("Service non d√©marr√©") ?? "Service non d√©marr√©",
+                    yesText: LanguageManager.Get("D√©marrer") ?? "D√©marrer",
                     noText: LanguageManager.Get("Annuler") ?? "Annuler",
                     warning: true);
 
@@ -2253,7 +2249,7 @@ namespace MCEMonitor
             }
         }
 
-        private void BtnAutoNet_Click(object sender, EventArgs e)
+        private async void BtnAutoNet_Click(object sender, EventArgs e)
         {
             try
             {
@@ -2261,8 +2257,8 @@ namespace MCEMonitor
                 {
                     bool ok = ConfirmDialog.Show(
                         this,
-                        LanguageManager.Get("Voulez-vous vraiment dÈsactiver l'automatisation NetMonitor ?")
-                            ?? "Voulez-vous vraiment dÈsactiver l'automatisation NetMonitor ?",
+                        LanguageManager.Get("Voulez-vous vraiment d√©sactiver l'automatisation NetMonitor ?")
+                            ?? "Voulez-vous vraiment d√©sactiver l'automatisation NetMonitor ?",
                         LanguageManager.Get("Confirmation") ?? "Confirmation",
                         yesText: LanguageManager.Get("Oui") ?? "Oui",
                         noText: LanguageManager.Get("Non") ?? "Non",
@@ -2274,7 +2270,7 @@ namespace MCEMonitor
                     string result = TaskSchedulerHelper.DeleteNetMonitorTask();
                     ServiceInstaller.DeleteNetTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat suppression t‚che NetMonitor") ?? "RÈsultat suppression t‚che NetMonitor");
+                        LanguageManager.Get("R√©sultat suppression t√¢che NetMonitor") ?? "R√©sultat suppression t√¢che NetMonitor");
                 }
                 else
                 {
@@ -2282,10 +2278,10 @@ namespace MCEMonitor
                     if (!ServiceInstaller.NetTrayTaskExists())
                         ServiceInstaller.CreateNetTrayTask();
                     PopupHelper.ShowBottomPopup(this, result,
-                        LanguageManager.Get("RÈsultat crÈation t‚che NetMonitor") ?? "RÈsultat crÈation t‚che NetMonitor");
+                        LanguageManager.Get("R√©sultat cr√©ation t√¢che NetMonitor") ?? "R√©sultat cr√©ation t√¢che NetMonitor");
                 }
 
-                RefreshAllAutoButtons();
+                await RefreshTaskCacheAsync();
             }
             catch (Exception ex)
             {
@@ -2300,7 +2296,6 @@ namespace MCEMonitor
 
             CheckNetConfigFileChanged();
             UpdateNetMonitorToggle();
-            RefreshAllAutoButtons();
         }
 
         private void BtnSaveNetConfig_Click(object sender, EventArgs e)
@@ -2322,11 +2317,11 @@ namespace MCEMonitor
                     "# Configuration du service NetMonitor",
                     "# ============================================================",
                     "",
-                    "# --- DÈtecteur : Scan de ports ---",
+                    "# --- D√©tecteur : Scan de ports ---",
                     $"PortScanWindowSeconds={(int)numNetPortScanWindow.Value}",
                     $"PortScanThreshold={(int)numNetPortScanThreshold.Value}",
                     "",
-                    "# --- DÈtecteur : Beaconing (C2) ---",
+                    "# --- D√©tecteur : Beaconing (C2) ---",
                     $"BeaconWindowSeconds={(int)numNetBeaconWindow.Value}",
                     $"BeaconMinHits={(int)numNetBeaconHits.Value}",
                     $"BeaconJitterTolerancePct={((double)numNetBeaconJitter.Value / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture)}",
@@ -2343,7 +2338,7 @@ namespace MCEMonitor
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("RÈglages NetMonitor enregistrÈs") ?? "RÈglages NetMonitor enregistrÈs",
+                    LanguageManager.Get("R√©glages NetMonitor enregistr√©s") ?? "R√©glages NetMonitor enregistr√©s",
                     "Information"
                 );
             }
@@ -2454,8 +2449,8 @@ namespace MCEMonitor
         // ============================================================
 
         /// <summary>
-        /// Met ‡ jour la pastille du bouton selon l'existence de la t‚che.
-        /// Vert = t‚che existe, Rouge = t‚che absente.
+        /// Met √† jour la pastille du bouton selon l'existence de la t√¢che.
+        /// Vert = t√¢che existe, Rouge = t√¢che absente.
         /// </summary>
         private void UpdateAutoButton(KryptonButton btn, bool taskExists)
         {
@@ -2464,31 +2459,31 @@ namespace MCEMonitor
                 ? (LanguageManager.Get("Automatique ON") ?? "Automatique ON")
                 : (LanguageManager.Get("Automatique OFF") ?? "Automatique OFF");
 
-            // --- Couleurs selon l'Ètat ---
+            // --- Couleurs selon l'√©tat ---
             Color color, colorDark, colorLight;
 
             if (taskExists)
             {
                 color      = Color.FromArgb(46, 184, 46);    // Vert principal
                 colorLight = Color.FromArgb(102, 220, 102);  // Vert clair (reflet)
-                colorDark  = Color.FromArgb(20, 110, 20);    // Vert trËs foncÈ
+                colorDark  = Color.FromArgb(20, 110, 20);    // Vert trƒçs fonc√©
             }
             else
             {
                 color      = Color.FromArgb(220, 40, 40);    // Rouge principal
                 colorLight = Color.FromArgb(255, 110, 110);  // Rouge clair (reflet)
-                colorDark  = Color.FromArgb(140, 15, 15);    // Rouge trËs foncÈ
+                colorDark  = Color.FromArgb(140, 15, 15);    // Rouge trƒçs fonc√©
             }
 
-            Color borderColor = Color.FromArgb(200, 200, 200);  // Gris mÈtallique
+            Color borderColor = Color.FromArgb(200, 200, 200);  // Gris m√©tallique
 
-            // --- Style : dÈgradÈ Glass (effet brillant) ---
+            // --- Style : d√©grad√© Glass (effet brillant) ---
             btn.StateCommon.Back.Color1 = colorLight;
             btn.StateCommon.Back.Color2 = colorDark;
             btn.StateCommon.Back.ColorStyle = PaletteColorStyle.GlassCenter;
             btn.StateCommon.Back.GraphicsHint = PaletteGraphicsHint.AntiAlias;
 
-            // --- Bordure grise mÈtallique ---
+            // --- Bordure grise m√©tallique ---
             btn.StateCommon.Border.Color1 = Color.FromArgb(60, 60, 60);
             btn.StateCommon.Border.ColorStyle = PaletteColorStyle.Solid;
             btn.StateCommon.Border.DrawBorders = PaletteDrawBorders.All;
@@ -2525,29 +2520,75 @@ namespace MCEMonitor
         }
 
         /// <summary>
-        /// RafraÓchit les pastilles des 3 boutons "Automatique".
+        /// Met √† jour les 7 pastilles depuis le cache. AUCUN appel I/O ? instantan√©.
         /// </summary>
         private void RefreshAllAutoButtons()
         {
-            _taskMediaExists    = TaskSchedulerHelper.MediaMonitorServiceTaskExists();
-            _taskRomExists      = TaskSchedulerHelper.RomMonitorTaskExists();
-            _taskSysExists      = TaskSchedulerHelper.SystemMonitorTaskExists();
-            _taskNetExists      = TaskSchedulerHelper.NetMonitorTaskExists();
-            _taskWakeExists     = TaskSchedulerHelper.WakeTaskExists();
-            _taskShutdownExists = TaskSchedulerHelper.ShutdownTaskExists();
-            _taskStopExists     = TaskSchedulerHelper.StopTaskExists();
-
             UpdateAutoButton(btnAutoMedia,    _taskMediaExists);
             UpdateAutoButton(btnAutoRom,      _taskRomExists);
             UpdateAutoButton(btnAutoSystem,   _taskSysExists);
-            UpdateAutoButton(btnAutoNet,      _taskNetExists);            
+            UpdateAutoButton(btnAutoNet,      _taskNetExists);
             UpdateAutoButton(btnAutoWake,     _taskWakeExists);
             UpdateAutoButton(btnAutoShutdown, _taskShutdownExists);
             UpdateAutoButton(btnAutoStop,     _taskStopExists);
         }
 
+        private void StartTaskCacheTimer()
+        {
+            _taskCacheTimer = new System.Windows.Forms.Timer { Interval = 30_000 };
+            _taskCacheTimer.Tick += async (s, e) => await RefreshTaskCacheAsync();
+            _taskCacheTimer.Start();
+
+            // Premier chargement imm√©diat, non bloquant
+            _ = RefreshTaskCacheAsync();
+        }
+
+        /// <summary>
+        /// Recharge le cache des t√¢ches planifi√©es en arriƒçre-plan (7 requ√™tes parallƒçles).
+        /// </summary>
+        private async Task RefreshTaskCacheAsync()
+        {
+            await _taskCacheSem.WaitAsync();
+            try
+            {
+                var tMedia = Task.Run(() => TaskSchedulerHelper.MediaMonitorServiceTaskExists());
+                var tRom   = Task.Run(() => TaskSchedulerHelper.RomMonitorTaskExists());
+                var tSys   = Task.Run(() => TaskSchedulerHelper.SystemMonitorTaskExists());
+                var tNet   = Task.Run(() => TaskSchedulerHelper.NetMonitorTaskExists());
+                var tWake  = Task.Run(() => TaskSchedulerHelper.WakeTaskExists());
+                var tShut  = Task.Run(() => TaskSchedulerHelper.ShutdownTaskExists());
+                var tStop  = Task.Run(() => TaskSchedulerHelper.StopTaskExists());
+
+                await Task.WhenAll(tMedia, tRom, tSys, tNet, tWake, tShut, tStop);
+
+                _taskMediaExists    = tMedia.Result;
+                _taskRomExists      = tRom.Result;
+                _taskSysExists      = tSys.Result;
+                _taskNetExists      = tNet.Result;
+                _taskWakeExists     = tWake.Result;
+                _taskShutdownExists = tShut.Result;
+                _taskStopExists     = tStop.Result;
+
+                if (!IsDisposed && !_closingInProgress)
+                {
+                    if (InvokeRequired)
+                        BeginInvoke(new Action(RefreshAllAutoButtons));
+                    else
+                        RefreshAllAutoButtons();
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("RefreshTaskCacheAsync : " + ex.Message);
+            }
+            finally
+            {
+                _taskCacheSem.Release();
+            }
+        }
+
         // ============================================================
-        // GESTION SMTP : verrouillage / dÈverrouillage des onglets
+        // GESTION SMTP : verrouillage / d√©verrouillage des onglets
         // ============================================================
 
         private void InitializeSmtpTabGating()
@@ -2634,20 +2675,20 @@ namespace MCEMonitor
             return status switch
             {
                 SmtpStatus.NotConfigured =>
-                    LanguageManager.Get("La configuration email n'a pas encore ÈtÈ remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.")
-                    ?? "La configuration email n'a pas encore ÈtÈ remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.",
+                    LanguageManager.Get("La configuration email n'a pas encore √©t√© remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.")
+                    ?? "La configuration email n'a pas encore √©t√© remplie.\nLes modules ne pourront pas envoyer de rapports tant que ce ne sera pas fait.",
 
                 SmtpStatus.Unreachable =>
-                    LanguageManager.Get("Le serveur SMTP est injoignable.\nVÈrifiez l'adresse et le port.")
-                    ?? "Le serveur SMTP est injoignable.\nVÈrifiez l'adresse et le port.",
+                    LanguageManager.Get("Le serveur SMTP est injoignable.\nV√©rifiez l'adresse et le port.")
+                    ?? "Le serveur SMTP est injoignable.\nV√©rifiez l'adresse et le port.",
 
                 SmtpStatus.AuthFailed =>
-                    LanguageManager.Get("L'authentification SMTP a ÈchouÈ.\nVÈrifiez l'adresse expÈditeur et le mot de passe.")
-                    ?? "L'authentification SMTP a ÈchouÈ.\nVÈrifiez l'adresse expÈditeur et le mot de passe.",
+                    LanguageManager.Get("L'authentification SMTP a √©chou√©.\nV√©rifiez l'adresse exp√©diteur et le mot de passe.")
+                    ?? "L'authentification SMTP a √©chou√©.\nV√©rifiez l'adresse exp√©diteur et le mot de passe.",
 
                 _ =>
-                    LanguageManager.Get("Impossible de vÈrifier la configuration SMTP.\nConsultez les logs pour plus de dÈtails.")
-                    ?? "Impossible de vÈrifier la configuration SMTP.\nConsultez les logs pour plus de dÈtails."
+                    LanguageManager.Get("Impossible de v√©rifier la configuration SMTP.\nConsultez les logs pour plus de d√©tails.")
+                    ?? "Impossible de v√©rifier la configuration SMTP.\nConsultez les logs pour plus de d√©tails."
             };
         }
 
@@ -2694,14 +2735,14 @@ namespace MCEMonitor
             {
                 string tooltip = status switch
                 {
-                    SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP opÈrationnelle.")
-                                                ?? "Connexion SMTP opÈrationnelle.",
-                    SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplËte.")
-                                                ?? "Configuration email incomplËte.",
-                    SmtpStatus.Unreachable   => LanguageManager.Get("Le serveur SMTP ne rÈpond pas.")
-                                                ?? "Le serveur SMTP ne rÈpond pas.",
-                    SmtpStatus.AuthFailed    => LanguageManager.Get("Identifiants SMTP refusÈs.")
-                                                ?? "Identifiants SMTP refusÈs.",
+                    SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP op√©rationnelle.")
+                                                ?? "Connexion SMTP op√©rationnelle.",
+                    SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplƒçte.")
+                                                ?? "Configuration email incomplƒçte.",
+                    SmtpStatus.Unreachable   => LanguageManager.Get("Le serveur SMTP ne r√©pond pas.")
+                                                ?? "Le serveur SMTP ne r√©pond pas.",
+                    SmtpStatus.AuthFailed    => LanguageManager.Get("Identifiants SMTP refus√©s.")
+                                                ?? "Identifiants SMTP refus√©s.",
                     _                        => LanguageManager.Get("Statut SMTP inconnu.")
                                                 ?? "Statut SMTP inconnu."
                 };
@@ -2803,7 +2844,7 @@ namespace MCEMonitor
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
                 // ============================================================
-                //  Lire les valeurs Web existantes (prÈservÈes)
+                //  Lire les valeurs Web existantes (pr√©serv√©es)
                 // ============================================================
                 bool webEnabled = true;
                 int webPort = 8083;
@@ -2842,7 +2883,7 @@ namespace MCEMonitor
                 }
 
                 // ============================================================
-                //  …crire le fichier complet
+                //  √âcrire le fichier complet
                 // ============================================================
                 var lines = new[]
                 {
@@ -2851,7 +2892,7 @@ namespace MCEMonitor
                     "# Configuration du service SystemMonitor",
                     "# ============================================================",
                     "",
-                    "# FrÈquence de rafraÓchissement (secondes)",
+                    "# Fr√©quence de rafra√Æchissement (secondes)",
                     $"Interval={(int)numSystemInterval.Value}",
                     "",
                     "# Alertes CPU",
@@ -2863,11 +2904,11 @@ namespace MCEMonitor
                     $"AlertOnHighRam={chkSystemAlertRam.Checked.ToString().ToLower()}",
                     $"RamThresholdPercent={(int)numSystemRamThreshold.Value}",
                     "",
-                    "# Alertes TempÈrature CPU",
+                    "# Alertes Temp√©rature CPU",
                     $"AlertOnHighTemp={chkSystemAlertTemp.Checked.ToString().ToLower()}",
                     $"TempThresholdCelsius={(int)numSystemTempThreshold.Value}",
                     "",
-                    "# Alertes TempÈrature GPU",
+                    "# Alertes Temp√©rature GPU",
                     $"AlertOnHighGpuTemp={chkSystemAlertGpuTemp.Checked.ToString().ToLower()}",
                     $"GpuTempThresholdCelsius={(int)numSystemGpuTempThreshold.Value}",
                     "",
@@ -2880,7 +2921,7 @@ namespace MCEMonitor
 
                 File.WriteAllLines(configPath, lines);
 
-                // …viter l'auto-reload : mÈmoriser la signature du fichier
+                // √âviter l'auto-reload : m√©moriser la signature du fichier
                 var fi = new FileInfo(configPath);
                 _lastSystemConfigWriteTime = fi.LastWriteTime;
                 _lastSystemConfigSize = fi.Length;
@@ -2890,7 +2931,7 @@ namespace MCEMonitor
 
                 PopupHelper.ShowBottomPopup(
                     this,
-                    LanguageManager.Get("RÈglages SystemMonitor enregistrÈs") ?? "RÈglages SystemMonitor enregistrÈs",
+                    LanguageManager.Get("R√©glages SystemMonitor enregistr√©s") ?? "R√©glages SystemMonitor enregistr√©s",
                     "Information"
                 );
             }
@@ -2905,7 +2946,7 @@ namespace MCEMonitor
         }
 
         // ============================================================
-        // S…LECTEUR DE TH»ME
+        // S√âLECTEUR DE THƒåME
         // ============================================================
 
         private void BtnChooseTheme_Click(object sender, EventArgs e)
@@ -2915,9 +2956,9 @@ namespace MCEMonitor
         }
 
         /// <summary>
-        /// DÈtecte si le fichier SystemMonitor.config a ÈtÈ modifiÈ
+        /// D√©tecte si le fichier SystemMonitor.config a √©t√© modifi√©
         /// par un autre processus (SystemMonitor.UI par ex.) et recharge
-        /// les valeurs dans les contrÙles WinForms si c'est le cas.
+        /// les valeurs dans les contr√¥les WinForms si c'est le cas.
         /// </summary>
         private void CheckSystemConfigFileChanged()
         {
@@ -2945,8 +2986,8 @@ namespace MCEMonitor
         }
 
         /// <summary>
-        /// DÈtecte si RomMonitor.config a ÈtÈ modifiÈ par un autre processus
-        /// (RomMonitor.UI par ex.) et recharge les valeurs dans les contrÙles.
+        /// D√©tecte si RomMonitor.config a √©t√© modifi√© par un autre processus
+        /// (RomMonitor.UI par ex.) et recharge les valeurs dans les contr√¥les.
         /// </summary>
         private void CheckRomConfigFileChanged()
         {
@@ -2995,7 +3036,7 @@ namespace MCEMonitor
                 ForeColor = Color.White,
                 Font = new Font("Segoe UI", 9F, FontStyle.Bold),
                 Text = LanguageManager.Get("BatteryWarningBanner")
-                    ?? "INFO : Pour un fonctionnement optimal, l'ordinateur doit Ítre branchÈ sur secteur."
+                    ?? "INFO : Pour un fonctionnement optimal, l'ordinateur doit √™tre branch√© sur secteur."
             };
             _powerBanner.Controls.Add(lblBanner);
             Controls.Add(_powerBanner);
@@ -3020,8 +3061,8 @@ namespace MCEMonitor
             _bannerShown = onBattery;
             int delta = onBattery ? BannerHeight : -BannerHeight;
 
-            // FenÍtre fixe ? on dÈcale le tabControl vers le bas et on
-            // rÈduit sa hauteur pour garder le bas ‡ la mÍme position.
+            // Fen√™tre fixe ? on d√©cale le tabControl vers le bas et on
+            // r√©duit sa hauteur pour garder le bas √† la m√™me position.
             if (tabControl != null)
             {
                 tabControl.Location = new Point(

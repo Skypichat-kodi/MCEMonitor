@@ -43,7 +43,7 @@ namespace MCEMonitor
             this.tabAbout = new KryptonPage();
 
             this.logRefreshTimer = new System.Windows.Forms.Timer();
-            this.logRefreshTimer.Interval = 2000;
+            this.logRefreshTimer.Interval = 30000;
             this.logRefreshTimer.Tick += new System.EventHandler(this.LogRefreshTimer_Tick);
             this.logRefreshTimer.Start();
 
