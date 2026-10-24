@@ -27,10 +27,15 @@ namespace MCEMonitorClient.Tray
         private readonly object _statusLock = new object();
 
         // --- Icônes ---
-        private Icon _iconOk = null!;        // connected.png
+        private Icon _iconOk = null!;        // connected.png (fallback visuel)
         private Icon _iconWarning = null!;   // warning.png
         private Icon _iconCritical = null!;  // critical.png
         private Icon _iconOffline = null!;   // icône app (fallback)
+        private Bitmap? _onlineBase = null!;   // image de base "rond vert" pour composer le chiffre
+
+        // Cache des icônes "rond vert + chiffre" (1..N)
+        private readonly Dictionary<int, Icon> _countIcons = new();
+        private readonly object _countIconsLock = new();
 
         // --- Tray ---
         private NotifyIcon _trayIcon = null!;
@@ -87,6 +92,26 @@ namespace MCEMonitorClient.Tray
             _iconWarning  = LoadIconFromPng(Path.Combine(iconsDir, "warning.png"))   ?? defaultIcon;
             _iconCritical = LoadIconFromPng(Path.Combine(iconsDir, "critical.png"))  ?? defaultIcon;
             _iconOffline  = defaultIcon; // offline = icône app (pas de PNG dédié)
+            // Image de base du rond vert (sans chiffre) pour composer les icônes "N connectés"
+            string onlinePng = Path.Combine(iconsDir, "online.png");
+            if (File.Exists(onlinePng))
+            {
+                try
+                {
+                    _onlineBase = new Bitmap(onlinePng);
+                    CoreLog.Write($"[ICON] online.png chargé ({_onlineBase.Width}×{_onlineBase.Height})");
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Write($"[ICON] Erreur chargement online.png : {ex.Message}");
+                    _onlineBase = null;
+                }
+            }
+            else
+            {
+                CoreLog.Write("[ICON] online.png introuvable — fallback sur connected.png");
+                _onlineBase = null;
+            }            
         }
 
         [DllImport("user32.dll", SetLastError = true)]
@@ -133,6 +158,144 @@ namespace MCEMonitorClient.Tray
             {
                 CoreLog.Write($"[ICON] Erreur chargement '{path}' : {ex.Message}");
                 return null;
+            }
+        }
+
+        // ============================================================
+        //  Icône dynamique : rond vert + chiffre (nombre de serveurs connectés)
+        // ============================================================
+
+        private static readonly Color GreenFill   = Color.FromArgb(0x6C, 0xCB, 0x5F);
+        private static readonly Color GreenBorder = Color.FromArgb(0x3A, 0x7A, 0x33);
+        private static readonly Color TextColor   = Color.White;
+
+        /// <summary>
+        /// Retourne (et met en cache) l'icône "rond vert + chiffre".
+        /// </summary>
+        private Icon GetCountIcon(int count)
+        {
+            if (count < 1) count = 1;
+            if (count > 99) count = 99;   // au-delà, on affiche "99"
+
+            lock (_countIconsLock)
+            {
+                if (_countIcons.TryGetValue(count, out var cached))
+                    return cached;
+
+                var icon = BuildCountIcon(count);
+                _countIcons[count] = icon;
+                return icon;
+            }
+        }
+
+        /// <summary>
+        /// Compose l'icône "rond vert + chiffre noir" à partir de online.png.
+        /// Si online.png est absent, on retombe sur un rond vert dessiné (fallback).
+        /// </summary>
+        private Icon BuildCountIcon(int count)
+        {
+            const int size = 32;   // 32×32 : Windows downscale proprement en 16
+
+            using var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode     = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.PixelOffsetMode   = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                g.Clear(Color.Transparent);
+
+                // --- 1. Rond vert (image fournie par l'utilisateur) ---
+                if (_onlineBase != null)
+                {
+                    g.DrawImage(_onlineBase, 0, 0, size, size);
+                }
+                else
+                {
+                    // Fallback : rond vert dessiné
+                    var rect = new Rectangle(1, 1, size - 2, size - 2);
+                    using (var fill = new SolidBrush(Color.FromArgb(0x6C, 0xCB, 0x5F)))
+                        g.FillEllipse(fill, rect);
+                }
+
+                // --- 2. Chiffre noir centré ---
+                string text = count > 99 ? "99" : count.ToString();
+
+                // Taille de police adaptée au nombre de chiffres
+                float fontSize = text.Length switch
+                {
+                    1 => 20f,
+                    2 => 15f,
+                    _ => 12f
+                };
+
+                using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
+                var textSize = g.MeasureString(text, font);
+
+                // Centrage précis (TextRenderer serait plus juste mais MeasureString suffit ici)
+                float x = (size - textSize.Width) / 2f;
+                float y = (size - textSize.Height) / 2f;
+
+                // Petit halo blanc derrière pour améliorer la lisibilité si besoin
+                // (optionnel — décommente si le noir se perd sur le vert)
+                // using (var halo = new SolidBrush(Color.FromArgb(180, 255, 255, 255)))
+                //     g.DrawString(text, font, halo, x + 0.5f, y + 0.5f);
+
+                using (var brush = new SolidBrush(Color.Black))
+                    g.DrawString(text, font, brush, x, y);
+            }
+
+            return BitmapToIcon(bmp);
+        }
+
+        /// <summary>
+        /// Convertit un Bitmap en Icon en écrivant un vrai fichier ICO (header + PNG embedded).
+        /// Compatible NotifyIcon : alpha + antialiasing préservés.
+        /// </summary>
+        private static Icon BitmapToIcon(Bitmap bmp)
+        {
+            // Sauvegarde le bitmap en PNG
+            using var pngStream = new MemoryStream();
+            bmp.Save(pngStream, System.Drawing.Imaging.ImageFormat.Png);
+            byte[] pngBytes = pngStream.ToArray();
+
+            // Construit un fichier ICO : ICONDIR (6) + ICONDIRENTRY (16) + PNG data
+            using var icoStream = new MemoryStream();
+            using var writer = new BinaryWriter(icoStream);
+
+            // ICONDIR
+            writer.Write((ushort)0);                    // Reserved
+            writer.Write((ushort)1);                    // Type = 1 (icon)
+            writer.Write((ushort)1);                    // Count = 1 image
+
+            // ICONDIRENTRY
+            writer.Write((byte)(bmp.Width  >= 256 ? 0 : bmp.Width));
+            writer.Write((byte)(bmp.Height >= 256 ? 0 : bmp.Height));
+            writer.Write((byte)0);                      // ColorCount (0 = 256+)
+            writer.Write((byte)0);                      // Reserved
+            writer.Write((ushort)1);                    // Planes
+            writer.Write((ushort)32);                   // BitCount (32 = ARGB)
+            writer.Write((uint)pngBytes.Length);        // BytesInRes
+            writer.Write((uint)22);                     // ImageOffset (6 + 16)
+
+            writer.Write(pngBytes);
+            writer.Flush();
+
+            icoStream.Position = 0;
+            return new Icon(icoStream);
+        }
+
+        /// <summary>
+        /// Libère toutes les icônes dynamiques mises en cache.
+        /// </summary>
+        private void DisposeCountIcons()
+        {
+            lock (_countIconsLock)
+            {
+                foreach (var ico in _countIcons.Values)
+                    ico?.Dispose();
+                _countIcons.Clear();
             }
         }
 
@@ -234,17 +397,6 @@ namespace MCEMonitorClient.Tray
         private void UpdateTrayIcon()
         {
             string worst = ComputeWorstState();
-            _globalState = worst;
-
-            var icon = worst switch
-            {
-                "critical" => _iconCritical,
-                "warning"  => _iconWarning,
-                "ok"       => _iconOk,
-                _          => _iconOffline
-            };
-
-            _trayIcon.Icon = icon;
 
             int total, offline;
             lock (_statusLock)
@@ -254,13 +406,38 @@ namespace MCEMonitorClient.Tray
             }
             int online = total - offline;
 
-            _trayIcon.Text = worst switch
+            // Priorité : critical > warning > (au moins 1 online ? rond vert + chiffre) > icône de base
+            Icon icon;
+            string tooltipState;
+
+            if (worst == "critical")
             {
-                "critical" => $"MCEMonitorClient - CRITIQUE ({online}/{total} en ligne)",
-                "warning"  => $"MCEMonitorClient - Alerte ({online}/{total} en ligne)",
-                "offline"  => $"MCEMonitorClient - Hors ligne ({online}/{total} en ligne)",
-                _          => $"MCEMonitorClient - OK ({online}/{total} en ligne)"
-            };
+                icon = _iconCritical;
+                tooltipState = "CRITIQUE";
+            }
+            else if (worst == "warning")
+            {
+                icon = _iconWarning;
+                tooltipState = "Alerte";
+            }
+            else if (online > 0)
+            {
+                // Au moins 1 serveur connecté ? rond vert + chiffre
+                icon = GetCountIcon(online);
+                tooltipState = "OK";
+            }
+            else
+            {
+                // Aucun serveur connecté ? icône de base
+                icon = _iconOffline;
+                tooltipState = "Hors ligne";
+            }
+
+            _trayIcon.Icon = icon;
+            _trayIcon.Text = $"MCEMonitorClient - {tooltipState} ({online}/{total} en ligne)";            
+            _globalState = (worst == "critical" || worst == "warning")
+                ? worst
+                : (online > 0 ? "ok" : "offline");            
         }
 
         // ---------------------------------------------
@@ -545,6 +722,11 @@ namespace MCEMonitorClient.Tray
 
                 _trayIcon.Visible = false;
                 _trayIcon.Dispose();
+
+                // Libère les icônes dynamiques "rond vert + chiffre"
+                DisposeCountIcons();
+                _onlineBase?.Dispose();
+                _onlineBase = null;                
 
                 CoreLog.Write("Tray quitté");
                 Application.Exit();
