@@ -1169,6 +1169,27 @@ namespace NetMonitor.UI
             }
         }
 
+        private void LookupProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn) return;
+            string? url = btn.Tag as string;
+            if (string.IsNullOrWhiteSpace(url)) return;
+
+            try
+            {
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName = url,
+                    UseShellExecute = true
+                });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
         private static string LoadIpLookupUrl()
         {
             const string fallback = "https://www.abuseipdb.com/check/{ip}";
@@ -1726,6 +1747,9 @@ namespace NetMonitor.UI
             ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
         public string TrustReasonDisplay => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
         public string RemoteEndPoint => $"{RemoteIp}:{RemotePort}";
+        public string ProcessLookupUrl =>
+        string.IsNullOrWhiteSpace(ProcessName) ? "" :
+        $"https://www.google.com/search?q={Uri.EscapeDataString(ProcessName)}+exe+windows+process";
 
         public string CountClass => Count >= 10 ? "c10" :
                                      Count >= 5  ? "c5"  :

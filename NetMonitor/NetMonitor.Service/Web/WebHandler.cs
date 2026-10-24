@@ -78,9 +78,6 @@ namespace NetMonitor.Service.Web
                             <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td>{WebUtility.HtmlEncode(item.Message)}</td>
-                            <td>{item.Pid}</td>
-                            <td title='{WebUtility.HtmlEncode(item.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(item.ProcessPath, 60))}</td>
-                            <td title='{WebUtility.HtmlEncode(item.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(item.TrustReason, 40))}</td>
                         </tr>");
                     }
 
@@ -99,16 +96,14 @@ namespace NetMonitor.Service.Web
                             <td></td>
                             <td></td>
                             <td class='count-cell'><span class='count-badge c1'>-</span></td>
-                            <td>{WebUtility.HtmlEncode(a.Message)}</td>
                             <td>{a.Pid}</td>
-                            <td title='{WebUtility.HtmlEncode(a.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.ProcessPath, 60))}</td>
-                            <td title='{WebUtility.HtmlEncode(a.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.TrustReason, 40))}</td>
+                            <td>{WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    activeRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                    activeRows.Append("<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
                 }
 
                 // --- Tableau 1bis : Processus en attente d'examen ---
