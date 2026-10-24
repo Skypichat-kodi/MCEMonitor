@@ -441,7 +441,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
-                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click"
@@ -576,7 +576,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupProcess_Click"
@@ -779,7 +779,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
-                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click"
@@ -911,7 +911,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
-                                <DataGridTemplateColumn Width="32" CanUserResize="False">
+                                <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click"
