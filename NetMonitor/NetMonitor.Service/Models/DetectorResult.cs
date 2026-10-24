@@ -8,4 +8,7 @@ public sealed class DetectorResult
     public Severity Severity { get; init; } = Severity.Info;
     public string Message { get; init; } = "";
     public string? Details { get; init; }
+    public string? ProcessPath { get; init; }
+    public string? TrustReason { get; init; }
+    public bool IsPendingProcess { get; init; }
 }

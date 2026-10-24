@@ -423,7 +423,29 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" Width="110"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="70">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
@@ -446,13 +468,125 @@
                             </Button>
                         </StackPanel>
 
+                        <!-- Tableau 1bis : processus en attente d'examen -->
+                        <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
+                            <TextBlock Text="🔍" FontSize="16" Margin="0,0,8,0"
+                                       Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                            <TextBlock Text="Processus en attente d'examen" FontSize="14"
+                                       FontWeight="SemiBold" Foreground="#4CC2FF"
+                                       VerticalAlignment="Center"/>
+                        </StackPanel>
+
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <Button Width="220" Margin="0,0,10,0" Click="BlockSelectedProcess_Click">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🚫" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Bloquer le processus" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                            <Button Width="240" Click="WhitelistSelectedProcess_Click">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="#3A7A33"/>
+                                        <Setter Property="BorderBrush" Value="#6CCB5F"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#4A9A40"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="✅" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Ajouter à la liste blanche" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <DataGrid x:Name="PendingProcessesGrid"
+                                  RowHeight="28"
+                                  AutoGenerateColumns="False"
+                                  CanUserAddRows="False"
+                                  IsReadOnly="True"
+                                  HeadersVisibility="Column"
+                                  SelectionMode="Single"
+                                  ScrollViewer.HorizontalScrollBarVisibility="Visible"
+                                  Margin="0,0,0,0">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="80"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="IP distante" Binding="{Binding RemoteEndPoint}" Width="160"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#444"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
+                                                                <Setter Property="Background" Value="#7a1e0f"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
+                                                                <Setter Property="Background" Value="#cc3300"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
+                                                                <Setter Property="Background" Value="#ff3300"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                           FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+
+                        <StackPanel x:Name="panelPendingMore" Orientation="Horizontal"
+                                    HorizontalAlignment="Center" Margin="0,4,0,0"
+                                    Visibility="Collapsed">
+                            <Button Click="TogglePendingMore_Click"
+                                    Background="Transparent" BorderThickness="0"
+                                    Padding="8,2" Cursor="Hand"
+                                    ToolTip="Afficher toutes les lignes">
+                                <TextBlock x:Name="txtPendingMoreLabel" Text="▼ 12 / 0"
+                                           Foreground="#4CC2FF" FontSize="11"/>
+                            </Button>
+                        </StackPanel>
+
                         <!-- Tableau 2 : IP bloquées -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#FF6347" VerticalAlignment="Center"/>
-                            <TextBlock Text="IP bloquées au pare-feu" FontSize="14"
-                                       FontWeight="SemiBold" Foreground="#FF6347"
-                                       VerticalAlignment="Center"/>
+                        <TextBlock Text="IP et Processus bloqués" FontSize="14"
+                                   FontWeight="SemiBold" Foreground="#FF6347"
+                                   VerticalAlignment="Center"/>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -496,8 +630,15 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"        Binding="{Binding Ip}" Width="140"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
+                            <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" Width="90"/>
+                            <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding IpDisplay}" Width="*" MinWidth="180">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}"  Binding="{Binding Severity}" Width="90"/>
                                 <DataGridTemplateColumn Width="32" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
@@ -605,8 +746,22 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessDisplay}" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
+                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="70">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
@@ -711,8 +866,29 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessDisplay}" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessNameDisplay}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="180">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="ToolTip" Value="{Binding TrustReason}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="70">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>

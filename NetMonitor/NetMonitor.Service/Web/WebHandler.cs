@@ -45,7 +45,10 @@ namespace NetMonitor.Service.Web
                                 Detectors = detectorList,
                                 FirstSeen = g.Min(x => x.Timestamp),
                                 LastSeen  = g.Max(x => x.Timestamp),
-                                Message   = mostRecent.Message
+                                Message   = mostRecent.Message,
+                                Pid         = mostRecent.Pid,
+                                ProcessPath = mostRecent.ProcessPath,
+                                TrustReason = mostRecent.TrustReason
                             };
                         })
                         .OrderByDescending(x => (int)x.Severity)
@@ -75,6 +78,9 @@ namespace NetMonitor.Service.Web
                             <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td>{WebUtility.HtmlEncode(item.Message)}</td>
+                            <td>{item.Pid}</td>
+                            <td title='{WebUtility.HtmlEncode(item.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(item.ProcessPath, 60))}</td>
+                            <td title='{WebUtility.HtmlEncode(item.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(item.TrustReason, 40))}</td>
                         </tr>");
                     }
 
@@ -94,12 +100,51 @@ namespace NetMonitor.Service.Web
                             <td></td>
                             <td class='count-cell'><span class='count-badge c1'>-</span></td>
                             <td>{WebUtility.HtmlEncode(a.Message)}</td>
+                            <td>{a.Pid}</td>
+                            <td title='{WebUtility.HtmlEncode(a.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.ProcessPath, 60))}</td>
+                            <td title='{WebUtility.HtmlEncode(a.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.TrustReason, 40))}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    activeRows.Append("<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                    activeRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                }
+
+                // --- Tableau 1bis : Processus en attente d'examen ---
+                var pendingRows = new System.Text.StringBuilder();
+                var pending = engine.GetPendingProcesses();
+                if (pending.Count > 0)
+                {
+                    foreach (var p in pending
+                        .OrderByDescending(x => (int)x.Severity)
+                        .ThenByDescending(x => x.Count)
+                        .Take(100))
+                    {
+                        string sevClass = p.Severity.ToString() == "Critical" ? "danger" :
+                                          p.Severity.ToString() == "High" ? "danger" :
+                                          p.Severity.ToString() == "Warning" ? "warning" : "ok";
+
+                        string pathEnc = WebUtility.HtmlEncode(p.ProcessPath);
+                        string remote = $"{p.RemoteIp}:{p.RemotePort}";
+
+                        pendingRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'pending-sel')"">
+                            <td style='width:30px;text-align:center'><input type='radio' name='pending-sel' value='{pathEnc}'></td>
+                            <td>{p.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td><span class='badge {sevClass}'>{p.Severity}</span></td>
+                            <td>{WebUtility.HtmlEncode(p.Detector ?? "-")}</td>
+                            <td>{p.Pid}</td>
+                            <td>{WebUtility.HtmlEncode(p.ProcessName)}</td>
+                            <td title='{pathEnc}'>{WebUtility.HtmlEncode(Truncate(p.ProcessPath, 60))}</td>
+                            <td title='{WebUtility.HtmlEncode(p.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(p.TrustReason, 40))}</td>
+                            <td>{WebUtility.HtmlEncode(remote)}</td>
+                            <td class='count-cell'><span class='count-badge {(p.Count >= 10 ? "c10" : p.Count >= 5 ? "c5" : p.Count >= 2 ? "c2" : "c1")}'>{p.Count}</span></td>
+                        </tr>");
+                    }
+                }
+                else
+                {
+                    pendingRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
                 }
 
                 // --- Tableau 2 : IP Bloquées ---
@@ -117,11 +162,17 @@ namespace NetMonitor.Service.Web
                             : b.Severity == "Warning"  ? "warning"
                             : "ok";
 
+                        string typeLabel = b.IsProcess ? "Processus" : "IP";
+                        string display = b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip;
+                        string displayEnc = WebUtility.HtmlEncode(display);
+                        string infoCell = b.IsProcess ? "" : BuildIpInfoLink(b.Ip, lookupUrl);
+
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
-                            <td><b>{ipEnc}</b></td>
-                            <td class='info-cell'>{BuildIpInfoLink(b.Ip, lookupUrl)}</td>
+                            <td>{typeLabel}</td>
+                            <td title='{displayEnc}'><b>{WebUtility.HtmlEncode(Truncate(display, 60))}</b></td>
+                            <td class='info-cell'>{infoCell}</td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span></td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
@@ -140,10 +191,6 @@ namespace NetMonitor.Service.Web
                                           h.Severity.ToString() == "High" ? "danger" :
                                           h.Severity.ToString() == "Warning" ? "warning" : "ok";
 
-                        string processText = string.IsNullOrWhiteSpace(h.ProcessName)
-                            ? "-"
-                            : (h.Pid > 0 ? $"{h.ProcessName} ({h.Pid})" : h.ProcessName);
-
                         string detailsText = string.IsNullOrWhiteSpace(h.Details)
                             ? "-"
                             : (h.Details.Length > 120 ? h.Details.Substring(0, 117) + "…" : h.Details);
@@ -158,14 +205,17 @@ namespace NetMonitor.Service.Web
                             <td class='info-cell'>{BuildIpInfoLink(h.RemoteIp, lookupUrl)}</td>
                             <td>{h.RemotePort}</td>
                             <td>{h.LocalPort}</td>
-                            <td>{WebUtility.HtmlEncode(processText)}</td>
+                            <td>{h.Pid}</td>
+                            <td>{WebUtility.HtmlEncode(h.ProcessName ?? "-")}</td>
+                            <td title='{WebUtility.HtmlEncode(h.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(h.ProcessPath, 60))}</td>
+                            <td title='{WebUtility.HtmlEncode(h.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(h.TrustReason, 40))}</td>
                             <td title='{detailsTitle}'>{WebUtility.HtmlEncode(detailsText)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit (enrichi) ---
@@ -174,10 +224,6 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var a in audit.OrderByDescending(x => x.Timestamp).Take(100))
                     {
-                        string processText = string.IsNullOrWhiteSpace(a.ProcessName)
-                            ? "-"
-                            : (a.Pid > 0 ? $"{a.ProcessName} ({a.Pid})" : a.ProcessName);
-
                         string detailsText = string.IsNullOrWhiteSpace(a.Details)
                             ? "-"
                             : (a.Details.Length > 120 ? a.Details.Substring(0, 117) + "…" : a.Details);
@@ -191,14 +237,17 @@ namespace NetMonitor.Service.Web
                             <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
                             <td>{a.RemotePort}</td>
                             <td>{a.LocalPort}</td>
-                            <td>{WebUtility.HtmlEncode(processText)}</td>
+                            <td>{a.Pid}</td>
+                            <td>{WebUtility.HtmlEncode(a.ProcessName ?? "-")}</td>
+                            <td title='{WebUtility.HtmlEncode(a.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.ProcessPath, 60))}</td>
+                            <td title='{WebUtility.HtmlEncode(a.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(a.TrustReason, 40))}</td>
                             <td title='{detailsTitle}'>{WebUtility.HtmlEncode(detailsText)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                 // --- Modèle ---
@@ -214,7 +263,9 @@ namespace NetMonitor.Service.Web
                     ["AuditCount"]   = audit.Count,
                     ["AuditRows"]    = auditRows.ToString(),
                     ["ActiveCount"]  = active.Count,
-                    ["BlockedCount"] = blocked.Count
+                    ["BlockedCount"] = blocked.Count,
+                    ["PendingRows"]  = pendingRows.ToString(),
+                    ["PendingCount"] = pending.Count                    
                 };
 
                 string html = ViewRenderer.Render("NetPage.html", model);
@@ -438,6 +489,12 @@ namespace NetMonitor.Service.Web
                 CoreLog.Write("WebHandler.BuildChartsPageAsync ERROR : " + ex.Message);
                 return $"<html><body><h2 style='color:#FF6347;font-family:sans-serif'>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
-        }        
+        }
+
+        private static string Truncate(string? text, int max)
+        {
+            if (string.IsNullOrEmpty(text)) return "-";
+            return text.Length <= max ? text : text.Substring(0, max - 1) + "…";
+        }                
     }
 }

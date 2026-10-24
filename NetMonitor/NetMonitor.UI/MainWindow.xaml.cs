@@ -26,6 +26,10 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private readonly ObservableCollection<ConnectionRow> _connections = new();
         private readonly ObservableCollection<AlertRow> _auditAlerts = new();
+        private readonly ObservableCollection<PendingProcessRow> _pendingProcesses = new();
+        private List<PendingProcessRow> _allPendingProcesses = new();
+        private bool _showAllPending = false;        
+        
         // --- Stats ---
         private readonly ObservableCollection<StatsIpRow>        _statsActiveIps        = new();
         private readonly ObservableCollection<StatsCountryRow>   _statsActiveCountries  = new();
@@ -89,6 +93,8 @@ namespace NetMonitor.UI
             AlertsHistoryGrid.ItemsSource               = _alertsHistory;
             ConnectionsGrid.ItemsSource                 = _connections;
             AuditGrid.ItemsSource                       = _auditAlerts;
+            PendingProcessesGrid.ItemsSource            = _pendingProcesses;
+            PendingProcessesGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;            
             StatsActiveIpsGrid.ItemsSource              = _statsActiveIps;
             StatsActiveCountriesGrid.ItemsSource        = _statsActiveCountries;
             StatsActiveDetectorsGrid.ItemsSource        = _statsActiveDetectors;
@@ -222,7 +228,11 @@ namespace NetMonitor.UI
                                          .OrderBy(p => p)
                                          .Take(5))
                                         is { Length: > 0 } s ? s : "-",
-                                    Details = mostRecent.details
+                                    Pid         = mostRecent.pid,
+                                    ProcessName = mostRecent.processName,
+                                    ProcessPath = mostRecent.processPath,
+                                    TrustReason = mostRecent.trustReason,
+                                    Details     = mostRecent.details
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -244,7 +254,11 @@ namespace NetMonitor.UI
                                 Message   = a.message ?? "",
                                 Count     = 1,
                                 RemotePortsDisplay = a.remotePort > 0 ? a.remotePort.ToString() : "-",
-                                Details = a.details
+                                Pid         = a.pid,
+                                ProcessName = a.processName,
+                                ProcessPath = a.processPath,
+                                TrustReason = a.trustReason,
+                                Details     = a.details
                             });
                         }
 
@@ -268,6 +282,36 @@ namespace NetMonitor.UI
                     }
                 }
 
+                // ---- Tableau 1bis : processus en attente d'examen ----
+                var pending = await NetMonitorIpcClient.GetPendingProcesses();
+                if (pending != null)
+                {
+                    _allPendingProcesses = pending
+                        .OrderByDescending(x => SeverityRank(x.severity))
+                        .ThenByDescending(x => x.count)
+                        .ThenByDescending(x => x.lastSeen)
+                        .Select(p => new PendingProcessRow
+                        {
+                            ProcessPath = p.processPath,
+                            ProcessName = p.processName,
+                            TrustReason = p.trustReason,
+                            RemoteIp    = p.remoteIp,
+                            RemotePort  = p.remotePort,
+                            Pid         = p.pid,
+                            FirstSeen   = p.firstSeen,
+                            LastSeen    = p.lastSeen,
+                            Count       = p.count,
+                            Severity    = p.severity,
+                            Detector    = p.detector
+                        })
+                        .ToList();
+
+                    ApplyDisplayLimit(_pendingProcesses, _allPendingProcesses, _showAllPending);
+                    UpdateMoreIndicator(panelPendingMore, txtPendingMoreLabel, _allPendingProcesses.Count, _showAllPending);
+                    if (!_showAllPending)
+                        PendingProcessesGrid.Height = CalculateDataGridHeight(_pendingProcesses.Count);
+                }
+
                 // ---- Tableau 2 : IP bloquées ----
                 var blocked = await NetMonitorIpcClient.GetBlockedIps();
                 if (blocked != null)
@@ -282,7 +326,9 @@ namespace NetMonitor.UI
                             Source = b.Source,
                             Message = b.Message,
                             Details = b.Details,
-                            Severity = b.Severity
+                            Severity = b.Severity,
+                            IsProcess = b.IsProcess,
+                            ProcessPath = b.ProcessPath,                         
                         })
                         .ToList();
 
@@ -312,7 +358,9 @@ namespace NetMonitor.UI
                             RemotePort = a.remotePort,
                             LocalPort  = a.localPort,
                             Pid        = a.pid,
-                            ProcessName = a.processName
+                            ProcessName = a.processName,
+                            ProcessPath = a.processPath,
+                            TrustReason = a.trustReason
                         })
                         .ToList();
 
@@ -342,7 +390,9 @@ namespace NetMonitor.UI
                             RemotePort = a.remotePort,
                             LocalPort  = a.localPort,
                             Pid        = a.pid,
-                            ProcessName = a.processName
+                            ProcessName = a.processName,
+                            ProcessPath = a.processPath,
+                            TrustReason = a.trustReason
                         })
                         .ToList();
 
@@ -620,6 +670,47 @@ namespace NetMonitor.UI
             }
 
             await RefreshSafe();
+        }
+
+        private async void WhitelistSelectedProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
+
+            var confirm = MessageBox.Show(
+                $"Ajouter ce processus à la liste blanche ?\n\n{row.ProcessPath}\n\n" +
+                "Il ne sera plus jamais détecté comme non approuvé.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            bool ok = await NetMonitorIpcClient.WhitelistProcessAsync(row.ProcessPath);
+            MessageBox.Show(ok ? "Processus ajouté à la liste blanche." : "Échec de l'ajout.",
+                "NetMonitor", MessageBoxButton.OK,
+                ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+            await RefreshSafe();
+        }
+
+        private async void BlockSelectedProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
+
+            var confirm = MessageBox.Show(
+                $"Bloquer ce processus via le pare-feu Windows ?\n\n{row.ProcessPath}\n\n" +
+                "Une règle sortante sera créée pour ce programme.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            if (confirm != MessageBoxResult.Yes) return;
+
+            var (ok, err) = await NetMonitorIpcClient.BlockProcessWithResultAsync(row.ProcessPath);
+            MessageBox.Show(ok ? "Processus bloqué." : $"Échec du blocage.\n\n{err}",
+                "NetMonitor", MessageBoxButton.OK,
+                ok ? MessageBoxImage.Information : MessageBoxImage.Error);
+            await RefreshSafe();
+        }
+
+        private void TogglePendingMore_Click(object sender, RoutedEventArgs e)
+        {
+            _showAllPending = !_showAllPending;
+            ApplyDisplayLimit(_pendingProcesses, _allPendingProcesses, _showAllPending);
+            UpdateMoreIndicator(panelPendingMore, txtPendingMoreLabel, _allPendingProcesses.Count, _showAllPending);
         }
 
         private async void ClearActive_Click(object sender, RoutedEventArgs e)
@@ -1475,6 +1566,8 @@ namespace NetMonitor.UI
         public int LocalPort { get; set; }
         public int Pid { get; set; }
         public string? ProcessName { get; set; }
+        public string? ProcessPath { get; set; }
+        public string? TrustReason { get; set; }
 
         public string ProcessDisplay
         {
@@ -1485,6 +1578,18 @@ namespace NetMonitor.UI
                 return ProcessName;
             }
         }
+
+        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
+
+        public string ProcessNameDisplay =>
+            string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+
+        public string ProcessPathDisplay =>
+            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+
+        public string TrustReasonDisplay =>
+            string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
 
         public string DetailsDisplay
         {
@@ -1507,6 +1612,12 @@ namespace NetMonitor.UI
         public string Message { get; set; } = "";
         public string? Details { get; set; }
         public string Severity { get; set; } = "-";
+
+        public bool IsProcess { get; set; }
+        public string? ProcessPath { get; set; }
+
+        public string TypeDisplay => IsProcess ? "Processus" : "IP";
+        public string IpDisplay => IsProcess ? (ProcessPath ?? Ip) : Ip;
     }
 
     public class ConnectionRow
@@ -1533,6 +1644,23 @@ namespace NetMonitor.UI
         public int Count { get; set; }
         public string RemotePortsDisplay { get; set; } = "-";
         public string? Details { get; set; }
+
+        public int Pid { get; set; }
+        public string? ProcessName { get; set; }
+        public string? ProcessPath { get; set; }
+        public string? TrustReason { get; set; }
+
+        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
+
+        public string ProcessNameDisplay =>
+            string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+
+        public string ProcessPathDisplay =>
+            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+
+        public string TrustReasonDisplay =>
+            string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
 
         public string CountClass => Count >= 10 ? "c10" :
                                      Count >= 5  ? "c5"  :
@@ -1574,4 +1702,33 @@ namespace NetMonitor.UI
         public string Detector { get; set; } = "";
         public int Count { get; set; }
     }
+    
+    public class PendingProcessRow
+    {
+        public string ProcessPath { get; set; } = "";
+        public string ProcessName { get; set; } = "";
+        public string? TrustReason { get; set; }
+        public string? RemoteIp { get; set; }
+        public int RemotePort { get; set; }
+        public int Pid { get; set; }
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+        public int Count { get; set; }
+        public string Severity { get; set; } = "";
+        public string? Detector { get; set; }
+
+        public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay =>
+            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string RemoteEndPoint => $"{RemoteIp}:{RemotePort}";
+
+        public string CountClass => Count >= 10 ? "c10" :
+                                     Count >= 5  ? "c5"  :
+                                     Count >= 2  ? "c2"  : "c1";
+    }    
 }

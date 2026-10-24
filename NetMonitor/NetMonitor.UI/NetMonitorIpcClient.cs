@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 namespace NetMonitor.UI
 {
     // ============================================================
-    //  Modèles de réponse
+    //  ModÃ¨les de rÃ©ponse
     // ============================================================
 
     public class NetStatus
@@ -25,14 +25,16 @@ namespace NetMonitor.UI
     public class NetAlert
     {
         public DateTime timestamp { get; set; }
-        public string source { get; set; } = "";
-        public string severity { get; set; } = "";
-        public string message { get; set; } = "";
+        public string? source { get; set; }
+        public string? severity { get; set; }
+        public string? message { get; set; }
         public string? remoteIp { get; set; }
         public int remotePort { get; set; }
         public int localPort { get; set; }
         public int pid { get; set; }
         public string? processName { get; set; }
+        public string? processPath { get; set; }
+        public string? trustReason { get; set; }
         public string? details { get; set; }
     }
 
@@ -85,11 +87,13 @@ namespace NetMonitor.UI
         public string Source { get; set; } = "";
         public string Message { get; set; } = "";
         public string? Details { get; set; }
-        public string Severity { get; set; } = "—";
+        public string Severity { get; set; } = "-";
+        public bool IsProcess { get; set; }
+        public string? ProcessPath { get; set; }
     }
 
     // ============================================================
-    //  Statistiques (miroir de StatsBlock côté serveur)
+    //  Statistiques (miroir de StatsBlock cÃ´tÃ© serveur)
     // ============================================================
     public class IpStatDto
     {
@@ -143,6 +147,21 @@ namespace NetMonitor.UI
         public Dictionary<string, int> SeverityCounts { get; set; } = new();
         public StatsBlockDto Active { get; set; } = new();
         public StatsBlockDto Blocked { get; set; } = new();
+    }
+
+    public class NetPendingProcess
+    {
+        public string processPath { get; set; } = "";
+        public string processName { get; set; } = "";
+        public string? trustReason { get; set; }
+        public string? remoteIp { get; set; }
+        public int remotePort { get; set; }
+        public int pid { get; set; }
+        public DateTime firstSeen { get; set; }
+        public DateTime lastSeen { get; set; }
+        public int count { get; set; }
+        public string severity { get; set; } = "";
+        public string? detector { get; set; }
     }
 
     // ============================================================
@@ -268,7 +287,7 @@ namespace NetMonitor.UI
             return IsOk(await SendCommand(cmd));
         }
 
-        // ---------- Commandes avec résultat détaillé ----------
+        // ---------- Commandes avec rÃ©sultat dÃ©taillÃ© ----------
 
         public static async Task<bool> BlockIpAsync(string ip, string? source = null,
             string? message = null, string? details = null, string? severity = null)
@@ -299,7 +318,7 @@ namespace NetMonitor.UI
             }
             catch
             {
-                return (false, "Erreur de lecture de la réponse IPC.");
+                return (false, "Erreur de lecture de la rÃ©ponse IPC.");
             }
         }
         
@@ -312,7 +331,7 @@ namespace NetMonitor.UI
         public static async Task<string?> ExportPdfAsync()
             => await SendCommand("export-pdf");
             
-        // ---------- Statistiques (timeout long : GeoIP peut être lent au 1er appel) ----------
+        // ---------- Statistiques (timeout long : GeoIP peut Ãªtre lent au 1er appel) ----------
         public static async Task<GlobalStatsDto?> GetStatsAsync()
         {
             await _ipcLock.WaitAsync();
@@ -324,6 +343,43 @@ namespace NetMonitor.UI
             }
             catch { return null; }
             finally { _ipcLock.Release(); }
-        }                                
+        }
+        
+        public static async Task<List<NetPendingProcess>?> GetPendingProcesses()
+            => Deserialize<List<NetPendingProcess>>(await SendCommand("get-pending-processes"));
+
+        public static async Task<bool> WhitelistProcessAsync(string path)
+        {
+            var resp = await SendCommand("whitelist-process " + path);
+            return resp != null && resp.Contains("\"status\":\"ok\"");
+        }
+
+        public static async Task<(bool ok, string error)> BlockProcessWithResultAsync(string path)
+        {
+            string? json = await SendCommand("block-process " + path);
+            if (string.IsNullOrWhiteSpace(json))
+                return (false, "Service injoignable.");
+
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                bool ok = root.TryGetProperty("blocked", out var b) && b.GetBoolean();
+                string? err = root.TryGetProperty("message", out var m) ? m.GetString() : null;
+
+                return (ok, err ?? "");
+            }
+            catch
+            {
+                return (false, "Erreur de lecture de la rÃ©ponse IPC.");
+            }
+        }
+
+        public static async Task<bool> UnblockProcessAsync(string path)
+        {
+            var resp = await SendCommand("unblock-process " + path);
+            return resp != null && resp.Contains("\"status\":\"ok\"");
+        }                                        
     }
 }

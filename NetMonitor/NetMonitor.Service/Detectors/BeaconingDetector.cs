@@ -17,10 +17,9 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
     {
         if (ci.Pid <= 0) return null;
 
-        // Ignore les processus système/apps légitimes connus pour beaconer
-        if (!string.IsNullOrWhiteSpace(ci.ProcessName) &&
-            ctx.Settings.IgnoredProcesses.Any(p =>
-                string.Equals(p, ci.ProcessName, StringComparison.OrdinalIgnoreCase)))
+        // Nouveau : utilise la whitelist de processus (chemin + hash)
+        // au lieu de la liste statique IgnoredProcesses.
+        if (ctx.IsTrustedProcess(ci.Pid))
             return null;
 
         // On ne "beaconne" pas vers DNS/NTP

@@ -3,6 +3,7 @@ using System.Net;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using NetMonitor.Service.Services;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Detectors;
@@ -21,6 +22,7 @@ public sealed class DetectorContext
     private readonly ConcurrentDictionary<string, SlidingWindow<DateTime>> _icmpPackets = new();    
 
     public NetMonitorSettings Settings { get; }
+    public ProcessTrustService? ProcessTrust { get; set; }
 
     public DetectorContext(NetMonitorSettings settings)
     {
@@ -179,5 +181,16 @@ public sealed class DetectorContext
         }
 
         return true;
-    }        
+    }
+    
+    /// <summary>
+    /// Retourne true si le processus est approuvé (whitelist + chemin + hash).
+    /// Utilisé par BeaconingDetector pour ignorer les processus légitimes.
+    /// </summary>
+    public bool IsTrustedProcess(int pid)
+    {
+        if (ProcessTrust == null) return false;
+        var result = ProcessTrust.CheckProcess(pid);
+        return result.Level == ProcessTrustLevel.Trusted || result.Level == ProcessTrustLevel.System;
+    }            
 }

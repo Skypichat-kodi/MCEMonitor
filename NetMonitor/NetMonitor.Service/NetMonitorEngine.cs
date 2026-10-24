@@ -24,9 +24,13 @@ namespace NetMonitor.Service
         private TrustedScannerService? _trustedScanners;
         private GeoIpService? _geoIp;
         private EmailDigestScheduler? _emailScheduler;
+        private ProcessTrustService? _processTrust;
 
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
+        
+        private readonly List<PendingProcessInfo> _pendingProcesses = new();
+        private readonly object _pendingLock = new();        
 
         // Tableau 3 : historique (toutes les alertes)
         private readonly List<IntrusionEvent> _alerts = new();
@@ -125,6 +129,12 @@ namespace NetMonitor.Service
             _threatIntel = new ThreatIntelService();
             _trustedScanners = new TrustedScannerService(settings.TrustedScannerPatterns);
             _geoIp = new GeoIpService(settings.GeoIpProvider, settings.GeoIpEnabled, settings.ReverseDnsEnabled);
+            if (settings.EnableProcessTrust)
+            {
+                _processTrust = new ProcessTrustService();
+                _context.ProcessTrust = _processTrust;
+                CoreLog.Info("ProcessTrust : activé");
+            }            
 
             _etw = new EtwConnectionWatcher();
             _etw.ConnectionOpened += OnConnectionOpened;
@@ -133,9 +143,12 @@ namespace NetMonitor.Service
             {
                 new PortScanDetector(),
                 new BeaconingDetector(),
-                new BlacklistIpDetector(_threatIntel),      // NOUVEAU
-                new SuspiciousOutboundDetector(),           // NOUVEAU
+                new BlacklistIpDetector(_threatIntel),
+                new SuspiciousOutboundDetector(),
             };
+
+            if (_processTrust != null)
+                _connDetectors.Add(new UntrustedProcessDetector(_processTrust));
 
             // Liste des détecteurs basés sur les paquets bruts (WinDivert)
             _pktDetectors = new List<IDetector>
@@ -558,6 +571,7 @@ namespace NetMonitor.Service
         public void ReloadConfig()
         {
             _settings.Reload();
+            _processTrust?.Reload();
         }
 
         public void ForceScan()
@@ -591,12 +605,30 @@ namespace NetMonitor.Service
 
         private void RaiseIntrusion(string source, DetectorResult r, ConnectionInfo ci)
         {
-            // Si l'IP est déjà bloquée, on ignore l'alerte
+            // Si l'IP est déjr bloquée, on ignore l'alerte
             lock (_alertsLock)
             {
                 if (!string.IsNullOrWhiteSpace(ci.RemoteIp) &&
                     _blockedIps.Any(b => b.Ip == ci.RemoteIp))
                     return;
+            }
+
+            // NOUVEAU : les processus non approuvés vont dans une liste dédiée,
+            // SAUF si l'IP distante est whitelistée (Microsoft/Google/Cloudflare).
+            // NOTE : on route même si ProcessPath est vide (processus protégés,
+            // droits insuffisants, PID recyclé) ? évite qu'ils tombent dans
+            // l'historique avec une sévérité Info inutile.
+            if (r.IsPendingProcess)
+            {
+                bool isWhitelisted = !string.IsNullOrWhiteSpace(ci.RemoteIp) && FirewallHelper.IsCriticalIp(ci.RemoteIp);
+
+                if (!isWhitelisted)
+                {
+                    AddOrUpdatePendingProcess(r, ci);
+                    return;
+                }
+                // Sinon : on laisse tomber vers AddIntrusion qui va détecter le
+                // whitelist et mettre l'alerte dans _auditHistory.
             }
 
             var evt = new IntrusionEvent
@@ -610,10 +642,170 @@ namespace NetMonitor.Service
                 LocalPort = ci.LocalPort,
                 Pid = ci.Pid,
                 ProcessName = ci.ProcessName,
+                ProcessPath = r.ProcessPath,
+                TrustReason = r.TrustReason,               
                 Details = r.Details
             };
 
             AddIntrusion(evt);
+        }
+
+        private void AddOrUpdatePendingProcess(DetectorResult r, ConnectionInfo ci)
+        {
+            // Fallback si le chemin n'a pas pu être résolu (processus protégé, PID recyclé…)
+            string pathKey = string.IsNullOrWhiteSpace(r.ProcessPath)
+                ? $"[no-path]::{ci.ProcessName ?? "?"}"
+                : r.ProcessPath;
+            string displayPath = string.IsNullOrWhiteSpace(r.ProcessPath)
+                ? $"(chemin inaccessible — PID {ci.Pid})"
+                : r.ProcessPath;
+            string reason = string.IsNullOrWhiteSpace(r.ProcessPath)
+                ? "chemin inaccessible (droits insuffisants ou processus protégé)"
+                : (r.TrustReason ?? "");
+
+            lock (_pendingLock)
+            {
+                var existing = _pendingProcesses.FirstOrDefault(p =>
+                    string.Equals(p.ProcessPath, pathKey, StringComparison.OrdinalIgnoreCase));
+
+                if (existing == null)
+                {
+                    _pendingProcesses.Add(new PendingProcessInfo
+                    {
+                        ProcessPath = pathKey,
+                        ProcessName = ci.ProcessName ?? "?",
+                        TrustReason = reason,
+                        RemoteIp = ci.RemoteIp,
+                        RemotePort = ci.RemotePort,
+                        Pid = ci.Pid,
+                        FirstSeen = DateTime.UtcNow,
+                        LastSeen = DateTime.UtcNow,
+                        Count = 1,
+                        Severity = r.Severity,
+                        Detector = "UntrustedProcess"
+                    });
+
+                    CoreLog.Info($"[PENDING] Nouveau processus à examiner : {ci.ProcessName} ({displayPath})");
+                }
+                else
+                {
+                    existing.LastSeen = DateTime.UtcNow;
+                    existing.Count++;
+                    existing.Pid = ci.Pid;
+                    existing.RemoteIp = ci.RemoteIp;
+                    existing.RemotePort = ci.RemotePort;
+                    if (r.Severity > existing.Severity)
+                        existing.Severity = r.Severity;
+                }
+
+                if (_pendingProcesses.Count > 200)
+                    _pendingProcesses.RemoveAt(0);
+            }
+        }
+
+        public List<PendingProcessInfo> GetPendingProcesses()
+        {
+            lock (_pendingLock) return _pendingProcesses.ToList();
+        }
+
+        public bool WhitelistProcess(string processPath)
+        {
+            if (string.IsNullOrWhiteSpace(processPath)) return false;
+            if (_processTrust == null) return false;
+
+            // Cherche le processus en attente pour récupérer son nom
+            PendingProcessInfo? pending;
+            lock (_pendingLock)
+            {
+                pending = _pendingProcesses.FirstOrDefault(p =>
+                    string.Equals(p.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (pending == null) return false;
+
+            var entry = new ProcessTrustInfo
+            {
+                Name = pending.ProcessName,
+                Path = pending.ProcessPath,
+                Enabled = true
+            };
+
+            if (!_processTrust.AddToWhitelist(entry)) return false;
+
+            lock (_pendingLock)
+            {
+                _pendingProcesses.RemoveAll(p =>
+                    string.Equals(p.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase));
+            }
+
+            CoreLog.Info($"Processus whitelisté : {pending.ProcessName} ({processPath})");
+            return true;
+        }
+
+        public bool BlockProcess(string processPath, out string errorMessage)
+        {
+            errorMessage = "";
+            if (string.IsNullOrWhiteSpace(processPath))
+            {
+                errorMessage = "Chemin vide.";
+                return false;
+            }
+
+            if (!FirewallHelper.BlockProcess(processPath, out errorMessage))
+                return false;
+
+            PendingProcessInfo? pending;
+            lock (_pendingLock)
+            {
+                pending = _pendingProcesses.FirstOrDefault(p =>
+                    string.Equals(p.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if (pending != null)
+            {
+                lock (_alertsLock)
+                {
+                    _blockedIps.Add(new BlockedIpInfo
+                    {
+                        Ip = pending.ProcessName,         // nom court pour l'affichage
+                        ProcessPath = pending.ProcessPath,
+                        IsProcess = true,
+                        BlockedAt = DateTime.UtcNow,
+                        Source = "UntrustedProcess",
+                        Message = pending.TrustReason ?? "Processus bloqué",
+                        Details = pending.ProcessPath,
+                        Severity = pending.Severity.ToString()
+                    });
+                }
+
+                lock (_pendingLock)
+                {
+                    _pendingProcesses.RemoveAll(p =>
+                        string.Equals(p.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase));
+                }
+
+                SaveBlockedIps();
+                CoreLog.Info($"Processus bloqué : {pending.ProcessName} ({processPath})");
+            }
+
+            return true;
+        }
+
+        public bool UnblockProcess(string processPath)
+        {
+            if (string.IsNullOrWhiteSpace(processPath)) return false;
+
+            FirewallHelper.UnblockProcess(processPath);
+
+            bool removed = false;
+            lock (_alertsLock)
+            {
+                removed = _blockedIps.RemoveAll(b => b.IsProcess &&
+                    string.Equals(b.ProcessPath, processPath, StringComparison.OrdinalIgnoreCase)) > 0;
+            }
+
+            if (removed) SaveBlockedIps();
+            return removed;
         }
 
         // ------------------------------------------------------------

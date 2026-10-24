@@ -23,6 +23,7 @@ namespace NetMonitor.Service
         public int BeaconMinHits { get; set; } = 6;
         public double BeaconJitterTolerancePct { get; set; } = 0.05;
         public bool AutoBlock { get; set; } = false;
+        public bool EnableProcessTrust { get; set; } = true;
 
         // ============================================================
         //  Serveur Web
@@ -117,6 +118,7 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                             case "TrustedScannerPatterns"       : settings.TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
                         }
                     }
                 }
@@ -203,7 +205,10 @@ namespace NetMonitor.Service
                     $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}",
                     "",
                     "# --- Scanners de recherche légitimes (reverse DNS, séparés par virgule) ---",
-                    $"TrustedScannerPatterns={string.Join(",", TrustedScannerPatterns)}"
+                    $"TrustedScannerPatterns={string.Join(",", TrustedScannerPatterns)}",
+                    "# --- Whitelist de processus (chemin + hash + signature) ---",
+                    $"EnableProcessTrust={EnableProcessTrust.ToString().ToLower()}",
+                    "",                    
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -265,6 +270,7 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
                             case "TrustedScannerPatterns"       : TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) EnableProcessTrust = ept; break;
                         }
                     }
                 }

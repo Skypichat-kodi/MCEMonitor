@@ -75,6 +75,14 @@
         border-bottom: 1px solid #3c3c3c;
         text-align: left;
     }
+
+    /* Troncature propre pour les longues valeurs (chemin, raison) */
+    td {
+        max-width: 250px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
     th {
         background: #2d2d30;
         color: #fff;
@@ -448,6 +456,9 @@
                 <th style="width:32px">{{tr:Info}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Message}}</th>
+                <th>{{tr:PID}}</th>
+                <th>{{tr:Chemin}}</th>
+                <th>{{tr:Raison}}</th>
             </tr>
         </thead>
         <tbody>
@@ -456,9 +467,43 @@
     </table>
 </div>
 
+<h2>
+    <span style="font-size:20px">🔍</span>
+    {{tr:Processus en attente d'examen}} - {{PendingCount}}
+</h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <button type="button" id="btnBlockProcess" class="action-btn danger">
+        🚫 {{tr:Bloquer le processus sélectionné}}
+    </button>
+    <button type="button" id="btnWhitelistProcess" class="action-btn" style="background:#3A7A33">
+        ✅ {{tr:Ajouter à la liste blanche}}
+    </button>
+</div>
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:30px"></th>
+                <th>{{tr:Dernière}}</th>
+                <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Détecteur}}</th>
+                <th>{{tr:PID}}</th>
+                <th>{{tr:Processus}}</th>
+                <th>{{tr:Chemin}}</th>
+                <th>{{tr:Raison}}</th>
+                <th>{{tr:IP distante}}</th>
+                <th style="width:60px">{{tr:Compteur}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{PendingRows}}
+        </tbody>
+    </table>
+</div>
+
 <h2 class="h2-danger">
     <span style="font-size:20px">🛡</span>
-    {{tr:IP Bloquées au Pare-feu}}
+    {{tr:IP et Processus bloqués}}
 </h2>
 <div class="action-bar" style="margin-bottom:10px">
     <button type="button" id="btnUnblockIp" class="action-btn secondary">
@@ -471,7 +516,8 @@
             <tr>
                 <th style="width:30px"></th>
                 <th>{{tr:Date}}</th>
-                <th>{{tr:IP}}</th>
+                <th>{{tr:Type}}</th>
+                <th>{{tr:IP}} / {{tr:Processus}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Détecteur}}</th>
@@ -499,7 +545,10 @@
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Port dst}}</th>
                 <th>{{tr:Port loc}}</th>
+                <th>{{tr:PID}}</th>
                 <th>{{tr:Processus}}</th>
+                <th>{{tr:Chemin}}</th>
+                <th>{{tr:Raison}}</th>
                 <th>{{tr:Détails}}</th>
             </tr>
         </thead>
@@ -523,7 +572,10 @@
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Port dst}}</th>
                 <th>{{tr:Port loc}}</th>
+                <th>{{tr:PID}}</th>
                 <th>{{tr:Processus}}</th>
+                <th>{{tr:Chemin}}</th>
+                <th>{{tr:Raison}}</th>
                 <th>{{tr:Détails}}</th>
             </tr>
         </thead>
@@ -631,9 +683,51 @@ function unblockSelectedIp() {
     });
 }
 
+function blockSelectedProcess() {
+    var r = document.querySelector('input[name="pending-sel"]:checked');
+    if (!r) {
+        alert("{{tr:Sélectionnez d'abord un processus dans le tableau.}}");
+        return;
+    }
+    var path = r.value;
+    if (!confirm("{{tr:Bloquer ce processus via le pare-feu ?}}" + "\n\n" + path))
+        return;
+
+    fetch('/block-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'path=' + encodeURIComponent(path)
+    }).then(function () {
+        sessionStorage.removeItem('sel-pending-sel');
+        location.reload();
+    });
+}
+
+function whitelistSelectedProcess() {
+    var r = document.querySelector('input[name="pending-sel"]:checked');
+    if (!r) {
+        alert("{{tr:Sélectionnez d'abord un processus dans le tableau.}}");
+        return;
+    }
+    var path = r.value;
+    if (!confirm("{{tr:Ajouter ce processus à la liste blanche ?}}" + "\n\n" + path))
+        return;
+
+    fetch('/whitelist-process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'path=' + encodeURIComponent(path)
+    }).then(function () {
+        sessionStorage.removeItem('sel-pending-sel');
+        location.reload();
+    });
+}
+
 // ============================================================
 //  Câblage des boutons
 // ============================================================
+document.getElementById('btnBlockProcess').addEventListener('click', blockSelectedProcess);
+document.getElementById('btnWhitelistProcess').addEventListener('click', whitelistSelectedProcess);
 document.getElementById('btnBlockIp').addEventListener('click', blockSelectedIp);
 document.getElementById('btnUnblockIp').addEventListener('click', unblockSelectedIp);
 </script>

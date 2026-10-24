@@ -116,7 +116,7 @@ namespace NetMonitor.Service.Web
                 {
                     string html = await WebHandler.BuildChartsPageAsync(_engine, _settings);
                     SendHtml(ctx, html);
-                }                                
+                }
                 else if (path == "/api/stats")
                 {
                     var stats = await _engine.GetStatsAsync();
@@ -186,6 +186,36 @@ namespace NetMonitor.Service.Web
 
                     bool ok = _engine.UnblockIp(ip);
                     CoreLog.Write($"WebServer : IP {ip} débloquée (ok={ok})");
+                    Redirect(ctx);
+                }
+                else if (path == "/block-process" && ctx.Request.HttpMethod == "POST")
+                {
+                    string processPath = ReadFormValue(ctx, "path");
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    bool ok = _engine.BlockProcess(processPath, out string err);
+                    CoreLog.Write(ok
+                        ? $"WebServer : processus {processPath} bloqué"
+                        : $"WebServer : échec blocage {processPath} — {err}");
+                    Redirect(ctx);
+                }
+                else if (path == "/whitelist-process" && ctx.Request.HttpMethod == "POST")
+                {
+                    string processPath = ReadFormValue(ctx, "path");
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    bool ok = _engine.WhitelistProcess(processPath);
+                    CoreLog.Write(ok
+                        ? $"WebServer : processus {processPath} whitelisté"
+                        : $"WebServer : échec whitelist {processPath}");
                     Redirect(ctx);
                 }
                 else if (path == "/export-pdf")

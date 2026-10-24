@@ -10,5 +10,7 @@ namespace NetMonitor.Service.Models
         public string Message { get; set; } = "";
         public string? Details { get; set; }
         public string Severity { get; set; } = "-";
+        public bool IsProcess { get; set; }
+        public string? ProcessPath { get; set; }        
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -352,5 +353,61 @@ namespace NetMonitor.Service
             try { return t.Wait(1000) ? (t.Result ?? "") : ""; }
             catch { return ""; }
         }
+        
+        // ============================================================
+        //  Blocage de processus (règle firewall par programme)
+        // ============================================================
+        private const string ProcessBlockPrefix = "NetMonitor-Block-Process-";
+
+        public static bool BlockProcess(string processPath, out string errorMessage)
+        {
+            errorMessage = "";
+            if (string.IsNullOrWhiteSpace(processPath) || !File.Exists(processPath))
+            {
+                errorMessage = $"Fichier introuvable : {processPath}";
+                return false;
+            }
+
+            // Nom de règle déterministe basé sur le hash du chemin (stable, unique)
+            string hash = ComputePathHash(processPath);
+            string ruleName = $"{ProcessBlockPrefix}{hash}";
+
+            // Supprime une éventuelle ancienne règle portant le même nom
+            ExecuteNetsh($"advfirewall firewall delete rule name=\"{ruleName}\"");
+
+            bool ok = ExecuteNetsh(
+                $"advfirewall firewall add rule name=\"{ruleName}\" " +
+                $"dir=out action=block program=\"{processPath}\" enable=yes profile=any");
+
+            if (ok)
+                CoreLog.Info($"Firewall : processus bloqué ({processPath})");
+            else
+                errorMessage = "Échec de la création de la règle pare-feu (netsh).";
+
+            return ok;
+        }
+
+        public static bool UnblockProcess(string processPath)
+        {
+            if (string.IsNullOrWhiteSpace(processPath)) return false;
+
+            string hash = ComputePathHash(processPath);
+            string ruleName = $"{ProcessBlockPrefix}{hash}";
+            bool ok = ExecuteNetsh($"advfirewall firewall delete rule name=\"{ruleName}\"");
+
+            if (ok)
+                CoreLog.Info($"Firewall : règle de blocage supprimée ({processPath})");
+
+            return ok;
+        }
+
+        private static string ComputePathHash(string path)
+        {
+            using var sha = System.Security.Cryptography.SHA256.Create();
+            byte[] hash = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(
+                path.ToLowerInvariant().Replace('/', '\\').TrimEnd('\\')));
+            // 8 premiers octets = 16 caractères hex, largement suffisant
+            return Convert.ToHexString(hash).Substring(0, 16);
+        }        
     }
 }

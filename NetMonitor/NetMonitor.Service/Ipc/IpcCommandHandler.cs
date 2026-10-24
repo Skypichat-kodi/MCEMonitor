@@ -52,26 +52,52 @@ namespace NetMonitor.Service.Ipc
                 }
                 return;
             }
+            
+            if (command.StartsWith("whitelist-process ", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = command.Substring("whitelist-process ".Length).Trim();
+                bool ok = _engine.WhitelistProcess(path);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", whitelisted = ok, path });
+                return;
+            }
+
+            if (command.StartsWith("block-process ", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = command.Substring("block-process ".Length).Trim();
+                bool ok = _engine.BlockProcess(path, out string err);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", blocked = ok, path, message = err });
+                return;
+            }
+
+            if (command.StartsWith("unblock-process ", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = command.Substring("unblock-process ".Length).Trim();
+                bool ok = _engine.UnblockProcess(path);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, path });
+                return;
+            }
+                        
             switch (command.ToLowerInvariant())
             {
-                case "get-status":         HandleGetStatus(server); break;
-                case "get-problems":       HandleGetProblems(server); break;
-                case "get-alerts":         HandleGetAlerts(server); break;
-                case "get-connections":    HandleGetConnections(server); break;
-                case "get-config":         HandleGetConfig(server); break;
-                case "clear-alerts":       HandleClearAlerts(server); break;
-                case "reload-config":      HandleReloadConfig(server); break;
-                case "force-scan":         HandleForceScan(server); break;
-                case "shutdown":           HandleShutdown(server); break;
-                case "get-web-status":     HandleGetWebStatus(server); break;
-                case "get-active":         HandleGetActiveIntrusions(server); break;
-                case "clear-active":       HandleClearActiveIntrusions(server); break;
-                case "get-blocked":        HandleGetBlockedIps(server); break;
-                case "get-audit":          HandleGetAudit(server); break;
-                case "clear-audit":        HandleClearAudit(server); break;
-                case "export-pdf":         HandleExportPdf(server); break;
-                case "get-stats":          HandleGetStats(server); break;                                                           
-                default:                   IpcResponse.Error(server, "unknown command"); break;
+                case "get-status":              HandleGetStatus(server); break;
+                case "get-problems":            HandleGetProblems(server); break;
+                case "get-alerts":              HandleGetAlerts(server); break;
+                case "get-connections":         HandleGetConnections(server); break;
+                case "get-config":              HandleGetConfig(server); break;
+                case "clear-alerts":            HandleClearAlerts(server); break;
+                case "reload-config":           HandleReloadConfig(server); break;
+                case "force-scan":              HandleForceScan(server); break;
+                case "shutdown":                HandleShutdown(server); break;
+                case "get-web-status":          HandleGetWebStatus(server); break;
+                case "get-active":              HandleGetActiveIntrusions(server); break;
+                case "clear-active":            HandleClearActiveIntrusions(server); break;
+                case "get-blocked":             HandleGetBlockedIps(server); break;
+                case "get-audit":               HandleGetAudit(server); break;
+                case "clear-audit":             HandleClearAudit(server); break;
+                case "export-pdf":              HandleExportPdf(server); break;
+                case "get-stats":               HandleGetStats(server); break;
+                case "get-pending-processes":   HandleGetPendingProcesses(server); break;                                                           
+                default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
 
@@ -116,6 +142,8 @@ namespace NetMonitor.Service.Ipc
                     localPort = a.LocalPort,
                     pid = a.Pid,
                     processName = a.ProcessName,
+                    processPath = a.ProcessPath,
+                    trustReason = a.TrustReason,                   
                     details = a.Details
                 }).ToList();
 
@@ -293,6 +321,8 @@ namespace NetMonitor.Service.Ipc
                     localPort = a.LocalPort,
                     pid = a.Pid,
                     processName = a.ProcessName,
+                    processPath = a.ProcessPath,
+                    trustReason = a.TrustReason,                     
                     details = a.Details
                 }).ToList();
 
@@ -371,6 +401,8 @@ namespace NetMonitor.Service.Ipc
                     localPort = a.LocalPort,
                     pid = a.Pid,
                     processName = a.ProcessName,
+                    processPath = a.ProcessPath,
+                    trustReason = a.TrustReason,                     
                     details = a.Details
                 }).ToList();
                 IpcResponse.Json(server, projected);
@@ -418,6 +450,30 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, stats);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
-        }                                        
+        }
+        
+        private void HandleGetPendingProcesses(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetPendingProcesses();
+                var projected = list.Select(p => new
+                {
+                    processPath = p.ProcessPath,
+                    processName = p.ProcessName,
+                    trustReason = p.TrustReason,
+                    remoteIp    = p.RemoteIp,
+                    remotePort  = p.RemotePort,
+                    pid         = p.Pid,
+                    firstSeen   = p.FirstSeen,
+                    lastSeen    = p.LastSeen,
+                    count       = p.Count,
+                    severity    = p.Severity.ToString(),
+                    detector    = p.Detector
+                }).ToList();
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }                                                
     }
 }
