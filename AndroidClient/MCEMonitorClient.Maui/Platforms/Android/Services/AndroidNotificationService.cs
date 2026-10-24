@@ -247,6 +247,10 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
                 foreach (var p in alert.Problems)
                     if (p.Severity == "warning" && IsDiskProblem(p)) return "hdd_warning";
+
+                // NOUVEAU : Surcharge RAM (warning ou critical)
+                foreach (var p in alert.Problems)
+                    if (IsRamProblem(p)) return "ram_overload";
             }
 
             return alert.Status switch
@@ -322,5 +326,18 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 || msg.Contains("cpu")
                 || msg.Contains("processeur");
         }
+        
+        private static bool IsRamProblem(ProblemItem p)
+        {
+            string cat = (p.Category ?? "").ToLowerInvariant();
+            string msg = (p.Message ?? "").ToLowerInvariant();
+
+            return cat.Contains("ram") 
+                || cat.Contains("memory") 
+                || cat.Contains("memoire")
+                || msg.Contains("ram") 
+                || msg.Contains("memory") 
+                || msg.Contains("memoire");
+        }        
     }
 }

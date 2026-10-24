@@ -20,9 +20,13 @@ namespace MCEMonitorClient.Shared.Services
         // Durée pendant laquelle un média absent est considéré comme "peut-être de retour"
         private const int MediaStopGraceSeconds = 90;
 
-        // --- Anti-faux-positif "offline" : compteur d'échecs consécutifs par serveur ---
+        // --- Anti-faux-positif : compteurs ---
         private readonly Dictionary<string, int> _consecutiveFailures = new();
-        private const int OfflineThreshold = 2;   // Nombre d'échecs avant de dire "offline"
+        private readonly Dictionary<string, int> _consecutiveSuccesses = new();
+
+        private const int OfflineThreshold = 3;    // Nombre d'échecs avant de dire "offline"
+        private const int RecoveryThreshold = 2;   // Nombre de succès avant de dire "ok"
+        private const int HttpTimeoutSeconds = 10; // Timeout HTTP allongé (10s au lieu de 8s)
 
         // Événements pour notifier l'app
         public event Action<PollResult, PollResult?>? OnStateChanged;
@@ -44,13 +48,16 @@ namespace MCEMonitorClient.Shared.Services
         {
             var activeServers = config.Servers.Where(s => s.Enabled).ToList();
 
-            foreach (var server in activeServers)
+            // --- NOUVEAU : Parallélisation des requêtes ---
+            // On lance tous les pings en même temps pour ne pas attendre un serveur lent.
+            var tasks = activeServers.Select(async server =>
             {
                 ct.ThrowIfCancellationRequested();
-
                 var result = await PollOneAsync(server);
                 ProcessResult(result, config);
-            }
+            });
+
+            await Task.WhenAll(tasks);
 
             // Nettoyage : retire les serveurs qui ne sont plus dans la config
             lock (_lock)
@@ -61,6 +68,7 @@ namespace MCEMonitorClient.Shared.Services
                 {
                     _lastResults.Remove(id);
                     _consecutiveFailures.Remove(id);
+                    _consecutiveSuccesses.Remove(id); // Nettoyage du nouveau compteur
                 }
             }
         }
@@ -85,7 +93,7 @@ namespace MCEMonitorClient.Shared.Services
 
             try
             {
-                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(HttpTimeoutSeconds) };
 
                 // Auth Basic manuelle (Credentials/PreAuthenticate ne marchent pas sur Android)
                 if (!string.IsNullOrEmpty(server.Username))
@@ -177,12 +185,13 @@ namespace MCEMonitorClient.Shared.Services
                 if (_lastResults.TryGetValue(result.ServerId, out previous))
                     stateChanged = previous.Status != result.Status;
 
-                // ----- Anti-faux-positif "offline" -----
+                // ----- Hystérésis : Anti-faux-positif "offline" -----
                 if (!result.Online || result.Status == "offline")
                 {
                     _consecutiveFailures.TryGetValue(result.ServerId, out int fails);
                     fails++;
                     _consecutiveFailures[result.ServerId] = fails;
+                    _consecutiveSuccesses[result.ServerId] = 0; // Reset succès
 
                     // Pas encore assez d'échecs ? on garde l'ancien état
                     if (fails < OfflineThreshold && previous != null)
@@ -194,8 +203,18 @@ namespace MCEMonitorClient.Shared.Services
                 }
                 else
                 {
-                    // Un succès réinitialise le compteur
-                    _consecutiveFailures[result.ServerId] = 0;
+                    _consecutiveSuccesses.TryGetValue(result.ServerId, out int succ);
+                    succ++;
+                    _consecutiveSuccesses[result.ServerId] = succ;
+                    _consecutiveFailures[result.ServerId] = 0; // Reset échecs
+
+                    // Si on était offline, il faut 2 succès consécutifs pour revenir à "ok"
+                    if (previous != null && previous.Status == "offline" && succ < RecoveryThreshold)
+                    {
+                        result.Status = "offline";
+                        result.Online = false;
+                        stateChanged = false;
+                    }
                 }
 
                 _lastResults[result.ServerId] = result;
