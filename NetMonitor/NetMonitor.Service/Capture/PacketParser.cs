@@ -45,24 +45,16 @@ namespace NetMonitor.Service.Capture
                 SourceIp = srcIp.ToString(),
                 DestIp = dstIp.ToString(),
                 Length = ip.Length,
+                // Le paquet est "sortant" si la source est une IP locale
+                IsOutbound = LocalIps.IsLocal(srcIp),
             };
 
             switch (protocol)
             {
-                case 6: // TCP
-                    evt.Protocol = TransportProtocol.Tcp;
-                    ParseTcp(payload, evt);
-                    break;
-                case 17: // UDP
-                    evt.Protocol = TransportProtocol.Udp;
-                    ParseUdp(payload, evt);
-                    break;
-                case 1: // ICMP
-                    evt.Protocol = TransportProtocol.Icmp;
-                    ParseIcmp(payload, evt);
-                    break;
-                default:
-                    return null; // On ignore les autres protocoles
+                case 6: evt.Protocol = TransportProtocol.Tcp; ParseTcp(payload, evt); break;
+                case 17: evt.Protocol = TransportProtocol.Udp; ParseUdp(payload, evt); break;
+                case 1: evt.Protocol = TransportProtocol.Icmp; ParseIcmp(payload, evt); break;
+                default: return null;
             }
 
             return evt;

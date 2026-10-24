@@ -100,7 +100,25 @@ namespace NetMonitor.UI
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
             MapWebView.PreviewMouseWheel                += WebView_PreviewMouseWheel;
-            ChartsWebView.PreviewMouseWheel             += WebView_PreviewMouseWheel;            
+            ChartsWebView.PreviewMouseWheel             += WebView_PreviewMouseWheel;
+
+            // ⚠ NOUVEAU : intercepte la molette DANS le WebView2 (Chromium)
+            MapWebView.CoreWebView2InitializationCompleted += (s, e) =>
+            {
+                MapWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
+                {
+                    if (ee.TryGetWebMessageAsString() == "scroll-up") ScrollParent(-120);
+                    if (ee.TryGetWebMessageAsString() == "scroll-down") ScrollParent(120);
+                };
+            };
+            ChartsWebView.CoreWebView2InitializationCompleted += (s, e) =>
+            {
+                ChartsWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
+                {
+                    if (ee.TryGetWebMessageAsString() == "scroll-up") ScrollParent(-120);
+                    if (ee.TryGetWebMessageAsString() == "scroll-down") ScrollParent(120);
+                };
+            };                    
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(2) };
             _refreshTimer.Tick += async (_, __) => await RefreshSafe();
@@ -1225,6 +1243,15 @@ namespace NetMonitor.UI
                 MapWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 MapWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
 
+                // ⚠ NOUVEAU : redirige la molette vers WPF
+                string jsScroll = @"
+                    window.addEventListener('wheel', function(e) {
+                        if (e.deltaY < 0) window.chrome.webview.postMessage('scroll-up');
+                        else if (e.deltaY > 0) window.chrome.webview.postMessage('scroll-down');
+                    }, { passive: false });
+                ";
+                await MapWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
+
                 MapWebView.Source = new Uri($"http://127.0.0.1:{port}/map");
                 _mapInitialized = true;
 
@@ -1273,6 +1300,15 @@ namespace NetMonitor.UI
                 ChartsWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
                 ChartsWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
                 ChartsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+                // ⚠ NOUVEAU : redirige la molette vers WPF
+                string jsScroll = @"
+                    window.addEventListener('wheel', function(e) {
+                        if (e.deltaY < 0) window.chrome.webview.postMessage('scroll-up');
+                        else if (e.deltaY > 0) window.chrome.webview.postMessage('scroll-down');
+                    }, { passive: false });
+                ";
+                await ChartsWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
 
                 ChartsWebView.Source = new Uri($"http://127.0.0.1:{port}/charts");
                 _chartsInitialized = true;
@@ -1330,6 +1366,15 @@ namespace NetMonitor.UI
             if (parent != null)
             {
                 parent.ScrollToVerticalOffset(parent.VerticalOffset - e.Delta);
+            }
+        }
+
+        private void ScrollParent(int delta)
+        {
+            var parent = GetActiveTabScrollViewer();
+            if (parent != null)
+            {
+                parent.ScrollToVerticalOffset(parent.VerticalOffset - delta);
             }
         }
 

@@ -23,6 +23,7 @@ namespace NetMonitor.Service
         private ThreatIntelService? _threatIntel;
         private TrustedScannerService? _trustedScanners;
         private GeoIpService? _geoIp;
+        private EmailDigestScheduler? _emailScheduler;
 
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
@@ -148,7 +149,10 @@ namespace NetMonitor.Service
 
         public void Start()
         {
-            _threatIntel?.Start(); // NOUVEAU : démarre le service (charge la blacklist)
+            _threatIntel?.Start();
+
+            _emailScheduler = new EmailDigestScheduler(_settings);
+            _emailScheduler.Start();
 
             _etw.Start();
             _evictTimer = new System.Threading.Timer(
@@ -201,7 +205,11 @@ namespace NetMonitor.Service
 
         public void Stop()
         {
-            _threatIntel?.Stop(); // NOUVEAU : arrête le watcher de fichier
+            _threatIntel?.Stop();
+
+            _emailScheduler?.Stop();
+            _emailScheduler?.Dispose();
+            _emailScheduler = null;
 
             _capture?.Stop();
             _packetChannel?.Writer.TryComplete();
@@ -613,11 +621,16 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         private void RaiseIntrusionPacket(string source, DetectorResult r, NetworkEvent evt)
         {
-            // Si l'IP source est déjà bloquée, on ignore
+            // Détermine qui est "remote" et qui est "local" selon le sens du paquet
+            string remoteIp   = evt.IsOutbound ? evt.DestIp   : evt.SourceIp;
+            int    remotePort = evt.IsOutbound ? evt.DestPort : evt.SourcePort;
+            int    localPort  = evt.IsOutbound ? evt.SourcePort : evt.DestPort;
+
+            // Si l'IP distante est déjr bloquée, on ignore
             lock (_alertsLock)
             {
-                if (!string.IsNullOrWhiteSpace(evt.SourceIp) &&
-                    _blockedIps.Any(b => b.Ip == evt.SourceIp))
+                if (!string.IsNullOrWhiteSpace(remoteIp) &&
+                    _blockedIps.Any(b => b.Ip == remoteIp))
                     return;
             }
 
@@ -627,10 +640,10 @@ namespace NetMonitor.Service
                 Source = source,
                 Severity = r.Severity,
                 Message = r.Message,
-                RemoteIp = evt.SourceIp,
-                RemotePort = evt.SourcePort,
-                LocalPort = evt.DestPort,
-                Pid = 0, // Pas de PID avec un paquet brut
+                RemoteIp = remoteIp,
+                RemotePort = remotePort,
+                LocalPort = localPort,
+                Pid = 0,
                 ProcessName = "Network Packet",
                 Details = r.Details
             };
@@ -643,10 +656,9 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         private void AddIntrusion(IntrusionEvent evt)
         {
-            bool isNewAlert = false;
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
-            // --- 1. Détection des scanners de recherche légitimes (Shadowserver, Censys…) ---
+            // --- 1. Détection des scanners de recherche légitimes ---
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
@@ -691,9 +703,7 @@ namespace NetMonitor.Service
                 return;
             }
 
-            // --- 3. BLOCAGE AUTOMATIQUE ---
-            bool wasAutoBlocked = false;
-
+            // --- 3. BLOCAGE AUTOMATIQUE (uniquement si activé) ---
             if (_settings.AutoBlock
                 && (evt.Severity == Severity.High || evt.Severity == Severity.Critical)
                 && !string.IsNullOrWhiteSpace(evt.RemoteIp))
@@ -703,10 +713,8 @@ namespace NetMonitor.Service
                 {
                     CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
                                   $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");
-                    wasAutoBlocked = true;
 
-                    // ? NOUVEAU : on garde l'IP visible dans les actives pendant 60s
-                    // (BlockIp a vidé les actives ? on la remet pour le Tray)
+                    // Maintien 60s dans les actives pour visibilité Tray
                     _autoBlockedTempIps[evt.RemoteIp!] = DateTime.UtcNow.AddSeconds(AutoBlockVisibilitySeconds);
                 }
                 else
@@ -715,71 +723,9 @@ namespace NetMonitor.Service
                 }
             }
 
-            // --- 4. Traitement normal ---
-            lock (_alertsLock)
-            {
-                // Toujours dans l'historique
-                _alerts.Add(evt);
-                if (_alerts.Count > 500) _alerts.RemoveAt(0);
+            // --- 4. Traitement normal (UNE SEULE FOIS) ---
+            bool isNewAlert = false;
 
-                // ? NOUVEAU : ajouter aux actives si :
-                //    - pas auto-bloquée (comportement normal)
-                //    - OU auto-bloquée (visibilité 60s pour le Tray)
-                _activeIntrusions.Add(evt);
-                if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
-
-                var limit = DateTime.UtcNow.AddMinutes(-60);
-                var recentDuplicates = _alerts.Where(a =>
-                    a.RemoteIp == evt.RemoteIp &&
-                    a.Source == evt.Source &&
-                    a.Timestamp >= limit).ToList();
-
-                if (recentDuplicates.Count == 1) isNewAlert = true;
-            }
-
-            CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
-            SaveHistory();
-
-            // Email : toujours envoyé (même si auto-bloquée)
-            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
-            {
-                _ = SendAlertEmailAsync(evt);
-            }
-
-            // --- 4. Traitement normal ---
-            lock (_alertsLock)
-            {
-                // Toujours ajouter à l'historique (traçabilité)
-                _alerts.Add(evt);
-                if (_alerts.Count > 500) _alerts.RemoveAt(0);
-
-                // Ajouter aux intrusions actives UNIQUEMENT si pas auto-bloquée
-                // (si bloquée, elle est déjà traitée ? pas besoin de la voir dans les actives)
-                if (!wasAutoBlocked)
-                {
-                    _activeIntrusions.Add(evt);
-                    if (_activeIntrusions.Count > 200) _activeIntrusions.RemoveAt(0);
-                }
-
-                var limit = DateTime.UtcNow.AddMinutes(-60);
-                var recentDuplicates = _alerts.Where(a =>
-                    a.RemoteIp == evt.RemoteIp &&
-                    a.Source == evt.Source &&
-                    a.Timestamp >= limit).ToList();
-
-                if (recentDuplicates.Count == 1) isNewAlert = true;
-            }
-
-            CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
-            SaveHistory();
-
-            // Email + notification Tray : toujours envoyés (même si auto-bloquée)
-            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
-            {
-                _ = SendAlertEmailAsync(evt);
-            }
-
-            // --- 4. Traitement normal (ajout aux listes) ---
             lock (_alertsLock)
             {
                 _alerts.Add(evt);
@@ -800,9 +746,10 @@ namespace NetMonitor.Service
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
             SaveHistory();
 
+            // --- 5. Enqueue email (le scheduler décide quand envoyer) ---
             if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
             {
-                _ = SendAlertEmailAsync(evt);
+                _emailScheduler?.Enqueue(evt);
             }
         }
         
@@ -850,30 +797,6 @@ namespace NetMonitor.Service
             lock (_alertsLock) _auditHistory.Clear();
             SaveAudit();
             CoreLog.Info("Historique d'audit (whitelist) vidé");
-        }
-        
-        private async Task SendAlertEmailAsync(IntrusionEvent evt)
-        {
-            try
-            {
-                var cfg = EmailConfig.Load();
-                if (string.IsNullOrEmpty(cfg.Server)) return;
-
-                string body = $@"
-                    <p><b>Détecteur :</b> {evt.Source}</p>
-                    <p><b>Sévérité :</b> <span style='color:#c0392b'>{evt.Severity}</span></p>
-                    <p><b>IP distante :</b> {evt.RemoteIp}:{evt.RemotePort}</p>
-                    <p><b>Processus :</b> {evt.ProcessName} (PID {evt.Pid})</p>
-                    <p><b>Message :</b> {evt.Message}</p>
-                    {(string.IsNullOrEmpty(evt.Details) ? "" : $"<pre style='background:#f4f4f4;padding:8px'>{evt.Details}</pre>")}";
-
-                await EmailSender.SendAsync(cfg, $"[ALERTE] Intrusion détectée sur {Environment.MachineName}", body, isHtml: true);
-                CoreLog.Write($"[EMAIL] Alerte envoyée pour {evt.Source}");
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("Erreur envoi email alerte : " + ex.Message);
-            }
         }
         
         public async Task<GlobalStats> GetStatsAsync(int topIps = 30, int topCountries = 15)

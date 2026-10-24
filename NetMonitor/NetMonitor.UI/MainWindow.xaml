@@ -1156,7 +1156,7 @@
                         </Border>
                         
                         <!-- Graphiques (Chart.js) -->
-                        <Border CornerRadius="6" ClipToBounds="True" Height="1000"
+                        <Border CornerRadius="6" ClipToBounds="True" Height="900"
                                 BorderBrush="#3c3c3c" BorderThickness="1" Margin="0,0,0,20">
                             <wv2:WebView2 x:Name="ChartsWebView" />
                         </Border>                        

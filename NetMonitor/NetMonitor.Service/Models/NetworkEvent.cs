@@ -10,7 +10,9 @@ public sealed class NetworkEvent
     
     public int SourcePort { get; set; }
     public int DestPort { get; set; }
-    
+
+    public bool IsOutbound { get; set; }   // true = trafic sortant, false = entrant
+
     public string? SourceMac { get; set; } // Pour ARP Spoofing
     public byte TcpFlags { get; set; }     // Pour SYN Flood
     public byte IcmpType { get; set; }     // Pour ICMP Flood
