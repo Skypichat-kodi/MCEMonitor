@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <title>{{tr:Surveillance réseau de :}}{{MachineName}}</title>
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
-<meta http-equiv="refresh" content="15">
 <style>
     html {
         background-color: #1e1e1e;
@@ -486,6 +485,7 @@
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:PID}}</th>
                 <th>{{tr:Processus}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Chemin}}</th>
                 <th>{{tr:Raison}}</th>
                 <th>{{tr:IP distante}}</th>
@@ -621,15 +621,19 @@ function rowClick(tr, radioName) {
 
 // Restauration de la sélection à travers les refreshs (meta refresh 15s)
 (function restoreSelection() {
-    ['active-sel', 'blocked-sel'].forEach(function (name) {
+    ['active-sel', 'pending-sel', 'blocked-sel'].forEach(function (name) {
         var saved = sessionStorage.getItem('sel-' + name);
         if (!saved) return;
-        var radio = document.querySelector(
-            'input[name="' + name + '"][value="' + saved.replace(/"/g, '\\"') + '"]');
-        if (radio) {
-            radio.checked = true;
-            var tr = radio.closest('tr');
-            if (tr) tr.classList.add('selected');
+
+        // Recherche par itération : robuste aux \ et " dans les chemins Windows
+        var radios = document.querySelectorAll('input[name="' + name + '"]');
+        for (var i = 0; i < radios.length; i++) {
+            if (radios[i].value === saved) {
+                radios[i].checked = true;
+                var tr = radios[i].closest('tr');
+                if (tr) tr.classList.add('selected');
+                break;
+            }
         }
     });
 })();
@@ -794,6 +798,44 @@ document.getElementById('btnUnblockIp').addEventListener('click', unblockSelecte
         indicator.className = 'more-indicator';
         indicator.appendChild(btn);
         wrapper.parentNode.insertBefore(indicator, wrapper.nextSibling);
+    });
+})();
+</script>
+
+<script>
+// ============================================================
+//  Refresh intelligent — s'adapte à l'activité de l'utilisateur
+// ============================================================
+(function smartRefresh() {
+    var BASE_DELAY  = 20000;   // 20 s : aucune sélection en cours
+    var PAUSE_DELAY = 120000;  // 2 min : une sélection est active
+
+    var timer = null;
+
+    function hasActiveSelection() {
+        return document.querySelector('input[name="active-sel"]:checked')  !== null
+            || document.querySelector('input[name="pending-sel"]:checked') !== null
+            || document.querySelector('input[name="blocked-sel"]:checked') !== null;
+    }
+
+    function schedule() {
+        clearTimeout(timer);
+        if (hasActiveSelection()) return;   // ← pas de reload tant que sélection active
+        timer = setTimeout(function () { location.reload(); }, BASE_DELAY);
+    }
+
+    // Exposé pour les fonctions d'action (blocage, whitelist…)
+    window.__pauseAutoRefresh  = function () { clearTimeout(timer); };
+    window.__resumeAutoRefresh = schedule;
+
+    // Démarrer
+    schedule();
+
+    // Replanifier à chaque clic de ligne (délai pour que radio.checked soit posé)
+    document.querySelectorAll('tr.selectable').forEach(function (tr) {
+        tr.addEventListener('click', function () {
+            setTimeout(schedule, 0);
+        });
     });
 })();
 </script>

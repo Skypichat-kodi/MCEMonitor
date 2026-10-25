@@ -5,7 +5,7 @@
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
         Title="NetMonitor"
         Height="850"
-        Width="1300"
+        Width="1500"
         MinHeight="550"
         MinWidth="900">
 
@@ -603,14 +603,50 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="VerticalAlignment" Value="Center"/>
-                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding ProcessPathDisplay}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           ToolTip="{Binding ProcessPath}"
+                                                           Cursor="Hand"
+                                                           Tag="{Binding ProcessPath}"
+                                                           MouseLeftButtonUp="OpenFileLocation_TextClick"/>
+                                                <Button Grid.Column="1"
+                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand"
+                                                        Focusable="False"
+                                                        ToolTip="Ouvrir l'emplacement du fichier"
+                                                        Tag="{Binding ProcessPath}"
+                                                        Click="OpenFileLocation_Click">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <TextBlock Text="..." FontWeight="Bold" Foreground="#4CC2FF"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -817,14 +853,50 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="VerticalAlignment" Value="Center"/>
-                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding ProcessPathDisplay}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           ToolTip="{Binding ProcessPath}"
+                                                           Cursor="Hand"
+                                                           Tag="{Binding ProcessPath}"
+                                                           MouseLeftButtonUp="OpenFileLocation_TextClick"/>
+                                                <Button Grid.Column="1"
+                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand"
+                                                        Focusable="False"
+                                                        ToolTip="Ouvrir l'emplacement du fichier"
+                                                        Tag="{Binding ProcessPath}"
+                                                        Click="OpenFileLocation_Click">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <TextBlock Text="..." FontWeight="Bold" Foreground="#4CC2FF"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -949,14 +1021,50 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="Chemin" Binding="{Binding ProcessPathDisplay}" Width="*" MinWidth="250">
-                                    <DataGridTextColumn.ElementStyle>
-                                        <Style TargetType="TextBlock">
-                                            <Setter Property="VerticalAlignment" Value="Center"/>
-                                            <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
-                                        </Style>
-                                    </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+                                                <TextBlock Grid.Column="0"
+                                                           Text="{Binding ProcessPathDisplay}"
+                                                           VerticalAlignment="Center"
+                                                           TextTrimming="CharacterEllipsis"
+                                                           ToolTip="{Binding ProcessPath}"
+                                                           Cursor="Hand"
+                                                           Tag="{Binding ProcessPath}"
+                                                           MouseLeftButtonUp="OpenFileLocation_TextClick"/>
+                                                <Button Grid.Column="1"
+                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand"
+                                                        Focusable="False"
+                                                        ToolTip="Ouvrir l'emplacement du fichier"
+                                                        Tag="{Binding ProcessPath}"
+                                                        Click="OpenFileLocation_Click">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                            <Setter Property="Background" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="0"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="{x:Null}">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding ProcessPath}" Value="">
+                                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <TextBlock Text="..." FontWeight="Bold" Foreground="#4CC2FF"
+                                                               VerticalAlignment="Center" HorizontalAlignment="Center"/>
+                                                </Button>
+                                            </Grid>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">

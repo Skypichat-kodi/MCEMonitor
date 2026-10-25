@@ -143,7 +143,15 @@ namespace NetMonitor.UI
             };
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-            _refreshTimer.Tick += async (_, __) => await RefreshSafe();
+            _refreshTimer.Tick += async (_, __) =>
+            {
+                // Si l'utilisateur a une sélection active, on saute ce tick
+                // (le prochain tick dans 5 s retentera)
+                if (HasActiveSelection())
+                    return;
+
+                await RefreshSafe();
+            };
             _refreshTimer.Start();
 
             _ = RefreshSafe();
@@ -286,30 +294,37 @@ namespace NetMonitor.UI
                 var pending = await NetMonitorIpcClient.GetPendingProcesses();
                 if (pending != null)
                 {
-                    _allPendingProcesses = pending
-                        .OrderByDescending(x => SeverityRank(x.severity))
-                        .ThenByDescending(x => x.count)
-                        .ThenByDescending(x => x.lastSeen)
-                        .Select(p => new PendingProcessRow
+                    // ✅ Utilise le helper générique déjà présent dans ta classe
+                    RefreshPreservingSelection<PendingProcessRow>(
+                        PendingProcessesGrid,
+                        row => row.ProcessPath,               // clé unique : chemin complet
+                        () =>
                         {
-                            ProcessPath = p.processPath,
-                            ProcessName = p.processName,
-                            TrustReason = p.trustReason,
-                            RemoteIp    = p.remoteIp,
-                            RemotePort  = p.remotePort,
-                            Pid         = p.pid,
-                            FirstSeen   = p.firstSeen,
-                            LastSeen    = p.lastSeen,
-                            Count       = p.count,
-                            Severity    = p.severity,
-                            Detector    = p.detector
-                        })
-                        .ToList();
+                            _allPendingProcesses = pending
+                                .OrderByDescending(x => SeverityRank(x.severity))
+                                .ThenByDescending(x => x.count)
+                                .ThenByDescending(x => x.lastSeen)
+                                .Select(p => new PendingProcessRow
+                                {
+                                    ProcessPath = p.processPath,
+                                    ProcessName = p.processName,
+                                    TrustReason = p.trustReason,
+                                    RemoteIp    = p.remoteIp,
+                                    RemotePort  = p.remotePort,
+                                    Pid         = p.pid,
+                                    FirstSeen   = p.firstSeen,
+                                    LastSeen    = p.lastSeen,
+                                    Count       = p.count,
+                                    Severity    = p.severity,
+                                    Detector    = p.detector
+                                })
+                                .ToList();
 
-                    ApplyDisplayLimit(_pendingProcesses, _allPendingProcesses, _showAllPending);
-                    UpdateMoreIndicator(panelPendingMore, txtPendingMoreLabel, _allPendingProcesses.Count, _showAllPending);
-                    if (!_showAllPending)
-                        PendingProcessesGrid.Height = CalculateDataGridHeight(_pendingProcesses.Count);
+                            ApplyDisplayLimit(_pendingProcesses, _allPendingProcesses, _showAllPending);
+                            UpdateMoreIndicator(panelPendingMore, txtPendingMoreLabel, _allPendingProcesses.Count, _showAllPending);
+                            if (!_showAllPending)
+                                PendingProcessesGrid.Height = CalculateDataGridHeight(_pendingProcesses.Count);
+                        });
                 }
 
                 // ---- Tableau 2 : IP bloquées ----
@@ -1568,6 +1583,110 @@ namespace NetMonitor.UI
 
             return headerHeight + (visibleRows * rowHeight) + scrollbarH + border + margin;
         }
+                
+        private void OpenFileLocation_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn)
+                OpenFileLocation(btn.Tag as string);
+        }
+
+        private void OpenFileLocation_TextClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is TextBlock tb)
+            {
+                // Évite que le DataGrid ne consomme le clic pour la sélection de ligne
+                e.Handled = true;
+                OpenFileLocation(tb.Tag as string);
+            }
+        }
+
+        private void OpenFileLocation(string? path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return;
+
+            try
+            {
+                // Cas 1 : le fichier existe → le sélectionner dans l'explorateur
+                if (File.Exists(path))
+                {
+                    Process.Start("explorer.exe", $"/select,\"{path}\"");
+                    return;
+                }
+
+                // Cas 2 : c'est un dossier → l'ouvrir
+                if (Directory.Exists(path))
+                {
+                    Process.Start("explorer.exe", path);
+                    return;
+                }
+
+                // Cas 3 : le fichier n'existe plus → ouvrir le dossier parent s'il existe
+                string? dir = Path.GetDirectoryName(path);
+                if (!string.IsNullOrEmpty(dir) && Directory.Exists(dir))
+                {
+                    Process.Start("explorer.exe", dir);
+                    return;
+                }
+
+                // Cas 4 : rien n'existe → avertir
+                MessageBox.Show(
+                    $"L'emplacement n'existe pas :\n{path}",
+                    "Chemin introuvable",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(
+                    $"Impossible d'ouvrir l'emplacement :\n{ex.Message}",
+                    "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
+        }
+        
+        private bool HasActiveSelection()
+        {
+            return ActiveIntrusionsGrid.SelectedItem != null
+                || PendingProcessesGrid.SelectedItem  != null
+                || BlockedIpsGrid.SelectedItem        != null;
+        }
+
+        /// <summary>
+        /// Exécute une action de refresh en préservant la ligne sélectionnée,
+        /// identifiée par une clé métier (ex. IP, chemin de fichier…).
+        /// </summary>
+        private static void RefreshPreservingSelection<T>(
+            DataGrid grid,
+            Func<T, string?> keySelector,
+            Action refreshAction)
+        {
+            // 1. Mémoriser la clé de la ligne sélectionnée
+            string? savedKey = null;
+            if (grid.SelectedItem is T selected)
+                savedKey = keySelector(selected);
+
+            // 2. Rafraîchir
+            refreshAction();
+
+            // 3. Restaurer si possible
+            if (string.IsNullOrEmpty(savedKey))
+                return;
+
+            if (grid.ItemsSource is null)
+                return;
+
+            foreach (var item in grid.Items)
+            {
+                if (item is T candidate && keySelector(candidate) == savedKey)
+                {
+                    grid.SelectedItem = candidate;
+                    grid.ScrollIntoView(candidate);
+                    break;
+                }
+            }
+        }                                
     }
 
     // ============================================================

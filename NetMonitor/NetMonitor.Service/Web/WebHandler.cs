@@ -130,6 +130,7 @@ namespace NetMonitor.Service.Web
                             <td>{WebUtility.HtmlEncode(p.Detector ?? "-")}</td>
                             <td>{p.Pid}</td>
                             <td>{WebUtility.HtmlEncode(p.ProcessName)}</td>
+                            <td class='info-cell'>{BuildProcessInfoLink(p.ProcessName)}</td>
                             <td title='{pathEnc}'>{WebUtility.HtmlEncode(Truncate(p.ProcessPath, 60))}</td>
                             <td title='{WebUtility.HtmlEncode(p.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(p.TrustReason, 40))}</td>
                             <td>{WebUtility.HtmlEncode(remote)}</td>
@@ -139,7 +140,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    pendingRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
+                    pendingRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
                 }
 
                 // --- Tableau 2 : IP Bloquées ---
@@ -288,6 +289,24 @@ namespace NetMonitor.Service.Web
 
             return $"<a href='{urlEnc}' target='_blank' rel='noopener noreferrer' " +
                    $"class='ip-info' title='Voir les informations sur cette IP (AbuseIPDB)'>i</a>";
+        }
+
+        /// <summary>
+        /// Retourne le badge "i" cliquable qui ouvre la recherche du processus.
+        /// L'URL par défaut est Google ; si tu as une propriété settings.ProcessLookupUrl,
+        /// remplace la valeur par défaut ci-dessous.
+        /// </summary>
+        private static string BuildProcessInfoLink(
+            string? processName,
+            string lookupUrlTemplate = "https://www.google.com/search?q={name}")
+        {
+            if (string.IsNullOrWhiteSpace(processName)) return "";
+
+            string url = lookupUrlTemplate.Replace("{name}", Uri.EscapeDataString(processName));
+            string urlEnc = WebUtility.HtmlEncode(url);
+
+            return $"<a href='{urlEnc}' target='_blank' rel='noopener noreferrer' " +
+                   $"class='ip-info' title='Rechercher ce processus sur le web'>i</a>";
         }
 
         // ============================================================
