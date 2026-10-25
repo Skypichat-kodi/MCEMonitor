@@ -570,8 +570,16 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public void ReloadConfig()
         {
+            bool oldAutoBlock = _settings.AutoBlock;
+
             _settings.Reload();
             _processTrust?.Reload();
+
+            if (oldAutoBlock != _settings.AutoBlock)
+            {
+                CoreLog.Info($"[CONFIG] Changement de mode AutoBlock : {oldAutoBlock} -> {_settings.AutoBlock}");
+                _emailScheduler?.OnModeChanged(oldAutoBlock, _settings.AutoBlock);
+            }
         }
 
         public void ForceScan()
