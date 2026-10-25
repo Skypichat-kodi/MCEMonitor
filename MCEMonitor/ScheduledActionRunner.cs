@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 namespace MCEMonitor
 {
     /// <summary>
-    /// Exécuté par la tâche planifiée Windows "MCEMonitor_Shutdown".
-    /// Envoie le mail, puis déclenche l'arrêt ou la veille.
+    /// ExÃ©cutÃ© par la tÃ¢che planifiÃ©e Windows "MCEMonitor_Shutdown".
+    /// Envoie le mail, puis dÃ©clenche l'arrÃªt ou la veille.
     /// </summary>
     public static class ScheduledActionRunner
     {
@@ -15,7 +15,7 @@ namespace MCEMonitor
         {
             bool isSleep = mode.Equals("sleep", StringComparison.OrdinalIgnoreCase);
 
-            // -------- Lecture de l'heure réelle dans Shutdown.config --------
+            // -------- Lecture de l'heure rÃ©elle dans Shutdown.config --------
             int hour = -1, minute = -1;
             try
             {
@@ -43,24 +43,43 @@ namespace MCEMonitor
             {
                 var cfg = EmailConfig.Load();
 
-                string actionLabel = isSleep ? "veille" : "arrêt";
-                string actionVerb  = isSleep ? "Une veille" : "Un arrêt";
+                string subject;
+                string body;
 
-                string subject = isSleep
-                    ? "MCEMonitor – Mise en veille programmée par MCEMonitor"
-                    : "MCEMonitor – Arrêt programmé par MCEMonitor";
+                if (isSleep)
+                {
+                    // ============================================================
+                    //  MAIL â€” MISE EN VEILLE
+                    // ============================================================
+                    subject = "MCEMonitor â€“ Mise en veille programmÃ©e";
 
-                string body =
-                    $"<b>{actionVerb} est programmé{(isSleep ? "e" : "")} à : {heureProg}</b><br><br>" +
-                    (isSleep
-                        ? "Un autre email vous sera envoyé par <b>WakeMonitor</b> au moment de la mise en veille."
-                        : "Un autre email vous sera envoyé par <b>StopMonitor</b> au moment de l'arrêt.") +
-                    "<br><br>" +
-                    $"<b>Machine :</b> {Environment.MachineName}<br>" +
-                    $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
-                    $"<b>OS :</b> {Environment.OSVersion}<br>";
+                    body =
+                        $"<b>Une mise en veille est programmÃ©e Ã  : {heureProg}</b><br><br>" +
+                        "MCEMonitor est configurÃ© pour mettre votre machine en veille dans 5 minutes.<br>" +
+                        "Si vous utilisez WOL pour la rÃ©veiller, un mail de rÃ©veil vous sera envoyÃ© par <b>WakeMonitor</b> au rÃ©veil de la machine." +
+                        "<br><br>" +
+                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                        $"<b>OS :</b> {Environment.OSVersion}<br>";
+                }
+                else
+                {
+                    // ============================================================
+                    //  MAIL â€” ARRÃŠT
+                    // ============================================================
+                    subject = "MCEMonitor â€“ ArrÃªt programmÃ©";
 
-                // Envoi synchrone pour être sûr que le mail part avant la coupure
+                    body =
+                        $"<b>Un arrÃªt est programmÃ© Ã  : {heureProg}</b><br><br>" +
+                        "MCEMonitor est configurÃ© pour arrÃªter votre machine dans 5 minutes.<br>" +
+                        "Un email confirmant son arrÃªt va vous Ãªtre envoyÃ© par <b>StopMonitor</b>." +
+                        "<br><br>" +
+                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                        $"<b>OS :</b> {Environment.OSVersion}<br>";
+                }
+
+                // Envoi synchrone pour Ãªtre sÃ»r que le mail part avant la coupure
                 EmailSender.SendAsync(cfg, subject, body, isHtml: true)
                            .GetAwaiter()
                            .GetResult();
@@ -70,14 +89,14 @@ namespace MCEMonitor
                 LogError("Envoi mail annonce", ex);
             }
 
-            // -------- Attente jusqu'à l'heure réelle --------
+            // -------- Attente jusqu'Ã  l'heure rÃ©elle --------
             try
             {
                 System.Threading.Thread.Sleep(TimeSpan.FromMinutes(5));
             }
             catch { /* ignore */ }
 
-            // -------- Action système --------
+            // -------- Action systÃ¨me --------
             try
             {
                 ProcessStartInfo psi = isSleep
@@ -100,7 +119,7 @@ namespace MCEMonitor
             }
             catch (Exception ex)
             {
-                LogError("Action système", ex);
+                LogError("Action systÃ¨me", ex);
             }
         }
 

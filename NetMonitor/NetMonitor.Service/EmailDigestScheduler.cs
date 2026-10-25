@@ -214,7 +214,10 @@ namespace NetMonitor.Service
                     batch.Add(evt);
 
                 if (batch.Count == 0)
+                {
+                    CoreLog.Info($"[EMAIL-DIGEST] Flush({reason}) : aucun mail envoyé - file vide");
                     return;
+                }
 
                 var cfg = EmailConfig.Load();
                 if (string.IsNullOrEmpty(cfg.Server))
