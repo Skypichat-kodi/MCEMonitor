@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
@@ -35,10 +35,10 @@ namespace NetMonitor.Service
         // Tableau 3 : historique (toutes les alertes)
         private readonly List<IntrusionEvent> _alerts = new();
 
-        // Tableau 1 : intrusions actives (non bloquÈes)
+        // Tableau 1 : intrusions actives (non bloqu√©es)
         private readonly List<IntrusionEvent> _activeIntrusions = new();
 
-        // Tableau 2 : IP bloquÈes
+        // Tableau 2 : IP bloqu√©es
         private readonly List<BlockedIpInfo> _blockedIps = new();
 
         private readonly object _alertsLock = new();
@@ -46,7 +46,7 @@ namespace NetMonitor.Service
         private System.Threading.Timer? _evictTimer;
         private System.Threading.Timer? _autoBlockCleanupTimer;
 
-        // IPs auto-bloquÈes ‡ retirer des actives aprËs expiration
+        // IPs auto-bloqu√©es √† retirer des actives apr√®s expiration
         private readonly ConcurrentDictionary<string, DateTime> _autoBlockedTempIps = new();
 
         private const int AutoBlockVisibilitySeconds = 60;   // ? Ajustable
@@ -62,8 +62,12 @@ namespace NetMonitor.Service
         private static readonly string HistoryFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "alert_history.json"); 
-                    
-        // Journal d'audit pour les alertes ignorÈes (whitelist)
+
+        // Dernier blocage r√©ussi (expos√© via /api/summary et les pushs)
+        public LastBlockInfo? LastBlock { get; private set; }
+        private readonly object _lastBlockLock = new();
+                            
+        // Journal d'audit pour les alertes ignor√©es (whitelist)
         private readonly List<IntrusionEvent> _auditHistory = new();
 
         private static readonly string AuditFile = Path.Combine(
@@ -74,7 +78,7 @@ namespace NetMonitor.Service
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
 
         // ------------------------------------------------------------
-        //  SÈvÈritÈ (basÈe sur les intrusions ACTIVES uniquement)
+        //  S√©v√©rit√© (bas√©e sur les intrusions ACTIVES uniquement)
         // ------------------------------------------------------------
         public string WorstSeverity
         {
@@ -90,7 +94,7 @@ namespace NetMonitor.Service
         }
 
         // ------------------------------------------------------------
-        //  ProblËmes actifs (pour le Tray : tableau 1 seulement)
+        //  Probl√®mes actifs (pour le Tray : tableau 1 seulement)
         // ------------------------------------------------------------
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
@@ -133,7 +137,7 @@ namespace NetMonitor.Service
             {
                 _processTrust = new ProcessTrustService();
                 _context.ProcessTrust = _processTrust;
-                CoreLog.Info("ProcessTrust : activÈ");
+                CoreLog.Info("ProcessTrust : activ√©");
             }            
 
             _etw = new EtwConnectionWatcher();
@@ -150,13 +154,13 @@ namespace NetMonitor.Service
             if (_processTrust != null)
                 _connDetectors.Add(new UntrustedProcessDetector(_processTrust));
 
-            // Liste des dÈtecteurs basÈs sur les paquets bruts (WinDivert)
+            // Liste des d√©tecteurs bas√©s sur les paquets bruts (WinDivert)
             _pktDetectors = new List<IDetector>
             {
                 new SynFloodDetector(),
                 new IcmpFloodDetector(),
                 new DnsSpoofDetector(),
-                new BlacklistIpDetector(_threatIntel),      // NOUVEAU (Ècoute aussi les paquets bruts)
+                new BlacklistIpDetector(_threatIntel),      // NOUVEAU (√©coute aussi les paquets bruts)
             };
         }
 
@@ -182,14 +186,14 @@ namespace NetMonitor.Service
 
             _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
             
-            // Timer de nettoyage des IPs auto-bloquÈes (toutes les 10 s)
+            // Timer de nettoyage des IPs auto-bloqu√©es (toutes les 10 s)
             _autoBlockCleanupTimer = new System.Threading.Timer(
                 _ => CleanupAutoBlockedIps(),
                 null,
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(10));            
 
-            CoreLog.Write("NetMonitorEngine dÈmarrÈ (surveillance ETW + WinDivert).");
+            CoreLog.Write("NetMonitorEngine d√©marr√© (surveillance ETW + WinDivert).");
         }
 
         private void CleanupAutoBlockedIps()
@@ -211,7 +215,7 @@ namespace NetMonitor.Service
                     _autoBlockedTempIps.TryRemove(ip, out _);
 
                     if (removed > 0)
-                        CoreLog.Debug($"[AUTO-BLOCK] IP {ip} retirÈe des actives aprËs {AutoBlockVisibilitySeconds}s ({removed} entrÈe(s))");
+                        CoreLog.Debug($"[AUTO-BLOCK] IP {ip} retir√©e des actives apr√®s {AutoBlockVisibilitySeconds}s ({removed} entr√©e(s))");
                 }
             }
         }
@@ -238,7 +242,7 @@ namespace NetMonitor.Service
             _evictTimer = null;
             
             _etw.Stop();
-            CoreLog.Write("NetMonitorEngine arrÍtÈ.");
+            CoreLog.Write("NetMonitorEngine arr√™t√©.");
         }
 
         // ------------------------------------------------------------
@@ -257,12 +261,12 @@ namespace NetMonitor.Service
                     CoreLog.Debug($"[PKT] {evt.Protocol} {evt.SourceIp}:{evt.SourcePort} -> {evt.DestIp}:{evt.DestPort} (len={evt.Length})");
                 }
 
-                // Appel des dÈtecteurs de paquets
+                // Appel des d√©tecteurs de paquets
                 foreach (var det in _pktDetectors)
                 {
                     DetectorResult? result = null;
                     try { result = det.Inspect(evt, _context); }
-                    catch (Exception ex) { CoreLog.Write($"DÈtecteur Paquet {det.Name} : {ex.Message}"); }
+                    catch (Exception ex) { CoreLog.Write($"D√©tecteur Paquet {det.Name} : {ex.Message}"); }
 
                     if (result is { IsThreat: true })
                         RaiseIntrusionPacket(det.Name, result, evt);
@@ -271,7 +275,7 @@ namespace NetMonitor.Service
         }
 
         // ------------------------------------------------------------
-        //  Connexions rÈcentes
+        //  Connexions r√©centes
         // ------------------------------------------------------------
         public IReadOnlyList<ConnectionInfo> GetRecentConnections(int max = 300)
             => _recentConnections.Reverse().Take(max).ToList();
@@ -288,7 +292,7 @@ namespace NetMonitor.Service
         {
             lock (_alertsLock) _alerts.Clear();
             SaveHistory();
-            CoreLog.Info("Historique des intrusions vidÈ");
+            CoreLog.Info("Historique des intrusions vid√©");
         }
 
         // ------------------------------------------------------------
@@ -302,11 +306,11 @@ namespace NetMonitor.Service
         public void ClearActiveIntrusions()
         {
             lock (_alertsLock) _activeIntrusions.Clear();
-            CoreLog.Info("Intrusions actives vidÈes");
+            CoreLog.Info("Intrusions actives vid√©es");
         }
 
         // ------------------------------------------------------------
-        //  Tableau 2 : IP bloquÈes
+        //  Tableau 2 : IP bloqu√©es
         // ------------------------------------------------------------
         public List<BlockedIpInfo> GetBlockedIps()
         {
@@ -315,9 +319,10 @@ namespace NetMonitor.Service
 
         public bool BlockIp(string ip, out string errorMessage,
                             string? source = null, string? message = null,
-                            string? details = null, string? severity = null)
+                            string? details = null, string? severity = null,
+                            bool isAutomatic = false)
         {
-            errorMessage = "";
+                    errorMessage = "";
 
             if (string.IsNullOrWhiteSpace(ip))
             {
@@ -327,8 +332,8 @@ namespace NetMonitor.Service
 
             if (FirewallHelper.IsCriticalIp(ip))
             {
-                errorMessage = $"L'adresse {ip} fait partie d'une plage critique et ne peut pas Ítre bloquÈe.";
-                CoreLog.Warn($"Blocage refusÈ : {ip} (IP critique)");
+                errorMessage = $"L'adresse {ip} fait partie d'une plage critique et ne peut pas √™tre bloqu√©e.";
+                CoreLog.Warn($"Blocage refus√© : {ip} (IP critique)");
                 return false;
             }
 
@@ -353,23 +358,34 @@ namespace NetMonitor.Service
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
             }
 
-            // Si dÈj‡ bloquÈe : rien de plus ‡ faire
+            // Si d√©j√† bloqu√©e : rien de plus √† faire
             if (alreadyBlocked)
                 return true;
 
-            // Resynchronisation complËte des rËgles (recalcul de tous les blocs)
+            // Resynchronisation compl√®te des r√®gles (recalcul de tous les blocs)
             var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
             bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
 
             if (!syncOk)
             {
-                errorMessage = "Erreur lors de la synchronisation des rËgles pare-feu (netsh).";
+                errorMessage = "Erreur lors de la synchronisation des r√®gles pare-feu (netsh).";
                 return false;
             }
 
             _context.ForgetIp(ip);
             SaveBlockedIps();
-            CoreLog.Info($"IP {ip} bloquÈe et retirÈe des intrusions actives");
+            CoreLog.Info($"IP {ip} bloqu√©e et retir√©e des intrusions actives");
+            
+            lock (_lastBlockLock)
+            {
+                LastBlock = new LastBlockInfo
+                {
+                    Ip = ip,
+                    Detector = source,
+                    Timestamp = DateTime.UtcNow,
+                    Automatic = isAutomatic
+                };
+            }            
             return true;
         }
         
@@ -380,7 +396,7 @@ namespace NetMonitor.Service
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
 
-            // ? NOUVEAU : arrÍte le maintien en actives (si auto-bloquÈe rÈcemment)
+            // ? NOUVEAU : arr√™te le maintien en actives (si auto-bloqu√©e r√©cemment)
             _autoBlockedTempIps.TryRemove(ip, out _);
 
             bool removed = false;
@@ -395,12 +411,12 @@ namespace NetMonitor.Service
             bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
 
             SaveBlockedIps();
-            CoreLog.Info($"IP {ip} dÈbloquÈe (sync pare-feu: {(syncOk ? "OK" : "…CHEC")})");
+            CoreLog.Info($"IP {ip} d√©bloqu√©e (sync pare-feu: {(syncOk ? "OK" : "√âCHEC")})");
             return syncOk;
         }
 
         // ------------------------------------------------------------
-        //  Persistance de l'historique (ProblËme 1)
+        //  Persistance de l'historique (Probl√®me 1)
         // ------------------------------------------------------------
         public void LoadHistory()
         {
@@ -419,8 +435,8 @@ namespace NetMonitor.Service
                 _activeIntrusions.Clear();
                 _activeIntrusions.AddRange(list.Where(a => (DateTime.UtcNow - a.Timestamp).TotalHours < 24));
 
-                // ? NOUVEAU : retire des actives les IPs dÈj‡ bloquÈes
-                // (Èvite le doublon visuel aprËs un redÈmarrage rapide)
+                // ? NOUVEAU : retire des actives les IPs d√©j√† bloqu√©es
+                // (√©vite le doublon visuel apr√®s un red√©marrage rapide)
                 var blockedIps = new HashSet<string>(
                     _blockedIps.Select(b => b.Ip),
                     StringComparer.OrdinalIgnoreCase);
@@ -431,16 +447,16 @@ namespace NetMonitor.Service
                         !string.IsNullOrWhiteSpace(a.RemoteIp) && blockedIps.Contains(a.RemoteIp));
 
                     if (removed > 0)
-                        CoreLog.Info($"LoadHistory : {removed} alerte(s) retirÈe(s) des actives (IP dÈj‡ bloquÈe)");
+                        CoreLog.Info($"LoadHistory : {removed} alerte(s) retir√©e(s) des actives (IP d√©j√† bloqu√©e)");
                 }
 
                 // ? NOUVEAU : migration des blocked_ips sans severity
-                // (rÈcupËre la sÈvÈritÈ depuis l'historique des alertes)
+                // (r√©cup√®re la s√©v√©rit√© depuis l'historique des alertes)
                 int migrated = 0;
                 foreach (var b in _blockedIps)
                 {
                     if (!string.IsNullOrWhiteSpace(b.Severity) && b.Severity != "-")
-                        continue;   // dÈj‡ renseignÈe
+                        continue;   // d√©j√† renseign√©e
 
                     var original = _alerts.FirstOrDefault(a =>
                         string.Equals(a.RemoteIp, b.Ip, StringComparison.OrdinalIgnoreCase));
@@ -454,16 +470,16 @@ namespace NetMonitor.Service
 
                 if (migrated > 0)
                 {
-                    CoreLog.Info($"LoadHistory : {migrated} IP(s) bloquÈe(s) enrichie(s) avec la sÈvÈritÈ de l'historique");
+                    CoreLog.Info($"LoadHistory : {migrated} IP(s) bloqu√©e(s) enrichie(s) avec la s√©v√©rit√© de l'historique");
                 }
             }
 
-            // ? SaveBlockedIps est appelÈ HORS du lock (il prend son propre lock en interne)
+            // ? SaveBlockedIps est appel√© HORS du lock (il prend son propre lock en interne)
             SaveBlockedIps();
 
-            CoreLog.Info($"Historique restaurÈ : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
+            CoreLog.Info($"Historique restaur√© : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
 
-            // PrÈ-charger les scanners lÈgitimes connus (popule le cache en arriËre-plan)
+            // Pr√©-charger les scanners l√©gitimes connus (popule le cache en arri√®re-plan)
             if (_trustedScanners != null)
             {
                 var distinctIps = _alerts
@@ -508,7 +524,7 @@ namespace NetMonitor.Service
         }
 
         // ------------------------------------------------------------
-        //  Persistance des IP bloquÈes
+        //  Persistance des IP bloqu√©es
         // ------------------------------------------------------------
         public void LoadBlockedIps()
         {
@@ -521,7 +537,7 @@ namespace NetMonitor.Service
 
                 if (list == null || list.Count == 0)
                 {
-                    // Fichier vide : s'assure qu'il n'y a pas de rËgles orphelines
+                    // Fichier vide : s'assure qu'il n'y a pas de r√®gles orphelines
                     FirewallHelper.SyncFirewallRules(Enumerable.Empty<string>());
                     return;
                 }
@@ -532,12 +548,12 @@ namespace NetMonitor.Service
                     _blockedIps.AddRange(list);
                 }
 
-                CoreLog.Info($"Chargement {list.Count} IP bloquÈes depuis le fichier");
+                CoreLog.Info($"Chargement {list.Count} IP bloqu√©es depuis le fichier");
 
-                // Reconstruit TOUTES les rËgles d'un coup (migration des anciennes rËgles
-                // individuelles vers les blocs groupÈs incluse)
+                // Reconstruit TOUTES les r√®gles d'un coup (migration des anciennes r√®gles
+                // individuelles vers les blocs group√©s incluse)
                 bool syncOk = FirewallHelper.SyncFirewallRules(list.Select(b => b.Ip));
-                CoreLog.Info($"Sync pare-feu au dÈmarrage : {(syncOk ? "OK" : "…CHEC")}");
+                CoreLog.Info($"Sync pare-feu au d√©marrage : {(syncOk ? "OK" : "√âCHEC")}");
             }
             catch (Exception ex)
             {
@@ -584,7 +600,7 @@ namespace NetMonitor.Service
 
         public void ForceScan()
         {
-            CoreLog.Write("ForceScan demandÈ (no-op en mode ETW).");
+            CoreLog.Write("ForceScan demand√© (no-op en mode ETW).");
         }
 
         // ------------------------------------------------------------
@@ -604,7 +620,7 @@ namespace NetMonitor.Service
             {
                 DetectorResult? result = null;
                 try { result = det.InspectConnection(ci, _context); }
-                catch (Exception ex) { CoreLog.Write($"DÈtecteur {det.Name} : {ex.Message}"); }
+                catch (Exception ex) { CoreLog.Write($"D√©tecteur {det.Name} : {ex.Message}"); }
 
                 if (result is { IsThreat: true })
                     RaiseIntrusion(det.Name, result, ci);
@@ -613,7 +629,7 @@ namespace NetMonitor.Service
 
         private void RaiseIntrusion(string source, DetectorResult r, ConnectionInfo ci)
         {
-            // Si l'IP est dÈjr bloquÈe, on ignore l'alerte
+            // Si l'IP est d√©j√† bloqu√©e, on ignore l'alerte
             lock (_alertsLock)
             {
                 if (!string.IsNullOrWhiteSpace(ci.RemoteIp) &&
@@ -621,11 +637,11 @@ namespace NetMonitor.Service
                     return;
             }
 
-            // NOUVEAU : les processus non approuvÈs vont dans une liste dÈdiÈe,
-            // SAUF si l'IP distante est whitelistÈe (Microsoft/Google/Cloudflare).
-            // NOTE : on route mÍme si ProcessPath est vide (processus protÈgÈs,
-            // droits insuffisants, PID recyclÈ) ? Èvite qu'ils tombent dans
-            // l'historique avec une sÈvÈritÈ Info inutile.
+            // NOUVEAU : les processus non approuv√©s vont dans une liste d√©di√©e,
+            // SAUF si l'IP distante est whitelist√©e (Microsoft/Google/Cloudflare).
+            // NOTE : on route m√™me si ProcessPath est vide (processus prot√©g√©s,
+            // droits insuffisants, PID recycl√©) ? √©vite qu'ils tombent dans
+            // l'historique avec une s√©v√©rit√© Info inutile.
             if (r.IsPendingProcess)
             {
                 bool isWhitelisted = !string.IsNullOrWhiteSpace(ci.RemoteIp) && FirewallHelper.IsCriticalIp(ci.RemoteIp);
@@ -635,7 +651,7 @@ namespace NetMonitor.Service
                     AddOrUpdatePendingProcess(r, ci);
                     return;
                 }
-                // Sinon : on laisse tomber vers AddIntrusion qui va dÈtecter le
+                // Sinon : on laisse tomber vers AddIntrusion qui va d√©tecter le
                 // whitelist et mettre l'alerte dans _auditHistory.
             }
 
@@ -660,15 +676,15 @@ namespace NetMonitor.Service
 
         private void AddOrUpdatePendingProcess(DetectorResult r, ConnectionInfo ci)
         {
-            // Fallback si le chemin n'a pas pu Ítre rÈsolu (processus protÈgÈ, PID recyclÈÖ)
+            // Fallback si le chemin n'a pas pu √™tre r√©solu (processus prot√©g√©, PID recycl√©‚Ä¶)
             string pathKey = string.IsNullOrWhiteSpace(r.ProcessPath)
                 ? $"[no-path]::{ci.ProcessName ?? "?"}"
                 : r.ProcessPath;
             string displayPath = string.IsNullOrWhiteSpace(r.ProcessPath)
-                ? $"(chemin inaccessible ó PID {ci.Pid})"
+                ? $"(chemin inaccessible ‚Äî PID {ci.Pid})"
                 : r.ProcessPath;
             string reason = string.IsNullOrWhiteSpace(r.ProcessPath)
-                ? "chemin inaccessible (droits insuffisants ou processus protÈgÈ)"
+                ? "chemin inaccessible (droits insuffisants ou processus prot√©g√©)"
                 : (r.TrustReason ?? "");
 
             lock (_pendingLock)
@@ -693,7 +709,7 @@ namespace NetMonitor.Service
                         Detector = "UntrustedProcess"
                     });
 
-                    CoreLog.Info($"[PENDING] Nouveau processus ‡ examiner : {ci.ProcessName} ({displayPath})");
+                    CoreLog.Info($"[PENDING] Nouveau processus √† examiner : {ci.ProcessName} ({displayPath})");
                 }
                 else
                 {
@@ -721,7 +737,7 @@ namespace NetMonitor.Service
             if (string.IsNullOrWhiteSpace(processPath)) return false;
             if (_processTrust == null) return false;
 
-            // Cherche le processus en attente pour rÈcupÈrer son nom
+            // Cherche le processus en attente pour r√©cup√©rer son nom
             PendingProcessInfo? pending;
             lock (_pendingLock)
             {
@@ -754,20 +770,20 @@ namespace NetMonitor.Service
                     Timestamp = DateTime.UtcNow,
                     Source = "UntrustedProcess",
                     Severity = Severity.Info,
-                    Message = $"[WHITELIST MANUELLE] {pending.ProcessName} ajoutÈ ‡ la liste blanche",
+                    Message = $"[WHITELIST MANUELLE] {pending.ProcessName} ajout√© √† la liste blanche",
                     RemoteIp = pending.RemoteIp,
                     RemotePort = pending.RemotePort,
                     Pid = pending.Pid,
                     ProcessName = pending.ProcessName,
                     ProcessPath = pending.ProcessPath,
-                    TrustReason = "AjoutÈ ‡ la liste blanche manuellement",
+                    TrustReason = "Ajout√© √† la liste blanche manuellement",
                     Details = processPath
                 });
                 if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
             }
             SaveAudit();
 
-            CoreLog.Info($"Processus whitelistÈ : {pending.ProcessName} ({processPath})");
+            CoreLog.Info($"Processus whitelist√© : {pending.ProcessName} ({processPath})");
             return true;
         }
 
@@ -801,7 +817,7 @@ namespace NetMonitor.Service
                         IsProcess = true,
                         BlockedAt = DateTime.UtcNow,
                         Source = "UntrustedProcess",
-                        Message = pending.TrustReason ?? "Processus bloquÈ",
+                        Message = pending.TrustReason ?? "Processus bloqu√©",
                         Details = pending.ProcessPath,
                         Severity = pending.Severity.ToString()
                     });
@@ -814,7 +830,7 @@ namespace NetMonitor.Service
                 }
 
                 SaveBlockedIps();
-                CoreLog.Info($"Processus bloquÈ : {pending.ProcessName} ({processPath})");
+                CoreLog.Info($"Processus bloqu√© : {pending.ProcessName} ({processPath})");
             }
 
             return true;
@@ -842,12 +858,12 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         private void RaiseIntrusionPacket(string source, DetectorResult r, NetworkEvent evt)
         {
-            // DÈtermine qui est "remote" et qui est "local" selon le sens du paquet
+            // D√©termine qui est "remote" et qui est "local" selon le sens du paquet
             string remoteIp   = evt.IsOutbound ? evt.DestIp   : evt.SourceIp;
             int    remotePort = evt.IsOutbound ? evt.DestPort : evt.SourcePort;
             int    localPort  = evt.IsOutbound ? evt.SourcePort : evt.DestPort;
 
-            // Si l'IP distante est dÈjr bloquÈe, on ignore
+            // Si l'IP distante est d√©j√† bloqu√©e, on ignore
             lock (_alertsLock)
             {
                 if (!string.IsNullOrWhiteSpace(remoteIp) &&
@@ -873,13 +889,13 @@ namespace NetMonitor.Service
         }
 
         // ------------------------------------------------------------
-        //  MÈthode commune d'ajout d'alerte
+        //  M√©thode commune d'ajout d'alerte
         // ------------------------------------------------------------
         private void AddIntrusion(IntrusionEvent evt)
         {
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
-            // --- 1. DÈtection des scanners de recherche lÈgitimes ---
+            // --- 1. D√©tection des scanners de recherche l√©gitimes ---
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
@@ -887,8 +903,8 @@ namespace NetMonitor.Service
                 if (known == true)
                 {
                     evt.Severity = Severity.Info;
-                    evt.Message = $"[SCANNER-L…GITIME] {evt.Message}";
-                    evt.TrustReason = "Scanner de recherche lÈgitime (reverse DNS)";
+                    evt.Message = $"[SCANNER-L√âGITIME] {evt.Message}";
+                    evt.TrustReason = "Scanner de recherche l√©gitime (reverse DNS)";
 
                     lock (_alertsLock)
                     {
@@ -897,7 +913,7 @@ namespace NetMonitor.Service
                     }
                     SaveAudit();
 
-                    CoreLog.Debug($"[SCANNER] Alerte ignorÈe : {evt.RemoteIp} est un scanner de recherche lÈgitime ({evt.Source})");
+                    CoreLog.Debug($"[SCANNER] Alerte ignor√©e : {evt.RemoteIp} est un scanner de recherche l√©gitime ({evt.Source})");
                     return;
                 }
 
@@ -905,12 +921,12 @@ namespace NetMonitor.Service
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
             }
 
-            // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, rÈseau local) ---
+            // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, r√©seau local) ---
             if (isWhitelisted)
             {
                 evt.Severity = Severity.Info;
                 evt.Message = $"[WHITELIST] {evt.Message}";
-                evt.TrustReason = "IP de confiance (Microsoft / Google / Cloudflare / rÈseau local)";
+                evt.TrustReason = "IP de confiance (Microsoft / Google / Cloudflare / r√©seau local)";
 
                 lock (_alertsLock)
                 {
@@ -922,27 +938,28 @@ namespace NetMonitor.Service
                 if (!string.IsNullOrWhiteSpace(evt.RemoteIp))
                     _geoIp?.ResolveInBackground(evt.RemoteIp);
 
-                CoreLog.Debug($"[FILTR…] Alerte ignorÈe pour IP critique : {evt.RemoteIp} ({evt.Source})");
+                CoreLog.Debug($"[FILTR√â] Alerte ignor√©e pour IP critique : {evt.RemoteIp} ({evt.Source})");
                 return;
             }
 
-            // --- 3. BLOCAGE AUTOMATIQUE (uniquement si activÈ) ---
+            // --- 3. BLOCAGE AUTOMATIQUE (uniquement si activ√©) ---
             if (_settings.AutoBlock
                 && (evt.Severity == Severity.High || evt.Severity == Severity.Critical)
                 && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 if (BlockIp(evt.RemoteIp, out string fwError,
-                            evt.Source, evt.Message, evt.Details, evt.Severity.ToString()))
+                            evt.Source, evt.Message, evt.Details, evt.Severity.ToString(),
+                            isAutomatic: true))
                 {
-                    CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquÈe automatiquement " +
-                                  $"(dÈtecteur: {evt.Source}, sÈvÈritÈ: {evt.Severity})");
+                    CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloqu√©e automatiquement " +
+                                  $"(d√©tecteur: {evt.Source}, s√©v√©rit√©: {evt.Severity})");
 
-                    // Maintien 60s dans les actives pour visibilitÈ Tray
+                    // Maintien 60s dans les actives pour visibilit√© Tray
                     _autoBlockedTempIps[evt.RemoteIp!] = DateTime.UtcNow.AddSeconds(AutoBlockVisibilitySeconds);
                 }
                 else
                 {
-                    CoreLog.Warn($"[AUTO-BLOCK] …chec du blocage de {evt.RemoteIp} : {fwError}");
+                    CoreLog.Warn($"[AUTO-BLOCK] √âchec du blocage de {evt.RemoteIp} : {fwError}");
                 }
             }
 
@@ -969,7 +986,7 @@ namespace NetMonitor.Service
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
             SaveHistory();
 
-            // --- 5. Enqueue email (le scheduler dÈcide quand envoyer) ---
+            // --- 5. Enqueue email (le scheduler d√©cide quand envoyer) ---
             if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
             {
                 _emailScheduler?.Enqueue(evt);
@@ -1019,7 +1036,7 @@ namespace NetMonitor.Service
         {
             lock (_alertsLock) _auditHistory.Clear();
             SaveAudit();
-            CoreLog.Info("Historique d'audit (whitelist) vidÈ");
+            CoreLog.Info("Historique d'audit (whitelist) vid√©");
         }
         
         public async Task<GlobalStats> GetStatsAsync(int topIps = 30, int topCountries = 15)
@@ -1037,4 +1054,12 @@ namespace NetMonitor.Service
         public string Category { get; set; } = "";
         public string Message { get; set; } = "";
     }
+    
+    public sealed class LastBlockInfo
+    {
+        public string Ip { get; set; } = "";
+        public string? Detector { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool Automatic { get; set; }
+    }    
 }

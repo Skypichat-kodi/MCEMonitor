@@ -192,6 +192,24 @@ namespace MCEMonitorClient.Service.Services
                     if (result.Problems.Count > 0) result.FirstProblem = result.Problems[0].Message;
                 }
 
+                if (root.TryGetProperty("lastBlock", out var lastBlockProp) &&
+                    lastBlockProp.ValueKind == JsonValueKind.Object)
+                {
+                    var lb = new LastBlockInfo();
+                    if (lastBlockProp.TryGetProperty("ip", out var ipProp))
+                        lb.Ip = ipProp.GetString() ?? "";
+                    if (lastBlockProp.TryGetProperty("detector", out var detProp))
+                        lb.Detector = detProp.GetString();
+                    if (lastBlockProp.TryGetProperty("timestamp", out var tsProp) &&
+                        tsProp.TryGetDateTime(out DateTime ts))
+                        lb.Timestamp = ts;
+                    if (lastBlockProp.TryGetProperty("automatic", out var autoProp) &&
+                        autoProp.ValueKind == JsonValueKind.True)
+                        lb.Automatic = true;
+
+                    result.LastBlock = lb;
+                }
+                
                 if (root.TryGetProperty("media", out var mediaProp)
                     && mediaProp.ValueKind == JsonValueKind.Array)
                 {

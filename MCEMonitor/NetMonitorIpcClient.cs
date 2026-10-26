@@ -39,7 +39,7 @@ namespace MCEMonitor
     public static class NetMonitorIpcClient
     {
         private const string PIPE_NAME = "MCEMonitor_NetMonitorPipe";
-        private const int GLOBAL_TIMEOUT_MS = 3000;
+        private const int GLOBAL_TIMEOUT_MS = 15000;
 
         private static readonly SemaphoreSlim _ipcLock = new(1, 1);
 

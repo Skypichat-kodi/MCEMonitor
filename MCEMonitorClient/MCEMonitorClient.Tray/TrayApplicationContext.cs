@@ -455,8 +455,22 @@ namespace MCEMonitorClient.Tray
 
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok")
                 {
-                    title = $"{alert.ServerName} - Retour à la normale";
-                    message = "Le serveur est de nouveau joignable";
+                    bool recentBlock = alert.LastBlock != null &&
+                                       (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5;
+
+                    if (recentBlock)
+                    {
+                        title = $"{alert.ServerName} - Menace neutralisée";
+                        string mode = alert.LastBlock!.Automatic ? "automatiquement" : "manuellement";
+                        message = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                        if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
+                            message += $" (détecteur : {alert.LastBlock.Detector})";
+                    }
+                    else
+                    {
+                        title = $"{alert.ServerName} - Retour à la normale";
+                        message = "Le serveur est de nouveau joignable";
+                    }
                 }
                 else if (alert.Status == "offline")
                 {
@@ -817,6 +831,13 @@ namespace MCEMonitorClient.Tray
 
         private static string GetAlertIcon(PushAlert alert)
         {
+            // Cas "menace neutralisée" : status=ok + lastBlock récent (< 5 min)
+            if (alert.Status == "ok" && alert.LastBlock != null &&
+                (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
+            {
+                return "ok.png";
+            }
+
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
                 // 1) Critique disque

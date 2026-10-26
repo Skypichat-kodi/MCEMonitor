@@ -143,10 +143,8 @@ namespace MCEMonitorClient.Tray.Ipc
         public string PreviousStatus { get; set; } = "unknown";
         public int ProblemCount { get; set; }
         public string FirstProblem { get; set; } = "";
-
-        // ? NOUVEAU : liste complète
+        public LastBlockInfo? LastBlock { get; set; }
         public System.Collections.Generic.List<ProblemItem> Problems { get; set; } = new();
-
         public DateTime Timestamp { get; set; }
     }
 
@@ -171,5 +169,13 @@ namespace MCEMonitorClient.Tray.Ipc
         public int Saison { get; set; }
         public int Episode { get; set; }
         public DateTime Timestamp { get; set; }
-    }    
+    }
+    
+    public class LastBlockInfo
+    {
+        public string Ip { get; set; } = "";
+        public string? Detector { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool Automatic { get; set; }
+    }        
 }

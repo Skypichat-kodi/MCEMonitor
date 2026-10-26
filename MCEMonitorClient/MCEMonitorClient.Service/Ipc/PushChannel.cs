@@ -120,8 +120,8 @@ namespace MCEMonitorClient.Service.Ipc
                 previousStatus = previous?.Status ?? "unknown",
                 problemCount = result.ProblemCount,
                 firstProblem = result.FirstProblem,
-                // ? NOUVEAU : liste complète des problèmes
                 problems = result.Problems,
+                lastBlock = result.LastBlock,
                 timestamp = result.Timestamp
             });
         }

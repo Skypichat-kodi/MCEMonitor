@@ -248,6 +248,7 @@ namespace NetMonitor.Service.Web
                         message = a.Message
                     }).ToList();
 
+                    var lastBlock = _engine.LastBlock;
                     var summary = new
                     {
                         service = "NetMonitor",
@@ -256,7 +257,14 @@ namespace NetMonitor.Service.Web
                         worstSeverity = _engine.WorstSeverity,
                         activeCount = activeIntrusions.Count,
                         blockedCount = _engine.GetBlockedIps().Count,
-                        problems = problemsList
+                        problems = problemsList,
+                        lastBlock = lastBlock == null ? null : new
+                        {
+                            ip = lastBlock.Ip,
+                            detector = lastBlock.Detector,
+                            timestamp = lastBlock.Timestamp,
+                            automatic = lastBlock.Automatic
+                        }
                     };
 
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,

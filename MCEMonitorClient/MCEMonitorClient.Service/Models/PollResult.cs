@@ -12,21 +12,15 @@ namespace MCEMonitorClient.Service.Models
         public string ServerName { get; set; } = "";
         public string ServiceType { get; set; } = "";
         public string BaseUrl { get; set; } = "";
-
         public bool Online { get; set; }
         public string Status { get; set; } = "ok";
         public string WorstSeverity { get; set; } = "ok";
-
-        // ? Liste complète des problèmes
         public List<ProblemItem> Problems { get; set; } = new();
-
-        // ? Liste des médias en cours (pour MediaMonitor)
         public List<MediaItem> Media { get; set; } = new();
-
         public int ProblemCount { get; set; }
         public string FirstProblem { get; set; } = "";
-
         public DateTime Timestamp { get; set; } = DateTime.Now;
+        public LastBlockInfo? LastBlock { get; set; }
     }
 
     /// <summary>
@@ -53,4 +47,12 @@ namespace MCEMonitorClient.Service.Models
         /// <summary>Clé unique pour identifier un média (client + titre + saison + épisode).</summary>
         public string Key => $"{Client}|{Type}|{Title}|{Saison}|{Episode}";
     }
+    
+    public class LastBlockInfo
+    {
+        public string Ip { get; set; } = "";
+        public string? Detector { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool Automatic { get; set; }
+    }    
 }
