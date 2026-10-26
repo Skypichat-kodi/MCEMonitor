@@ -9,18 +9,15 @@ namespace MCEMonitorClient.Shared.Models
         public string ServerName { get; set; } = "";
         public string ServiceType { get; set; } = "";
         public string BaseUrl { get; set; } = "";
-
         public bool Online { get; set; }
         public string Status { get; set; } = "ok";
         public string WorstSeverity { get; set; } = "ok";
-
         public List<ProblemItem> Problems { get; set; } = new();
         public List<MediaItem> Media { get; set; } = new();
-
         public int ProblemCount { get; set; }
         public string FirstProblem { get; set; } = "";
-
         public DateTime Timestamp { get; set; } = DateTime.Now;
+        public LastBlockInfo? LastBlock { get; set; }
     }
 
     public class ProblemItem
@@ -40,4 +37,12 @@ namespace MCEMonitorClient.Shared.Models
 
         public string Key => $"{Client}|{Type}|{Title}|{Saison}|{Episode}";
     }
+    
+    public class LastBlockInfo
+    {
+        public string Ip { get; set; } = "";
+        public string? Detector { get; set; }
+        public DateTime Timestamp { get; set; }
+        public bool Automatic { get; set; }
+    }    
 }

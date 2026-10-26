@@ -16,6 +16,7 @@ namespace MCEMonitorClient.Shared.Models
         public string FirstProblem { get; set; } = "";
         public List<ProblemItem> Problems { get; set; } = new();
         public DateTime Timestamp { get; set; }
+        public LastBlockInfo? LastBlock { get; set; }
     }
 
     public class PushMedia

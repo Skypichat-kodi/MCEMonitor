@@ -135,6 +135,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 ProblemCount = current.ProblemCount,
                 FirstProblem = current.FirstProblem,
                 Problems = current.Problems,
+                LastBlock = current.LastBlock,
                 Timestamp = current.Timestamp
             };
 

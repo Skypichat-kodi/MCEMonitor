@@ -164,6 +164,25 @@ namespace MCEMonitorClient.Shared.Services
                         result.Media.Add(item);
                     }
                 }
+                
+                // Last block (blocage d'IP récent remonté par NetMonitor)
+                if (root.TryGetProperty("lastBlock", out var lastBlockProp) &&
+                    lastBlockProp.ValueKind == JsonValueKind.Object)
+                {
+                    var lb = new LastBlockInfo();
+                    if (lastBlockProp.TryGetProperty("ip", out var ipProp))
+                        lb.Ip = ipProp.GetString() ?? "";
+                    if (lastBlockProp.TryGetProperty("detector", out var detProp))
+                        lb.Detector = detProp.GetString();
+                    if (lastBlockProp.TryGetProperty("timestamp", out var tsProp) &&
+                        tsProp.TryGetDateTime(out DateTime ts))
+                        lb.Timestamp = ts;
+                    if (lastBlockProp.TryGetProperty("automatic", out var autoProp) &&
+                        autoProp.ValueKind == JsonValueKind.True)
+                        lb.Automatic = true;
+
+                    result.LastBlock = lb;
+                }                
             }
             catch (Exception ex)
             {

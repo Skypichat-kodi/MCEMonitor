@@ -105,14 +105,23 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 _          => (int)NotificationPriority.Low
             };
 
-            string title = alert.Status switch
+            string title;
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
+                (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
-                "critical" => $"{alert.ServerName} - CRITIQUE",
-                "warning"  => $"{alert.ServerName} - Alerte",
-                "offline"  => $"{alert.ServerName} - Hors ligne",
-                "ok"       => $"{alert.ServerName} - OK",
-                _          => alert.ServerName
-            };
+                title = $"{alert.ServerName} - Menace neutralisée";
+            }
+            else
+            {
+                title = alert.Status switch
+                {
+                    "critical" => $"{alert.ServerName} - CRITIQUE",
+                    "warning"  => $"{alert.ServerName} - Alerte",
+                    "offline"  => $"{alert.ServerName} - Hors ligne",
+                    "ok"       => $"{alert.ServerName} - OK",
+                    _          => alert.ServerName
+                };
+            }
 
             string message = BuildAlertMessage(alert);
 
@@ -186,7 +195,21 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
         private static string BuildAlertMessage(PushAlert alert)
         {
             if (alert.Status == "ok" && alert.PreviousStatus != "ok")
+            {
+                bool recentBlock = alert.LastBlock != null &&
+                                   (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5;
+
+                if (recentBlock)
+                {
+                    string mode = alert.LastBlock!.Automatic ? "automatiquement" : "manuellement";
+                    string msg = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                    if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
+                        msg += $" (détecteur : {alert.LastBlock.Detector})";
+                    return msg;
+                }
+
                 return "Le serveur est de nouveau joignable";
+            }
 
             if (alert.Status == "offline")
                 return "Le serveur ne répond plus";
@@ -234,6 +257,13 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string GetAlertIconName(PushAlert alert)
         {
+            // Cas "menace neutralisée" : status=ok + lastBlock récent (< 5 min)
+            if (alert.Status == "ok" && alert.LastBlock != null &&
+                (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
+            {
+                return "ok";   // ? ok.png dans Resources/Images/
+            }
+
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
                 foreach (var p in alert.Problems)
