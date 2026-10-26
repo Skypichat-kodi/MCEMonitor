@@ -76,6 +76,32 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, path });
                 return;
             }
+
+            if (command.StartsWith("unwhitelist-process ", StringComparison.OrdinalIgnoreCase))
+            {
+                string path = command.Substring("unwhitelist-process ".Length).Trim();
+                bool ok = _engine.RemoveWhitelistEntry(path);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", unwhitelisted = ok, path });
+                return;
+            }
+
+            if (command.StartsWith("toggle-whitelist-entry ", StringComparison.OrdinalIgnoreCase))
+            {
+                string payload = command.Substring("toggle-whitelist-entry ".Length).Trim();
+                int sep = payload.LastIndexOf('|');
+                if (sep <= 0)
+                {
+                    IpcResponse.Error(server, "format invalide");
+                    return;
+                }
+                string path = payload.Substring(0, sep);
+                string enabledStr = payload.Substring(sep + 1).Trim();
+                bool enabled = enabledStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+
+                bool ok = _engine.SetWhitelistEntryEnabled(path, enabled);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", toggled = ok, path, enabled });
+                return;
+            }
                         
             switch (command.ToLowerInvariant())
             {
@@ -96,7 +122,10 @@ namespace NetMonitor.Service.Ipc
                 case "clear-audit":             HandleClearAudit(server); break;
                 case "export-pdf":              HandleExportPdf(server); break;
                 case "get-stats":               HandleGetStats(server); break;
-                case "get-pending-processes":   HandleGetPendingProcesses(server); break;                                                           
+                case "get-pending-processes":   HandleGetPendingProcesses(server); break;
+                case "get-blocked-retries":     HandleGetBlockedIpRetries(server); break;
+                case "clear-blocked-retries":   HandleClearBlockedIpRetries(server); break;
+                case "get-whitelist":           HandleGetWhitelist(server); break;                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -248,6 +277,16 @@ namespace NetMonitor.Service.Ipc
 
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
         }
+
+        private void HandleGetWhitelist(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetWhitelistEntries();
+                IpcResponse.Json(server, list);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
         
         private void HandleGetWebStatus(NamedPipeServerStream server)
         {
@@ -347,6 +386,26 @@ namespace NetMonitor.Service.Ipc
             {
                 var list = _engine.GetBlockedIps();
                 IpcResponse.Json(server, list);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleGetBlockedIpRetries(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetBlockedIpRetries();
+                IpcResponse.Json(server, list);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleClearBlockedIpRetries(NamedPipeServerStream server)
+        {
+            try
+            {
+                _engine.ClearBlockedIpRetries();
+                IpcResponse.Ok(server);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }

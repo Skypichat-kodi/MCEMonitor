@@ -264,7 +264,8 @@ namespace NetMonitor.Service.Web
                             detector = lastBlock.Detector,
                             timestamp = lastBlock.Timestamp,
                             automatic = lastBlock.Automatic
-                        }
+                        },
+                        blockedIpRetries = _engine.GetBlockedIpRetries()
                     };
 
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,

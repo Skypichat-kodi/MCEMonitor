@@ -246,22 +246,51 @@ namespace NetMonitor.Service.Web
                     auditRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
+                // --- Tableau 5 : tentatives sur IP bloquée ---
+                var blockedRetriesRows = new System.Text.StringBuilder();
+                var blockedRetries = engine.GetBlockedIpRetries();
+                if (blockedRetries.Count > 0)
+                {
+                    foreach (var r in blockedRetries.OrderByDescending(x => x.LastRetryAt).Take(100))
+                    {
+                        string ipEnc = WebUtility.HtmlEncode(r.Ip);
+                        string countClass = r.RetryCount >= 10 ? "c10" :
+                                            r.RetryCount >= 5  ? "c5"  :
+                                            r.RetryCount >= 2  ? "c2"  : "c1";
+
+                        blockedRetriesRows.Append($@"<tr>
+                            <td><b>{ipEnc}</b></td>
+                            <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
+                            <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td>{r.LastRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td class='count-cell'><span class='count-badge {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
+                        </tr>");
+                    }
+                }
+                else
+                {
+                    blockedRetriesRows.Append(
+                        "<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>" +
+                        "Aucune tentative détectée sur les IP bloquées</td></tr>");
+                }
+
                 // --- Modèle ---
                 var model = new Dictionary<string, object?>
                 {
-                    ["MachineName"]  = Environment.MachineName,
-                    ["LastUpdate"]   = engine.LastUpdateTime == DateTime.MinValue
-                                        ? "Jamais"
-                                        : engine.LastUpdateTime.ToString("dd/MM/yyyy HH:mm:ss"),
-                    ["ActiveRows"]   = activeRows.ToString(),
-                    ["BlockedRows"]  = blockedRows.ToString(),
-                    ["HistoryRows"]  = historyRows.ToString(),
-                    ["AuditCount"]   = audit.Count,
-                    ["AuditRows"]    = auditRows.ToString(),
-                    ["ActiveCount"]  = active.Count,
-                    ["BlockedCount"] = blocked.Count,
-                    ["PendingRows"]  = pendingRows.ToString(),
-                    ["PendingCount"] = pending.Count                    
+                    ["MachineName"]         = Environment.MachineName,
+                    ["LastUpdate"]          = engine.LastUpdateTime == DateTime.MinValue ? "Jamais" : engine.LastUpdateTime.ToString("dd/MM/yyyy HH:mm:ss"),
+                    ["ActiveRows"]          = activeRows.ToString(),
+                    ["BlockedRows"]         = blockedRows.ToString(),
+                    ["HistoryRows"]         = historyRows.ToString(),
+                    ["AuditCount"]          = audit.Count,
+                    ["AuditRows"]           = auditRows.ToString(),
+                    ["ActiveCount"]         = active.Count,
+                    ["BlockedCount"]        = blocked.Count,
+                    ["PendingRows"]         = pendingRows.ToString(),
+                    ["PendingCount"]        = pending.Count,
+                    ["BlockedRetriesRows"]  = blockedRetriesRows.ToString(),
+                    ["BlockedRetriesCount"] = blockedRetries.Count                                        
                 };
 
                 string html = ViewRenderer.Render("NetPage.html", model);

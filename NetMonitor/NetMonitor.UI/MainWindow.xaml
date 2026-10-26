@@ -17,7 +17,7 @@
         <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
         <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
 
-        <Style TargetType="DataGridColumnHeader">
+        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
             <Setter Property="Background" Value="#2D2D30"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
@@ -26,9 +26,6 @@
             <Setter Property="Padding" Value="6,4"/>
         </Style>
 
-        <!-- ============================================================ -->
-        <!-- LE FIX EST ICI : On force le ContentPresenter à se centrer    -->
-        <!-- ============================================================ -->
         <Style TargetType="DataGridCell">
             <Setter Property="Background" Value="#1E1E1E"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
@@ -36,7 +33,7 @@
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
-            
+
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="DataGridCell">
@@ -44,7 +41,7 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 SnapsToDevicePixels="True">
-                            <ContentPresenter VerticalAlignment="Center" 
+                            <ContentPresenter VerticalAlignment="Center"
                                               HorizontalAlignment="Stretch"
                                               SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
                         </Border>
@@ -148,9 +145,6 @@
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
-        <!-- ============================================================ -->
-        <!--  Badge Sévérité (mêmes couleurs que la page web)             -->
-        <!-- ============================================================ -->
         <DataTemplate x:Key="SeverityBadgeTemplate">
             <Border CornerRadius="8"
                     Padding="7,2"
@@ -209,10 +203,7 @@
             <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
-        
-        <!-- ============================================================ -->
-        <!--  SCROLLBAR STYLÉE (sombre, fine, style VS Code)              -->
-        <!-- ============================================================ -->
+
         <Style x:Key="ScrollBarThumbStyle" TargetType="Thumb">
             <Setter Property="OverridesDefaultStyle" Value="True"/>
             <Setter Property="IsTabStop" Value="False"/>
@@ -262,7 +253,6 @@
             </Setter>
         </Style>
 
-        <!-- Application globale du style de ScrollBar -->
         <Style TargetType="ScrollBar">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Width" Value="12"/>
@@ -299,8 +289,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-        
-        <!-- Style scrollbar horizontale ultra-fine et discrète (pour DataGrid) -->
+
         <Style x:Key="ThinHorizontalScrollBar" TargetType="ScrollBar">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Height" Value="6"/>
@@ -327,7 +316,7 @@
                 </Setter.Value>
             </Setter>
         </Style>
-                        
+
     </Window.Resources>
 
     <Grid>
@@ -337,20 +326,16 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- Fond sombre -->
         <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
 
-        <!-- Overlay background (image) -->
         <Rectangle Grid.RowSpan="3">
             <Rectangle.Fill>
                 <ImageBrush ImageSource="Resources/Images/UI-background.png" Stretch="Fill"/>
             </Rectangle.Fill>
         </Rectangle>
 
-        <!-- Voile sombre pour la lisibilité -->
         <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
 
-        <!-- BARRE TITRE -->
         <Grid Grid.Row="0" Margin="15,12,15,8">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
@@ -376,12 +361,11 @@
             </Button>
         </Grid>
 
-        <!-- TABCONTROL -->
         <TabControl x:Name="MainTabControl" Grid.Row="1"
                     Margin="15,0,15,0" Background="Transparent" BorderThickness="0">
 
             <!-- ====================================================== -->
-            <!--  ONGLET INTRUSIONS (4 tableaux)                        -->
+            <!--  ONGLET INTRUSIONS (3 tableaux)                        -->
             <!-- ====================================================== -->
             <TabItem Header="{loc:Tr 'Intrusions'}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
@@ -412,7 +396,7 @@
                                     <TextBlock Text="Vider la liste" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-                            
+
                             <Button Width="160" Click="OpenLogs_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📂" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
@@ -437,18 +421,15 @@
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click"
-                                                    Tag="{Binding RemoteIp}"
-                                                    Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP"
-                                                    Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                         <Setter Property="Background" Value="Transparent"/>
@@ -468,7 +449,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" Width="70">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
@@ -494,8 +475,8 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" Width="110"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="*" MinWidth="150">
+                                <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" SortMemberPath="RemotePortsDisplay" Width="110"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="*" MinWidth="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -506,7 +487,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
                         <StackPanel x:Name="panelActiveMore" Orientation="Horizontal"
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
@@ -564,11 +544,11 @@
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="140"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="180">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -579,11 +559,8 @@
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupProcess_Click"
-                                                    Tag="{Binding ProcessLookupUrl}"
-                                                    Cursor="Hand"
-                                                    ToolTip="Rechercher ce processus sur le web"
-                                                    Padding="0">
+                                            <Button Click="LookupProcess_Click" Tag="{Binding ProcessLookupUrl}" Cursor="Hand"
+                                                    ToolTip="Rechercher ce processus sur le web" Padding="0">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                         <Setter Property="Background" Value="Transparent"/>
@@ -603,7 +580,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -619,10 +596,8 @@
                                                            Cursor="Hand"
                                                            Tag="{Binding ProcessPath}"
                                                            MouseLeftButtonUp="OpenFileLocation_TextClick"/>
-                                                <Button Grid.Column="1"
-                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                                                        Cursor="Hand"
-                                                        Focusable="False"
+                                                <Button Grid.Column="1" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand" Focusable="False"
                                                         ToolTip="Ouvrir l'emplacement du fichier"
                                                         Tag="{Binding ProcessPath}"
                                                         Click="OpenFileLocation_Click">
@@ -647,7 +622,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -655,8 +630,8 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="IP distante" Binding="{Binding RemoteEndPoint}" Width="160"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" Width="80">
+                                <DataGridTextColumn Header="IP distante" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="160"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
@@ -747,9 +722,9 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}"      Binding="{Binding BlockedAtText}" Width="150"/>
-                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" Width="*" MinWidth="180">
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
+                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="*" MinWidth="180">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -757,9 +732,9 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Raison'}"    Binding="{Binding Message}" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -770,7 +745,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
                         <StackPanel x:Name="panelBlockedMore" Orientation="Horizontal"
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
@@ -783,8 +757,103 @@
                             </Button>
                         </StackPanel>
 
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET INTERCEPTIONS (tentatives sur IP bloquée)      -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Interceptions'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
+                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Tentatives sur IP bloquée'}" FontSize="14"
+                                   FontWeight="SemiBold" Foreground="#4CC2FF"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="txtBlockedRetriesSummary" FontSize="12" Foreground="#999"
+                                   Margin="15,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Width="160" Click="RefreshBlockedRetries_Click" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Actualiser'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Width="200" Click="ClearBlockedRetries_Click">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Vider la liste" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <DataGrid x:Name="BlockedRetriesGrid" Grid.Row="2"
+                              RowHeight="28"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              SelectionMode="Single"
+                              ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr '1ʳᵉ tentative'}" Binding="{Binding FirstRetryAtText}" SortMemberPath="FirstRetryAt" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Dernière tentative'}" Binding="{Binding LastRetryAtText}" SortMemberPath="LastRetryAt" Width="150"/>
+                            <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="100">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="#444"/>
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding CountClass}" Value="c2">
+                                                            <Setter Property="Background" Value="#2a5a8c"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding CountClass}" Value="c5">
+                                                            <Setter Property="Background" Value="#1a7acc"/>
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding CountClass}" Value="c10">
+                                                            <Setter Property="Background" Value="#4CC2FF"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding RetryCount}" Foreground="White"
+                                                       FontWeight="Bold" FontSize="11"
+                                                       HorizontalAlignment="Center"/>
+                                        </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET HISTORIQUE (intrusions + audit whitelist)      -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Historique'}">
+                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                              HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,5,0">
+                    <StackPanel Margin="0,10,0,0">
+
                         <!-- Tableau 3 : historique -->
-                        <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="📜" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#4CC2FF" VerticalAlignment="Center"/>
                             <TextBlock Text="Historique des intrusions" FontSize="14"
@@ -811,18 +880,15 @@
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click"
-                                                    Tag="{Binding RemoteIp}"
-                                                    Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP"
-                                                    Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                         <Setter Property="Background" Value="Transparent"/>
@@ -844,8 +910,8 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="120">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -853,7 +919,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -869,10 +935,8 @@
                                                            Cursor="Hand"
                                                            Tag="{Binding ProcessPath}"
                                                            MouseLeftButtonUp="OpenFileLocation_TextClick"/>
-                                                <Button Grid.Column="1"
-                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                                                        Cursor="Hand"
-                                                        Focusable="False"
+                                                <Button Grid.Column="1" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand" Focusable="False"
                                                         ToolTip="Ouvrir l'emplacement du fichier"
                                                         Tag="{Binding ProcessPath}"
                                                         Click="OpenFileLocation_Click">
@@ -897,7 +961,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -905,7 +969,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="150">
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -916,7 +980,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
                         <StackPanel x:Name="panelHistoryMore" Orientation="Horizontal"
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
@@ -928,7 +991,7 @@
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
                         </StackPanel>
-                        
+
                         <!-- Tableau 4 : Audit Whitelist -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
@@ -979,18 +1042,15 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="140"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}"       Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click"
-                                                    Tag="{Binding RemoteIp}"
-                                                    Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP"
-                                                    Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
+                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                         <Setter Property="Background" Value="Transparent"/>
@@ -1012,8 +1072,8 @@
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" Width="120">
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1021,7 +1081,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="Chemin" Width="*" MinWidth="250">
+                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -1037,10 +1097,8 @@
                                                            Cursor="Hand"
                                                            Tag="{Binding ProcessPath}"
                                                            MouseLeftButtonUp="OpenFileLocation_TextClick"/>
-                                                <Button Grid.Column="1"
-                                                        Width="22" Height="22" Padding="0" Margin="4,0,0,0"
-                                                        Cursor="Hand"
-                                                        Focusable="False"
+                                                <Button Grid.Column="1" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
+                                                        Cursor="Hand" Focusable="False"
                                                         ToolTip="Ouvrir l'emplacement du fichier"
                                                         Tag="{Binding ProcessPath}"
                                                         Click="OpenFileLocation_Click">
@@ -1065,7 +1123,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1073,7 +1131,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" Width="150">
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1084,7 +1142,6 @@
                             </DataGrid.Columns>
                         </DataGrid>
 
-                        <!-- ⚠ Indicateur Voir plus (sous le tableau) -->
                         <StackPanel x:Name="panelAuditMore" Orientation="Horizontal"
                                     HorizontalAlignment="Center" Margin="0,4,0,10"
                                     Visibility="Collapsed">
@@ -1099,6 +1156,115 @@
 
                     </StackPanel>
                 </ScrollViewer>
+            </TabItem>
+
+            <!-- ====================================================== -->
+            <!--  ONGLET LISTE BLANCHE (gestion whitelist)              -->
+            <!-- ====================================================== -->
+            <TabItem Header="{loc:Tr 'Liste blanche'}">
+                <Grid Margin="0,10,0,0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
+                        <TextBlock Text="✅" FontSize="16" Margin="0,0,8,0"
+                                   Foreground="#6CCB5F" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Processus approuvés'}" FontSize="14"
+                                   FontWeight="SemiBold" Foreground="#6CCB5F"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock x:Name="txtWhitelistSummary" FontSize="12" Foreground="#999"
+                                   Margin="15,0,0,0" VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+                        <Button Width="160" Click="RefreshWhitelist_Click" Margin="0,0,10,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Actualiser'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Width="220" Click="RemoveWhitelistEntry_Click">
+                            <Button.Style>
+                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                    <Setter Property="Background" Value="#CC3300"/>
+                                    <Setter Property="BorderBrush" Value="#FF6347"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#E64D1A"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </Button.Style>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Retirer de la liste blanche" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+
+                    <Border Grid.Row="2" Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1"
+                            CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
+                        <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#B4B4B4"
+                                   Text="ℹ  Retirer un processus le fera réapparaître dans le tableau « Processus en attente » au prochain événement réseau. Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée."/>
+                    </Border>
+
+                    <DataGrid x:Name="WhitelistGrid" Grid.Row="3"
+                              RowHeight="32"
+                              AutoGenerateColumns="False"
+                              CanUserAddRows="False"
+                              IsReadOnly="True"
+                              HeadersVisibility="Column"
+                              SelectionMode="Single"
+                              ScrollViewer.HorizontalScrollBarVisibility="Visible">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="{loc:Tr 'Nom'}"
+                                                Binding="{Binding Name}" Width="160"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Chemin'}"
+                                                Binding="{Binding Path}" Width="*" MinWidth="300">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="ToolTip" Value="{Binding Path}"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTemplateColumn Header="{loc:Tr 'Actif'}" Width="70">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <CheckBox IsChecked="{Binding Enabled, Mode=OneWay}"
+                                                  HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"
+                                                  Tag="{Binding}"
+                                                  Click="WhitelistEnabled_Click"/>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="{loc:Tr 'Éditeur'}" Binding="{Binding PublisherDisplay}" SortMemberPath="Publisher" Width="160">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="ToolTip" Value="{Binding Publisher}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                            <DataGridTextColumn Header="SHA-256" Binding="{Binding Sha256Display}" SortMemberPath="Sha256" Width="130">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="ToolTip" Value="{Binding Sha256}"/>
+                                        <Setter Property="FontFamily" Value="Consolas"/>
+                                        <Setter Property="FontSize" Value="11"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
             </TabItem>
 
             <!-- ====================================================== -->
@@ -1133,7 +1299,7 @@
                                   HeadersVisibility="Column"
                                   SelectionMode="Single">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Heure'}"   Binding="{Binding TimestampText}" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Heure'}"   Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="90"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Proto'}"   Binding="{Binding Protocol}" Width="60"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Local'}"   Binding="{Binding LocalEndpoint}" Width="180"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Distant'}" Binding="{Binding RemoteEndpoint}" Width="220"/>
@@ -1154,9 +1320,6 @@
                               Padding="0,0,5,0">
                     <StackPanel Margin="0,10,0,0">
 
-                        <!-- ============================================================ -->
-                        <!--  SERVEUR WEB                                                  -->
-                        <!-- ============================================================ -->
                         <GroupBox Margin="0,0,0,15"
                                   Padding="10"
                                   Header="{loc:Tr 'Serveur Web'}"
@@ -1265,9 +1428,6 @@
                             </Grid>
                         </GroupBox>
 
-                        <!-- ============================================================ -->
-                        <!--  DÉTECTEUR : SCAN DE PORTS                                    -->
-                        <!-- ============================================================ -->
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
@@ -1305,9 +1465,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ============================================================ -->
-                        <!--  DÉTECTEUR : BEACONING                                        -->
-                        <!-- ============================================================ -->
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
@@ -1358,9 +1515,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ============================================================ -->
-                        <!--  BLOCAGE AUTOMATIQUE                                          -->
-                        <!-- ============================================================ -->
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
@@ -1383,9 +1537,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ============================================================ -->
-                        <!--  FILTRES ET WHITELISTS                                        -->
-                        <!-- ============================================================ -->
                         <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
@@ -1407,32 +1558,32 @@
 
                                 <CheckBox x:Name="chkDisableFilters"
                                           Content="Mode Debug : Désactiver les filtres et whitelists"
-                                          Foreground="#FF6347" 
-                                          FontWeight="Bold" 
-                                          Margin="0,10,0,5" 
-                                          Checked="ChkDisableFilters_Checked" 
+                                          Foreground="#FF6347"
+                                          FontWeight="Bold"
+                                          Margin="0,10,0,5"
+                                          Checked="ChkDisableFilters_Checked"
                                           Unchecked="ChkDisableFilters_Unchecked"/>
-                                          
-                                <TextBlock x:Name="lblDisableFiltersWarning" 
+
+                                <TextBlock x:Name="lblDisableFiltersWarning"
                                            Text="⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs. Le système peut être inondé de faux positifs."
-                                           Foreground="#FF6347" 
-                                           FontSize="11" 
-                                           TextWrapping="Wrap" 
-                                           Visibility="Collapsed" 
+                                           Foreground="#FF6347"
+                                           FontSize="11"
+                                           TextWrapping="Wrap"
+                                           Visibility="Collapsed"
                                            Margin="20,0,0,0"/>
-                                           
+
                                 <StackPanel Orientation="Horizontal" Margin="0,15,0,10">
                                     <TextBlock Text="Niveau Blacklist IPsum (1-6) :" Width="250" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="txtBlacklistLevel" Width="80" 
+                                    <TextBox x:Name="txtBlacklistLevel" Width="80"
                                              Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
                                 </StackPanel>
-                                
-                                <TextBlock x:Name="lblBlacklistLastUpdate" 
+
+                                <TextBlock x:Name="lblBlacklistLastUpdate"
                                            Foreground="#888" FontSize="11" Text="Dernière MAJ : inconnue" Margin="0,0,0,5"/>
-                                                                                      
+
                             </StackPanel>
                         </Border>
-                        
+
                         <Button Content="{loc:Tr 'Enregistrer les réglages'}"
                                 Width="220"
                                 Height="35"
@@ -1455,7 +1606,6 @@
                               PreviewMouseWheel="StatsScrollViewer_PreviewMouseWheel">
                     <StackPanel Margin="0,10,0,0">
 
-                        <!-- Barre d'action -->
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                             <Button Width="160" Click="RefreshStats_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
@@ -1467,7 +1617,6 @@
                                        Foreground="#888" Text=""/>
                         </StackPanel>
 
-                        <!-- Cartes globales -->
                         <Grid Margin="0,0,0,20">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="*"/>
@@ -1513,21 +1662,52 @@
                             </Border>
                         </Grid>
 
-                        <!-- Cartes du monde (hors de la Grid des 4 cartes) -->
-                        <Border CornerRadius="6" ClipToBounds="True" Height="480"
-                                BorderBrush="#3c3c3c" BorderThickness="1" Margin="0,0,0,20">
-                            <wv2:WebView2 x:Name="MapWebView" />
-                        </Border>
-                        
-                        <!-- Graphiques (Chart.js) -->
-                        <Border CornerRadius="6" ClipToBounds="True" Height="900"
-                                BorderBrush="#3c3c3c" BorderThickness="1" Margin="0,0,0,20">
-                            <wv2:WebView2 x:Name="ChartsWebView" />
-                        </Border>                        
+                        <!-- Sous-onglets : Carte / Graphiques -->
+                        <TabControl Background="Transparent" BorderThickness="0" Margin="0,0,0,20">
+                            <TabControl.Resources>
+                                <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                    <Setter Property="Template">
+                                        <Setter.Value>
+                                            <ControlTemplate TargetType="TabItem">
+                                                <Border x:Name="border"
+                                                        Background="#252526"
+                                                        BorderBrush="#3C3C3C"
+                                                        BorderThickness="0,0,0,2"
+                                                        Padding="15,6">
+                                                    <ContentPresenter ContentSource="Header"
+                                                                      HorizontalAlignment="Center"
+                                                                      VerticalAlignment="Center"/>
+                                                </Border>
+                                                <ControlTemplate.Triggers>
+                                                    <Trigger Property="IsSelected" Value="True">
+                                                        <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                                        <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                                                    </Trigger>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                                    </Trigger>
+                                                </ControlTemplate.Triggers>
+                                            </ControlTemplate>
+                                        </Setter.Value>
+                                    </Setter>
+                                </Style>
+                            </TabControl.Resources>
 
-                        <!-- ============================================ -->
-                        <!--  SECTION 1 : intrusions actives (rouge)       -->
-                        <!-- ============================================ -->
+                            <TabItem Header="{loc:Tr 'Carte du monde'}">
+                                <Border CornerRadius="6" ClipToBounds="True" Height="480"
+                                        BorderBrush="#3c3c3c" BorderThickness="1" Margin="0,10,0,0">
+                                    <wv2:WebView2 x:Name="MapWebView" />
+                                </Border>
+                            </TabItem>
+
+                            <TabItem Header="{loc:Tr 'Graphiques'}">
+                                <Border CornerRadius="6" ClipToBounds="True" Height="480"
+                                        BorderBrush="#3c3c3c" BorderThickness="1" Margin="0,10,0,0">
+                                    <wv2:WebView2 x:Name="ChartsWebView" />
+                                </Border>
+                            </TabItem>
+                        </TabControl>
+
                         <Border BorderBrush="#FF6347" BorderThickness="0,0,0,2" Margin="0,0,0,20">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -1538,7 +1718,6 @@
                                                Margin="15,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <!-- Top IPs -->
                                 <TextBlock Text="{loc:Tr 'Top IPs (par nombre d\'alertes)'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#FF8A72" Margin="0,5,0,5"/>
@@ -1555,7 +1734,6 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Pays -->
                                 <TextBlock Text="{loc:Tr 'Répartition par pays'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#FF8A72" Margin="0,5,0,5"/>
@@ -1569,7 +1747,6 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Détecteurs -->
                                 <TextBlock Text="{loc:Tr 'Répartition par détecteur'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#FF8A72" Margin="0,5,0,5"/>
@@ -1584,9 +1761,6 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- ============================================ -->
-                        <!--  SECTION 2 : IP bloquées (vert)               -->
-                        <!-- ============================================ -->
                         <Border BorderBrush="#6CCB5F" BorderThickness="0,0,0,2" Margin="0,0,0,20">
                             <StackPanel>
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
@@ -1599,7 +1773,6 @@
                                                Margin="15,0,0,0" VerticalAlignment="Center"/>
                                 </StackPanel>
 
-                                <!-- Top IPs bloquées -->
                                 <TextBlock Text="{loc:Tr 'Top IPs bloquées'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#8FDA80" Margin="0,5,0,5"/>
@@ -1615,7 +1788,6 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Pays -->
                                 <TextBlock Text="{loc:Tr 'Répartition par pays'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#8FDA80" Margin="0,5,0,5"/>
@@ -1629,7 +1801,6 @@
                                     </DataGrid.Columns>
                                 </DataGrid>
 
-                                <!-- Détecteurs -->
                                 <TextBlock Text="{loc:Tr 'Répartition par détecteur'}"
                                            FontSize="12" FontWeight="SemiBold"
                                            Foreground="#8FDA80" Margin="0,5,0,5"/>
@@ -1647,10 +1818,9 @@
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
-            
+
         </TabControl>
 
-        <!-- STATUS BAR -->
         <Border Grid.Row="2"
                 Background="#252526" BorderBrush="#3C3C3C" BorderThickness="0,1,0,0"
                 Margin="0,10,0,0" Padding="15,6">

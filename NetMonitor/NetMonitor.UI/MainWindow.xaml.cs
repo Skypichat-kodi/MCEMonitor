@@ -13,6 +13,8 @@ using System.Windows.Threading;
 using MCEMonitor.Languages;
 using System.Text;
 using Microsoft.Web.WebView2.Core;
+using System.ComponentModel;
+using System.Windows.Data;
 
 namespace NetMonitor.UI
 {
@@ -21,14 +23,14 @@ namespace NetMonitor.UI
         // Limite d'affichage par défaut des tableaux
         private const int DisplayLimit = 12;
 
-        private readonly ObservableCollection<GroupedAlertRow> _activeIntrusions = new();
-        private readonly ObservableCollection<BlockedIpRow> _blockedIps = new();
-        private readonly ObservableCollection<AlertRow> _alertsHistory = new();
-        private readonly ObservableCollection<ConnectionRow> _connections = new();
-        private readonly ObservableCollection<AlertRow> _auditAlerts = new();
-        private readonly ObservableCollection<PendingProcessRow> _pendingProcesses = new();
-        private List<PendingProcessRow> _allPendingProcesses = new();
-        private bool _showAllPending = false;        
+        private readonly ObservableCollection<GroupedAlertRow>      _activeIntrusions       = new();
+        private readonly ObservableCollection<BlockedIpRow>         _blockedIps             = new();
+        private readonly ObservableCollection<AlertRow>             _alertsHistory          = new();
+        private readonly ObservableCollection<ConnectionRow>        _connections            = new();
+        private readonly ObservableCollection<AlertRow>             _auditAlerts            = new();
+        private readonly ObservableCollection<PendingProcessRow>    _pendingProcesses       = new();
+        private List<PendingProcessRow>                             _allPendingProcesses    = new();
+        private bool                                                _showAllPending         = false;        
         
         // --- Stats ---
         private readonly ObservableCollection<StatsIpRow>        _statsActiveIps        = new();
@@ -37,18 +39,20 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<StatsIpRow>        _statsBlockedIps       = new();
         private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries = new();
         private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors = new();
+        private readonly ObservableCollection<BlockedIpRetryRow> _blockedRetries        = new();
+        private readonly ObservableCollection<WhitelistEntryRow> _whitelistEntries      = new();
 
         // Données complètes (pour le dépliage Voir plus)
-        private List<GroupedAlertRow> _allActiveGrouped = new();
-        private List<BlockedIpRow> _allBlockedIps = new();
-        private List<AlertRow> _allAlertsHistory = new();
-        private List<AlertRow> _allAuditAlerts = new();
+        private List<GroupedAlertRow>   _allActiveGrouped   = new();
+        private List<BlockedIpRow>      _allBlockedIps      = new();
+        private List<AlertRow>          _allAlertsHistory   = new();
+        private List<AlertRow>          _allAuditAlerts     = new();
 
         // Flags "Voir plus" par tableau
-        private bool _showAllActive = false;
-        private bool _showAllBlocked = false;
-        private bool _showAllHistory = false;
-        private bool _showAllAudit = false;
+        private bool _showAllActive     = false;
+        private bool _showAllBlocked    = false;
+        private bool _showAllHistory    = false;
+        private bool _showAllAudit      = false;
 
         private readonly DispatcherTimer _refreshTimer;
         private bool _isRefreshing = false;
@@ -105,6 +109,10 @@ namespace NetMonitor.UI
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+            BlockedRetriesGrid.ItemsSource              = _blockedRetries;
+            WireAllGridSorting();
+            WireAllGridDoubleClick();            
+            WhitelistGrid.ItemsSource                   = _whitelistEntries;
 
             MapWebView.CoreWebView2InitializationCompleted += (s, e) =>
             {
@@ -254,19 +262,19 @@ namespace NetMonitor.UI
                         {
                             grouped.Add(new GroupedAlertRow
                             {
-                                RemoteIp  = null,
-                                FirstSeen = a.timestamp,
-                                LastSeen  = a.timestamp,
-                                Severity  = a.severity ?? "Info",
-                                Detectors = a.source ?? "",
-                                Message   = a.message ?? "",
-                                Count     = 1,
-                                RemotePortsDisplay = a.remotePort > 0 ? a.remotePort.ToString() : "-",
-                                Pid         = a.pid,
-                                ProcessName = a.processName,
-                                ProcessPath = a.processPath,
-                                TrustReason = a.trustReason,
-                                Details     = a.details
+                                RemoteIp            = null,
+                                FirstSeen           = a.timestamp,
+                                LastSeen            = a.timestamp,
+                                Severity            = a.severity ?? "Info",
+                                Detectors           = a.source ?? "",
+                                Message             = a.message ?? "",
+                                Count               = 1,
+                                RemotePortsDisplay  = a.remotePort > 0 ? a.remotePort.ToString() : "-",
+                                Pid                 = a.pid,
+                                ProcessName         = a.processName,
+                                ProcessPath         = a.processPath,
+                                TrustReason         = a.trustReason,
+                                Details             = a.details
                             });
                         }
 
@@ -417,6 +425,42 @@ namespace NetMonitor.UI
                         AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
                     RestoreAlertSelection(AuditGrid, _auditAlerts, key);
                 }
+
+                // ---- Tentatives sur IP bloquée ----
+                var retries = await NetMonitorIpcClient.GetBlockedIpRetriesAsync();
+                if (retries != null)
+                {
+                    string? key = (BlockedRetriesGrid.SelectedItem as BlockedIpRetryRow)?.Ip;
+
+                    _blockedRetries.Clear();
+                    foreach (var r in retries)
+                    {
+                        _blockedRetries.Add(new BlockedIpRetryRow
+                        {
+                            Ip = r.Ip,
+                            OriginalDetector = r.OriginalDetector,
+                            BlockedAt = r.BlockedAt.ToLocalTime(),
+                            FirstRetryAt = r.FirstRetryAt.ToLocalTime(),
+                            LastRetryAt = r.LastRetryAt.ToLocalTime(),
+                            RetryCount = r.RetryCount
+                        });
+                    }
+
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        foreach (var item in _blockedRetries)
+                        {
+                            if (item.Ip == key) { BlockedRetriesGrid.SelectedItem = item; break; }
+                        }
+                    }
+
+                    txtBlockedRetriesSummary.Text = retries.Count == 0
+                        ? "Aucune tentative détectée"
+                        : $"{retries.Count} IP bloquée(s) ayant reçu du trafic";
+                }
+
+                // ---- Liste blanche ----
+                await RefreshWhitelistAsync();
 
                 // ---- Connexions ----
                 var conns = await NetMonitorIpcClient.GetConnections();
@@ -668,8 +712,12 @@ namespace NetMonitor.UI
                 .Select(s => s.Trim())
                 .FirstOrDefault() ?? "-";
 
+            SetBusy($"Blocage de {ip} en cours…");
+
             var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
                 ip, primaryDetector, row.Message, null, row.Severity);
+
+            ClearBusy();
 
             if (ok)
             {
@@ -697,13 +745,18 @@ namespace NetMonitor.UI
                 "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
+            SetBusy("Ajout à la liste blanche en cours…");
+
             bool ok = await NetMonitorIpcClient.WhitelistProcessAsync(row.ProcessPath);
+
+            ClearBusy();
+
             MessageBox.Show(ok ? "Processus ajouté à la liste blanche." : "Échec de l'ajout.",
                 "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
             await RefreshSafe();
         }
-
+        
         private async void BlockSelectedProcess_Click(object sender, RoutedEventArgs e)
         {
             if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
@@ -714,7 +767,12 @@ namespace NetMonitor.UI
                 "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (confirm != MessageBoxResult.Yes) return;
 
+            SetBusy("Blocage du processus en cours…");
+
             var (ok, err) = await NetMonitorIpcClient.BlockProcessWithResultAsync(row.ProcessPath);
+
+            ClearBusy();
+
             MessageBox.Show(ok ? "Processus bloqué." : $"Échec du blocage.\n\n{err}",
                 "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
@@ -767,7 +825,11 @@ namespace NetMonitor.UI
 
             if (confirm != MessageBoxResult.Yes) return;
 
+            SetBusy($"Déblocage de {ip} en cours…");
+
             bool ok = await NetMonitorIpcClient.UnblockIpAsync(ip);
+
+            ClearBusy();
 
             MessageBox.Show(
                 ok ? $"IP {ip} débloquée." : $"Échec du déblocage de {ip}.",
@@ -828,6 +890,95 @@ namespace NetMonitor.UI
             catch { }
 
             return null;
+        }
+
+        private async void RefreshWhitelist_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshWhitelistAsync();
+        }
+
+        private async Task RefreshWhitelistAsync()
+        {
+            var entries = await NetMonitorIpcClient.GetWhitelistAsync();
+            if (entries == null) return;
+
+            string? selectedPath = (WhitelistGrid.SelectedItem as WhitelistEntryRow)?.Path;
+
+            _whitelistEntries.Clear();
+            foreach (var e in entries.OrderBy(x => x.Name).ThenBy(x => x.Path))
+            {
+                _whitelistEntries.Add(new WhitelistEntryRow
+                {
+                    Name = e.Name,
+                    Path = e.Path,
+                    Sha256 = e.Sha256,
+                    Publisher = e.Publisher,
+                    Enabled = e.Enabled
+                });
+            }
+
+            if (!string.IsNullOrEmpty(selectedPath))
+            {
+                foreach (var item in _whitelistEntries)
+                {
+                    if (item.Path == selectedPath) { WhitelistGrid.SelectedItem = item; break; }
+                }
+            }
+
+            int active = entries.Count(x => x.Enabled);
+            txtWhitelistSummary.Text = entries.Count == 0
+                ? "Aucune entrée"
+                : $"{entries.Count} entrée(s) dont {active} active(s)";
+        }
+
+        private async void RemoveWhitelistEntry_Click(object sender, RoutedEventArgs e)
+        {
+            if (WhitelistGrid.SelectedItem is not WhitelistEntryRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une entrée dans la liste.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Retirer cette entrée de la liste blanche ?\n\n{row.Path}\n\n" +
+                "Le processus réapparaîtra dans « Processus en attente » au prochain événement réseau.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            bool ok = await NetMonitorIpcClient.RemoveWhitelistEntryAsync(row.Path);
+            if (!ok)
+            {
+                MessageBox.Show("Échec du retrait.", "NetMonitor",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshWhitelistAsync();
+        }
+
+        private async void WhitelistEnabled_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not CheckBox cb || cb.Tag is not WhitelistEntryRow row)
+                return;
+
+            bool newState = cb.IsChecked == true;
+            bool ok = await NetMonitorIpcClient.ToggleWhitelistEntryAsync(row.Path, newState);
+
+            if (!ok)
+            {
+                // Revert visuel
+                cb.IsChecked = !newState;
+                MessageBox.Show(
+                    "Échec du changement d'état.", "NetMonitor",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            row.Enabled = newState;
+            await RefreshWhitelistAsync();
         }
 
         // ------------------------------------------------------------
@@ -965,6 +1116,24 @@ namespace NetMonitor.UI
             {
                 MessageBox.Show("Erreur : " + ex.Message);
             }
+        }
+
+        private async void RefreshBlockedRetries_Click(object sender, RoutedEventArgs e)
+        {
+            await RefreshSafe();
+        }
+
+        private async void ClearBlockedRetries_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Vider la liste des tentatives sur IP bloquée ?\n\n" +
+                "Les IP resteront bloquées dans le pare-feu. Seuls les compteurs sont effacés.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            await NetMonitorIpcClient.ClearBlockedIpRetriesAsync();
+            await RefreshSafe();
         }
 
         private void CheckConfigFileChanged()
@@ -1653,6 +1822,170 @@ namespace NetMonitor.UI
                 || BlockedIpsGrid.SelectedItem        != null;
         }
 
+        // ------------------------------------------------------------
+        //  M2 : tri par clic sur les en-têtes (asc → desc → défaut)
+        // ------------------------------------------------------------
+        private void WireAllGridSorting()
+        {
+            var grids = new DataGrid[]
+            {
+                ActiveIntrusionsGrid, PendingProcessesGrid, BlockedIpsGrid,
+                AlertsHistoryGrid, AuditGrid, BlockedRetriesGrid,
+                ConnectionsGrid, WhitelistGrid
+            };
+
+            foreach (var grid in grids)
+                grid.Sorting += HandleGridSorting;
+        }
+
+        private void HandleGridSorting(object sender, DataGridSortingEventArgs e)
+        {
+            if (sender is not DataGrid grid) return;
+            e.Handled = true;
+
+            var view = CollectionViewSource.GetDefaultView(grid.ItemsSource);
+            if (view == null) return;
+
+            var column = e.Column;
+            if (string.IsNullOrEmpty(column.SortMemberPath)) return;
+
+            ListSortDirection? currentDir = column.SortDirection;
+
+            // Reset les autres colonnes (un seul tri à la fois)
+            foreach (var col in grid.Columns)
+            {
+                if (col != column) col.SortDirection = null;
+            }
+
+            using (view.DeferRefresh())
+            {
+                view.SortDescriptions.Clear();
+
+                if (currentDir == null)
+                {
+                    view.SortDescriptions.Add(
+                        new SortDescription(column.SortMemberPath, ListSortDirection.Ascending));
+                    column.SortDirection = ListSortDirection.Ascending;
+                }
+                else if (currentDir == ListSortDirection.Ascending)
+                {
+                    view.SortDescriptions.Add(
+                        new SortDescription(column.SortMemberPath, ListSortDirection.Descending));
+                    column.SortDirection = ListSortDirection.Descending;
+                }
+                else
+                {
+                    column.SortDirection = null;
+                    // Aucune SortDescription = retour à l'ordre d'insertion (défaut)
+                }
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  S1 : double-clic contextuel
+        // ------------------------------------------------------------
+        private void WireAllGridDoubleClick()
+        {
+            ActiveIntrusionsGrid.MouseDoubleClick += GridDoubleClick;
+            PendingProcessesGrid.MouseDoubleClick  += GridDoubleClick;
+            BlockedIpsGrid.MouseDoubleClick        += GridDoubleClick;
+            AlertsHistoryGrid.MouseDoubleClick     += GridDoubleClick;
+            AuditGrid.MouseDoubleClick             += GridDoubleClick;
+            BlockedRetriesGrid.MouseDoubleClick    += GridDoubleClick;
+            WhitelistGrid.MouseDoubleClick         += GridDoubleClick;
+            // ConnectionsGrid : volontairement pas de double-clic
+        }
+
+        private void GridDoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGrid grid) return;
+
+            // IP lookup
+            if (grid == ActiveIntrusionsGrid && grid.SelectedItem is GroupedAlertRow activeRow)
+            {
+                OpenIpLookup(activeRow.RemoteIp);
+                return;
+            }
+
+            if (grid == AlertsHistoryGrid && grid.SelectedItem is AlertRow histRow)
+            {
+                OpenIpLookup(histRow.RemoteIp);
+                return;
+            }
+
+            if (grid == AuditGrid && grid.SelectedItem is AlertRow auditRow)
+            {
+                OpenIpLookup(auditRow.RemoteIp);
+                return;
+            }
+
+            if (grid == BlockedIpsGrid && grid.SelectedItem is BlockedIpRow blockedRow)
+            {
+                if (blockedRow.IsProcess)
+                    OpenFileLocation(blockedRow.ProcessPath);
+                else
+                    OpenIpLookup(blockedRow.Ip);
+                return;
+            }
+
+            // Ouvrir l'emplacement du fichier
+            if (grid == PendingProcessesGrid && grid.SelectedItem is PendingProcessRow pendingRow)
+            {
+                OpenFileLocation(pendingRow.ProcessPath);
+                return;
+            }
+
+            if (grid == WhitelistGrid && grid.SelectedItem is WhitelistEntryRow wlRow)
+            {
+                OpenFileLocation(wlRow.Path);
+                return;
+            }
+
+            // Copier l'IP
+            if (grid == BlockedRetriesGrid && grid.SelectedItem is BlockedIpRetryRow retryRow)
+            {
+                if (!string.IsNullOrWhiteSpace(retryRow.Ip))
+                {
+                    try { Clipboard.SetText(retryRow.Ip); } catch { }
+                    StatusText.Text = $"IP {retryRow.Ip} copiée dans le presse-papier";
+                }
+                return;
+            }
+        }
+
+        private void OpenIpLookup(string? ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return;
+
+            try
+            {
+                string template = LoadIpLookupUrl();
+                string url = template.Replace("{ip}", Uri.EscapeDataString(ip));
+
+                Process.Start(new ProcessStartInfo { FileName = url, UseShellExecute = true });
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        // ------------------------------------------------------------
+        //  S2 : indicateur d'action en cours
+        // ------------------------------------------------------------
+        private void SetBusy(string message)
+        {
+            StatusText.Text = message;
+            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0xFF, 0xB9, 0x00)); // orange
+        }
+
+        private void ClearBusy()
+        {
+            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F)); // vert
+            // Le prochain RefreshSafe réécrira StatusText de toute façon
+        }
+
         /// <summary>
         /// Exécute une action de refresh en préservant la ligne sélectionnée,
         /// identifiée par une clé métier (ex. IP, chemin de fichier…).
@@ -1873,5 +2206,44 @@ namespace NetMonitor.UI
         public string CountClass => Count >= 10 ? "c10" :
                                      Count >= 5  ? "c5"  :
                                      Count >= 2  ? "c2"  : "c1";
-    }    
+    }
+    
+    public class BlockedIpRetryRow
+    {
+        public string Ip { get; set; } = "";
+        public string OriginalDetector { get; set; } = "-";
+        public DateTime BlockedAt { get; set; }
+        public DateTime FirstRetryAt { get; set; }
+        public DateTime LastRetryAt { get; set; }
+        public int RetryCount { get; set; }
+
+        public string BlockedAtText => BlockedAt.ToString("dd/MM HH:mm:ss");
+        public string FirstRetryAtText => FirstRetryAt.ToString("dd/MM HH:mm:ss");
+        public string LastRetryAtText => LastRetryAt.ToString("dd/MM HH:mm:ss");
+
+        public string CountClass => RetryCount >= 10 ? "c10" :
+                                     RetryCount >= 5  ? "c5"  :
+                                     RetryCount >= 2  ? "c2"  : "c1";
+    }
+    
+    public class WhitelistEntryRow
+    {
+        public string Name { get; set; } = "";
+        public string Path { get; set; } = "";
+        public string? Sha256 { get; set; }
+        public string? Publisher { get; set; }
+        public bool Enabled { get; set; }
+
+        public string PublisherDisplay =>
+            string.IsNullOrWhiteSpace(Publisher) ? "-" : Publisher;
+
+        public string Sha256Display
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(Sha256)) return "-";
+                return Sha256.Length <= 12 ? Sha256 : Sha256.Substring(0, 12) + "…";
+            }
+        }
+    }            
 }

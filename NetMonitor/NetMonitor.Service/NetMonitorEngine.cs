@@ -70,6 +70,9 @@ namespace NetMonitor.Service
         // Journal d'audit pour les alertes ignorées (whitelist)
         private readonly List<IntrusionEvent> _auditHistory = new();
 
+        // Compteurs de tentatives observées sur des IP déjà bloquées
+        private readonly ConcurrentDictionary<string, BlockedIpRetryInfo> _blockedIpRetries = new();
+
         private static readonly string AuditFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "audit_history.json");
@@ -317,6 +320,42 @@ namespace NetMonitor.Service
             lock (_alertsLock) return _blockedIps.ToList();
         }
 
+        public List<BlockedIpRetryInfo> GetBlockedIpRetries()
+        {
+            return _blockedIpRetries.Values
+                .OrderByDescending(r => r.LastRetryAt)
+                .ToList();
+        }
+
+        public void ClearBlockedIpRetries()
+        {
+            _blockedIpRetries.Clear();
+            CoreLog.Info("Compteurs de tentatives sur IP bloquée vidés");
+        }
+
+        private void RegisterBlockedIpRetry(string ip, string? originalDetector, DateTime blockedAt)
+        {
+            var now = DateTime.UtcNow;
+
+            _blockedIpRetries.AddOrUpdate(
+                ip,
+                _ => new BlockedIpRetryInfo
+                {
+                    Ip = ip,
+                    OriginalDetector = string.IsNullOrWhiteSpace(originalDetector) ? "-" : originalDetector,
+                    BlockedAt = blockedAt,
+                    FirstRetryAt = now,
+                    LastRetryAt = now,
+                    RetryCount = 1
+                },
+                (_, existing) =>
+                {
+                    existing.LastRetryAt = now;
+                    existing.RetryCount++;
+                    return existing;
+                });
+        }
+
         public bool BlockIp(string ip, out string errorMessage,
                             string? source = null, string? message = null,
                             string? details = null, string? severity = null,
@@ -396,8 +435,8 @@ namespace NetMonitor.Service
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
 
-            // ? NOUVEAU : arrête le maintien en actives (si auto-bloquée récemment)
             _autoBlockedTempIps.TryRemove(ip, out _);
+            _blockedIpRetries.TryRemove(ip, out _);
 
             bool removed = false;
             lock (_alertsLock)
@@ -629,12 +668,20 @@ namespace NetMonitor.Service
 
         private void RaiseIntrusion(string source, DetectorResult r, ConnectionInfo ci)
         {
-            // Si l'IP est déjà bloquée, on ignore l'alerte
+            // IP déjà bloquée ? enregistre la tentative et ignore l'alerte
             lock (_alertsLock)
             {
-                if (!string.IsNullOrWhiteSpace(ci.RemoteIp) &&
-                    _blockedIps.Any(b => b.Ip == ci.RemoteIp))
-                    return;
+                if (!string.IsNullOrWhiteSpace(ci.RemoteIp))
+                {
+                    var blocked = _blockedIps.FirstOrDefault(b =>
+                        !b.IsProcess && string.Equals(b.Ip, ci.RemoteIp, StringComparison.OrdinalIgnoreCase));
+
+                    if (blocked != null)
+                    {
+                        RegisterBlockedIpRetry(ci.RemoteIp, blocked.Source, blocked.BlockedAt);
+                        return;
+                    }
+                }
             }
 
             // NOUVEAU : les processus non approuvés vont dans une liste dédiée,
@@ -676,6 +723,14 @@ namespace NetMonitor.Service
 
         private void AddOrUpdatePendingProcess(DetectorResult r, ConnectionInfo ci)
         {
+            // ✅ Filtre les processus système légitimes (PID noyau, noms connus,
+            //    chemins Microsoft avec signature valide) → jamais dans le tableau 1bis
+            if (SystemProcessFilter.ShouldIgnore(ci.Pid, ci.ProcessName, r.ProcessPath))
+            {
+                CoreLog.Debug($"[PENDING] Ignoré (processus système) : PID={ci.Pid} name={ci.ProcessName} path={r.ProcessPath}");
+                return;
+            }
+
             // Fallback si le chemin n'a pas pu être résolu (processus protégé, PID recyclé…)
             string pathKey = string.IsNullOrWhiteSpace(r.ProcessPath)
                 ? $"[no-path]::{ci.ProcessName ?? "?"}"
@@ -853,6 +908,21 @@ namespace NetMonitor.Service
             return removed;
         }
 
+        public List<ProcessTrustInfo> GetWhitelistEntries()
+        {
+            return _processTrust?.GetAll() ?? new List<ProcessTrustInfo>();
+        }
+
+        public bool RemoveWhitelistEntry(string path)
+        {
+            return _processTrust?.RemoveFromWhitelist(path) ?? false;
+        }
+
+        public bool SetWhitelistEntryEnabled(string path, bool enabled)
+        {
+            return _processTrust?.SetEnabled(path, enabled) ?? false;
+        }
+
         // ------------------------------------------------------------
         //  Traitement des paquets bruts (WinDivert)
         // ------------------------------------------------------------
@@ -863,12 +933,20 @@ namespace NetMonitor.Service
             int    remotePort = evt.IsOutbound ? evt.DestPort : evt.SourcePort;
             int    localPort  = evt.IsOutbound ? evt.SourcePort : evt.DestPort;
 
-            // Si l'IP distante est déjà bloquée, on ignore
+            // IP distante déjà bloquée ? enregistre la tentative et ignore
             lock (_alertsLock)
             {
-                if (!string.IsNullOrWhiteSpace(remoteIp) &&
-                    _blockedIps.Any(b => b.Ip == remoteIp))
-                    return;
+                if (!string.IsNullOrWhiteSpace(remoteIp))
+                {
+                    var blocked = _blockedIps.FirstOrDefault(b =>
+                        !b.IsProcess && string.Equals(b.Ip, remoteIp, StringComparison.OrdinalIgnoreCase));
+
+                    if (blocked != null)
+                    {
+                        RegisterBlockedIpRetry(remoteIp, blocked.Source, blocked.BlockedAt);
+                        return;
+                    }
+                }
             }
 
             var intrusion = new IntrusionEvent

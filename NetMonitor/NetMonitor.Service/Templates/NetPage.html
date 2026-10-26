@@ -337,6 +337,24 @@
 
     .table-wrapper.theme-success tbody tr:nth-child(even) td { background: #1A2412; }
     .table-wrapper.theme-success tbody tr:nth-child(odd)  td { background: #141F0D; }
+
+    /* ============================================================ */
+    /*  Thème BLEU : tentatives sur IP bloquée                      */
+    /* ============================================================ */
+    h2.h2-info { color: #4CC2FF; }
+
+    .table-wrapper.theme-info {
+        border-color: #1F4A6B;
+    }
+
+    .table-wrapper.theme-info thead th {
+        background: #1A3A5C;
+        color: #B5D7FF;
+        box-shadow: 0 1px 0 #2E5A8A;
+    }
+
+    .table-wrapper.theme-info tbody tr:nth-child(even) td { background: #0F1F2E; }
+    .table-wrapper.theme-info tbody tr:nth-child(odd)  td { background: #0A1520; }
     
     /* ============================================================ */
     /*  Colonne Compteur (groupement par IP)                        */
@@ -523,6 +541,28 @@
         </thead>
         <tbody>
             {{BlockedRows}}
+        </tbody>
+    </table>
+</div>
+
+<h2 class="h2-info">
+    <span style="font-size:20px">🛡</span>
+    {{tr:Tentatives sur IP bloquée}} - {{BlockedRetriesCount}}
+</h2>
+<div class="table-wrapper theme-info">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:150px">{{tr:IP}}</th>
+                <th style="width:150px">{{tr:Détecteur initial}}</th>
+                <th style="width:150px">{{tr:Bloquée le}}</th>
+                <th style="width:150px">{{tr:1ʳᵉ tentative}}</th>
+                <th style="width:150px">{{tr:Dernière tentative}}</th>
+                <th style="width:100px">{{tr:Tentatives}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{BlockedRetriesRows}}
         </tbody>
     </table>
 </div>

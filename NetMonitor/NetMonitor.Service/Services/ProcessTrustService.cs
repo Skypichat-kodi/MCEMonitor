@@ -82,6 +82,13 @@ public sealed class ProcessTrustService
                                             StringComparison.OrdinalIgnoreCase)))
                 return true;
 
+            // ✅ Enrichit automatiquement si absent
+            if (string.IsNullOrWhiteSpace(entry.Sha256))
+                entry.Sha256 = TryComputeSha256(entry.Path);
+
+            if (string.IsNullOrWhiteSpace(entry.Publisher))
+                entry.Publisher = TryGetAuthenticodePublisher(entry.Path);
+
             list.Add(entry);
 
             string outJson = JsonSerializer.Serialize(list,
@@ -98,6 +105,83 @@ public sealed class ProcessTrustService
             CoreLog.Warn($"ProcessTrust.AddToWhitelist : {ex.Message}");
             return false;
         }
+    }
+
+    public List<ProcessTrustInfo> GetAll()
+    {
+        try
+        {
+            if (!File.Exists(_whitelistPath))
+                return new List<ProcessTrustInfo>();
+
+            string json = File.ReadAllText(_whitelistPath);
+            return JsonSerializer.Deserialize<List<ProcessTrustInfo>>(json,
+                new JsonSerializerOptions { PropertyNameCaseInsensitive = true })
+                ?? new List<ProcessTrustInfo>();
+        }
+        catch (Exception ex)
+        {
+            CoreLog.Warn($"ProcessTrust.GetAll : {ex.Message}");
+            return new List<ProcessTrustInfo>();
+        }
+    }
+
+    public bool RemoveFromWhitelist(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+
+        try
+        {
+            var list = GetAll();
+            int removed = list.RemoveAll(e =>
+                string.Equals(NormalizePath(e.Path), NormalizePath(path), StringComparison.OrdinalIgnoreCase));
+
+            if (removed == 0) return false;
+
+            SaveList(list);
+            Reload();
+            CoreLog.Info($"ProcessTrust : entrée retirée de la whitelist ({path})");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            CoreLog.Warn($"ProcessTrust.RemoveFromWhitelist : {ex.Message}");
+            return false;
+        }
+    }
+
+    public bool SetEnabled(string path, bool enabled)
+    {
+        if (string.IsNullOrWhiteSpace(path)) return false;
+
+        try
+        {
+            var list = GetAll();
+            var entry = list.FirstOrDefault(e =>
+                string.Equals(NormalizePath(e.Path), NormalizePath(path), StringComparison.OrdinalIgnoreCase));
+
+            if (entry == null) return false;
+            if (entry.Enabled == enabled) return true;
+
+            entry.Enabled = enabled;
+
+            SaveList(list);
+            Reload();
+            CoreLog.Info($"ProcessTrust : entrée {(enabled ? "activée" : "désactivée")} ({path})");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            CoreLog.Warn($"ProcessTrust.SetEnabled : {ex.Message}");
+            return false;
+        }
+    }
+
+    private void SaveList(List<ProcessTrustInfo> list)
+    {
+        string json = JsonSerializer.Serialize(list,
+            new JsonSerializerOptions { WriteIndented = true });
+        File.WriteAllText(_whitelistPath, json);
     }
 
     private void LoadWhitelist()
@@ -407,6 +491,38 @@ public sealed class ProcessTrustService
             }
         }
         catch { return null; }
+    }
+
+    /// <summary>
+    /// Vérifie que le fichier est signé Authenticode ET que le subject du certificat
+    /// contient la sous-chaîne attendue (ex. "Microsoft").
+    /// </summary>
+    public static bool IsSignedBy(string filePath, string publisherSubstring)
+    {
+        if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+            return false;
+
+        try
+        {
+            // 1) Vérification Authenticode (déjà en place)
+            if (TryGetAuthenticodePublisher(filePath) == null)
+                return false;
+
+            // 2) Extraction du subject du certificat signataire
+            //    X509Certificate.CreateFromSignedFile est marqué obsolète en .NET 6+
+            //    mais reste fonctionnel et c'est la seule API simple côté BCL.
+    #pragma warning disable SYSLIB0057
+            using var cert = System.Security.Cryptography.X509Certificates
+                                  .X509Certificate.CreateFromSignedFile(filePath);
+    #pragma warning restore SYSLIB0057
+
+            string subject = cert.Subject ?? "";
+            return subject.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
+        }
+        catch
+        {
+            return false;
+        }
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]

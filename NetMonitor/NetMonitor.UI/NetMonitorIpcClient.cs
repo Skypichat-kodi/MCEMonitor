@@ -92,6 +92,16 @@ namespace NetMonitor.UI
         public string? ProcessPath { get; set; }
     }
 
+    public class BlockedIpRetryDto
+    {
+        public string Ip { get; set; } = "";
+        public string OriginalDetector { get; set; } = "-";
+        public DateTime BlockedAt { get; set; }
+        public DateTime FirstRetryAt { get; set; }
+        public DateTime LastRetryAt { get; set; }
+        public int RetryCount { get; set; }
+    }
+
     // ============================================================
     //  Statistiques (miroir de StatsBlock côté serveur)
     // ============================================================
@@ -147,6 +157,15 @@ namespace NetMonitor.UI
         public Dictionary<string, int> SeverityCounts { get; set; } = new();
         public StatsBlockDto Active { get; set; } = new();
         public StatsBlockDto Blocked { get; set; } = new();
+    }
+
+    public class WhitelistEntryDto
+    {
+        public string Name { get; set; } = "";
+        public string Path { get; set; } = "";
+        public string? Sha256 { get; set; }
+        public string? Publisher { get; set; }
+        public bool Enabled { get; set; } = true;
     }
 
     public class NetPendingProcess
@@ -260,6 +279,12 @@ namespace NetMonitor.UI
         public static async Task<NetWebStatus?> GetWebStatus()
             => Deserialize<NetWebStatus>(await SendCommand("get-web-status"));
 
+        public static async Task<List<BlockedIpRetryDto>?> GetBlockedIpRetriesAsync()
+            => Deserialize<List<BlockedIpRetryDto>>(await SendCommand("get-blocked-retries"));
+            
+        public static async Task<List<WhitelistEntryDto>?> GetWhitelistAsync()
+            => Deserialize<List<WhitelistEntryDto>>(await SendCommand("get-whitelist"));            
+
         // ---------- Actions ----------
 
         public static async Task<bool> ClearActiveIntrusionsAsync()
@@ -277,6 +302,15 @@ namespace NetMonitor.UI
         public static async Task<bool> UnblockIpAsync(string ip)
             => IsOk(await SendCommand($"unblock-ip {ip}"));
 
+        public static async Task<bool> ClearBlockedIpRetriesAsync()
+            => IsOk(await SendCommand("clear-blocked-retries"));
+            
+        public static async Task<bool> RemoveWhitelistEntryAsync(string path)
+            => IsOk(await SendCommand($"unwhitelist-process {path}"));
+
+        public static async Task<bool> ToggleWhitelistEntryAsync(string path, bool enabled)
+            => IsOk(await SendCommand($"toggle-whitelist-entry {path}|{(enabled ? "true" : "false")}"));            
+    
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {
             string cmd = $"set-web-config enabled={enabled.ToString().ToLower()}" +
@@ -380,6 +414,6 @@ namespace NetMonitor.UI
         {
             var resp = await SendCommand("unblock-process " + path);
             return resp != null && resp.Contains("\"status\":\"ok\"");
-        }                                        
+        }                                            
     }
 }
