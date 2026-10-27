@@ -17,13 +17,71 @@
         <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
         <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
 
-        <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+        <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#2D2D30"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridColumnHeader">
+                        <Grid>
+                            <Border x:Name="Bd"
+                                    Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    Padding="{TemplateBinding Padding}">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="Auto"/>
+                                    </Grid.ColumnDefinitions>
+                                    <ContentPresenter Grid.Column="0"
+                                                      VerticalAlignment="Center"
+                                                      HorizontalAlignment="Left"
+                                                      SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                                    <TextBlock x:Name="SortArrow"
+                                               Grid.Column="1"
+                                               Text=""
+                                               FontSize="9"
+                                               Foreground="#4CC2FF"
+                                               VerticalAlignment="Center"
+                                               Margin="4,0,0,0"
+                                               Visibility="Collapsed"/>
+                                </Grid>
+                            </Border>
+                            <!-- Grippers pour le resize des colonnes -->
+                            <Thumb x:Name="PART_LeftHeaderGripper"
+                                   HorizontalAlignment="Left"
+                                   Width="8"
+                                   Cursor="SizeWE"
+                                   Background="Transparent"
+                                   Opacity="0"/>
+                            <Thumb x:Name="PART_RightHeaderGripper"
+                                   HorizontalAlignment="Right"
+                                   Width="8"
+                                   Cursor="SizeWE"
+                                   Background="Transparent"
+                                   Opacity="0"/>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="SortDirection" Value="Ascending">
+                                <Setter TargetName="SortArrow" Property="Text" Value="▲"/>
+                                <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="SortDirection" Value="Descending">
+                                <Setter TargetName="SortArrow" Property="Text" Value="▼"/>
+                                <Setter TargetName="SortArrow" Property="Visibility" Value="Visible"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#3A3A3D"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
 
         <Style TargetType="DataGridCell">
