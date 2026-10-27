@@ -70,12 +70,17 @@ namespace NetMonitor.Service
         // Journal d'audit pour les alertes ignorées (whitelist)
         private readonly List<IntrusionEvent> _auditHistory = new();
 
-        // Compteurs de tentatives observées sur des IP déjà bloquées
+        // Compteurs de tentatives observées sur des IP déjà bloquées     
         private readonly ConcurrentDictionary<string, BlockedIpRetryInfo> _blockedIpRetries = new();
+        private bool _retriesDirty = false;        
 
         private static readonly string AuditFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "audit_history.json");
+            
+        private static readonly string BlockedIpRetriesFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "blocked_ip_retries.json");            
             
         public bool IsRunning => _etw.IsRunning;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
@@ -203,24 +208,46 @@ namespace NetMonitor.Service
         {
             var now = DateTime.UtcNow;
 
+            // ... code existant : nettoyage des IPs auto-bloquées temporaires ...
+
             var expired = _autoBlockedTempIps
                 .Where(kv => kv.Value <= now)
                 .Select(kv => kv.Key)
                 .ToList();
 
-            if (expired.Count == 0) return;
-
-            lock (_alertsLock)
+            if (expired.Count > 0)
             {
-                foreach (var ip in expired)
+                lock (_alertsLock)
                 {
-                    int removed = _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
-                    _autoBlockedTempIps.TryRemove(ip, out _);
-
-                    if (removed > 0)
-                        CoreLog.Debug($"[AUTO-BLOCK] IP {ip} retirée des actives après {AutoBlockVisibilitySeconds}s ({removed} entrée(s))");
+                    foreach (var ip in expired)
+                    {
+                        int removed = _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
+                        _autoBlockedTempIps.TryRemove(ip, out _);
+                        if (removed > 0)
+                            CoreLog.Debug($"[AUTO-BLOCK] IP {ip} retirée des actives après {AutoBlockVisibilitySeconds}s ({removed} entrée(s))");
+                    }
                 }
             }
+
+            // ✅ NOUVEAU : purge des retries > 7 jours
+            var cutoff = now.AddDays(-7);
+            var staleRetries = _blockedIpRetries
+                .Where(kv => kv.Value.LastRetryAt < cutoff)
+                .Select(kv => kv.Key)
+                .ToList();
+
+            if (staleRetries.Count > 0)
+            {
+                foreach (var ip in staleRetries)
+                    _blockedIpRetries.TryRemove(ip, out _);
+
+                CoreLog.Info($"[INTERCEPTIONS] {staleRetries.Count} entrée(s) purgée(s) (> 7 jours)");
+                _retriesDirty = true;
+            }
+
+            // ✅ NOUVEAU : sauvegarde si nécessaire
+            if (_retriesDirty)
+                SaveBlockedIpRetries();
         }
 
         public void Stop()
@@ -330,6 +357,7 @@ namespace NetMonitor.Service
         public void ClearBlockedIpRetries()
         {
             _blockedIpRetries.Clear();
+            SaveBlockedIpRetries();
             CoreLog.Info("Compteurs de tentatives sur IP bloquée vidés");
         }
 
@@ -354,6 +382,8 @@ namespace NetMonitor.Service
                     existing.RetryCount++;
                     return existing;
                 });
+
+            _retriesDirty = true;   // ← ajout
         }
 
         public bool BlockIp(string ip, out string errorMessage,
@@ -437,6 +467,7 @@ namespace NetMonitor.Service
 
             _autoBlockedTempIps.TryRemove(ip, out _);
             _blockedIpRetries.TryRemove(ip, out _);
+            SaveBlockedIpRetries();
 
             bool removed = false;
             lock (_alertsLock)
@@ -617,6 +648,58 @@ namespace NetMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Warn($"SaveBlockedIps : {ex.Message}");
+            }
+        }
+
+        public void LoadBlockedIpRetries()
+        {
+            try
+            {
+                if (!File.Exists(BlockedIpRetriesFile)) return;
+
+                var json = File.ReadAllText(BlockedIpRetriesFile);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpRetryInfo>>(json);
+
+                if (list == null || list.Count == 0) return;
+
+                // Purge : ne garde que les entrées dont la dernière tentative < 7 jours
+                var cutoff = DateTime.UtcNow.AddDays(-7);
+                var fresh = list.Where(r => r.LastRetryAt >= cutoff).ToList();
+
+                int purged = list.Count - fresh.Count;
+
+                _blockedIpRetries.Clear();
+                foreach (var r in fresh)
+                    _blockedIpRetries[r.Ip] = r;
+
+                CoreLog.Info($"Interceptions restaurées : {fresh.Count} entrée(s)" +
+                             (purged > 0 ? $" ({purged} expirée(s) purgée(s))" : ""));
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"LoadBlockedIpRetries : {ex.Message}");
+            }
+        }
+
+        private void SaveBlockedIpRetries()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(BlockedIpRetriesFile)!);
+
+                var snapshot = _blockedIpRetries.Values
+                    .OrderByDescending(r => r.LastRetryAt)
+                    .ToList();
+
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+
+                File.WriteAllText(BlockedIpRetriesFile, json);
+                _retriesDirty = false;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"SaveBlockedIpRetries : {ex.Message}");
             }
         }
 
