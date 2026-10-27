@@ -201,17 +201,14 @@ namespace NetMonitor.Service.Web
                             <td class='info-cell'>{BuildIpInfoLink(h.RemoteIp, lookupUrl)}</td>
                             <td>{h.RemotePort}</td>
                             <td>{h.LocalPort}</td>
-                            <td>{h.Pid}</td>
                             <td>{WebUtility.HtmlEncode(h.ProcessName ?? "-")}</td>
-                            <td title='{WebUtility.HtmlEncode(h.ProcessPath ?? "")}'>{WebUtility.HtmlEncode(Truncate(h.ProcessPath, 60))}</td>
-                            <td title='{WebUtility.HtmlEncode(h.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(h.TrustReason, 40))}</td>
                             <td title='{detailsTitle}'>{WebUtility.HtmlEncode(detailsText)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit (enrichi) ---
@@ -260,6 +257,7 @@ namespace NetMonitor.Service.Web
 
                         blockedRetriesRows.Append($@"<tr>
                             <td><b>{ipEnc}</b></td>
+                            <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
@@ -271,7 +269,7 @@ namespace NetMonitor.Service.Web
                 else
                 {
                     blockedRetriesRows.Append(
-                        "<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>" +
+                        "<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>" +
                         "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 
@@ -531,6 +529,71 @@ namespace NetMonitor.Service.Web
             {
                 CoreLog.Write("WebHandler.BuildChartsPageAsync ERROR : " + ex.Message);
                 return $"<html><body><h2 style='color:#FF6347;font-family:sans-serif'>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
+            }
+        }
+
+        public static string BuildWhitelistPage(NetMonitorEngine engine, NetMonitorSettings settings, string publicHost = "localhost")
+        {
+            try
+            {
+                var entries = engine.GetWhitelistEntries()
+                    .OrderBy(e => e.Name)
+                    .ThenBy(e => e.Path)
+                    .ToList();
+
+                var rows = new System.Text.StringBuilder();
+                if (entries.Count > 0)
+                {
+                    foreach (var e in entries)
+                    {
+                        string pathEnc = WebUtility.HtmlEncode(e.Path);
+                        string nameEnc = WebUtility.HtmlEncode(e.Name);
+                        string publisherEnc = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(e.Publisher) ? "-" : e.Publisher);
+                        string shaDisplay = string.IsNullOrWhiteSpace(e.Sha256)
+                            ? "-"
+                            : (e.Sha256.Length > 12 ? e.Sha256.Substring(0, 12) + "…" : e.Sha256);
+                        string shaEnc = WebUtility.HtmlEncode(shaDisplay);
+                        string shaTitle = WebUtility.HtmlEncode(e.Sha256 ?? "");
+                        string enabledAttr = e.Enabled ? "checked" : "";
+
+                        rows.Append($@"<tr>
+                            <td>{nameEnc}</td>
+                            <td title='{pathEnc}'>{WebUtility.HtmlEncode(Truncate(e.Path, 60))}</td>
+                            <td style='text-align:center'>
+                                <input type='checkbox' {enabledAttr}
+                                       onchange=""toggleWhitelist(this, '{WebUtility.HtmlEncode(e.Path.Replace("'", "\\'"))}')"">
+                            </td>
+                            <td title='{publisherEnc}'>{publisherEnc}</td>
+                            <td title='{shaTitle}' style='font-family:Consolas,monospace;font-size:11px'>{shaEnc}</td>
+                            <td style='text-align:center'>
+                                <button type='button' class='action-btn danger' style='padding:2px 8px'
+                                        onclick=""removeWhitelist('{WebUtility.HtmlEncode(e.Path.Replace("'", "\\'"))}')"">🗑</button>
+                            </td>
+                        </tr>");
+                    }
+                }
+                else
+                {
+                    rows.Append("<tr><td colspan='6' style='text-align:center;color:#888;padding:20px'>Aucune entrée dans la liste blanche</td></tr>");
+                }
+
+                var model = new Dictionary<string, object?>
+                {
+                    ["MachineName"]  = Environment.MachineName,
+                    ["LastUpdate"]   = engine.LastUpdateTime == DateTime.MinValue ? "Jamais" : engine.LastUpdateTime.ToString("dd/MM/yyyy HH:mm:ss"),
+                    ["WhitelistRows"] = rows.ToString(),
+                    ["WhitelistCount"] = entries.Count,
+                    ["ActiveCount"]   = entries.Count(e => e.Enabled)
+                };
+
+                string html = ViewRenderer.Render("WhitelistPage.html", model);
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                return html;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("WebHandler.BuildWhitelistPage ERROR : " + ex.Message);
+                return $"<html><body><h2>Erreur : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }
         }
 

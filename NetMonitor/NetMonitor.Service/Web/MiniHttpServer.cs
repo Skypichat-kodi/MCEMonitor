@@ -218,6 +218,43 @@ namespace NetMonitor.Service.Web
                         : $"WebServer : échec whitelist {processPath}");
                     Redirect(ctx);
                 }
+                else if (path == "/whitelist")
+                {
+                    string html = WebHandler.BuildWhitelistPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
+                    SendHtml(ctx, html);
+                }
+                else if (path == "/unwhitelist-process" && ctx.Request.HttpMethod == "POST")
+                {
+                    string processPath = ReadFormValue(ctx, "path");
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    bool ok = _engine.RemoveWhitelistEntry(processPath);
+                    CoreLog.Write(ok
+                        ? $"WebServer : entrée {processPath} retirée de la liste blanche"
+                        : $"WebServer : échec retrait whitelist {processPath}");
+                    RedirectTo(ctx, "/whitelist");
+                }
+                else if (path == "/toggle-whitelist-entry" && ctx.Request.HttpMethod == "POST")
+                {
+                    string processPath = ReadFormValue(ctx, "path");
+                    string enabledStr = ReadFormValue(ctx, "enabled");
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    bool enabled = enabledStr.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    bool ok = _engine.SetWhitelistEntryEnabled(processPath, enabled);
+                    CoreLog.Write(ok
+                        ? $"WebServer : entrée {processPath} {(enabled ? "activée" : "désactivée")}"
+                        : $"WebServer : échec toggle whitelist {processPath}");
+                    RedirectTo(ctx, "/whitelist");
+                }                
                 else if (path == "/export-pdf")
                 {
                     var history = _engine.GetAlerts();
@@ -313,6 +350,13 @@ namespace NetMonitor.Service.Web
         {
             ctx.Response.StatusCode = 302;
             ctx.Response.Headers["Location"] = "/";
+            ctx.Response.Close();
+        }
+
+        private static void RedirectTo(HttpListenerContext ctx, string location)
+        {
+            ctx.Response.StatusCode = 302;
+            ctx.Response.Headers["Location"] = location;
             ctx.Response.Close();
         }
 

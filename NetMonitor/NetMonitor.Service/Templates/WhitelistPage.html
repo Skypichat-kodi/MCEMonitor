@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>{{tr:Liste blanche}} - {{MachineName}}</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<style>
+    html { background-color: #1e1e1e; }
+    body {
+        margin: 0;
+        padding: 20px;
+        font-family: Segoe UI, Arial, sans-serif;
+        background-color: #1e1e1e;
+        background-image: url('/Resources/Images/Web-background.png');
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        color: #e5e5e5;
+        min-height: 100vh;
+    }
+    h1 { margin: 0 0 20px 0; font-size: 22px; color: #6CCB5F; display: flex; align-items: center; gap: 10px; }
+    h2 { margin: 25px 0 10px 0; font-size: 16px; color: #6CCB5F; display: flex; align-items: center; gap: 10px; }
+
+    .action-bar { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+    .action-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        padding: 6px 12px; background: #007acc; color: white;
+        text-decoration: none; border-radius: 4px; font-size: 13px;
+        border: none; cursor: pointer; transition: background 0.15s ease;
+    }
+    .action-btn:hover { background: #0088dd; }
+    .action-btn.danger { background: #cc3300; }
+    .action-btn.danger:hover { background: #e64d1a; }
+    .action-btn.secondary { background: #444; }
+    .action-btn.secondary:hover { background: #555; }
+
+    .info {
+        background: #252526; border: 1px solid #3c3c3c; border-radius: 6px;
+        padding: 12px; margin-bottom: 20px;
+    }
+    .info-grid { display: flex; flex-wrap: wrap; gap: 10px 30px; font-size: 13px; }
+    .info-pair { display: inline-flex; gap: 6px; align-items: baseline; }
+    .label { color: #ccc; }
+    .value { font-weight: bold; color: #fff; }
+
+    table {
+        width: 100%; border-collapse: collapse; font-size: 13px;
+        margin-top: 10px; border: 1px solid #2E5A1A; border-radius: 6px; overflow: hidden;
+    }
+    th, td { padding: 6px 8px; border-bottom: 1px solid #2E5A1A; text-align: left; }
+    td { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    th { background: #1F3A15; color: #C0E0A8; font-weight: 600; }
+    tr:nth-child(even) td { background: #1A2412; }
+    tr:nth-child(odd)  td { background: #141F0D; }
+    tr:hover td { background: #243A18; }
+
+    .table-wrapper {
+        overflow-y: auto; overflow-x: auto; border: 1px solid #2E5A1A;
+        border-radius: 6px; margin-top: 10px;
+    }
+    .table-wrapper table { margin-top: 0; border: none; border-radius: 0; }
+    .table-wrapper thead th { position: sticky; top: 0; z-index: 1; box-shadow: 0 1px 0 #2E5A1A; }
+
+    .footer { margin-top: 30px; font-size: 12px; color: #888; text-align: center; }
+
+    .page-header {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 20px; margin: 0 0 20px 0; flex-wrap: wrap;
+    }
+    .page-header h1 { margin: 0; }
+
+    #peerBar { display: flex; flex-direction: row; gap: 8px; flex-wrap: wrap; }
+
+    .peer-btn {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 8px 14px; background: #2D2D30; border: 1px solid #3C3C3C;
+        border-radius: 20px; color: #E5E5E5; font-size: 13px; font-weight: 500;
+        font-family: inherit; cursor: pointer; text-decoration: none;
+        transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.35); min-width: 180px;
+        justify-content: flex-start; pointer-events: auto;
+    }
+    .peer-btn:hover:not(.disabled):not(.offline) {
+        background: #3A3A3D; border-color: #4CC2FF; transform: translateY(-2px);
+    }
+    .peer-btn.offline, .peer-btn.disabled { cursor: default; opacity: 0.55; }
+    .peer-btn.offline:hover, .peer-btn.disabled:hover {
+        background: #2D2D30; border-color: #3C3C3C; transform: none;
+    }
+    .peer-dot {
+        display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+        flex-shrink: 0; transition: background 0.2s ease, box-shadow 0.2s ease;
+    }
+    .peer-dot.online   { background: #4caf50; box-shadow: 0 0 8px #4caf50; }
+    .peer-dot.offline  { background: #f44336; }
+    .peer-dot.disabled { background: #666; }
+    .peer-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    input[type="checkbox"] { cursor: pointer; transform: scale(1.2); }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+    <h1>
+        <img src="/Resources/Icons/lan.png" alt="" style="width:28px;height:28px">
+        {{tr:Liste blanche}} - ({{MachineName}})
+    </h1>
+    <div id="peerBar"><!--PEERBAR--></div>
+</div>
+
+<div class="action-bar">
+    <a href="/" class="action-btn secondary">
+        ← {{tr:Retour}}
+    </a>
+    <a href="/whitelist" class="action-btn secondary">
+        🔄 {{tr:Actualiser}}
+    </a>
+</div>
+
+<div class="info">
+    <div class="info-grid">
+        <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:Dernière mise à jour}} :</span><span class="value">{{LastUpdate}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:Entrées}} :</span><span class="value">{{WhitelistCount}}</span></span>
+        <span class="info-pair"><span class="label">{{tr:Actives}} :</span><span class="value">{{ActiveCount}}</span></span>
+    </div>
+</div>
+
+<div class="info" style="background:#1F3A15;border-color:#2E5A1A">
+    <span style="color:#C0E0A8;font-size:12px">
+        ℹ  Retirer un processus le fera réapparaître dans « Processus en attente » au prochain événement réseau.
+        Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée.
+    </span>
+</div>
+
+<h2>
+    <span style="font-size:20px">✅</span>
+    {{tr:Processus approuvés}}
+</h2>
+
+<div class="table-wrapper">
+    <table>
+        <thead>
+            <tr>
+                <th style="width:160px">{{tr:Nom}}</th>
+                <th>{{tr:Chemin}}</th>
+                <th style="width:70px;text-align:center">{{tr:Actif}}</th>
+                <th style="width:160px">{{tr:Éditeur}}</th>
+                <th style="width:130px">SHA-256</th>
+                <th style="width:70px;text-align:center">{{tr:Actions}}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{WhitelistRows}}
+        </tbody>
+    </table>
+</div>
+
+<div class="footer">
+    {{tr:NetMonitor - Généré à}} {{LastUpdate}}
+</div>
+
+<script>
+function removeWhitelist(path) {
+    if (!confirm("{{tr:Retirer cette entrée de la liste blanche ?}}" + "\n\n" + path + "\n\n" +
+                 "{{tr:Le processus réapparaîtra dans « Processus en attente » au prochain événement réseau.}}"))
+        return;
+
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/unwhitelist-process';
+    var input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'path';
+    input.value = path;
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function toggleWhitelist(cb, path) {
+    var enabled = cb.checked ? 'true' : 'false';
+
+    fetch('/toggle-whitelist-entry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'path=' + encodeURIComponent(path) + '&enabled=' + enabled
+    }).then(function () {
+        location.reload();
+    });
+}
+</script>
+</body>
+</html>

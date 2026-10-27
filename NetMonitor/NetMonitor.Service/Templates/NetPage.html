@@ -440,7 +440,10 @@
     </a>
     <a href="/stats" class="action-btn">
         📊 {{tr:Statistiques}}
-    </a>            
+    </a>
+    <a href="/whitelist" class="action-btn">
+        ✅ {{tr:Liste blanche}}
+    </a>                
 </div>
 
 <div class="info">
@@ -554,6 +557,7 @@
         <thead>
             <tr>
                 <th style="width:150px">{{tr:IP}}</th>
+                <th style="width:32px">{{tr:Info}}</th>
                 <th style="width:150px">{{tr:Détecteur initial}}</th>
                 <th style="width:150px">{{tr:Bloquée le}}</th>
                 <th style="width:150px">{{tr:1ʳᵉ tentative}}</th>
@@ -582,10 +586,7 @@
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Port dst}}</th>
                 <th>{{tr:Port loc}}</th>
-                <th>{{tr:PID}}</th>
                 <th>{{tr:Processus}}</th>
-                <th>{{tr:Chemin}}</th>
-                <th>{{tr:Raison}}</th>
                 <th>{{tr:Détails}}</th>
             </tr>
         </thead>
@@ -875,6 +876,110 @@ document.getElementById('btnUnblockIp').addEventListener('click', unblockSelecte
     document.querySelectorAll('tr.selectable').forEach(function (tr) {
         tr.addEventListener('click', function () {
             setTimeout(schedule, 0);
+        });
+    });
+})();
+</script>
+
+<script>
+// ============================================================
+//  Tri par clic sur les en-têtes de tous les tableaux
+//  Cycle : ascendant → descendant → original
+// ============================================================
+(function () {
+    function sortTable(table, colIndex, direction) {
+        var tbody = table.querySelector('tbody');
+        if (!tbody) return;
+
+        var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+
+        // Exclut les lignes "aucune donnée"
+        rows = rows.filter(function (r) { return !r.querySelector('td[colspan]'); });
+
+        rows.sort(function (a, b) {
+            var aCell = a.querySelectorAll('td')[colIndex];
+            var bCell = b.querySelectorAll('td')[colIndex];
+            if (!aCell || !bCell) return 0;
+
+            var aVal = aCell.getAttribute('data-sort') || aCell.textContent.trim();
+            var bVal = bCell.getAttribute('data-sort') || bCell.textContent.trim();
+
+            // Tri numérique si les deux valeurs ressemblent à des nombres
+            var aNum = parseFloat(aVal);
+            var bNum = parseFloat(bVal);
+            if (!isNaN(aNum) && !isNaN(bNum)) {
+                return direction === 'asc' ? aNum - bNum : bNum - aNum;
+            }
+
+            return direction === 'asc'
+                ? aVal.localeCompare(bVal, 'fr')
+                : bVal.localeCompare(aVal, 'fr');
+        });
+
+        // Mémorise l'ordre original une seule fois
+        if (!tbody.dataset.originalOrder) {
+            tbody.dataset.originalOrder = JSON.stringify(
+                rows.map(function (r) { return r.outerHTML; })
+            );
+        }
+
+        rows.forEach(function (r) { tbody.appendChild(r); });
+    }
+
+    function restoreOriginal(table) {
+        var tbody = table.querySelector('tbody');
+        if (!tbody || !tbody.dataset.originalOrder) return;
+
+        var original = JSON.parse(tbody.dataset.originalOrder);
+        tbody.innerHTML = original.join('');
+        delete tbody.dataset.originalOrder;
+    }
+
+    var allTables = document.querySelectorAll('.table-wrapper table');
+
+    allTables.forEach(function (table) {
+        var headers = table.querySelectorAll('thead th');
+        headers.forEach(function (th, colIndex) {
+            // Ignore les colonnes utilitaires (checkbox, info, actions)
+            if (colIndex === 0 && th.style.width === '30px') return;
+            if (th.textContent.trim() === 'Info' || th.textContent.trim() === '') return;
+
+            th.style.cursor = 'pointer';
+            th.style.userSelect = 'none';
+            th.dataset.sortState = 'none';
+
+            th.addEventListener('click', function () {
+                // Cycle ascendant → descendant → original
+                var state = th.dataset.sortState;
+                var newState;
+                var arrow = '';
+
+                // Reset les autres en-têtes
+                headers.forEach(function (other) {
+                    if (other !== th) {
+                        other.dataset.sortState = 'none';
+                        other.textContent = other.textContent.replace(/[⇅▲▼]\s*$/, '').trim();
+                    }
+                });
+
+                if (state === 'none') {
+                    newState = 'asc';
+                    arrow = ' ▲';
+                } else if (state === 'asc') {
+                    newState = 'desc';
+                    arrow = ' ▼';
+                } else {
+                    newState = 'none';
+                    restoreOriginal(table);
+                }
+
+                th.dataset.sortState = newState;
+                th.textContent = th.textContent.replace(/[⇅▲▼]\s*$/, '').trim() + arrow;
+
+                if (newState !== 'none') {
+                    sortTable(table, colIndex, newState);
+                }
+            });
         });
     });
 })();
