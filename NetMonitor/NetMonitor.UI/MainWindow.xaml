@@ -382,6 +382,169 @@
             </Setter>
         </Style>
 
+        <!-- ============================================================ -->
+        <!--  ComboBox sombre (cohérent avec MediaMonitor UI)              -->
+        <!-- ============================================================ -->
+        <Style TargetType="ComboBox">
+            <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid>
+                            <ToggleButton x:Name="ToggleButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="Bd"
+                                                Background="#1E1E1E"
+                                                BorderBrush="#3C3C3C"
+                                                BorderThickness="1"
+                                                CornerRadius="4">
+                                            <Grid>
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*"/>
+                                                    <ColumnDefinition Width="20"/>
+                                                </Grid.ColumnDefinitions>
+                                                <Path Grid.Column="1"
+                                                      HorizontalAlignment="Center"
+                                                      VerticalAlignment="Center"
+                                                      Data="M 0 0 L 4 4 L 8 0 Z"
+                                                      Fill="#E5E5E5"/>
+                                            </Grid>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <ContentPresenter x:Name="ContentSite"
+                                              IsHitTestVisible="False"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                              Margin="8,0,24,0"
+                                              VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"/>
+
+                            <Popup x:Name="PART_Popup"
+                                   AllowsTransparency="True"
+                                   Placement="Bottom"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   PopupAnimation="Slide">
+                                <Grid x:Name="DropDown"
+                                      SnapsToDevicePixels="True"
+                                      MinWidth="{TemplateBinding ActualWidth}"
+                                      MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                                    <Border x:Name="DropDownBorder"
+                                            Background="#252526"
+                                            BorderBrush="#3C3C3C"
+                                            BorderThickness="1"
+                                            CornerRadius="4"/>
+                                    <ScrollViewer SnapsToDevicePixels="True">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained"/>
+                                    </ScrollViewer>
+                                </Grid>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="DropDownBorder" Property="MinHeight" Value="30"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============================================================ -->
+        <!--  ComboBoxItem sombre                                          -->
+        <!-- ============================================================ -->
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="Bd"
+                                Background="{TemplateBinding Background}"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#2D2D30"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Bd" Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <!-- ============================================================ -->
+        <!--  CheckBox sombre                                              -->
+        <!-- ============================================================ -->
+        <Style TargetType="CheckBox">
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="FontSize" Value="13"/>
+        </Style>
+
+        <!-- ============================================================ -->
+        <!--  Bouton "i" rond pour les colonnes Info                       -->
+        <!-- ============================================================ -->
+        <Style x:Key="InfoButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="#4CC2FF"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="BorderBrush" Value="#555555"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="HorizontalAlignment" Value="Center"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="11">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -494,6 +657,28 @@
                             </Button>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                            <TextBlock Text="{loc:Tr 'Sévérité :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbActiveSeverity" Width="120" Margin="0,0,15,0"
+                                      SelectionChanged="ActiveFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Toutes'}"/>
+                                <ComboBoxItem Content="Critical"/>
+                                <ComboBoxItem Content="High"/>
+                                <ComboBoxItem Content="Warning"/>
+                                <ComboBoxItem Content="Info"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <TextBox x:Name="txtActiveSearch" Width="220" Margin="0,0,15,0"
+                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="ActiveFilter_Changed"/>
+
+                            <TextBlock x:Name="lblActiveFilterCount" VerticalAlignment="Center"
+                                       Foreground="#888" FontSize="11" Text=""/>
+                        </StackPanel>
+
                         <DataGrid x:Name="ActiveIntrusionsGrid"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
@@ -511,12 +696,12 @@
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
+                                                    Width="22" Height="22"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Content="i">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -527,7 +712,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
                                             </Button>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -628,6 +812,28 @@
                             </Button>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                            <TextBlock Text="{loc:Tr 'Sévérité :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbPendingSeverity" Width="120" Margin="0,0,15,0"
+                                      SelectionChanged="PendingFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Toutes'}"/>
+                                <ComboBoxItem Content="Critical"/>
+                                <ComboBoxItem Content="High"/>
+                                <ComboBoxItem Content="Warning"/>
+                                <ComboBoxItem Content="Info"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <TextBox x:Name="txtPendingSearch" Width="220" Margin="0,0,15,0"
+                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="PendingFilter_Changed"/>
+
+                            <TextBlock x:Name="lblPendingFilterCount" VerticalAlignment="Center"
+                                       Foreground="#888" FontSize="11" Text=""/>
+                        </StackPanel>
+
                         <DataGrid x:Name="PendingProcessesGrid"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
@@ -653,12 +859,12 @@
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupProcess_Click" Tag="{Binding ProcessLookupUrl}" Cursor="Hand"
-                                                    ToolTip="Rechercher ce processus sur le web" Padding="0">
+                                            <Button Click="LookupProcess_Click" Tag="{Binding ProcessLookupUrl}"
+                                                    Width="22" Height="22"
+                                                    ToolTip="Rechercher ce processus sur le web"
+                                                    Content="i">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding ProcessName}" Value="{x:Null}">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -669,7 +875,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
                                             </Button>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -784,6 +989,26 @@
                             </Button>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                            <TextBlock Text="{loc:Tr 'Type :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbBlockedType" Width="120" Margin="0,0,15,0"
+                                      SelectionChanged="BlockedFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Tous'}"/>
+                                <ComboBoxItem Content="IP"/>
+                                <ComboBoxItem Content="{loc:Tr 'Processus'}"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <TextBox x:Name="txtBlockedSearch" Width="220" Margin="0,0,15,0"
+                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="BlockedFilter_Changed"/>
+
+                            <TextBlock x:Name="lblBlockedFilterCount" VerticalAlignment="Center"
+                                       Foreground="#888" FontSize="11" Text=""/>
+                        </StackPanel>
+
                         <DataGrid x:Name="BlockedIpsGrid"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
@@ -861,11 +1086,13 @@
             <TabItem Header="{loc:Tr 'Interceptions'}">
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>   <!-- 0 : titre -->
+                        <RowDefinition Height="Auto"/>   <!-- 1 : boutons -->
+                        <RowDefinition Height="Auto"/>   <!-- 2 : filtres -->
+                        <RowDefinition Height="*"/>      <!-- 3 : DataGrid -->
                     </Grid.RowDefinitions>
 
+                    <!-- Titre -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
                                    Foreground="#4CC2FF" VerticalAlignment="Center"/>
@@ -876,6 +1103,7 @@
                                    Margin="15,0,0,0" VerticalAlignment="Center"/>
                     </StackPanel>
 
+                    <!-- Boutons -->
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
                         <Button Width="160" Click="RefreshBlockedRetries_Click" Margin="0,0,10,0">
                             <StackPanel Orientation="Horizontal">
@@ -891,7 +1119,21 @@
                         </Button>
                     </StackPanel>
 
-                    <DataGrid x:Name="BlockedRetriesGrid" Grid.Row="2"
+                    <!-- Filtres -->
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,6">
+                        <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                        <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                        <TextBox x:Name="txtRetriesSearch" Width="280" Margin="0,0,15,0"
+                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                 VerticalContentAlignment="Center"
+                                 TextChanged="RetriesFilter_Changed"/>
+
+                        <TextBlock x:Name="lblRetriesFilterCount" VerticalAlignment="Center"
+                                   Foreground="#888" FontSize="11" Text=""/>
+                    </StackPanel>
+
+                    <!-- DataGrid -->
+                    <DataGrid x:Name="BlockedRetriesGrid" Grid.Row="3"
                               RowHeight="28"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
@@ -912,17 +1154,10 @@
                                     <DataTemplate>
                                         <Button Click="LookupIp_Click"
                                                 Tag="{Binding Ip}"
-                                                Cursor="Hand"
+                                                Width="22" Height="22"
+                                                Style="{StaticResource InfoButtonStyle}"
                                                 ToolTip="Voir les informations sur cette IP"
-                                                Padding="0">
-                                            <Button.Style>
-                                                <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                    <Setter Property="Background" Value="Transparent"/>
-                                                    <Setter Property="BorderThickness" Value="0"/>
-                                                </Style>
-                                            </Button.Style>
-                                            <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
-                                        </Button>
+                                                Content="i"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -987,6 +1222,32 @@
                             </Button>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                            <TextBlock Text="{loc:Tr 'Sévérité :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbHistorySeverity" Width="120" Margin="0,0,15,0"
+                                      SelectionChanged="HistoryFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Toutes'}"/>
+                                <ComboBoxItem Content="Critical"/>
+                                <ComboBoxItem Content="High"/>
+                                <ComboBoxItem Content="Warning"/>
+                                <ComboBoxItem Content="Info"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Détecteur :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbHistoryDetector" Width="140" Margin="0,0,15,0"
+                                      SelectionChanged="HistoryFilter_Changed"/>
+
+                            <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <TextBox x:Name="txtHistorySearch" Width="200" Margin="0,0,15,0"
+                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="HistoryFilter_Changed"/>
+
+                            <TextBlock x:Name="lblHistoryFilterCount" VerticalAlignment="Center"
+                                       Foreground="#888" FontSize="11" Text=""/>
+                        </StackPanel>
+
                         <DataGrid x:Name="AlertsHistoryGrid"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
@@ -1004,12 +1265,12 @@
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
+                                                    Width="22" Height="22"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Content="i">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -1020,7 +1281,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
                                             </Button>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
@@ -1076,6 +1336,22 @@
                             </Button>
                         </StackPanel>
 
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
+                            <TextBlock Text="🔍" FontSize="13" Margin="0,0,8,0" VerticalAlignment="Center" Foreground="#888"/>
+                            <TextBlock Text="{loc:Tr 'Détecteur :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <ComboBox x:Name="cmbAuditDetector" Width="140" Margin="0,0,15,0"
+                                      SelectionChanged="AuditFilter_Changed"/>
+
+                            <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="#B4B4B4" FontSize="12"/>
+                            <TextBox x:Name="txtAuditSearch" Width="220" Margin="0,0,15,0"
+                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                     VerticalContentAlignment="Center"
+                                     TextChanged="AuditFilter_Changed"/>
+
+                            <TextBlock x:Name="lblAuditFilterCount" VerticalAlignment="Center"
+                                       Foreground="#888" FontSize="11" Text=""/>
+                        </StackPanel>
+
                         <DataGrid x:Name="AuditGrid"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
@@ -1115,12 +1391,12 @@
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}" Cursor="Hand"
-                                                    ToolTip="Voir les informations sur cette IP" Padding="0">
+                                            <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
+                                                    Width="22" Height="22"
+                                                    ToolTip="Voir les informations sur cette IP"
+                                                    Content="i">
                                                 <Button.Style>
-                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                        <Setter Property="Background" Value="Transparent"/>
-                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding RemoteIp}" Value="{x:Null}">
                                                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -1131,7 +1407,6 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Button.Style>
-                                                <TextBlock Text="ℹ" Foreground="#4CC2FF" FontWeight="Bold" FontSize="14"/>
                                             </Button>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>

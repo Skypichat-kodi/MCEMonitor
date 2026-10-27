@@ -15,6 +15,7 @@ using System.Text;
 using Microsoft.Web.WebView2.Core;
 using System.ComponentModel;
 using System.Windows.Data;
+using System.Collections.Specialized;
 
 namespace NetMonitor.UI
 {
@@ -111,7 +112,8 @@ namespace NetMonitor.UI
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
             BlockedRetriesGrid.ItemsSource              = _blockedRetries;
             WireAllGridSorting();
-            WireAllGridDoubleClick();            
+            WireAllGridDoubleClick();
+            InitializeAllFilters();            
             WhitelistGrid.ItemsSource                   = _whitelistEntries;
 
             MapWebView.CoreWebView2InitializationCompleted += (s, e) =>
@@ -392,6 +394,7 @@ namespace NetMonitor.UI
                     if (!_showAllHistory)
                         AlertsHistoryGrid.Height = CalculateDataGridHeight(_alertsHistory.Count);
                     RestoreAlertSelection(AlertsHistoryGrid, _alertsHistory, key);
+                    PopulateDetectorCombo(cmbHistoryDetector, _alertsHistory.Select(a => a.Source));
                 }
 
                 // ---- Tableau 4 : audit (whitelist) ----
@@ -424,6 +427,7 @@ namespace NetMonitor.UI
                     if (!_showAllAudit)
                         AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
                     RestoreAlertSelection(AuditGrid, _auditAlerts, key);
+                    PopulateDetectorCombo(cmbAuditDetector, _auditAlerts.Select(a => a.Source));
                 }
 
                 // ---- Tentatives sur IP bloquée ----
@@ -671,6 +675,34 @@ namespace NetMonitor.UI
                     return;
                 }
             }
+        }
+
+        private static void PopulateDetectorCombo(System.Windows.Controls.ComboBox combo, IEnumerable<string> sources)
+        {
+            string? currentSelection = combo.SelectedIndex > 0
+                ? combo.SelectedItem?.ToString()
+                : null;
+
+            var distinct = sources
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .Distinct()
+                .OrderBy(s => s)
+                .ToList();
+
+            // Évite le clignotement : ne recharge que si la liste a changé
+            if (combo.Items.Count - 1 == distinct.Count &&
+                combo.Items.Cast<object>().Skip(1).Select(o => o.ToString()).SequenceEqual(distinct))
+                return;
+
+            combo.Items.Clear();
+            combo.Items.Add(LanguageManager.Get("Toutes") ?? "Toutes");
+            foreach (var s in distinct) combo.Items.Add(s);
+
+            // Restaure la sélection si elle existe encore
+            if (currentSelection != null && distinct.Contains(currentSelection))
+                combo.SelectedItem = currentSelection;
+            else
+                combo.SelectedIndex = 0;
         }
 
         // ------------------------------------------------------------
@@ -1813,6 +1845,182 @@ namespace NetMonitor.UI
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
+        }
+
+        // ------------------------------------------------------------
+        //  M1 : filtres rapides par tableau
+        // ------------------------------------------------------------
+
+        /// <summary>
+        /// Configure le filtre pour une grille : combo + recherche texte + compteur.
+        /// </summary>
+        private void SetupFilter<T>(
+            DataGrid grid,
+            ObservableCollection<T> source,
+            Func<T, string> severitySelector,
+            Func<T, string> detectorSelector,
+            string searchProperties,
+            System.Windows.Controls.ComboBox? severityCombo,
+            System.Windows.Controls.ComboBox? detectorCombo,
+            System.Windows.Controls.TextBox searchBox,
+            System.Windows.Controls.TextBlock countLabel)
+        {
+            var view = CollectionViewSource.GetDefaultView(source);
+            if (view == null) return;
+
+            view.Filter = obj =>
+            {
+                if (obj is not T item) return true;
+
+                // Filtre sévérité
+                if (severityCombo != null && severityCombo.SelectedIndex > 0)
+                {
+                    string selected = (severityCombo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Content?.ToString() ?? "";
+                    if (!string.Equals(severitySelector(item), selected, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+
+                // Filtre détecteur
+                if (detectorCombo != null && detectorCombo.SelectedIndex > 0)
+                {
+                    string selected = detectorCombo.SelectedItem?.ToString() ?? "";
+                    if (!string.Equals(detectorSelector(item), selected, StringComparison.OrdinalIgnoreCase))
+                        return false;
+                }
+
+                // Filtre recherche texte
+                if (!string.IsNullOrWhiteSpace(searchBox.Text))
+                {
+                    string query = searchBox.Text.Trim().ToLowerInvariant();
+                    string haystack = searchProperties
+                        .Split(';', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(prop =>
+                        {
+                            var pi = typeof(T).GetProperty(prop);
+                            return pi?.GetValue(item)?.ToString() ?? "";
+                        })
+                        .Aggregate((a, b) => a + " " + b)
+                        .ToLowerInvariant();
+
+                    if (!haystack.Contains(query))
+                        return false;
+                }
+
+                return true;
+            };
+
+            // Compteur
+            void UpdateCount()
+            {
+                int total = source.Count;
+                int visible = 0;
+                foreach (var _ in view) visible++;
+                countLabel.Text = (total == visible || total == 0)
+                    ? ""
+                    : $"{visible} / {total}";
+            }
+
+            // Recalculer le compteur après chaque refresh
+            ((INotifyCollectionChanged)view).CollectionChanged += (_, __) => UpdateCount();
+            UpdateCount();
+        }
+
+        // ------------------------------------------------------------
+        //  Handlers de changement de filtre
+        // ------------------------------------------------------------
+        private void ActiveFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_activeIntrusions)?.Refresh();
+            UpdateFilterCount(ActiveIntrusionsGrid, lblActiveFilterCount, _activeIntrusions.Count);
+        }
+
+        private void PendingFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_pendingProcesses)?.Refresh();
+            UpdateFilterCount(PendingProcessesGrid, lblPendingFilterCount, _pendingProcesses.Count);
+        }
+
+        private void BlockedFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_blockedIps)?.Refresh();
+            UpdateFilterCount(BlockedIpsGrid, lblBlockedFilterCount, _blockedIps.Count);
+        }
+
+        private void HistoryFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_alertsHistory)?.Refresh();
+            UpdateFilterCount(AlertsHistoryGrid, lblHistoryFilterCount, _alertsHistory.Count);
+        }
+
+        private void AuditFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_auditAlerts)?.Refresh();
+            UpdateFilterCount(AuditGrid, lblAuditFilterCount, _auditAlerts.Count);
+        }
+
+        private void RetriesFilter_Changed(object sender, EventArgs e)
+        {
+            CollectionViewSource.GetDefaultView(_blockedRetries)?.Refresh();
+            UpdateFilterCount(BlockedRetriesGrid, lblRetriesFilterCount, _blockedRetries.Count);
+        }
+
+        private static void UpdateFilterCount(DataGrid grid, System.Windows.Controls.TextBlock label, int total)
+        {
+            if (grid.ItemsSource == null) return;
+
+            int visible = 0;
+            foreach (var _ in grid.Items) visible++;
+
+            label.Text = (visible == total || total == 0)
+                ? ""
+                : $"{visible} / {total}";
+        }
+
+        // ------------------------------------------------------------
+        //  Initialisation des filtres au démarrage
+        // ------------------------------------------------------------
+        private void InitializeAllFilters()
+        {
+            SetupFilter<GroupedAlertRow>(
+                ActiveIntrusionsGrid, _activeIntrusions,
+                r => r.Severity, _ => "",
+                "RemoteIp;Detectors;Message",
+                cmbActiveSeverity, null, txtActiveSearch, lblActiveFilterCount);
+
+            SetupFilter<PendingProcessRow>(
+                PendingProcessesGrid, _pendingProcesses,
+                r => r.Severity, _ => "",
+                "ProcessName;ProcessPath;TrustReason;RemoteIp",
+                cmbPendingSeverity, null, txtPendingSearch, lblPendingFilterCount);
+
+            SetupFilter<BlockedIpRow>(
+                BlockedIpsGrid, _blockedIps,
+                _ => "", _ => "",
+                "Ip;ProcessPath;Source;Message",
+                null, null, txtBlockedSearch, lblBlockedFilterCount);
+
+            SetupFilter<AlertRow>(
+                AlertsHistoryGrid, _alertsHistory,
+                r => r.Severity, r => r.Source,
+                "RemoteIp;ProcessName;Message;Details;Source",
+                cmbHistorySeverity, cmbHistoryDetector, txtHistorySearch, lblHistoryFilterCount);
+
+            SetupFilter<AlertRow>(
+                AuditGrid, _auditAlerts,
+                _ => "", r => r.Source,
+                "RemoteIp;ProcessName;Message;Details;Source",
+                null, cmbAuditDetector, txtAuditSearch, lblAuditFilterCount);
+
+            SetupFilter<BlockedIpRetryRow>(
+                BlockedRetriesGrid, _blockedRetries,
+                _ => "", _ => "",
+                "Ip;OriginalDetector",
+                null, null, txtRetriesSearch, lblRetriesFilterCount);
+                
+            cmbActiveSeverity.SelectedIndex  = 0;
+            cmbPendingSeverity.SelectedIndex = 0;
+            cmbBlockedType.SelectedIndex     = 0;
+            cmbHistorySeverity.SelectedIndex = 0;                
         }
         
         private bool HasActiveSelection()
