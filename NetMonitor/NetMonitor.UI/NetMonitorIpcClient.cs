@@ -182,6 +182,23 @@ namespace NetMonitor.UI
         public string severity { get; set; } = "";
         public string? detector { get; set; }
     }
+    
+    public class AuditGroupedDto
+    {
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+        public int Count { get; set; }
+        public string Severity { get; set; } = "";
+        public string Source { get; set; } = "";
+        public string? RemoteIp { get; set; }
+        public int RemotePort { get; set; }
+        public int LocalPort { get; set; }
+        public int Pid { get; set; }
+        public string? ProcessName { get; set; }
+        public string? ProcessPath { get; set; }
+        public string? TrustReason { get; set; }
+        public string? Details { get; set; }
+    }    
 
     // ============================================================
     //  Client IPC
@@ -238,12 +255,24 @@ namespace NetMonitor.UI
         private static T? Deserialize<T>(string? json) where T : class
         {
             if (string.IsNullOrWhiteSpace(json)) return null;
+
             try
             {
                 return JsonSerializer.Deserialize<T>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
-            catch { return null; }
+            catch (Exception ex)
+            {
+                // ⚠ Ne plus avaler silencieusement : on log pour diagnostiquer
+                // immédiatement un mismatch de contrat IPC (enum vs string, etc.)
+                CoreLog.Error(
+                    $"Deserialize<{typeof(T).Name}> FAIL : {ex.GetType().Name} — {ex.Message}");
+
+                string preview = json.Length > 500 ? json.Substring(0, 500) + "…" : json;
+                CoreLog.Error($"JSON reçu (aperçu) : {preview}");
+
+                return null;
+            }
         }
 
         private static bool IsOk(string? json)
@@ -283,7 +312,10 @@ namespace NetMonitor.UI
             => Deserialize<List<BlockedIpRetryDto>>(await SendCommand("get-blocked-retries"));
             
         public static async Task<List<WhitelistEntryDto>?> GetWhitelistAsync()
-            => Deserialize<List<WhitelistEntryDto>>(await SendCommand("get-whitelist"));            
+            => Deserialize<List<WhitelistEntryDto>>(await SendCommand("get-whitelist"));
+            
+        public static async Task<List<AuditGroupedDto>?> GetAuditHistoryGroupedAsync()
+            => Deserialize<List<AuditGroupedDto>>(await SendCommand("get-audit-grouped"));                        
 
         // ---------- Actions ----------
 

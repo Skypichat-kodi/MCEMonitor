@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -29,7 +29,7 @@ namespace NetMonitor.Service.Web
 
             if (!_settings.WebEnabled)
             {
-                CoreLog.Write("WebServer : désactivé (WebEnabled=false)");
+                CoreLog.Write("WebServer : dÃ©sactivÃ© (WebEnabled=false)");
                 return;
             }
 
@@ -46,7 +46,7 @@ namespace NetMonitor.Service.Web
                 _thread = new Thread(ServerLoop) { IsBackground = true };
                 _thread.Start();
 
-                CoreLog.Write($"WebServer démarré sur http://+:{_currentPort}/");
+                CoreLog.Write($"WebServer dÃ©marrÃ© sur http://+:{_currentPort}/");
             }
             catch (Exception ex)
             {
@@ -62,7 +62,7 @@ namespace NetMonitor.Service.Web
                 _listener?.Stop();
                 _listener?.Close();
                 _listener = null;
-                CoreLog.Write("WebServer arrêté");
+                CoreLog.Write("WebServer arrÃªtÃ©");
             }
             catch { }
         }
@@ -127,13 +127,13 @@ namespace NetMonitor.Service.Web
                 else if (path == "/clear-active")
                 {
                     _engine.ClearActiveIntrusions();
-                    CoreLog.Write("WebServer : intrusions actives purgées");
+                    CoreLog.Write("WebServer : intrusions actives purgÃ©es");
                     Redirect(ctx);
                 }
                 else if (path == "/clear-history")
                 {
                     _engine.ClearAlerts();
-                    CoreLog.Write("WebServer : historique purgé");
+                    CoreLog.Write("WebServer : historique purgÃ©");
                     Redirect(ctx);
                 }
                 else if (path == "/block-ip" && ctx.Request.HttpMethod == "POST")
@@ -167,10 +167,10 @@ namespace NetMonitor.Service.Web
 
                     bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity);
                     CoreLog.Write(ok
-                        ? $"WebServer : IP {ip} bloquée" + (matching != null
+                        ? $"WebServer : IP {ip} bloquÃ©e" + (matching != null
                             ? $" (source={source})"
-                            : " (aucune alerte active — champs vides)")
-                        : $"WebServer : échec blocage {ip} — {error}");
+                            : " (aucune alerte active â€” champs vides)")
+                        : $"WebServer : Ã©chec blocage {ip} â€” {error}");
 
                     Redirect(ctx);
                 }
@@ -185,7 +185,7 @@ namespace NetMonitor.Service.Web
                     }
 
                     bool ok = _engine.UnblockIp(ip);
-                    CoreLog.Write($"WebServer : IP {ip} débloquée (ok={ok})");
+                    CoreLog.Write($"WebServer : IP {ip} dÃ©bloquÃ©e (ok={ok})");
                     Redirect(ctx);
                 }
                 else if (path == "/block-process" && ctx.Request.HttpMethod == "POST")
@@ -199,8 +199,8 @@ namespace NetMonitor.Service.Web
                     }
                     bool ok = _engine.BlockProcess(processPath, out string err);
                     CoreLog.Write(ok
-                        ? $"WebServer : processus {processPath} bloqué"
-                        : $"WebServer : échec blocage {processPath} — {err}");
+                        ? $"WebServer : processus {processPath} bloquÃ©"
+                        : $"WebServer : Ã©chec blocage {processPath} â€” {err}");
                     Redirect(ctx);
                 }
                 else if (path == "/whitelist-process" && ctx.Request.HttpMethod == "POST")
@@ -214,8 +214,8 @@ namespace NetMonitor.Service.Web
                     }
                     bool ok = _engine.WhitelistProcess(processPath);
                     CoreLog.Write(ok
-                        ? $"WebServer : processus {processPath} whitelisté"
-                        : $"WebServer : échec whitelist {processPath}");
+                        ? $"WebServer : processus {processPath} whitelistÃ©"
+                        : $"WebServer : Ã©chec whitelist {processPath}");
                     Redirect(ctx);
                 }
                 else if (path == "/whitelist")
@@ -234,8 +234,8 @@ namespace NetMonitor.Service.Web
                     }
                     bool ok = _engine.RemoveWhitelistEntry(processPath);
                     CoreLog.Write(ok
-                        ? $"WebServer : entrée {processPath} retirée de la liste blanche"
-                        : $"WebServer : échec retrait whitelist {processPath}");
+                        ? $"WebServer : entrÃ©e {processPath} retirÃ©e de la liste blanche"
+                        : $"WebServer : Ã©chec retrait whitelist {processPath}");
                     RedirectTo(ctx, "/whitelist");
                 }
                 else if (path == "/toggle-whitelist-entry" && ctx.Request.HttpMethod == "POST")
@@ -251,8 +251,8 @@ namespace NetMonitor.Service.Web
                     bool enabled = enabledStr.Equals("true", StringComparison.OrdinalIgnoreCase);
                     bool ok = _engine.SetWhitelistEntryEnabled(processPath, enabled);
                     CoreLog.Write(ok
-                        ? $"WebServer : entrée {processPath} {(enabled ? "activée" : "désactivée")}"
-                        : $"WebServer : échec toggle whitelist {processPath}");
+                        ? $"WebServer : entrÃ©e {processPath} {(enabled ? "activÃ©e" : "dÃ©sactivÃ©e")}"
+                        : $"WebServer : Ã©chec toggle whitelist {processPath}");
                     RedirectTo(ctx, "/whitelist");
                 }                
                 else if (path == "/export-pdf")
@@ -302,7 +302,11 @@ namespace NetMonitor.Service.Web
                             timestamp = lastBlock.Timestamp,
                             automatic = lastBlock.Automatic
                         },
-                        blockedIpRetries = _engine.GetBlockedIpRetries()
+                        blockedIpRetries = _engine.GetBlockedIpRetries(),
+                        auditGrouped = _engine.GetAuditHistoryGrouped()
+                            .OrderByDescending(a => a.Count)
+                            .ThenByDescending(a => a.LastSeen)
+                            .ToList()
                     };
 
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,

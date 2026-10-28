@@ -1252,6 +1252,48 @@ namespace NetMonitor.Service
         {
             lock (_alertsLock) return _auditHistory.ToList();
         }
+
+        public List<AuditGroupedEntry> GetAuditHistoryGrouped()
+        {
+            lock (_alertsLock)
+            {
+                return _auditHistory
+                    .GroupBy(a => new
+                    {
+                        a.Pid,
+                        a.RemoteIp,
+                        a.LocalPort,
+                        a.RemotePort,
+                        ProcessName = a.ProcessName ?? ""
+                    })
+                    .Select(g =>
+                    {
+                        var first = g.OrderBy(x => x.Timestamp).First();
+                        var last  = g.OrderBy(x => x.Timestamp).Last();
+                        var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
+
+                        return new AuditGroupedEntry
+                        {
+                            FirstSeen   = first.Timestamp,
+                            LastSeen    = last.Timestamp,
+                            Count       = g.Count(),
+
+                            Severity    = mostSevere.Severity,
+                            Source      = last.Source,
+                            RemoteIp    = last.RemoteIp,
+                            RemotePort  = last.RemotePort,
+                            LocalPort   = last.LocalPort,
+                            Pid         = last.Pid,
+                            ProcessName = last.ProcessName,
+                            ProcessPath = last.ProcessPath,
+                            TrustReason = mostSevere.TrustReason,
+                            Details     = mostSevere.Details
+                        };
+                    })
+                    .OrderByDescending(x => x.LastSeen)
+                    .ToList();
+            }
+        }
         
         public void ClearAudit()
         {

@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace NetMonitor.Service.Ipc
 {
@@ -9,7 +10,10 @@ namespace NetMonitor.Service.Ipc
         private static readonly JsonSerializerOptions JsonOpts = new()
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            WriteIndented = false
+            WriteIndented = false,
+            // ? Les enums sont sérialisés en string ("High", "Critical"…)
+            // pour rester compatibles avec les DTO UI qui les déclarent en string.
+            Converters = { new JsonStringEnumConverter() }
         };
 
         public static void Json(NamedPipeServerStream server, object data)

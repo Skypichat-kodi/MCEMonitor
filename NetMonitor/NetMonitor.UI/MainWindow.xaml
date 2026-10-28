@@ -1401,10 +1401,38 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#444"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
+                                                                <Setter Property="Background" Value="#2a5a2a"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
+                                                                <Setter Property="Background" Value="#4a7a1a"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
+                                                                <Setter Property="Background" Value="#6CCB5F"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                           FontWeight="Bold" FontSize="11"
+                                                           HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1428,10 +1456,10 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="120">
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="65"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="65"/>
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="55"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1439,7 +1467,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
+                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="200">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -1481,7 +1509,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="180" MinWidth="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1489,7 +1517,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="150">
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="140">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>

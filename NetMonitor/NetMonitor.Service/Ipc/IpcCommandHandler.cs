@@ -141,7 +141,8 @@ namespace NetMonitor.Service.Ipc
                 case "get-pending-processes":   HandleGetPendingProcesses(server); break;
                 case "get-blocked-retries":     HandleGetBlockedIpRetries(server); break;
                 case "clear-blocked-retries":   HandleClearBlockedIpRetries(server); break;
-                case "get-whitelist":           HandleGetWhitelist(server); break;                                                                           
+                case "get-whitelist":           HandleGetWhitelist(server); break;
+                case "get-audit-grouped":       HandleGetAuditGrouped(server); break;                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -480,6 +481,37 @@ namespace NetMonitor.Service.Ipc
                     trustReason = a.TrustReason,                     
                     details = a.Details
                 }).ToList();
+                IpcResponse.Json(server, projected);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleGetAuditGrouped(NamedPipeServerStream server)
+        {
+            try
+            {
+                var list = _engine.GetAuditHistoryGrouped();
+
+                // ⚠ Projection obligatoire : AuditGroupedEntry.Severity est un enum.
+                // Sans cette projection, System.Text.Json le sérialise en entier (0..3),
+                // ce qui casse la désérialisation côté UI (AuditGroupedDto.Severity est string).
+                var projected = list.Select(a => new
+                {
+                    firstSeen   = a.FirstSeen,
+                    lastSeen    = a.LastSeen,
+                    count       = a.Count,
+                    severity    = a.Severity.ToString(),
+                    source      = a.Source,
+                    remoteIp    = a.RemoteIp,
+                    remotePort  = a.RemotePort,
+                    localPort   = a.LocalPort,
+                    pid         = a.Pid,
+                    processName = a.ProcessName,
+                    processPath = a.ProcessPath,
+                    trustReason = a.TrustReason,
+                    details     = a.Details
+                }).ToList();
+
                 IpcResponse.Json(server, projected);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }

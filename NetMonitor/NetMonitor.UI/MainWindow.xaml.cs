@@ -28,7 +28,7 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<BlockedIpRow>         _blockedIps             = new();
         private readonly ObservableCollection<AlertRow>             _alertsHistory          = new();
         private readonly ObservableCollection<ConnectionRow>        _connections            = new();
-        private readonly ObservableCollection<AlertRow>             _auditAlerts            = new();
+        private readonly ObservableCollection<AuditGroupedRow>      _auditGrouped           = new();
         private readonly ObservableCollection<PendingProcessRow>    _pendingProcesses       = new();
         private List<PendingProcessRow>                             _allPendingProcesses    = new();
         private bool                                                _showAllPending         = false;        
@@ -47,7 +47,7 @@ namespace NetMonitor.UI
         private List<GroupedAlertRow>   _allActiveGrouped   = new();
         private List<BlockedIpRow>      _allBlockedIps      = new();
         private List<AlertRow>          _allAlertsHistory   = new();
-        private List<AlertRow>          _allAuditAlerts     = new();
+        private List<AuditGroupedRow>   _allAuditGrouped    = new();
 
         // Flags "Voir plus" par tableau
         private bool _showAllActive     = false;
@@ -97,7 +97,7 @@ namespace NetMonitor.UI
             BlockedIpsGrid.ItemsSource                  = _blockedIps;
             AlertsHistoryGrid.ItemsSource               = _alertsHistory;
             ConnectionsGrid.ItemsSource                 = _connections;
-            AuditGrid.ItemsSource                       = _auditAlerts;
+            AuditGrid.ItemsSource                       = _auditGrouped;
             PendingProcessesGrid.ItemsSource            = _pendingProcesses;
             PendingProcessesGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;            
             StatsActiveIpsGrid.ItemsSource              = _statsActiveIps;
@@ -397,37 +397,49 @@ namespace NetMonitor.UI
                     PopulateDetectorCombo(cmbHistoryDetector, _alertsHistory.Select(a => a.Source));
                 }
 
-                // ---- Tableau 4 : audit (whitelist) ----
-                var audit = await NetMonitorIpcClient.GetAuditHistory();
+                // ---- Tableau 4 : audit (whitelist) — version groupée ----
+                var audit = await NetMonitorIpcClient.GetAuditHistoryGroupedAsync();
                 if (audit != null)
                 {
-                    string? key = GetSelectedAlertKey(AuditGrid);
-                    _allAuditAlerts = audit
-                        .OrderByDescending(x => x.timestamp)
-                        .Take(500)
-                        .Select(a => new AlertRow
+                    // Clé composite pour restaurer la sélection après refresh
+                    string? key = (AuditGrid.SelectedItem as AuditGroupedRow)?.GroupKey;
+
+                    _allAuditGrouped = audit
+                        .Select(a => new AuditGroupedRow
                         {
-                            Timestamp  = a.timestamp.ToLocalTime(),
-                            Severity   = a.severity ?? "",
-                            Source     = a.source ?? "",
-                            Message    = a.message ?? "",
-                            Details    = a.details,
-                            RemoteIp   = a.remoteIp,
-                            RemotePort = a.remotePort,
-                            LocalPort  = a.localPort,
-                            Pid        = a.pid,
-                            ProcessName = a.processName,
-                            ProcessPath = a.processPath,
-                            TrustReason = a.trustReason
+                            FirstSeen   = a.FirstSeen.ToLocalTime(),
+                            LastSeen    = a.LastSeen.ToLocalTime(),
+                            Count       = a.Count,
+                            Severity    = a.Severity,
+                            Source      = a.Source,
+                            RemoteIp    = a.RemoteIp,
+                            RemotePort  = a.RemotePort,
+                            LocalPort   = a.LocalPort,
+                            Pid         = a.Pid,
+                            ProcessName = a.ProcessName,
+                            ProcessPath = a.ProcessPath,
+                            TrustReason = a.TrustReason,
+                            Details     = a.Details
                         })
+                        .OrderByDescending(x => x.Count)
+                        .ThenByDescending(x => x.LastSeen)
                         .ToList();
 
-                    ApplyDisplayLimit(_auditAlerts, _allAuditAlerts, _showAllAudit);
-                    UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditAlerts.Count, _showAllAudit);
+                    ApplyDisplayLimit(_auditGrouped, _allAuditGrouped, _showAllAudit);
+                    UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditGrouped.Count, _showAllAudit);
                     if (!_showAllAudit)
-                        AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
-                    RestoreAlertSelection(AuditGrid, _auditAlerts, key);
-                    PopulateDetectorCombo(cmbAuditDetector, _auditAlerts.Select(a => a.Source));
+                        AuditGrid.Height = CalculateDataGridHeight(_auditGrouped.Count);
+
+                    // Restauration de sélection
+                    if (!string.IsNullOrEmpty(key))
+                    {
+                        foreach (var item in _auditGrouped)
+                        {
+                            if (item.GroupKey == key) { AuditGrid.SelectedItem = item; break; }
+                        }
+                    }
+
+                    PopulateDetectorCombo(cmbAuditDetector, _auditGrouped.Select(a => a.Source));
                 }
 
                 // ---- Tentatives sur IP bloquée ----
@@ -590,8 +602,8 @@ namespace NetMonitor.UI
         private void ToggleAuditMore_Click(object sender, RoutedEventArgs e)
         {
             _showAllAudit = !_showAllAudit;
-            ApplyDisplayLimit(_auditAlerts, _allAuditAlerts, _showAllAudit);
-            UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditAlerts.Count, _showAllAudit);
+            ApplyDisplayLimit(_auditGrouped, _allAuditGrouped, _showAllAudit);
+            UpdateMoreIndicator(panelAuditMore, txtAuditMoreLabel, _allAuditGrouped.Count, _showAllAudit);
 
             if (_showAllAudit)
             {
@@ -601,7 +613,7 @@ namespace NetMonitor.UI
             else
             {
                 AuditGrid.MaxHeight = double.PositiveInfinity;
-                AuditGrid.Height = CalculateDataGridHeight(_auditAlerts.Count);
+                AuditGrid.Height = CalculateDataGridHeight(_auditGrouped.Count);
             }
         }
 
@@ -1982,8 +1994,8 @@ namespace NetMonitor.UI
 
         private void AuditFilter_Changed(object sender, EventArgs e)
         {
-            CollectionViewSource.GetDefaultView(_auditAlerts)?.Refresh();
-            UpdateFilterCount(AuditGrid, lblAuditFilterCount, _auditAlerts.Count);
+            CollectionViewSource.GetDefaultView(_auditGrouped)?.Refresh();
+            UpdateFilterCount(AuditGrid, lblAuditFilterCount, _auditGrouped.Count);
         }
 
         private void RetriesFilter_Changed(object sender, EventArgs e)
@@ -2033,10 +2045,10 @@ namespace NetMonitor.UI
                 "RemoteIp;ProcessName;Message;Details;Source",
                 cmbHistorySeverity, cmbHistoryDetector, txtHistorySearch, lblHistoryFilterCount);
 
-            SetupFilter<AlertRow>(
-                AuditGrid, _auditAlerts,
+            SetupFilter<AuditGroupedRow>(
+                AuditGrid, _auditGrouped,
                 _ => "", r => r.Source,
-                "RemoteIp;ProcessName;Message;Details;Source",
+                "RemoteIp;ProcessName;TrustReason;Details;Source",
                 null, cmbAuditDetector, txtAuditSearch, lblAuditFilterCount);
 
             SetupFilter<BlockedIpRetryRow>(
@@ -2149,7 +2161,7 @@ namespace NetMonitor.UI
                 return;
             }
 
-            if (grid == AuditGrid && grid.SelectedItem is AlertRow auditRow)
+            if (grid == AuditGrid && grid.SelectedItem is AuditGroupedRow auditRow)
             {
                 OpenIpLookup(auditRow.RemoteIp);
                 return;
@@ -2481,5 +2493,44 @@ namespace NetMonitor.UI
                 return Sha256.Length <= 12 ? Sha256 : Sha256.Substring(0, 12) + "…";
             }
         }
-    }            
+    }
+    
+    public class AuditGroupedRow
+    {
+        public DateTime FirstSeen { get; set; }
+        public DateTime LastSeen { get; set; }
+        public int Count { get; set; }
+
+        public string Severity { get; set; } = "";
+        public string Source { get; set; } = "";
+        public string? RemoteIp { get; set; }
+        public int RemotePort { get; set; }
+        public int LocalPort { get; set; }
+        public int Pid { get; set; }
+        public string? ProcessName { get; set; }
+        public string? ProcessPath { get; set; }
+        public string? TrustReason { get; set; }
+        public string? Details { get; set; }
+
+        public string FirstSeenText => FirstSeen.ToString("dd/MM HH:mm:ss");
+        public string LastSeenText => LastSeen.ToString("dd/MM HH:mm:ss");
+
+        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay =>
+            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string DetailsDisplay =>
+            string.IsNullOrWhiteSpace(Details) ? "-" :
+            Details.Length <= 120 ? Details : Details.Substring(0, 117) + "…";
+
+        public string CountClass => Count >= 10 ? "c10" :
+                                     Count >= 5  ? "c5"  :
+                                     Count >= 2  ? "c2"  : "c1";
+
+        // Clé stable pour restaurer la sélection après refresh
+        public string GroupKey =>
+            $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";
+    }                
 }

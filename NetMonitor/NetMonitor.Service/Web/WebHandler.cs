@@ -211,20 +211,35 @@ namespace NetMonitor.Service.Web
                     historyRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
-                // --- Tableau 4 : Audit (enrichi) ---
+                // --- Tableau 4 : Audit (groupé) ---
                 var auditRows = new System.Text.StringBuilder();
-                if (audit.Count > 0)
+                var auditGrouped = engine.GetAuditHistoryGrouped()
+                    .OrderByDescending(a => a.Count)
+                    .ThenByDescending(a => a.LastSeen)
+                    .ToList();
+
+                if (auditGrouped.Count > 0)
                 {
-                    foreach (var a in audit.OrderByDescending(x => x.Timestamp).Take(100))
+                    foreach (var a in auditGrouped.Take(200))
                     {
+                        string sevClass = a.Severity.ToString() == "Critical" ? "danger" :
+                                          a.Severity.ToString() == "High"     ? "danger" :
+                                          a.Severity.ToString() == "Warning"  ? "warning" : "ok";
+
+                        string countClass = a.Count >= 10 ? "c10" :
+                                            a.Count >= 5  ? "c5"  :
+                                            a.Count >= 2  ? "c2"  : "c1";
+
                         string detailsText = string.IsNullOrWhiteSpace(a.Details)
                             ? "-"
                             : (a.Details.Length > 120 ? a.Details.Substring(0, 117) + "…" : a.Details);
-
                         string detailsTitle = WebUtility.HtmlEncode(a.Details ?? "");
 
                         auditRows.Append($@"<tr>
-                            <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
+                            <td>{a.FirstSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td>{a.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
+                            <td class='count-cell'><span class='count-badge {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
+                            <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
                             <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
@@ -240,7 +255,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                 // --- Tableau 5 : tentatives sur IP bloquée ---
