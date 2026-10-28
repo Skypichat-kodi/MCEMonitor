@@ -34,14 +34,17 @@ namespace NetMonitor.UI
         private bool                                                _showAllPending         = false;        
         
         // --- Stats ---
-        private readonly ObservableCollection<StatsIpRow>        _statsActiveIps        = new();
-        private readonly ObservableCollection<StatsCountryRow>   _statsActiveCountries  = new();
-        private readonly ObservableCollection<StatsDetectorRow>  _statsActiveDetectors  = new();
-        private readonly ObservableCollection<StatsIpRow>        _statsBlockedIps       = new();
-        private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries = new();
-        private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors = new();
-        private readonly ObservableCollection<BlockedIpRetryRow> _blockedRetries        = new();
-        private readonly ObservableCollection<WhitelistEntryRow> _whitelistEntries      = new();
+        private readonly ObservableCollection<StatsIpRow>        _statsActiveIps            = new();
+        private readonly ObservableCollection<StatsCountryRow>   _statsActiveCountries      = new();
+        private readonly ObservableCollection<StatsDetectorRow>  _statsActiveDetectors      = new();
+        private readonly ObservableCollection<StatsIpRow>        _statsBlockedIps           = new();
+        private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries     = new();
+        private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors     = new();
+        private readonly ObservableCollection<BlockedIpRetryRow> _blockedRetries            = new();
+        private readonly ObservableCollection<WhitelistEntryRow> _whitelistEntries          = new();
+        private readonly ObservableCollection<StatsProcessRow>   _statsTopProcesses         = new();
+        private readonly ObservableCollection<StatsHourRow>      _statsActivityByHour       = new();
+        private readonly ObservableCollection<StatsSeverityRow>  _statsSeverityDistribution = new();        
 
         // Données complètes (pour le dépliage Voir plus)
         private List<GroupedAlertRow>   _allActiveGrouped   = new();
@@ -55,13 +58,14 @@ namespace NetMonitor.UI
         private bool _showAllHistory    = false;
         private bool _showAllAudit      = false;
 
-        private readonly DispatcherTimer _refreshTimer;
-        private bool _isRefreshing = false;
-        private DateTime _lastConfigWriteTime = DateTime.MinValue;
-        private long _lastConfigSize = -1;
-        private bool _loadingWebConfig = false;
-        private bool _mapInitialized = false;
-        private bool _chartsInitialized = false;
+        private readonly DispatcherTimer    _refreshTimer;
+        private bool                        _isRefreshing = false;
+        private DateTime                    _lastConfigWriteTime = DateTime.MinValue;
+        private long                        _lastConfigSize = -1;
+        private bool                        _loadingWebConfig = false;
+        private bool                        _mapActiveInitialized  = false;
+        private bool                        _mapBlockedInitialized = false;
+        private bool                        _chartsInitialized     = false;
 
         // ⚠ hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
@@ -108,51 +112,19 @@ namespace NetMonitor.UI
             StatsBlockedIpsGrid.ItemsSource             = _statsBlockedIps;
             StatsBlockedCountriesGrid.ItemsSource       = _statsBlockedCountries;
             StatsBlockedDetectorsGrid.ItemsSource       = _statsBlockedDetectors;
+            StatsTopProcessesGrid.ItemsSource           = _statsTopProcesses;
+            StatsActivityByHourGrid.ItemsSource         = _statsActivityByHour;
+            StatsSeverityDistributionGrid.ItemsSource   = _statsSeverityDistribution;            
             ActiveIntrusionsGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+            MainTabControl.SelectionChanged             += MainTabControl_SelectionChanged;
             BlockedRetriesGrid.ItemsSource              = _blockedRetries;
             WireAllGridSorting();
             WireAllGridDoubleClick();
             InitializeAllFilters();            
-            WhitelistGrid.ItemsSource                   = _whitelistEntries;
-
-            MapWebView.CoreWebView2InitializationCompleted += (s, e) =>
-            {
-                MapWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
-                {
-                    var msg = ee.TryGetWebMessageAsString();
-                    if (msg != null && msg.StartsWith("scroll:"))
-                    {
-                        if (double.TryParse(msg.Substring(7),
-                                            System.Globalization.NumberStyles.Float,
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            out double delta))
-                        {
-                            ScrollParent((int)delta);
-                        }
-                    }
-                };
-            };
-            
-            ChartsWebView.CoreWebView2InitializationCompleted += (s, e) =>
-            {
-                ChartsWebView.CoreWebView2.WebMessageReceived += (ss, ee) =>
-                {
-                    var msg = ee.TryGetWebMessageAsString();
-                    if (msg != null && msg.StartsWith("scroll:"))
-                    {
-                        if (double.TryParse(msg.Substring(7),
-                                            System.Globalization.NumberStyles.Float,
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            out double delta))
-                        {
-                            ScrollParent((int)delta);
-                        }
-                    }
-                };
-            };
+            WhitelistGrid.ItemsSource                   = _whitelistEntries;        
 
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) =>
@@ -169,7 +141,8 @@ namespace NetMonitor.UI
             _ = RefreshSafe();
             LoadSettings();
             _ = LoadWebConfig();
-            _ = InitMapWebViewAsync();
+            _ = InitMapActiveWebViewAsync();
+            _ = InitMapBlockedWebViewAsync();
             _ = InitChartsWebViewAsync();
             _ = RefreshStatsAsync();
         }
@@ -1481,9 +1454,9 @@ namespace NetMonitor.UI
         private async void RefreshStats_Click(object sender, RoutedEventArgs e)
         {
             await RefreshStatsAsync();
-            // Reload uniquement sur action utilisateur explicite (pas à chaque tick)
-            if (_mapInitialized)   MapWebView?.Reload();
-            if (_chartsInitialized) ChartsWebView?.Reload();
+            if (_mapActiveInitialized)  MapActiveWebView?.Reload();
+            if (_mapBlockedInitialized) MapBlockedWebView?.Reload();
+            if (_chartsInitialized)     ChartsWebView?.Reload();
         }
 
         private async Task RefreshStatsAsync()
@@ -1499,18 +1472,21 @@ namespace NetMonitor.UI
                     return;
                 }
 
-                txtStatsTotalAlerts.Text       = stats.TotalAlerts.ToString();
-                txtStatsDistinctIps.Text       = stats.DistinctIps.ToString();
-                txtStatsDistinctCountries.Text = stats.DistinctCountries.ToString();
+                // ═══════════════════════════════════════════════════════
+                //  SECTION 1 : EN COURS D'ANALYSE (actives)
+                // ═══════════════════════════════════════════════════════
+                txtStatsActiveTotal.Text       = stats.Active.TotalAlerts.ToString();
+                txtStatsActiveIps.Text         = stats.Active.DistinctIps.ToString();
+                txtStatsActiveCountries.Text   = stats.Active.DistinctCountries.ToString();
 
-                string worst = (stats.WorstSeverity ?? "ok").ToLowerInvariant();
-                txtStatsWorstSeverity.Text = worst switch
+                string worstActive = (stats.Active.WorstSeverity ?? "ok").ToLowerInvariant();
+                txtStatsActiveWorst.Text = worstActive switch
                 {
                     "critical" => "CRITIQUE",
                     "warning"  => "ALERTE",
                     _          => "OK"
                 };
-                txtStatsWorstSeverity.Foreground = worst switch
+                txtStatsActiveWorst.Foreground = worstActive switch
                 {
                     "critical" => new SolidColorBrush(Color.FromRgb(0xFF, 0x63, 0x47)),
                     "warning"  => new SolidColorBrush(Color.FromRgb(0xFF, 0xB9, 0x00)),
@@ -1550,6 +1526,27 @@ namespace NetMonitor.UI
                 foreach (var d in stats.Active.TopDetectors)
                     _statsActiveDetectors.Add(new StatsDetectorRow { Detector = d.Detector, Count = d.Count });
 
+                // ═══════════════════════════════════════════════════════
+                //  SECTION 2 : HISTORIQUE ET BLOCAGES
+                // ═══════════════════════════════════════════════════════
+                txtStatsTotalAlerts.Text       = stats.TotalAlerts.ToString();
+                txtStatsDistinctIps.Text       = stats.DistinctIps.ToString();
+                txtStatsDistinctCountries.Text = stats.DistinctCountries.ToString();
+
+                string worst = (stats.WorstSeverity ?? "ok").ToLowerInvariant();
+                txtStatsWorstSeverity.Text = worst switch
+                {
+                    "critical" => "CRITIQUE",
+                    "warning"  => "ALERTE",
+                    _          => "OK"
+                };
+                txtStatsWorstSeverity.Foreground = worst switch
+                {
+                    "critical" => new SolidColorBrush(Color.FromRgb(0xFF, 0x63, 0x47)),
+                    "warning"  => new SolidColorBrush(Color.FromRgb(0xFF, 0xB9, 0x00)),
+                    _          => new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F))
+                };
+
                 txtBlockedSummary.Text = $"{stats.Blocked.TotalAlerts} IPs · " +
                                          $"{stats.Blocked.DistinctCountries} pays";
 
@@ -1581,16 +1578,36 @@ namespace NetMonitor.UI
                 foreach (var d in stats.Blocked.TopDetectors)
                     _statsBlockedDetectors.Add(new StatsDetectorRow { Detector = d.Detector, Count = d.Count });
 
+                // --- Top processus (historique complet) ---
+                _statsTopProcesses.Clear();
+                foreach (var p in stats.TopProcesses)
+                    _statsTopProcesses.Add(new StatsProcessRow { ProcessName = p.ProcessName, Count = p.Count });
+
+                // --- Activité par heure ---
+                _statsActivityByHour.Clear();
+                foreach (var h in stats.ActivityByHour.OrderBy(x => x.Hour))
+                    _statsActivityByHour.Add(new StatsHourRow
+                    {
+                        Hour = h.Hour,
+                        Count = h.Count,
+                        CriticalCount = h.CriticalCount
+                    });
+
+                // --- Distribution par sévérité ---
+                _statsSeverityDistribution.Clear();
+                foreach (var s in stats.SeverityDistribution.OrderByDescending(x => x.Count))
+                    _statsSeverityDistribution.Add(new StatsSeverityRow
+                    {
+                        Severity = s.Severity,
+                        Count = s.Count
+                    });
+
                 txtStatsLastUpdate.Text = $"Dernière mise à jour : {stats.GeneratedAt.ToLocalTime():HH:mm:ss}";
             }
             catch (Exception ex)
             {
                 txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
             }
-
-            // Ne PAS recharger les WebView ici : ça bloque la molette pendant le reload.
-            // Les pages /map et /charts ont un <meta refresh> ou font leur propre fetch.
-            // On force juste un rechargement des données quand l'utilisateur clique explicitement "Actualiser".
         }
 
         private static string BuildCountryDisplay(string? country, string? code)
@@ -1600,10 +1617,10 @@ namespace NetMonitor.UI
             return $"{country} ({code})";
         }
 
-        private async Task InitMapWebViewAsync()
+        private async Task InitMapActiveWebViewAsync()
         {
-            if (_mapInitialized) return;
-            if (MapWebView == null) return;
+            if (_mapActiveInitialized) return;
+            if (MapActiveWebView == null) return;
 
             try
             {
@@ -1616,30 +1633,29 @@ namespace NetMonitor.UI
 
                 string userDataFolder = System.IO.Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "MCEMonitor", "WebView2");
+                    "MCEMonitor", "WebView2-MapActive");
                 System.IO.Directory.CreateDirectory(userDataFolder);
 
                 var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
-                await MapWebView.EnsureCoreWebView2Async(env);
-                // Évite que la WebView2 avale la molette pendant le chargement
-                MapWebView.NavigationStarting   += (s, e) => MapWebView.IsHitTestVisible = false;
-                MapWebView.NavigationCompleted  += (s, e) => MapWebView.IsHitTestVisible = true;             
+                await MapActiveWebView.EnsureCoreWebView2Async(env);
+                MapActiveWebView.NavigationStarting  += (s, e) => MapActiveWebView.IsHitTestVisible = false;
+                MapActiveWebView.NavigationCompleted += (s, e) => MapActiveWebView.IsHitTestVisible = true;
 
                 string filter127 = $"http://127.0.0.1:{port}/*";
                 string filterLoc = $"http://localhost:{port}/*";
-                MapWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
-                MapWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
+                MapActiveWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
+                MapActiveWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
 
                 string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
-                MapWebView.CoreWebView2.WebResourceRequested += (s, e) =>
+                MapActiveWebView.CoreWebView2.WebResourceRequested += (s, e) =>
                 {
                     try { e.Request.Headers.SetHeader("Authorization", "Basic " + credentials); }
                     catch { }
                 };
 
-                MapWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-                MapWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-                MapWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+                MapActiveWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                MapActiveWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                MapActiveWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
 
                 string jsScroll = @"
                     window.addEventListener('wheel', function(e) {
@@ -1647,16 +1663,106 @@ namespace NetMonitor.UI
                         e.preventDefault();
                     }, { passive: false });
                 ";
-                await MapWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
+                await MapActiveWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
 
-                MapWebView.Source = new Uri($"http://127.0.0.1:{port}/map");
-                _mapInitialized = true;
+                // ⚠ Forward des événements wheel du WebView2 vers le ScrollViewer parent
+                MapActiveWebView.CoreWebView2.WebMessageReceived += (s, e) =>
+                {
+                    var msg = e.TryGetWebMessageAsString();
+                    if (msg != null && msg.StartsWith("scroll:"))
+                    {
+                        if (double.TryParse(msg.Substring(7),
+                                            System.Globalization.NumberStyles.Float,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            out double delta))
+                        {
+                            ScrollParent((int)delta);
+                        }
+                    }
+                };
 
-                CoreLog.Write($"WebView2 : carte chargée sur port {port}");
+                MapActiveWebView.Source = new Uri($"http://127.0.0.1:{port}/map-active");
+                _mapActiveInitialized = true;
+
+                CoreLog.Write($"WebView2 : carte des actives chargée sur port {port}");
             }
             catch (Exception ex)
             {
-                CoreLog.Write("InitMapWebView : " + ex.Message);
+                CoreLog.Write("InitMapActiveWebView : " + ex.Message);
+            }
+        }
+
+        private async Task InitMapBlockedWebViewAsync()
+        {
+            if (_mapBlockedInitialized) return;
+            if (MapBlockedWebView == null) return;
+
+            try
+            {
+                var status = await NetMonitorIpcClient.GetWebStatus();
+                if (status == null || !status.enabled) return;
+
+                int port = status.port;
+                string user = status.username ?? "";
+                string pass = status.password ?? "";
+
+                string userDataFolder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "MCEMonitor", "WebView2-MapBlocked");
+                System.IO.Directory.CreateDirectory(userDataFolder);
+
+                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
+                await MapBlockedWebView.EnsureCoreWebView2Async(env);
+                MapBlockedWebView.NavigationStarting  += (s, e) => MapBlockedWebView.IsHitTestVisible = false;
+                MapBlockedWebView.NavigationCompleted += (s, e) => MapBlockedWebView.IsHitTestVisible = true;
+
+                string filter127 = $"http://127.0.0.1:{port}/*";
+                string filterLoc = $"http://localhost:{port}/*";
+                MapBlockedWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
+                MapBlockedWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
+
+                string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
+                MapBlockedWebView.CoreWebView2.WebResourceRequested += (s, e) =>
+                {
+                    try { e.Request.Headers.SetHeader("Authorization", "Basic " + credentials); }
+                    catch { }
+                };
+
+                MapBlockedWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
+                MapBlockedWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
+                MapBlockedWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
+
+                string jsScroll = @"
+                    window.addEventListener('wheel', function(e) {
+                        window.chrome.webview.postMessage('scroll:' + e.deltaY);
+                        e.preventDefault();
+                    }, { passive: false });
+                ";
+                await MapBlockedWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
+
+                MapBlockedWebView.CoreWebView2.WebMessageReceived += (s, e) =>
+                {
+                    var msg = e.TryGetWebMessageAsString();
+                    if (msg != null && msg.StartsWith("scroll:"))
+                    {
+                        if (double.TryParse(msg.Substring(7),
+                                            System.Globalization.NumberStyles.Float,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            out double delta))
+                        {
+                            ScrollParent((int)delta);
+                        }
+                    }
+                };
+
+                MapBlockedWebView.Source = new Uri($"http://127.0.0.1:{port}/map-blocked");
+                _mapBlockedInitialized = true;
+
+                CoreLog.Write($"WebView2 : carte des bloquées chargée sur port {port}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("InitMapBlockedWebView : " + ex.Message);
             }
         }
 
@@ -1707,6 +1813,22 @@ namespace NetMonitor.UI
                     }, { passive: false });
                 ";
                 await ChartsWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
+
+                // ⚠ Forward des événements wheel du WebView2 vers le ScrollViewer parent
+                ChartsWebView.CoreWebView2.WebMessageReceived += (s, e) =>
+                {
+                    var msg = e.TryGetWebMessageAsString();
+                    if (msg != null && msg.StartsWith("scroll:"))
+                    {
+                        if (double.TryParse(msg.Substring(7),
+                                            System.Globalization.NumberStyles.Float,
+                                            System.Globalization.CultureInfo.InvariantCulture,
+                                            out double delta))
+                        {
+                            ScrollParent((int)delta);
+                        }
+                    }
+                };
 
                 ChartsWebView.Source = new Uri($"http://127.0.0.1:{port}/charts");
                 _chartsInitialized = true;
@@ -2308,7 +2430,19 @@ namespace NetMonitor.UI
             {
                 // Silencieux : ne pas polluer la boucle de refresh
             }
-        }                                        
+        }
+        
+        private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // N'agir que quand l'onglet Statistiques devient l'onglet actif
+            if (MainTabControl.SelectedItem is TabItem ti &&
+                ti.Header?.ToString() == "Statistiques") // ou la clé localisée
+            {
+                _ = InitMapActiveWebViewAsync();
+                _ = InitMapBlockedWebViewAsync();
+                _ = InitChartsWebViewAsync();
+            }
+        }                                                
     }
 
     // ============================================================
@@ -2573,5 +2707,25 @@ namespace NetMonitor.UI
         // Clé stable pour restaurer la sélection après refresh
         public string GroupKey =>
             $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";
-    }                
+    }
+    
+    public class StatsProcessRow
+    {
+        public string ProcessName { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class StatsHourRow
+    {
+        public int Hour { get; set; }
+        public int Count { get; set; }
+        public int CriticalCount { get; set; }
+        public string HourLabel => $"{Hour:D2}h00";
+    }
+
+    public class StatsSeverityRow
+    {
+        public string Severity { get; set; } = "";
+        public int Count { get; set; }
+    }                    
 }

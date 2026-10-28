@@ -497,9 +497,10 @@ namespace NetMonitor.Service.Web
             return sb.ToString();
         }
 
-        public static async System.Threading.Tasks.Task<string> BuildMapPageAsync(
+        public static async Task<string> BuildMapPageAsync(
             NetMonitorEngine engine,
-            NetMonitorSettings settings)
+            NetMonitorSettings settings,
+            bool showBlockedOnly = false)
         {
             try
             {
@@ -507,8 +508,10 @@ namespace NetMonitor.Service.Web
 
                 var model = new Dictionary<string, object?>
                 {
-                    ["ActiveMapData"]  = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
-                    ["BlockedMapData"] = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode)
+                    ["MachineName"]     = Environment.MachineName,
+                    ["MapMode"]         = showBlockedOnly ? "blocked" : "active",
+                    ["ActiveMapData"]   = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
+                    ["BlockedMapData"]  = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode)
                 };
 
                 return ViewRenderer.Render("Map.html", model);

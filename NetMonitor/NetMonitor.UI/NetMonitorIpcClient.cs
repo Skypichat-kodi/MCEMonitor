@@ -157,6 +157,9 @@ namespace NetMonitor.UI
         public Dictionary<string, int> SeverityCounts { get; set; } = new();
         public StatsBlockDto Active { get; set; } = new();
         public StatsBlockDto Blocked { get; set; } = new();
+        public List<ProcessStatDto> TopProcesses { get; set; } = new();
+        public List<HourlyStatDto> ActivityByHour { get; set; } = new();
+        public List<SeverityStatDto> SeverityDistribution { get; set; } = new();        
     }
 
     public class WhitelistEntryDto
@@ -206,6 +209,25 @@ namespace NetMonitor.UI
         public string Severity { get; set; } = "";
         public string Category { get; set; } = "";
         public string Message { get; set; } = "";
+    }
+
+    public class ProcessStatDto
+    {
+        public string ProcessName { get; set; } = "";
+        public int Count { get; set; }
+    }
+
+    public class HourlyStatDto
+    {
+        public int Hour { get; set; }
+        public int Count { get; set; }
+        public int CriticalCount { get; set; }
+    }
+
+    public class SeverityStatDto
+    {
+        public string Severity { get; set; } = "";
+        public int Count { get; set; }
     }
     
     // ============================================================

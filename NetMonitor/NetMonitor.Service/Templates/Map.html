@@ -19,6 +19,13 @@
             box-sizing: border-box;
             height: 100vh;
         }
+
+        /* ⚠ PATCH : une seule carte visible selon le mode */
+        body.mode-active  .card.blocked { display: none; }
+        body.mode-blocked .card.active  { display: none; }
+        body.mode-active  .grid,
+        body.mode-blocked .grid { grid-template-columns: 1fr; }
+
         .card {
             background: #252526;
             border: 1px solid #3c3c3c;
@@ -72,7 +79,7 @@
         .leaflet-tooltip-top:before { border-top-color: #4CC2FF; }
     </style>
 </head>
-<body>
+<body class="mode-{{MapMode}}"><!-- ⚠ PATCH : classe CSS selon le mode -->
 
 <div class="grid">
     <div class="card active">
@@ -104,13 +111,13 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function () {
+    var mode        = '{{MapMode}}';   // ⚠ PATCH : "active" ou "blocked"
     var dataActive  = {{ActiveMapData}};
     var dataBlocked = {{BlockedMapData}};
 
     var paletteActive  = ['#ffffb2', '#fed976', '#feb24c', '#fd8d3c', '#f03b20', '#bd0026', '#b10026'];
     var paletteBlocked = ['#e5f5e0', '#c7e9c0', '#a1d99b', '#74c476', '#41ab5d', '#238b45', '#005a32'];
 
-    // Échelle active : 1 / 2-5 / 6-10 / 10+
     function colorForActive(count, palette) {
         if (count <= 0) return '#333333';
         if (count >= 10) return palette[6];
@@ -119,7 +126,6 @@
         return palette[0];
     }
 
-    // Échelle bloquée : 1 / 2-9 / 10-49 / 50-99 / 100-499 / 500-999 / 1000+
     function colorForBlocked(count, palette) {
         if (count <= 0)    return '#333333';
         if (count >= 1000) return palette[6];
@@ -135,7 +141,7 @@
         var map = L.map(id, {
             zoomControl: true,
             worldCopyJump: true,
-            scrollWheelZoom: false   // ⚠ désactive le zoom molette
+            scrollWheelZoom: false
         }).setView([20, 0], 2);
 
         L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -146,17 +152,14 @@
         var tilePane = map.getPane('tilePane');
         tilePane.style.filter = 'invert(1) hue-rotate(180deg) brightness(0.9) contrast(1.1)';
 
-        // ⚠ NOUVEAU : Fonction pour trouver le bon code pays
         function getCountryCode(properties) {
             var keys = ['ISO_A2', 'ISO_A2_EH', 'ADM0_A3', 'SOV_A3', 'GU_A3', 'WB_A2', 'WB_A3'];
-            // 1. On cherche une correspondance directe avec les données de l'API
             for (var i = 0; i < keys.length; i++) {
                 var k = keys[i];
                 if (properties[k] && properties[k] !== '-99' && dataMap[properties[k]] !== undefined) {
                     return properties[k];
                 }
             }
-            // 2. Fallback : on renvoie le code par défaut (pour l'affichage au survol)
             var fallback = properties['ISO_A2_EH'] || properties['ISO_A2'];
             return (fallback && fallback !== '-99') ? fallback : null;
         }
@@ -189,8 +192,13 @@
             });
     }
 
-    initMap('map-active',  dataActive,  paletteActive,  'Alertes actives', colorForActive);
-    initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées',     colorForBlocked);
+    // ⚠ PATCH : n'initialise QUE la carte visible (l'autre div est en display:none,
+    // et Leaflet échouerait sur un conteneur de taille 0).
+    if (mode === 'active') {
+        initMap('map-active', dataActive, paletteActive, 'Alertes actives', colorForActive);
+    } else {
+        initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées', colorForBlocked);
+    }
 })();
 </script>
 

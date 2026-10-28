@@ -109,7 +109,18 @@ namespace NetMonitor.Service.Web
                 }
                 else if (path == "/map")
                 {
+                    // Compatibilité : ancienne route = map complète (les 2 datasets)
                     string html = await WebHandler.BuildMapPageAsync(_engine, _settings);
+                    SendHtml(ctx, html);
+                }
+                else if (path == "/map-active")
+                {
+                    string html = await WebHandler.BuildMapPageAsync(_engine, _settings, showBlockedOnly: false);
+                    SendHtml(ctx, html);
+                }
+                else if (path == "/map-blocked")
+                {
+                    string html = await WebHandler.BuildMapPageAsync(_engine, _settings, showBlockedOnly: true);
                     SendHtml(ctx, html);
                 }
                 else if (path == "/charts")
