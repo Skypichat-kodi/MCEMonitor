@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using NetMonitor.Service.Models;
@@ -24,7 +25,9 @@ public sealed class ProcessTrustService
     private readonly object _whitelistLock = new();
     private readonly string _whitelistPath;
 
-    // Pour la résolution du chemin complet
+    // ============================================================
+    //  P/Invoke
+    // ============================================================
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
 
@@ -36,13 +39,42 @@ public sealed class ProcessTrustService
 
     private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
-    // WinVerifyTrust pour la signature Authenticode
+    // SeDebugPrivilege
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool OpenProcessToken(IntPtr processHandle, uint desiredAccess, out IntPtr tokenHandle);
+
+    [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool LookupPrivilegeValue(string? systemName, string name, out long luid);
+
+    [DllImport("advapi32.dll", SetLastError = true)]
+    private static extern bool AdjustTokenPrivileges(IntPtr tokenHandle, bool disableAllPrivileges,
+        ref TokPriv1Luid newState, int bufferLength, IntPtr previousState, IntPtr returnLength);
+
+    [DllImport("kernel32.dll")]
+    private static extern IntPtr GetCurrentProcess();
+
+    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    private struct TokPriv1Luid
+    {
+        public int Count;
+        public long Luid;
+        public int Attr;
+    }
+
+    private const uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+    private const uint TOKEN_QUERY = 0x0008;
+    private const int SE_PRIVILEGE_ENABLED = 0x0002;
+
+    // WinVerifyTrust
     [DllImport("wintrust.dll", PreserveSig = true, SetLastError = false)]
     private static extern uint WinVerifyTrust(IntPtr hwnd, [MarshalAs(UnmanagedType.LPStruct)] Guid pgActionID, IntPtr pWVTData);
 
     private static readonly Guid WINTRUST_ACTION_GENERIC_VERIFY_V2 =
         new Guid("00AAC56B-CD44-11d0-8CC2-00C04FC295EE");
 
+    // ============================================================
+    //  Constructeur
+    // ============================================================
     public ProcessTrustService()
     {
         var baseDir = Path.Combine(
@@ -51,8 +83,50 @@ public sealed class ProcessTrustService
 
         _whitelistPath = Path.Combine(baseDir, "trusted_processes.json");
 
+        // ⚠ Active SeDebugPrivilege au démarrage
+        EnableDebugPrivilege();
+
         EnsureWhitelistFileExists(baseDir);
         LoadWhitelist();
+    }
+
+    // ============================================================
+    //  SeDebugPrivilege
+    // ============================================================
+    private static void EnableDebugPrivilege()
+    {
+        try
+        {
+            if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, out IntPtr hToken))
+                return;
+
+            try
+            {
+                if (!LookupPrivilegeValue(null, "SeDebugPrivilege", out long luid))
+                    return;
+
+                var tp = new TokPriv1Luid
+                {
+                    Count = 1,
+                    Luid = luid,
+                    Attr = SE_PRIVILEGE_ENABLED
+                };
+
+                if (!AdjustTokenPrivileges(hToken, false, ref tp, 0, IntPtr.Zero, IntPtr.Zero))
+                    return;
+
+                int err = Marshal.GetLastWin32Error();
+                if (err == 0)
+                    CoreLog.Info("ProcessTrust : SeDebugPrivilege activé");
+                else
+                    CoreLog.Warn($"ProcessTrust : SeDebugPrivilege non activé (Win32={err})");
+            }
+            finally { CloseHandle(hToken); }
+        }
+        catch (Exception ex)
+        {
+            CoreLog.Warn("ProcessTrust.EnableDebugPrivilege : " + ex.Message);
+        }
     }
 
     // ============================================================
@@ -76,13 +150,12 @@ public sealed class ProcessTrustService
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true }) ?? new();
             }
 
-            // Anti-doublon : si le chemin existe déjà, on ne fait rien
             if (list.Any(e => string.Equals(NormalizePath(e.Path),
                                             NormalizePath(entry.Path),
                                             StringComparison.OrdinalIgnoreCase)))
                 return true;
 
-            // ✅ Enrichit automatiquement si absent
+            // Enrichit automatiquement si absent
             if (string.IsNullOrWhiteSpace(entry.Sha256))
                 entry.Sha256 = TryComputeSha256(entry.Path);
 
@@ -95,7 +168,6 @@ public sealed class ProcessTrustService
                 new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_whitelistPath, outJson);
 
-            // Recharge et vide le cache
             Reload();
             CoreLog.Info($"ProcessTrust : {entry.Name} ajouté à la whitelist ({entry.Path})");
             return true;
@@ -267,7 +339,12 @@ public sealed class ProcessTrustService
         }
         catch
         {
-            return new ProcessTrustResult { Level = ProcessTrustLevel.Unknown, ProcessName = "<inaccessible>", Reason = "processus inaccessible" };
+            return new ProcessTrustResult
+            {
+                Level = ProcessTrustLevel.Unknown,
+                ProcessName = "<inaccessible>",
+                Reason = "processus inaccessible"
+            };
         }
 
         // 2. Cherche les entrées whitelist qui matchent ce nom
@@ -279,19 +356,37 @@ public sealed class ProcessTrustService
                 .ToList();
         }
 
+        // 3. Résout le chemin complet
+        string? fullPath = TryGetFullPath(pid);
+
+        // ⚠ 4. AUTO-TRUST MICROSOFT (avant tout le reste)
+        // Élimine les faux positifs OneDrive, Office, Edge, GameBar...
+        if (fullPath != null && IsSignedBy(fullPath, "Microsoft Corporation"))
+        {
+            return new ProcessTrustResult
+            {
+                Level = ProcessTrustLevel.Trusted,
+                ProcessName = name,
+                FullPath = fullPath,
+                Publisher = "Microsoft Corporation",
+                Reason = "signé Microsoft (auto-trust)",
+                MatchedEntry = "<auto:Microsoft>"
+            };
+        }
+
+        // 5. Aucun candidat dans la whitelist → Unknown
         if (candidates.Count == 0)
         {
             return new ProcessTrustResult
             {
                 Level = ProcessTrustLevel.Unknown,
                 ProcessName = name,
-                FullPath = TryGetFullPath(pid),   // ← ajout : on résout quand même le chemin
+                FullPath = fullPath,
                 Reason = "nom absent de la whitelist"
             };
         }
 
-        // 3. Résout le chemin complet
-        string? fullPath = TryGetFullPath(pid);
+        // 6. Chemin inaccessible → Unknown, mais on escalade si droits insuffisants
         if (fullPath == null)
         {
             return new ProcessTrustResult
@@ -302,7 +397,7 @@ public sealed class ProcessTrustService
             };
         }
 
-        // 4. Cherche l'entrée dont le chemin correspond
+        // 7. Cherche l'entrée dont le chemin correspond
         var pathMatch = candidates.FirstOrDefault(e =>
             string.Equals(NormalizePath(e.Path), NormalizePath(fullPath), StringComparison.OrdinalIgnoreCase));
 
@@ -317,7 +412,7 @@ public sealed class ProcessTrustService
             };
         }
 
-        // 5. Vérifie le hash si demandé
+        // 8. Vérifie le hash si demandé
         string? actualHash = null;
         if (!string.IsNullOrWhiteSpace(pathMatch.Sha256))
         {
@@ -346,7 +441,7 @@ public sealed class ProcessTrustService
             }
         }
 
-        // 6. Vérifie la signature Authenticode si demandé
+        // 9. Vérifie la signature Authenticode si demandé
         string? publisher = null;
         if (!string.IsNullOrWhiteSpace(pathMatch.Publisher))
         {
@@ -391,11 +486,6 @@ public sealed class ProcessTrustService
     // ============================================================
     //  Utilitaires
     // ============================================================
-
-    /// <summary>
-    /// Normalise un chemin : slashes en backslash, sans backslash final.
-    /// ⚠ On force params char[] pour éviter la surcharge ReadOnlySpan (retour nint).
-    /// </summary>
     private static string NormalizePath(string path)
     {
         if (string.IsNullOrEmpty(path)) return "";
@@ -405,7 +495,12 @@ public sealed class ProcessTrustService
     private static string? TryGetFullPath(int pid)
     {
         IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
-        if (h == IntPtr.Zero) return null;
+        if (h == IntPtr.Zero)
+        {
+            int err = Marshal.GetLastWin32Error();
+            CoreLog.Debug($"[TRUST] OpenProcess(pid={pid}) échec, Win32={err}");
+            return null;
+        }
 
         try
         {
@@ -415,7 +510,6 @@ public sealed class ProcessTrustService
             if (!QueryFullProcessImageName(h, 0, sb, ref size))
                 return null;
 
-            // size = longueur réelle SANS le \0
             int len = (int)size;
             if (len <= 0) return null;
 
@@ -439,6 +533,11 @@ public sealed class ProcessTrustService
         catch { return null; }
     }
 
+    /// <summary>
+    /// Vérifie la signature Authenticode et retourne le SUBJECT du certificat signataire
+    /// (ex. "CN=Microsoft Corporation, O=Microsoft Corporation, ...").
+    /// ⚠ Correctif : retourne le vrai subject, plus le nom de fichier.
+    /// </summary>
     private static string? TryGetAuthenticodePublisher(string filePath)
     {
         try
@@ -479,10 +578,28 @@ public sealed class ProcessTrustService
                 Marshal.StructureToPtr(wvtData, pWvtData, false);
 
                 uint result = WinVerifyTrust(IntPtr.Zero, WINTRUST_ACTION_GENERIC_VERIFY_V2, pWvtData);
+
+                // ⚠ TOUJOURS libérer l'état, même en cas d'échec
+                try
+                {
+                    wvtData.dwStateAction = 2; // WTD_STATEACTION_CLOSE
+                    Marshal.StructureToPtr(wvtData, pWvtData, false);
+                    WinVerifyTrust(IntPtr.Zero, WINTRUST_ACTION_GENERIC_VERIFY_V2, pWvtData);
+                }
+                catch { }
+
                 if (result != 0) return null;
 
-                // Signature valide → on retourne le nom du fichier comme "publisher" simplifié
-                return Path.GetFileNameWithoutExtension(filePath);
+                // ⚠ Retourne le VRAI subject du certificat, plus le nom de fichier
+                try
+                {
+                    using var cert = X509Certificate.CreateFromSignedFile(filePath);
+                    return cert.Subject ?? "";
+                }
+                catch
+                {
+                    return null;
+                }
             }
             finally
             {
@@ -504,19 +621,10 @@ public sealed class ProcessTrustService
 
         try
         {
-            // 1) Vérification Authenticode (déjà en place)
-            if (TryGetAuthenticodePublisher(filePath) == null)
+            string? subject = TryGetAuthenticodePublisher(filePath);
+            if (string.IsNullOrEmpty(subject))
                 return false;
 
-            // 2) Extraction du subject du certificat signataire
-            //    X509Certificate.CreateFromSignedFile est marqué obsolète en .NET 6+
-            //    mais reste fonctionnel et c'est la seule API simple côté BCL.
-    #pragma warning disable SYSLIB0057
-            using var cert = System.Security.Cryptography.X509Certificates
-                                  .X509Certificate.CreateFromSignedFile(filePath);
-    #pragma warning restore SYSLIB0057
-
-            string subject = cert.Subject ?? "";
             return subject.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
         }
         catch

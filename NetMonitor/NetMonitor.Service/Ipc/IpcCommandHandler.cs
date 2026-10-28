@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO.Pipes;
 using System.Linq;
 
@@ -46,7 +46,7 @@ namespace NetMonitor.Service.Ipc
                 else
                 {
                     // Utilise le moteur pour retirer l'IP de la liste interne
-                    // ET resynchroniser les règles pare-feu (blocks groupés)
+                    // ET resynchroniser les rÃ¨gles pare-feu (blocks groupÃ©s)
                     bool ok = _engine.UnblockIp(ip);
                     IpcResponse.Json(server, new { status = ok ? "ok" : "error", unblocked = ok, ip });
                 }
@@ -102,6 +102,22 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, new { status = ok ? "ok" : "error", toggled = ok, path, enabled });
                 return;
             }
+            
+            if (command.StartsWith("dismiss-pending ", StringComparison.OrdinalIgnoreCase))
+            {
+                // On prend tout ce qui suit la commande, car un chemin peut contenir des espaces
+                string path = command.Substring("dismiss-pending ".Length).Trim();
+                
+                if (string.IsNullOrWhiteSpace(path))
+                {
+                    IpcResponse.Error(server, "Chemin manquant");
+                    return;
+                }
+
+                bool ok = _engine.DismissPendingProcess(path);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", dismissed = ok, path });
+                return;
+            }            
                         
             switch (command.ToLowerInvariant())
             {
@@ -232,7 +248,7 @@ namespace NetMonitor.Service.Ipc
             try
             {
                 _engine.ClearAlerts();
-                CoreLog.Write("IPC : historique des alertes vidé");
+                CoreLog.Write("IPC : historique des alertes vidÃ©");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -273,7 +289,7 @@ namespace NetMonitor.Service.Ipc
         private void HandleShutdown(NamedPipeServerStream server)
         {
             IpcResponse.Ok(server);
-            CoreLog.Write("IPC : shutdown demandé");
+            CoreLog.Write("IPC : shutdown demandÃ©");
 
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
         }
@@ -334,7 +350,7 @@ namespace NetMonitor.Service.Ipc
                 _settings.SaveWeb();
                 Program.RestartWebServer();
 
-                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
+                CoreLog.Write($"IPC : config WebServer mise Ã  jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -490,7 +506,7 @@ namespace NetMonitor.Service.Ipc
                 byte[] pdfBytes = PdfExporter.GenerateReport(
                     Environment.MachineName, history, blocked, audit);
 
-                // On renvoie le PDF encodé en Base64 pour passer dans le pipe
+                // On renvoie le PDF encodÃ© en Base64 pour passer dans le pipe
                 string base64 = Convert.ToBase64String(pdfBytes);
                 IpcResponse.Raw(server, base64);
             }

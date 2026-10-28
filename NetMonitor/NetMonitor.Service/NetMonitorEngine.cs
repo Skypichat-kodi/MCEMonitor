@@ -248,6 +248,42 @@ namespace NetMonitor.Service
             // ✅ NOUVEAU : sauvegarde si nécessaire
             if (_retriesDirty)
                 SaveBlockedIpRetries();
+                
+            // ✅ NOUVEAU : Purge des processus en attente qui n'existent plus
+            lock (_pendingLock)
+            {
+                var deadProcesses = new List<string>();
+
+                // On utilise le 'now' déjà déclaré au début de la méthode
+                foreach (var p in _pendingProcesses)
+                {
+                    // Si le processus est en attente depuis plus de 5 minutes
+                    if ((now - p.FirstSeen).TotalMinutes > 5)
+                    {
+                        bool isAlive = false;
+                        if (p.Pid > 0)
+                        {
+                            try
+                            {
+                                using var proc = System.Diagnostics.Process.GetProcessById(p.Pid);
+                                isAlive = !proc.HasExited;
+                            }
+                            catch { isAlive = false; }
+                        }
+
+                        if (!isAlive)
+                            deadProcesses.Add(p.ProcessPath);
+                    }
+                }
+
+                if (deadProcesses.Count > 0)
+                {
+                    foreach (var path in deadProcesses)
+                        _pendingProcesses.RemoveAll(p => p.ProcessPath == path);
+                    
+                    CoreLog.Debug($"[PENDING] Purge auto : {deadProcesses.Count} processus mort(s) retiré(s).");
+                }
+            }
         }
 
         public void Stop()
@@ -972,6 +1008,30 @@ namespace NetMonitor.Service
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Retire un processus de la liste d'attente sans le whitelister ni le bloquer.
+        /// Utile pour les faux positifs qu'on ne veut plus voir.
+        /// </summary>
+        public bool DismissPendingProcess(string processPathOrKey)
+        {
+            if (string.IsNullOrWhiteSpace(processPathOrKey)) return false;
+
+            lock (_pendingLock)
+            {
+                // On cherche par chemin exact (qui peut être un chemin classique ou "[no-path]::Nom")
+                int removed = _pendingProcesses.RemoveAll(p =>
+                    string.Equals(p.ProcessPath, processPathOrKey, StringComparison.OrdinalIgnoreCase));
+
+                if (removed > 0)
+                {
+                    CoreLog.Info($"[PENDING] Processus retiré manuellement de la liste : {processPathOrKey}");
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public bool UnblockProcess(string processPath)

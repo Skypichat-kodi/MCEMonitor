@@ -1,7 +1,7 @@
-namespace NetMonitor.Service.Models;
+Ôªønamespace NetMonitor.Service.Models;
 
 /// <summary>
-/// EntrÈe de la whitelist des processus approuvÈs.
+/// Entr√©e de la whitelist des processus approuv√©s.
 /// </summary>
 public sealed class ProcessTrustInfo
 {
@@ -11,31 +11,31 @@ public sealed class ProcessTrustInfo
     /// <summary>Chemin complet attendu (ex: C:\Program Files\Google\Chrome\Application\chrome.exe).</summary>
     public string Path { get; set; } = "";
 
-    /// <summary>Hash SHA-256 du binaire (hex minuscule). Vide = non vÈrifiÈ.</summary>
+    /// <summary>Hash SHA-256 du binaire (hex minuscule). Vide = non v√©rifi√©.</summary>
     public string Sha256 { get; set; } = "";
 
-    /// <summary>…diteur attendu (subject Authenticode). Vide = non vÈrifiÈ.</summary>
+    /// <summary>√âditeur attendu (subject Authenticode). Vide = non v√©rifi√©.</summary>
     public string Publisher { get; set; } = "";
 
-    /// <summary>Si false, l'entrÈe est ignorÈe (permet de dÈsactiver une rËgle sans la supprimer).</summary>
+    /// <summary>Si false, l'entr√©e est ignor√©e (permet de d√©sactiver une r√®gle sans la supprimer).</summary>
     public bool Enabled { get; set; } = true;
 }
 
 /// <summary>
-/// RÈsultat de la vÈrification d'un processus.
+/// R√©sultat de la v√©rification d'un processus.
 /// </summary>
 public enum ProcessTrustLevel
 {
-    /// <summary>Processus approuvÈ (nom + chemin + hash/signature OK).</summary>
+    /// <summary>Processus approuv√© (nom + chemin + hash/signature OK).</summary>
     Trusted,
 
     /// <summary>Processus inconnu (pas dans la whitelist).</summary>
     Unknown,
 
-    /// <summary>Processus avec un nom whitelistÈ mais chemin/hash diffÈrents ? tentative d'usurpation.</summary>
+    /// <summary>Processus avec un nom whitelist√© mais chemin/hash diff√©rents ‚Üí tentative d'usurpation.</summary>
     Spoofed,
 
-    /// <summary>Processus systËme critique (PID 4, 0).</summary>
+    /// <summary>Processus syst√®me critique (PID 4, 0).</summary>
     System
 }
 
@@ -46,6 +46,16 @@ public sealed class ProcessTrustResult
     public string? FullPath { get; init; }
     public string? Sha256 { get; init; }
     public string? Publisher { get; init; }
-    public string? MatchedEntry { get; init; }  // nom de l'entrÈe whitelist qui a matchÈ
+    public string? MatchedEntry { get; init; }  // nom de l'entr√©e whitelist qui a match√©
     public string? Reason { get; init; }        // raison du spoof / unknown
+
+    /// <summary>
+    /// Code d'erreur Win32 remont√© par OpenProcess / QueryFullProcessImageName.
+    /// 0    = succ√®s
+    /// 5    = ERROR_ACCESS_DENIED   ‚Üí processus prot√©g√© (PPL) ou droits insuffisants
+    /// 87   = ERROR_INVALID_PARAMETER ‚Üí PID inexistant (processus d√©j√† termin√©)
+    /// 6    = ERROR_INVALID_HANDLE
+    /// autre = voir https://learn.microsoft.com/en-us/windows/win32/debug/system-error-codes
+    /// </summary>
+    public int Win32Error { get; init; }
 }

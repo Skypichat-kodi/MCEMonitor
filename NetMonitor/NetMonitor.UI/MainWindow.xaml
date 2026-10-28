@@ -810,6 +810,23 @@
                                     <TextBlock Text="Ajouter à la liste blanche" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
+                            <Button Width="160" Click="DismissPendingProcess_Click" Margin="10,0,0,0">
+                                <Button.Style>
+                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                        <Setter Property="Background" Value="#4A4A4D"/>
+                                        <Setter Property="BorderBrush" Value="#6A6A6D"/>
+                                        <Style.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter Property="Background" Value="#5A5A5E"/>
+                                            </Trigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </Button.Style>
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="✖" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#E5E5E5"/>
+                                    <TextBlock Text="Retirer de la liste" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>                            
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">

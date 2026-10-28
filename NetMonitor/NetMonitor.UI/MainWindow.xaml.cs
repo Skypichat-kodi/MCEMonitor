@@ -788,6 +788,34 @@ namespace NetMonitor.UI
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
             await RefreshSafe();
         }
+
+        private async void DismissPendingProcess_Click(object sender, RoutedEventArgs e)
+        {
+            if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
+
+            var confirm = MessageBox.Show(
+                $"Retirer ce processus de la liste d'attente ?\n\n{row.ProcessPath}\n\n" +
+                "Il ne sera ni autorisé (whitelist) ni bloqué. S'il réapparaît, il sera à nouveau listé.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            SetBusy("Retrait du processus en cours...");
+
+            bool ok = await NetMonitorIpcClient.DismissPendingProcessAsync(row.ProcessPath);
+
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec du retrait. Le processus a peut-être déjà disparu ou le service n'a pas répondu.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshSafe();
+        }
         
         private async void BlockSelectedProcess_Click(object sender, RoutedEventArgs e)
         {

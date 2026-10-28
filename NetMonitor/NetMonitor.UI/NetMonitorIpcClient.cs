@@ -414,6 +414,22 @@ namespace NetMonitor.UI
         {
             var resp = await SendCommand("unblock-process " + path);
             return resp != null && resp.Contains("\"status\":\"ok\"");
-        }                                            
+        }
+        
+        public static async Task<bool> DismissPendingProcessAsync(string processPath)
+        {
+            try
+            {
+                // Utilise la méthode SendCommand existante
+                var result = await SendCommand($"dismiss-pending {processPath}");
+                
+                // Vérifie la réponse JSON
+                return result != null && result.Contains("\"dismissed\":true");
+            }
+            catch
+            {
+                return false;
+            }
+        }                                               
     }
 }
