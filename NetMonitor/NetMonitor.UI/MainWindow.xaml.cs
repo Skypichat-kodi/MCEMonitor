@@ -67,6 +67,8 @@ namespace NetMonitor.UI
         private string? _lastActiveHash;
         // ⚠ offset du scroll global (ScrollViewer de l'onglet actif)
         private double _lastGlobalScroll = 0;
+        // Problèmes déjà notifiés à l'utilisateur (clé = Category + Message)
+        private readonly HashSet<string> _notifiedProblems = new();        
 
         public MainWindow()
         {
@@ -210,6 +212,9 @@ namespace NetMonitor.UI
                         ? $"Surveillance active  |  {_activeIntrusions.Count} active(s)  |  {_blockedIps.Count} bloquée(s)"
                         : "Surveillance arrêtée";
                 }
+
+                // ---- Problèmes persistants signalés par le service ----
+                await CheckPersistentProblemsAsync();
 
                 // ---- Tableau 1 : intrusions actives (groupées par IP) ----
                 var active = await NetMonitorIpcClient.GetActiveIntrusions();
@@ -2267,7 +2272,43 @@ namespace NetMonitor.UI
                     break;
                 }
             }
-        }                                
+        }
+        
+        private async Task CheckPersistentProblemsAsync()
+        {
+            try
+            {
+                var problems = await NetMonitorIpcClient.GetPersistentProblemsAsync();
+                if (problems == null || problems.Count == 0) return;
+
+                foreach (var p in problems)
+                {
+                    string key = $"{p.Category}:{p.Message}";
+                    if (_notifiedProblems.Contains(key)) continue;
+
+                    _notifiedProblems.Add(key);
+
+                    // Affiche la popup sur le thread UI
+                    Dispatcher.BeginInvoke(new Action(() =>
+                    {
+                        MessageBox.Show(
+                            $"{p.Message}\n\n" +
+                            $"Catégorie : {p.Category}\n" +
+                            $"Sévérité  : {p.Severity}\n" +
+                            $"Date      : {p.Timestamp.ToLocalTime():dd/MM/yyyy HH:mm:ss}\n\n" +
+                            "Consultez le journal du service pour plus de détails :\n" +
+                            @"C:\ProgramData\MCEMonitor\Logs\NetMonitor.Service.log",
+                            "NetMonitor - Problème détecté",
+                            MessageBoxButton.OK,
+                            MessageBoxImage.Error);
+                    }));
+                }
+            }
+            catch
+            {
+                // Silencieux : ne pas polluer la boucle de refresh
+            }
+        }                                        
     }
 
     // ============================================================

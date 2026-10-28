@@ -200,6 +200,14 @@ namespace NetMonitor.UI
         public string? Details { get; set; }
     }    
 
+    public class PersistentProblemDto
+    {
+        public DateTime Timestamp { get; set; }
+        public string Severity { get; set; } = "";
+        public string Category { get; set; } = "";
+        public string Message { get; set; } = "";
+    }
+    
     // ============================================================
     //  Client IPC
     // ============================================================
@@ -317,6 +325,9 @@ namespace NetMonitor.UI
         public static async Task<List<AuditGroupedDto>?> GetAuditHistoryGroupedAsync()
             => Deserialize<List<AuditGroupedDto>>(await SendCommand("get-audit-grouped"));                        
 
+        public static async Task<List<PersistentProblemDto>?> GetPersistentProblemsAsync()
+            => Deserialize<List<PersistentProblemDto>>(await SendCommand("get-persistent-problems"));
+            
         // ---------- Actions ----------
 
         public static async Task<bool> ClearActiveIntrusionsAsync()
@@ -342,7 +353,10 @@ namespace NetMonitor.UI
 
         public static async Task<bool> ToggleWhitelistEntryAsync(string path, bool enabled)
             => IsOk(await SendCommand($"toggle-whitelist-entry {path}|{(enabled ? "true" : "false")}"));            
-    
+
+        public static async Task<bool> ClearPersistentProblemsAsync()
+            => IsOk(await SendCommand("clear-persistent-problems"));
+        
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {
             string cmd = $"set-web-config enabled={enabled.ToString().ToLower()}" +

@@ -142,7 +142,8 @@ namespace NetMonitor.Service.Ipc
                 case "get-blocked-retries":     HandleGetBlockedIpRetries(server); break;
                 case "clear-blocked-retries":   HandleClearBlockedIpRetries(server); break;
                 case "get-whitelist":           HandleGetWhitelist(server); break;
-                case "get-audit-grouped":       HandleGetAuditGrouped(server); break;                                                                           
+                case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
+                case "get-persistent-problems": HandleGetPersistentProblems(server); break;                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -581,6 +582,15 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, projected);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
-        }                                                
+        }
+        
+        private void HandleGetPersistentProblems(NamedPipeServerStream server)
+        {
+            try
+            {
+                IpcResponse.Json(server, _engine.GetPersistentProblems());
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }                                                        
     }
 }

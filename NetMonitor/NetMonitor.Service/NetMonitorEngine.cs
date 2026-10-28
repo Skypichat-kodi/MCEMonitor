@@ -189,7 +189,14 @@ namespace NetMonitor.Service
             // --- Initialisation de la capture WinDivert ---
             _packetChannel = Channel.CreateBounded<RawPacket>(new BoundedChannelOptions(2000) { FullMode = BoundedChannelFullMode.DropOldest });
             _capture = new PacketCaptureService("ip", _packetChannel.Writer);
-            _capture.OnError += (s, ex) => CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
+            _capture.OnError += (s, ex) =>
+            {
+                CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
+                ReportProblem(
+                    category: "WinDivert",
+                    message:  ex.Message,
+                    severity: "critical");
+            };
             _capture.Start();
 
             _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
@@ -1212,6 +1219,37 @@ namespace NetMonitor.Service
             {
                 _emailScheduler?.Enqueue(evt);
             }
+        }
+
+        // ============================================================
+        //  Problèmes persistants exposés à l'UI (popup, journal…)
+        // ============================================================
+        private readonly ConcurrentDictionary<string, ProblemItem> _persistentProblems = new();
+
+        public void ReportProblem(string category, string message, string severity = "critical")
+        {
+            // Clé stable : même problème => même clé => pas de doublon
+            string id = $"{category}:{message}";
+            _persistentProblems[id] = new ProblemItem
+            {
+                Timestamp = DateTime.UtcNow,
+                Severity  = severity,
+                Category  = category,
+                Message   = message
+            };
+            CoreLog.Warn($"[PROBLEM] {category} : {message}");
+        }
+
+        public List<ProblemItem> GetPersistentProblems()
+        {
+            return _persistentProblems.Values
+                .OrderByDescending(p => p.Timestamp)
+                .ToList();
+        }
+
+        public void ClearPersistentProblems()
+        {
+            _persistentProblems.Clear();
         }
         
         public void LoadAudit()
