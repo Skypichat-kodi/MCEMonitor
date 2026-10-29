@@ -429,12 +429,6 @@
     <a href="/" class="action-btn secondary">
         {{tr:Rafraîchir}}
     </a>
-    <a href="#" id="btnClearActive" class="action-btn danger">
-        {{tr:Purger les intrusions actives}}
-    </a>
-    <a href="#" id="btnClearHistory" class="action-btn danger">
-        {{tr:Vider l'historique}}
-    </a>
     <a href="/export-pdf" class="action-btn secondary">
         {{tr:Exporter PDF}}
     </a>
@@ -443,7 +437,7 @@
     </a>
     <a href="/whitelist" class="action-btn">
         ✅ {{tr:Liste blanche}}
-    </a>                
+    </a>
 </div>
 
 <div class="info">
@@ -463,6 +457,9 @@
     <button type="button" id="btnBlockIp" class="action-btn danger">
         🚫 {{tr:Bloquer l'IP sélectionnée}}
     </button>
+    <a href="#" id="btnClearActive" class="action-btn danger">
+        🗑 {{tr:Purger les intrusions actives}}
+    </a>
 </div>
 <div class="table-wrapper">
     <table>
@@ -552,6 +549,11 @@
     <span style="font-size:20px">🛡</span>
     {{tr:Tentatives sur IP bloquée}} - {{BlockedRetriesCount}}
 </h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <a href="#" id="btnClearRetries" class="action-btn danger">
+        🗑 {{tr:Vider la liste}}
+    </a>
+</div>
 <div class="table-wrapper theme-info">
     <table>
         <thead>
@@ -575,6 +577,11 @@
     <span style="font-size:20px">📜</span>
     {{tr:Historique des Intrusions}}
 </h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <a href="#" id="btnClearHistory" class="action-btn danger">
+        🗑 {{tr:Effacer l'historique}}
+    </a>
+</div>
 <div class="table-wrapper">
     <table>
         <thead>
@@ -600,6 +607,11 @@
     <span style="font-size:20px">🛡</span>
     {{tr:Alertes ignorées (IP de confiance)}} - {{AuditCount}}
 </h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <a href="#" id="btnClearAudit" class="action-btn danger">
+        🗑 {{tr:Vider l'audit}}
+    </a>
+</div>
 <div class="table-wrapper theme-success">
     <table>
         <thead>
@@ -644,6 +656,19 @@ document.getElementById('btnClearHistory').addEventListener('click', function(e)
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des intrusions ? Cette action est irréversible.}}")) {
         window.location.href = '/clear-history';
+    }
+});
+document.getElementById('btnClearRetries').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (confirm("{{tr:Voulez-vous vraiment vider la liste des tentatives ?}}")) {
+        window.location.href = '/clear-blocked-retries';
+    }
+});
+
+document.getElementById('btnClearAudit').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (confirm("{{tr:Voulez-vous vraiment vider l'historique d'audit ?}}")) {
+        window.location.href = '/clear-audit';
     }
 });
 

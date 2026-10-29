@@ -263,7 +263,7 @@ namespace NetMonitor.Service.Web
                 var blockedRetries = engine.GetBlockedIpRetries();
                 if (blockedRetries.Count > 0)
                 {
-                    foreach (var r in blockedRetries.OrderByDescending(x => x.LastRetryAt).Take(100))
+                    foreach (var r in blockedRetries.Take(100))
                     {
                         string ipEnc = WebUtility.HtmlEncode(r.Ip);
                         string countClass = r.RetryCount >= 10 ? "c10" :

@@ -147,6 +147,18 @@ namespace NetMonitor.Service.Web
                     CoreLog.Write("WebServer : historique purgé");
                     Redirect(ctx);
                 }
+                else if (path == "/clear-audit")
+                {
+                    _engine.ClearAudit();
+                    CoreLog.Write("WebServer : historique d'audit purgé");
+                    Redirect(ctx);
+                }
+                else if (path == "/clear-blocked-retries")
+                {
+                    _engine.ClearBlockedIpRetries();
+                    CoreLog.Write("WebServer : compteurs de tentatives purgés");
+                    Redirect(ctx);
+                }                
                 else if (path == "/block-ip" && ctx.Request.HttpMethod == "POST")
                 {
                     string ip = ReadFormValue(ctx, "ip");
