@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Management;
 using LibreHardwareMonitor.Hardware;
@@ -6,7 +6,7 @@ using LibreHardwareMonitor.Hardware;
 namespace SystemMonitor.Service
 {
     /// <summary>
-    /// Collecte les informations matérielles via LibreHardwareMonitorLib + WMI.
+    /// Collecte les informations matÃ©rielles via LibreHardwareMonitorLib + WMI.
     /// </summary>
     public class HardwareMonitorService : IDisposable
     {
@@ -42,7 +42,7 @@ namespace SystemMonitor.Service
         }
 
         /// <summary>
-        /// Rafraîchit tous les capteurs et retourne un snapshot.
+        /// RafraÃ®chit tous les capteurs et retourne un snapshot.
         /// </summary>
         public SystemSnapshot GetSnapshot()
         {
@@ -82,25 +82,9 @@ namespace SystemMonitor.Service
                                 break;
                         }
                     }
-                    
-                    // === DEBUG TEMPÉRATURE ===
-                    foreach (var hw in _computer.Hardware)
-                    {
-                        if (hw.HardwareType == HardwareType.Cpu)
-                        {
-                            CoreLog.Write($"[DEBUG] CPU trouvé : {hw.Name}");
-                            foreach (var s in hw.Sensors)
-                            {
-                                if (s.SensorType == SensorType.Temperature)
-                                {
-                                    CoreLog.Write($"[DEBUG]   Temp sensor : '{s.Name}' = {(s.Value.HasValue ? s.Value.Value.ToString("F1") : "null")}");
-                                }
-                            }
-                        }
-                    }                    
                 }
 
-                // Compléments WMI (plus fiables pour certains cas)
+                // ComplÃ©ments WMI (plus fiables pour certains cas)
                 FillRamFromWmi(snapshot.Ram);
                 FillCpuNameFromWmi(snapshot.Cpu);
             }
@@ -141,7 +125,7 @@ namespace SystemMonitor.Service
                             cpu.FrequencyMHz = sensor.Value;
                         break;
 
-                    // ? NOUVEAU : charge par cœur
+                    // ? NOUVEAU : charge par cÅ“ur
                     case SensorType.Load when System.Text.RegularExpressions.Regex.IsMatch(
                         sensor.Name, @"^CPU Core #\d+$"):
                         cores[sensor.Name] = sensor.Value ?? 0;
@@ -149,7 +133,7 @@ namespace SystemMonitor.Service
                 }
             }
 
-            // Tri des cœurs par numéro réel (#1, #2, ..., #10, #11)
+            // Tri des cÅ“urs par numÃ©ro rÃ©el (#1, #2, ..., #10, #11)
             var sortedCores = cores
                 .Select(kv => new
                 {
@@ -170,7 +154,7 @@ namespace SystemMonitor.Service
         }
 
         /// <summary>
-        /// Extrait le numéro depuis "CPU Core #12" ? 12
+        /// Extrait le numÃ©ro depuis "CPU Core #12" ? 12
         /// </summary>
         private static int ExtractCoreNumber(string name)
         {
@@ -230,7 +214,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  RAM (via WMI — plus fiable que LHM)
+        //  RAM (via WMI â€” plus fiable que LHM)
         // ============================================================
         private void FillRamFromWmi(RamInfo ram)
         {
@@ -259,7 +243,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Réseau
+        //  RÃ©seau
         // ============================================================
         private void FillNetwork(NetworkInfo net, IHardware hw)
         {
@@ -292,7 +276,7 @@ namespace SystemMonitor.Service
     }
 
     /// <summary>
-    /// Visiteur obligatoire pour rafraîchir les capteurs LHM.
+    /// Visiteur obligatoire pour rafraÃ®chir les capteurs LHM.
     /// </summary>
     public class UpdateVisitor : IVisitor
     {

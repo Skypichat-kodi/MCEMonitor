@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Text.Json;
@@ -40,7 +40,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // AUDIO (TagLibSharp) — NE TOUCHE PAS
+        // AUDIO (TagLibSharp) â€” NE TOUCHE PAS
         // ---------------------------
         private static void AnalyzeAudio(string path, MediaUsageItem item)
         {
@@ -62,6 +62,12 @@ namespace MediaMonitor.Core.Services
                     if (pic.Data != null && pic.Data.Count > 0)
                         item.AlbumArt = pic.Data.Data;
                 }
+
+                // Fallback : si pas d'image embarquÃ©e, chercher folder.jpg / cover.jpg / etc.
+                if (item.AlbumArt == null || item.AlbumArt.Length == 0)
+                {
+                    item.AlbumArt = CoverFinder.FindExternalCover(path);
+                }
             }
             catch
             {
@@ -70,14 +76,14 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // VIDÉO (ffprobe + ffmpeg)
+        // VIDÃ‰O (ffprobe + ffmpeg)
         // ---------------------------
         private static void AnalyzeVideo(string path, MediaUsageItem item)
         {
-            // Séries : "Série - 01x06 - Épisode.ts"
+            // SÃ©ries : "SÃ©rie - 01x06 - Ã‰pisode.ts"
             ParseSeriesInfo(item.FileName, item);
 
-            // Durée + codecs via ffprobe
+            // DurÃ©e + codecs via ffprobe
             try
             {
                 var info = RunFfprobe(path);
@@ -104,10 +110,10 @@ namespace MediaMonitor.Core.Services
             }
             catch
             {
-                // Si ffprobe plante, on laisse durée/codec vides.
+                // Si ffprobe plante, on laisse durÃ©e/codec vides.
             }
 
-            // Miniature JPEG à 20 secondes via ffmpeg
+            // Miniature JPEG Ã  20 secondes via ffmpeg
             try
             {
                 string tempThumb = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".jpg");
@@ -122,24 +128,31 @@ namespace MediaMonitor.Core.Services
             }
             catch
             {
-                // Si ffmpeg plante, pas de miniature.
+                // Si ffmpeg plante, pas de miniature â€” on tentera le fallback ci-dessous.
             }
 
-            // Définition du titre pour la popup Webserver
+            // Fallback : si pas de miniature ffmpeg (codec non supportÃ©, fichier corrompuâ€¦),
+            // chercher Film.jpg, folder.jpg, poster.jpg, etc.
+            if (item.AlbumArt == null || item.AlbumArt.Length == 0)
+            {
+                item.AlbumArt = CoverFinder.FindExternalCover(path);
+            }
+
+            // DÃ©finition du titre pour la popup Webserver
             if (!string.IsNullOrEmpty(item.EpisodeName))
             {
-                // Série
+                // SÃ©rie
                 item.Title = item.EpisodeName;
             }
             else
             {
-                // Film ou vidéo simple
+                // Film ou vidÃ©o simple
                 item.Title = Path.GetFileNameWithoutExtension(item.FileName);
             }
         }
 
         // ---------------------------
-        // ffprobe : durée + codecs
+        // ffprobe : durÃ©e + codecs
         // ---------------------------
         // ffprobe -v quiet -print_format json -show_streams -show_format "path"
         private static (Format format, StreamInfo[] streams) RunFfprobe(string path)
@@ -159,7 +172,7 @@ namespace MediaMonitor.Core.Services
             if (!proc.Start())
                 return (null!, Array.Empty<StreamInfo>());
 
-            // Lecture asynchrone des deux flux pour éviter tout deadlock.
+            // Lecture asynchrone des deux flux pour Ã©viter tout deadlock.
             var stdoutTask = proc.StandardOutput.ReadToEndAsync();
             var stderrTask = proc.StandardError.ReadToEndAsync();
 
@@ -170,7 +183,7 @@ namespace MediaMonitor.Core.Services
             }
 
             string json = stdoutTask.GetAwaiter().GetResult();
-            _ = stderrTask.GetAwaiter().GetResult(); // consommé, même si ignoré
+            _ = stderrTask.GetAwaiter().GetResult(); // consommÃ©, mÃªme si ignorÃ©
 
             if (string.IsNullOrWhiteSpace(json))
                 return (null!, Array.Empty<StreamInfo>());
@@ -180,7 +193,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // ffmpeg : miniature JPEG à N secondes
+        // ffmpeg : miniature JPEG Ã  N secondes
         // ---------------------------
         // ffmpeg -y -ss 20 -i "path" -frames:v 1 -q:v 2 "thumb.jpg"
         private static void RunFfmpegThumbnail(string input, string output, int seconds)
@@ -214,7 +227,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // Modèles JSON ffprobe
+        // ModÃ¨les JSON ffprobe
         // ---------------------------
         private class FfprobeResult
         {
@@ -234,7 +247,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // Parsing séries
+        // Parsing sÃ©ries
         // ---------------------------
         private static void ParseSeriesInfo(string fileName, MediaUsageItem item)
         {
@@ -249,18 +262,18 @@ namespace MediaMonitor.Core.Services
 
             if (!match.Success)
             {
-                // Pas de motif saison/épisode ? on garde le nom complet comme titre
+                // Pas de motif saison/Ã©pisode ? on garde le nom complet comme titre
                 item.EpisodeName = name;
                 return;
             }
 
-            // Saison / épisode
+            // Saison / Ã©pisode
             item.Saison = int.Parse(match.Groups["saison"].Value);
             item.Episode = int.Parse(match.Groups["episode"].Value);
 
-            // On découpe sur " - " pour récupérer série et titre,
-            // mais en se basant sur la position du motif trouvé.
-            // Exemple : "Série - 01x06 - Titre"
+            // On dÃ©coupe sur " - " pour rÃ©cupÃ©rer sÃ©rie et titre,
+            // mais en se basant sur la position du motif trouvÃ©.
+            // Exemple : "SÃ©rie - 01x06 - Titre"
             var parts = name.Split(new[] { " - " }, StringSplitOptions.RemoveEmptyEntries);
 
             if (parts.Length >= 3)
@@ -276,7 +289,7 @@ namespace MediaMonitor.Core.Services
         }
 
         // ---------------------------
-        // Détection type
+        // DÃ©tection type
         // ---------------------------
         private static string DetectType(string path)
         {
