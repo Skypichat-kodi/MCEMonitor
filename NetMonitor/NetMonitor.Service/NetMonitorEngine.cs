@@ -393,7 +393,8 @@ namespace NetMonitor.Service
         public List<BlockedIpRetryInfo> GetBlockedIpRetries()
         {
             return _blockedIpRetries.Values
-                .OrderByDescending(r => r.LastRetryAt)
+                .OrderByDescending(r => r.RetryCount)
+                .ThenByDescending(r => r.LastRetryAt)
                 .ToList();
         }
 

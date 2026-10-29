@@ -427,7 +427,9 @@ namespace NetMonitor.UI
                     string? key = (BlockedRetriesGrid.SelectedItem as BlockedIpRetryRow)?.Ip;
 
                     _blockedRetries.Clear();
-                    foreach (var r in retries)
+                    foreach (var r in retries
+                        .OrderByDescending(x => x.RetryCount)
+                        .ThenByDescending(x => x.LastRetryAt))
                     {
                         _blockedRetries.Add(new BlockedIpRetryRow
                         {
