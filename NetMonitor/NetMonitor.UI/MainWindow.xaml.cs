@@ -1585,15 +1585,22 @@ namespace NetMonitor.UI
                 foreach (var p in stats.TopProcesses)
                     _statsTopProcesses.Add(new StatsProcessRow { ProcessName = p.ProcessName, Count = p.Count });
 
-                // --- Activité par heure ---
+                // --- Activité par heure (uniquement les heures avec activité) ---
                 _statsActivityByHour.Clear();
-                foreach (var h in stats.ActivityByHour.OrderBy(x => x.Hour))
+                var activeHours = stats.ActivityByHour.Where(x => x.Count > 0).OrderBy(x => x.Hour).ToList();
+                foreach (var h in activeHours)
                     _statsActivityByHour.Add(new StatsHourRow
                     {
                         Hour = h.Hour,
                         Count = h.Count,
                         CriticalCount = h.CriticalCount
                     });
+
+                // Titre : "N heure(s) sur 24 · X alertes"
+                int totalFromHours = activeHours.Sum(x => x.Count);
+                txtActivityHourSummary.Text = activeHours.Count == 0
+                    ? "aucune activité"
+                    : $"{activeHours.Count} / 24 heure(s) · {totalFromHours} alerte(s)";
 
                 // --- Distribution par sévérité ---
                 _statsSeverityDistribution.Clear();
