@@ -722,16 +722,16 @@
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#444"/>
+                                                        <Setter Property="Background" Value="#b71c1c"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c2">
-                                                                <Setter Property="Background" Value="#7a1e0f"/>
+                                                                <Setter Property="Background" Value="#8b0000"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c5">
-                                                                <Setter Property="Background" Value="#cc3300"/>
+                                                                <Setter Property="Background" Value="#5a0000"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c10">
-                                                                <Setter Property="Background" Value="#ff3300"/>
+                                                                <Setter Property="Background" Value="#2a0000"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -953,16 +953,16 @@
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#444"/>
+                                                        <Setter Property="Background" Value="#b71c1c"/>
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c2">
-                                                                <Setter Property="Background" Value="#7a1e0f"/>
+                                                                <Setter Property="Background" Value="#8b0000"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c5">
-                                                                <Setter Property="Background" Value="#cc3300"/>
+                                                                <Setter Property="Background" Value="#5a0000"/>
                                                             </DataTrigger>
                                                             <DataTrigger Binding="{Binding CountClass}" Value="c10">
-                                                                <Setter Property="Background" Value="#ff3300"/>
+                                                                <Setter Property="Background" Value="#2a0000"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -1186,16 +1186,16 @@
                                         <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
                                             <Border.Style>
                                                 <Style TargetType="Border">
-                                                    <Setter Property="Background" Value="#444"/>
+                                                    <Setter Property="Background" Value="#1565c0"/>
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding CountClass}" Value="c2">
-                                                            <Setter Property="Background" Value="#2a5a8c"/>
+                                                            <Setter Property="Background" Value="#0d47a1"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding CountClass}" Value="c5">
-                                                            <Setter Property="Background" Value="#1a7acc"/>
+                                                            <Setter Property="Background" Value="#0a2e6e"/>
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding CountClass}" Value="c10">
-                                                            <Setter Property="Background" Value="#4CC2FF"/>
+                                                            <Setter Property="Background" Value="#051a3f"/>
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
