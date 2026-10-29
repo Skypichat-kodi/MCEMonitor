@@ -193,7 +193,8 @@ namespace NetMonitor.Service
             {
                 CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
                 ReportProblem(
-                    category: "WinDivert",
+                    // ex.Source peut valoir "WinDivertRestart" (échec après retry) ou null (erreur générique)
+                    category: string.IsNullOrEmpty(ex.Source) ? "WinDivert" : ex.Source,
                     message:  ex.Message,
                     severity: "critical");
             };

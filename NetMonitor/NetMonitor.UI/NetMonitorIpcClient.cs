@@ -378,6 +378,9 @@ namespace NetMonitor.UI
 
         public static async Task<bool> ClearPersistentProblemsAsync()
             => IsOk(await SendCommand("clear-persistent-problems"));
+            
+        public static async Task<bool> RestartComputerAsync()
+            => IsOk(await SendCommand("restart-computer"));            
         
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {

@@ -321,9 +321,11 @@ begin
     else
       Log('=== Conservation des tâches planifiées (choix utilisateur) ===');
       
-    // ─── Arrêt et suppression du service WinDivert (NetMonitor) ───
-    BatchContent.Add('sc stop WinDivert >nul 2>&1');
-    BatchContent.Add('sc delete WinDivert >nul 2>&1');
+    // ─── Arrêt et suppression de TOUTES les instances du pilote WinDivert ───
+    BatchContent.Add('for /f "tokens=2" %%s in (''sc query type= driver ^| findstr /i "WinDivert"'') do (');
+    BatchContent.Add('  sc stop %%s >nul 2>&1');
+    BatchContent.Add('  sc delete %%s >nul 2>&1');
+    BatchContent.Add(')');
     // ─── Kill des process (TOUJOURS, obligatoire pour remplacer les fichiers) ───
     BatchContent.Add('taskkill /F /IM MCEMonitor.exe /T >nul 2>&1');
     BatchContent.Add('taskkill /F /IM MCEMonitorClient.Service.exe /T >nul 2>&1');

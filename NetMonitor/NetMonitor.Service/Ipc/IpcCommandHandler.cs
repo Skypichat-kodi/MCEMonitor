@@ -143,7 +143,8 @@ namespace NetMonitor.Service.Ipc
                 case "clear-blocked-retries":   HandleClearBlockedIpRetries(server); break;
                 case "get-whitelist":           HandleGetWhitelist(server); break;
                 case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
-                case "get-persistent-problems": HandleGetPersistentProblems(server); break;                                                                           
+                case "get-persistent-problems": HandleGetPersistentProblems(server); break;
+                case "restart-computer":        HandleRestartComputer(server); break;                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -284,6 +285,33 @@ namespace NetMonitor.Service.Ipc
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur HandleForceScan : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleRestartComputer(NamedPipeServerStream server)
+        {
+            try
+            {
+                CoreLog.Info("IPC : redémarrage de l'ordinateur demandé par l'UI");
+
+                var psi = new System.Diagnostics.ProcessStartInfo(
+                    "shutdown.exe",
+                    "/r /t 10 /c \"NetMonitor : redémarrage pour débloquer le pilote WinDivert\"")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden
+                };
+
+                System.Diagnostics.Process.Start(psi);
+
+                // On répond OK tout de suite : le shutdown est planifié avec un délai de 10 s.
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleRestartComputer : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
         }

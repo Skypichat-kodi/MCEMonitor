@@ -113,7 +113,11 @@ namespace NetMonitor.Service.Capture
                 $"(dernier code {lastErr}). {hint}";
 
             CoreLog.Error(msg);
-            OnError?.Invoke(this, new Exception(msg));
+
+            // On utilise Exception.Source pour transmettre la catégorie à l'UI.
+            // "WinDivertRestart" déclenche la popup "Redémarrer l'ordinateur ?" côté UI.
+            var ex = new Exception(msg) { Source = "WinDivertRestart" };
+            OnError?.Invoke(this, ex);
             return false;
         }
 

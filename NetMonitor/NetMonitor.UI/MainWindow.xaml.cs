@@ -2419,19 +2419,54 @@ namespace NetMonitor.UI
 
                     _notifiedProblems.Add(key);
 
-                    // Affiche la popup sur le thread UI
+                    // On passe sur le thread UI pour afficher la popup
                     Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        MessageBox.Show(
-                            $"{p.Message}\n\n" +
-                            $"Catégorie : {p.Category}\n" +
-                            $"Sévérité  : {p.Severity}\n" +
-                            $"Date      : {p.Timestamp.ToLocalTime():dd/MM/yyyy HH:mm:ss}\n\n" +
-                            "Consultez le journal du service pour plus de détails :\n" +
-                            @"C:\ProgramData\MCEMonitor\Logs\NetMonitor.Service.log",
-                            "NetMonitor - Problème détecté",
-                            MessageBoxButton.OK,
-                            MessageBoxImage.Error);
+                        // Cas spécial : échec WinDivert après retry → proposer un redémarrage PC
+                        if (p.Category == "WinDivertRestart")
+                        {
+                            var result = MessageBox.Show(
+                                "NetMonitor Service n'a pas pu redémarrer le pilote WinDivert.\n\n" +
+                                "Il est recommandé de redémarrer votre ordinateur.\n\n" +
+                                "Souhaitez-vous redémarrer maintenant ?\n\n" +
+                                "(Le redémarrage aura lieu dans 10 secondes. " +
+                                "Sauvegardez votre travail en cours.)",
+                                "NetMonitor - Driver WinDivert bloqué",
+                                MessageBoxButton.YesNo,
+                                MessageBoxImage.Warning);
+
+                            if (result == MessageBoxResult.Yes)
+                            {
+                                _ = Task.Run(async () =>
+                                {
+                                    bool ok = await NetMonitorIpcClient.RestartComputerAsync();
+                                    if (!ok)
+                                    {
+                                        Dispatcher.BeginInvoke(new Action(() =>
+                                            MessageBox.Show(
+                                                "Impossible de déclencher le redémarrage automatique.\n\n" +
+                                                "Veuillez redémarrer votre ordinateur manuellement.",
+                                                "NetMonitor - Échec",
+                                                MessageBoxButton.OK,
+                                                MessageBoxImage.Error)));
+                                    }
+                                });
+                            }
+                        }
+                        else
+                        {
+                            // Popup standard pour les autres problèmes
+                            MessageBox.Show(
+                                $"{p.Message}\n\n" +
+                                $"Catégorie : {p.Category}\n" +
+                                $"Sévérité  : {p.Severity}\n" +
+                                $"Date      : {p.Timestamp.ToLocalTime():dd/MM/yyyy HH:mm:ss}\n\n" +
+                                "Consultez le journal du service pour plus de détails :\n" +
+                                @"C:\ProgramData\MCEMonitor\Logs\NetMonitor.Service.log",
+                                "NetMonitor - Problème détecté",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+                        }
                     }));
                 }
             }
