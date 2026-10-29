@@ -269,8 +269,9 @@ public static class StatsBuilder
 
     // -------------------------------------------------------------
     //  Bloc à partir d'une liste de BlockedIpInfo (bloquées)
+    //  ? Lecture pure des champs persistés, zéro appel API.
     // -------------------------------------------------------------
-    private static async Task<StatsBlock> BuildBlockFromBlockedAsync(
+    private static Task<StatsBlock> BuildBlockFromBlockedAsync(
         List<BlockedIpInfo> blockedList,
         GeoIpService geo,
         int topIpsLimit, int topCountriesLimit, int topDetectorsLimit)
@@ -287,40 +288,22 @@ public static class StatsBuilder
             WorstSeverity = "blocked"
         };
 
-        // --- Résolution avec budget (50 lookups synchrones max) ---
-        var geoMap = new Dictionary<string, GeoInfo>();
-        int budget = 50;
-        foreach (var b in blockedList)
-        {
-            var gi = geo.TryGetCached(b.Ip);
-            if (gi == null)
-            {
-                if (budget > 0) { gi = await geo.ResolveAsync(b.Ip); budget--; }
-                else { geo.ResolveInBackground(b.Ip); continue; }
-            }
-            if (gi != null) geoMap[b.Ip] = gi;
-        }
-
-        // --- Top IPs ---
+        // --- Top IPs : lecture directe des champs GeoIP persistés ---
         var ipStatsList = blockedList
-            .Select(b =>
+            .Select(b => new IpStats
             {
-                geoMap.TryGetValue(b.Ip, out var gi);
-                return new IpStats
-                {
-                    Ip = b.Ip,
-                    Count = 1,
-                    FirstSeen = b.BlockedAt,
-                    LastSeen = b.BlockedAt,
-                    MaxSeverity = "blocked",
-                    Detectors = new List<string> { b.Source },
-                    Country = gi?.Country,
-                    CountryCode = gi?.CountryCode,
-                    City = gi?.City,
-                    Isp = gi?.Isp,
-                    ReverseDns = gi?.ReverseDns,
-                    IsPrivate = gi?.IsPrivate ?? false
-                };
+                Ip = b.Ip,
+                Count = 1,
+                FirstSeen = b.BlockedAt,
+                LastSeen = b.BlockedAt,
+                MaxSeverity = "blocked",
+                Detectors = new List<string> { b.Source },
+                Country = b.Country,
+                CountryCode = b.CountryCode,
+                City = b.City,
+                Isp = b.Isp,
+                ReverseDns = b.ReverseDns,
+                IsPrivate = b.IsPrivate
             })
             .OrderBy(x => x.Country ?? "")
             .ThenBy(x => x.Ip)
@@ -328,24 +311,24 @@ public static class StatsBuilder
             .ToList();
         block.TopIps = ipStatsList;
 
-        // --- Pays ---
-        block.TopCountries = ipStatsList
-            .Where(x => !string.IsNullOrEmpty(x.Country) && !x.IsPrivate)
-            .GroupBy(x => new { x.Country, x.CountryCode })
+        // --- Pays : agrégation sur TOUTES les bloquées (pas seulement le top) ---
+        block.TopCountries = blockedList
+            .Where(b => !b.IsPrivate && !string.IsNullOrEmpty(b.Country))
+            .GroupBy(b => new { b.Country, b.CountryCode })
             .Select(g => new CountryStats
             {
                 Country = g.Key.Country ?? "",
                 CountryCode = g.Key.CountryCode ?? "",
                 Count = g.Count(),
-                DistinctIps = g.Select(x => x.Ip).Distinct().Count()
+                DistinctIps = g.Select(b => b.Ip).Distinct().Count()
             })
             .OrderByDescending(x => x.Count)
             .Take(topCountriesLimit)
             .ToList();
 
-        block.DistinctCountries = geoMap.Values
-            .Where(g => !g.IsPrivate && !string.IsNullOrEmpty(g.CountryCode))
-            .Select(g => g.CountryCode)
+        block.DistinctCountries = blockedList
+            .Where(b => !b.IsPrivate && !string.IsNullOrEmpty(b.CountryCode))
+            .Select(b => b.CountryCode!)
             .Distinct()
             .Count();
 
@@ -357,16 +340,15 @@ public static class StatsBuilder
             .Take(topDetectorsLimit)
             .ToList();
 
-        // --- Map data ---
+        // --- Map data : alertes par pays (sur TOUTES les bloquées) ---
         var countryMap = new Dictionary<string, int>();
         foreach (var b in blockedList)
         {
-            if (!geoMap.TryGetValue(b.Ip, out var gi)) continue;
-            if (gi.IsPrivate || string.IsNullOrEmpty(gi.CountryCode)) continue;
-            countryMap[gi.CountryCode] = countryMap.GetValueOrDefault(gi.CountryCode) + 1;
+            if (b.IsPrivate || string.IsNullOrEmpty(b.CountryCode)) continue;
+            countryMap[b.CountryCode] = countryMap.GetValueOrDefault(b.CountryCode) + 1;
         }
         block.AlertsByCountryCode = countryMap;
 
-        return block;
+        return Task.FromResult(block);
     }
 }

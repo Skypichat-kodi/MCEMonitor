@@ -16,6 +16,8 @@ public sealed class GeoIpService
     private readonly bool _reverseDnsEnabled;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(7);
 
+    public bool IsEnabled => _enabled;
+    
     public GeoIpService(string providerTemplate, bool enabled, bool reverseDnsEnabled)
     {
         _providerTemplate = string.IsNullOrWhiteSpace(providerTemplate)
@@ -42,14 +44,20 @@ public sealed class GeoIpService
         _ = ResolveAsync(ip);
     }
 
-    public async Task<GeoInfo> ResolveAsync(string ip)
+    public async Task<GeoInfo> ResolveAsync(string ip, bool includeReverseDns = true)
     {
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
         if (_cache.TryGetValue(ip, out var cached) &&
             DateTime.UtcNow - cached.ResolvedAt < CacheTtl)
-            return cached;
+        {
+            // Cache hit : si on n'a pas besoin du reverse DNS, ou qu'il est déjà là,
+            // on retourne directement (économie d'un appel réseau).
+            if (!includeReverseDns || !string.IsNullOrEmpty(cached.ReverseDns) || !_reverseDnsEnabled)
+                return cached;
+            // Sinon on continue pour re-fetcher (rare : cache sans reverse DNS alors qu'on le veut)
+        }
 
         // Sécurité : si ce n'est pas une IP valide, ne pas appeler l'API
         if (!IPAddress.TryParse(ip, out _))
@@ -78,13 +86,16 @@ public sealed class GeoIpService
         {
             if (_cache.TryGetValue(ip, out cached) &&
                 DateTime.UtcNow - cached.ResolvedAt < CacheTtl)
-                return cached;
+            {
+                if (!includeReverseDns || !string.IsNullOrEmpty(cached.ReverseDns) || !_reverseDnsEnabled)
+                    return cached;
+            }
 
             var info = await FetchGeoAsync(ip);
             info.Ip = ip;
             info.ResolvedAt = DateTime.UtcNow;
 
-            if (_reverseDnsEnabled)
+            if (_reverseDnsEnabled && includeReverseDns)
                 info.ReverseDns = await TryReverseDnsAsync(ip);
 
             _cache[ip] = info;

@@ -498,12 +498,90 @@ namespace NetMonitor.Service
                     Timestamp = DateTime.UtcNow,
                     Automatic = isAutomatic
                 };
-            }            
+            }
+
+            // Résolution GeoIP en tâche de fond (ne bloque pas le thread ETW)
+            _ = Task.Run(() => FinalizeBlockedIpGeoAsync(ip));
+
             return true;
         }
         
         public bool BlockIp(string ip, string? source, string? message, string? details)
             => BlockIp(ip, out _, source, message, details, null);
+
+        /// <summary>
+        /// Résout les informations GeoIP d'une IP bloquée en tâche de fond, puis
+        /// met à jour l'entrée dans _blockedIps et persiste sur disque.
+        ///
+        /// Appelée :
+        ///   - après chaque blocage (manuel ou auto) via fire-and-forget
+        ///   - au démarrage pour les IPs bloquées sans GeoResolvedAt (backfill)
+        ///
+        /// Retry : 3 tentatives avec backoff (5s, 10s, 15s) pour absorber
+        /// les micro-coupures réseau de l'API ipwho.is.
+        /// </summary>
+        private async Task FinalizeBlockedIpGeoAsync(string ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return;
+            if (_geoIp == null || !_geoIp.IsEnabled) return;
+
+            GeoInfo? geo = null;
+
+            for (int attempt = 1; attempt <= 3; attempt++)
+            {
+                try
+                {
+                    // includeReverseDns: false → on économise 2s par IP,
+                    // le reverse DNS n'étant pas utilisé dans les stats bloquées.
+                    geo = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
+
+                    if (geo != null && !string.IsNullOrEmpty(geo.CountryCode))
+                        break;   // succès
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Warn($"[GEOIP] {ip} tentative {attempt}/3 : {ex.Message}");
+                }
+
+                if (attempt < 3)
+                {
+                    try { await Task.Delay(TimeSpan.FromSeconds(5 * attempt)); }
+                    catch { }
+                }
+            }
+
+            if (geo == null || string.IsNullOrEmpty(geo.CountryCode))
+            {
+                CoreLog.Warn($"[GEOIP] {ip} non résolue après 3 tentatives (sera retentée au prochain démarrage)");
+                return;
+            }
+
+            // Mise à jour de l'entrée bloquée
+            bool updated = false;
+            lock (_alertsLock)
+            {
+                var entry = _blockedIps.FirstOrDefault(b =>
+                    !b.IsProcess && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+
+                if (entry == null) return;   // l'IP a été débloquée entre-temps
+
+                entry.Country       = geo.Country;
+                entry.CountryCode   = geo.CountryCode;
+                entry.City          = geo.City;
+                entry.Isp           = geo.Isp;
+                entry.Org           = geo.Org;
+                entry.IsPrivate     = geo.IsPrivate;
+                entry.ReverseDns    = geo.ReverseDns;
+                entry.GeoResolvedAt = DateTime.UtcNow;
+                updated = true;
+            }
+
+            if (updated)
+            {
+                SaveBlockedIps();
+                CoreLog.Info($"[GEOIP] {ip} enrichie : {geo.Country} ({geo.CountryCode}) — {geo.Isp}");
+            }
+        }
 
         public bool UnblockIp(string ip)
         {
@@ -668,6 +746,45 @@ namespace NetMonitor.Service
                 // individuelles vers les blocs groupés incluse)
                 bool syncOk = FirewallHelper.SyncFirewallRules(list.Select(b => b.Ip));
                 CoreLog.Info($"Sync pare-feu au démarrage : {(syncOk ? "OK" : "ÉCHEC")}");
+                
+                // ============================================================
+                //  Backfill : résoudre les GeoIP manquants en tâche de fond
+                //  (typiquement les IPs bloquées avant la mise à jour, ou
+                //   dont la résolution avait échoué précédemment)
+                // ============================================================
+                List<string> toResolve;
+                lock (_alertsLock)
+                {
+                    toResolve = _blockedIps
+                        .Where(b => !b.IsProcess && !b.GeoResolvedAt.HasValue)
+                        .Select(b => b.Ip)
+                        .Where(i => !string.IsNullOrWhiteSpace(i))
+                        .Distinct()
+                        .ToList();
+                }
+
+                if (toResolve.Count > 0 && _geoIp != null && _geoIp.IsEnabled)
+                {
+                    CoreLog.Info($"[GEOIP] Backfill au démarrage : {toResolve.Count} IP(s) bloquée(s) à enrichir");
+                    _ = Task.Run(async () =>
+                    {
+                        var opts = new ParallelOptions { MaxDegreeOfParallelism = 3 };
+                        try
+                        {
+                            await Parallel.ForEachAsync(toResolve, opts,
+                                async (ip, ct) =>
+                                {
+                                    await FinalizeBlockedIpGeoAsync(ip);
+                                    await Task.Delay(200, ct);  // léger throttle entre IPs
+                                });
+                            CoreLog.Info($"[GEOIP] Backfill terminé ({toResolve.Count} IP(s) traitée(s))");
+                        }
+                        catch (Exception ex)
+                        {
+                            CoreLog.Warn($"[GEOIP] Backfill interrompu : {ex.Message}");
+                        }
+                    });
+                }                
             }
             catch (Exception ex)
             {
