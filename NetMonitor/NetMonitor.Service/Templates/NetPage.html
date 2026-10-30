@@ -104,10 +104,44 @@
         background: #444;
         color: #fff;
     }
-    .badge.ok      { background: #6CCB5F; color: black; }
-    .badge.warning { background: #FFB900; color: black; }
-    .badge.danger  { background: #FF6347; color: white; }
-    .badge.unknown { background: #555; color: #ccc; }
+    
+    /* ============================================================ */
+    /*  Badges de sévérité — 5 niveaux + compat legacy              */
+    /* ============================================================ */
+    .badge.critical    { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
+    .badge.warning     { background: #FFB900; color: black; }    /* Orange - à vérifier */
+    .badge.info        { background: #999999; color: white; }    /* Gris - information */
+    .badge.safe        { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
+    .badge.trusted     { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
+    .badge.whitelisted { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
+    .badge.unknown     { background: #555; color: #ccc; }        /* Gris foncé - inconnu */
+
+    /* Compat : anciens noms de classes */
+    .badge.ok     { background: #6CCB5F; color: black; }
+    .badge.danger { background: #FF6347; color: white; }
+
+    /* Cadenas 🔒 pour les sévérités manuelles */
+    .manual-lock {
+        display: inline-block;
+        margin-left: 4px;
+        font-size: 11px;
+        opacity: 0.85;
+        cursor: help;
+        vertical-align: middle;
+    }
+
+    /* Bouton 🎨 pour changer la sévérité */
+    .severity-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 13px;
+        padding: 0 3px;
+        opacity: 0.6;
+        transition: opacity 0.15s ease, transform 0.1s ease;
+        vertical-align: middle;
+    }
+    .severity-btn:hover { opacity: 1; transform: scale(1.15); }
 
     .footer {
         margin-top: 30px;
@@ -747,6 +781,49 @@ function unblockSelectedIp() {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'ip=' + encodeURIComponent(ip)
+    }).then(function () {
+        sessionStorage.removeItem('sel-blocked-sel');
+        location.reload();
+    });
+}
+
+// ============================================================
+//  Changer la sévérité d'une IP bloquée
+// ============================================================
+function changeSeverity(ip, currentSeverity, hasManual) {
+    var msg =
+        "IP : " + ip + "\n" +
+        "Sévérité actuelle : " + currentSeverity +
+        (hasManual ? " (manuelle)" : " (automatique)") + "\n\n" +
+        "Choisissez le nouveau niveau :\n\n" +
+        "1 → Critical    (rouge  - danger immédiat)\n" +
+        "2 → Warning     (orange - à vérifier)\n" +
+        "3 → Safe        (vert clair - légitime connu)\n" +
+        "4 → Trusted     (vert moyen - scanner connu)\n" +
+        "5 → Whitelisted (vert foncé - ma whitelist)\n\n" +
+        "a → Auto (revenir à l'évaluation automatique)\n\n" +
+        "Votre choix :";
+
+    var choice = prompt(msg, "");
+    if (!choice) return;
+
+    var sev;
+    switch (choice.trim().toLowerCase()) {
+        case "1": sev = "Critical";    break;
+        case "2": sev = "Warning";     break;
+        case "3": sev = "Safe";        break;
+        case "4": sev = "Trusted";     break;
+        case "5": sev = "Whitelisted"; break;
+        case "a": sev = "auto";        break;
+        default:
+            alert("Choix invalide.");
+            return;
+    }
+
+    fetch('/set-severity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'ip=' + encodeURIComponent(ip) + '&severity=' + encodeURIComponent(sev)
     }).then(function () {
         sessionStorage.removeItem('sel-blocked-sel');
         location.reload();

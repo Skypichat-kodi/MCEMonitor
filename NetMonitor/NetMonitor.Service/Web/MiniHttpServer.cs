@@ -5,6 +5,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using MCEMonitor.Languages;
+using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Web
 {
@@ -211,6 +212,40 @@ namespace NetMonitor.Service.Web
                     CoreLog.Write($"WebServer : IP {ip} débloquée (ok={ok})");
                     Redirect(ctx);
                 }
+                else if (path == "/set-severity" && ctx.Request.HttpMethod == "POST")
+                {
+                    string ip = ReadFormValue(ctx, "ip");
+                    string severityStr = ReadFormValue(ctx, "severity");
+
+                    if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(severityStr))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    bool ok;
+                    if (string.Equals(severityStr, "auto", StringComparison.OrdinalIgnoreCase))
+                    {
+                        ok = _engine.SetManualSeverity(ip, null);
+                    }
+                    else if (Enum.TryParse<Severity>(severityStr, ignoreCase: true, out var sev))
+                    {
+                        ok = _engine.SetManualSeverity(ip, sev);
+                    }
+                    else
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    CoreLog.Write(ok
+                        ? $"WebServer : sévérité de {ip} → {severityStr}"
+                        : $"WebServer : échec changement sévérité de {ip}");
+
+                    Redirect(ctx);
+                }                
                 else if (path == "/block-process" && ctx.Request.HttpMethod == "POST")
                 {
                     string processPath = ReadFormValue(ctx, "path");

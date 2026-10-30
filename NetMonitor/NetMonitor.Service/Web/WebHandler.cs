@@ -59,9 +59,7 @@ namespace NetMonitor.Service.Web
 
                     foreach (var item in grouped)
                     {
-                        string sevClass = item.Severity.ToString() == "Critical" ? "danger" :
-                                          item.Severity.ToString() == "High" ? "danger" :
-                                          item.Severity.ToString() == "Warning" ? "warning" : "ok";
+                        string sevClass = SeverityToCssClass(item.Severity.ToString());
 
                         string ipEnc = WebUtility.HtmlEncode(item.Ip);
 
@@ -84,9 +82,7 @@ namespace NetMonitor.Service.Web
                     foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.RemoteIp))
                                             .OrderByDescending(x => x.Timestamp).Take(20))
                     {
-                        string sevClass = a.Severity.ToString() == "Critical" ? "danger" :
-                                          a.Severity.ToString() == "High" ? "danger" :
-                                          a.Severity.ToString() == "Warning" ? "warning" : "ok";
+                        string sevClass = SeverityToCssClass(a.Severity.ToString());
 
                         activeRows.Append($@"<tr>
                             <td></td>
@@ -116,9 +112,7 @@ namespace NetMonitor.Service.Web
                         .ThenByDescending(x => x.Count)
                         .Take(100))
                     {
-                        string sevClass = p.Severity.ToString() == "Critical" ? "danger" :
-                                          p.Severity.ToString() == "High" ? "danger" :
-                                          p.Severity.ToString() == "Warning" ? "warning" : "ok";
+                        string sevClass = SeverityToCssClass(p.Severity.ToString());
 
                         string pathEnc = WebUtility.HtmlEncode(p.ProcessPath);
                         string remote = $"{p.RemoteIp}:{p.RemotePort}";
@@ -151,25 +145,38 @@ namespace NetMonitor.Service.Web
                     {
                         string ipEnc = WebUtility.HtmlEncode(b.Ip);
 
-                        string sevClass = string.IsNullOrWhiteSpace(b.Severity) || b.Severity == "-"
-                            ? "unknown"
-                            : b.Severity == "Critical" ? "danger"
-                            : b.Severity == "High"     ? "danger"
-                            : b.Severity == "Warning"  ? "warning"
-                            : "ok";
+                        string sevClass = SeverityToCssClass(b.Severity);
 
                         string typeLabel = b.IsProcess ? "Processus" : "IP";
                         string display = b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip;
                         string displayEnc = WebUtility.HtmlEncode(display);
                         string infoCell = b.IsProcess ? "" : BuildIpInfoLink(b.Ip, lookupUrl);
 
+                        // ⚠ 1. Déclarations AVANT le Append
+                        string manualLock = b.ManualSeverity.HasValue
+                            ? "<span class='manual-lock' title='Sévérité forcée manuellement" +
+                              (b.ManualSeveritySetAt.HasValue
+                                  ? $" le {b.ManualSeveritySetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+                                  : "") +
+                              "'>🔒</span>"
+                            : "";
+
+                        string sevButton = b.IsProcess
+                            ? ""
+                            : $"<button type='button' class='severity-btn' " +
+                              $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
+                              $"'{WebUtility.HtmlEncode(b.Severity)}', " +
+                              $"{(b.ManualSeverity.HasValue ? "true" : "false")})\" " +
+                              $"title='Changer la sévérité'>🎨</button>";
+
+                        // ⚠ 2. Append APRÈS les déclarations
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{typeLabel}</td>
                             <td title='{displayEnc}'><b>{WebUtility.HtmlEncode(Truncate(display, 60))}</b></td>
                             <td class='info-cell'>{infoCell}</td>
-                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span></td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span>{manualLock}{sevButton}</td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
@@ -183,9 +190,7 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var h in history.OrderByDescending(x => x.Timestamp).Take(100))
                     {
-                        string sevClass = h.Severity.ToString() == "Critical" ? "danger" :
-                                          h.Severity.ToString() == "High" ? "danger" :
-                                          h.Severity.ToString() == "Warning" ? "warning" : "ok";
+                        string sevClass = SeverityToCssClass(h.Severity.ToString());
 
                         string detailsText = string.IsNullOrWhiteSpace(h.Details)
                             ? "-"
@@ -222,9 +227,7 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var a in auditGrouped.Take(200))
                     {
-                        string sevClass = a.Severity.ToString() == "Critical" ? "danger" :
-                                          a.Severity.ToString() == "High"     ? "danger" :
-                                          a.Severity.ToString() == "Warning"  ? "warning" : "ok";
+                        string sevClass = SeverityToCssClass(a.Severity.ToString());
 
                         string countClass = a.Count >= 10 ? "c10" :
                                             a.Count >= 5  ? "c5"  :
@@ -418,9 +421,7 @@ namespace NetMonitor.Service.Web
             var sb = new System.Text.StringBuilder();
             foreach (var item in list)
             {
-                string sevClass = item.MaxSeverity == "Critical" ? "danger" :
-                                  item.MaxSeverity == "High" ? "danger" :
-                                  item.MaxSeverity == "Warning" ? "warning" : "ok";
+                string sevClass = SeverityToCssClass(item.MaxSeverity);
 
                 string country = string.IsNullOrEmpty(item.CountryCode)
                     ? (item.Country ?? "-")
@@ -619,6 +620,22 @@ namespace NetMonitor.Service.Web
         {
             if (string.IsNullOrEmpty(text)) return "-";
             return text.Length <= max ? text : text.Substring(0, max - 1) + "…";
-        }                
+        }
+        
+        /// <summary>
+        /// Mappe une sévérité (enum stringifiée) vers sa classe CSS.
+        /// Accepte les 5 nouveaux niveaux + les valeurs legacy (High, Info, "-").
+        /// </summary>
+        private static string SeverityToCssClass(string? severity) => severity switch
+        {
+            "Critical"    => "critical",
+            "High"        => "critical",    // legacy : même couleur que Critical
+            "Warning"     => "warning",
+            "Info"        => "info",
+            "Safe"        => "safe",
+            "Trusted"     => "trusted",
+            "Whitelisted" => "whitelisted",
+            _             => "unknown"       // null, "", "-"
+        };                        
     }
 }
