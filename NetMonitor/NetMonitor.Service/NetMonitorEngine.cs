@@ -546,8 +546,6 @@ namespace NetMonitor.Service
             {
                 try
                 {
-                    // includeReverseDns: false → on économise 2s par IP,
-                    // le reverse DNS n'étant pas utilisé dans les stats bloquées.
                     geo = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
 
                     if (geo != null && !string.IsNullOrEmpty(geo.CountryCode))
@@ -571,7 +569,22 @@ namespace NetMonitor.Service
                 return;
             }
 
-            // Mise à jour de l'entrée bloquée
+            // Vérifier si c'est un scanner connu ---
+            bool isKnownScanner = false;
+            if (_trustedScanners != null)
+            {
+                var known = _trustedScanners.TryGetCached(ip);
+                if (known == true)
+                {
+                    isKnownScanner = true;
+                }
+                else if (!known.HasValue)
+                {
+                    _trustedScanners.CheckInBackground(ip);
+                }
+            }
+
+            // Mise à jour de l'entrée bloquée (une seule fois)
             bool updated = false;
             lock (_alertsLock)
             {
@@ -580,6 +593,7 @@ namespace NetMonitor.Service
 
                 if (entry == null) return;   // l'IP a été débloquée entre-temps
 
+                // Affectations GeoIP
                 entry.Country       = geo.Country;
                 entry.CountryCode   = geo.CountryCode;
                 entry.City          = geo.City;
@@ -588,13 +602,20 @@ namespace NetMonitor.Service
                 entry.IsPrivate     = geo.IsPrivate;
                 entry.ReverseDns    = geo.ReverseDns;
                 entry.GeoResolvedAt = DateTime.UtcNow;
+
+                // Affectation Scanner
+                if (isKnownScanner && !entry.IsKnownScanner)
+                {
+                    entry.IsKnownScanner = true;
+                }
+                
                 updated = true;
             }
 
             if (updated)
             {
                 SaveBlockedIps();
-                CoreLog.Info($"[GEOIP] {ip} enrichie : {geo.Country} ({geo.CountryCode}) — {geo.Isp}");
+                CoreLog.Info($"[GEOIP] {ip} enrichie : {geo.Country} ({geo.CountryCode}) — {geo.Isp} {(isKnownScanner ? "[SCANNER CONNU]" : "")}");
             }
         }
 
