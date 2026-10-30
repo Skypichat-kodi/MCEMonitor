@@ -1,4 +1,5 @@
 ﻿using System;
+using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Models
 {
@@ -15,7 +16,6 @@ namespace NetMonitor.Service.Models
 
         // ============================================================
         //  Informations GeoIP — résolues au moment du blocage
-        //  (tâche de fond). GeoResolvedAt = null tant que non résolu.
         // ============================================================
         public string? Country { get; set; }
         public string? CountryCode { get; set; }
@@ -25,5 +25,14 @@ namespace NetMonitor.Service.Models
         public bool IsPrivate { get; set; }
         public string? ReverseDns { get; set; }
         public DateTime? GeoResolvedAt { get; set; }
+
+        // ============================================================
+        //  Override manuel de la sévérité
+        //  Si défini, écrase toute évaluation automatique (SeverityScorer).
+        //  ⚠ Perdu au déblocage : si l'IP revient et est re-bloquée, elle
+        //  sera ré-évaluée automatiquement.
+        // ============================================================
+        public Severity? ManualSeverity { get; set; }
+        public DateTime? ManualSeveritySetAt { get; set; }
     }
 }

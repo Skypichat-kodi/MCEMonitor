@@ -82,7 +82,7 @@ namespace NetMonitor.Service
             _engine.LoadAudit();
             _engine.Start();
 
-            CoreLog.Write($"Scanners whitelistés : {string.Join(", ", settings.TrustedScannerPatterns)}");
+            CoreLog.Write($"Scanners whitelistés : {string.Join(", ", settings.ScannerPatterns)}");
             
             // ============================================================
             //  IPC

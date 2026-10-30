@@ -90,6 +90,8 @@ namespace NetMonitor.UI
         public string Severity { get; set; } = "-";
         public bool IsProcess { get; set; }
         public string? ProcessPath { get; set; }
+        public string? ManualSeverity { get; set; }
+        public DateTime? ManualSeveritySetAt { get; set; }        
     }
 
     public class BlockedIpRetryDto
@@ -380,7 +382,13 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand("clear-persistent-problems"));
             
         public static async Task<bool> RestartComputerAsync()
-            => IsOk(await SendCommand("restart-computer"));            
+            => IsOk(await SendCommand("restart-computer"));
+            
+        public static async Task<bool> SetManualSeverityAsync(string ip, string? severityOrAuto)
+        {
+            string sev = string.IsNullOrWhiteSpace(severityOrAuto) ? "auto" : severityOrAuto;
+            return IsOk(await SendCommand($"set-manual-severity {ip}|{sev}"));
+        }                        
         
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {

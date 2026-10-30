@@ -46,19 +46,66 @@ namespace NetMonitor.Service
         public bool ReverseDnsEnabled { get; set; } = true;
 
         // ============================================================
-        //  Scanners de recherche légitimes (whitelist reverse DNS)
+        //  Sévérité — patterns de classification (reverse DNS / ISP / Org)
         // ============================================================
-        public string[] TrustedScannerPatterns { get; set; } = new[]
+
+        /// <summary>
+        /// Domaines considérés comme vraiment malveillants (bulletproof hosting).
+        /// Match ? Severity.Critical (rouge).
+        /// </summary>
+        public string[] CriticalPatterns { get; set; } = new[]
+        {
+            "infrawat.ch",         // Hydra Communications / Infrawatch
+            "bulsat.com",
+            "serverastra.com",
+            "axarnet.es"
+        };
+
+        /// <summary>
+        /// Scanners de recherche connus.
+        /// Match ? Severity.Trusted (vert moyen).
+        /// (anciennement TrustedScannerPatterns)
+        /// </summary>
+        public string[] ScannerPatterns { get; set; } = new[]
         {
             "shadowserver.org",
             "censys.io",
             "shodan.io",
+            "onyphe.com",
             "binaryedge.io",
             "internet-measurement.com",   // RIPE Atlas
             "rapid7.com",                 // Project Sonar
             "stretchoid.com"
         };
-        
+
+        /// <summary>
+        /// Domaines légitimes connus.
+        /// Match ? Severity.Safe (vert clair).
+        /// </summary>
+        public string[] SafePatterns { get; set; } = new[]
+        {
+            "microsoft.com",
+            "google.com",
+            "cloudflare.com",
+            "amazonaws.com",
+            "akamai.net",
+            "apple.com"
+        };
+
+        /// <summary>
+        /// Whitelist utilisateur. Match ? Severity.Whitelisted (vert foncé).
+        /// Configurable manuellement pour ajouter vos propres exceptions.
+        /// </summary>
+        public string[] WhitelistPatterns { get; set; } = Array.Empty<string>();
+
+        /// <summary>
+        /// Version de la logique de sévérité.
+        /// 0 = ancien système (toutes les IPs en "Critical")
+        /// 2 = nouveau système (SeverityScorer)
+        /// Sert à déclencher la migration one-shot au démarrage.
+        /// </summary>
+        public int SeverityVersion { get; set; } = 0;
+
         // ============================================================
         //  Bruit / Faux positifs
         // ============================================================
@@ -117,8 +164,15 @@ namespace NetMonitor.Service
                             case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) settings.GeoIpEnabled = gi; break;
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
-                            case "TrustedScannerPatterns"       : settings.TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
+
+                            // Sévérité — compatibilité ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns" (nouveau)
+                            case "TrustedScannerPatterns":
+                            case "ScannerPatterns"              : settings.ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "CriticalPatterns"             : settings.CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "SafePatterns"                 : settings.SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "WhitelistPatterns"            : settings.WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "SeverityVersion"              : if (int.TryParse(value, out int sv)) settings.SeverityVersion = sv; break;
                         }
                     }
                 }
@@ -204,11 +258,29 @@ namespace NetMonitor.Service
                     $"GeoIpProvider={GeoIpProvider}",
                     $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}",
                     "",
-                    "# --- Scanners de recherche légitimes (reverse DNS, séparés par virgule) ---",
-                    $"TrustedScannerPatterns={string.Join(",", TrustedScannerPatterns)}",
+                    "# ============================================================",
+                    "#  Sévérité — patterns de classification (reverse DNS / ISP / Org)",
+                    "#  Format : séparés par virgule. Wildcard *.example.com supporté.",
+                    "# ============================================================",
+                    "",
+                    "# Vraiment malveillants (rouge)",
+                    $"CriticalPatterns={string.Join(",", CriticalPatterns)}",
+                    "",
+                    "# Scanners de recherche connus (vert moyen)",
+                    $"ScannerPatterns={string.Join(",", ScannerPatterns)}",
+                    "",
+                    "# Domaines légitimes connus (vert clair)",
+                    $"SafePatterns={string.Join(",", SafePatterns)}",
+                    "",
+                    "# Whitelist utilisateur (vert foncé) — vide par défaut",
+                    $"WhitelistPatterns={string.Join(",", WhitelistPatterns)}",
+                    "",
+                    "# Version de la logique de sévérité (0 = legacy, 2 = SeverityScorer)",
+                    $"SeverityVersion={SeverityVersion}",
+                    "",
                     "# --- Whitelist de processus (chemin + hash + signature) ---",
                     $"EnableProcessTrust={EnableProcessTrust.ToString().ToLower()}",
-                    "",                    
+                    "",
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -269,8 +341,14 @@ namespace NetMonitor.Service
                             case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
-                            case "TrustedScannerPatterns"       : TrustedScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) EnableProcessTrust = ept; break;
+
+                            case "TrustedScannerPatterns":
+                            case "ScannerPatterns"              : ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "CriticalPatterns"             : CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "SafePatterns"                 : SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "SeverityVersion"              : if (int.TryParse(value, out int sv)) SeverityVersion = sv; break;
                         }
                     }
                 }

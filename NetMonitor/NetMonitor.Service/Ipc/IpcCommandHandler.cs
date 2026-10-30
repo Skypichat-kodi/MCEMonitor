@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO.Pipes;
 using System.Linq;
+using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Ipc
 {
@@ -118,6 +119,12 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, new { status = ok ? "ok" : "error", dismissed = ok, path });
                 return;
             }            
+
+            if (command.StartsWith("set-manual-severity ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetManualSeverity(server, command);
+                return;
+            }
                         
             switch (command.ToLowerInvariant())
             {
@@ -144,7 +151,8 @@ namespace NetMonitor.Service.Ipc
                 case "get-whitelist":           HandleGetWhitelist(server); break;
                 case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
                 case "get-persistent-problems": HandleGetPersistentProblems(server); break;
-                case "restart-computer":        HandleRestartComputer(server); break;                                                                           
+                case "restart-computer":        HandleRestartComputer(server); break;
+                case "set-manual-severity":     HandleSetManualSeverity(server, command); break;                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -619,6 +627,58 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, _engine.GetPersistentProblems());
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
-        }                                                        
+        }
+        
+        private void HandleSetManualSeverity(NamedPipeServerStream server, string command)
+        {
+            try
+            {
+                string payload = command.Substring("set-manual-severity ".Length).Trim();
+
+                // Format attendu : "<ip>|<severity|auto>"
+                int sep = payload.LastIndexOf('|');
+                if (sep <= 0 || sep >= payload.Length - 1)
+                {
+                    IpcResponse.Error(server, "format invalide");
+                    return;
+                }
+
+                string ip = payload.Substring(0, sep).Trim();
+                string sevStr = payload.Substring(sep + 1).Trim();
+
+                // Auto → efface l'override
+                if (sevStr.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool ok = _engine.SetManualSeverity(ip, null);
+                    IpcResponse.Json(server, new
+                    {
+                        status = ok ? "ok" : "error",
+                        ip,
+                        manualSeverity = (string?)null
+                    });
+                    return;
+                }
+
+                // Sinon, on parse l'enum
+                if (!Enum.TryParse<Severity>(sevStr, ignoreCase: true, out var sev))
+                {
+                    IpcResponse.Error(server, "sévérité invalide");
+                    return;
+                }
+
+                bool ok2 = _engine.SetManualSeverity(ip, sev);
+                IpcResponse.Json(server, new
+                {
+                    status = ok2 ? "ok" : "error",
+                    ip,
+                    manualSeverity = sev.ToString()
+                });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleSetManualSeverity : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                                                
     }
 }

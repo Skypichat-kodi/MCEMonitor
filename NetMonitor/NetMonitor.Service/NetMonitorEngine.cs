@@ -66,7 +66,12 @@ namespace NetMonitor.Service
         // Dernier blocage réussi (exposé via /api/summary et les pushs)
         public LastBlockInfo? LastBlock { get; private set; }
         private readonly object _lastBlockLock = new();
-                            
+        private static readonly System.Text.Json.JsonSerializerOptions JsonFileOpts = new()
+        {
+            WriteIndented = true,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        };
+                                    
         // Journal d'audit pour les alertes ignorées (whitelist)
         private readonly List<IntrusionEvent> _auditHistory = new();
 
@@ -139,7 +144,7 @@ namespace NetMonitor.Service
             _settings = settings;
             _context = new DetectorContext(settings);
             _threatIntel = new ThreatIntelService();
-            _trustedScanners = new TrustedScannerService(settings.TrustedScannerPatterns);
+            _trustedScanners = new TrustedScannerService(settings.ScannerPatterns);
             _geoIp = new GeoIpService(settings.GeoIpProvider, settings.GeoIpEnabled, settings.ReverseDnsEnabled);
             if (settings.EnableProcessTrust)
             {
@@ -584,6 +589,52 @@ namespace NetMonitor.Service
             }
         }
 
+        /// <summary>
+        /// Force manuellement la sévérité d'une IP bloquée, ou l'efface
+        /// pour revenir à l'évaluation automatique via SeverityScorer.
+        ///
+        /// ⚠ La sévérité manuelle est PERDUE si l'IP est débloquée puis re-bloquée
+        /// (attribut du blocage, pas de l'IP).
+        /// </summary>
+        public bool SetManualSeverity(string ip, Severity? newSeverity)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+
+            BlockedIpInfo? entry;
+            lock (_alertsLock)
+            {
+                entry = _blockedIps.FirstOrDefault(b =>
+                    !b.IsProcess && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+
+                if (entry == null) return false;
+
+                entry.ManualSeverity = newSeverity;
+                entry.ManualSeveritySetAt = newSeverity.HasValue ? DateTime.UtcNow : null;
+
+                if (newSeverity.HasValue)
+                {
+                    // Override manuel → on écrit directement
+                    entry.Severity = newSeverity.Value.ToString();
+                }
+                else
+                {
+                    // Retour à l'auto → ré-évalue avec les données persistées
+                    var autoSev = SeverityScorer.Evaluate(
+                        entry.Ip,
+                        entry.ReverseDns,
+                        entry.Isp,
+                        entry.Org,
+                        entry.Source,
+                        _settings);
+                    entry.Severity = autoSev.ToString();
+                }
+            }
+
+            SaveBlockedIps();
+            CoreLog.Info($"[SEVERITY] IP {ip} → {(newSeverity?.ToString() ?? "auto")}");
+            return true;
+        }
+
         public bool UnblockIp(string ip)
         {
             if (string.IsNullOrWhiteSpace(ip)) return false;
@@ -617,7 +668,7 @@ namespace NetMonitor.Service
         {
             if (!File.Exists(HistoryFile)) return;
             var json = File.ReadAllText(HistoryFile);
-            var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
+            var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json, JsonFileOpts);
             if (list == null) return;
 
             lock (_alertsLock)
@@ -709,8 +760,7 @@ namespace NetMonitor.Service
                 List<IntrusionEvent> snapshot;
                 lock (_alertsLock) snapshot = _alerts.ToList();
 
-                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
                 File.WriteAllText(HistoryFile, json);
             }
             catch (Exception ex) { CoreLog.Warn($"SaveHistory : {ex.Message}"); }
@@ -726,7 +776,7 @@ namespace NetMonitor.Service
                 if (!File.Exists(BlockedIpsFile)) return;
 
                 var json = File.ReadAllText(BlockedIpsFile);
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpInfo>>(json);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpInfo>>(json, JsonFileOpts);
 
                 if (list == null || list.Count == 0)
                 {
@@ -747,7 +797,52 @@ namespace NetMonitor.Service
                 // individuelles vers les blocs groupés incluse)
                 bool syncOk = FirewallHelper.SyncFirewallRules(list.Select(b => b.Ip));
                 CoreLog.Info($"Sync pare-feu au démarrage : {(syncOk ? "OK" : "ÉCHEC")}");
-                
+
+                // ============================================================
+                //  Migration one-shot de la sévérité (D6)
+                //  Ré-évalue toutes les IPs bloquées sans override manuel.
+                // ============================================================
+                if (_settings.SeverityVersion < 2)
+                {
+                    CoreLog.Info($"[MIGRATION] Passage de SeverityVersion {_settings.SeverityVersion} → 2");
+                    int migrated = 0;
+                    int skipped = 0;
+
+                    lock (_alertsLock)
+                    {
+                        foreach (var b in _blockedIps)
+                        {
+                            if (b.IsProcess) continue;              // pas de GeoIP pour les processus
+                            if (b.ManualSeverity.HasValue)          // override manuel → ne pas toucher
+                            {
+                                skipped++;
+                                continue;
+                            }
+
+                            var newSev = SeverityScorer.Evaluate(
+                                b.Ip,
+                                b.ReverseDns,
+                                b.Isp,
+                                b.Org,
+                                b.Source,
+                                _settings);
+
+                            string newSevStr = newSev.ToString();
+                            if (b.Severity != newSevStr)
+                            {
+                                b.Severity = newSevStr;
+                                migrated++;
+                            }
+                        }
+                    }
+
+                    _settings.SeverityVersion = 2;
+                    _settings.Save();
+                    SaveBlockedIps();
+
+                    CoreLog.Info($"[MIGRATION] {migrated} IP(s) mise(s) à jour, {skipped} ignorée(s) (override manuel)");
+                }
+                                
                 // ============================================================
                 //  Backfill : résoudre les GeoIP manquants en tâche de fond
                 //  (typiquement les IPs bloquées avant la mise à jour, ou
@@ -802,8 +897,7 @@ namespace NetMonitor.Service
                 List<BlockedIpInfo> snapshot;
                 lock (_alertsLock) snapshot = _blockedIps.ToList();
 
-                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
 
                 File.WriteAllText(BlockedIpsFile, json);
             }
@@ -820,7 +914,7 @@ namespace NetMonitor.Service
                 if (!File.Exists(BlockedIpRetriesFile)) return;
 
                 var json = File.ReadAllText(BlockedIpRetriesFile);
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpRetryInfo>>(json);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpRetryInfo>>(json, JsonFileOpts);
 
                 if (list == null || list.Count == 0) return;
 
@@ -853,8 +947,7 @@ namespace NetMonitor.Service
                     .OrderByDescending(r => r.LastRetryAt)
                     .ToList();
 
-                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
 
                 File.WriteAllText(BlockedIpRetriesFile, json);
                 _retriesDirty = false;
@@ -1119,7 +1212,7 @@ namespace NetMonitor.Service
                         Source = "UntrustedProcess",
                         Message = pending.TrustReason ?? "Processus bloqué",
                         Details = pending.ProcessPath,
-                        Severity = pending.Severity.ToString()
+                        Severity = pending.Severity.ToString(),   // ← restauré (comme avant)
                     });
                 }
 
@@ -1240,6 +1333,21 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         private void AddIntrusion(IntrusionEvent evt)
         {
+            // ============================================================
+            //  Évaluation de la sévérité via SeverityScorer (D5)
+            //  ⚠ N'interfère PAS avec la décision de bloquer : c'est purement cosmétique.
+            // ============================================================
+            var giForSeverity = string.IsNullOrWhiteSpace(evt.RemoteIp)
+                ? null
+                : _geoIp?.TryGetCached(evt.RemoteIp);
+            evt.Severity = SeverityScorer.Evaluate(
+                evt.RemoteIp,
+                giForSeverity?.ReverseDns,
+                giForSeverity?.Isp,
+                giForSeverity?.Org,
+                evt.Source,
+                _settings);
+
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
             // --- 1. Détection des scanners de recherche légitimes ---
@@ -1249,7 +1357,7 @@ namespace NetMonitor.Service
 
                 if (known == true)
                 {
-                    evt.Severity = Severity.Info;
+                    evt.Severity = Severity.Trusted;   // ← au lieu de Info
                     evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
                     evt.TrustReason = "Scanner de recherche légitime (reverse DNS)";
 
@@ -1271,7 +1379,7 @@ namespace NetMonitor.Service
             // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, réseau local) ---
             if (isWhitelisted)
             {
-                evt.Severity = Severity.Info;
+                evt.Severity = Severity.Safe;   // ← au lieu de Info
                 evt.Message = $"[WHITELIST] {evt.Message}";
                 evt.TrustReason = "IP de confiance (Microsoft / Google / Cloudflare / réseau local)";
 
@@ -1289,10 +1397,9 @@ namespace NetMonitor.Service
                 return;
             }
 
-            // --- 3. BLOCAGE AUTOMATIQUE (uniquement si activé) ---
-            if (_settings.AutoBlock
-                && (evt.Severity == Severity.High || evt.Severity == Severity.Critical)
-                && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            // --- 3. BLOCAGE AUTOMATIQUE (si activé) ---
+            // ⚠ Plus de condition sur la sévérité : on bloque TOUT ce qui a une IP
+            if (_settings.AutoBlock && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 if (BlockIp(evt.RemoteIp, out string fwError,
                             evt.Source, evt.Message, evt.Details, evt.Severity.ToString(),
@@ -1334,7 +1441,11 @@ namespace NetMonitor.Service
             SaveHistory();
 
             // --- 5. Enqueue email (le scheduler décide quand envoyer) ---
-            if (isNewAlert && (evt.Severity == Severity.Critical || evt.Severity == Severity.High))
+            // Option B : envoyer pour Warning et plus (exclure Trusted/Safe/Whitelisted)
+            if (isNewAlert &&
+                (evt.Severity == Severity.Warning ||
+                 evt.Severity == Severity.High ||
+                 evt.Severity == Severity.Critical))
             {
                 _emailScheduler?.Enqueue(evt);
             }
@@ -1377,7 +1488,7 @@ namespace NetMonitor.Service
             {
                 if (!File.Exists(AuditFile)) return;
                 var json = File.ReadAllText(AuditFile);
-                var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json);
+                var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json, JsonFileOpts);
                 if (list != null)
                 {
                     lock (_alertsLock)
@@ -1398,8 +1509,7 @@ namespace NetMonitor.Service
                 List<IntrusionEvent> snapshot;
                 lock (_alertsLock) snapshot = _auditHistory.ToList();
 
-                var json = System.Text.Json.JsonSerializer.Serialize(snapshot,
-                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
                 File.WriteAllText(AuditFile, json);
             }
             catch (Exception ex) { CoreLog.Warn($"SaveAudit : {ex.Message}"); }

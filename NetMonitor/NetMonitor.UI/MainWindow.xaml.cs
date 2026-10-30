@@ -331,7 +331,9 @@ namespace NetMonitor.UI
                             Details = b.Details,
                             Severity = b.Severity,
                             IsProcess = b.IsProcess,
-                            ProcessPath = b.ProcessPath,                         
+                            ProcessPath = b.ProcessPath,
+                            ManualSeverity = b.ManualSeverity,
+                            ManualSeveritySetAt = b.ManualSeveritySetAt,                            
                         })
                         .ToList();
 
@@ -2486,7 +2488,56 @@ namespace NetMonitor.UI
                 _ = InitMapBlockedWebViewAsync();
                 _ = InitChartsWebViewAsync();
             }
-        }                                                
+        }
+        
+        private async void ChangeSeverity_Click(object sender, RoutedEventArgs e)
+        {
+            if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (row.IsProcess)
+            {
+                MessageBox.Show(
+                    "La sévérité des processus n'est pas modifiable manuellement.\n" +
+                    "Elle dépend du détecteur qui a signalé le processus.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var picker = new SeverityPickerWindow(
+                row.Ip,
+                row.Severity,
+                row.HasManualSeverity)
+            {
+                Owner = this
+            };
+
+            if (picker.ShowDialog() != true) return;
+
+            string selected = picker.SelectedSeverity;
+
+            SetBusy($"Changement de sévérité de {row.Ip}…");
+
+            bool ok = await NetMonitorIpcClient.SetManualSeverityAsync(row.Ip, selected);
+
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec du changement de sévérité.\n" +
+                    "L'IP a peut-être été débloquée entre-temps.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshSafe();
+        }                                                        
     }
 
     // ============================================================
@@ -2541,6 +2592,10 @@ namespace NetMonitor.UI
                     : Details.Substring(0, 117) + "…";
             }
         }
+        
+        // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
+        public bool HasManualSeverity => false;
+        public string ManualSeverityTooltip => "";        
     }
 
     public class BlockedIpRow
@@ -2558,6 +2613,20 @@ namespace NetMonitor.UI
 
         public string TypeDisplay => IsProcess ? "Processus" : "IP";
         public string IpDisplay => IsProcess ? (ProcessPath ?? Ip) : Ip;
+
+        public string? ManualSeverity { get; set; }
+        public DateTime? ManualSeveritySetAt { get; set; }
+
+        public bool HasManualSeverity => !string.IsNullOrEmpty(ManualSeverity);
+
+        public string ManualSeverityTooltip =>
+            HasManualSeverity
+                ? $"Sévérité forcée manuellement" +
+                  (ManualSeveritySetAt.HasValue
+                      ? $" le {ManualSeveritySetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+                      : "") +
+                  ". Cliquez sur « Changer sévérité » pour modifier."
+                : "";        
     }
 
     public class ConnectionRow
@@ -2616,6 +2685,10 @@ namespace NetMonitor.UI
                     : Details.Substring(0, 117) + "…";
             }
         }
+        
+        // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
+        public bool HasManualSeverity => false;
+        public string ManualSeverityTooltip => "";        
     }
 
     public class StatsIpRow
@@ -2673,6 +2746,10 @@ namespace NetMonitor.UI
         public string CountClass => Count >= 10 ? "c10" :
                                      Count >= 5  ? "c5"  :
                                      Count >= 2  ? "c2"  : "c1";
+                                     
+        // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
+        public bool HasManualSeverity => false;
+        public string ManualSeverityTooltip => "";                                     
     }
     
     public class BlockedIpRetryRow
@@ -2751,6 +2828,10 @@ namespace NetMonitor.UI
         // Clé stable pour restaurer la sélection après refresh
         public string GroupKey =>
             $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";
+            
+        // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
+        public bool HasManualSeverity => false;
+        public string ManualSeverityTooltip => "";            
     }
     
     public class StatsProcessRow

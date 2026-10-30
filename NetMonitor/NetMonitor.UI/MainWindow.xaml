@@ -215,7 +215,8 @@
                     Padding="7,2"
                     MinWidth="58"
                     HorizontalAlignment="Center"
-                    VerticalAlignment="Center">
+                    VerticalAlignment="Center"
+                    ToolTip="{Binding ManualSeverityTooltip}">
                 <Border.Style>
                     <Style TargetType="Border">
                         <Setter Property="Background" Value="#444"/>
@@ -230,31 +231,60 @@
                                 <Setter Property="Background" Value="#FFB900"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                <Setter Property="Background" Value="#999999"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Safe">
                                 <Setter Property="Background" Value="#6CCB5F"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Trusted">
+                                <Setter Property="Background" Value="#4CAF50"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
+                                <Setter Property="Background" Value="#2E7D32"/>
                             </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
-                <TextBlock Text="{Binding Severity}"
-                           FontWeight="Bold"
-                           FontSize="11"
-                           TextAlignment="Center"
-                           HorizontalAlignment="Center"
-                           VerticalAlignment="Center">
-                    <TextBlock.Style>
-                        <Style TargetType="TextBlock">
-                            <Setter Property="Foreground" Value="Black"/>
-                            <Style.Triggers>
-                                <DataTrigger Binding="{Binding Severity}" Value="Critical">
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-                                <DataTrigger Binding="{Binding Severity}" Value="High">
-                                    <Setter Property="Foreground" Value="White"/>
-                                </DataTrigger>
-                            </Style.Triggers>
-                        </Style>
-                    </TextBlock.Style>
-                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <!-- 🔒 Cadenas si sévérité manuelle -->
+                    <TextBlock Text="🔒" FontSize="10" Margin="0,0,3,0"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding HasManualSeverity}" Value="True">
+                                        <Setter Property="Visibility" Value="Visible"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+
+                    <!-- Texte de la sévérité -->
+                    <TextBlock Text="{Binding Severity}"
+                               FontWeight="Bold"
+                               FontSize="11"
+                               TextAlignment="Center"
+                               VerticalAlignment="Center">
+                        <TextBlock.Style>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="Foreground" Value="Black"/>
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Severity}" Value="High">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </TextBlock.Style>
+                    </TextBlock>
+                </StackPanel>
             </Border>
         </DataTemplate>
 
@@ -1002,6 +1032,13 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🔓" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Débloquer" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="180" Click="ChangeSeverity_Click" Margin="10,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🎨" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Changer sévérité" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
