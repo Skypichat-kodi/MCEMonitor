@@ -39,7 +39,7 @@
     h2 { margin:25px 0 10px 0; font-size:16px; color:#4CC2FF; display: flex; align-items: center; gap: 10px; }
     h2 img { width: 24px; height: 24px; object-fit: contain; }
 
-    .info {
+    .info-panel {
         background: #252526;
         border: 1px solid #3c3c3c;
         border-radius: 6px;
@@ -103,6 +103,7 @@
         font-weight: bold;
         background: #444;
         color: #fff;
+        text-align: center;
     }
     
     /* ============================================================ */
@@ -110,7 +111,7 @@
     /* ============================================================ */
     .badge.critical    { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
     .badge.warning     { background: #FFB900; color: black; }    /* Orange - à vérifier */
-    .badge.info        { background: #4CC2FF; color: black; }    /* Gris - information */
+    .badge.info        { background: #4CC2FF; color: black; }    /* Bleu - information */
     .badge.safe        { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
     .badge.trusted     { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
     .badge.whitelisted { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
@@ -425,6 +426,21 @@
     .count-badge.c10 { background: #2a0000; color: #fff; box-shadow: 0 0 6px rgba(139,0,0,0.8); }
 
     /* ============================================================ */
+    /*  Variantes colorées des badges compteur                      */
+    /* ============================================================ */
+    /* Bleu : tableau "Tentatives sur IP bloquée"                   */
+    .count-badge.blue.c1  { background: #1565c0; color: #fff; }
+    .count-badge.blue.c2  { background: #0d47a1; color: #fff; }
+    .count-badge.blue.c5  { background: #0a2d6b; color: #fff; }
+    .count-badge.blue.c10 { background: #041a3f; color: #fff; box-shadow: 0 0 6px rgba(21,101,192,0.8); }
+
+    /* Vert : tableau "Alertes ignorées (IP de confiance)"          */
+    .count-badge.green.c1  { background: #4caf50; color: #fff; }
+    .count-badge.green.c2  { background: #388e3c; color: #fff; }
+    .count-badge.green.c5  { background: #2e7d32; color: #fff; }
+    .count-badge.green.c10 { background: #1b5e20; color: #fff; box-shadow: 0 0 6px rgba(76,175,80,0.7); }
+
+    /* ============================================================ */
     /*  Voir plus / Voir moins (bas de tableau)                     */
     /* ============================================================ */
     .more-indicator {
@@ -475,8 +491,15 @@
     /* Sur petit écran, on laisse la colonne Détails wrapper au lieu d'être tronquée */
     .table-wrapper.table-history td:last-child {
         white-space: normal;
+        overflow-wrap: anywhere;   /* ← casse les URLs/chemins longs sans espaces */
         word-break: break-word;
-    }                       
+        overflow: hidden;
+    }
+    
+    /* Centre les cellules qui contiennent un badge */
+    td:has(.badge) {
+        text-align: center;
+    }                          
 </style>
 
 </head>
@@ -505,7 +528,7 @@
     </a>
 </div>
 
-<div class="info">
+<div class="info-panel">
     <div class="info-grid">
         <span class="info-pair"><span class="label">{{tr:Serveur}} :</span><span class="value">{{MachineName}}</span></span>
         <span class="info-pair"><span class="label">{{tr:Dernière mise à jour}} :</span><span class="value">{{LastUpdate}}</span></span>
@@ -532,11 +555,11 @@
             <tr>
                 <th style="width:30px"></th>
                 <th>{{tr:Date}}</th>
+                <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
-                <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Message}}</th>
             </tr>
         </thead>
@@ -623,13 +646,13 @@
     <table>
         <thead>
             <tr>
+                <th style="width:100px">{{tr:Tentatives}}</th>
                 <th style="width:150px">{{tr:IP}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
                 <th style="width:150px">{{tr:Détecteur initial}}</th>
                 <th style="width:150px">{{tr:Bloquée le}}</th>
                 <th style="width:150px">{{tr:1ʳᵉ tentative}}</th>
                 <th style="width:150px">{{tr:Dernière tentative}}</th>
-                <th style="width:100px">{{tr:Tentatives}}</th>
             </tr>
         </thead>
         <tbody>

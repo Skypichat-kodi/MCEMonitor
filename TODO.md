@@ -1,4 +1,4 @@
-﻿# TODO MCEMonitor
+﻿﻿# TODO MCEMonitor
 
 TODO global du projet, organisé par thème.
 
@@ -43,6 +43,15 @@ _(rien)_
 ---
 
 ## ✅ Terminé
+
+### Session 2026-10-31 — Ajustements UI Web (Badges & Tableaux)
+
+- [x] Web : déplacement de la colonne « Compteur » après « Date » (Intrusions Actives)
+- [x] Web : déplacement de la colonne « Tentatives » avant « IP » + badges bleus (Tentatives sur IP bloquée)
+- [x] Web : badges verts pour le tableau « Alertes ignorées » (IP de confiance)
+- [x] Web : fix de l'élargissement des lignes causé par les longues chaînes de type "Info" (Historique + Audit)
+- [x] Web : fix du conflit CSS `.info` (panneau) vs `.badge.info` (badge bleu) → renommé en `.info-panel`
+- [x] Web : centrage global des badges de sévérité dans leurs cellules via CSS (`td:has(.badge)`)
 
 ### Session 2026-10-30 (soir) — Refonte de la sévérité
 

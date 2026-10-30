@@ -70,11 +70,11 @@ namespace NetMonitor.Service.Web
                         activeRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'active-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>
                             <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
+                            <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td><span class='badge {sevClass}'>{item.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
                             <td>{ipEnc}</td>
                             <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
-                            <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td>{WebUtility.HtmlEncode(item.Message)}</td>
                         </tr>");
                     }
@@ -87,13 +87,12 @@ namespace NetMonitor.Service.Web
                         activeRows.Append($@"<tr>
                             <td></td>
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
+                            <td class='count-cell'><span class='count-badge c1'>-</span></td>
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td></td>
                             <td></td>
-                            <td class='count-cell'><span class='count-badge c1'>-</span></td>
-                            <td>{a.Pid}</td>
-                            <td>{WebUtility.HtmlEncode(a.Message)}</td>
+                            <td>[PID {a.Pid}] {WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
@@ -274,13 +273,13 @@ namespace NetMonitor.Service.Web
                                             r.RetryCount >= 2  ? "c2"  : "c1";
 
                         blockedRetriesRows.Append($@"<tr>
+                            <td class='count-cell'><span class='count-badge blue {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                             <td><b>{ipEnc}</b></td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.LastRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
-                            <td class='count-cell'><span class='count-badge {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                         </tr>");
                     }
                 }
