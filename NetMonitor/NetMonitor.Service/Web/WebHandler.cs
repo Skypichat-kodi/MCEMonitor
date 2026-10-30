@@ -167,7 +167,7 @@ namespace NetMonitor.Service.Web
                               $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
                               $"'{WebUtility.HtmlEncode(b.Severity)}', " +
                               $"{(b.ManualSeverity.HasValue ? "true" : "false")})\" " +
-                              $"title='Changer la sévérité'>⚙</button>";
+                              $"title='Changer la sévérité'>⚙&#xFE0E;</button>";
 
                         // ⚠ 2. Append APRÈS les déclarations
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">

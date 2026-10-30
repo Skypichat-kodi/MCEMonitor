@@ -10,31 +10,20 @@ _(rien)_
 
 ## 📋 À faire
 
-### Refonte de la sévérité (basée sur ReverseDns + ISP)
-
-- [ ] Créer `SeverityScorer` dans `NetMonitor.Service/Services/`
-- [ ] Taxonomie : Critical / Warning / Green 1-2-3 (Safe / Scanner / Whitelist)
-- [ ] Config : `CriticalPatterns`, `ScannerPatterns`, `TrustedPatterns`, `WhitelistPatterns`
-- [ ] Intégrer dans `AddIntrusion` et `BlockIp`
-- [ ] Migration one-shot : ré-évaluer `Severity` des blocked_ips.json existants
-- [ ] Adapter `SeverityBadgeTemplate` (UI) et CSS `.badge.ok` (Web)
-- [ ] Arbitrer : Reverse DNS brut (`*.infrawat.ch`) ou domaine extrait (`infrawat.ch`)
-- [ ] Arbitrer : config fichier plat ou nouvelle UI dans Réglages
-- [ ] Arbitrer : garder ou vider `TrustedScannerPatterns`
-
 ### Colonnes « Nom de domaine »
 
 - [ ] Ajouter colonne `ReverseDns` dans le tableau IP bloquées (UI + Web)
 - [ ] Ajouter colonne `ReverseDns` dans le tableau Interceptions/récidive (UI + Web)
 - [ ] Ajouter colonne `ReverseDns` dans le tableau Historique intrusions (UI + Web)
 - [ ] Étendre `BlockedIpRetryInfo` et `IntrusionEvent` avec le champ `ReverseDns`
+- [ ] Arbitrer : reverse DNS brut (`31-14-254-18.infrawat.ch`) ou nom court extrait ?
 
 ### Améliorations UX
 
-- [ ] Filtre « Type » inactif sur IP bloquées (UI WPF)
-- [ ] Alignement des tris UI ↔ Web sur les autres tableaux
-- [ ] Bouton « Vider les problèmes signalés » dans l'onglet Réglages
-- [ ] Top ports distants (remplace « Activité par heure »)
+- [ ] Filtre « Type » inactif sur IP bloquées (UI WPF) — `cmbBlockedType` jamais lu dans `BlockedFilter_Changed`
+- [ ] Alignement des tris UI ↔ Web sur les autres tableaux (Intrusions actives, Historique, Audit…)
+- [ ] Bouton « Vider les problèmes signalés » dans l'onglet Réglages (finir la popup WinDivert)
+- [ ] Top ports distants (remplace « Activité par heure » dans Stats section 2)
 - [ ] Top processus en attente dans la section 1 de Statistiques
 
 ### MediaMonitor — vignettes album
@@ -48,12 +37,40 @@ _(rien)_
 ### Décisions produit (à trancher)
 
 - [ ] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit »)
+  - Actuellement : liste gardée (Shodan, Censys, ONYPHE… classés `Trusted` vert moyen)
+  - Alternative : vider la liste → tous les scans deviennent `Warning` par défaut
 
 ---
 
 ## ✅ Terminé
 
-### Session 2026-10-30
+### Session 2026-10-30 (soir) — Refonte de la sévérité
+
+- [x] `SeverityScorer` créé dans `NetMonitor.Service/Services/`
+- [x] Taxonomie : Critical / Warning / Safe / Trusted / Whitelisted (5 niveaux)
+- [x] Config : `CriticalPatterns`, `ScannerPatterns`, `SafePatterns`, `WhitelistPatterns` dans `NetMonitor.config`
+- [x] Intégration dans `AddIntrusion`, `BlockIp`, `LoadBlockedIps`
+- [x] Migration one-shot au démarrage (`SeverityVersion 0 → 2`)
+- [x] `ManualSeverity` + `ManualSeveritySetAt` sur `BlockedIpInfo` (attributs du blocage)
+- [x] `JsonFileOpts` avec `JsonStringEnumConverter` : tous les fichiers JSON persistés stockent les enums en string
+- [x] Branchement `SetManualSeverity(ip, severity?)` côté service
+- [x] IPC : commande `set-manual-severity <ip>|<severity|auto>`
+- [x] UI WPF : `SeverityPickerWindow` (5 couleurs + Auto)
+- [x] UI WPF : bouton 🎨 dans `BlockedIpsGrid` + cadenas 🔒 + tooltip avec date
+- [x] UI WPF : `SeverityBadgeTemplate` étendu aux 5 niveaux
+- [x] UI WPF : stubs `HasManualSeverity=false` sur les 4 autres rows
+- [x] Web : CSS badges 6 classes + `.manual-lock` + `.severity-btn`
+- [x] Web : helper `SeverityToCssClass` (7 valeurs dont legacy)
+- [x] Web : route POST `/set-severity` + prompt natif avec options 1-5 et `a`
+- [x] Web : bouton ⚙ + cadenas 🔒 sur les IPs bloquées manuellement
+- [x] UI WPF : colonne Info (badge `i` AbuseIPDB) dans `BlockedIpsGrid`
+- [x] `StatsBuilder` : distribution 7 niveaux avec `.Where(Count > 0)`
+- [x] `StatsBuilder` : `WorstSeverity` prend maintenant en compte `Warning`
+- [x] Fix badge `Info` : gris → bleu `#4CC2FF` (convention universelle)
+- [x] Fix tableau Historique Web : `table-layout: fixed` + `width: 100%` + largeurs en %
+
+### Session 2026-10-30 (matin)
+
 - [x] CoverFinder (fallback folder.jpg / cover.jpg / poster.jpg)
 - [x] Nettoyage debug `HardwareMonitorService`
 - [x] Compactage du tableau « Activité par heure » (heures actives uniquement)
@@ -63,6 +80,7 @@ _(rien)_
 - [x] Persistance GeoIP au blocage
 
 ### Sessions précédentes
+
 - [x] Fix tableau « IP de confiance » (mismatch enum/string IPC)
 - [x] Retry WinDivert + popup « Redémarrer le PC ? »
 - [x] Refonte onglet Statistiques (2 sections, cartes active/bloquée)

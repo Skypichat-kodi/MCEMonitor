@@ -135,13 +135,22 @@
         background: transparent;
         border: none;
         cursor: pointer;
-        font-size: 13px;
-        padding: 0 3px;
-        opacity: 0.6;
-        transition: opacity 0.15s ease, transform 0.1s ease;
+        font-family: 'Segoe UI Symbol', 'Segoe UI', 'Segoe UI Emoji', Arial, sans-serif;
+        font-size: 16px;
+        font-weight: bold;
+        line-height: 1;
+        padding: 0 4px;
+        margin-left: 4px;
+        color: #4CC2FF;
+        opacity: 0.85;
+        transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
         vertical-align: middle;
     }
-    .severity-btn:hover { opacity: 1; transform: scale(1.15); }
+    .severity-btn:hover {
+        opacity: 1;
+        color: #7FD4FF;
+        transform: rotate(45deg);
+    }
 
     .footer {
         margin-top: 30px;
