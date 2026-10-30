@@ -110,7 +110,7 @@
     /* ============================================================ */
     .badge.critical    { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
     .badge.warning     { background: #FFB900; color: black; }    /* Orange - à vérifier */
-    .badge.info        { background: #999999; color: white; }    /* Gris - information */
+    .badge.info        { background: #4CC2FF; color: black; }    /* Gris - information */
     .badge.safe        { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
     .badge.trusted     { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
     .badge.whitelisted { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
@@ -445,7 +445,29 @@
     .table-wrapper.theme-danger + .more-indicator button:hover { background: rgba(255, 99, 71, 0.1); }
 
     .table-wrapper.theme-success + .more-indicator button { color: #8FDA80; }
-    .table-wrapper.theme-success + .more-indicator button:hover { background: rgba(108, 203, 95, 0.1); }                   
+    .table-wrapper.theme-success + .more-indicator button:hover { background: rgba(108, 203, 95, 0.1); }
+    
+    /* ============================================================ */
+    /*  Fix tableau Historique (9 colonnes, forcer la largeur fixe)  */
+    /* ============================================================ */
+    .table-wrapper.table-history table {
+        table-layout: fixed;
+        width: 100%;
+        min-width: 0;
+    }
+
+    .table-wrapper.table-history td {
+        max-width: none;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* Sur petit écran, on laisse la colonne Détails wrapper au lieu d'être tronquée */
+    .table-wrapper.table-history td:last-child {
+        white-space: normal;
+        word-break: break-word;
+    }                       
 </style>
 
 </head>
@@ -616,18 +638,18 @@
         🗑 {{tr:Effacer l'historique}}
     </a>
 </div>
-<div class="table-wrapper">
+<div class="table-wrapper table-history">
     <table>
         <thead>
             <tr>
-                <th>{{tr:Date}}</th>
-                <th>{{tr:Sévérité}}</th>
-                <th>{{tr:Détecteur}}</th>
-                <th>{{tr:IP}}</th>
-                <th style="width:32px">{{tr:Info}}</th>
-                <th>{{tr:Port dst}}</th>
-                <th>{{tr:Port loc}}</th>
-                <th>{{tr:Processus}}</th>
+                <th style="width:9%">{{tr:Date}}</th>
+                <th style="width:8%">{{tr:Sévérité}}</th>
+                <th style="width:9%">{{tr:Détecteur}}</th>
+                <th style="width:10%">{{tr:IP}}</th>
+                <th style="width:4%">{{tr:Info}}</th>
+                <th style="width:6%">{{tr:Port dst}}</th>
+                <th style="width:6%">{{tr:Port loc}}</th>
+                <th style="width:11%">{{tr:Processus}}</th>
                 <th>{{tr:Détails}}</th>
             </tr>
         </thead>
