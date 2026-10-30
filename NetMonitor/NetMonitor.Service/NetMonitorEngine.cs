@@ -1414,15 +1414,30 @@ namespace NetMonitor.Service
             // On n'ignore les scanners QUE si l'utilisateur l'a demandé.
             // Si IgnoreSearchScanners = false, on saute ce bloc → les scanners
             // seront traités comme des menaces normales (Warning/Critical).
+            // --- 1. Détection des scanners de recherche légitimes ---
             if (_settings.IgnoreSearchScanners && _trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
+
+                // NOUVEAU : Si le reverse DNS est vide, on regarde l'Org ou l'Isp via GeoIP
+                if (known != true && giForSeverity != null)
+                {
+                    bool isOrgMatch = MatchesScannerPatterns(giForSeverity.Org, _settings.ScannerPatterns) ||
+                                      MatchesScannerPatterns(giForSeverity.Isp, _settings.ScannerPatterns);
+
+                    if (isOrgMatch)
+                    {
+                        known = true; // On force la détection
+                        CoreLog.Debug($"[SCANNER] {evt.RemoteIp} reconnu via GeoIP Org/Isp : {giForSeverity.Org ?? giForSeverity.Isp}");
+                    }
+                }
 
                 if (known == true)
                 {
                     evt.Severity = Severity.Trusted;
                     evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
-                    evt.TrustReason = "Scanner de recherche légitime (reverse DNS)";
+                    evt.TrustReason = "Scanner de recherche légitime (Reverse DNS ou GeoIP)";
+                    evt.IsKnownScanner = true;
 
                     lock (_alertsLock)
                     {
@@ -1435,10 +1450,11 @@ namespace NetMonitor.Service
                     return;
                 }
 
+                // Si le DNS n'a rien donné, on tente une résolution en arrière-plan
                 if (!known.HasValue)
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
             }
-
+            
             // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, réseau local) ---
             if (isWhitelisted)
             {
@@ -1638,7 +1654,36 @@ namespace NetMonitor.Service
             if (_geoIp == null)
                 _geoIp = new GeoIpService(_settings.GeoIpProvider, _settings.GeoIpEnabled, _settings.ReverseDnsEnabled);
             return await StatsBuilder.BuildAsync(this, _geoIp, topIps, topCountries);
-        }        
+        }
+        
+        /// <summary>
+        /// Vérifie si une valeur (Org ou Isp) correspond à un des patterns de scanner.
+        /// Nettoie les espaces et les extensions (.com, .net) pour faciliter la comparaison.
+        /// Ex: "ONYPHE SAS" -> "onyphesas" contient "onyphe" -> MATCH
+        /// Ex: "Palo Alto Networks, Inc" -> "paloaltonetworksinc" contient "paloaltonetworks" -> MATCH
+        /// </summary>
+        private static bool MatchesScannerPatterns(string? value, string[] patterns)
+        {
+            if (string.IsNullOrWhiteSpace(value) || patterns == null || patterns.Length == 0) 
+                return false;
+            
+            string normalizedValue = value.ToLowerInvariant().Replace(" ", "").Replace(",", "");
+            
+            foreach (var pattern in patterns)
+            {
+                if (string.IsNullOrWhiteSpace(pattern)) continue;
+                
+                string normalizedPattern = pattern.ToLowerInvariant()
+                                                 .Replace(" ", "")
+                                                 .Replace(".com", "")
+                                                 .Replace(".net", "")
+                                                 .Replace(".org", "");
+                                                 
+                if (normalizedValue.Contains(normalizedPattern)) 
+                    return true;
+            }
+            return false;
+        }                
     }
     
     public class ProblemItem
