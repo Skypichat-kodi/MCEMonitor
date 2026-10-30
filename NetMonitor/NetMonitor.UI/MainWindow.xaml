@@ -231,7 +231,7 @@
                                 <Setter Property="Background" Value="#FFB900"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Info">
-                                <Setter Property="Background" Value="#999999"/>
+                                <Setter Property="Background" Value="#4CC2FF"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Safe">
                                 <Setter Property="Background" Value="#6CCB5F"/>
@@ -720,6 +720,35 @@
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                
+                                <!-- COLONNE TENTATIVES DEPLACEE ICI -->
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#b71c1c"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
+                                                                <Setter Property="Background" Value="#8b0000"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
+                                                                <Setter Property="Background" Value="#5a0000"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
+                                                                <Setter Property="Background" Value="#2a0000"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                           FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                                
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
@@ -743,32 +772,6 @@
                                                     </Style>
                                                 </Button.Style>
                                             </Button>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="70">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#b71c1c"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
-                                                                <Setter Property="Background" Value="#8b0000"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
-                                                                <Setter Property="Background" Value="#5a0000"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
-                                                                <Setter Property="Background" Value="#2a0000"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                                <TextBlock Text="{Binding Count}" Foreground="White"
-                                                           FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
-                                            </Border>
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
@@ -892,6 +895,35 @@
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                
+                                <!-- COLONNE TENTATIVES DEPLACEE ICI -->
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                                <Border.Style>
+                                                    <Style TargetType="Border">
+                                                        <Setter Property="Background" Value="#b71c1c"/>
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
+                                                                <Setter Property="Background" Value="#8b0000"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
+                                                                <Setter Property="Background" Value="#5a0000"/>
+                                                            </DataTrigger>
+                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
+                                                                <Setter Property="Background" Value="#2a0000"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Border.Style>
+                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                           FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
+                                            </Border>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
                                 <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
@@ -977,32 +1009,6 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="IP distante" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="160"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="80">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
-                                                <Border.Style>
-                                                    <Style TargetType="Border">
-                                                        <Setter Property="Background" Value="#b71c1c"/>
-                                                        <Style.Triggers>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c2">
-                                                                <Setter Property="Background" Value="#8b0000"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c5">
-                                                                <Setter Property="Background" Value="#5a0000"/>
-                                                            </DataTrigger>
-                                                            <DataTrigger Binding="{Binding CountClass}" Value="c10">
-                                                                <Setter Property="Background" Value="#2a0000"/>
-                                                            </DataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </Border.Style>
-                                                <TextBlock Text="{Binding Count}" Foreground="White"
-                                                           FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
-                                            </Border>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -1220,24 +1226,8 @@
                             <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
-                            <DataGridTextColumn Header="{loc:Tr '1ʳᵉ tentative'}" Binding="{Binding FirstRetryAtText}" SortMemberPath="FirstRetryAt" Width="150"/>
-                            <DataGridTextColumn Header="{loc:Tr 'Dernière tentative'}" Binding="{Binding LastRetryAtText}" SortMemberPath="LastRetryAt" Width="150"/>
-
-                            <!-- Colonne Info (bouton ℹ par ligne) -->
-                            <DataGridTemplateColumn Width="45" CanUserResize="False">
-                                <DataGridTemplateColumn.CellTemplate>
-                                    <DataTemplate>
-                                        <Button Click="LookupIp_Click"
-                                                Tag="{Binding Ip}"
-                                                Width="22" Height="22"
-                                                Style="{StaticResource InfoButtonStyle}"
-                                                ToolTip="Voir les informations sur cette IP"
-                                                Content="i"/>
-                                    </DataTemplate>
-                                </DataGridTemplateColumn.CellTemplate>
-                            </DataGridTemplateColumn>
-
-                            <!-- Colonne Tentatives (badge coloré) -->
+                            
+                            <!-- COLONNE TENTATIVES DEPLACEE ICI -->
                             <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -1262,6 +1252,23 @@
                                                        FontWeight="Bold" FontSize="11"
                                                        HorizontalAlignment="Center"/>
                                         </Border>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+
+                            <DataGridTextColumn Header="{loc:Tr '1ʳᵉ tentative'}" Binding="{Binding FirstRetryAtText}" SortMemberPath="FirstRetryAt" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Dernière tentative'}" Binding="{Binding LastRetryAtText}" SortMemberPath="LastRetryAt" Width="150"/>
+
+                            <!-- Colonne Info (bouton ℹ par ligne) -->
+                            <DataGridTemplateColumn Width="45" CanUserResize="False">
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Button Click="LookupIp_Click"
+                                                Tag="{Binding Ip}"
+                                                Width="22" Height="22"
+                                                Style="{StaticResource InfoButtonStyle}"
+                                                ToolTip="Voir les informations sur cette IP"
+                                                Content="i"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -1461,7 +1468,9 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Compteur'}" SortMemberPath="Count" Width="80">
+                                
+                                <!-- COLONNE TENTATIVES DEPLACEE ICI -->
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
@@ -1488,6 +1497,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
+
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120"/>
