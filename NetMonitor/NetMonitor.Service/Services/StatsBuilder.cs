@@ -26,7 +26,8 @@ public static class StatsBuilder
         }
 
         stats.WorstSeverity = validAlerts.Any(e => e.Severity == Severity.Critical) ? "critical"
-                            : validAlerts.Any(e => e.Severity == Severity.High) ? "warning"
+                            : validAlerts.Any(e => e.Severity == Severity.High ||
+                                                   e.Severity == Severity.Warning) ? "warning"
                             : "ok";
 
         var globalCountries = new HashSet<string>();
@@ -136,13 +137,18 @@ public static class StatsBuilder
             .ToList();
 
         // --- Distribution des sévérités (toujours 4 entrées, y compris à 0) ---
-        var sevOrder = new[] { Severity.Critical, Severity.High, Severity.Warning, Severity.Info };
+        var sevOrder = new[]
+        {
+            Severity.Critical, Severity.High, Severity.Warning,
+            Severity.Info, Severity.Safe, Severity.Trusted, Severity.Whitelisted
+        };
         stats.SeverityDistribution = sevOrder
             .Select(s => new SeverityStat
             {
                 Severity = s.ToString(),
                 Count = validAlerts.Count(e => e.Severity == s)
             })
+            .Where(s => s.Count > 0)   // ? filtre les niveaux à 0
             .ToList();
 
         // --- Top détecteurs globaux ---
@@ -251,7 +257,8 @@ public static class StatsBuilder
 
         // --- Worst severity ---
         block.WorstSeverity = events.Any(e => e.Severity == Severity.Critical) ? "critical"
-                            : events.Any(e => e.Severity == Severity.High) ? "warning"
+                            : events.Any(e => e.Severity == Severity.High ||
+                                              e.Severity == Severity.Warning) ? "warning"
                             : "ok";
 
         // --- Map data : alertes par pays (sur TOUTES les alertes, pas seulement le top) ---
