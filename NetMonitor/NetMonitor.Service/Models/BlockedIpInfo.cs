@@ -34,5 +34,6 @@ namespace NetMonitor.Service.Models
         // ============================================================
         public Severity? ManualSeverity { get; set; }
         public DateTime? ManualSeveritySetAt { get; set; }
+        public bool IsKnownScanner { get; set; }
     }
 }

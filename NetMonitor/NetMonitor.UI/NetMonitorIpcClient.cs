@@ -36,6 +36,7 @@ namespace NetMonitor.UI
         public string? processPath { get; set; }
         public string? trustReason { get; set; }
         public string? details { get; set; }
+        public bool isKnownScanner { get; set; }
     }
 
     public class NetConnection
@@ -70,6 +71,10 @@ namespace NetMonitor.UI
         public bool disableFilters { get; set; }
         public int blacklistLevel { get; set; }             
         public DateTime blacklistLastUpdate { get; set; }  
+
+        // Scanners de recherche (Trusted) ---
+        public bool ignoreSearchScanners { get; set; }
+        public string[] scannerPatterns { get; set; } = Array.Empty<string>();
     }
 
     public class NetWebStatus
@@ -91,7 +96,8 @@ namespace NetMonitor.UI
         public bool IsProcess { get; set; }
         public string? ProcessPath { get; set; }
         public string? ManualSeverity { get; set; }
-        public DateTime? ManualSeveritySetAt { get; set; }        
+        public DateTime? ManualSeveritySetAt { get; set; }
+        public bool IsKnownScanner { get; set; }        
     }
 
     public class BlockedIpRetryDto
@@ -203,6 +209,7 @@ namespace NetMonitor.UI
         public string? ProcessPath { get; set; }
         public string? TrustReason { get; set; }
         public string? Details { get; set; }
+        public bool isKnownScanner { get; set; }
     }    
 
     public class PersistentProblemDto

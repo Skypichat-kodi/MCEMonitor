@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Globalization;
 using System.IO;
 
@@ -15,7 +15,7 @@ namespace NetMonitor.Service
         private static readonly string WebConfigPath = Path.Combine(ConfigFolder, "NetMonitor.Web.config");
 
         // ============================================================
-        //  DÈtecteurs
+        //  D√©tecteurs
         // ============================================================
         public int PortScanWindowSeconds { get; set; } = 10;
         public int PortScanThreshold { get; set; } = 20;
@@ -24,6 +24,12 @@ namespace NetMonitor.Service
         public double BeaconJitterTolerancePct { get; set; } = 0.05;
         public bool AutoBlock { get; set; } = false;
         public bool EnableProcessTrust { get; set; } = true;
+
+        /// <summary>
+        /// Si true, les scanners de recherche (Shodan, Censys...) sont ignor√©s (envoy√©s dans l'audit).
+        /// Si false, ils sont trait√©s comme des menaces classiques (√©valu√©s, bloqu√©s si AutoBlock).
+        /// </summary>
+        public bool IgnoreSearchScanners { get; set; } = false;
 
         // ============================================================
         //  Serveur Web
@@ -39,18 +45,18 @@ namespace NetMonitor.Service
         public string IpLookupUrl { get; set; } = "https://www.abuseipdb.com/check/{ip}";
 
         // ============================================================
-        //  GÈolocalisation IP
+        //  G√©olocalisation IP
         // ============================================================
         public bool GeoIpEnabled { get; set; } = true;
         public string GeoIpProvider { get; set; } = "https://ipwho.is/{ip}";
         public bool ReverseDnsEnabled { get; set; } = true;
 
         // ============================================================
-        //  SÈvÈritÈ ó patterns de classification (reverse DNS / ISP / Org)
+        //  S√©v√©rit√© ‚Äî patterns de classification (reverse DNS / ISP / Org)
         // ============================================================
 
         /// <summary>
-        /// Domaines considÈrÈs comme vraiment malveillants (bulletproof hosting).
+        /// Domaines consid√©r√©s comme vraiment malveillants (bulletproof hosting).
         /// Match ? Severity.Critical (rouge).
         /// </summary>
         public string[] CriticalPatterns { get; set; } = new[]
@@ -63,8 +69,7 @@ namespace NetMonitor.Service
 
         /// <summary>
         /// Scanners de recherche connus.
-        /// Match ? Severity.Trusted (vert moyen).
-        /// (anciennement TrustedScannerPatterns)
+        /// Match ? Severity.Trusted (vert moyen) SI l'option IgnoreSearchScanners est activ√©e.
         /// </summary>
         public string[] ScannerPatterns { get; set; } = new[]
         {
@@ -79,7 +84,7 @@ namespace NetMonitor.Service
         };
 
         /// <summary>
-        /// Domaines lÈgitimes connus.
+        /// Domaines l√©gitimes connus.
         /// Match ? Severity.Safe (vert clair).
         /// </summary>
         public string[] SafePatterns { get; set; } = new[]
@@ -93,16 +98,16 @@ namespace NetMonitor.Service
         };
 
         /// <summary>
-        /// Whitelist utilisateur. Match ? Severity.Whitelisted (vert foncÈ).
+        /// Whitelist utilisateur. Match ? Severity.Whitelisted (vert fonc√©).
         /// Configurable manuellement pour ajouter vos propres exceptions.
         /// </summary>
         public string[] WhitelistPatterns { get; set; } = Array.Empty<string>();
 
         /// <summary>
-        /// Version de la logique de sÈvÈritÈ.
-        /// 0 = ancien systËme (toutes les IPs en "Critical")
-        /// 2 = nouveau systËme (SeverityScorer)
-        /// Sert ‡ dÈclencher la migration one-shot au dÈmarrage.
+        /// Version de la logique de s√©v√©rit√©.
+        /// 0 = ancien syst√®me (toutes les IPs en "Critical")
+        /// 2 = nouveau syst√®me (SeverityScorer)
+        /// Sert √† d√©clencher la migration one-shot au d√©marrage.
         /// </summary>
         public int SeverityVersion { get; set; } = 0;
 
@@ -165,8 +170,9 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
+                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break; // NOUVEAU
 
-                            // SÈvÈritÈ ó compatibilitÈ ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns" (nouveau)
+                            // S√©v√©rit√© ‚Äî compatibilit√© ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns" (nouveau)
                             case "TrustedScannerPatterns":
                             case "ScannerPatterns"              : settings.ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "CriticalPatterns"             : settings.CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
@@ -219,22 +225,22 @@ namespace NetMonitor.Service
                 {
                     "# ============================================================",
                     "# NetMonitor.config",
-                    "# Configuration du service NetMonitor (DÈtecteurs)",
+                    "# Configuration du service NetMonitor (D√©tecteurs)",
                     "# ============================================================",
                     "",
-                    "# --- DÈtecteur : Scan de ports ---",
+                    "# --- D√©tecteur : Scan de ports ---",
                     $"PortScanWindowSeconds={PortScanWindowSeconds}",
                     $"PortScanThreshold={PortScanThreshold}",
                     "",
-                    "# --- DÈtecteur : Beaconing ---",
+                    "# --- D√©tecteur : Beaconing ---",
                     $"BeaconWindowSeconds={BeaconWindowSeconds}",
                     $"BeaconMinHits={BeaconMinHits}",
                     $"BeaconJitterTolerancePct={BeaconJitterTolerancePct.ToString(CultureInfo.InvariantCulture)}",
                     "",
-                    "# --- Processus ignorÈs ---",
+                    "# --- Processus ignor√©s ---",
                     $"IgnoredProcesses={string.Join(",", IgnoredProcesses)}",
                     "",
-                    "# --- RÈseaux ignorÈs ---",
+                    "# --- R√©seaux ignor√©s ---",
                     $"IgnoredNetworks={string.Join(",", IgnoredNetworks)}",
                     "",
                     "# --- Blocage automatique ---",
@@ -243,7 +249,7 @@ namespace NetMonitor.Service
                     "# --- Mode Debug ---",
                     $"DisableFilters={DisableFilters.ToString().ToLower()}",
                     "",
-                    "# --- DÈtecteurs de pÈrimËtre ---",
+                    "# --- D√©tecteurs de p√©rim√®tre ---",
                     $"SuspiciousRemotePorts={string.Join(",", SuspiciousRemotePorts)}",
                     "",
                     "# --- Threat Intelligence ---",
@@ -253,14 +259,14 @@ namespace NetMonitor.Service
                     "# --- Recherche d'IP (lien externe) ---",
                     $"IpLookupUrl={IpLookupUrl}",
                     "",
-                    "# --- GÈolocalisation IP ---",
+                    "# --- G√©olocalisation IP ---",
                     $"GeoIpEnabled={GeoIpEnabled.ToString().ToLower()}",
                     $"GeoIpProvider={GeoIpProvider}",
                     $"ReverseDnsEnabled={ReverseDnsEnabled.ToString().ToLower()}",
                     "",
                     "# ============================================================",
-                    "#  SÈvÈritÈ ó patterns de classification (reverse DNS / ISP / Org)",
-                    "#  Format : sÈparÈs par virgule. Wildcard *.example.com supportÈ.",
+                    "#  S√©v√©rit√© ‚Äî patterns de classification (reverse DNS / ISP / Org)",
+                    "#  Format : s√©par√©s par virgule. Wildcard *.example.com support√©.",
                     "# ============================================================",
                     "",
                     "# Vraiment malveillants (rouge)",
@@ -269,17 +275,20 @@ namespace NetMonitor.Service
                     "# Scanners de recherche connus (vert moyen)",
                     $"ScannerPatterns={string.Join(",", ScannerPatterns)}",
                     "",
-                    "# Domaines lÈgitimes connus (vert clair)",
+                    "# Domaines l√©gitimes connus (vert clair)",
                     $"SafePatterns={string.Join(",", SafePatterns)}",
                     "",
-                    "# Whitelist utilisateur (vert foncÈ) ó vide par dÈfaut",
+                    "# Whitelist utilisateur (vert fonc√©) ‚Äî vide par d√©faut",
                     $"WhitelistPatterns={string.Join(",", WhitelistPatterns)}",
                     "",
-                    "# Version de la logique de sÈvÈritÈ (0 = legacy, 2 = SeverityScorer)",
+                    "# Version de la logique de s√©v√©rit√© (0 = legacy, 2 = SeverityScorer)",
                     $"SeverityVersion={SeverityVersion}",
                     "",
                     "# --- Whitelist de processus (chemin + hash + signature) ---",
                     $"EnableProcessTrust={EnableProcessTrust.ToString().ToLower()}",
+                    "",
+                    "# --- Ignorer les scanners de recherche (Shodan, Censys...) ---",
+                    $"IgnoreSearchScanners={IgnoreSearchScanners.ToString().ToLower()}",
                     "",
                 };
                 File.WriteAllLines(ConfigPath, lines);
@@ -342,6 +351,7 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) EnableProcessTrust = ept; break;
+                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) IgnoreSearchScanners = iss; break; // NOUVEAU
 
                             case "TrustedScannerPatterns":
                             case "ScannerPatterns"              : ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
@@ -372,7 +382,7 @@ namespace NetMonitor.Service
                         }
                     }
                 }
-                CoreLog.Write("Config NetMonitor rechargÈe ‡ chaud");
+                CoreLog.Write("Config NetMonitor recharg√©e √† chaud");
             }
             catch (Exception ex) { CoreLog.Write("Erreur Reload NetMonitorSettings : " + ex.Message); }
         }

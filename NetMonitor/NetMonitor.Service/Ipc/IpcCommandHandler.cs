@@ -241,16 +241,20 @@ namespace NetMonitor.Service.Ipc
         {
             IpcResponse.Json(server, new
             {
-                portScanWindowSeconds = _settings.PortScanWindowSeconds,
-                portScanThreshold = _settings.PortScanThreshold,
-                beaconWindowSeconds = _settings.BeaconWindowSeconds,
-                beaconMinHits = _settings.BeaconMinHits,
+                portScanWindowSeconds    = _settings.PortScanWindowSeconds,
+                portScanThreshold        = _settings.PortScanThreshold,
+                beaconWindowSeconds      = _settings.BeaconWindowSeconds,
+                beaconMinHits            = _settings.BeaconMinHits,
                 beaconJitterTolerancePct = _settings.BeaconJitterTolerancePct,
-                autoBlock = _settings.AutoBlock,
-                ignoredNetworks = _settings.IgnoredNetworks,
-                disableFilters = _settings.DisableFilters,
-                blacklistLevel = _settings.BlacklistLevel,              // NOUVEAU
-                blacklistLastUpdate = _settings.BlacklistLastUpdate     // NOUVEAU
+                autoBlock                = _settings.AutoBlock,
+                ignoredNetworks          = _settings.IgnoredNetworks,
+                disableFilters           = _settings.DisableFilters,
+                blacklistLevel           = _settings.BlacklistLevel,
+                blacklistLastUpdate      = _settings.BlacklistLastUpdate,
+
+                // Scanners de recherche (Trusted) ---
+                ignoreSearchScanners     = _settings.IgnoreSearchScanners,
+                scannerPatterns          = _settings.ScannerPatterns,
             });
         }
 
@@ -416,7 +420,8 @@ namespace NetMonitor.Service.Ipc
                     processName = a.ProcessName,
                     processPath = a.ProcessPath,
                     trustReason = a.TrustReason,                     
-                    details = a.Details
+                    details = a.Details,
+                    isKnownScanner = a.IsKnownScanner
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -516,7 +521,8 @@ namespace NetMonitor.Service.Ipc
                     processName = a.ProcessName,
                     processPath = a.ProcessPath,
                     trustReason = a.TrustReason,                     
-                    details = a.Details
+                    details = a.Details,
+                    isKnownScanner = a.IsKnownScanner
                 }).ToList();
                 IpcResponse.Json(server, projected);
             }
@@ -546,7 +552,8 @@ namespace NetMonitor.Service.Ipc
                     processName = a.ProcessName,
                     processPath = a.ProcessPath,
                     trustReason = a.TrustReason,
-                    details     = a.Details
+                    details     = a.Details,
+                    isKnownScanner = a.IsKnownScanner
                 }).ToList();
 
                 IpcResponse.Json(server, projected);

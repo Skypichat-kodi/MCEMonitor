@@ -458,6 +458,14 @@ namespace NetMonitor.Service
 
             bool alreadyBlocked = false;
 
+            //Vérifier si c'est un scanner connu ---
+            bool isKnownScanner = false;
+            if (_trustedScanners != null && !string.IsNullOrWhiteSpace(ip))
+            {
+                var known = _trustedScanners.TryGetCached(ip);
+                if (known == true) isKnownScanner = true;
+            }
+
             lock (_alertsLock)
             {
                 alreadyBlocked = _blockedIps.Any(b => b.Ip == ip);
@@ -471,7 +479,8 @@ namespace NetMonitor.Service
                         Source = source ?? "",
                         Message = message ?? "",
                         Details = details,
-                        Severity = severity ?? "-"
+                        Severity = severity ?? "-",
+                        IsKnownScanner = isKnownScanner
                     });
                 }
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
@@ -785,6 +794,19 @@ namespace NetMonitor.Service
                     return;
                 }
 
+                // Mise à jour des anciennes IP bloquées
+                if (_trustedScanners != null)
+                {
+                    foreach (var b in _blockedIps)
+                    {
+                        if (!b.IsProcess && !b.IsKnownScanner)
+                        {
+                            if (_trustedScanners.TryGetCached(b.Ip) == true)
+                                b.IsKnownScanner = true;
+                        }
+                    }
+                }
+                
                 lock (_alertsLock)
                 {
                     _blockedIps.Clear();
@@ -1347,17 +1369,37 @@ namespace NetMonitor.Service
                 giForSeverity?.Org,
                 evt.Source,
                 _settings);
+                
+            // Marquer les scanners connus (sans les ignorer) ---
+            // Le flag IsKnownScanner servira uniquement à l'affichage (badge vert "Subnet").
+            // La sévérité logique reste Warning, donc l'alerte reste bloquable.
+            if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            {
+                var known = _trustedScanners.TryGetCached(evt.RemoteIp);
+                if (known == true)
+                {
+                    evt.IsKnownScanner = true;
+                    evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
+                }
+                else if (!known.HasValue)
+                {
+                    _trustedScanners.CheckInBackground(evt.RemoteIp);
+                }
+            }                
 
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
             // --- 1. Détection des scanners de recherche légitimes ---
-            if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            // On n'ignore les scanners QUE si l'utilisateur l'a demandé.
+            // Si IgnoreSearchScanners = false, on saute ce bloc → les scanners
+            // seront traités comme des menaces normales (Warning/Critical).
+            if (_settings.IgnoreSearchScanners && _trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
 
                 if (known == true)
                 {
-                    evt.Severity = Severity.Trusted;   // ← au lieu de Info
+                    evt.Severity = Severity.Trusted;
                     evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
                     evt.TrustReason = "Scanner de recherche légitime (reverse DNS)";
 
@@ -1554,7 +1596,8 @@ namespace NetMonitor.Service
                             ProcessName = last.ProcessName,
                             ProcessPath = last.ProcessPath,
                             TrustReason = mostSevere.TrustReason,
-                            Details     = mostSevere.Details
+                            Details     = mostSevere.Details,
+                            IsKnownScanner = g.Any(x => x.IsKnownScanner)
                         };
                     })
                     .OrderByDescending(x => x.LastSeen)

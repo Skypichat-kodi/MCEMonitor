@@ -14,4 +14,8 @@ public sealed class IntrusionEvent
     public string? Details { get; set; }
     public string? ProcessPath { get; set; }   // ex: C:\Windows\System32\svchost.exe
     public string? TrustReason { get; set; }   // raison du spoof/unknown
+
+    // Marque les scanners de recherche connus (Shodan, Censys, Xpanse...) ---
+    // Permet un affichage "Subnet" (badge vert) sans changer la sévérité réelle (Warning).
+    public bool IsKnownScanner { get; set; }
 }

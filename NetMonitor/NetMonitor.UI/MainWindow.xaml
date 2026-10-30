@@ -242,6 +242,9 @@
                             <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
                                 <Setter Property="Background" Value="#2E7D32"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding IsKnownScanner}" Value="True">
+                                <Setter Property="Background" Value="#6CCB5F"/>
+                            </DataTrigger>                            
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -261,8 +264,8 @@
                         </TextBlock.Style>
                     </TextBlock>
 
-                    <!-- Texte de la sévérité -->
-                    <TextBlock Text="{Binding Severity}"
+                    <!-- Texte du badge : "Subnet" si scanner connu, sinon la sévérité -->
+                    <TextBlock Text="{Binding BadgeText}"
                                FontWeight="Bold"
                                FontSize="11"
                                TextAlignment="Center"
@@ -2009,6 +2012,21 @@
                                              Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
                                              VerticalContentAlignment="Center"/>
                                 </StackPanel>
+                                
+                                <StackPanel Orientation="Horizontal" Margin="0,10,0,5">
+                                    <CheckBox x:Name="chkBlockSearchScanners"
+                                              Content="Bloquer les scanners de recherche (Shodan, Censys...)"
+                                              Foreground="#E5E5E5"
+                                              Margin="0,0,0,5"/>
+                                </StackPanel>
+
+                                <TextBlock Text="Liste des scanners de recherche connus (un domaine par ligne) :" 
+                                           Foreground="#B4B4B4" FontSize="12" Margin="0,0,0,5"/>
+                                <TextBox x:Name="txtScannerPatterns"
+                                         AcceptsReturn="True" TextWrapping="Wrap" Height="80"
+                                         VerticalScrollBarVisibility="Auto"
+                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" 
+                                         Margin="0,0,0,15"/>                                
 
                                 <CheckBox x:Name="chkDisableFilters"
                                           Content="Mode Debug : Désactiver les filtres et whitelists"

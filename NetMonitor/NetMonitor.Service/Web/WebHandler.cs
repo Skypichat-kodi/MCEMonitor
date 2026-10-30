@@ -48,7 +48,8 @@ namespace NetMonitor.Service.Web
                                 Message   = mostRecent.Message,
                                 Pid         = mostRecent.Pid,
                                 ProcessPath = mostRecent.ProcessPath,
-                                TrustReason = mostRecent.TrustReason
+                                TrustReason = mostRecent.TrustReason,
+                                IsKnownScanner = g.Any(x => x.IsKnownScanner)
                             };
                         })
                         .OrderByDescending(x => (int)x.Severity)
@@ -59,7 +60,8 @@ namespace NetMonitor.Service.Web
 
                     foreach (var item in grouped)
                     {
-                        string sevClass = SeverityToCssClass(item.Severity.ToString());
+                        string sevClass  = item.IsKnownScanner ? "subnet" : SeverityToCssClass(item.Severity.ToString());
+                        string badgeText = item.IsKnownScanner ? "Subnet" : item.Severity.ToString();
 
                         string ipEnc = WebUtility.HtmlEncode(item.Ip);
 

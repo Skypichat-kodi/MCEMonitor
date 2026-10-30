@@ -18,5 +18,6 @@ namespace NetMonitor.Service.Models
         public string? ProcessPath { get; set; }
         public string? TrustReason { get; set; }
         public string? Details { get; set; }
+        public bool IsKnownScanner { get; set; }
     }
 }

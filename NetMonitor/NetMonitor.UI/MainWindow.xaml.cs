@@ -228,7 +228,8 @@ namespace NetMonitor.UI
                                     ProcessName = mostRecent.processName,
                                     ProcessPath = mostRecent.processPath,
                                     TrustReason = mostRecent.trustReason,
-                                    Details     = mostRecent.details
+                                    Details     = mostRecent.details,
+                                    IsKnownScanner = mostRecent.isKnownScanner
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -254,7 +255,8 @@ namespace NetMonitor.UI
                                 ProcessName         = a.processName,
                                 ProcessPath         = a.processPath,
                                 TrustReason         = a.trustReason,
-                                Details             = a.details
+                                Details             = a.details,
+                                IsKnownScanner      = a.isKnownScanner
                             });
                         }
 
@@ -333,7 +335,8 @@ namespace NetMonitor.UI
                             IsProcess = b.IsProcess,
                             ProcessPath = b.ProcessPath,
                             ManualSeverity = b.ManualSeverity,
-                            ManualSeveritySetAt = b.ManualSeveritySetAt,                            
+                            ManualSeveritySetAt = b.ManualSeveritySetAt,
+                            IsKnownScanner = b.IsKnownScanner                            
                         })
                         .ToList();
 
@@ -365,7 +368,8 @@ namespace NetMonitor.UI
                             Pid        = a.pid,
                             ProcessName = a.processName,
                             ProcessPath = a.processPath,
-                            TrustReason = a.trustReason
+                            TrustReason = a.trustReason,
+                            IsKnownScanner = a.isKnownScanner
                         })
                         .ToList();
 
@@ -399,7 +403,8 @@ namespace NetMonitor.UI
                             ProcessName = a.ProcessName,
                             ProcessPath = a.ProcessPath,
                             TrustReason = a.TrustReason,
-                            Details     = a.Details
+                            Details     = a.Details,
+                            IsKnownScanner = a.isKnownScanner
                         })
                         .OrderByDescending(x => x.Count)
                         .ThenByDescending(x => x.LastSeen)
@@ -1055,6 +1060,13 @@ namespace NetMonitor.UI
                     chkDisableFilters.IsChecked = false;
                     txtBlacklistLevel.Text = "3";
                     lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
+                    
+                    // Valeurs par défaut pour les nouveaux champs
+                    // IgnoreSearchScanners est false par défaut (philosophie "tout bot est maudit"),
+                    // donc la case "Bloquer" doit être cochée par défaut.
+                    chkBlockSearchScanners.IsChecked = true; 
+                    txtScannerPatterns.Text = "";
+                    
                     return;
                 }
 
@@ -1075,6 +1087,14 @@ namespace NetMonitor.UI
                     lblBlacklistLastUpdate.Text = $"Dernière MAJ : {cfg.blacklistLastUpdate.ToLocalTime():dd/MM/yyyy HH:mm}";
                 else
                     lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
+
+                // Chargement des scanners de recherche ---
+                chkBlockSearchScanners.IsChecked = !cfg.ignoreSearchScanners;
+                
+                if (cfg.scannerPatterns != null && cfg.scannerPatterns.Length > 0)
+                    txtScannerPatterns.Text = string.Join(Environment.NewLine, cfg.scannerPatterns);
+                else
+                    txtScannerPatterns.Text = "";
             }
             catch { }
         }
@@ -1114,6 +1134,12 @@ namespace NetMonitor.UI
                     ? txtWebPassword.Password
                     : txtWebPasswordVisible.Text;
 
+                // --- NOUVEAU : Préparation de la liste des scanners ---
+                var scannerPatterns = txtScannerPatterns.Text
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+
                 var lines = new[]
                 {
                     "# ============================================================",
@@ -1140,6 +1166,10 @@ namespace NetMonitor.UI
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",
                     $"BlacklistLastUpdate={(DateTime.TryParse(lblBlacklistLastUpdate.Text.Replace("Dernière MAJ : ", ""), out var dt) ? dt.ToUniversalTime().ToString("O") : DateTime.UtcNow.ToString("O"))}",
+                    "",
+                    "# --- Scanners de recherche (Trusted) ---",
+                    $"IgnoreSearchScanners={(chkBlockSearchScanners.IsChecked != true).ToString().ToLower()}",
+                    $"ScannerPatterns={string.Join(",", scannerPatterns)}",
                     "",
                     "# --- Serveur Web ---",
                     $"WebEnabled={webEnabled}",
@@ -2559,6 +2589,9 @@ namespace NetMonitor.UI
         public string? ProcessName { get; set; }
         public string? ProcessPath { get; set; }
         public string? TrustReason { get; set; }
+        public bool IsKnownScanner { get; set; }
+        
+        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
 
         public string ProcessDisplay
         {
@@ -2619,6 +2652,9 @@ namespace NetMonitor.UI
 
         public bool HasManualSeverity => !string.IsNullOrEmpty(ManualSeverity);
 
+        public bool IsKnownScanner { get; set; }
+        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
+        
         public string ManualSeverityTooltip =>
             HasManualSeverity
                 ? $"Sévérité forcée manuellement" +
@@ -2658,6 +2694,9 @@ namespace NetMonitor.UI
         public string? ProcessName { get; set; }
         public string? ProcessPath { get; set; }
         public string? TrustReason { get; set; }
+        public bool IsKnownScanner { get; set; }
+        
+        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
 
         public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
 
@@ -2749,7 +2788,9 @@ namespace NetMonitor.UI
                                      
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";                                     
+        public string ManualSeverityTooltip => "";
+        public bool IsKnownScanner => false;
+        public string BadgeText => Severity;                                             
     }
     
     public class BlockedIpRetryRow
@@ -2765,6 +2806,9 @@ namespace NetMonitor.UI
         public string FirstRetryAtText => FirstRetryAt.ToString("dd/MM HH:mm:ss");
         public string LastRetryAtText => LastRetryAt.ToString("dd/MM HH:mm:ss");
 
+        public bool IsKnownScanner => false;
+        public string BadgeText => "";
+        
         public string CountClass => RetryCount >= 10 ? "c10" :
                                      RetryCount >= 5  ? "c5"  :
                                      RetryCount >= 2  ? "c2"  : "c1";
@@ -2807,6 +2851,7 @@ namespace NetMonitor.UI
         public string? ProcessPath { get; set; }
         public string? TrustReason { get; set; }
         public string? Details { get; set; }
+        public bool IsKnownScanner { get; set; }
 
         public string FirstSeenText => FirstSeen.ToString("dd/MM HH:mm:ss");
         public string LastSeenText => LastSeen.ToString("dd/MM HH:mm:ss");
@@ -2831,7 +2876,8 @@ namespace NetMonitor.UI
             
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";            
+        public string ManualSeverityTooltip => "";
+        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;                    
     }
     
     public class StatsProcessRow
