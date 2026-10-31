@@ -145,6 +145,8 @@ namespace MCEMonitorClient.Tray.Ipc
         public string FirstProblem { get; set; } = "";
         public LastBlockInfo? LastBlock { get; set; }
         public System.Collections.Generic.List<ProblemItem> Problems { get; set; } = new();
+        public System.Collections.Generic.List<ProblemItem> PreviousProblems { get; set; } = new();
+        public System.Collections.Generic.List<ProblemItem> ResolvedProblems { get; set; } = new();
         public DateTime Timestamp { get; set; }
     }
 
@@ -152,6 +154,7 @@ namespace MCEMonitorClient.Tray.Ipc
     {
         public string Severity { get; set; } = "";
         public string Category { get; set; } = "";
+        public string Target   { get; set; } = "";
         public string Message { get; set; } = "";
     }
     

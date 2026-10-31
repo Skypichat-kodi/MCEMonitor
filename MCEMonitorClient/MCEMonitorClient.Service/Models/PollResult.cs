@@ -30,7 +30,8 @@ namespace MCEMonitorClient.Service.Models
     {
         public string Severity { get; set; } = "";     // "critical" / "warning"
         public string Category { get; set; } = "";     // "CpuHigh", "DiskSpace", "Smart", ...
-        public string Message { get; set; } = "";
+        public string Target   { get; set; } = "";     // "CPU", "C:", "CPU Temp", ...
+        public string Message  { get; set; } = "";
     }
 
     /// <summary>

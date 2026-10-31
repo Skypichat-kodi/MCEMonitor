@@ -6,7 +6,8 @@ namespace SystemMonitor.Service
     {
         public DateTime Timestamp { get; set; }
         public string Severity { get; set; } = "";     // "critical" / "warning"
-        public string Category { get; set; } = "";     // "CPU", "RAM", "Temp", "BSOD"
-        public string Message { get; set; } = "";
+        public string Category { get; set; } = "";     // "CpuHigh", "RamHigh", "TempHigh", "GpuTempHigh", "BSOD"
+        public string Target   { get; set; } = "";     // "CPU", "RAM", "CPU Temp", nom GPU, code BSOD
+        public string Message  { get; set; } = "";
     }
 }

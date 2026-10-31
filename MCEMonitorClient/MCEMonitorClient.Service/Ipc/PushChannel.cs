@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Text;
+using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using MCEMonitorClient.Service.Logs;
@@ -105,24 +106,44 @@ namespace MCEMonitorClient.Service.Ipc
         }
 
         /// <summary>
-        /// Envoie un événement de type "alert" au Tray.
+        /// Envoie un événement "alert" au Tray, avec :
+        ///  - resolvedProblems : problèmes présents avant et absents maintenant
+        ///  - newProblems      : problèmes absents avant et présents maintenant
         /// </summary>
-        public static void PushAlert(PollResult result, PollResult? previous)
+        public static void PushAlert(PollResult result, PollResult? previous,
+                                     List<ProblemItem>? newProblems = null)
         {
+            // Diff pour les résolutions (clé stable = Category|Target)
+            var resolvedProblems = new List<ProblemItem>();
+            if (previous != null && previous.Problems.Count > 0)
+            {
+                static string KeyOf(ProblemItem p) => $"{p.Category}|{p.Target}";
+                var currentKeys = result.Problems.Select(KeyOf).ToHashSet();
+
+                foreach (var p in previous.Problems)
+                {
+                    if (!string.IsNullOrEmpty(p.Category) && !currentKeys.Contains(KeyOf(p)))
+                        resolvedProblems.Add(p);
+                }
+            }
+
             Broadcast(new
             {
-                type = "alert",
-                serverId = result.ServerId,
-                serverName = result.ServerName,
-                serviceType = result.ServiceType,
-                baseUrl = result.BaseUrl,
-                status = result.Status,
-                previousStatus = previous?.Status ?? "unknown",
-                problemCount = result.ProblemCount,
-                firstProblem = result.FirstProblem,
-                problems = result.Problems,
-                lastBlock = result.LastBlock,
-                timestamp = result.Timestamp
+                type             = "alert",
+                serverId         = result.ServerId,
+                serverName       = result.ServerName,
+                serviceType      = result.ServiceType,
+                baseUrl          = result.BaseUrl,
+                status           = result.Status,
+                previousStatus   = previous?.Status ?? "unknown",
+                problemCount     = result.ProblemCount,
+                firstProblem     = result.FirstProblem,
+                problems         = result.Problems,
+                previousProblems = previous?.Problems ?? new List<ProblemItem>(),
+                resolvedProblems,
+                newProblems      = newProblems ?? new List<ProblemItem>(), 
+                lastBlock        = result.LastBlock,
+                timestamp        = result.Timestamp
             });
         }
         

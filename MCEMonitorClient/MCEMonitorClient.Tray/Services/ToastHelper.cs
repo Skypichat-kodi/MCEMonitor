@@ -62,6 +62,8 @@ namespace MCEMonitorClient.Tray.Services
         {
             try
             {
+                MCEMonitorClient.Tray.Logs.CoreLog.Write($"[TOAST] Show : '{title}' (icon={iconFileName})");
+                
                 var builder = new ToastContentBuilder();
 
                 // Titre en gras + grande taille
@@ -91,6 +93,8 @@ namespace MCEMonitorClient.Tray.Services
                     builder.AddAudio(new ToastAudio { Silent = true });
 
                 builder.Show();
+                
+                MCEMonitorClient.Tray.Logs.CoreLog.Write($"[TOAST] Show OK");
             }
             catch { }
         }

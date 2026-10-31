@@ -18,6 +18,7 @@ namespace SystemMonitor.Service.Api
     {
         public string severity { get; set; } = "";
         public string category { get; set; } = "";
+        public string target   { get; set; } = "";
         public string message { get; set; } = "";
     }
 

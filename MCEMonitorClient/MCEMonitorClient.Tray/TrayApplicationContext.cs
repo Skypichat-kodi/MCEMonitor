@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -16,24 +16,24 @@ namespace MCEMonitorClient.Tray
 {
     public class TrayApplicationContext : ApplicationContext
     {
-        // --- État ---
+        // --- Ã‰tat ---
         private string _globalState = "ok";
         private readonly PushListener _pushListener = new();
         private System.Windows.Forms.Timer? _pollTimer;
 
-        // ? MODIFIÉ : map ServerId ? status ("ok"|"warning"|"critical"|"offline")
-        //            pour recalculer l'icône dans le bon ordre de priorité
+        // ? MODIFIÃ‰ : map ServerId ? status ("ok"|"warning"|"critical"|"offline")
+        //            pour recalculer l'icÃ´ne dans le bon ordre de prioritÃ©
         private readonly Dictionary<string, string> _serverStatuses = new();
         private readonly object _statusLock = new object();
 
-        // --- Icônes ---
+        // --- IcÃ´nes ---
         private Icon _iconOk = null!;        // connected.png (fallback visuel)
         private Icon _iconWarning = null!;   // warning.png
         private Icon _iconCritical = null!;  // critical.png
-        private Icon _iconOffline = null!;   // icône app (fallback)
+        private Icon _iconOffline = null!;   // icÃ´ne app (fallback)
         private Bitmap? _onlineBase = null!;   // image de base "rond vert" pour composer le chiffre
 
-        // Cache des icônes "rond vert + chiffre" (1..N)
+        // Cache des icÃ´nes "rond vert + chiffre" (1..N)
         private readonly Dictionary<int, Icon> _countIcons = new();
         private readonly object _countIconsLock = new();
 
@@ -45,7 +45,7 @@ namespace MCEMonitorClient.Tray
         private System.Media.SoundPlayer? _alarmPlayer;
         private System.Media.SoundPlayer? _warningPlayer;
 
-        // --- Sons système Windows (par alias) ---
+        // --- Sons systÃ¨me Windows (par alias) ---
         [DllImport("winmm.dll", CharSet = CharSet.Auto)]
         private static extern bool PlaySound(string pszSound, IntPtr hmod, uint fdwSound);
 
@@ -64,7 +64,7 @@ namespace MCEMonitorClient.Tray
         public TrayApplicationContext()
         {
             CoreLog.Clear();
-            CoreLog.Write("=== Tray démarré ===");
+            CoreLog.Write("=== Tray dÃ©marrÃ© ===");
 
             ToastHelper.Initialize();
 
@@ -76,30 +76,30 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Icônes  ? MODIFIÉ
+        //  IcÃ´nes  ? MODIFIÃ‰
         // ---------------------------------------------
         private void LoadIcons()
         {
             string exeDir = Path.GetDirectoryName(Application.ExecutablePath) ?? "";
             string iconsDir = Path.Combine(exeDir, "Resources", "Icons");
 
-            // Icône app par défaut (utilisée pour l'état offline + fallback de chargement)
+            // IcÃ´ne app par dÃ©faut (utilisÃ©e pour l'Ã©tat offline + fallback de chargement)
             string appIco = Path.Combine(exeDir, "MCEMonitorClient.ico");
             var defaultIcon = File.Exists(appIco) ? new Icon(appIco) : SystemIcons.Application;
 
-            // Ordre de priorité : critical.png > warning.png > connected.png > icône app
+            // Ordre de prioritÃ© : critical.png > warning.png > connected.png > icÃ´ne app
             _iconOk       = LoadIconFromPng(Path.Combine(iconsDir, "connected.png")) ?? defaultIcon;
             _iconWarning  = LoadIconFromPng(Path.Combine(iconsDir, "warning.png"))   ?? defaultIcon;
             _iconCritical = LoadIconFromPng(Path.Combine(iconsDir, "critical.png"))  ?? defaultIcon;
-            _iconOffline  = defaultIcon; // offline = icône app (pas de PNG dédié)
-            // Image de base du rond vert (sans chiffre) pour composer les icônes "N connectés"
+            _iconOffline  = defaultIcon; // offline = icÃ´ne app (pas de PNG dÃ©diÃ©)
+            // Image de base du rond vert (sans chiffre) pour composer les icÃ´nes "N connectÃ©s"
             string onlinePng = Path.Combine(iconsDir, "online.png");
             if (File.Exists(onlinePng))
             {
                 try
                 {
                     _onlineBase = new Bitmap(onlinePng);
-                    CoreLog.Write($"[ICON] online.png chargé ({_onlineBase.Width}×{_onlineBase.Height})");
+                    CoreLog.Write($"[ICON] online.png chargÃ© ({_onlineBase.Width}Ã—{_onlineBase.Height})");
                 }
                 catch (Exception ex)
                 {
@@ -109,7 +109,7 @@ namespace MCEMonitorClient.Tray
             }
             else
             {
-                CoreLog.Write("[ICON] online.png introuvable — fallback sur connected.png");
+                CoreLog.Write("[ICON] online.png introuvable â€” fallback sur connected.png");
                 _onlineBase = null;
             }            
         }
@@ -146,7 +146,7 @@ namespace MCEMonitorClient.Tray
                     using var tmp = Icon.FromHandle(hIcon);
                     Icon clone = (Icon)tmp.Clone();
                     CoreLog.Write($"[ICON] OK : {Path.GetFileName(path)} " +
-                                  $"({original.Width}×{original.Height} ? {size}×{size})");
+                                  $"({original.Width}Ã—{original.Height} ? {size}Ã—{size})");
                     return clone;
                 }
                 finally
@@ -162,7 +162,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ============================================================
-        //  Icône dynamique : rond vert + chiffre (nombre de serveurs connectés)
+        //  IcÃ´ne dynamique : rond vert + chiffre (nombre de serveurs connectÃ©s)
         // ============================================================
 
         private static readonly Color GreenFill   = Color.FromArgb(0x6C, 0xCB, 0x5F);
@@ -170,12 +170,12 @@ namespace MCEMonitorClient.Tray
         private static readonly Color TextColor   = Color.White;
 
         /// <summary>
-        /// Retourne (et met en cache) l'icône "rond vert + chiffre".
+        /// Retourne (et met en cache) l'icÃ´ne "rond vert + chiffre".
         /// </summary>
         private Icon GetCountIcon(int count)
         {
             if (count < 1) count = 1;
-            if (count > 99) count = 99;   // au-delà, on affiche "99"
+            if (count > 99) count = 99;   // au-delÃ , on affiche "99"
 
             lock (_countIconsLock)
             {
@@ -189,12 +189,12 @@ namespace MCEMonitorClient.Tray
         }
 
         /// <summary>
-        /// Compose l'icône "rond vert + chiffre noir" à partir de online.png.
-        /// Si online.png est absent, on retombe sur un rond vert dessiné (fallback).
+        /// Compose l'icÃ´ne "rond vert + chiffre noir" Ã  partir de online.png.
+        /// Si online.png est absent, on retombe sur un rond vert dessinÃ© (fallback).
         /// </summary>
         private Icon BuildCountIcon(int count)
         {
-            const int size = 32;   // 32×32 : Windows downscale proprement en 16
+            const int size = 32;   // 32Ã—32 : Windows downscale proprement en 16
 
             using var bmp = new Bitmap(size, size, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
@@ -213,16 +213,16 @@ namespace MCEMonitorClient.Tray
                 }
                 else
                 {
-                    // Fallback : rond vert dessiné
+                    // Fallback : rond vert dessinÃ©
                     var rect = new Rectangle(1, 1, size - 2, size - 2);
                     using (var fill = new SolidBrush(Color.FromArgb(0x6C, 0xCB, 0x5F)))
                         g.FillEllipse(fill, rect);
                 }
 
-                // --- 2. Chiffre noir centré ---
+                // --- 2. Chiffre noir centrÃ© ---
                 string text = count > 99 ? "99" : count.ToString();
 
-                // Taille de police adaptée au nombre de chiffres
+                // Taille de police adaptÃ©e au nombre de chiffres
                 float fontSize = text.Length switch
                 {
                     1 => 20f,
@@ -233,12 +233,12 @@ namespace MCEMonitorClient.Tray
                 using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
                 var textSize = g.MeasureString(text, font);
 
-                // Centrage précis (TextRenderer serait plus juste mais MeasureString suffit ici)
+                // Centrage prÃ©cis (TextRenderer serait plus juste mais MeasureString suffit ici)
                 float x = (size - textSize.Width) / 2f;
                 float y = (size - textSize.Height) / 2f;
 
-                // Petit halo blanc derrière pour améliorer la lisibilité si besoin
-                // (optionnel — décommente si le noir se perd sur le vert)
+                // Petit halo blanc derriÃ¨re pour amÃ©liorer la lisibilitÃ© si besoin
+                // (optionnel â€” dÃ©commente si le noir se perd sur le vert)
                 // using (var halo = new SolidBrush(Color.FromArgb(180, 255, 255, 255)))
                 //     g.DrawString(text, font, halo, x + 0.5f, y + 0.5f);
 
@@ -250,8 +250,8 @@ namespace MCEMonitorClient.Tray
         }
 
         /// <summary>
-        /// Convertit un Bitmap en Icon en écrivant un vrai fichier ICO (header + PNG embedded).
-        /// Compatible NotifyIcon : alpha + antialiasing préservés.
+        /// Convertit un Bitmap en Icon en Ã©crivant un vrai fichier ICO (header + PNG embedded).
+        /// Compatible NotifyIcon : alpha + antialiasing prÃ©servÃ©s.
         /// </summary>
         private static Icon BitmapToIcon(Bitmap bmp)
         {
@@ -287,7 +287,7 @@ namespace MCEMonitorClient.Tray
         }
 
         /// <summary>
-        /// Libère toutes les icônes dynamiques mises en cache.
+        /// LibÃ¨re toutes les icÃ´nes dynamiques mises en cache.
         /// </summary>
         private void DisposeCountIcons()
         {
@@ -327,7 +327,7 @@ namespace MCEMonitorClient.Tray
             menu.Items.Add("Ouvrir la configuration", null, (s, e) => OpenConfig());
             menu.Items.Add("Voir les serveurs", null, (s, e) => ShowServersPopup());
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Rafraîchir maintenant", null, async (s, e) => await ForceScanAsync());
+            menu.Items.Add("RafraÃ®chir maintenant", null, async (s, e) => await ForceScanAsync());
             menu.Items.Add(new ToolStripSeparator());
             menu.Items.Add("Quitter", null, (s, e) => Exit());
 
@@ -349,8 +349,8 @@ namespace MCEMonitorClient.Tray
             _pushListener.Start();
         }
 
-        // ? MODIFIÉ : met à jour la map + recalcule l'icône (au lieu d'utiliser
-        //             aveuglément alert.Status, ce qui écrasait un état plus prioritaire)
+        // ? MODIFIÃ‰ : met Ã  jour la map + recalcule l'icÃ´ne (au lieu d'utiliser
+        //             aveuglÃ©ment alert.Status, ce qui Ã©crasait un Ã©tat plus prioritaire)
         private void OnAlertReceived(PushAlert alert)
         {
             SetServerStatus(alert.ServerId, alert.Status);
@@ -359,7 +359,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  ? NOUVEAU : gestion priorité des icônes
+        //  ? NOUVEAU : gestion prioritÃ© des icÃ´nes
         // ---------------------------------------------
         private void SetServerStatus(string serverId, string status)
         {
@@ -368,8 +368,8 @@ namespace MCEMonitorClient.Tray
         }
 
         /// <summary>
-        /// Calcule l'état global en respectant l'ordre de priorité :
-        /// critical > warning > tous online > offline (fallback icône app).
+        /// Calcule l'Ã©tat global en respectant l'ordre de prioritÃ© :
+        /// critical > warning > tous online > offline (fallback icÃ´ne app).
         /// </summary>
         private string ComputeWorstState()
         {
@@ -392,7 +392,7 @@ namespace MCEMonitorClient.Tray
         }
 
         /// <summary>
-        /// Applique l'icône et le tooltip en fonction de l'état global recalculé.
+        /// Applique l'icÃ´ne et le tooltip en fonction de l'Ã©tat global recalculÃ©.
         /// </summary>
         private void UpdateTrayIcon()
         {
@@ -406,7 +406,7 @@ namespace MCEMonitorClient.Tray
             }
             int online = total - offline;
 
-            // Priorité : critical > warning > (au moins 1 online ? rond vert + chiffre) > icône de base
+            // PrioritÃ© : critical > warning > (au moins 1 online ? rond vert + chiffre) > icÃ´ne de base
             Icon icon;
             string tooltipState;
 
@@ -422,13 +422,13 @@ namespace MCEMonitorClient.Tray
             }
             else if (online > 0)
             {
-                // Au moins 1 serveur connecté ? rond vert + chiffre
+                // Au moins 1 serveur connectÃ© ? rond vert + chiffre
                 icon = GetCountIcon(online);
                 tooltipState = "OK";
             }
             else
             {
-                // Aucun serveur connecté ? icône de base
+                // Aucun serveur connectÃ© ? icÃ´ne de base
                 icon = _iconOffline;
                 tooltipState = "Hors ligne";
             }
@@ -447,11 +447,23 @@ namespace MCEMonitorClient.Tray
         {
             try
             {
+                CoreLog.Write($"[NOTIF] {alert.ServerName} status={alert.Status} previous={alert.PreviousStatus} problems={alert.Problems?.Count ?? 0} resolved={alert.ResolvedProblems?.Count ?? 0}");
+                
                 string title;
                 string message;
                 bool isCritical = false;
                 bool isWarning  = false;
                 bool isOffline  = false;
+
+                // BSOD expirÃ© : pas une vraie rÃ©solution â†’ on n'affiche rien
+                if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                    alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0 &&
+                    alert.ResolvedProblems.All(p =>
+                        (p.Category ?? "").Trim().ToLowerInvariant() == "bsod"))
+                {
+                    CoreLog.Write($"[NOTIF] {alert.ServerName} : BSOD expirÃ© â€” notification ignorÃ©e");
+                    return;
+                }
 
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok")
                 {
@@ -460,30 +472,89 @@ namespace MCEMonitorClient.Tray
 
                     if (recentBlock)
                     {
-                        title = $"{alert.ServerName} - Menace neutralisée";
+                        title = $"{alert.ServerName} - Menace neutralisÃ©e";
                         string mode = alert.LastBlock!.Automatic ? "automatiquement" : "manuellement";
-                        message = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                        message = $"L'IP {alert.LastBlock.Ip} a Ã©tÃ© bloquÃ©e {mode} par le pare-feu";
                         if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
-                            message += $" (détecteur : {alert.LastBlock.Detector})";
+                            message += $" (dÃ©tecteur : {alert.LastBlock.Detector})";
+                    }
+                    else if (alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+                    {
+                        // On ne garde que les problÃ¨mes rÃ©ellement rÃ©solus (pas BSOD, pas Unknown)
+                        var realResolved = alert.ResolvedProblems
+                            .Where(p =>
+                            {
+                                var k = Classify(p);
+                                return k != ProblemKind.Unknown && k != ProblemKind.Bsod;
+                            })
+                            .ToList();
+
+                        if (realResolved.Count == 0)
+                        {
+                            // Fallback : tous Unknown/Bsod â†’ message gÃ©nÃ©rique
+                            CoreLog.Write($"[NOTIF] {alert.ServerName} : {alert.ResolvedProblems.Count} resolvedProblems mais tous Unknown/Bsod â†’ fallback gÃ©nÃ©rique");
+                            title = $"{alert.ServerName} - Retour Ã  la normale";
+                            message = "Le serveur est de nouveau joignable";
+                        }
+                        else
+                        {
+                            // Groupe par catÃ©gorie pour le titre court
+                            var byKind = realResolved
+                                .Select(p => Classify(p))
+                                .GroupBy(k => k)
+                                .OrderByDescending(g => IsDiskKind(g.Key))
+                                .ThenByDescending(g => IsCpuKind(g.Key))
+                                .ToList();
+
+                            var parts = new List<string>();
+                            foreach (var g in byKind)
+                            {
+                                parts.Add(g.Key switch
+                                {
+                                    ProblemKind.DiskSpace => "Disque (espace) âœ“",
+                                    ProblemKind.DiskSmart => "Disque (SMART) âœ“",
+                                    ProblemKind.DiskTemp  => "Disque (tempÃ©rature) âœ“",
+                                    ProblemKind.CpuUsage  => "CPU (surcharge) âœ“",
+                                    ProblemKind.CpuTemp   => "CPU (tempÃ©rature) âœ“",
+                                    ProblemKind.RamUsage  => "RAM âœ“",
+                                    ProblemKind.GpuTemp   => "GPU âœ“",
+                                    _                     => ""
+                                });
+                            }
+
+                            title = realResolved.Count == 1
+                                ? $"{alert.ServerName} - Retour Ã  la normale"
+                                : $"{alert.ServerName} - {realResolved.Count} alertes rÃ©solues";
+
+                            message = string.Join(" â€¢ ", parts.Where(s => !string.IsNullOrEmpty(s)));
+
+                            int max = 3;
+                            for (int i = 0; i < Math.Min(realResolved.Count, max); i++)
+                                message += $"\nâ€¢ {realResolved[i].Message}";
+                            if (realResolved.Count > max)
+                                message += $"\nâ€¦ et {realResolved.Count - max} autre(s)";
+                        }
                     }
                     else
                     {
-                        title = $"{alert.ServerName} - Retour à la normale";
+                        // Aucun resolvedProblems : offlineâ†’ok classique, ou pas d'info
+                        CoreLog.Write($"[NOTIF] {alert.ServerName} : ok sans resolvedProblems (previous={alert.PreviousStatus}) â†’ fallback gÃ©nÃ©rique");
+                        title = $"{alert.ServerName} - Retour Ã  la normale";
                         message = "Le serveur est de nouveau joignable";
                     }
                 }
                 else if (alert.Status == "offline")
                 {
                     title = $"{alert.ServerName} - Hors ligne";
-                    message = "Le serveur ne répond plus";
+                    message = "Le serveur ne rÃ©pond plus";
                     isOffline = true;
                 }
                 else if (alert.Problems != null && alert.Problems.Count > 0)
                 {
                     int count = alert.Problems.Count;
                     title = count == 1
-                        ? $"{alert.ServerName} - 1 problème détecté"
-                        : $"{alert.ServerName} - {count} problèmes détectés";
+                        ? $"{alert.ServerName} - 1 problÃ¨me dÃ©tectÃ©"
+                        : $"{alert.ServerName} - {count} problÃ¨mes dÃ©tectÃ©s";
 
                     var lines = new List<string>();
                     int maxShown = 3;
@@ -501,9 +572,9 @@ namespace MCEMonitorClient.Tray
                 }
                 else
                 {
-                    title = $"{alert.ServerName} - Changement d'état";
+                    title = $"{alert.ServerName} - Changement d'Ã©tat";
                     message = string.IsNullOrEmpty(alert.FirstProblem)
-                        ? $"État : {alert.Status}"
+                        ? $"Ã‰tat : {alert.Status}"
                         : alert.FirstProblem;
                 }
 
@@ -560,7 +631,7 @@ namespace MCEMonitorClient.Tray
             _ = RefreshFromServiceAsync();
         }
 
-        // ? MODIFIÉ : reconstruit la map des statuts puis recalcule l'icône
+        // ? MODIFIÃ‰ : reconstruit la map des statuts puis recalcule l'icÃ´ne
         private async Task RefreshFromServiceAsync()
         {
             try
@@ -568,7 +639,7 @@ namespace MCEMonitorClient.Tray
                 var state = await ServiceIpcClient.GetStateAsync();
                 if (state == null) return;
 
-                // Reconstruit la map ServerId ? status (source de vérité)
+                // Reconstruit la map ServerId ? status (source de vÃ©ritÃ©)
                 var newStatuses = new Dictionary<string, string>();
                 foreach (var s in state.Servers)
                 {
@@ -584,10 +655,10 @@ namespace MCEMonitorClient.Tray
                     foreach (var kv in newStatuses) _serverStatuses[kv.Key] = kv.Value;
                 }
 
-                // Applique l'icône via la logique de priorité
+                // Applique l'icÃ´ne via la logique de prioritÃ©
                 UpdateTrayIcon();
 
-                // Première notif au démarrage (inchangé)
+                // PremiÃ¨re notif au dÃ©marrage (inchangÃ©)
                 if (!_initialStateNotified)
                 {
                     _initialStateNotified = true;
@@ -596,7 +667,7 @@ namespace MCEMonitorClient.Tray
                     {
                         if (server.Status != "ok" && server.Online)
                         {
-                            CoreLog.Write($"[INIT] Problème au démarrage : {server.ServerName} = {server.Status}");
+                            CoreLog.Write($"[INIT] ProblÃ¨me au dÃ©marrage : {server.ServerName} = {server.Status}");
 
                             var alert = new PushAlert
                             {
@@ -624,7 +695,7 @@ namespace MCEMonitorClient.Tray
                         }
                         else if (!server.Online)
                         {
-                            CoreLog.Write($"[INIT] Serveur hors ligne au démarrage : {server.ServerName}");
+                            CoreLog.Write($"[INIT] Serveur hors ligne au dÃ©marrage : {server.ServerName}");
 
                             var alert = new PushAlert
                             {
@@ -636,7 +707,7 @@ namespace MCEMonitorClient.Tray
                                 Status = "offline",
                                 PreviousStatus = "unknown",
                                 ProblemCount = 0,
-                                FirstProblem = "Le serveur ne répond plus",
+                                FirstProblem = "Le serveur ne rÃ©pond plus",
                                 Problems = new(),
                                 Timestamp = server.Timestamp
                             };
@@ -706,7 +777,7 @@ namespace MCEMonitorClient.Tray
         {
             try
             {
-                CoreLog.Write("Tray en cours d'arrêt...");
+                CoreLog.Write("Tray en cours d'arrÃªt...");
 
                 _pushListener.Stop();
                 _pollTimer?.Stop();
@@ -737,12 +808,12 @@ namespace MCEMonitorClient.Tray
                 _trayIcon.Visible = false;
                 _trayIcon.Dispose();
 
-                // Libère les icônes dynamiques "rond vert + chiffre"
+                // LibÃ¨re les icÃ´nes dynamiques "rond vert + chiffre"
                 DisposeCountIcons();
                 _onlineBase?.Dispose();
                 _onlineBase = null;                
 
-                CoreLog.Write("Tray quitté");
+                CoreLog.Write("Tray quittÃ©");
                 Application.Exit();
             }
             catch (Exception ex)
@@ -761,7 +832,7 @@ namespace MCEMonitorClient.Tray
         }
 
         // ---------------------------------------------
-        //  Notifications média
+        //  Notifications mÃ©dia
         // ---------------------------------------------
         private void OnMediaReceived(PushMedia media)
         {
@@ -771,7 +842,7 @@ namespace MCEMonitorClient.Tray
             {
                 if (media.EventType == "stopped" && IsAudioType(media.MediaType))
                 {
-                    CoreLog.Write("OnMediaReceived : arrêt audio ignoré");
+                    CoreLog.Write("OnMediaReceived : arrÃªt audio ignorÃ©");
                     return;
                 }
 
@@ -781,7 +852,7 @@ namespace MCEMonitorClient.Tray
                 {
                     string title = media.EventType == "started"
                         ? $"{media.ServerName} - Lecture en cours"
-                        : $"{media.ServerName} - Lecture terminée";
+                        : $"{media.ServerName} - Lecture terminÃ©e";
 
                     string info = "";
                     if (!string.IsNullOrEmpty(media.Client)) info += $"Depuis : {media.Client}\n";
@@ -802,8 +873,8 @@ namespace MCEMonitorClient.Tray
         {
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
 
-            // --- Cas particulier : enregistrement ? icône fixe "dot-red.png" ---
-            // (indépendant de started/stopped : c'est le point rouge d'enregistrement)
+            // --- Cas particulier : enregistrement ? icÃ´ne fixe "dot-red.png" ---
+            // (indÃ©pendant de started/stopped : c'est le point rouge d'enregistrement)
             if (t == "rec" || t == "recording" || t == "enregistrement")
                 return "dot-red.png";
 
@@ -829,36 +900,116 @@ namespace MCEMonitorClient.Tray
             return t == "audio" || t == "music" || t == "musique";
         }
 
+        // ============================================================
+        //  Classification des problÃ¨mes (utilisÃ©e par ShowNotification
+        //  et par GetAlertIcon â€” Ã©tape 6)
+        // ============================================================
+        private enum ProblemKind
+        {
+            Unknown, CpuUsage, CpuTemp, RamUsage,
+            DiskSpace, DiskSmart, DiskTemp, GpuTemp, Bsod
+        }
+
+        private static ProblemKind Classify(Ipc.ProblemItem p)
+        {
+            switch ((p.Category ?? "").Trim().ToLowerInvariant())
+            {
+                case "smart":       return ProblemKind.DiskSmart;
+                case "diskspace":   return ProblemKind.DiskSpace;
+                case "cpuhigh":     return ProblemKind.CpuUsage;
+                case "ramhigh":     return ProblemKind.RamUsage;
+                case "temphigh":    return ProblemKind.CpuTemp;
+                case "gputemphigh": return ProblemKind.GpuTemp;
+                case "bsod":        return ProblemKind.Bsod;
+            }
+
+            // Fallback pour futurs moniteurs (heuristique sur message)
+            string msg = (p.Message ?? "").ToLowerInvariant();
+            if (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("Â°c") || msg.Contains("therm"))) return ProblemKind.CpuTemp;
+            if (msg.Contains("cpu") || msg.Contains("processeur")) return ProblemKind.CpuUsage;
+            if (msg.Contains("ram") || msg.Contains("mÃ©moire") || msg.Contains("memory")) return ProblemKind.RamUsage;
+            if (msg.Contains("gpu") || msg.Contains("nvidia") || msg.Contains("geforce")) return ProblemKind.GpuTemp;
+            if (msg.Contains("smart")) return ProblemKind.DiskSmart;
+            if (msg.Contains("espace") || msg.Contains("disque") || msg.Contains("disk")) return ProblemKind.DiskSpace;
+            return ProblemKind.Unknown;
+        }
+
+        private static bool IsDiskKind(ProblemKind k) =>
+            k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp;
+
+        private static bool IsCpuKind(ProblemKind k) =>
+            k == ProblemKind.CpuUsage || k == ProblemKind.CpuTemp;
+
         private static string GetAlertIcon(PushAlert alert)
         {
-            // Cas "menace neutralisée" : status=ok + lastBlock récent (< 5 min)
+            // ---- NetMonitor : menace neutralisÃ©e ----
             if (alert.Status == "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
                 return "ok.png";
             }
 
+            // ---- RÃ©solution : problÃ¨me(s) rÃ©solu(s) ----
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+            {
+                int disk = 0, cpu = 0, ram = 0, gpu = 0;
+                foreach (var p in alert.ResolvedProblems)
+                {
+                    var k = Classify(p);
+                    if      (IsDiskKind(k))              disk++;
+                    else if (IsCpuKind(k))               cpu++;
+                    else if (k == ProblemKind.RamUsage)  ram++;
+                    else if (k == ProblemKind.GpuTemp)   gpu++;
+                }
+
+                int groups = 0;
+                if (disk > 0) groups++;
+                if (cpu  > 0) groups++;
+                if (ram  > 0) groups++;
+                if (gpu  > 0) groups++;
+
+                // Cas groupÃ© : plusieurs catÃ©gories distinctes â†’ icÃ´ne gÃ©nÃ©rique
+                if (groups > 1) return "systemok.png";
+
+                // Cas simple : une seule catÃ©gorie â†’ icÃ´ne spÃ©cifique
+                if (disk > 0) return "romok.png";
+                if (cpu  > 0) return "cpuok.png";
+                if (ram  > 0) return "ramok.png";
+                if (gpu  > 0) return "cpuok.png";
+
+                return "check.png";
+            }
+
+            // ---- ProblÃ¨mes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
-                // 1) Critique disque
+                int disk = 0, cpuU = 0, cpuT = 0, ram = 0, gpu = 0;
                 foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsDiskProblem(p)) return "hdd-critical.png";
+                {
+                    var k = Classify(p);
+                    if      (k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp) disk++;
+                    else if (k == ProblemKind.CpuTemp)   cpuT++;
+                    else if (k == ProblemKind.CpuUsage)  cpuU++;
+                    else if (k == ProblemKind.RamUsage)  ram++;
+                    else if (k == ProblemKind.GpuTemp)   gpu++;
+                }
 
-                // 2) Critique CPU température
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsCpuTempProblem(p)) return "cpu-temp.png";
+                int groups = 0;
+                if (disk > 0) groups++;
+                if (cpuU > 0 || cpuT > 0) groups++;
+                if (ram  > 0) groups++;
+                if (gpu  > 0) groups++;
 
-                // 3) Critique CPU surcharge
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsCpuProblem(p)) return "cpu-overload.png";
+                // Cas groupÃ© : plusieurs catÃ©gories distinctes â†’ icÃ´ne gÃ©nÃ©rique
+                if (groups > 1) return "system-critical.png";
 
-                // 4) Warning disque
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "warning" && IsDiskProblem(p)) return "hdd-warning.png";
-
-                // 5) Surcharge RAM (warning ou critical)
-                foreach (var p in alert.Problems)
-                    if (IsRamProblem(p)) return "ram-overload.png";
+                // Cas simple : une seule catÃ©gorie â†’ icÃ´ne spÃ©cifique
+                if (disk > 0) return "hdd-critical.png";
+                if (cpuT > 0) return "cpu-temp.png";
+                if (cpuU > 0) return "cpu-overload.png";
+                if (ram  > 0) return "ram-overload.png";
+                if (gpu  > 0) return "cpu-overload.png";
             }
 
             return alert.Status switch
@@ -869,39 +1020,5 @@ namespace MCEMonitorClient.Tray
                 _          => "connected.png"
             };
         }
-
-        private static bool IsDiskProblem(Ipc.ProblemItem p)
-        {
-            string cat = (p.Category ?? "").ToLowerInvariant();
-            string msg = (p.Message ?? "").ToLowerInvariant();
-            return cat.Contains("disk") || cat.Contains("smart") || cat.Contains("hdd")
-                || cat.Contains("ssd")  || cat.Contains("storage")
-                || msg.Contains("disk") || msg.Contains("disque") || msg.Contains("smart") || msg.Contains("hdd");
-        }
-
-        private static bool IsCpuTempProblem(Ipc.ProblemItem p)
-        {
-            string cat = (p.Category ?? "").ToLowerInvariant();
-            string msg = (p.Message ?? "").ToLowerInvariant();
-            return (cat.Contains("cpu") && (cat.Contains("temp") || cat.Contains("thermal")))
-                || (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("chaud") || msg.Contains("°c")))
-                || cat.Contains("temperature") || cat.Contains("thermal");
-        }
-
-        private static bool IsCpuProblem(Ipc.ProblemItem p)
-        {
-            string cat = (p.Category ?? "").ToLowerInvariant();
-            string msg = (p.Message ?? "").ToLowerInvariant();
-            return cat.Contains("cpu") || cat.Contains("processor")
-                || msg.Contains("cpu") || msg.Contains("processeur");
-        }
-        
-        private static bool IsRamProblem(Ipc.ProblemItem p)
-        {
-            string cat = (p.Category ?? "").ToLowerInvariant();
-            string msg = (p.Message ?? "").ToLowerInvariant();
-            return cat.Contains("ram") || cat.Contains("memory") || cat.Contains("memoire")
-                || msg.Contains("ram") || msg.Contains("memory") || msg.Contains("memoire");
-        }        
     }
 }

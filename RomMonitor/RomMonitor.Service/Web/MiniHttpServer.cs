@@ -147,7 +147,8 @@ namespace RomMonitor.Service.Web
                         {
                             severity = s.Status == "Critical" ? "critical" : "warning",
                             category = "Smart",
-                            message = $"{s.Model} : {s.StatusReason}"
+                            target   = !string.IsNullOrEmpty(s.Serial) ? s.Serial : s.Device,
+                            message  = $"{s.Model} : {s.StatusReason}"
                         });
                     }
 
@@ -175,9 +176,12 @@ namespace RomMonitor.Service.Web
                         {
                             summary.problems.Add(new RomMonitor.Service.Api.ApiProblem
                             {
-                                severity = "warning",
+                                severity = critical ? "critical" : "warning",
                                 category = "DiskSpace",
-                                message = $"Disque {d.Name} : espace faible ({d.FreePercent:F1}%)"
+                                target   = d.Name,
+                                message  = critical
+                                    ? $"Disque {d.Name} : {d.FreePercent:F1}% libre ({d.FreeGo:F1} Go)"
+                                    : $"Disque {d.Name} : espace faible ({d.FreePercent:F1}%)"
                             });
                         }
                     }

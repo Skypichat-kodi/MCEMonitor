@@ -481,6 +481,9 @@ namespace SystemMonitor.Service
         /// <summary>
         /// Retourne la liste des problèmes ACTIFS (seuils actuellement dépassés).
         /// </summary>
+        /// <summary>
+        /// Retourne la liste des problcmes ACTIFS (seuils actuellement dépassés).
+        /// </summary>
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
             var problems = new List<ProblemItem>();
@@ -501,6 +504,7 @@ namespace SystemMonitor.Service
                         Timestamp = DateTime.Now,
                         Severity = "critical",
                         Category = "CpuHigh",
+                        Target   = "CPU",
                         Message = $"Utilisation CPU : {snap.Cpu.UsagePercent:F1}% (seuil : {_settings.CpuThresholdPercent}%)"
                     });
                 }
@@ -514,6 +518,7 @@ namespace SystemMonitor.Service
                         Timestamp = DateTime.Now,
                         Severity = "critical",
                         Category = "RamHigh",
+                        Target   = "RAM",
                         Message = $"Utilisation RAM : {snap.Ram.UsagePercent:F1}% ({snap.Ram.UsedGB:F1} / {snap.Ram.TotalGB:F1} Go, seuil : {_settings.RamThresholdPercent}%)"
                     });
                 }
@@ -528,11 +533,12 @@ namespace SystemMonitor.Service
                         Timestamp = DateTime.Now,
                         Severity = "critical",
                         Category = "TempHigh",
+                        Target   = "CPU Temp",
                         Message = $"Température CPU : {snap.Cpu.Temperature.Value:F1}°C (seuil : {_settings.TempThresholdCelsius}°C)"
                     });
                 }
 
-                // --- Température GPU active ? (NOUVEAU) ---
+                // --- Température GPU active ? ---
                 if (_settings.AlertOnHighGpuTemp)
                 {
                     foreach (var gpu in snap.Gpus)
@@ -545,6 +551,7 @@ namespace SystemMonitor.Service
                                 Timestamp = DateTime.Now,
                                 Severity = "critical",
                                 Category = "GpuTempHigh",
+                                Target   = gpu.Name,
                                 Message = $"Température GPU {gpu.Name} : {gpu.Temperature.Value:F1}°C (seuil : {_settings.GpuTempThresholdCelsius}°C)"
                             });
                         }
@@ -564,6 +571,7 @@ namespace SystemMonitor.Service
                             Timestamp = b.Timestamp,
                             Severity = "critical",
                             Category = "BSOD",
+                            Target   = b.BugCheckCode,
                             Message = $"{b.BugCheckCode} - {b.BugCheckName}"
                         });
                     }

@@ -185,7 +185,8 @@ namespace MCEMonitorClient.Service.Services
                         var item = new ProblemItem();
                         if (p.TryGetProperty("severity", out var probSev)) item.Severity = probSev.GetString() ?? "";
                         if (p.TryGetProperty("category", out var probCat)) item.Category = probCat.GetString() ?? "";
-                        if (p.TryGetProperty("message", out var probMsg)) item.Message = probMsg.GetString() ?? "";
+                        if (p.TryGetProperty("target",   out var probTgt)) item.Target   = probTgt.GetString() ?? "";
+                        if (p.TryGetProperty("message",  out var probMsg)) item.Message  = probMsg.GetString() ?? "";
                         result.Problems.Add(item);
                     }
                     result.ProblemCount = result.Problems.Count;
@@ -250,13 +251,16 @@ namespace MCEMonitorClient.Service.Services
                     _consecutiveFailures.TryGetValue(result.ServerId, out int fails);
                     fails++;
                     _consecutiveFailures[result.ServerId] = fails;
-                    _consecutiveSuccesses[result.ServerId] = 0; // Reset succès
+                    _consecutiveSuccesses[result.ServerId] = 0;
 
-                    // Pas encore assez d'échecs ? on garde l'ancien état
                     if (fails < OfflineThreshold && previous != null)
                     {
-                        result.Status = previous.Status;
-                        result.Online = previous.Online;
+                        result.Status        = previous.Status;
+                        result.Online        = previous.Online;
+                        result.Problems      = previous.Problems;
+                        result.ProblemCount  = previous.ProblemCount;
+                        result.FirstProblem  = previous.FirstProblem;
+                        result.WorstSeverity = previous.WorstSeverity;
                         stateChanged = false;
                     }
                 }
@@ -265,9 +269,8 @@ namespace MCEMonitorClient.Service.Services
                     _consecutiveSuccesses.TryGetValue(result.ServerId, out int succ);
                     succ++;
                     _consecutiveSuccesses[result.ServerId] = succ;
-                    _consecutiveFailures[result.ServerId] = 0; // Reset échecs
+                    _consecutiveFailures[result.ServerId] = 0;
 
-                    // Si on était offline, il faut 2 succès consécutifs pour revenir à "ok"
                     if (previous != null && previous.Status == "offline" && succ < RecoveryThreshold)
                     {
                         result.Status = "offline";
@@ -283,10 +286,33 @@ namespace MCEMonitorClient.Service.Services
 
             CoreLog.Write($"[POLL] {result.ServerName} : {result.Status}");
 
-            if (stateChanged && previous != null && config.NotifyOnStateChange)
+            // ---- Détection des nouveaux problèmes ----
+            // Un problème est "nouveau" s'il est présent maintenant et absent avant.
+            // Ça permet de notifier même si le statut global ne change pas
+            // (ex: RAM déjà en alerte, un CPU sature ? status reste "critical").
+            var newProblems = new List<ProblemItem>();
+            if (previous != null && result.Problems.Count > 0)
             {
+                static string KeyOf(ProblemItem p) => $"{p.Category}|{p.Target}";
+                var prevKeys = previous.Problems.Select(KeyOf).ToHashSet();
+
+                foreach (var p in result.Problems)
+                {
+                    if (!string.IsNullOrEmpty(p.Category) && !prevKeys.Contains(KeyOf(p)))
+                        newProblems.Add(p);
+                }
+            }
+
+            bool hasNewProblems = newProblems.Count > 0;
+            bool shouldPush = stateChanged || hasNewProblems;
+
+            if (shouldPush && previous != null && config.NotifyOnStateChange)
+            {
+                if (hasNewProblems && !stateChanged)
+                    CoreLog.Write($"[POLL] {result.ServerName} : {newProblems.Count} nouveau(x) problème(s) sans changement de statut");
+
                 OnStateChanged?.Invoke(result, previous);
-                PushChannel.PushAlert(result, previous);
+                PushChannel.PushAlert(result, previous, newProblems);
             }
 
             if (result.ServiceType == "MediaMonitor" && config.NotifyOnStateChange)

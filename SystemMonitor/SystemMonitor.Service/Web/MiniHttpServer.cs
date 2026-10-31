@@ -136,6 +136,7 @@ namespace SystemMonitor.Service.Web
                         {
                             severity = p.Severity,
                             category = p.Category,
+                            target   = p.Target,
                             message = p.Message
                         });
                     }
