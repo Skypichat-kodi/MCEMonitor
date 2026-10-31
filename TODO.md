@@ -10,6 +10,15 @@ _(rien)_
 
 ## 📋 À faire
 
+### Session 2026-10-31 (Suite) — Contrôle des blocages & Tentatives
+
+- [x] Web : bouton "Retirer de la liste" pour les processus en attente (route `/dismiss-pending` + JS).
+- [x] UI & Web : ajout de la colonne Sévérité et du bouton de reclassement dans "Tentatives sur IP bloquée".
+- [x] Service : jointure IPC pour exposer la sévérité des retries.
+- [x] UI WPF : "Zone de danger" dans les Réglages avec bouton "Libérer toutes les IP bloquées" (purge globale du pare-feu).
+- [x] Service : `ClearAllBlockedIps()` pour purger le pare-feu d'un coup sans toucher aux processus bloqués.
+- [x] UI : remplacement du 🎨 par ⚙ partout pour la cohérence visuelle.
+
 ### MediaMonitor — vignettes album
 
 - [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg

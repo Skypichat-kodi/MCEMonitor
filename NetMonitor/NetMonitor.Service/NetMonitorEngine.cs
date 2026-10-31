@@ -797,6 +797,46 @@ namespace NetMonitor.Service
             catch (Exception ex) { CoreLog.Warn($"SaveHistory : {ex.Message}"); }
         }
 
+        /// <summary>
+        /// Libère TOUTES les IPs bloquées du pare-feu d'un coup.
+        /// ⚠ Les processus bloqués sont conservés (gérés séparément via UnblockProcess).
+        /// </summary>
+        public bool ClearAllBlockedIps()
+        {
+            int removedCount;
+            lock (_alertsLock)
+            {
+                // On retire uniquement les IPs (pas les processus)
+                removedCount = _blockedIps.RemoveAll(b => !b.IsProcess);
+                _autoBlockedTempIps.Clear();
+            }
+
+            if (removedCount == 0)
+            {
+                CoreLog.Info("[CLEAR-ALL] Aucune IP bloquée à libérer.");
+                return true;
+            }
+
+            // Resynchronisation du pare-feu avec les IPs restantes (généralement vide)
+            var remainingIps = GetBlockedIps()
+                .Where(b => !b.IsProcess)
+                .Select(b => b.Ip)
+                .ToList();
+
+            bool syncOk = FirewallHelper.SyncFirewallRules(remainingIps);
+
+            // Purge des compteurs de tentatives (ils n'ont plus de sens)
+            _blockedIpRetries.Clear();
+            SaveBlockedIpRetries();
+
+            SaveBlockedIps();
+
+            CoreLog.Info($"[CLEAR-ALL] {removedCount} IP(s) libérée(s) du pare-feu " +
+                         $"(sync: {(syncOk ? "OK" : "ÉCHEC")})");
+
+            return syncOk;
+        }
+        
         // ------------------------------------------------------------
         //  Persistance des IP bloquées
         // ------------------------------------------------------------

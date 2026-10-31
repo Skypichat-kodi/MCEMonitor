@@ -267,11 +267,14 @@ namespace NetMonitor.Service.Web
                     auditRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
-                // --- Tableau 5 : tentatives sur IP bloquée ---
-                var blockedRetriesRows = new System.Text.StringBuilder();
+                 // --- Tableau 5 : tentatives sur IP bloquée ---
+                var blockedRetriesRows = new System.Text.StringBuilder();  // <-- LA LIGNE MANQUANTE
                 var blockedRetries = engine.GetBlockedIpRetries();
                 if (blockedRetries.Count > 0)
                 {
+                    // Dictionnaire pour récupérer la sévérité des IPs bloquées
+                    var blockedDict = blocked.ToDictionary(b => b.Ip, b => b.Severity, StringComparer.OrdinalIgnoreCase);
+
                     foreach (var r in blockedRetries.Take(100))
                     {
                         string ipEnc = WebUtility.HtmlEncode(r.Ip);
@@ -279,10 +282,18 @@ namespace NetMonitor.Service.Web
                                             r.RetryCount >= 5  ? "c5"  :
                                             r.RetryCount >= 2  ? "c2"  : "c1";
 
+                        string sev = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-";
+                        string sevClass = SeverityToCssClass(sev);
+                        string sevButton = $"<button type='button' class='severity-btn' " +
+                                           $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
+                                           $"'{WebUtility.HtmlEncode(sev)}', false)\" " +
+                                           $"title='Changer la sévérité'>⚙&#xFE0E;</button>";
+
                         blockedRetriesRows.Append($@"<tr>
                             <td class='count-cell'><span class='count-badge blue {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                             <td><b>{ipEnc}</b></td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
+                            <td class='text-center'><span class='badge {sevClass}'>{sev}</span>{sevButton}</td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
@@ -293,7 +304,7 @@ namespace NetMonitor.Service.Web
                 else
                 {
                     blockedRetriesRows.Append(
-                        "<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>" +
+                        "<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>" +
                         "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 

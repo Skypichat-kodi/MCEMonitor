@@ -111,6 +111,7 @@ namespace NetMonitor.UI
         public DateTime FirstRetryAt { get; set; }
         public DateTime LastRetryAt { get; set; }
         public int RetryCount { get; set; }
+        public string Severity { get; set; } = "-";
     }
 
     // ============================================================
@@ -393,6 +394,9 @@ namespace NetMonitor.UI
             
         public static async Task<bool> RestartComputerAsync()
             => IsOk(await SendCommand("restart-computer"));
+            
+        public static async Task<bool> ClearAllBlockedIpsAsync()
+            => IsOk(await SendCommand("clear-all-blocked"));            
             
         public static async Task<bool> SetManualSeverityAsync(string ip, string? severityOrAuto)
         {

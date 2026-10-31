@@ -445,7 +445,8 @@ namespace NetMonitor.UI
                             BlockedAt = r.BlockedAt.ToLocalTime(),
                             FirstRetryAt = r.FirstRetryAt.ToLocalTime(),
                             LastRetryAt = r.LastRetryAt.ToLocalTime(),
-                            RetryCount = r.RetryCount
+                            RetryCount = r.RetryCount,
+                            Severity = r.Severity
                         });
                     }
 
@@ -704,6 +705,64 @@ namespace NetMonitor.UI
                 combo.SelectedIndex = 0;
         }
 
+        private async void ChangeRetrySeverity_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string ip) return;
+            if (string.IsNullOrWhiteSpace(ip)) return;
+
+            var row = _blockedRetries.FirstOrDefault(r => r.Ip == ip);
+            if (row == null) return;
+
+            var picker = new SeverityPickerWindow(ip, row.Severity, false) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Changement de sévérité de {ip}…");
+            bool ok = await NetMonitorIpcClient.SetManualSeverityAsync(ip, picker.SelectedSeverity);
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show("Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+            await RefreshSafe();
+        }
+
+        private async void btnClearAllBlockedIps_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Êtes-vous certain de vouloir libérer TOUTES les IP bloquées du pare-feu ?\n\n" +
+                "Vous serez de nouveau ouvert sur toutes les IPs.\n\n" +
+                "⚠ Cette action est irréversible.\n" +
+                "(Les processus bloqués sont conservés.)",
+                "Confirmation - Zone de danger",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            SetBusy("Libération de toutes les IP bloquées…");
+            bool ok = await NetMonitorIpcClient.ClearAllBlockedIpsAsync();
+            ClearBusy();
+
+            if (ok)
+            {
+                MessageBox.Show(
+                    "Toutes les IP ont été libérées du pare-feu.\n" +
+                    "Les compteurs de tentatives ont également été vidés.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Échec de la libération des IPs.\n" +
+                    "Vérifiez le journal du service pour plus de détails.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+
+            await RefreshSafe();
+        }
+                
         // ------------------------------------------------------------
         //  Boutons : tableau 1 (intrusions actives)
         // ------------------------------------------------------------
@@ -2810,17 +2869,21 @@ namespace NetMonitor.UI
         public DateTime FirstRetryAt { get; set; }
         public DateTime LastRetryAt { get; set; }
         public int RetryCount { get; set; }
+        public string Severity { get; set; } = "-";
 
         public string BlockedAtText => BlockedAt.ToString("dd/MM HH:mm:ss");
         public string FirstRetryAtText => FirstRetryAt.ToString("dd/MM HH:mm:ss");
         public string LastRetryAtText => LastRetryAt.ToString("dd/MM HH:mm:ss");
 
-        public bool IsKnownScanner => false;
-        public string BadgeText => "";
-        
         public string CountClass => RetryCount >= 10 ? "c10" :
                                      RetryCount >= 5  ? "c5"  :
                                      RetryCount >= 2  ? "c2"  : "c1";
+
+        // Stubs pour le SeverityBadgeTemplate
+        public bool IsKnownScanner => false;
+        public string BadgeText => Severity;
+        public bool HasManualSeverity => false;
+        public string ManualSeverityTooltip => "";
     }
     
     public class WhitelistEntryRow

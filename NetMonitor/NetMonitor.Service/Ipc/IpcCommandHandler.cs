@@ -152,11 +152,26 @@ namespace NetMonitor.Service.Ipc
                 case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
                 case "get-persistent-problems": HandleGetPersistentProblems(server); break;
                 case "restart-computer":        HandleRestartComputer(server); break;
-                case "set-manual-severity":     HandleSetManualSeverity(server, command); break;                                                                           
+                case "set-manual-severity":     HandleSetManualSeverity(server, command); break;
+                case "clear-all-blocked":       HandleClearAllBlocked(server); break;                                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
 
+        private void HandleClearAllBlocked(NamedPipeServerStream server)
+        {
+            try
+            {
+                bool ok = _engine.ClearAllBlockedIps();
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", cleared = ok });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HandleClearAllBlocked : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+        
         private void HandleGetStatus(NamedPipeServerStream server)
         {
             IpcResponse.Json(server, new
@@ -456,8 +471,22 @@ namespace NetMonitor.Service.Ipc
         {
             try
             {
-                var list = _engine.GetBlockedIpRetries();
-                IpcResponse.Json(server, list);
+                var retries = _engine.GetBlockedIpRetries();
+                var blockedDict = _engine.GetBlockedIps()
+                    .ToDictionary(b => b.Ip, b => b.Severity, StringComparer.OrdinalIgnoreCase);
+
+                var projected = retries.Select(r => new
+                {
+                    ip = r.Ip,
+                    originalDetector = r.OriginalDetector,
+                    blockedAt = r.BlockedAt,
+                    firstRetryAt = r.FirstRetryAt,
+                    lastRetryAt = r.LastRetryAt,
+                    retryCount = r.RetryCount,
+                    severity = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-"
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }
