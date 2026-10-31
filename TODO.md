@@ -1,4 +1,4 @@
-﻿﻿# TODO MCEMonitor
+﻿﻿﻿# TODO MCEMonitor
 
 TODO global du projet, organisé par thème.
 
@@ -15,7 +15,7 @@ _(rien)_
 - [ ] Ajouter colonne `ReverseDns` dans le tableau IP bloquées (UI + Web)
 - [ ] Ajouter colonne `ReverseDns` dans le tableau Interceptions/récidive (UI + Web)
 - [ ] Ajouter colonne `ReverseDns` dans le tableau Historique intrusions (UI + Web)
-- [ ] Étendre `BlockedIpRetryInfo` et `IntrusionEvent` avec le champ `ReverseDns`
+- [x] Étendre `BlockedIpRetryInfo` et `IntrusionEvent` avec le champ `ReverseDns`
 - [ ] Arbitrer : reverse DNS brut (`31-14-254-18.infrawat.ch`) ou nom court extrait ?
 
 ### Améliorations UX
@@ -36,16 +36,20 @@ _(rien)_
 
 ### Décisions produit (à trancher)
 
-- [ ] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit »)
-  - Actuellement : liste gardée (Shodan, Censys, ONYPHE… classés `Trusted` vert moyen)
-  - Alternative : vider la liste → tous les scans deviennent `Warning` par défaut
+- [x] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit »)
+  - *Résolu : Ajout de l'option `IgnoreSearchScanners` et édition de `ScannerPatterns` via l'UI WPF.*
 
 ---
 
 ## ✅ Terminé
 
-### Session 2026-10-31 — Ajustements UI Web (Badges & Tableaux)
+### Session 2026-10-31 — Scanners "Subnet", GeoIP & Fix UI Web
 
+- [x] Détection : le moteur identifie les scanners via leur Org/Isp GeoIP (ex: Palo Alto, ONYPHE) même sans Reverse DNS
+- [x] Modèles : ajout de `IsKnownScanner` sur `IntrusionEvent`, `BlockedIpInfo` et `AuditGroupedEntry`
+- [x] UI WPF & Web : affichage d'un badge vert "Subnet" pour les scanners connus, sans altérer leur sévérité réelle (Warning) pour le filtrage/blocage
+- [x] UI WPF : ajout de la case "Bloquer les scanners" + champ d'édition `ScannerPatterns` dans les Réglages
+- [x] Migration : les anciennes IP bloquées récupèrent leur statut de scanner au démarrage (`LoadBlockedIps`)
 - [x] Web : déplacement de la colonne « Compteur » après « Date » (Intrusions Actives)
 - [x] Web : déplacement de la colonne « Tentatives » avant « IP » + badges bleus (Tentatives sur IP bloquée)
 - [x] Web : badges verts pour le tableau « Alertes ignorées » (IP de confiance)
