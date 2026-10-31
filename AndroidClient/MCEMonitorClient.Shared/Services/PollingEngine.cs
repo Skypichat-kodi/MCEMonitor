@@ -29,7 +29,7 @@ namespace MCEMonitorClient.Shared.Services
         private const int HttpTimeoutSeconds = 10; // Timeout HTTP allongé (10s au lieu de 8s)
 
         // Événements pour notifier l'app
-        public event Action<PollResult, PollResult?>? OnStateChanged;
+        public event Action<PollResult, PollResult?, List<ProblemItem>, List<ProblemItem>>? OnAlertReady;
         public event Action<PollResult, MediaItem, string>? OnMediaEvent;
 
         public string GlobalState { get; private set; } = "ok";
@@ -129,7 +129,7 @@ namespace MCEMonitorClient.Shared.Services
                 if (root.TryGetProperty("worstSeverity", out var sevProp))
                     result.WorstSeverity = sevProp.GetString() ?? "ok";
 
-                // Problèmes
+                // Problcmes
                 if (root.TryGetProperty("problems", out var problemsProp)
                     && problemsProp.ValueKind == JsonValueKind.Array)
                 {
@@ -138,7 +138,8 @@ namespace MCEMonitorClient.Shared.Services
                         var item = new ProblemItem();
                         if (p.TryGetProperty("severity", out var s)) item.Severity = s.GetString() ?? "";
                         if (p.TryGetProperty("category", out var c)) item.Category = c.GetString() ?? "";
-                        if (p.TryGetProperty("message", out var m))  item.Message  = m.GetString() ?? "";
+                        if (p.TryGetProperty("target",   out var t)) item.Target   = t.GetString() ?? "";   // ? NOUVEAU
+                        if (p.TryGetProperty("message",  out var m)) item.Message  = m.GetString() ?? "";
                         result.Problems.Add(item);
                     }
 
@@ -215,8 +216,12 @@ namespace MCEMonitorClient.Shared.Services
                     // Pas encore assez d'échecs ? on garde l'ancien état
                     if (fails < OfflineThreshold && previous != null)
                     {
-                        result.Status = previous.Status;
-                        result.Online = previous.Online;
+                        result.Status        = previous.Status;
+                        result.Online        = previous.Online;
+                        result.Problems      = previous.Problems;         
+                        result.ProblemCount  = previous.ProblemCount;    
+                        result.FirstProblem  = previous.FirstProblem;    
+                        result.WorstSeverity = previous.WorstSeverity;   
                         stateChanged = false;
                     }
                 }
@@ -241,10 +246,42 @@ namespace MCEMonitorClient.Shared.Services
 
             UpdateGlobalState();
 
-            // Changement d'état (problèmes)
-            if (stateChanged && previous != null && config.NotifyOnStateChange)
+            // ---- Diff des problèmes (stable, comme sur Windows) ----
+            static string KeyOf(ProblemItem p) => $"{p.Category}|{p.Target}";
+
+            var resolvedProblems = new List<ProblemItem>();
+            var newProblems      = new List<ProblemItem>();
+
+            if (previous != null)
             {
-                OnStateChanged?.Invoke(result, previous);
+                if (previous.Problems.Count > 0)
+                {
+                    var currentKeys = result.Problems.Select(KeyOf).ToHashSet();
+                    foreach (var p in previous.Problems)
+                        if (!string.IsNullOrEmpty(p.Category) && !currentKeys.Contains(KeyOf(p)))
+                            resolvedProblems.Add(p);
+                }
+
+                if (result.Problems.Count > 0)
+                {
+                    var prevKeys = previous.Problems.Select(KeyOf).ToHashSet();
+                    foreach (var p in result.Problems)
+                        if (!string.IsNullOrEmpty(p.Category) && !prevKeys.Contains(KeyOf(p)))
+                            newProblems.Add(p);
+                }
+            }
+
+            bool hasNewProblems = newProblems.Count > 0;
+            bool shouldAlert = stateChanged || hasNewProblems;
+
+            // ---- Événement enrichi (utilisé à l'étape 4 par PollingForegroundService) ----
+            if (shouldAlert && previous != null && config.NotifyOnStateChange)
+            {
+                if (hasNewProblems && !stateChanged)
+                    System.Diagnostics.Trace.WriteLine(
+                        $"[POLL] {result.ServerName} : {newProblems.Count} nouveau(x) problcme(s) sans changement de statut");
+
+                OnAlertReady?.Invoke(result, previous, resolvedProblems, newProblems);
             }
 
             // Changement de médias

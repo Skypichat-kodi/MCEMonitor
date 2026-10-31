@@ -106,11 +106,46 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             };
 
             string title;
+
+            // 1. Menace neutralisée (NetMonitor)
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
                 title = $"{alert.ServerName} - Menace neutralisée";
             }
+            // 2. Résolution détaillée
+            else if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                     alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+            {
+                int realCount = alert.ResolvedProblems.Count(p => {
+                    var k = Classify(p);
+                    return k != ProblemKind.Unknown && k != ProblemKind.Bsod;
+                });
+
+                title = realCount <= 1
+                    ? $"{alert.ServerName} - Retour à la normale"
+                    : $"{alert.ServerName} - {realCount} alertes résolues";
+            }
+            // 3. Nouveaux problèmes sans changement de statut
+            else if (alert.NewProblems != null && alert.NewProblems.Count > 0
+                     && alert.Status == alert.PreviousStatus)
+            {
+                // On liste les catégories concernées
+                var kindLabels = alert.NewProblems
+                    .Select(p => Classify(p))
+                    .Where(k => k != ProblemKind.Unknown && k != ProblemKind.Bsod)
+                    .Distinct()
+                    .Select(KindLabel)
+                    .Where(s => !string.IsNullOrEmpty(s))
+                    .ToList();
+
+                string detail = kindLabels.Count > 0
+                    ? string.Join(", ", kindLabels)
+                    : $"{alert.NewProblems.Count} nouveau(x)";
+
+                title = $"{alert.ServerName} - Nouveau : {detail}";
+            }
+            // 4. Cas standard
             else
             {
                 title = alert.Status switch
@@ -194,41 +229,93 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string BuildAlertMessage(PushAlert alert)
         {
-            if (alert.Status == "ok" && alert.PreviousStatus != "ok")
+            // ---- Menace neutralisée (NetMonitor) ----
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
+                (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
-                bool recentBlock = alert.LastBlock != null &&
-                                   (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5;
-
-                if (recentBlock)
-                {
-                    string mode = alert.LastBlock!.Automatic ? "automatiquement" : "manuellement";
-                    string msg = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
-                    if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
-                        msg += $" (détecteur : {alert.LastBlock.Detector})";
-                    return msg;
-                }
-
-                return "Le serveur est de nouveau joignable";
+                string mode = alert.LastBlock.Automatic ? "automatiquement" : "manuellement";
+                string msg = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
+                    msg += $" (détecteur : {alert.LastBlock.Detector})";
+                return msg;
             }
 
+            // ---- Résolution détaillée ----
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+            {
+                var realResolved = alert.ResolvedProblems
+                    .Where(p => {
+                        var k = Classify(p);
+                        return k != ProblemKind.Unknown && k != ProblemKind.Bsod;
+                    })
+                    .ToList();
+
+                if (realResolved.Count == 0)
+                    return "Le serveur est de nouveau joignable";
+
+                // Résumé par catégorie
+                var byKind = realResolved
+                    .Select(p => Classify(p))
+                    .GroupBy(k => k)
+                    .OrderByDescending(g => IsDiskKind(g.Key))
+                    .ThenByDescending(g => IsCpuKind(g.Key))
+                    .ToList();
+
+                var parts = new List<string>();
+                foreach (var g in byKind)
+                {
+                    string label = KindLabel(g.Key);
+                    if (!string.IsNullOrEmpty(label))
+                        parts.Add($"{label} ?");
+                }
+
+                string summary = string.Join(" • ", parts);
+
+                // Détail (max 3)
+                var lines = new List<string> { summary };
+                int max = 3;
+                for (int i = 0; i < System.Math.Min(realResolved.Count, max); i++)
+                    lines.Add($"• {realResolved[i].Message}");
+                if (realResolved.Count > max)
+                    lines.Add($"… et {realResolved.Count - max} autre(s)");
+
+                return string.Join("\n", lines);
+            }
+
+            // ---- Nouveaux problèmes (sans changement de statut global) ----
+            if (alert.NewProblems != null && alert.NewProblems.Count > 0 && alert.Status != "ok")
+            {
+                var lines = new List<string>();
+                int maxShown = 3;
+                for (int i = 0; i < System.Math.Min(alert.NewProblems.Count, maxShown); i++)
+                {
+                    var p = alert.NewProblems[i];
+                    string prefix = (p.Severity == "critical" || p.Severity == "high") ? "[CRIT]" : "[WARN]";
+                    lines.Add($"{prefix} {p.Message}");
+                }
+                if (alert.NewProblems.Count > maxShown)
+                    lines.Add($"... et {alert.NewProblems.Count - maxShown} autre(s)");
+                return string.Join("\n", lines);
+            }
+
+            // ---- Offline ----
             if (alert.Status == "offline")
                 return "Le serveur ne répond plus";
 
+            // ---- Problèmes en cours (cas standard) ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
                 var lines = new List<string>();
                 int maxShown = 3;
-
                 for (int i = 0; i < System.Math.Min(alert.Problems.Count, maxShown); i++)
                 {
                     var p = alert.Problems[i];
                     string prefix = (p.Severity == "critical" || p.Severity == "high") ? "[CRIT]" : "[WARN]";
                     lines.Add($"{prefix} {p.Message}");
                 }
-
                 if (alert.Problems.Count > maxShown)
                     lines.Add($"... et {alert.Problems.Count - maxShown} autre(s)");
-
                 return string.Join("\n", lines);
             }
 
@@ -257,30 +344,74 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string GetAlertIconName(PushAlert alert)
         {
-            // Cas "menace neutralisée" : status=ok + lastBlock récent (< 5 min)
+            // ---- NetMonitor : menace neutralisée (inchangé) ----
             if (alert.Status == "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
-                return "ok";   // ? ok.png dans Resources/Images/
+                return "ok";
             }
 
+            // ---- Résolution : problème(s) résolu(s) ----
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+            {
+                int disk = 0, cpu = 0, ram = 0, gpu = 0;
+                foreach (var p in alert.ResolvedProblems)
+                {
+                    var k = Classify(p);
+                    if      (IsDiskKind(k))              disk++;
+                    else if (IsCpuKind(k))               cpu++;
+                    else if (k == ProblemKind.RamUsage)  ram++;
+                    else if (k == ProblemKind.GpuTemp)   gpu++;
+                }
+
+                int groups = 0;
+                if (disk > 0) groups++;
+                if (cpu  > 0) groups++;
+                if (ram  > 0) groups++;
+                if (gpu  > 0) groups++;
+
+                // Cas groupé : plusieurs catégories distinctes ? icône générique
+                if (groups > 1) return "systemok";
+
+                // Cas simple : une seule catégorie
+                if (disk > 0) return "romok";
+                if (cpu  > 0) return "cpuok";
+                if (ram  > 0) return "ramok";
+                if (gpu  > 0) return "cpuok";
+
+                return "check";
+            }
+
+            // ---- Problèmes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
+                int disk = 0, cpuU = 0, cpuT = 0, ram = 0, gpu = 0;
                 foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsDiskProblem(p)) return "hdd_critical";
+                {
+                    var k = Classify(p);
+                    if (k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp) disk++;
+                    else if (k == ProblemKind.CpuTemp)   cpuT++;
+                    else if (k == ProblemKind.CpuUsage)  cpuU++;
+                    else if (k == ProblemKind.RamUsage)  ram++;
+                    else if (k == ProblemKind.GpuTemp)   gpu++;
+                }
 
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsCpuTempProblem(p)) return "cpu_temp";
+                int groups = 0;
+                if (disk > 0) groups++;
+                if (cpuU > 0 || cpuT > 0) groups++;
+                if (ram  > 0) groups++;
+                if (gpu  > 0) groups++;
 
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "critical" && IsCpuProblem(p)) return "cpu_overload";
+                // Cas groupé ? icône générique (underscore pour Android)
+                if (groups > 1) return "system_critical";
 
-                foreach (var p in alert.Problems)
-                    if (p.Severity == "warning" && IsDiskProblem(p)) return "hdd_warning";
-
-                // NOUVEAU : Surcharge RAM (warning ou critical)
-                foreach (var p in alert.Problems)
-                    if (IsRamProblem(p)) return "ram_overload";
+                // Cas simple ? icône spécifique
+                if (disk > 0) return "hdd_critical";
+                if (cpuT > 0) return "cpu_temp";
+                if (cpuU > 0) return "cpu_overload";
+                if (ram  > 0) return "ram_overload";
+                if (gpu  > 0) return "cpu_overload";
             }
 
             return alert.Status switch
@@ -368,6 +499,69 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 || msg.Contains("ram") 
                 || msg.Contains("memory") 
                 || msg.Contains("memoire");
-        }        
+        }
+        // ============================================================
+        //  Classification des problèmes (équivalent de Windows)
+        // ============================================================
+        private enum ProblemKind
+        {
+            Unknown, CpuUsage, CpuTemp, RamUsage,
+            DiskSpace, DiskSmart, DiskTemp, GpuTemp, Bsod
+        }
+
+        private static ProblemKind Classify(ProblemItem p)
+        {
+            switch ((p.Category ?? "").Trim().ToLowerInvariant())
+            {
+                case "smart":       return ProblemKind.DiskSmart;
+                case "diskspace":   return ProblemKind.DiskSpace;
+                case "cpuhigh":     return ProblemKind.CpuUsage;
+                case "ramhigh":     return ProblemKind.RamUsage;
+                case "temphigh":    return ProblemKind.CpuTemp;
+                case "gputemphigh": return ProblemKind.GpuTemp;
+                case "bsod":        return ProblemKind.Bsod;
+            }
+
+            // Fallback pour futurs moniteurs
+            string msg = (p.Message ?? "").ToLowerInvariant();
+            if (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("°c") || msg.Contains("therm"))) return ProblemKind.CpuTemp;
+            if (msg.Contains("cpu") || msg.Contains("processeur")) return ProblemKind.CpuUsage;
+            if (msg.Contains("ram") || msg.Contains("mémoire") || msg.Contains("memory")) return ProblemKind.RamUsage;
+            if (msg.Contains("gpu") || msg.Contains("nvidia") || msg.Contains("geforce")) return ProblemKind.GpuTemp;
+            if (msg.Contains("smart")) return ProblemKind.DiskSmart;
+            if (msg.Contains("espace") || msg.Contains("disque") || msg.Contains("disk")) return ProblemKind.DiskSpace;
+            return ProblemKind.Unknown;
+        }
+
+        private static bool IsDiskKind(ProblemKind k) =>
+            k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp;
+
+        private static bool IsCpuKind(ProblemKind k) =>
+            k == ProblemKind.CpuUsage || k == ProblemKind.CpuTemp;
+
+        private static string KindLabel(ProblemKind k) => k switch
+        {
+            ProblemKind.DiskSpace => "Disque (espace)",
+            ProblemKind.DiskSmart => "Disque (SMART)",
+            ProblemKind.DiskTemp  => "Disque (température)",
+            ProblemKind.CpuUsage  => "CPU (surcharge)",
+            ProblemKind.CpuTemp   => "CPU (température)",
+            ProblemKind.RamUsage  => "RAM",
+            ProblemKind.GpuTemp   => "GPU",
+            _                     => ""
+        };
+
+        private static string KindIcon(ProblemKind k) => k switch
+        {
+            // ?? Noms de ressources Android : underscore obligatoire
+            ProblemKind.DiskSpace => "romok",
+            ProblemKind.DiskSmart => "romok",
+            ProblemKind.DiskTemp  => "romok",
+            ProblemKind.CpuUsage  => "cpuok",
+            ProblemKind.CpuTemp   => "cpuok",
+            ProblemKind.RamUsage  => "ramok",
+            ProblemKind.GpuTemp   => "cpuok",
+            _                     => "check"
+        };                
     }
 }

@@ -15,6 +15,9 @@ namespace MCEMonitorClient.Shared.Models
         public int ProblemCount { get; set; }
         public string FirstProblem { get; set; } = "";
         public List<ProblemItem> Problems { get; set; } = new();
+        public List<ProblemItem> PreviousProblems { get; set; } = new();
+        public List<ProblemItem> ResolvedProblems { get; set; } = new();
+        public List<ProblemItem> NewProblems      { get; set; } = new();
         public DateTime Timestamp { get; set; }
         public LastBlockInfo? LastBlock { get; set; }
     }

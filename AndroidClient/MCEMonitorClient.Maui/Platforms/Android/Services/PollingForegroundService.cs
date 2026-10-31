@@ -7,6 +7,7 @@ using MCEMonitorClient.Shared.Services;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace MCEMonitorClient.Maui.Platforms.Android.Services
 {
@@ -43,7 +44,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             _store = new ServerConfigStore(configPath);
             _engine = new PollingEngine();
 
-            _engine.OnStateChanged += OnStateChanged;
+            _engine.OnAlertReady += OnAlertReady;
             _engine.OnMediaEvent += OnMediaEvent;
         }
 
@@ -118,25 +119,31 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             global::Android.Util.Log.Info(Tag, "Boucle de polling terminée");
         }
 
-        private void OnStateChanged(PollResult current, PollResult? previous)
+        private void OnAlertReady(PollResult current, PollResult? previous,
+                                  List<ProblemItem> resolvedProblems,
+                                  List<ProblemItem> newProblems)
         {
             global::Android.Util.Log.Info(Tag,
-                $"État changé : {current.ServerName} {previous?.Status} -> {current.Status}");
+                $"Alerte : {current.ServerName} {previous?.Status} -> {current.Status} " +
+                $"(new={newProblems.Count}, resolved={resolvedProblems.Count})");
 
             var alert = new PushAlert
             {
-                Type = "alert",
-                ServerId = current.ServerId,
-                ServerName = current.ServerName,
-                ServiceType = current.ServiceType,
-                BaseUrl = current.BaseUrl,
-                Status = current.Status,
-                PreviousStatus = previous?.Status ?? "unknown",
-                ProblemCount = current.ProblemCount,
-                FirstProblem = current.FirstProblem,
-                Problems = current.Problems,
-                LastBlock = current.LastBlock,
-                Timestamp = current.Timestamp
+                Type             = "alert",
+                ServerId         = current.ServerId,
+                ServerName       = current.ServerName,
+                ServiceType      = current.ServiceType,
+                BaseUrl          = current.BaseUrl,
+                Status           = current.Status,
+                PreviousStatus   = previous?.Status ?? "unknown",
+                ProblemCount     = current.ProblemCount,
+                FirstProblem     = current.FirstProblem,
+                Problems         = current.Problems,
+                PreviousProblems = previous?.Problems ?? new List<ProblemItem>(),
+                ResolvedProblems = resolvedProblems,
+                NewProblems      = newProblems,
+                LastBlock        = current.LastBlock,
+                Timestamp        = current.Timestamp
             };
 
             try

@@ -24,6 +24,7 @@ namespace MCEMonitorClient.Shared.Models
     {
         public string Severity { get; set; } = "";
         public string Category { get; set; } = "";
+        public string Target   { get; set; } = "";
         public string Message { get; set; } = "";
     }
 
