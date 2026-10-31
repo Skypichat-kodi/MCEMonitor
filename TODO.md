@@ -10,22 +10,6 @@ _(rien)_
 
 ## 📋 À faire
 
-### Colonnes « Nom de domaine »
-
-- [ ] Ajouter colonne `ReverseDns` dans le tableau IP bloquées (UI + Web)
-- [ ] Ajouter colonne `ReverseDns` dans le tableau Interceptions/récidive (UI + Web)
-- [ ] Ajouter colonne `ReverseDns` dans le tableau Historique intrusions (UI + Web)
-- [x] Étendre `BlockedIpRetryInfo` et `IntrusionEvent` avec le champ `ReverseDns`
-- [ ] Arbitrer : reverse DNS brut (`31-14-254-18.infrawat.ch`) ou nom court extrait ?
-
-### Améliorations UX
-
-- [ ] Filtre « Type » inactif sur IP bloquées (UI WPF) — `cmbBlockedType` jamais lu dans `BlockedFilter_Changed`
-- [ ] Alignement des tris UI ↔ Web sur les autres tableaux (Intrusions actives, Historique, Audit…)
-- [ ] Bouton « Vider les problèmes signalés » dans l'onglet Réglages (finir la popup WinDivert)
-- [ ] Top ports distants (remplace « Activité par heure » dans Stats section 2)
-- [ ] Top processus en attente dans la section 1 de Statistiques
-
 ### MediaMonitor — vignettes album
 
 - [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg
@@ -34,15 +18,9 @@ _(rien)_
 - [ ] (optionnel) Vérification taille minimale cover (< 100×100 px)
 - [ ] (optionnel) Support WebP
 
-### Décisions produit (à trancher)
-
-- [x] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit »)
-  - *Résolu : Ajout de l'option `IgnoreSearchScanners` et édition de `ScannerPatterns` via l'UI WPF.*
-
----
-
 ## ✅ Terminé
 
+- [x] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit ») - *Résolu : Ajout de l'option `IgnoreSearchScanners` et édition de `ScannerPatterns` via l'UI WPF.*
 - [x] Fix Processus en attente : capture de `Win32Error` dans `ProcessTrustService` et filtrage des PID morts/protégés dans `UntrustedProcessDetector` (suppression des processus "fantômes").
 - [x] Blocage automatique granulaire : cases indépendantes pour Critical, Warning et Subnet dans l'UI. Les services Safe/Whitelisted sont exclus du blocage.
 - [x] Moteur : refonte de `SeverityScorer` pour respecter la sévérité initiale du détecteur (ex: Blacklist = Critical) tout en appliquant la politique stricte.
