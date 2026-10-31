@@ -655,6 +655,7 @@ namespace NetMonitor.Service
                         entry.Isp,
                         entry.Org,
                         entry.Source,
+                        Severity.Warning,
                         _settings);
                     entry.Severity = autoSev.ToString();
                 }
@@ -868,6 +869,7 @@ namespace NetMonitor.Service
                                 b.Isp,
                                 b.Org,
                                 b.Source,
+                                Enum.TryParse<Severity>(b.Severity, out var sev) ? sev : Severity.Warning, // <-- NOUVEAU
                                 _settings);
 
                             string newSevStr = newSev.ToString();
@@ -1389,6 +1391,7 @@ namespace NetMonitor.Service
                 giForSeverity?.Isp,
                 giForSeverity?.Org,
                 evt.Source,
+                evt.Severity,
                 _settings);
                 
             // Marquer les scanners connus (sans les ignorer) ---
@@ -1411,48 +1414,34 @@ namespace NetMonitor.Service
             bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
 
             // --- 1. Détection des scanners de recherche légitimes ---
-            // On n'ignore les scanners QUE si l'utilisateur l'a demandé.
-            // Si IgnoreSearchScanners = false, on saute ce bloc → les scanners
-            // seront traités comme des menaces normales (Warning/Critical).
-            // --- 1. Détection des scanners de recherche légitimes ---
-            if (_settings.IgnoreSearchScanners && _trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
+            if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
 
-                // NOUVEAU : Si le reverse DNS est vide, on regarde l'Org ou l'Isp via GeoIP
+                // Si le reverse DNS est vide, on regarde l'Org/Isp (via GeoIP)
                 if (known != true && giForSeverity != null)
                 {
                     bool isOrgMatch = MatchesScannerPatterns(giForSeverity.Org, _settings.ScannerPatterns) ||
                                       MatchesScannerPatterns(giForSeverity.Isp, _settings.ScannerPatterns);
-
-                    if (isOrgMatch)
-                    {
-                        known = true; // On force la détection
-                        CoreLog.Debug($"[SCANNER] {evt.RemoteIp} reconnu via GeoIP Org/Isp : {giForSeverity.Org ?? giForSeverity.Isp}");
-                    }
+                    if (isOrgMatch) known = true;
                 }
 
                 if (known == true)
                 {
-                    evt.Severity = Severity.Trusted;
-                    evt.Message = $"[SCANNER-LÉGITIME] {evt.Message}";
-                    evt.TrustReason = "Scanner de recherche légitime (Reverse DNS ou GeoIP)";
+                    // On ne l'envoie PLUS dans l'audit. On le laisse en Warning
+                    // avec le flag IsKnownScanner pour qu'il ait le badge "Subnet" vert.
                     evt.IsKnownScanner = true;
-
-                    lock (_alertsLock)
-                    {
-                        _auditHistory.Add(evt);
-                        if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
-                    }
-                    SaveAudit();
-
-                    CoreLog.Debug($"[SCANNER] Alerte ignorée : {evt.RemoteIp} est un scanner de recherche légitime ({evt.Source})");
-                    return;
+                    evt.Severity = Severity.Warning;
+                    evt.Message = $"[SCANNER CONNU] {evt.Message}";
+                    evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
+                    
+                    // On ne fait PAS de return ici : l'alerte continue son chemin
+                    // vers les Intrusions Actives et pourra être bloquée par AutoBlock.
                 }
-
-                // Si le DNS n'a rien donné, on tente une résolution en arrière-plan
-                if (!known.HasValue)
+                else if (!known.HasValue)
+                {
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
+                }
             }
             
             // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, réseau local) ---
@@ -1478,21 +1467,43 @@ namespace NetMonitor.Service
 
             // --- 3. BLOCAGE AUTOMATIQUE (si activé) ---
             // ⚠ Plus de condition sur la sévérité : on bloque TOUT ce qui a une IP
+            // --- 3. BLOCAGE AUTOMATIQUE (si activé et selon la politique choisie) ---
             if (_settings.AutoBlock && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
-                if (BlockIp(evt.RemoteIp, out string fwError,
-                            evt.Source, evt.Message, evt.Details, evt.Severity.ToString(),
-                            isAutomatic: true))
-                {
-                    CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
-                                  $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");
+                bool shouldBlock = false;
 
-                    // Maintien 60s dans les actives pour visibilité Tray
-                    _autoBlockedTempIps[evt.RemoteIp!] = DateTime.UtcNow.AddSeconds(AutoBlockVisibilitySeconds);
-                }
-                else
+                if (evt.IsKnownScanner)
                 {
-                    CoreLog.Warn($"[AUTO-BLOCK] Échec du blocage de {evt.RemoteIp} : {fwError}");
+                    // C'est un scanner connu (badge Subnet)
+                    shouldBlock = _settings.AutoBlockSubnet;
+                }
+                else if (evt.Severity == Severity.Critical)
+                {
+                    // Menace critique (Rouge)
+                    shouldBlock = _settings.AutoBlockCritical;
+                }
+                else if (evt.Severity == Severity.Warning)
+                {
+                    // Menace inconnue (Orange)
+                    shouldBlock = _settings.AutoBlockWarning;
+                }
+                // On ne bloque jamais Safe, Whitelisted, ni Info.
+
+                if (shouldBlock)
+                {
+                    if (BlockIp(evt.RemoteIp, out string fwError,
+                                evt.Source, evt.Message, evt.Details, evt.Severity.ToString(),
+                                isAutomatic: true))
+                    {
+                        CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
+                                      $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");
+
+                        _autoBlockedTempIps[evt.RemoteIp!] = DateTime.UtcNow.AddSeconds(AutoBlockVisibilitySeconds);
+                    }
+                    else
+                    {
+                        CoreLog.Warn($"[AUTO-BLOCK] Échec du blocage de {evt.RemoteIp} : {fwError}");
+                    }
                 }
             }
 

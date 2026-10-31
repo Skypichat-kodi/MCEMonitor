@@ -43,6 +43,9 @@ _(rien)_
 
 ## ✅ Terminé
 
+- [x] Blocage automatique granulaire : cases indépendantes pour Critical, Warning et Subnet dans l'UI. Les services Safe/Whitelisted sont exclus du blocage.
+- [x] Moteur : refonte de `SeverityScorer` pour respecter la sévérité initiale du détecteur (ex: Blacklist = Critical) tout en appliquant la politique stricte.
+
 ### Session 2026-10-31 — Scanners "Subnet", GeoIP & Fix UI Web
 
 - [x] Détection : le moteur identifie les scanners via leur Org/Isp GeoIP (ex: Palo Alto, ONYPHE) même sans Reverse DNS

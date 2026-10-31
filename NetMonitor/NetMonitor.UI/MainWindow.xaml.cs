@@ -1056,6 +1056,9 @@ namespace NetMonitor.UI
                     txtBeaconHits.Text = "6";
                     txtBeaconJitter.Text = "5";
                     chkAutoBlock.IsChecked = false;
+                    chkAutoBlockCritical.IsChecked = true;
+                    chkAutoBlockWarning.IsChecked = true;
+                    chkAutoBlockSubnet.IsChecked = false;
                     txtIgnoredNetworks.Text = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
                     chkDisableFilters.IsChecked = false;
                     txtBlacklistLevel.Text = "3";
@@ -1076,6 +1079,9 @@ namespace NetMonitor.UI
                 txtBeaconHits.Text = cfg.beaconMinHits.ToString();
                 txtBeaconJitter.Text = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
                 chkAutoBlock.IsChecked = cfg.autoBlock;
+                chkAutoBlockCritical.IsChecked = cfg.autoBlockCritical;
+                chkAutoBlockWarning.IsChecked = cfg.autoBlockWarning;
+                chkAutoBlockSubnet.IsChecked = cfg.autoBlockSubnet;
 
                 if (cfg.ignoredNetworks != null && cfg.ignoredNetworks.Length > 0)
                     txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
@@ -1158,7 +1164,10 @@ namespace NetMonitor.UI
                     "",
                     "# --- Blocage automatique ---",
                     $"AutoBlock={(chkAutoBlock.IsChecked == true).ToString().ToLower()}",
-                    "",
+                    $"AutoBlockCritical={(chkAutoBlockCritical.IsChecked == true).ToString().ToLower()}",
+                    $"AutoBlockWarning={(chkAutoBlockWarning.IsChecked == true).ToString().ToLower()}",
+                    $"AutoBlockSubnet={(chkAutoBlockSubnet.IsChecked == true).ToString().ToLower()}",
+                    
                     "# --- Filtres et Whitelists ---",
                     $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
                     $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",

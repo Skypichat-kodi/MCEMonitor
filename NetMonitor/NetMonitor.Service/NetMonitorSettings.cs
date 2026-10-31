@@ -22,8 +22,11 @@ namespace NetMonitor.Service
         public int BeaconWindowSeconds { get; set; } = 300;
         public int BeaconMinHits { get; set; } = 6;
         public double BeaconJitterTolerancePct { get; set; } = 0.05;
-        public bool AutoBlock { get; set; } = false;
         public bool EnableProcessTrust { get; set; } = true;
+        public bool AutoBlock { get; set; } = false;
+        public bool AutoBlockCritical { get; set; } = true;
+        public bool AutoBlockWarning { get; set; } = true;
+        public bool AutoBlockSubnet { get; set; } = false;
 
         /// <summary>
         /// Si true, les scanners de recherche (Shodan, Censys...) sont ignorés (envoyés dans l'audit).
@@ -158,9 +161,6 @@ namespace NetMonitor.Service
                             case "BeaconWindowSeconds"          : if (int.TryParse(value, out int bw)) settings.BeaconWindowSeconds = bw; break;
                             case "BeaconMinHits"                : if (int.TryParse(value, out int bh)) settings.BeaconMinHits = bh; break;
                             case "BeaconJitterTolerancePct"     : if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) settings.BeaconJitterTolerancePct = bj; break;
-                            case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
-                            case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) settings.DisableFilters = df; break;
                             case "SuspiciousRemotePorts"        : if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) settings.SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
                             case "BlacklistLevel"               : if (int.TryParse(value, out int bl)) settings.BlacklistLevel = bl; break;
@@ -174,11 +174,17 @@ namespace NetMonitor.Service
 
                             // Sévérité — compatibilité ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns" (nouveau)
                             case "TrustedScannerPatterns":
+                            case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
                             case "ScannerPatterns"              : settings.ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "CriticalPatterns"             : settings.CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : settings.SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "WhitelistPatterns"            : settings.WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SeverityVersion"              : if (int.TryParse(value, out int sv)) settings.SeverityVersion = sv; break;
+                            case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
+                            case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) settings.AutoBlockCritical = abc; break;
+                            case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) settings.AutoBlockWarning = abw; break;
+                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;                            
                         }
                     }
                 }
@@ -290,6 +296,10 @@ namespace NetMonitor.Service
                     "# --- Ignorer les scanners de recherche (Shodan, Censys...) ---",
                     $"IgnoreSearchScanners={IgnoreSearchScanners.ToString().ToLower()}",
                     "",
+                    $"AutoBlock={AutoBlock.ToString().ToLower()}",
+                    $"AutoBlockCritical={AutoBlockCritical.ToString().ToLower()}",
+                    $"AutoBlockWarning={AutoBlockWarning.ToString().ToLower()}",
+                    $"AutoBlockSubnet={AutoBlockSubnet.ToString().ToLower()}",                    
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -339,7 +349,11 @@ namespace NetMonitor.Service
                             case "BeaconWindowSeconds"          : if (int.TryParse(value, out int bw)) BeaconWindowSeconds = bw; break;
                             case "BeaconMinHits"                : if (int.TryParse(value, out int bh)) BeaconMinHits = bh; break;
                             case "BeaconJitterTolerancePct"     : if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double bj)) BeaconJitterTolerancePct = bj; break;
+                            case "SeverityVersion"              : if (int.TryParse(value, out int sv)) SeverityVersion = sv; break;
                             case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
+                            case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) AutoBlockCritical = abc; break;
+                            case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) AutoBlockWarning = abw; break;
+                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;      
                             case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
@@ -357,8 +371,7 @@ namespace NetMonitor.Service
                             case "ScannerPatterns"              : ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "CriticalPatterns"             : CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "SeverityVersion"              : if (int.TryParse(value, out int sv)) SeverityVersion = sv; break;
+                            case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                      
                         }
                     }
                 }

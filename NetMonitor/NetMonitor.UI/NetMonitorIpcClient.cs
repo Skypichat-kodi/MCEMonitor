@@ -67,6 +67,9 @@ namespace NetMonitor.UI
         public int beaconMinHits { get; set; }
         public double beaconJitterTolerancePct { get; set; }
         public bool autoBlock { get; set; }
+        public bool autoBlockCritical { get; set; }
+        public bool autoBlockWarning { get; set; }
+        public bool autoBlockSubnet { get; set; }
         public string[] ignoredNetworks { get; set; } = Array.Empty<string>();
         public bool disableFilters { get; set; }
         public int blacklistLevel { get; set; }             

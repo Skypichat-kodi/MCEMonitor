@@ -39,17 +39,17 @@ namespace NetMonitor.Service.Web
 
                             return new
                             {
-                                Ip        = g.Key,
-                                Count     = g.Count(),
-                                Severity  = mostSevere.Severity,
-                                Detectors = detectorList,
-                                FirstSeen = g.Min(x => x.Timestamp),
-                                LastSeen  = g.Max(x => x.Timestamp),
-                                Message   = mostRecent.Message,
-                                Pid         = mostRecent.Pid,
-                                ProcessPath = mostRecent.ProcessPath,
-                                TrustReason = mostRecent.TrustReason,
-                                IsKnownScanner = g.Any(x => x.IsKnownScanner)
+                                Ip              = g.Key,
+                                Count           = g.Count(),
+                                Severity        = mostSevere.Severity,
+                                Detectors       = detectorList,
+                                FirstSeen       = g.Min(x => x.Timestamp),
+                                LastSeen        = g.Max(x => x.Timestamp),
+                                Message         = mostRecent.Message,
+                                Pid             = mostRecent.Pid,
+                                ProcessPath     = mostRecent.ProcessPath,
+                                TrustReason     = mostRecent.TrustReason,
+                                IsKnownScanner  = g.Any(x => x.IsKnownScanner)
                             };
                         })
                         .OrderByDescending(x => (int)x.Severity)

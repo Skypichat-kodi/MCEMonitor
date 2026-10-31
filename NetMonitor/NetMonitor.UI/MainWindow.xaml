@@ -1983,11 +1983,27 @@
                                 </StackPanel>
 
                                 <CheckBox x:Name="chkAutoBlock"
-                                          Content="Bloquer automatiquement les IP en cas d'intrusion de sévérité High et supérieure"
+                                          Content="Activer le blocage automatique (interrupteur principal)"
                                           Foreground="#E5E5E5"
+                                          FontWeight="Bold"
                                           Margin="0,0,0,10"/>
 
-                                <TextBlock Text="Les règles sont créées via netsh advfirewall. Les IP bloquées sont visibles dans l'onglet Intrusions (tableau 2)."
+                                <CheckBox x:Name="chkAutoBlockCritical"
+                                          Content="Bloquer les menaces critiques (🔴 Rouge)"
+                                          Foreground="#E5E5E5"
+                                          Margin="20,0,0,5"/>
+
+                                <CheckBox x:Name="chkAutoBlockWarning"
+                                          Content="Bloquer les menaces inconnues (🟠 Orange)"
+                                          Foreground="#E5E5E5"
+                                          Margin="20,0,0,5"/>
+
+                                <CheckBox x:Name="chkAutoBlockSubnet"
+                                          Content="Bloquer les scanners de recherche (🟢 Subnet)"
+                                          Foreground="#E5E5E5"
+                                          Margin="20,0,0,10"/>
+
+                                <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
                                            FontSize="11"
                                            Foreground="#888"
                                            TextWrapping="Wrap"/>
