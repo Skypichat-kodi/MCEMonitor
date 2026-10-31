@@ -2063,17 +2063,17 @@
                                 <CheckBox x:Name="chkAutoBlockCritical"
                                           Style="{StaticResource ColoredCheckBox}"
                                           Tag="{StaticResource DotCritical}"
-                                          Content="Bloquer les menaces critiques (Rouge)"/>
+                                          Content="Bloquer les menaces critiques"/>
 
                                 <CheckBox x:Name="chkAutoBlockWarning"
                                           Style="{StaticResource ColoredCheckBox}"
                                           Tag="{StaticResource DotWarning}"
-                                          Content="Bloquer les menaces inconnues (Orange)"/>
+                                          Content="Bloquer les menaces inconnues"/>
 
                                 <CheckBox x:Name="chkAutoBlockSubnet"
                                           Style="{StaticResource ColoredCheckBox}"
                                           Tag="{StaticResource DotSubnet}"
-                                          Content="Bloquer les scanners de recherche (Subnet)"/>
+                                          Content="Bloquer les scanners de recherche"/>
                                           
                                 <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
                                            FontSize="11"

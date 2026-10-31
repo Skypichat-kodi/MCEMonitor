@@ -356,21 +356,20 @@ public sealed class ProcessTrustService
                 .ToList();
         }
 
-        // 3. Résout le chemin complet
-        string? fullPath = TryGetFullPath(pid);
+        // 3. Résout le chemin complet (avec capture de l'erreur)
+        string? fullPath = TryGetFullPath(pid, out int pathError);
 
         // ⚠ 4. AUTO-TRUST MICROSOFT (avant tout le reste)
         // Élimine les faux positifs OneDrive, Office, Edge, GameBar...
-        if (fullPath != null && IsSignedBy(fullPath, "Microsoft Corporation"))
+        if (fullPath == null)
         {
             return new ProcessTrustResult
             {
-                Level = ProcessTrustLevel.Trusted,
+                Level = ProcessTrustLevel.Unknown,
                 ProcessName = name,
-                FullPath = fullPath,
-                Publisher = "Microsoft Corporation",
-                Reason = "signé Microsoft (auto-trust)",
-                MatchedEntry = "<auto:Microsoft>"
+                Win32Error = pathError,   // <-- NOUVEAU : on stocke l'erreur
+                Reason = pathError == 5 ? "chemin inaccessible (droits insuffisants ?)" 
+                                        : "chemin inaccessible (processus terminé ?)"
             };
         }
 
@@ -492,13 +491,14 @@ public sealed class ProcessTrustService
         return path.Replace('/', '\\').TrimEnd(new char[] { '\\' });
     }
 
-    private static string? TryGetFullPath(int pid)
+    private static string? TryGetFullPath(int pid, out int win32Error)
     {
+        win32Error = 0;
         IntPtr h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
         if (h == IntPtr.Zero)
         {
-            int err = Marshal.GetLastWin32Error();
-            CoreLog.Debug($"[TRUST] OpenProcess(pid={pid}) échec, Win32={err}");
+            win32Error = Marshal.GetLastWin32Error();
+            CoreLog.Debug($"[TRUST] OpenProcess(pid={pid}) échec, Win32={win32Error}");
             return null;
         }
 
@@ -506,16 +506,15 @@ public sealed class ProcessTrustService
         {
             var sb = new StringBuilder(1024);
             uint size = (uint)sb.Capacity;
-
             if (!QueryFullProcessImageName(h, 0, sb, ref size))
+            {
+                win32Error = Marshal.GetLastWin32Error();
                 return null;
-
+            }
             int len = (int)size;
             if (len <= 0) return null;
-
             var chars = new char[len];
             sb.CopyTo(0, chars, 0, len);
-
             return new string(chars);
         }
         finally { CloseHandle(h); }

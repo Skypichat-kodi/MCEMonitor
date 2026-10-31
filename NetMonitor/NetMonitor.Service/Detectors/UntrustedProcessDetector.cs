@@ -78,6 +78,122 @@ public sealed class UntrustedProcessDetector : IConnectionAwareDetector
         }
 
         // ============================================================
+        //  CAS 2 : UNKNOWN → escalade conditionnelle via Win32Error
+        // ============================================================
+        bool remoteIsPublic = IsPublicRemote(ci.RemoteIp);
+        bool processKnownProtected = IsKnownProtectedProcess(result.ProcessName);
+
+        // 2a. PID mort (terminé entre-temps) → bruit, on ne signale pas
+        if (result.Win32Error == 87) // ERROR_INVALID_PARAMETER
+        {
+            return null;
+        }
+
+        // 2b. Processus protégé système connu (MsMpEng, lsass...) → bénin
+        if (result.Win32Error == 5 && processKnownProtected) // ERROR_ACCESS_DENIED
+        {
+            return null;
+        }
+
+        // 2c. Chemin inaccessible (Access Denied) + processus inconnu + IP publique → SUSPECT
+        if (result.Win32Error == 5 && !processKnownProtected && remoteIsPublic)
+        {
+            return new DetectorResult
+            {
+                IsThreat = true,
+                IsPendingProcess = true,
+                Severity = Severity.High,
+                Message = $"Processus protégé non identifié : {result.ProcessName} " +
+                          $"vers {ci.RemoteIp}:{ci.RemotePort} " +
+                          $"(chemin inaccessible, PID {ci.Pid})",
+                ProcessPath = result.FullPath,
+                TrustReason = result.Reason,
+                Details = $"Win32Error={result.Win32Error}, nom='{result.ProcessName}'"
+            };
+        }
+
+        // 2d. Chemin inaccessible + processus inconnu + IP privée → Warning
+        if (result.Win32Error == 5 && !processKnownProtected)
+        {
+            return new DetectorResult
+            {
+                IsThreat = true,
+                IsPendingProcess = true,
+                Severity = Severity.Warning,
+                Message = $"Processus protégé non identifié : {result.ProcessName} " +
+                          $"vers {ci.RemoteIp}:{ci.RemotePort}",
+                ProcessPath = result.FullPath,
+                TrustReason = result.Reason,
+                Details = $"Win32Error={result.Win32Error}"
+            };
+        }
+
+        // 2e. NOUVEAU : chemin vide mais aucune erreur Win32 (race condition)
+        // Le processus s'est terminé juste après l'appel à GetProcessById.
+        if (result.Win32Error == 0 && string.IsNullOrWhiteSpace(result.FullPath))
+        {
+            CoreLog.Debug($"[PENDING] Processus ignoré (chemin vide, PID probablement recyclé ou mort) : {result.ProcessName} (PID {ci.Pid})");
+            return null;
+        }
+
+        // 2f. Cas Unknown générique (nom absent de la whitelist, chemin accessible)
+        return new DetectorResult
+        {
+            IsThreat = true,
+            IsPendingProcess = true,
+            Severity = Severity.Warning,
+            Message = $"Connexion sortante d'un processus non approuvé : {result.ProcessName} " +
+                      $"vers {ci.RemoteIp}:{ci.RemotePort}",
+            ProcessPath = result.FullPath,
+            TrustReason = result.Reason,
+            Details = null
+        };
+    }
+
+    // ============================================================
+    //  Helpers de classification
+    // ============================================================
+
+    /// <summary>
+    /// Vrai si le nom du processus correspond à un processus système protégé connu.
+    /// </summary>
+    private static bool IsKnownProtectedProcess(string? processName)
+    {
+        if (string.IsNullOrWhiteSpace(processName)) return false;
+
+        string name = processName;
+        if (name.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+            name = name[..^4];
+
+        return KnownProtectedProcesses.Contains(name, StringComparer.OrdinalIgnoreCase);
+    }
+
+    /// <summary>
+    /// Vrai si l'IP distante est publique.
+    /// </summary>
+    private static bool IsPublicRemote(string? remoteIp)
+    {
+        if (string.IsNullOrWhiteSpace(remoteIp)) return false;
+
+        foreach (var prefix in LocalNetworkPrefixes)
+        {
+            if (remoteIp.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return false;
+        }
+
+        if (remoteIp.StartsWith("172.", StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = remoteIp.Split('.');
+            if (parts.Length >= 2 && int.TryParse(parts[1], out int second))
+            {
+                if (second >= 16 && second <= 31) return false;
+            }
+        }
+
+        return true;
+    }
+
+        // ============================================================
         //  CAS 2 : UNKNOWN → escalade conditionnelle
         // ============================================================
         // On distingue plusieurs sous-cas via le Reason + Win32Error remontés par ProcessTrustService.
