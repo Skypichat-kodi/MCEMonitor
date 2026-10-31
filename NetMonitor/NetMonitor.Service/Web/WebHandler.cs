@@ -116,6 +116,7 @@ namespace NetMonitor.Service.Web
                         string sevClass = SeverityToCssClass(p.Severity.ToString());
 
                         string pathEnc = WebUtility.HtmlEncode(p.ProcessPath);
+                        string pathJs = WebUtility.HtmlEncode(p.ProcessPath.Replace("'", "\\'"));
                         string remote = $"{p.RemoteIp}:{p.RemotePort}";
 
                         pendingRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'pending-sel')"">
@@ -130,6 +131,10 @@ namespace NetMonitor.Service.Web
                             <td title='{WebUtility.HtmlEncode(p.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(p.TrustReason, 40))}</td>
                             <td>{WebUtility.HtmlEncode(remote)}</td>
                             <td class='count-cell'><span class='count-badge {(p.Count >= 10 ? "c10" : p.Count >= 5 ? "c5" : p.Count >= 2 ? "c2" : "c1")}'>{p.Count}</span></td>
+                            <td style='text-align:center'>
+                                <button type='button' class='action-btn danger' style='padding:2px 8px;font-size:11px'
+                                        onclick=""event.stopPropagation(); dismissPending('{pathJs}')"">✖</button>
+                            </td>
                         </tr>");
                     }
                 }

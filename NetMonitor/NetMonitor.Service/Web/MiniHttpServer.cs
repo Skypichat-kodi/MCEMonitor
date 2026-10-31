@@ -276,6 +276,21 @@ namespace NetMonitor.Service.Web
                         : $"WebServer : échec whitelist {processPath}");
                     Redirect(ctx);
                 }
+                else if (path == "/dismiss-pending" && ctx.Request.HttpMethod == "POST")
+                {
+                    string processPath = ReadFormValue(ctx, "path");
+                    if (string.IsNullOrWhiteSpace(processPath))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+                    bool ok = _engine.DismissPendingProcess(processPath);
+                    CoreLog.Write(ok
+                        ? $"WebServer : processus {processPath} retiré de la liste d'attente"
+                        : $"WebServer : échec retrait {processPath}");
+                    Redirect(ctx);
+                }                
                 else if (path == "/whitelist")
                 {
                     string html = WebHandler.BuildWhitelistPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
