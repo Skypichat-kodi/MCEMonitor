@@ -240,14 +240,14 @@
 
                 <!-- TMDB SERIES -->
                 {{#IfSeries}}
-                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
+                <button class="plus-btn" data-series="{{SeriesName}}" onclick="openTmdbSeries(this.dataset.series)">
                     {{tr:Plus}}...
                 </button>
                 {{/IfSeries}}
 
                 <!-- TMDB FILMS -->
                 {{#IfMovie}}
-                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+                <button class="plus-btn" data-title="{{Title}}" onclick="openTmdbMovie(this.dataset.title)">
                     {{tr:Plus}}...
                 </button>
                 {{/IfMovie}}
@@ -280,7 +280,7 @@
                 </div>
 
                 <!-- DISCOGS -->
-                <button class="plus-btn" onclick="openDiscogs('{{TitleTag}}', '{{Artist}}')">
+                <button class="plus-btn" data-title="{{TitleTag}}" data-artist="{{Artist}}" onclick="openDiscogs(this.dataset.title, this.dataset.artist)">
                     {{tr:Plus}}...
                 </button>
 
@@ -314,7 +314,7 @@
 
                 <!-- TMDB pour les séries -->
                 {{#IfRecSerie}}
-                <button class="plus-btn" onclick="openTmdbSeries('{{SeriesName}}')">
+                <button class="plus-btn" data-series="{{SeriesName}}" onclick="openTmdbSeries(this.dataset.series)">
                     {{tr:Plus}}...
                 </button>
                 {{/IfRecSerie}}
@@ -325,7 +325,7 @@
                     <span class="info-label">{{tr:Titre}} :</span> {{Title}}
                 </div>
 
-                <button class="plus-btn" onclick="openTmdbMovie('{{Title}}')">
+                <button class="plus-btn" data-title="{{Title}}" onclick="openTmdbMovie(this.dataset.title)">
                     {{tr:Plus}}...
                 </button>
                 {{/IfRecMovie}}
