@@ -14,16 +14,17 @@ namespace MCEMonitorClient.Config
         private readonly bool _isNew;
 
         // Contrôles
-        private TextBox _txtName = null!;
-        private ComboBox _cmbType = null!;
-        private TextBox _txtUrl = null!;
-        private NumericUpDown _numPort = null!;
-        private TextBox _txtUsername = null!;
-        private TextBox _txtPassword = null!;
-        private Button _btnTest = null!;
-        private Button _btnSave = null!;
-        private Button _btnCancel = null!;
-        private Label _lblTestResult = null!;
+        private TextBox         _txtName                = null!;
+        private Label           _lblDetectedService     = null!;
+        private string          _detectedServiceType    = "";
+        private TextBox         _txtUrl                 = null!;
+        private NumericUpDown   _numPort                = null!;
+        private TextBox         _txtUsername            = null!;
+        private TextBox         _txtPassword            = null!;
+        private Button          _btnTest                = null!;
+        private Button          _btnSave                = null!;
+        private Button          _btnCancel              = null!;
+        private Label           _lblTestResult          = null!;
 
         public ServerEntry Result => _entry;
 
@@ -64,28 +65,22 @@ namespace MCEMonitorClient.Config
             _txtName = AddTextBox(fieldX, y, fieldW);
             y += step;
 
-            // --- Type ---
+            // --- Type (lecture seule, rempli par détection) ---
             AddLabel("Type :", labelX, y);
-            _cmbType = new ComboBox
+            _lblDetectedService = new Label
             {
-                Location = new Point(fieldX, y),
+                Location = new Point(fieldX, y + 3),
                 Width = fieldW,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Theme.Panel,
-                ForeColor = Theme.Text,
-                FlatStyle = FlatStyle.Flat
+                Height = 22,
+                Text = "— Non détecté —",
+                ForeColor = Theme.TextDim,
+                BackColor = Color.FromArgb(50, 50, 50),
+                Font = new Font(Theme.FontFamily, 9F),
+                TextAlign = ContentAlignment.MiddleLeft,
+                Padding = new Padding(6, 0, 0, 0),
+                BorderStyle = BorderStyle.None
             };
-            _cmbType.Items.AddRange(new object[]
-            {
-                "SystemMonitor",
-                "RomMonitor",
-                "MediaMonitor",
-                "NetMonitor", 
-                "Inconnu" 
-            });
-            _cmbType.SelectedIndex = 0;
-            
-            Controls.Add(_cmbType);
+            Controls.Add(_lblDetectedService);
             y += step;
 
             // --- URL + Port ---
@@ -123,6 +118,8 @@ namespace MCEMonitorClient.Config
                 BorderStyle = BorderStyle.FixedSingle
             };
             Controls.Add(_numPort);
+            _numPort.Leave += async (s, e) => await AutoDetectAsync();
+            _txtUrl.Leave  += async (s, e) => await AutoDetectAsync();            
 
             y += step;
 
@@ -172,7 +169,7 @@ namespace MCEMonitorClient.Config
             // --- Bouton Tester ---
             _btnTest = new Button
             {
-                Text = "Tester la connexion",
+                Text = "Détecter le service",
                 Location = new Point(fieldX, y),
                 Width = 160,
                 Height = 28,
@@ -273,8 +270,7 @@ namespace MCEMonitorClient.Config
             _txtUsername.Text = _entry.Username;
             _txtPassword.Text = _entry.Password;
 
-            int idx = _cmbType.Items.IndexOf(_entry.ServiceType);
-            _cmbType.SelectedIndex = idx >= 0 ? idx : 0;
+            SetDetectedService(_entry.ServiceType);
         }
 
         private void SaveAndClose()
@@ -301,7 +297,7 @@ namespace MCEMonitorClient.Config
             _entry.Port = (int)_numPort.Value;
             _entry.Username = _txtUsername.Text.Trim();
             _entry.Password = _txtPassword.Text;
-            _entry.ServiceType = _cmbType.SelectedItem?.ToString() ?? "Inconnu";
+            _entry.ServiceType = GetDetectedService();
 
             DialogResult = DialogResult.OK;
             Close();
@@ -310,11 +306,14 @@ namespace MCEMonitorClient.Config
         // ---------------------------------------------
         //  Test de connexion HTTP + Détection du service
         // ---------------------------------------------
-        private async Task TestConnectionAsync()
+        private async Task TestConnectionAsync(bool autoMode = false)
         {
+            if (!_btnTest.Enabled)
+                return;   // test déjà en cours
+
             _btnTest.Enabled = false;
             _lblTestResult.ForeColor = Theme.TextDim;
-            _lblTestResult.Text = "Test en cours...";
+            _lblTestResult.Text = autoMode ? "Détection..." : "Test en cours...";
 
             try
             {
@@ -340,49 +339,50 @@ namespace MCEMonitorClient.Config
                     return;
                 }
 
-                // Lecture du JSON pour extraire le champ "service"
                 string json = await resp.Content.ReadAsStringAsync();
                 string detectedService = "Inconnu";
+                string detectedMachine = "";
 
                 try
                 {
                     using var doc = System.Text.Json.JsonDocument.Parse(json);
                     if (doc.RootElement.TryGetProperty("service", out var serviceProp))
                         detectedService = serviceProp.GetString() ?? "Inconnu";
+                    if (doc.RootElement.TryGetProperty("machine", out var machineProp))
+                        detectedMachine = machineProp.GetString() ?? "";
                 }
-                catch { /* JSON invalide, on garde "Inconnu" */ }
+                catch { /* JSON invalide */ }
 
-                // --- Mise à jour de l'UI ---
+                // 1) Mise à jour du service détecté (Label)
+                SetDetectedService(detectedService);
+
+                // --- Machine (fallback sur le host de l'URL) ---
+                string hostFallback = baseUrl;
+                try { hostFallback = new Uri(baseUrl).Host; } catch { }
+
+                string machine = !string.IsNullOrEmpty(detectedMachine)
+                    ? detectedMachine
+                    : hostFallback;
+
+                string proposedName = $"Service {detectedService} sur {machine}";
+
+                // --- Mise à jour du nom (uniquement si vide ou auto-généré) ---
+                bool shouldUpdateName =
+                    string.IsNullOrWhiteSpace(_txtName.Text)
+                    || _txtName.Text == "http://"
+                    || _txtName.Text.StartsWith("Service ")
+                    || _txtName.Text.StartsWith("SystemMonitor (")
+                    || _txtName.Text.StartsWith("RomMonitor (")
+                    || _txtName.Text.StartsWith("MediaMonitor (")
+                    || _txtName.Text.StartsWith("NetMonitor (")
+                    || _txtName.Text.StartsWith("Inconnu (");
+
+                if (shouldUpdateName)
+                    _txtName.Text = proposedName;
+
+                // --- Résultat visuel (plus de popup de confirmation) ---
                 _lblTestResult.ForeColor = Theme.Ok;
-                _lblTestResult.Text = $"[OK] Service détecté : {detectedService}";
-
-                // 1) Mise à jour du ComboBox (si le service est dans la liste)
-                int idx = _cmbType.Items.IndexOf(detectedService);
-                if (idx >= 0)
-                    _cmbType.SelectedIndex = idx;
-
-                // 2) Mise à jour du nom si vide (ou si c'est encore le nom par défaut)
-                if (string.IsNullOrWhiteSpace(_txtName.Text) ||
-                    _txtName.Text == "http://")
-                {
-                    _txtName.Text = $"{detectedService} ({_txtUrl.Text.Trim()}:{port})";
-                }
-
-                // 3) Popup de confirmation
-                var result = MessageBox.Show(
-                    $"Connexion réussie !\n\n" +
-                    $"Service détecté : {detectedService}\n" +
-                    $"Serveur : {baseUrl}:{port}\n\n" +
-                    $"Voulez-vous utiliser ce nom ?\n" +
-                    $"? {detectedService} ({_txtUrl.Text.Trim()}:{port})",
-                    "Service détecté",
-                    MessageBoxButtons.YesNo,
-                    MessageBoxIcon.Information);
-
-                if (result == DialogResult.Yes)
-                {
-                    _txtName.Text = $"{detectedService} ({_txtUrl.Text.Trim()}:{port})";
-                }
+                _lblTestResult.Text = $"[OK] Service {detectedService} sur {machine}";
             }
             catch (TaskCanceledException)
             {
@@ -412,6 +412,63 @@ namespace MCEMonitorClient.Config
                 return Image.FromStream(fs);
             }
             catch { return null; }
-        }        
+        }
+        
+        // ============================================================
+        //  Auto-détection : lancer le test quand URL + Port sont saisis
+        // ============================================================
+        private int _autoDetectVersion = 0;
+
+        private async Task AutoDetectAsync()
+        {
+            // Si un test est déjà en cours, on ne fait rien
+            if (!_btnTest.Enabled)
+                return;
+
+            string url = _txtUrl.Text.Trim();
+            if (string.IsNullOrWhiteSpace(url) || url == "http://" || url == "https://")
+                return;
+
+            // Debounce : regroupe les modifications rapides en un seul test
+            int myVersion = ++_autoDetectVersion;
+            await Task.Delay(400);
+
+            // Si l'utilisateur a modifié entre-temps, on abandonne cette requête
+            if (myVersion != _autoDetectVersion)
+                return;
+
+            // Re-vérifier après le délai
+            url = _txtUrl.Text.Trim();
+            if (string.IsNullOrWhiteSpace(url) || url == "http://" || url == "https://")
+                return;
+
+            if (!_btnTest.Enabled)
+                return;
+
+            await TestConnectionAsync(autoMode: true);
+        }
+        
+        // ============================================================
+        //  Service détecté : lecture / écriture via helpers
+        // ============================================================
+        private void SetDetectedService(string? serviceType)
+        {
+            _detectedServiceType = serviceType ?? "";
+
+            _lblDetectedService.Text = string.IsNullOrWhiteSpace(serviceType)
+                ? "— Non détecté —"
+                : serviceType!;
+
+            _lblDetectedService.ForeColor = string.IsNullOrWhiteSpace(serviceType)
+                ? Theme.TextDim
+                : Theme.Ok;   // vert clair quand un service est détecté
+        }
+
+        private string GetDetectedService()
+        {
+            return string.IsNullOrWhiteSpace(_detectedServiceType)
+                ? "Inconnu"
+                : _detectedServiceType;
+        }                        
     }
 }
