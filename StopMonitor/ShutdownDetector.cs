@@ -36,7 +36,7 @@ namespace StopMonitor
             var logQuery = new EventLogQuery("System", PathType.LogName, query);
             using var reader = new EventLogReader(logQuery);
 
-            EventRecord latest = null;
+            EventRecord? latest = null;
 
             // On lit les 20 derniers événements pertinents
             for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
@@ -63,9 +63,9 @@ namespace StopMonitor
             // ------------------------------------------------------------
             if (latest.Id == 1074)
             {
-                string process = latest.Properties.Count > 0 ? latest.Properties[0].Value?.ToString() : "";
-                string user = latest.Properties.Count > 1 ? latest.Properties[1].Value?.ToString() : "";
-                string reason = latest.Properties.Count > 4 ? latest.Properties[4].Value?.ToString() : "";
+                string? process = latest.Properties.Count > 0 ? latest.Properties[0].Value?.ToString() : "";
+                string? user    = latest.Properties.Count > 1 ? latest.Properties[1].Value?.ToString() : "";
+                string? reason  = latest.Properties.Count > 4 ? latest.Properties[4].Value?.ToString() : "";
 
                 sb.AppendLine($"Processus : {process}");
                 sb.AppendLine($"Utilisateur : {user}");

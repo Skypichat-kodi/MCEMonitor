@@ -3,15 +3,16 @@ using System.Globalization;
 using System.IO;
 using System.Threading;
 using MCEMonitor.Languages;
+using SystemMonitor.Service.Web;
 
 namespace SystemMonitor.Service
 {
     internal static class Program
     {
-        private static Mutex _mutex;
-        private static SystemMonitorEngine _engine;
-        private static ServiceIpcServer _ipc;
-        private static Web.MiniHttpServer _webServer;
+        private static Mutex?           _mutex;                      
+        private static SystemMonitorEngine _engine       = null!;   
+        private static ServiceIpcServer? _ipc;                      
+        private static MiniHttpServer?  _webServer;               
 
         static void Main(string[] args)
         {
@@ -29,7 +30,7 @@ namespace SystemMonitor.Service
             // ============================================================
             //  LANGUE
             // ============================================================
-            string selectedLang = null;
+            string? selectedLang = null; 
 
             for (int i = 0; i < args.Length - 1; i++)
             {

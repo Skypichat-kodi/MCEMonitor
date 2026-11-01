@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -9,12 +9,12 @@ namespace SystemMonitor.Service.Web
 {
     public class MiniHttpServer
     {
-        private readonly SystemMonitorEngine _engine;
-        private readonly SystemMonitorSettings _settings;
-        private HttpListener _listener;
-        private Thread _thread;
-        private bool _running;
-        private int _currentPort;
+        private readonly SystemMonitorEngine    _engine;
+        private readonly SystemMonitorSettings  _settings;
+        private HttpListener?                   _listener;  
+        private Thread?                         _thread;    
+        private bool                            _running;
+        private int                             _currentPort;
 
         public MiniHttpServer(SystemMonitorEngine engine, SystemMonitorSettings settings)
         {
@@ -28,7 +28,7 @@ namespace SystemMonitor.Service.Web
 
             if (!_settings.WebEnabled)
             {
-                CoreLog.Write("WebServer : désactivé (WebEnabled=false)");
+                CoreLog.Write("WebServer : dÃ©sactivÃ© (WebEnabled=false)");
                 return;
             }
 
@@ -45,7 +45,7 @@ namespace SystemMonitor.Service.Web
                 _thread = new Thread(ServerLoop) { IsBackground = true };
                 _thread.Start();
 
-                CoreLog.Write($"WebServer démarré sur http://+:{_currentPort}/ (langue = {LanguageManager.CurrentLanguage})");
+                CoreLog.Write($"WebServer dÃ©marrÃ© sur http://+:{_currentPort}/ (langue = {LanguageManager.CurrentLanguage})");
             }
             catch (Exception ex)
             {
@@ -61,7 +61,7 @@ namespace SystemMonitor.Service.Web
                 _listener?.Stop();
                 _listener?.Close();
                 _listener = null;
-                CoreLog.Write("WebServer arrêté");
+                CoreLog.Write("WebServer arrÃªtÃ©");
             }
             catch { }
         }
@@ -102,13 +102,13 @@ namespace SystemMonitor.Service.Web
                     return;
                 }
 
-                string lang = ctx.Request.QueryString["lang"];
+                string? lang = ctx.Request.QueryString["lang"]; 
                 if (!string.IsNullOrEmpty(lang))
                 {
                     LanguageManager.Load(lang);
                 }
 
-                string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant(); 
 
                 if (path == "/" || path == "/system")
                 {
@@ -167,7 +167,7 @@ namespace SystemMonitor.Service.Web
                     _engine.ClearHistory();
                     _engine.ClearAlerts();
 
-                    CoreLog.Write("WebServer : historique vidé via /clear-history");
+                    CoreLog.Write("WebServer : historique vidÃ© via /clear-history");
 
                     ctx.Response.StatusCode = 302;
                     ctx.Response.Headers["Location"] = "/";
@@ -232,7 +232,7 @@ namespace SystemMonitor.Service.Web
 
         private bool CheckAuth(HttpListenerContext ctx)
         {
-            string auth = ctx.Request.Headers["Authorization"];
+            string? auth = ctx.Request.Headers["Authorization"]; 
 
             if (string.IsNullOrEmpty(auth) || !auth.StartsWith("Basic "))
                 return false;
@@ -274,7 +274,7 @@ namespace SystemMonitor.Service.Web
         {
             try
             {
-                // path ressemble à "/resources/icons/cpu.png"
+                // path ressemble Ã  "/resources/icons/cpu.png"
                 // On le transforme en chemin Windows : Resources\Icons\cpu.png
                 string relative = path.TrimStart('/')
                                       .Replace('/', Path.DirectorySeparatorChar);
@@ -282,7 +282,7 @@ namespace SystemMonitor.Service.Web
                 string baseDir = AppContext.BaseDirectory;
                 string fullPath = Path.Combine(baseDir, relative);
 
-                // Sécurité : empêcher la remontée de dossier (../)
+                // SÃ©curitÃ© : empÃªcher la remontÃ©e de dossier (../)
                 string baseFull = Path.GetFullPath(baseDir);
                 string requestedFull = Path.GetFullPath(fullPath);
 
@@ -300,7 +300,7 @@ namespace SystemMonitor.Service.Web
                     return;
                 }
 
-                // Déterminer le Content-Type
+                // DÃ©terminer le Content-Type
                 string ext = Path.GetExtension(fullPath).ToLowerInvariant();
                 string contentType = ext switch
                 {

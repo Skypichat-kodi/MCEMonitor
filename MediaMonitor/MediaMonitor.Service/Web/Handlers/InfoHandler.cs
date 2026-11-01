@@ -271,13 +271,14 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["ChannelLogo"] = WebUtility.HtmlEncode(item.ChannelLogo ?? ""),
                 ["ImageBase64"] = imageBase64,
 
-                ["IfRec"]           = item.MediaType.Equals("rec", StringComparison.OrdinalIgnoreCase),
+                ["IfRec"]           = string.Equals(item.MediaType, "rec",   StringComparison.OrdinalIgnoreCase),
                 ["IfFile"]          = false,
-                ["IfVideo"]         = item.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase),
-                ["IfAudio"]         = item.MediaType.Equals("audio", StringComparison.OrdinalIgnoreCase),
+                ["IfVideo"]         = string.Equals(item.MediaType, "video", StringComparison.OrdinalIgnoreCase),
+                ["IfAudio"]         = string.Equals(item.MediaType, "audio", StringComparison.OrdinalIgnoreCase),
                 ["IfImage"]         = isImage && !string.IsNullOrEmpty(imageBase64),
                 ["IfSeries"]        = !string.IsNullOrEmpty(item.SeriesName),
-                ["IfMovie"]         = item.MediaType.Equals("video", StringComparison.OrdinalIgnoreCase) && string.IsNullOrEmpty(item.SeriesName),
+                ["IfMovie"]         = string.Equals(item.MediaType, "video", StringComparison.OrdinalIgnoreCase)
+                                      && string.IsNullOrEmpty(item.SeriesName),
                 ["IfSeasonEpisode"] = item.Saison > 0 || item.Episode > 0,
                 ["IfEpisodeName"]   = !string.IsNullOrEmpty(item.EpisodeName)
             };

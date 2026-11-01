@@ -37,7 +37,7 @@ namespace NetMonitor.Service.Web // <-- IMPORTANT
             return TrRegex.Replace(html, m =>
             {
                 string key = m.Groups[1].Value.Trim();
-                string translated = LanguageManager.Get(key);
+                string? translated = LanguageManager.Get(key);  
                 return string.IsNullOrEmpty(translated) ? key : translated;
             });
         }

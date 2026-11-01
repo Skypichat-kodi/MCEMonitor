@@ -4,15 +4,16 @@ using System.IO;
 using System.Threading;
 using MCEMonitor.Languages;
 using NetMonitor.Service;
+using NetMonitor.Service.Web;
 
 namespace NetMonitor.Service
 {
     internal static class Program
     {
-        private static Mutex _mutex;
-        private static NetMonitorEngine _engine;
-        private static ServiceIpcServer _ipc;
-        private static Web.MiniHttpServer _webServer;
+        private static Mutex?              _mutex;                       
+        private static NetMonitorEngine    _engine        = null!;       
+        private static ServiceIpcServer?   _ipc;                         
+        private static MiniHttpServer?     _webServer;                  
         
         static void Main(string[] args)
         {
@@ -30,7 +31,7 @@ namespace NetMonitor.Service
             // ============================================================
             //  LANGUE
             // ============================================================
-            string selectedLang = null;
+            string? selectedLang = null;  
 
             for (int i = 0; i < args.Length - 1; i++)
             {

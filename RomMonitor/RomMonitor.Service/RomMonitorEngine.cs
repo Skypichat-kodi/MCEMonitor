@@ -17,7 +17,7 @@ namespace RomMonitor.Service
         private readonly AlertManager _alertManager;
         private readonly AlertHistory _history;
 
-        private Timer _timer;
+        private Timer? _timer;
         private bool _isRunning;
 
         // Cache des derniers résultats (pour IPC)
@@ -29,7 +29,7 @@ namespace RomMonitor.Service
         public IReadOnlyList<Alert> LastAlerts => _alertManager.GetAlerts();
         public DateTime LastCheckTime { get; private set; } = DateTime.MinValue;
 
-        public event Action OnUpdate;
+        public event Action? OnUpdate;
 
         public RomMonitorEngine(RomMonitorSettings settings)
         {

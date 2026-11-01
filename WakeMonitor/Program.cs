@@ -8,7 +8,7 @@ namespace WakeMonitor
 {
     internal class Program
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex;
 
         static async Task Main()
         {

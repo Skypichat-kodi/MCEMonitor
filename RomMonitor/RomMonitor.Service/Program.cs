@@ -1,18 +1,19 @@
-using System;
+Ôªøusing System;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Threading;
 using MCEMonitor.Languages;
+using RomMonitor.Service.Web;
 
 namespace RomMonitor.Service
 {
     internal static class Program
     {
-        private static Mutex _mutex;
-        private static RomMonitorEngine _engine;
-        private static ServiceIpcServer _ipc;
-        private static RomMonitor.Service.Web.MiniHttpServer _webServer;
+        private static Mutex?  _mutex;                        
+        private static RomMonitorEngine _engine       = null!; 
+        private static ServiceIpcServer? _ipc;                
+        private static MiniHttpServer?  _webServer;           
 
         static void Main(string[] args)
         {
@@ -21,16 +22,16 @@ namespace RomMonitor.Service
 
             if (!createdNew)
             {
-                CoreLog.Write("RomMonitor.Service dÈj‡ en cours. Sortie.");
+                CoreLog.Write("RomMonitor.Service d√©j√† en cours. Sortie.");
                 return;
             }
 
             RomMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("RomMonitor");
 
             // ============================================================
-            //  LANGUE : argument -lang xx-XX > fichier language.config > dÈfaut
+            //  LANGUE : argument -lang xx-XX > fichier language.config > d√©faut
             // ============================================================
-            string selectedLang = null;
+            string? selectedLang = null;
 
             // 1) Argument -lang fr-FR / en-GB
             for (int i = 0; i < args.Length - 1; i++)
@@ -42,7 +43,7 @@ namespace RomMonitor.Service
                 }
             }
 
-            // 2) Sinon : fichier Ècrit par MCEMonitor.exe
+            // 2) Sinon : fichier √©crit par MCEMonitor.exe
             if (string.IsNullOrEmpty(selectedLang))
             {
                 string cfgPath = Path.Combine(
@@ -67,7 +68,7 @@ namespace RomMonitor.Service
             //  Logs
             // ============================================================
             CoreLog.Clear();
-            CoreLog.Write($"=== RomMonitor.Service dÈmarrÈ (langue = {selectedLang}) ===");
+            CoreLog.Write($"=== RomMonitor.Service d√©marr√© (langue = {selectedLang}) ===");
 
             var settings = RomMonitorSettings.Load();
             CoreLog.Write($"Config : Interval={settings.Interval}min, AlertOnSmartFailure={settings.AlertOnSmartFailure}");
@@ -103,7 +104,7 @@ namespace RomMonitor.Service
                 _webServer = new RomMonitor.Service.Web.MiniHttpServer(_engine, settings);
                 _webServer.Start();
 
-                CoreLog.Write("WebServer redÈmarrÈ");
+                CoreLog.Write("WebServer red√©marr√©");
             }
             catch (Exception ex)
             {

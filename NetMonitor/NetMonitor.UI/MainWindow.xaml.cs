@@ -58,7 +58,7 @@ namespace NetMonitor.UI
         private bool _showAllHistory    = false;
         private bool _showAllAudit      = false;
 
-        private readonly DispatcherTimer    _refreshTimer;
+        private readonly DispatcherTimer    _refreshTimer = null!;
         private bool                        _isRefreshing = false;
         private DateTime                    _lastConfigWriteTime = DateTime.MinValue;
         private long                        _lastConfigSize = -1;
@@ -2517,7 +2517,7 @@ namespace NetMonitor.UI
                     _notifiedProblems.Add(key);
 
                     // On passe sur le thread UI pour afficher la popup
-                    Dispatcher.BeginInvoke(new Action(() =>
+                    _ = Dispatcher.BeginInvoke(new Action(() =>
                     {
                         // Cas spécial : échec WinDivert après retry → proposer un redémarrage PC
                         if (p.Category == "WinDivertRestart")
@@ -2539,7 +2539,7 @@ namespace NetMonitor.UI
                                     bool ok = await NetMonitorIpcClient.RestartComputerAsync();
                                     if (!ok)
                                     {
-                                        Dispatcher.BeginInvoke(new Action(() =>
+                                        _ = Dispatcher.BeginInvoke(new Action(() =>
                                             MessageBox.Show(
                                                 "Impossible de déclencher le redémarrage automatique.\n\n" +
                                                 "Veuillez redémarrer votre ordinateur manuellement.",

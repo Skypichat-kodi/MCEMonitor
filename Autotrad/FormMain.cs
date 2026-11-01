@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -36,11 +36,11 @@ namespace Autotrad
             // ?? Config d'abord (peut ouvrir un dossier langues)
             LoadConfig();
 
-            // …vÈnements DataGrid
+            // √âv√©nements DataGrid
             dataGridView1.SelectionChanged += dataGridView1_SelectionChanged;
             dataGridView1.CellClick += dataGridView1_CellClick;
 
-            // Positionner les contrÙles ancrÈs ‡ droite
+            // Positionner les contr√¥les ancr√©s √† droite
             PositionRightControls();
 
             // Re-positionner au redimensionnement
@@ -48,7 +48,7 @@ namespace Autotrad
         }
 
         // ============================================================
-        //  POSITIONNEMENT DES CONTR‘LES ANCR…S ¿ DROITE
+        //  POSITIONNEMENT DES CONTR√îLES ANCR√âS √Ä DROITE
         // ============================================================
         private void PositionRightControls()
         {
@@ -98,9 +98,9 @@ namespace Autotrad
         }
 
         // ============================================================
-        //  S…LECTION DANS LE TABLEAU
+        //  S√âLECTION DANS LE TABLEAU
         // ============================================================
-        private void dataGridView1_SelectionChanged(object sender, EventArgs e)
+        private void dataGridView1_SelectionChanged(object? sender, EventArgs e)   
         {
             if (dataGridView1.CurrentCell != null)
                 txtPreview.Text = dataGridView1.CurrentCell.Value?.ToString() ?? "";
@@ -129,7 +129,7 @@ namespace Autotrad
 
                 FillPreviewColumn();
 
-                lblStatus.Text = $"Fichier : {Path.GetFileName(dlg.FileName)} ó {list.Count} clÈ(s) dÈtectÈe(s)";
+                lblStatus.Text = $"Fichier : {Path.GetFileName(dlg.FileName)} ‚Äî {list.Count} cl√©(s) d√©tect√©e(s)";
             }
         }
 
@@ -181,13 +181,13 @@ namespace Autotrad
             int missing = allResults.Count(r => r.IsMissingKey);
 
             lblStatus.Text =
-                $"Dossier : {Path.GetFileName(folder)} ó " +
-                $"{files.Count} fichier(s), {allResults.Count} clÈ(s), " +
+                $"Dossier : {Path.GetFileName(folder)} ‚Äî " +
+                $"{files.Count} fichier(s), {allResults.Count} cl√©(s), " +
                 $"{missing} manquante(s)";
         }
 
         // ============================================================
-        //  LANGUE S…LECTIONN…E
+        //  LANGUE S√âLECTIONN√âE
         // ============================================================
         private string GetSelectedLangCode()
         {
@@ -283,7 +283,7 @@ namespace Autotrad
 
             var colPreview = new DataGridViewTextBoxColumn
             {
-                HeaderText = "AperÁu",
+                HeaderText = "Aper√ßu",
                 Name = "Preview",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 40,
@@ -295,7 +295,7 @@ namespace Autotrad
             var colText = new DataGridViewTextBoxColumn
             {
                 DataPropertyName = "Text",
-                HeaderText = "Texte dÈtectÈ",
+                HeaderText = "Texte d√©tect√©",
                 AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
                 FillWeight = 40,
                 ReadOnly = true,
@@ -334,7 +334,7 @@ namespace Autotrad
         }
 
         // ============================================================
-        //  COLORATION DES LIGNES (thËme sombre)
+        //  COLORATION DES LIGNES (th√®me sombre)
         // ============================================================
         private void dataGridView1_RowPrePaint(object sender, DataGridViewRowPrePaintEventArgs e)
         {
@@ -344,7 +344,7 @@ namespace Autotrad
 
             if (item.IsMissingKey)
             {
-                // ClÈ manquante ? fond lÈgËrement rouge/orange
+                // Cl√© manquante ? fond l√©g√®rement rouge/orange
                 row.DefaultCellStyle.BackColor = Color.FromArgb(80, 40, 40);
                 row.DefaultCellStyle.ForeColor = Color.FromArgb(255, 200, 200);
                 return;
@@ -352,13 +352,13 @@ namespace Autotrad
 
             if (!string.IsNullOrWhiteSpace(item.JsonValue))
             {
-                // Traduit ? fond lÈgËrement vert
+                // Traduit ? fond l√©g√®rement vert
                 row.DefaultCellStyle.BackColor = Color.FromArgb(40, 60, 40);
                 row.DefaultCellStyle.ForeColor = Color.FromArgb(200, 255, 200);
                 return;
             }
 
-            // Par dÈfaut ? fond sombre
+            // Par d√©faut ? fond sombre
             row.DefaultCellStyle.BackColor = Color.FromArgb(37, 37, 38);
             row.DefaultCellStyle.ForeColor = Color.FromArgb(229, 229, 229);
         }
@@ -383,7 +383,7 @@ namespace Autotrad
         }
 
         // ============================================================
-        //  DOUBLE-CLIC ? OUVRIR DANS L'…DITEUR
+        //  DOUBLE-CLIC ? OUVRIR DANS L'√âDITEUR
         // ============================================================
         private void dataGridView1_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
@@ -442,13 +442,13 @@ namespace Autotrad
 
             if (string.IsNullOrEmpty(_langFolder) || !Directory.Exists(_langFolder))
             {
-                MessageBox.Show("Aucun dossier de langues n'est configurÈ. Veuillez en choisir un.");
-                ChoisirDossierLangues_Click(null, null);
+                MessageBox.Show("Aucun dossier de langues n'est configur√©. Veuillez en choisir un.");
+                ChoisirDossierLangues();   // ‚Üê appel de la m√©thode sans params
             }
 
             lblLangFolder.Text = $"Dossier : {_langFolder}";
 
-            // Charger la clÈ API
+            // Charger la cl√© API
             LoadApiKey();
         }
 
@@ -479,7 +479,7 @@ namespace Autotrad
         }
 
         // ============================================================
-        //  CL… API
+        //  CL√â API
         // ============================================================
         private void LoadApiKey()
         {
@@ -504,8 +504,8 @@ namespace Autotrad
             if (string.IsNullOrWhiteSpace(key))
             {
                 MessageBox.Show(
-                    "Veuillez saisir une clÈ API valide.",
-                    "ClÈ vide",
+                    "Veuillez saisir une cl√© API valide.",
+                    "Cl√© vide",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
                 );
@@ -514,10 +514,10 @@ namespace Autotrad
 
             SaveConfig();
 
-            lblStatus.Text = "ClÈ API sauvegardÈe.";
+            lblStatus.Text = "Cl√© API sauvegard√©e.";
 
             MessageBox.Show(
-                "ClÈ API sauvegardÈe.",
+                "Cl√© API sauvegard√©e.",
                 "OK",
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information
@@ -527,7 +527,7 @@ namespace Autotrad
         // ============================================================
         //  CHOISIR DOSSIER LANGUES
         // ============================================================
-        private void ChoisirDossierLangues_Click(object sender, EventArgs e)
+        private void ChoisirDossierLangues()
         {
             using var dlg = new FolderBrowserDialog();
             dlg.Description = "Choisissez le dossier contenant fr-FR.json et en-GB.json";
@@ -541,8 +541,13 @@ namespace Autotrad
                 lblLangFolder.Text = $"Dossier : {_langFolder}";
                 PositionRightControls();
 
-                MessageBox.Show("Dossier des langues mis ‡ jour.");
+                MessageBox.Show("Dossier des langues mis √† jour.");
             }
+        }
+
+        private void ChoisirDossierLangues_Click(object? sender, EventArgs e)
+        {
+            ChoisirDossierLangues();
         }
 
         // ============================================================
@@ -569,7 +574,7 @@ namespace Autotrad
 
             SaveJson();
 
-            // RafraÓchir l'affichage
+            // Rafra√Æchir l'affichage
             if (Directory.Exists(_lastOpenedFile))
             {
                 ChargerDossier(_lastOpenedFile);
@@ -582,10 +587,10 @@ namespace Autotrad
                 FillPreviewColumn();
             }
 
-            lblStatus.Text = $"Modifications appliquÈes : {applied} clÈ(s).";
+            lblStatus.Text = $"Modifications appliqu√©es : {applied} cl√©(s).";
 
-            MessageBox.Show($"Modifications appliquÈes au fichier JSON ({applied} clÈ(s)).",
-                "SuccËs",
+            MessageBox.Show($"Modifications appliqu√©es au fichier JSON ({applied} cl√©(s)).",
+                "Succ√®s",
                 MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
@@ -613,7 +618,7 @@ namespace Autotrad
                 if (string.IsNullOrEmpty(apiKey))
                 {
                     MessageBox.Show(
-                        "Aucune clÈ API configurÈe. Saisissez-la dans le champ en haut.",
+                        "Aucune cl√© API configur√©e. Saisissez-la dans le champ en haut.",
                         "Configuration manquante",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning
@@ -656,7 +661,7 @@ namespace Autotrad
                     return translated.GetString() ?? "";
 
                 MessageBox.Show(
-                    "RÈponse inattendue de l'API :\n" + result,
+                    "R√©ponse inattendue de l'API :\n" + result,
                     "Erreur",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
@@ -666,7 +671,7 @@ namespace Autotrad
             catch (TaskCanceledException)
             {
                 MessageBox.Show(
-                    "La traduction a expirÈ (timeout 30s).",
+                    "La traduction a expir√© (timeout 30s).",
                     "Timeout",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Warning
@@ -688,7 +693,7 @@ namespace Autotrad
         // ============================================================
         //  CLIC SUR LE BOUTON "TRAD"
         // ============================================================
-        private async void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        private async void dataGridView1_CellClick(object? sender, DataGridViewCellEventArgs e)   
         {
             if (e.RowIndex < 0)
                 return;
@@ -715,11 +720,11 @@ namespace Autotrad
                 item.JsonValue = translated;
                 dataGridView1.Refresh();
 
-                lblStatus.Text = $"Traduit : {sourceText} ? {translated}";
+                lblStatus.Text = $"Traduit : {sourceText} ‚Üí {translated}";
             }
             else
             {
-                lblStatus.Text = "Traduction annulÈe ou ÈchouÈe.";
+                lblStatus.Text = "Traduction annul√©e ou √©chou√©e.";
             }
         }
     }

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -22,7 +22,7 @@ namespace RomMonitor.Service.Web
                 var alerts = engine.LastAlerts;
 
                 // ============================================================
-                //  1. Matching SMART ? disque physique (même logique que l'UI)
+                //  1. Matching SMART ? disque physique (mÃªme logique que l'UI)
                 // ============================================================
                 var diskNumberToSmart = new Dictionary<int, SmartInfo>();
                 var usedSmartSerials = new HashSet<string>();
@@ -89,7 +89,7 @@ namespace RomMonitor.Service.Web
 
                 foreach (var d in disks)
                 {
-                    // Match UNIQUEMENT par numéro de disque physique
+                    // Match UNIQUEMENT par numÃ©ro de disque physique
                     SmartInfo? match = null;
 
                     if (d.PhysicalDiskNumber.HasValue &&
@@ -98,7 +98,7 @@ namespace RomMonitor.Service.Web
                         match = m;
                     }
 
-                    // Priorité : Critical d'abord, puis Warning (même logique que RomMonitorEngine)
+                    // PrioritÃ© : Critical d'abord, puis Warning (mÃªme logique que RomMonitorEngine)
                     bool isCritical = d.FreePercent < settings.DiskSpaceCriticalPercent
                                       || d.FreeGo < settings.DiskSpaceCriticalGo;
 
@@ -109,7 +109,7 @@ namespace RomMonitor.Service.Web
                                      : isWarning  ? "warning"
                                      : "ok";
 
-                    // Formate avec point décimal (culture invariante) pour que ce soit CSS-compatible
+                    // Formate avec point dÃ©cimal (culture invariante) pour que ce soit CSS-compatible
                     string usedPercent = (100 - d.FreePercent).ToString("F1", CultureInfo.InvariantCulture);
                     string freePercent = d.FreePercent.ToString("F1", CultureInfo.InvariantCulture);
                     string totalGo     = d.TotalGo.ToString("F1", CultureInfo.InvariantCulture);
@@ -125,17 +125,18 @@ namespace RomMonitor.Service.Web
                                       : smartStatus == "Critical" ? "danger"
                                       : "na";
 
-                    string tempText = match?.Temperature.HasValue == true
-                        ? $"{match.Temperature}°C"
+                    double? temp = match?.Temperature;
+                    string tempText = temp.HasValue
+                        ? $"{temp.Value}Â°C"
                         : (LanguageManager.Get("N/A") ?? "N/A");
 
-                    // ? NOUVEAU : heures de fonctionnement
-                    string hoursText = match?.PowerOnHours.HasValue == true
-                        ? $"{match.PowerOnHours.Value:N0} h"
+                    // heures de fonctionnement
+                    int? hours = match?.PowerOnHours;
+                    string hoursText = hours.HasValue
+                        ? $"{hours.Value:N0} h"
                         : (LanguageManager.Get("N/A") ?? "N/A");
-
-                    string hoursRaw = match?.PowerOnHours?.ToString(CultureInfo.InvariantCulture) ?? "";
-                    string tempRaw  = match?.Temperature?.ToString(CultureInfo.InvariantCulture) ?? "";
+                                        string hoursRaw = match?.PowerOnHours?.ToString(CultureInfo.InvariantCulture) ?? "";
+                                        string tempRaw  = match?.Temperature?.ToString(CultureInfo.InvariantCulture) ?? "";
 
                     diskRows.Append($@"
                         <tr>
@@ -180,19 +181,19 @@ namespace RomMonitor.Service.Web
                 }
 
                 // ============================================================
-                //  4. Modèle final
+                //  4. ModÃ¨le final
                 // ============================================================
                 var model = new Dictionary<string, object?>
                 {
                     ["MachineName"] = Environment.MachineName,
-                    ["LastCheck"] = engine.LastCheckTime == DateTime.MinValue
+                    ["LastCheck"]   = engine.LastCheckTime == DateTime.MinValue
                         ? (LanguageManager.Get("Jamais") ?? "Jamais")
                         : engine.LastCheckTime.ToString("dd/MM/yyyy HH:mm:ss"),
-                    ["DiskCount"] = disks.Count,
-                    ["SmartCount"] = smart.Count,
-                    ["AlertCount"] = alerts.Count,
-                    ["DiskRows"] = diskRows.ToString(),
-                    ["AlertRows"] = alertRows.ToString()
+                    ["DiskCount"]   = disks?.Count  ?? 0,
+                    ["SmartCount"]  = smart?.Count  ?? 0,
+                    ["AlertCount"]  = alerts?.Count ?? 0,
+                    ["DiskRows"]    = diskRows.ToString(),
+                    ["AlertRows"]   = alertRows.ToString()
                 };
 
                 string html = ViewRenderer.Render("RomPage.html", model);

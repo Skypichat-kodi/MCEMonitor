@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -11,8 +11,8 @@ namespace MediaMonitor.Tray
 {
     public class TrayApplicationContext : ApplicationContext
     {
-        private NotifyIcon trayIcon;
-        private Timer watchdog;
+        private NotifyIcon trayIcon = null!;
+        private Timer watchdog = null!;
 
         public TrayApplicationContext()
         {
@@ -22,7 +22,7 @@ namespace MediaMonitor.Tray
         private void InitializeTray()
         {
             // ------------------------------------------------------------
-            // Chargement de l'ic�ne (embedded resource)
+            // Chargement de l'icône (embedded resource)
             // ------------------------------------------------------------
             Icon icon = EmbeddedResourceLoader.LoadIcon("MediaMonitor.ico") ?? SystemIcons.Application;
 
@@ -145,7 +145,7 @@ namespace MediaMonitor.Tray
         // ------------------------------------------------------------
         //  Watchdog
         // ------------------------------------------------------------
-        private void Watchdog_Tick(object sender, EventArgs e)
+        private void Watchdog_Tick(object? sender, EventArgs e)
         {
             bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Any();
 

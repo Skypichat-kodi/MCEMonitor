@@ -85,7 +85,7 @@ namespace WakeMonitor
                 }
 
                 string output = SafeResult(outTask);
-                string lastIp = null;
+                string? lastIp = null;
 
                 foreach (string line in output.Split('\n'))
                 {

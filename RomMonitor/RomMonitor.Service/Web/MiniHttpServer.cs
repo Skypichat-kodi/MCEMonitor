@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -15,8 +15,8 @@ namespace RomMonitor.Service.Web
     {
         private readonly RomMonitorEngine _engine;
         private readonly RomMonitorSettings _settings;
-        private HttpListener _listener;
-        private Thread _thread;
+        private HttpListener? _listener;   
+        private Thread?       _thread;     
         private bool _running;
         private int _currentPort;
 
@@ -32,7 +32,7 @@ namespace RomMonitor.Service.Web
 
             if (!_settings.WebEnabled)
             {
-                CoreLog.Write("WebServer : désactivé (WebEnabled=false)");
+                CoreLog.Write("WebServer : dÃ©sactivÃ© (WebEnabled=false)");
                 return;
             }
 
@@ -49,7 +49,7 @@ namespace RomMonitor.Service.Web
                 _thread = new Thread(ServerLoop) { IsBackground = true };
                 _thread.Start();
 
-                CoreLog.Write($"WebServer démarré sur http://+:{_currentPort}/ (langue = {LanguageManager.CurrentLanguage})");
+                CoreLog.Write($"WebServer dÃ©marrÃ© sur http://+:{_currentPort}/ (langue = {LanguageManager.CurrentLanguage})");
             }
             catch (Exception ex)
             {
@@ -65,7 +65,7 @@ namespace RomMonitor.Service.Web
                 _listener?.Stop();
                 _listener?.Close();
                 _listener = null;
-                CoreLog.Write("WebServer arreté");
+                CoreLog.Write("WebServer arretÃ©");
             }
             catch { }
         }
@@ -107,14 +107,14 @@ namespace RomMonitor.Service.Web
                     return;
                 }
 
-                // Langue demandée par l'URL (?lang=fr-FR)
-                string lang = ctx.Request.QueryString["lang"];
+                // Langue demandÃ©e par l'URL (?lang=fr-FR)
+                string? lang = ctx.Request.QueryString["lang"];
                 if (!string.IsNullOrEmpty(lang))
                 {
                     LanguageManager.Load(lang);
                 }
 
-                string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
 
                 if (path == "/" || path == "/rom")
                 {
@@ -200,7 +200,7 @@ namespace RomMonitor.Service.Web
                     try
                     {
                         _engine.ClearAlerts();
-                        CoreLog.Write("WebServer : historique des alertes vidé via web");
+                        CoreLog.Write("WebServer : historique des alertes vidÃ© via web");
                     }
                     catch (Exception ex)
                     {
@@ -283,7 +283,7 @@ namespace RomMonitor.Service.Web
 
         private bool CheckAuth(HttpListenerContext ctx)
         {
-            string auth = ctx.Request.Headers["Authorization"];
+            string? auth = ctx.Request.Headers["Authorization"]; 
 
             if (string.IsNullOrEmpty(auth) || !auth.StartsWith("Basic "))
                 return false;
@@ -332,7 +332,7 @@ namespace RomMonitor.Service.Web
                 string baseDir = AppContext.BaseDirectory;
                 string fullPath = Path.Combine(baseDir, relative);
 
-                // Sécurité : empecher la remontée de dossier
+                // SÃ©curitÃ© : empecher la remontÃ©e de dossier
                 string baseFull = Path.GetFullPath(baseDir);
                 string requestedFull = Path.GetFullPath(fullPath);
 

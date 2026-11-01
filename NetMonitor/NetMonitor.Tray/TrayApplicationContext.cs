@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -16,16 +16,16 @@ namespace NetMonitor.Tray
 {
     public class TrayApplicationContext : ApplicationContext
     {
-        private NotifyIcon trayIcon;
-        private Timer watchdog;
-        private Timer severityTimer;
-        private Timer? startupTimer;
+        private NotifyIcon trayIcon      = null!;
+        private Timer      watchdog      = null!;
+        private Timer      severityTimer = null!;
+        private Timer?     startupTimer;            
 
-        private Icon _defaultIcon;
-        private Icon _warningIcon;
-        private Icon _criticalIcon;
-        private System.Media.SoundPlayer? _criticalPlayer;
-        private System.Media.SoundPlayer? _warningPlayer;
+        private Icon _defaultIcon  = null!;      
+        private Icon _warningIcon  = null!;      
+        private Icon _criticalIcon = null!;      
+        private System.Media.SoundPlayer? _criticalPlayer;   
+        private System.Media.SoundPlayer? _warningPlayer;    
 
         private string _currentSeverity = "";
         private int _startupCheckCount = 0;
@@ -34,13 +34,13 @@ namespace NetMonitor.Tray
         private const string PIPE_NAME = "MCEMonitor_NetMonitorPipe";
 
         // ------------------------------------------------------------
-        //  IcÙnes
+        //  Ic√¥nes
         // ------------------------------------------------------------
         private void LoadIcons()
         {
             try
             {
-                CoreLog.Info("LoadIcons : dÈbut (embedded resources)");
+                CoreLog.Info("LoadIcons : d√©but (embedded resources)");
 
                 _defaultIcon = EmbeddedResourceLoader.LoadIcon("NetMonitor.ico") ?? SystemIcons.Application;
                 _warningIcon = EmbeddedResourceLoader.LoadPngAsIcon("warning.png") ?? _defaultIcon;
@@ -85,7 +85,7 @@ namespace NetMonitor.Tray
                 LoadSounds();
                 InitializeTray();
 
-                CoreLog.Info("==== TrayApplicationContext : prÍt ====");
+                CoreLog.Info("==== TrayApplicationContext : pr√™t ====");
             }
             catch (Exception ex)
             {
@@ -101,7 +101,7 @@ namespace NetMonitor.Tray
         {
             try
             {
-                CoreLog.Info("InitializeTray : dÈbut");
+                CoreLog.Info("InitializeTray : d√©but");
 
                 trayIcon = new NotifyIcon()
                 {
@@ -110,7 +110,7 @@ namespace NetMonitor.Tray
                     Text = "NetMonitor"
                 };
 
-                CoreLog.Info("InitializeTray : NotifyIcon crÈÈ (Visible=true)");
+                CoreLog.Info("InitializeTray : NotifyIcon cr√©√© (Visible=true)");
 
                 trayIcon.DoubleClick += (s, e) => ShowProblemsPopup();
                 trayIcon.MouseClick += (s, e) =>
@@ -160,7 +160,7 @@ namespace NetMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  SÈvÈritÈ
+        //  S√©v√©rit√©
         // ------------------------------------------------------------
         private void CheckSeverity()
         {
@@ -237,7 +237,7 @@ namespace NetMonitor.Tray
                 if (alerts == null) return new List<ProblemInfo>();
 
                 return alerts
-                    .GroupBy(a => a.remoteIp ?? a.source) // ? On groupe par IP (ou par dÈtecteur si pas d'IP)
+                    .GroupBy(a => a.remoteIp ?? a.source) // ? On groupe par IP (ou par d√©tecteur si pas d'IP)
                     .Select(g =>
                     {
                         var mostSevere = g.OrderByDescending(x => 
@@ -369,15 +369,15 @@ namespace NetMonitor.Tray
             {
                 _watchdogMisses++;
 
-                // TolËre 4 Èchecs consÈcutifs (60 s) avant de quitter.
-                // Laisse le temps ‡ la t‚che planifiÈe SYSTEM de dÈmarrer le service.
+                // Tol√®re 4 √©checs cons√©cutifs (60 s) avant de quitter.
+                // Laisse le temps √† la t√¢che planifi√©e SYSTEM de d√©marrer le service.
                 if (_watchdogMisses < 4)
                 {
                     CoreLog.Info($"Watchdog : service absent ({_watchdogMisses}/4), on attend...");
                     return;
                 }
 
-                CoreLog.Info("Watchdog : service arrÍtÈ ? fermeture du Tray");
+                CoreLog.Info("Watchdog : service arr√™t√© ? fermeture du Tray");
                 trayIcon.Visible = false;
                 trayIcon.Dispose();
                 Application.Exit();
@@ -393,7 +393,7 @@ namespace NetMonitor.Tray
         // ------------------------------------------------------------
         private void Exit()
         {
-            CoreLog.Info("Exit : demande d'arrÍt");
+            CoreLog.Info("Exit : demande d'arr√™t");
 
             try
             {

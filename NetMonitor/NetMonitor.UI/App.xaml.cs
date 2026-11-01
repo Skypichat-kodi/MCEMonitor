@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
@@ -13,7 +13,7 @@ namespace NetMonitor.UI
 {
     public partial class App : Application
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex;
 
         private const string MutexName = "Global\\MCEMonitor_NetMonitorUI";
         private const string PipeName  = "MCEMonitor_NetMonitorUI_Activate";
@@ -149,8 +149,8 @@ namespace NetMonitor.UI
             if (GetForegroundWindow() == hwnd)
             {
                 MessageBox.Show(
-                    "NetMonitor.UI est dÈj‡ au premier plan.",
-                    "Instance dÈj‡ active",
+                    "NetMonitor.UI est d√©j√† au premier plan.",
+                    "Instance d√©j√† active",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -15,16 +15,16 @@ namespace SystemMonitor.Tray
 {
     public class TrayApplicationContext : ApplicationContext
     {
-        private NotifyIcon trayIcon;
-        private Timer watchdog;
-        private Timer severityTimer;
-        private Timer? startupTimer;
+        private NotifyIcon trayIcon      = null!;   
+        private Timer      watchdog      = null!;   
+        private Timer      severityTimer = null!;   
+        private Timer?     startupTimer;         
 
-        private Icon _defaultIcon;
-        private Icon _warningIcon;
-        private Icon _criticalIcon;
+        private Icon _defaultIcon  = null!;         
+        private Icon _warningIcon  = null!;         
+        private Icon _criticalIcon = null!;         
         private System.Media.SoundPlayer? _criticalPlayer;
-        private System.Media.SoundPlayer? _warningPlayer;        
+        private System.Media.SoundPlayer? _warningPlayer;     
 
         private string _currentSeverity = "";
 
@@ -33,7 +33,7 @@ namespace SystemMonitor.Tray
         private const string PIPE_NAME = "MCEMonitor_SystemMonitorPipe";
 
         // ------------------------------------------------------------
-        //  Chargement des icônes (embedded resources)
+        //  Chargement des icÃ´nes (embedded resources)
         // ------------------------------------------------------------
         private void LoadIcons()
         {
@@ -70,7 +70,7 @@ namespace SystemMonitor.Tray
                 Text = "SystemMonitor"
             };
 
-            // Clic gauche / double-clic ? ouvrir le popup des problèmes
+            // Clic gauche / double-clic ? ouvrir le popup des problÃ¨mes
             trayIcon.DoubleClick += (s, e) => ShowProblemsPopup();
             trayIcon.MouseClick += (s, e) =>
             {
@@ -92,13 +92,13 @@ namespace SystemMonitor.Tray
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
 
-            // Vérification sévérité (30s)
+            // VÃ©rification sÃ©vÃ©ritÃ© (30s)
             severityTimer = new Timer();
             severityTimer.Interval = 30000;
             severityTimer.Tick += SeverityTimer_Tick;
             severityTimer.Start();
 
-            // Phase de démarrage : check toutes les 5s pendant 60s
+            // Phase de dÃ©marrage : check toutes les 5s pendant 60s
             _startupCheckCount = 0;
 
             startupTimer = new Timer();
@@ -119,7 +119,7 @@ namespace SystemMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Timer de sévérité
+        //  Timer de sÃ©vÃ©ritÃ©
         // ------------------------------------------------------------
         private void SeverityTimer_Tick(object? sender, EventArgs e)
         {
@@ -154,8 +154,8 @@ namespace SystemMonitor.Tray
                         _ => "SystemMonitor"
                     };
 
-                    // Son uniquement lors d'une transition vers un état d'alerte.
-                    // On ne joue rien au premier check (démarrage), ni au retour à "ok".
+                    // Son uniquement lors d'une transition vers un Ã©tat d'alerte.
+                    // On ne joue rien au premier check (dÃ©marrage), ni au retour Ã  "ok".
                     if (!string.IsNullOrEmpty(_currentSeverity))
                     {
                         if (severity == "critical")
@@ -175,7 +175,7 @@ namespace SystemMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Requête IPC : get-problems ? liste des problèmes
+        //  RequÃªte IPC : get-problems ? liste des problÃ¨mes
         // ------------------------------------------------------------
         private List<ProblemInfo> GetProblems()
         {
@@ -221,7 +221,7 @@ namespace SystemMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Requête IPC : get-status ? worstSeverity
+        //  RequÃªte IPC : get-status ? worstSeverity
         // ------------------------------------------------------------
         private string? GetWorstSeverity()
         {
@@ -398,7 +398,7 @@ namespace SystemMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Afficher le popup des problèmes
+        //  Afficher le popup des problÃ¨mes
         // ------------------------------------------------------------
         private void ShowProblemsPopup()
         {
@@ -412,7 +412,7 @@ namespace SystemMonitor.Tray
                 popup.OnOpenMCEMonitor += () => OpenMCEMonitor();
                 popup.OnQuit += () => Exit();
 
-                // Nettoyage automatique à la fermeture
+                // Nettoyage automatique Ã  la fermeture
                 popup.FormClosed += (s, e) => popup.Dispose();
 
                 popup.ShowAtTrayPosition();
@@ -429,9 +429,9 @@ namespace SystemMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Alarme CRITIQUE : sirène + double bip final, 3 répétitions
-        //  - Si alarm.wav existe, il est joué 3 fois
-        //  - Sinon, sirène synthétisée via Console.Beep (thread séparé)
+        //  Alarme CRITIQUE : sirÃ¨ne + double bip final, 3 rÃ©pÃ©titions
+        //  - Si alarm.wav existe, il est jouÃ© 3 fois
+        //  - Sinon, sirÃ¨ne synthÃ©tisÃ©e via Console.Beep (thread sÃ©parÃ©)
         // ------------------------------------------------------------
         private void PlayCriticalAlarm()
         {
@@ -449,7 +449,7 @@ namespace SystemMonitor.Tray
                         return;
                     }
 
-                    // Sirène : montée 700 -> 1800 Hz puis descente, x3
+                    // SirÃ¨ne : montÃ©e 700 -> 1800 Hz puis descente, x3
                     for (int rep = 0; rep < 3; rep++)
                     {
                         for (int f = 700; f <= 1800; f += 80)
@@ -462,7 +462,7 @@ namespace SystemMonitor.Tray
                         Thread.Sleep(120);
                     }
 
-                    // coup de grâce : 3 bips stridents qui se suivent
+                    // coup de grÃ¢ce : 3 bips stridents qui se suivent
                     Console.Beep(2200, 250);
                     Console.Beep(1100, 250);
                     Console.Beep(2200, 250);
@@ -473,8 +473,8 @@ namespace SystemMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Alarme WARNING : plus discrète que le critique
-        //  - Si warning.wav existe, joué une fois
+        //  Alarme WARNING : plus discrÃ¨te que le critique
+        //  - Si warning.wav existe, jouÃ© une fois
         //  - Sinon, double bip court
         // ------------------------------------------------------------
         private void PlayWarningAlarm()
@@ -489,7 +489,7 @@ namespace SystemMonitor.Tray
                         return;
                     }
 
-                    // 2 bips courts, moins agressifs que la sirène critique
+                    // 2 bips courts, moins agressifs que la sirÃ¨ne critique
                     Console.Beep(1200, 150);
                     Thread.Sleep(80);
                     Console.Beep(1200, 150);

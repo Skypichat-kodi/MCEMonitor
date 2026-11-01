@@ -13,7 +13,7 @@ namespace SystemMonitor.UI
 {
     public partial class App : Application
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex;
 
         private const string MutexName = "Global\\MCEMonitor_SystemMonitorUI";
         private const string PipeName  = "MCEMonitor_SystemMonitorUI_Activate";

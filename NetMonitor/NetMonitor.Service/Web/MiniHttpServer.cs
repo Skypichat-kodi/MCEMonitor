@@ -13,8 +13,8 @@ namespace NetMonitor.Service.Web
     {
         private readonly NetMonitorEngine _engine;
         private readonly NetMonitorSettings _settings;
-        private HttpListener _listener;
-        private Thread _thread;
+        private HttpListener? _listener;  
+        private Thread?       _thread;    
         private bool _running;
         private int _currentPort;
 
@@ -96,7 +96,7 @@ namespace NetMonitor.Service.Web
                     return;
                 }
 
-                string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
 
                 if (path == "/" || path == "/net")
                 {
@@ -406,7 +406,7 @@ namespace NetMonitor.Service.Web
 
         private bool CheckAuth(HttpListenerContext ctx)
         {
-            string auth = ctx.Request.Headers["Authorization"];
+            string? auth = ctx.Request.Headers["Authorization"];
 
             if (string.IsNullOrEmpty(auth) || !auth.StartsWith("Basic "))
                 return false;

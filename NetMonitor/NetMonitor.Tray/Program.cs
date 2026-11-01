@@ -8,7 +8,7 @@ namespace NetMonitor.Tray
 {
     internal static class Program
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex;
 
         [STAThread]
         static void Main()

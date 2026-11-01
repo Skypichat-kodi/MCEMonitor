@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -8,7 +8,7 @@ using Timer = System.Timers.Timer;
 namespace SystemMonitor.Service
 {
     /// <summary>
-    /// Orchestrateur principal : boucle de rafraÓchissement toutes les X secondes.
+    /// Orchestrateur principal : boucle de rafra√Æchissement toutes les X secondes.
     /// </summary>
     public class SystemMonitorEngine
     {
@@ -22,7 +22,7 @@ namespace SystemMonitor.Service
         private readonly Queue<double> _cpuHistory = new();
         private readonly Queue<double> _ramHistory = new();
 
-        private Timer _timer;
+        private Timer? _timer;   
         private bool _isRunning;
         private SystemSnapshot _lastSnapshot = new();
 
@@ -30,7 +30,7 @@ namespace SystemMonitor.Service
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
         public bool IsRunning => _isRunning;
 
-        public event Action OnUpdate;
+        public event Action? OnUpdate;   
 
         public string WorstSeverity
         {
@@ -59,7 +59,7 @@ namespace SystemMonitor.Service
         {
             _settings = settings;
 
-            // Historique des alertes ó on CONSERVE ce qui existe dÈj‡ sur disque.
+            // Historique des alertes ‚Äî on CONSERVE ce qui existe d√©j√† sur disque.
             // Le constructeur d'AlertHistory charge automatiquement le fichier JSON.
             _history = new AlertHistory();
             _alertManager = new AlertManager(settings, _history);
@@ -70,7 +70,7 @@ namespace SystemMonitor.Service
             // Historique des BSOD
             _bsodHistory = new BsodHistory();
 
-            // Collecte matÈrielle
+            // Collecte mat√©rielle
             _hardware = new HardwareMonitorService();
         }
 
@@ -79,7 +79,7 @@ namespace SystemMonitor.Service
             if (_isRunning) return;
             _isRunning = true;
 
-            CoreLog.Write($"SystemMonitorEngine dÈmarrÈ (intervalle = {_settings.Interval} s)");
+            CoreLog.Write($"SystemMonitorEngine d√©marr√© (intervalle = {_settings.Interval} s)");
 
             _timer = new Timer(_settings.Interval * 1000);
             _timer.Elapsed += (s, e) => Tick();
@@ -94,19 +94,19 @@ namespace SystemMonitor.Service
         {
             _isRunning = false;
             _timer?.Stop();
-            CoreLog.Write("SystemMonitorEngine arrÍtÈ");
+            CoreLog.Write("SystemMonitorEngine arr√™t√©");
         }
 
         public void ForceTick()
         {
-            CoreLog.Write("ForceTick demandÈ via IPC");
+            CoreLog.Write("ForceTick demand√© via IPC");
             Task.Run(() => Tick());
         }
 
         /// <summary>
         /// True tant que les buffers CPU/RAM n'ont pas atteint leur taille cible.
-        /// UtilisÈ pour Èviter les fausses alertes au dÈmarrage du service
-        /// (phase de chauffe de 60 s aprËs le boot).
+        /// Utilis√© pour √©viter les fausses alertes au d√©marrage du service
+        /// (phase de chauffe de 60 s apr√®s le boot).
         /// </summary>
         private bool IsWarmupPhase
         {
@@ -146,14 +146,14 @@ namespace SystemMonitor.Service
                 });
 
                 // Ignorer les seuils CPU/RAM tant que la moyenne
-                // n'est pas stabilisÈe (phase de chauffe de 60 s au dÈmarrage)
+                // n'est pas stabilis√©e (phase de chauffe de 60 s au d√©marrage)
                 if (!IsWarmupPhase)
                 {
                     CheckThresholds(snap);
                 }
                 else
                 {
-                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{Math.Max(2, 60 / Math.Max(1, _settings.Interval))} Èchantillons)");
+                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{Math.Max(2, 60 / Math.Max(1, _settings.Interval))} √©chantillons)");
                 }
 
                 ScanForBsods();
@@ -173,7 +173,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  VÈrification des seuils
+        //  V√©rification des seuils
         // ============================================================
         private void CheckThresholds(SystemSnapshot snap)
         {
@@ -221,18 +221,20 @@ namespace SystemMonitor.Service
                 }
             }
             
-            // --- TempÈrature CPU ---
+            // --- Temp√©rature CPU ---
             if (_settings.AlertOnHighTemp &&
                 snap.Cpu.Temperature.HasValue &&
                 snap.Cpu.Temperature.Value >= _settings.TempThresholdCelsius)
             {
+                double tempValue = snap.Cpu.Temperature.Value;
+
                 var alert = new Alert
                 {
                     Timestamp = DateTime.Now,
                     Type = AlertType.TempHigh,
                     Severity = "Critical",
                     Target = "CPU Temp",
-                    Message = $"TempÈrature CPU : {snap.Cpu.Temperature.Value:F1}∞C (seuil : {_settings.TempThresholdCelsius}∞C)",
+                    Message = $"Temp√©rature CPU : {tempValue:F1}¬∞C (seuil : {_settings.TempThresholdCelsius}¬∞C)",
                     EmailSent = false
                 };
 
@@ -240,11 +242,11 @@ namespace SystemMonitor.Service
                 {
                     _ = SendTempAlertEmailAsync(snap.Cpu);
                     alert.EmailSent = true;
-                    _alertManager.Add(alert);
+                    _alertManager.Add(alert);  
                 }
             }
 
-            // --- TempÈrature GPU (NOUVEAU) ---
+            // --- Temp√©rature GPU ---
             if (_settings.AlertOnHighGpuTemp)
             {
                 foreach (var gpu in snap.Gpus)
@@ -252,7 +254,9 @@ namespace SystemMonitor.Service
                     if (!gpu.Temperature.HasValue)
                         continue;
 
-                    if (gpu.Temperature.Value < _settings.GpuTempThresholdCelsius)
+                    double gpuTempValue = gpu.Temperature.Value;  
+
+                    if (gpuTempValue < _settings.GpuTempThresholdCelsius)
                         continue;
 
                     var alert = new Alert
@@ -261,7 +265,7 @@ namespace SystemMonitor.Service
                         Type = AlertType.GpuTempHigh,
                         Severity = "Critical",
                         Target = gpu.Name,
-                        Message = $"TempÈrature GPU {gpu.Name} : {gpu.Temperature.Value:F1}∞C (seuil : {_settings.GpuTempThresholdCelsius}∞C)",
+                        Message = $"Temp√©rature GPU {gpu.Name} : {gpuTempValue:F1}¬∞C (seuil : {_settings.GpuTempThresholdCelsius}¬∞C)",   
                         EmailSent = false
                     };
 
@@ -286,12 +290,12 @@ namespace SystemMonitor.Service
 
                 if (string.IsNullOrEmpty(cfg.Server))
                 {
-                    CoreLog.Write("[EMAIL] Config email vide, envoi annulÈ");
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annul√©");
                     return;
                 }
 
                 // === Capture des top processus (CPU + RAM) ===
-                // Task.Run pour ne pas bloquer le thread du moteur pendant l'Èchantillonnage.
+                // Task.Run pour ne pas bloquer le thread du moteur pendant l'√©chantillonnage.
                 var report = await Task.Run(() =>
                     TopProcessesCollector.Collect(topN: 5, sampleMs: 1000));
 
@@ -302,18 +306,18 @@ namespace SystemMonitor.Service
                 string body = $@"
                     <p><b>Processeur :</b> {cpu.Name}</p>
                     <p><b>Utilisation :</b> <span style='color:#c0392b'>{cpu.UsagePercent:F1} %</span></p>
-                    <p><b>Seuil configurÈ :</b> {_settings.CpuThresholdPercent} %</p>
-                    {(cpu.Temperature.HasValue ? $"<p><b>TempÈrature :</b> {cpu.Temperature.Value:F1}∞C</p>" : "")}
-                    {(cpu.FrequencyMHz.HasValue ? $"<p><b>FrÈquence :</b> {cpu.FrequencyMHz.Value:F0} MHz</p>" : "")}
+                    <p><b>Seuil configur√© :</b> {_settings.CpuThresholdPercent} %</p>
+                    {(cpu.Temperature.HasValue ? $"<p><b>Temp√©rature :</b> {cpu.Temperature.Value:F1}¬∞C</p>" : "")}
+                    {(cpu.FrequencyMHz.HasValue ? $"<p><b>Fr√©quence :</b> {cpu.FrequencyMHz.Value:F0} MHz</p>" : "")}
                     {processesHtml}";
 
                 await EmailSender.SendAsync(
                     cfg,
-                    $"[ALERTE] CPU saturÈ sur {Environment.MachineName}",
+                    $"[ALERTE] CPU satur√© sur {Environment.MachineName}",
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte CPU envoyÈe ({cpu.UsagePercent:F1}%) avec top processus");
+                CoreLog.Write($"[EMAIL] Alerte CPU envoy√©e ({cpu.UsagePercent:F1}%) avec top processus");
             }
             catch (Exception ex)
             {
@@ -342,20 +346,20 @@ namespace SystemMonitor.Service
                     TopProcessesCollector.BuildHtmlBlock(report, forCpu: true);
 
                 string body = $@"
-                    <p><b>MÈmoire utilisÈe :</b> <span style='color:#c0392b'>{ram.UsagePercent:F1} %</span></p>
-                    <p><b>UtilisÈe :</b> {ram.UsedGB:F1} Go</p>
+                    <p><b>M√©moire utilis√©e :</b> <span style='color:#c0392b'>{ram.UsagePercent:F1} %</span></p>
+                    <p><b>Utilis√©e :</b> {ram.UsedGB:F1} Go</p>
                     <p><b>Libre :</b> {ram.FreeGB:F1} Go</p>
                     <p><b>Totale :</b> {ram.TotalGB:F1} Go</p>
-                    <p><b>Seuil configurÈ :</b> {_settings.RamThresholdPercent} %</p>
+                    <p><b>Seuil configur√© :</b> {_settings.RamThresholdPercent} %</p>
                     {processesHtml}";
 
                 await EmailSender.SendAsync(
                     cfg,
-                    $"[ALERTE] RAM saturÈe sur {Environment.MachineName}",
+                    $"[ALERTE] RAM satur√©e sur {Environment.MachineName}",
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte RAM envoyÈe ({ram.UsagePercent:F1}%) avec top processus");
+                CoreLog.Write($"[EMAIL] Alerte RAM envoy√©e ({ram.UsagePercent:F1}%) avec top processus");
             }
             catch (Exception ex)
             {
@@ -364,7 +368,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Envoi email d'alerte TempÈrature CPU
+        //  Envoi email d'alerte Temp√©rature CPU
         // ============================================================
         private async Task SendTempAlertEmailAsync(CpuInfo cpu)
         {
@@ -377,17 +381,17 @@ namespace SystemMonitor.Service
 
                 string body = $@"
                     <p><b>Processeur :</b> {cpu.Name}</p>
-                    <p><b>TempÈrature :</b> <span style='color:#c0392b'>{cpu.Temperature:F1} ∞C</span></p>
-                    <p><b>Seuil configurÈ :</b> {_settings.TempThresholdCelsius} ∞C</p>
+                    <p><b>Temp√©rature :</b> <span style='color:#c0392b'>{cpu.Temperature:F1} ¬∞C</span></p>
+                    <p><b>Seuil configur√© :</b> {_settings.TempThresholdCelsius} ¬∞C</p>
                     <p><b>Utilisation CPU :</b> {cpu.UsagePercent:F1} %</p>";
 
                 await EmailSender.SendAsync(
                     cfg,
-                    $"[ALERTE] TempÈrature CPU ÈlevÈe sur {Environment.MachineName}",
+                    $"[ALERTE] Temp√©rature CPU √©lev√©e sur {Environment.MachineName}",
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte tempÈrature envoyÈe ({cpu.Temperature:F1}∞C)");
+                CoreLog.Write($"[EMAIL] Alerte temp√©rature envoy√©e ({cpu.Temperature:F1}¬∞C)");
             }
             catch (Exception ex)
             {
@@ -396,7 +400,7 @@ namespace SystemMonitor.Service
         }
 
         // ============================================================
-        //  Envoi email d'alerte TempÈrature GPU (NOUVEAU)
+        //  Envoi email d'alerte Temp√©rature GPU (NOUVEAU)
         // ============================================================
         private async Task SendGpuTempAlertEmailAsync(GpuInfo gpu)
         {
@@ -406,14 +410,14 @@ namespace SystemMonitor.Service
 
                 if (string.IsNullOrEmpty(cfg.Server))
                 {
-                    CoreLog.Write("[EMAIL] Config email vide, envoi annulÈ");
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annul√©");
                     return;
                 }
 
                 string body = $@"
                     <p><b>GPU :</b> {gpu.Name}</p>
-                    <p><b>TempÈrature :</b> <span style='color:#c0392b'>{gpu.Temperature:F1} ∞C</span></p>
-                    <p><b>Seuil configurÈ :</b> {_settings.GpuTempThresholdCelsius} ∞C</p>
+                    <p><b>Temp√©rature :</b> <span style='color:#c0392b'>{gpu.Temperature:F1} ¬∞C</span></p>
+                    <p><b>Seuil configur√© :</b> {_settings.GpuTempThresholdCelsius} ¬∞C</p>
                     <p><b>Utilisation GPU :</b> {gpu.UsagePercent:F1} %</p>
                     {(gpu.VramUsedMB.HasValue && gpu.VramTotalMB.HasValue
                         ? $"<p><b>VRAM :</b> {gpu.VramUsedMB.Value:F0} / {gpu.VramTotalMB.Value:F0} Mo</p>"
@@ -421,11 +425,11 @@ namespace SystemMonitor.Service
 
                 await EmailSender.SendAsync(
                     cfg,
-                    $"[ALERTE] TempÈrature GPU ÈlevÈe sur {Environment.MachineName}",
+                    $"[ALERTE] Temp√©rature GPU √©lev√©e sur {Environment.MachineName}",
                     body,
                     isHtml: true);
 
-                CoreLog.Write($"[EMAIL] Alerte temp GPU envoyÈe ({gpu.Name} : {gpu.Temperature.Value:F1}∞C)");
+                CoreLog.Write($"[EMAIL] Alerte temp GPU envoy√©e ({gpu.Name} : {gpu.Temperature ?? 0:F1}¬∞C)");
             }
             catch (Exception ex)
             {
@@ -438,7 +442,7 @@ namespace SystemMonitor.Service
         public void ClearAlerts()
         {
             _history.Clear();
-            CoreLog.Write("Historique des alertes vidÈ par IPC");
+            CoreLog.Write("Historique des alertes vid√© par IPC");
             OnUpdate?.Invoke();
         }
 
@@ -447,7 +451,7 @@ namespace SystemMonitor.Service
         public void ClearHistory()
         {
             _measureHistory.Clear();
-            CoreLog.Write("Historique des mesures vidÈ");
+            CoreLog.Write("Historique des mesures vid√©");
         }
 
         public void ScanForBsods(bool force = false)
@@ -475,14 +479,14 @@ namespace SystemMonitor.Service
         public void ClearBsods()
         {
             _bsodHistory.Clear();
-            CoreLog.Write("Historique BSOD vidÈ");
+            CoreLog.Write("Historique BSOD vid√©");
         }
 
         /// <summary>
-        /// Retourne la liste des problËmes ACTIFS (seuils actuellement dÈpassÈs).
+        /// Retourne la liste des probl√®mes ACTIFS (seuils actuellement d√©pass√©s).
         /// </summary>
         /// <summary>
-        /// Retourne la liste des problcmes ACTIFS (seuils actuellement dÈpassÈs).
+        /// Retourne la liste des problcmes ACTIFS (seuils actuellement d√©pass√©s).
         /// </summary>
         public List<ProblemItem> GetProblems(int maxItems = 20)
         {
@@ -523,42 +527,48 @@ namespace SystemMonitor.Service
                     });
                 }
 
-                // --- TempÈrature CPU active ? ---
+                // --- Temp√©rature CPU active ? ---
                 if (_settings.AlertOnHighTemp &&
                     snap.Cpu.Temperature.HasValue &&
                     snap.Cpu.Temperature.Value >= _settings.TempThresholdCelsius)
                 {
+                    double tempValue = snap.Cpu.Temperature.Value;  
+
                     problems.Add(new ProblemItem
                     {
                         Timestamp = DateTime.Now,
                         Severity = "critical",
                         Category = "TempHigh",
                         Target   = "CPU Temp",
-                        Message = $"TempÈrature CPU : {snap.Cpu.Temperature.Value:F1}∞C (seuil : {_settings.TempThresholdCelsius}∞C)"
+                        Message = $"Temp√©rature CPU : {tempValue:F1}¬∞C (seuil : {_settings.TempThresholdCelsius}¬∞C)"   // ‚Üê tempValue, plus snap.Cpu.Temperature.Value
                     });
                 }
 
-                // --- TempÈrature GPU active ? ---
+                // --- Temp√©rature GPU active ? ---
                 if (_settings.AlertOnHighGpuTemp)
                 {
                     foreach (var gpu in snap.Gpus)
                     {
-                        if (gpu.Temperature.HasValue &&
-                            gpu.Temperature.Value >= _settings.GpuTempThresholdCelsius)
+                        if (!gpu.Temperature.HasValue)
+                            continue;
+
+                        double gpuTempValue = gpu.Temperature.Value;   // ‚Üê capture locale
+
+                        if (gpuTempValue < _settings.GpuTempThresholdCelsius)
+                            continue;
+
+                        problems.Add(new ProblemItem
                         {
-                            problems.Add(new ProblemItem
-                            {
-                                Timestamp = DateTime.Now,
-                                Severity = "critical",
-                                Category = "GpuTempHigh",
-                                Target   = gpu.Name,
-                                Message = $"TempÈrature GPU {gpu.Name} : {gpu.Temperature.Value:F1}∞C (seuil : {_settings.GpuTempThresholdCelsius}∞C)"
-                            });
-                        }
+                            Timestamp = DateTime.Now,
+                            Severity = "critical",
+                            Category = "GpuTempHigh",
+                            Target   = gpu.Name,
+                            Message = $"Temp√©rature GPU {gpu.Name} : {gpuTempValue:F1}¬∞C (seuil : {_settings.GpuTempThresholdCelsius}¬∞C)"
+                        });
                     }
                 }
 
-                // --- BSOD rÈcents (< 24h) ---
+                // --- BSOD r√©cents (< 24h) ---
                 var bsods = _bsodHistory.GetAll();
                 var bsodLimit = DateTime.Now.AddHours(-24);
 
@@ -590,9 +600,9 @@ namespace SystemMonitor.Service
         }
 
         /// <summary>
-        /// Recharge la config ‡ chaud SANS toucher ‡ l'historique des alertes.
-        /// (L'historique est dÈsormais dÈcouplÈ de la config : le modifier
-        ///  ne doit pas effacer les alertes passÈes.)
+        /// Recharge la config √† chaud SANS toucher √† l'historique des alertes.
+        /// (L'historique est d√©sormais d√©coupl√© de la config : le modifier
+        ///  ne doit pas effacer les alertes pass√©es.)
         /// </summary>
         public void ReloadConfig()
         {
@@ -600,7 +610,7 @@ namespace SystemMonitor.Service
             {
                 _settings.Reload();
 
-                CoreLog.Write("Engine : config rechargÈe (historique alertes conservÈ)");
+                CoreLog.Write("Engine : config recharg√©e (historique alertes conserv√©)");
                 OnUpdate?.Invoke();
             }
             catch (Exception ex)
@@ -611,7 +621,7 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedCpuUsage(double currentUsage)
         {
-            // Nombre d'Èchantillons ‡ garder (90s / intervalle)
+            // Nombre d'√©chantillons √† garder (90s / intervalle)
             int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
 
             _cpuHistory.Enqueue(currentUsage);
@@ -624,7 +634,7 @@ namespace SystemMonitor.Service
 
         private double GetSmoothedRamUsage(double currentUsage)
         {
-            // Nombre d'Èchantillons ‡ garder (90s / intervalle)
+            // Nombre d'√©chantillons √† garder (90s / intervalle)
             int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
 
             _ramHistory.Enqueue(currentUsage);

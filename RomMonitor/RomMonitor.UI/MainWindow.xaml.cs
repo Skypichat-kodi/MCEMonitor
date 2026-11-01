@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
@@ -15,11 +15,11 @@ namespace RomMonitor.UI
         private readonly ObservableCollection<DiskViewModel> _disks = new();
         private readonly ObservableCollection<AlertViewModel> _alerts = new();
 
-        private readonly DispatcherTimer _refreshTimer;
+        private readonly DispatcherTimer _refreshTimer = null!;
         private bool _isRefreshing = false;
         private bool _loadingWebConfig = false;
 
-        // NOUVEAU — sync avec RomMonitor.config
+        // NOUVEAU â€” sync avec RomMonitor.config
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
         private long _lastConfigSize = -1;
 
@@ -29,13 +29,13 @@ namespace RomMonitor.UI
 
             DataContext = this;
 
-            // ?? Empêche l'exécution directe
+            // ?? EmpÃªche l'exÃ©cution directe
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
                 MessageBox.Show(
-                    "RomMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé",
+                    "RomMonitor.UI ne peut Ãªtre lancÃ© que depuis MCEMonitor.",
+                    "AccÃ¨s refusÃ©",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
@@ -43,18 +43,18 @@ namespace RomMonitor.UI
                 return;
             }
 
-            // Vérifie que le service tourne
+            // VÃ©rifie que le service tourne
             bool serviceRunning = Process.GetProcessesByName("RomMonitor.Service").Length > 0;
 
             if (!serviceRunning)
             {
                 var result = MessageBox.Show(
-                    (LanguageManager.Get("RomMonitor.Service n'est pas en cours d'exécution.")
-                        ?? "RomMonitor.Service n'est pas en cours d'exécution.")
+                    (LanguageManager.Get("RomMonitor.Service n'est pas en cours d'exÃ©cution.")
+                        ?? "RomMonitor.Service n'est pas en cours d'exÃ©cution.")
                     + "\n\n" +
-                    (LanguageManager.Get("Voulez-vous le démarrer maintenant ?")
-                        ?? "Voulez-vous le démarrer maintenant ?"),
-                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
+                    (LanguageManager.Get("Voulez-vous le dÃ©marrer maintenant ?")
+                        ?? "Voulez-vous le dÃ©marrer maintenant ?"),
+                    LanguageManager.Get("Service non dÃ©marrÃ©") ?? "Service non dÃ©marrÃ©",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning
                 );
@@ -95,7 +95,7 @@ namespace RomMonitor.UI
                     catch (Exception ex)
                     {
                         MessageBox.Show(
-                            "Impossible de démarrer RomMonitor.Service.exe :\n" + ex.Message,
+                            "Impossible de dÃ©marrer RomMonitor.Service.exe :\n" + ex.Message,
                             "Erreur",
                             MessageBoxButton.OK,
                             MessageBoxImage.Error
@@ -111,14 +111,14 @@ namespace RomMonitor.UI
                 }
             }
 
-            // Démarre le Tray
+            // DÃ©marre le Tray
             StartTrayIfNeeded();
 
             // Sources des tableaux
             DisksGrid.ItemsSource = _disks;
             AlertsGrid.ItemsSource = _alerts;
 
-            // Timer de rafraîchissement (5s)
+            // Timer de rafraÃ®chissement (5s)
             _refreshTimer = new DispatcherTimer
             {
                 Interval = TimeSpan.FromSeconds(5)
@@ -131,14 +131,12 @@ namespace RomMonitor.UI
 
             // Charger la config Web
             _ = LoadWebConfig();
-            
-            _ = LoadWebConfig();
 
             LoadWatchConfig();
         }
 
         // ------------------------------------------------------------
-        //  Démarrage du Tray
+        //  DÃ©marrage du Tray
         // ------------------------------------------------------------
         private void StartTrayIfNeeded()
         {
@@ -178,7 +176,7 @@ namespace RomMonitor.UI
         }
 
         // ------------------------------------------------------------
-        //  Refresh sécurisé
+        //  Refresh sÃ©curisÃ©
         // ------------------------------------------------------------
         private async Task RefreshSafe()
         {
@@ -221,14 +219,14 @@ namespace RomMonitor.UI
                     $"{status.alertCount} {LanguageManager.Get("alerte(s)") ?? "alerte(s)"}  |  " +
                     $"{LanguageManager.Get("Intervalle") ?? "Intervalle"} : {status.interval} min";
 
-                // ?? Icône selon l'état
+                // ?? IcÃ´ne selon l'Ã©tat
                 if (status.alertCount > 0)
                     SetStatusIcon("/Resources/Icons/warning.png");
                 else
                     SetStatusIcon("/Resources/Icons/check.png");
 
                 // ============================================================
-                //  2. Récupérer disques + SMART
+                //  2. RÃ©cupÃ©rer disques + SMART
                 // ============================================================
                 var disks = await RomMonitorIpcClient.GetDisks();
                 
@@ -242,13 +240,13 @@ namespace RomMonitor.UI
                 if (disks != null)
                 {
                     // 3. Construction d'un dictionnaire : DiskNumber ? (SMART)
-                    // On apparie chaque SMART à un disque physique via son index
+                    // On apparie chaque SMART Ã  un disque physique via son index
                     var diskNumberToSmart = new System.Collections.Generic.Dictionary<int, RomSmart>();
 
                     if (smart != null && smart.Count > 0)
                     {
-                        // Pour chaque disque physique présent dans les partitions
-                        // (déduit des physicalDiskNumber non-null), on cherche le SMART correspondant
+                        // Pour chaque disque physique prÃ©sent dans les partitions
+                        // (dÃ©duit des physicalDiskNumber non-null), on cherche le SMART correspondant
                         var uniqueDiskNumbers = new System.Collections.Generic.HashSet<int>();
 
                         foreach (var d in disks)
@@ -257,12 +255,12 @@ namespace RomMonitor.UI
                                 uniqueDiskNumbers.Add(d.physicalDiskNumber.Value);
                         }
 
-                        // Pour chaque disque physique, on cherche le SMART de même capacité physique
+                        // Pour chaque disque physique, on cherche le SMART de mÃªme capacitÃ© physique
                         var usedSmartSerials = new System.Collections.Generic.HashSet<string>();
 
                         foreach (int diskNum in uniqueDiskNumbers)
                         {
-                            // Trouver la taille du disque physique à partir des partitions
+                            // Trouver la taille du disque physique Ã  partir des partitions
                             double physicalSize = 0;
 
                             foreach (var d in disks)
@@ -287,7 +285,7 @@ namespace RomMonitor.UI
 
                                 double delta = Math.Abs(s.capacityGo - physicalSize) / physicalSize;
 
-                                // Tolérance stricte (5%) car on compare maintenant des tailles de disques physiques
+                                // TolÃ©rance stricte (5%) car on compare maintenant des tailles de disques physiques
                                 if (delta < 0.05 && delta < bestDelta)
                                 {
                                     best = s;
@@ -304,7 +302,7 @@ namespace RomMonitor.UI
                         }
                     }
 
-                    // 4. Créer les ViewModels
+                    // 4. CrÃ©er les ViewModels
                     foreach (var d in disks)
                     {
                         var vm = new DiskViewModel
@@ -319,14 +317,14 @@ namespace RomMonitor.UI
 
                         RomSmart? match = null;
 
-                        // Match UNIQUEMENT par numéro de disque physique
+                        // Match UNIQUEMENT par numÃ©ro de disque physique
                         if (d.physicalDiskNumber.HasValue &&
                             diskNumberToSmart.TryGetValue(d.physicalDiskNumber.Value, out var m))
                         {
                             match = m;
                         }
 
-                        // Pas de fallback par taille. Si on n'a pas matché, on affiche N/A.
+                        // Pas de fallback par taille. Si on n'a pas matchÃ©, on affiche N/A.
 
                         if (match != null)
                         {
@@ -378,7 +376,7 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  Icône de statut
+        //  IcÃ´ne de statut
         // ============================================================
         private void SetStatusIcon(string iconPath)
         {
@@ -402,8 +400,8 @@ namespace RomMonitor.UI
         {
             try
             {
-                // 1) Demande au service de refaire un scan immédiatement
-                StatusText.Text = "Scan forcé en cours…";
+                // 1) Demande au service de refaire un scan immÃ©diatement
+                StatusText.Text = "Scan forcÃ© en coursâ€¦";
                 SetStatusIcon("/Resources/Icons/warning.png");
 
                 bool ok = await RomMonitorIpcClient.ForceScanAsync();
@@ -415,7 +413,7 @@ namespace RomMonitor.UI
                     return;
                 }
 
-                // 2) Le service scanne en arrière-plan. On laisse un peu de temps
+                // 2) Le service scanne en arriÃ¨re-plan. On laisse un peu de temps
                 //    avant de relire, pour laisser smartctl finir.
                 //    On relit progressivement : 5 s, 10 s, 20 s, 40 s.
                 int[] delays = { 5000, 5000, 10000, 20000 };
@@ -428,7 +426,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "Erreur lors du scan forcé : " + ex.Message;
+                StatusText.Text = "Erreur lors du scan forcÃ© : " + ex.Message;
                 SetStatusIcon("/Resources/Icons/warning.png");
             }
         }
@@ -494,7 +492,7 @@ namespace RomMonitor.UI
             {
                 var result = MessageBox.Show(
                     "Voulez-vous vraiment vider tout l'historique des alertes ?\n" +
-                    "Cette action est irréversible.",
+                    "Cette action est irrÃ©versible.",
                     "Vider l'historique",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
@@ -507,7 +505,7 @@ namespace RomMonitor.UI
                 if (ok)
                 {
                     _alerts.Clear();
-                    StatusText.Text = "Historique des alertes vidé.";
+                    StatusText.Text = "Historique des alertes vidÃ©.";
                 }
                 else
                 {
@@ -590,7 +588,7 @@ namespace RomMonitor.UI
             if (ok)
             {
                 MessageBox.Show(
-                    LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
+                    LanguageManager.Get("ParamÃ¨tres Web mis Ã  jour.") ?? "ParamÃ¨tres Web mis Ã  jour.",
                     "OK",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -668,7 +666,7 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  SYNCHRONISATION CONFIG (si modifiée par MCEMonitor)
+        //  SYNCHRONISATION CONFIG (si modifiÃ©e par MCEMonitor)
         // ============================================================
         private void CheckConfigFileChanged()
         {
@@ -696,11 +694,11 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  CHARGEMENT DES RÉGLAGES DE SURVEILLANCE
+        //  CHARGEMENT DES RÃ‰GLAGES DE SURVEILLANCE
         // ============================================================
         private void LoadWatchConfig()
         {
-            // Valeurs par défaut
+            // Valeurs par dÃ©faut
             txtInterval.Text = "60";
             txtWarnPct.Text  = "15";
             txtCritPct.Text  = "5";
@@ -757,16 +755,16 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  ENREGISTREMENT DES RÉGLAGES
+        //  ENREGISTREMENT DES RÃ‰GLAGES
         // ============================================================
         private async void btnSaveWatchConfig_Click(object sender, RoutedEventArgs e)
         {
             try
             {
-                // 1) Validation numérique
+                // 1) Validation numÃ©rique
                 if (!int.TryParse(txtInterval.Text.Trim(), out int interval) || interval < 15 || interval > 1440)
                 {
-                    MessageBox.Show("Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
+                    MessageBox.Show("FrÃ©quence de contrÃ´le : entier entre 15 et 1440 (minutes).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -792,21 +790,21 @@ namespace RomMonitor.UI
                     return;
                 }
 
-                // 2) Garde-fou ±3 entre warning et critique (aligné sur MCEMonitor)
+                // 2) Garde-fou Â±3 entre warning et critique (alignÃ© sur MCEMonitor)
                 if (warnPct < critPct + 3)
                 {
                     warnPct = Math.Min(100, critPct + 3);
                     txtWarnPct.Text = warnPct.ToString();
 
                     MessageBox.Show(
-                        "Le seuil warning doit être au moins à 3 unités au-dessus du critique.\n" +
-                        $"Seuil warning ajusté automatiquement à {warnPct} %.",
+                        "Le seuil warning doit Ãªtre au moins Ã  3 unitÃ©s au-dessus du critique.\n" +
+                        $"Seuil warning ajustÃ© automatiquement Ã  {warnPct} %.",
                         "Ajustement automatique",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
 
-                // 3) Lire les valeurs Web existantes pour les préserver
+                // 3) Lire les valeurs Web existantes pour les prÃ©server
                 string configPath = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
@@ -842,7 +840,7 @@ namespace RomMonitor.UI
                     }
                 }
 
-                // 4) Écrire le fichier complet (mêmes clés que MCEMonitor)
+                // 4) Ã‰crire le fichier complet (mÃªmes clÃ©s que MCEMonitor)
                 var lines = new[]
                 {
                     "# ============================================================",
@@ -850,7 +848,7 @@ namespace RomMonitor.UI
                     "# Configuration du service RomMonitor",
                     "# ============================================================",
                     "",
-                    "# Fréquence de contrôle (minutes)",
+                    "# FrÃ©quence de contrÃ´le (minutes)",
                     $"Interval={interval}",
                     "",
                     "# Seuil d'alerte espace disque (% libre)",
@@ -865,7 +863,7 @@ namespace RomMonitor.UI
                     $"AlertOnSmartFailure={chkSmartAlert.IsChecked == true}".ToLowerInvariant(),
                     "AlertOnLowDiskSpace=true",
                     "",
-                    "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
+                    "# Anti-spam : dÃ©lai minimum entre 2 alertes email du mÃªme type (heures)",
                     $"AlertCooldownHours={cooldown}",
                     "",
                     "# Serveur Web",
@@ -877,19 +875,19 @@ namespace RomMonitor.UI
 
                 File.WriteAllLines(configPath, lines);
 
-                // 5) Mémoriser la signature pour ne pas se recharger soi-même
+                // 5) MÃ©moriser la signature pour ne pas se recharger soi-mÃªme
                 var fi = new FileInfo(configPath);
                 _lastConfigWriteTime = fi.LastWriteTime;
                 _lastConfigSize      = fi.Length;
 
-                // 6) Demander au service de recharger à chaud
+                // 6) Demander au service de recharger Ã  chaud
                 bool reloaded = await RomMonitorIpcClient.ReloadConfigAsync();
 
                 if (reloaded)
                 {
                     MessageBox.Show(
-                        "Réglages de surveillance enregistrés.\n\n" +
-                        "Le service a rechargé la configuration à chaud.",
+                        "RÃ©glages de surveillance enregistrÃ©s.\n\n" +
+                        "Le service a rechargÃ© la configuration Ã  chaud.",
                         "OK",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
@@ -897,8 +895,8 @@ namespace RomMonitor.UI
                 else
                 {
                     MessageBox.Show(
-                        "Réglages enregistrés, mais le service n'a pas pu être notifié.\n" +
-                        "Redémarrez-le pour appliquer les modifications.",
+                        "RÃ©glages enregistrÃ©s, mais le service n'a pas pu Ãªtre notifiÃ©.\n" +
+                        "RedÃ©marrez-le pour appliquer les modifications.",
                         "Attention",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);

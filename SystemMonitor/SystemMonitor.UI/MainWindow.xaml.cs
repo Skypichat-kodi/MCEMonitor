@@ -26,7 +26,7 @@ namespace SystemMonitor.UI
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
         private long _lastConfigSize = -1;
-        private readonly DispatcherTimer _refreshTimer;
+        private readonly DispatcherTimer _refreshTimer = null!;
         private bool _isRefreshing = false;
         private bool _loadingWebConfig = false;
 

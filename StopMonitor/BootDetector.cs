@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics.Eventing.Reader;
 using System.Text;
 
@@ -33,11 +33,11 @@ namespace StopMonitor
             var logQuery = new EventLogQuery("System", PathType.LogName, query);
             using var reader = new EventLogReader(logQuery);
 
-            EventRecord latest = null;
-            EventRecord lastShutdown = null;
-            EventRecord lastUnexpected = null;
+            EventRecord? latest = null;          
+            EventRecord? lastShutdown = null;    
+            EventRecord? lastUnexpected = null;  
 
-            // Lecture des 20 derniers événements pertinents
+            // Lecture des 20 derniers Ã©vÃ©nements pertinents
             for (EventRecord rec = reader.ReadEvent(); rec != null; rec = reader.ReadEvent())
             {
                 if (latest == null || rec.TimeCreated > latest.TimeCreated)
@@ -53,7 +53,7 @@ namespace StopMonitor
             if (latest == null)
             {
                 result.Type = BootType.Normal;
-                result.Description = "Démarrage normal (aucun événement trouvé).";
+                result.Description = "DÃ©marrage normal (aucun Ã©vÃ©nement trouvÃ©).";
                 return result;
             }
 
@@ -72,7 +72,7 @@ namespace StopMonitor
                     sb.AppendLine($"Code : {latest.Properties[0].Value}");
 
                 result.Type = BootType.Crash;
-                result.Description = "Crash détecté (BSOD).";
+                result.Description = "Crash dÃ©tectÃ© (BSOD).";
                 result.Details = sb.ToString();
                 return result;
             }
@@ -82,10 +82,10 @@ namespace StopMonitor
             // ------------------------------------------------------------
             if (latest.Id == 6008)
             {
-                sb.AppendLine("Type : Arrêt inattendu (EventID 6008).");
+                sb.AppendLine("Type : ArrÃªt inattendu (EventID 6008).");
 
                 result.Type = BootType.Crash;
-                result.Description = "Crash détecté (arrêt inattendu).";
+                result.Description = "Crash dÃ©tectÃ© (arrÃªt inattendu).";
                 result.Details = sb.ToString();
                 return result;
             }
@@ -95,23 +95,25 @@ namespace StopMonitor
             // ------------------------------------------------------------
             if (latest.Id == 41)
             {
-                sb.AppendLine("Type : Redémarrage brutal (Kernel-Power 41).");
+                sb.AppendLine("Type : RedÃ©marrage brutal (Kernel-Power 41).");
 
                 // ---- Correction : calcul TimeSpan propre ----
-                if (lastUnexpected != null)
+                if (lastUnexpected != null &&
+                    latest.TimeCreated.HasValue &&           
+                    lastUnexpected.TimeCreated.HasValue)     
                 {
                     var delta = latest.TimeCreated.Value - lastUnexpected.TimeCreated.Value;
 
                     if (delta.TotalMinutes < 2)
                     {
                         result.Type = BootType.Crash;
-                        result.Description = "Crash détecté (Kernel-Power 41 + arrêt inattendu).";
+                        result.Description = "Crash dÃ©tectÃ© (Kernel-Power 41 + arrÃªt inattendu).";
                         result.Details = sb.ToString();
                         return result;
                     }
                 }
 
-                // ---- Démarrage normal si 1074 juste avant ----
+                // ---- DÃ©marrage normal si 1074 juste avant ----
                 if (lastShutdown != null &&
                     lastShutdown.Id == 1074 &&
                     lastShutdown.TimeCreated < latest.TimeCreated)
@@ -121,37 +123,37 @@ namespace StopMonitor
                     if (delta.TotalMinutes < 2)
                     {
                         result.Type = BootType.Normal;
-                        result.Description = "Démarrage normal (arrêt utilisateur).";
+                        result.Description = "DÃ©marrage normal (arrÃªt utilisateur).";
                         result.Details = sb.ToString();
                         return result;
                     }
                 }
 
-                // ---- Sinon : coupure électrique ----
+                // ---- Sinon : coupure Ã©lectrique ----
                 result.Type = BootType.PowerLoss;
-                result.Description = "Coupure électrique ou perte d'alimentation détectée.";
+                result.Description = "Coupure Ã©lectrique ou perte d'alimentation dÃ©tectÃ©e.";
                 result.Details = sb.ToString();
                 return result;
             }
 
             // ------------------------------------------------------------
-            //  DÉMARRAGE NORMAL (12 / 6005 / 6009)
+            //  DÃ‰MARRAGE NORMAL (12 / 6005 / 6009)
             // ------------------------------------------------------------
             if (latest.Id == 12 || latest.Id == 6005 || latest.Id == 6009)
             {
-                sb.AppendLine("Type : Démarrage normal (Kernel-General / EventLog).");
+                sb.AppendLine("Type : DÃ©marrage normal (Kernel-General / EventLog).");
 
                 result.Type = BootType.Normal;
-                result.Description = "Démarrage de la machine normal.";
+                result.Description = "DÃ©marrage de la machine normal.";
                 result.Details = sb.ToString();
                 return result;
             }
 
             // ------------------------------------------------------------
-            //  PAR DÉFAUT : NORMAL
+            //  PAR DÃ‰FAUT : NORMAL
             // ------------------------------------------------------------
             result.Type = BootType.Normal;
-            result.Description = "Démarrage normal (aucun événement critique).";
+            result.Description = "DÃ©marrage normal (aucun Ã©vÃ©nement critique).";
             result.Details = sb.ToString();
 
             return result;

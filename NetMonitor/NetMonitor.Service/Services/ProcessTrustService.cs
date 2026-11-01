@@ -157,10 +157,10 @@ public sealed class ProcessTrustService
 
             // Enrichit automatiquement si absent
             if (string.IsNullOrWhiteSpace(entry.Sha256))
-                entry.Sha256 = TryComputeSha256(entry.Path);
+                entry.Sha256 = TryComputeSha256(entry.Path) ?? "";
 
             if (string.IsNullOrWhiteSpace(entry.Publisher))
-                entry.Publisher = TryGetAuthenticodePublisher(entry.Path);
+                entry.Publisher = TryGetAuthenticodePublisher(entry.Path) ?? "";
 
             list.Add(entry);
 
@@ -365,8 +365,7 @@ public sealed class ProcessTrustService
             CoreLog.Debug($"[TRUST] PID {pid} ({name}) → path={fullPath ?? "<null>"}, win32err={pathError}");
         }
 
-        // ⚠ 4. AUTO-TRUST MICROSOFT (avant tout le reste)
-        // Élimine les faux positifs OneDrive, Office, Edge, GameBar...
+        // 4. AUTO-TRUST MICROSOFT (avant tout le reste)
         if (fullPath != null && IsSignedBy(fullPath, "Microsoft Corporation"))
         {
             CoreLog.Debug($"[TRUST] {name} auto-trusté (signature Microsoft)");
@@ -381,19 +380,8 @@ public sealed class ProcessTrustService
             };
         }
 
-        // 5. Aucun candidat dans la whitelist → Unknown
-        if (candidates.Count == 0)
-        {
-            return new ProcessTrustResult
-            {
-                Level = ProcessTrustLevel.Unknown,
-                ProcessName = name,
-                FullPath = fullPath,
-                Reason = "nom absent de la whitelist"
-            };
-        }
-
-        // 6. Chemin inaccessible → Unknown avec Win32Error
+        // 5. Chemin inaccessible → Unknown avec Win32Error
+        //    (placé AVANT le check des candidats pour que fullPath soit non-null après)
         if (fullPath == null)
         {
             return new ProcessTrustResult
@@ -401,12 +389,14 @@ public sealed class ProcessTrustService
                 Level = ProcessTrustLevel.Unknown,
                 ProcessName = name,
                 Win32Error = pathError,
-                Reason = pathError == 5 ? "chemin inaccessible (droits insuffisants ?)" 
-                                        : "chemin inaccessible (processus terminé ?)"
+                Reason = pathError == 5
+                    ? "chemin inaccessible (droits insuffisants ?)"
+                    : "chemin inaccessible (processus terminé ?)"
             };
         }
 
-        // 5. Aucun candidat dans la whitelist → Unknown
+        // 6. Aucun candidat dans la whitelist → Unknown
+        //    (fullPath est garanti non-null grâce au check ci-dessus)
         if (candidates.Count == 0)
         {
             return new ProcessTrustResult
@@ -415,17 +405,6 @@ public sealed class ProcessTrustService
                 ProcessName = name,
                 FullPath = fullPath,
                 Reason = "nom absent de la whitelist"
-            };
-        }
-
-        // 6. Chemin inaccessible → Unknown, mais on escalade si droits insuffisants
-        if (fullPath == null)
-        {
-            return new ProcessTrustResult
-            {
-                Level = ProcessTrustLevel.Unknown,
-                ProcessName = name,
-                Reason = "chemin inaccessible (droits insuffisants ?)"
             };
         }
 

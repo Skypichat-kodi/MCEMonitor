@@ -176,7 +176,7 @@ namespace MCEMonitorClient.Tray
                 _list.Cursor = Cursors.Hand;
 
                 string url = hit.Item.SubItems[0].Tag as string ?? "";
-                string currentTooltip = _rowTooltip.GetToolTip(_list);
+                string? currentTooltip = _rowTooltip.GetToolTip(_list);
 
                 string hint = string.IsNullOrWhiteSpace(url)
                     ? (LanguageManager.Get("Aucune URL configurée") ?? "Aucune URL configurée")

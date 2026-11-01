@@ -39,7 +39,7 @@ namespace MCEMonitorClient.Config
             //  GESTION DE LA LANGUE (argument > auto-détection Windows)
             // ============================================================
 
-            string selectedLang = null;
+            string? selectedLang = null;
 
             if (args.Contains("-EN", StringComparer.OrdinalIgnoreCase))
                 selectedLang = "en-GB";

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
@@ -15,18 +15,18 @@ namespace RomMonitor.Tray
 {
     public class TrayApplicationContext : ApplicationContext
     {
-        private NotifyIcon trayIcon;
-        private Timer watchdog;
-        private Timer severityTimer;
-        private Timer? startupTimer;
+        private NotifyIcon trayIcon      = null!;   
+        private Timer      watchdog      = null!;   
+        private Timer      severityTimer = null!;   
+        private Timer?     startupTimer;
 
-        private Icon _defaultIcon;
-        private Icon _warningIcon;
-        private Icon _criticalIcon;
+        private Icon _defaultIcon  = null!;         
+        private Icon _warningIcon  = null!;         
+        private Icon _criticalIcon = null!;         
 
         private string _currentSeverity = "";
 
-        // Compteur pour la phase de démarrage (check toutes les 5s pendant 60s)
+        // Compteur pour la phase de dÃ©marrage (check toutes les 5s pendant 60s)
         private int _startupCheckCount = 0;
 
         private const string PIPE_NAME = "MCEMonitor_RomMonitorPipe";
@@ -38,7 +38,7 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Chargement des icônes (embedded resources)
+        //  Chargement des icÃ´nes (embedded resources)
         // ------------------------------------------------------------
         private void LoadIcons()
         {
@@ -76,21 +76,21 @@ namespace RomMonitor.Tray
             
             trayIcon.ContextMenuStrip = menu;
 
-            // Watchdog : vérifie que le service tourne (5s)
+            // Watchdog : vÃ©rifie que le service tourne (5s)
             watchdog = new Timer();
             watchdog.Interval = 5000;
             watchdog.Tick += Watchdog_Tick;
             watchdog.Start();
 
-            // Vérification de la sévérité (30s) — régime stable
+            // VÃ©rification de la sÃ©vÃ©ritÃ© (30s) â€” rÃ©gime stable
             severityTimer = new Timer();
             severityTimer.Interval = 30000;
             severityTimer.Tick += SeverityTimer_Tick;
             severityTimer.Start();
 
             // ------------------------------------------------------------
-            // Phase de démarrage : check toutes les 5s pendant 60s
-            // Le service peut mettre ~40s à faire son premier scan SMART.
+            // Phase de dÃ©marrage : check toutes les 5s pendant 60s
+            // Le service peut mettre ~40s Ã  faire son premier scan SMART.
             // ------------------------------------------------------------
             _startupCheckCount = 0;
 
@@ -101,7 +101,7 @@ namespace RomMonitor.Tray
                 _startupCheckCount++;
                 CheckSeverity();
 
-                if (_startupCheckCount >= 12)   // 12 × 5s = 60s
+                if (_startupCheckCount >= 12)   // 12 Ã— 5s = 60s
                 {
                     startupTimer?.Stop();
                     startupTimer?.Dispose();
@@ -112,7 +112,7 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Timer de sévérité ? change l'icône (régime stable)
+        //  Timer de sÃ©vÃ©ritÃ© ? change l'icÃ´ne (rÃ©gime stable)
         // ------------------------------------------------------------
         private void SeverityTimer_Tick(object? sender, EventArgs e)
         {
@@ -133,7 +133,7 @@ namespace RomMonitor.Tray
 
                 if (trayIcon != null && trayIcon.Visible)
                 {
-                    // On est déjà sur le thread UI grâce au Timer WinForms,
+                    // On est dÃ©jÃ  sur le thread UI grÃ¢ce au Timer WinForms,
                     // donc pas besoin de marshalling.
                     trayIcon.Icon = severity switch
                     {
@@ -149,8 +149,8 @@ namespace RomMonitor.Tray
                         _          => "RomMonitor"
                     };
 
-                    // Son uniquement lors d'une transition vers un état d'alerte.
-                    // On ne joue rien au premier check (démarrage), ni au retour à "ok".
+                    // Son uniquement lors d'une transition vers un Ã©tat d'alerte.
+                    // On ne joue rien au premier check (dÃ©marrage), ni au retour Ã  "ok".
                     if (!string.IsNullOrEmpty(_currentSeverity))
                     {
                         if (severity == "critical")
@@ -163,7 +163,7 @@ namespace RomMonitor.Tray
                         }
                     }
 
-                    // On mémorise la sévérité
+                    // On mÃ©morise la sÃ©vÃ©ritÃ©
                     _currentSeverity = severity;
                 }
             }
@@ -171,7 +171,7 @@ namespace RomMonitor.Tray
         }
 
         // ------------------------------------------------------------
-        //  Requête IPC : get-status ? worstSeverity
+        //  RequÃªte IPC : get-status ? worstSeverity
         // ------------------------------------------------------------
         private string? GetWorstSeverity()
         {
@@ -179,7 +179,7 @@ namespace RomMonitor.Tray
             {
                 using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
 
-                // Connect avec timeout (lève une exception si timeout)
+                // Connect avec timeout (lÃ¨ve une exception si timeout)
                 client.Connect(1000);
 
                 if (!client.IsConnected)
@@ -190,7 +190,7 @@ namespace RomMonitor.Tray
                 client.Write(cmdBytes, 0, cmdBytes.Length);
                 client.Flush();
 
-                // Lire la réponse
+                // Lire la rÃ©ponse
                 byte[] buffer = new byte[8192];
                 int bytesRead = client.Read(buffer, 0, buffer.Length);
 
@@ -295,7 +295,7 @@ namespace RomMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Watchdog : ferme le Tray si le service s'arrête
+        //  Watchdog : ferme le Tray si le service s'arrÃªte
         // ------------------------------------------------------------
         private void Watchdog_Tick(object? sender, EventArgs e)
         {
@@ -354,7 +354,7 @@ namespace RomMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Requête IPC : get-alerts ? liste des problèmes
+        //  RequÃªte IPC : get-alerts ? liste des problÃ¨mes
         // ------------------------------------------------------------
         private List<ProblemInfo> GetProblems()
         {
@@ -394,7 +394,7 @@ namespace RomMonitor.Tray
 
                 var problems = new List<ProblemInfo>();
 
-                // ---- 2) Disques (état actuel) ----
+                // ---- 2) Disques (Ã©tat actuel) ----
                 using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
                 {
                     c.Connect(1000);
@@ -447,7 +447,7 @@ namespace RomMonitor.Tray
                     }
                 }
 
-                // ---- 3) SMART (état actuel) ----
+                // ---- 3) SMART (Ã©tat actuel) ----
                 using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
                 {
                     c.Connect(1000);
@@ -499,7 +499,7 @@ namespace RomMonitor.Tray
         }
         
         // ------------------------------------------------------------
-        //  Afficher le popup des problèmes
+        //  Afficher le popup des problÃ¨mes
         // ------------------------------------------------------------
         private void ShowProblemsPopup()
         {

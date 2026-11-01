@@ -13,7 +13,7 @@ namespace RomMonitor.UI
 {
     public partial class App : Application
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex;
 
         private const string MutexName = "Global\\MCEMonitor_RomMonitorUI";
         private const string PipeName  = "MCEMonitor_RomMonitorUI_Activate";
