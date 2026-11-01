@@ -1,6 +1,7 @@
 ﻿# Version de base que GitVersion utilisera pour calculer la prochaine version.
 # Utile pour démarrer à une version précise ou pour sauter un palier.
 next-version: 2.5.0
+branch: main
 
 # Mode de calcul (ContinuousDelivery est un bon choix par défaut)
 mode: ContinuousDelivery
