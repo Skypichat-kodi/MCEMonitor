@@ -62,19 +62,20 @@ namespace MCEMonitor.Languages
         /// <summary>
         /// Retourne la traduction d'une clé.
         /// Essaie d'abord en exact, puis en normalisé (tolérant aux espaces).
+        /// Retourne <c>null</c> si la clé n'est trouvée dans aucune des deux formes.
         /// </summary>
-        public static string Get(string key)
+        public static string? Get(string key)
         {
             if (string.IsNullOrWhiteSpace(key))
                 return null;
 
             // 1) Lookup exact
-            if (_translations.TryGetValue(key, out string exact))
+            if (_translations.TryGetValue(key, out string? exact))
                 return exact;
 
             // 2) Lookup normalisé (trim, espaces multiples, espaces insécables)
             string normalized = NormalizeKey(key);
-            if (_normalizedTranslations.TryGetValue(normalized, out string tolerant))
+            if (_normalizedTranslations.TryGetValue(normalized, out string? tolerant))
                 return tolerant;
 
             return null;

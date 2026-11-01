@@ -10,7 +10,7 @@ namespace MCEMonitor.Utils
             string path = Path.Combine(AppData.BasePath, file);
             if (!File.Exists(path)) return new T();
 
-            return JsonSerializer.Deserialize<T>(File.ReadAllText(path));
+            return JsonSerializer.Deserialize<T>(File.ReadAllText(path)) ?? new T();
         }
 
         public static void Save<T>(string file, T data)
@@ -20,4 +20,3 @@ namespace MCEMonitor.Utils
         }
     }
 }
-

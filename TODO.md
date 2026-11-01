@@ -1,4 +1,4 @@
-﻿﻿﻿# TODO MCEMonitor
+﻿﻿﻿﻿# TODO MCEMonitor
 
 TODO global du projet, organisé par thème.
 
@@ -10,16 +10,47 @@ _(rien)_
 
 ## 📋 À faire
 
-### Session 2026-10-31 (Suite) — Contrôle des blocages & Tentatives
+### 🔴 Priorité haute — Qualité du build & encodage
 
-- [x] Web : bouton "Retirer de la liste" pour les processus en attente (route `/dismiss-pending` + JS).
-- [x] UI & Web : ajout de la colonne Sévérité et du bouton de reclassement dans "Tentatives sur IP bloquée".
-- [x] Service : jointure IPC pour exposer la sévérité des retries.
-- [x] UI WPF : "Zone de danger" dans les Réglages avec bouton "Libérer toutes les IP bloquées" (purge globale du pare-feu).
-- [x] Service : `ClearAllBlockedIps()` pour purger le pare-feu d'un coup sans toucher aux processus bloqués.
-- [x] UI : remplacement du 🎨 par ⚙ partout pour la cohérence visuelle.
+- [ ] **Ré-encodage global du projet en UTF-8 (sans BOM)**
+  - Mojibake systémique dans les 15 fichiers `.cs` (`thčme`, `déją`, `Rťseau`, `parallčle`…)
+  - Littéraux affichés à l'utilisateur concernés : `MediaMonitorLiveForm`, `ThemeSelectorForm`, `FormWolMacManager`, `MailConfigPage`, `MainForm`
+  - ⚠️ Impact critique sur les `.json` de `Languages/` : les clés en mojibake ne matchent pas les `LanguageManager.Get("…")` → fallback systématique
+  - Procédure : VS → Outils → Options → Environnement → Documents → UTF-8 sans signature, puis Ctrl+S sur chaque fichier
+  - Vérification post-correction : `Réseau`, `thème`, `déjà`, `°C` doivent s'afficher correctement en IntelliSense et à l'écran
 
-### MediaMonitor — vignettes album
+- [ ] **Vérifier `MCEMonitor.Languages.csproj`**
+  - Même migration SDK que `MCEMonitor.csproj` (`Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk`)
+  - Ajouter `<UseWPF>true</UseWPF>` (nécessaire pour `TrExtension` / `MarkupExtension`)
+  - Vérifier l'absence de warnings NETSDK1137 sur ce projet
+
+- [ ] **Tests de fumée post-refacto nullabilité** (15 min)
+  - [ ] Démarrage normal (toutes les pages s'affichent)
+  - [ ] Config email : sauvegarde + test SMTP + badge de statut
+  - [ ] Arrêt programmé : sauvegarde + changement Veille ↔ Arrêt
+  - [ ] Config vide : vider un fichier `.config`, redémarrer → fallback `new T()` OK
+  - [ ] MediaMonitor Live : affichage `Réseau` / `°C` correct
+
+### 🟡 Priorité moyenne — Bug latent `GetShutdownTaskTime`
+
+- [ ] **`TaskSchedulerHelper.GetShutdownTaskTime()` — parsing de `schtasks` cassé**
+  - Le `Split(':')` sur `"Heure de début : 22:00:00"` produit `["Heure de début ", "00", "00"]` → `parts[^1]` = `"00"` → parse invalide
+  - Le `StartsWith("Heure de d")` ne matche pas sur un Windows anglais (`"Start Time"`)
+  - Contournement actuel documenté en commentaire (« On reste tolérant ») → à remplacer par un parsing robuste
+  - Piste : parser par regex `Heure de début\s*:\s*(\d{1,2}):(\d{2})` (FR) + `Start Time\s*:\s*(\d{1,2}):(\d{2})` (EN)
+
+### 🟡 Priorité moyenne — Chantiers identifiés
+
+- [ ] **`MediaMonitorLiveForm` — fire-and-forget timer**
+  - `_timer.Tick += UpdateStatus` lance une lecture `_media.GetLiveStatus()` à chaque seconde sans protection si `_media` est disposé
+  - Ajouter un `_closingInProgress` / check `IsDisposed` (pattern déjà utilisé dans `MainForm`)
+
+- [ ] **`ConfigManager.Save<T>` — créer le dossier si absent**
+  - `File.WriteAllText(path, …)` échoue en `DirectoryNotFoundException` si `AppData.BasePath` n'existe pas
+  - Actuellement garanti par `AppData.Initialize()` en amont, mais fragile si l'ordre change
+  - Fix 1 ligne : `Directory.CreateDirectory(AppData.BasePath);` avant l'écriture
+
+### 🟢 Priorité basse — MediaMonitor vignettes album
 
 - [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg
 - [ ] Tester avec MP3 sans ID3 + folder.jpg
@@ -28,6 +59,44 @@ _(rien)_
 - [ ] (optionnel) Support WebP
 
 ## ✅ Terminé
+
+### Session 2026-11-01 (suite) — Chasse aux warnings NULL + nettoyage build
+
+**Nullabilité (55 warnings CS86xx éliminés sur 15 fichiers)**
+
+- [x] **Champs WinForms / designer (CS8618)** → `= null!`
+  - `MailConfigPage` (15 champs), `ConfirmDialog` (3), `ThemeSelectorForm` (3), `FormWolMacManager` (1), `Program` (3)
+- [x] **Propriétés de configuration (CS8618)** → `= string.Empty`
+  - `EmailSettings` : `Smtp`, `From`, `To`, `Password`
+- [x] **Analyse de flux (CS8600 / CS8602 / CS8603 / CS8604 / CS8625)**
+  - `LanguageManager.Get()` : `string` → `string?`
+  - `TaskSchedulerHelper.GetShutdownTaskMode()` : `string` → `string?`
+  - `ConfigManager.Load<T>()` : `?? new T()` si fichier vide/corrompu
+  - `ProcessRunner` : `Encoding? encoding`, `Process? p`
+  - `MainForm` : 2× `string?`, null-check explicite sur `GetShutdownTaskMode()`
+  - `AppData.BasePath` : accès protégé avec `InvalidOperationException`
+- [x] **Délégués `EventHandler` (CS8622)** → `object? sender`
+  - `ToggleSwitch.Animate`, `MediaMonitorLiveForm.UpdateStatus`, `ThemeSelectorForm.ThemeList_SelectedIndexChanged`, `FormWolMacManager.textBoxMac_TextChanged`
+- [x] **Null-forgiving localisés (`!`)**
+  - `Path.GetDirectoryName(...)!` aux endroits où le compilateur ne peut pas prouver la non-nullité
+
+**Warnings annexes (3 éliminés)**
+
+- [x] **NETSDK1137** : `Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk` + ajout `<UseWPF>true</UseWPF>` (requis pour `TrExtension` / `MarkupExtension`)
+- [x] **CS1998 ×2** : retrait du mot-clé `async` sur `BtnSaveRomConfig_Click` et `BtnSaveSystemConfig_Click` (aucun `await` dans le corps, fire-and-forget assumé via `_ = ...Async()`)
+
+**Changements de comportement volontaires (documentés dans le commit)**
+
+- [x] `ConfigManager.Load<T>` retourne `new T()` au lieu de `null` si la config est vide/corrompue
+- [x] `MainForm.UpdateShutdownTaskStatus` ne touche plus au combo si le mode n'est pas déterminable (préserve le choix utilisateur)
+- [x] `EmailSettings` : propriétés initialisées à `""` au lieu de `null`
+
+**Corrections d'affichage (mojibake)**
+
+- [x] `MediaMonitorLiveForm` : `Rťseau` → `Réseau`, `įC` → `°C`
+- [x] `ThemeSelectorForm`, `FormWolMacManager` : littéraux accentués corrigés
+
+**Résultat** : build 100% propre (0 warning, 0 erreur).
 
 ### Session 2026-11-01 — Fix Processus Fantômes & Nettoyage Logs
 
@@ -46,6 +115,15 @@ _(rien)_
 - [x] Fix Processus en attente : capture de `Win32Error` dans `ProcessTrustService` et filtrage des PID morts/protégés dans `UntrustedProcessDetector` (suppression des processus "fantômes").
 - [x] Blocage automatique granulaire : cases indépendantes pour Critical, Warning et Subnet dans l'UI. Les services Safe/Whitelisted sont exclus du blocage.
 - [x] Moteur : refonte de `SeverityScorer` pour respecter la sévérité initiale du détecteur (ex: Blacklist = Critical) tout en appliquant la politique stricte.
+
+### Session 2026-10-31 (Suite) — Contrôle des blocages & Tentatives
+
+- [x] Web : bouton "Retirer de la liste" pour les processus en attente (route `/dismiss-pending` + JS).
+- [x] UI & Web : ajout de la colonne Sévérité et du bouton de reclassement dans "Tentatives sur IP bloquée".
+- [x] Service : jointure IPC pour exposer la sévérité des retries.
+- [x] UI WPF : "Zone de danger" dans les Réglages avec bouton "Libérer toutes les IP bloquées" (purge globale du pare-feu).
+- [x] Service : `ClearAllBlockedIps()` pour purger le pare-feu d'un coup sans toucher aux processus bloqués.
+- [x] UI : remplacement du 🎨 par ⚙ partout pour la cohérence visuelle.
 
 ### Session 2026-10-31 — Scanners "Subnet", GeoIP & Fix UI Web
 

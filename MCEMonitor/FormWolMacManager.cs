@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -9,7 +9,7 @@ namespace MCEMonitor
 {
     public partial class FormWolMacManager : KryptonForm
     {
-        private string WhitelistPath;
+        private string WhitelistPath = null!;
 
         public FormWolMacManager()
         {
@@ -45,7 +45,7 @@ namespace MCEMonitor
 
         private void SaveWhitelist()
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(WhitelistPath));
+            Directory.CreateDirectory(Path.GetDirectoryName(WhitelistPath)!);
 
             var cleaned = listBoxMacs.Items
                 .Cast<string>()
@@ -86,7 +86,7 @@ namespace MCEMonitor
 
             if (listBoxMacs.Items.Contains(mac))
             {
-                KryptonMessageBox.Show(LanguageManager.Get("Cette adresse MAC est dÈj‡ dans la liste.") ?? "Cette adresse MAC est dÈj‡ dans la liste.");
+                KryptonMessageBox.Show(LanguageManager.Get("Cette adresse MAC est d√©j√† dans la liste.") ?? "Cette adresse MAC est d√©j√† dans la liste.");
                 return;
             }
 
@@ -106,7 +106,7 @@ namespace MCEMonitor
             this.Close();
         }
 
-        private void textBoxMac_TextChanged(object sender, EventArgs e)
+        private void textBoxMac_TextChanged(object? sender, EventArgs e)
         {
             string input = textBoxMac.Text.Trim().ToUpper();
 

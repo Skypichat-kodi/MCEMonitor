@@ -5,19 +5,23 @@ namespace MCEMonitor.Utils
 {
     public static class AppData
     {
-        public static string BasePath { get; private set; }
+        private static string? _basePath;
+
+        public static string BasePath =>
+            _basePath ?? throw new InvalidOperationException(
+                "AppData.Initialize() doit être appelée avant tout accès à BasePath.");
+
         public static string LogsPath => Path.Combine(BasePath, "Logs");
 
         public static void Initialize()
         {
-            BasePath = Path.Combine(
+            _basePath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "MCEMonitor"
             );
 
-            Directory.CreateDirectory(BasePath);
+            Directory.CreateDirectory(_basePath);
             Directory.CreateDirectory(LogsPath);
         }
     }
 }
-

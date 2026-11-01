@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Diagnostics;
 using System.Security.Principal;
 using System.Text;
@@ -9,8 +9,8 @@ namespace MCEMonitor.Common
     /// <summary>
     /// Helper robuste pour lancer un processus externe :
     /// - Timeout dur (jamais de blocage infini)
-    /// - Lecture parallËle stdout/stderr (pas de deadlock)
-    /// - DÈtection du mode ÈlevÈ (UAC)
+    /// - Lecture parall√®le stdout/stderr (pas de deadlock)
+    /// - D√©tection du mode √©lev√© (UAC)
     /// - Kill propre en cas de timeout
     /// </summary>
     public static class ProcessRunner
@@ -21,19 +21,19 @@ namespace MCEMonitor.Common
         /// <summary>
         /// Lance un processus et capture stdout/stderr avec timeout.
         /// </summary>
-        /// <returns>(exitCode, stdout, stderr). exitCode = -1 si Èchec/timeout.</returns>
+        /// <returns>(exitCode, stdout, stderr). exitCode = -1 si √©chec/timeout.</returns>
         public static (int exitCode, string output, string error) Run(
             string fileName,
             string arguments,
             int timeoutMs = DefaultTimeoutMs,
             bool runAsAdmin = false,
-            Encoding encoding = null)
+            Encoding? encoding = null)
         {
             encoding ??= Encoding.GetEncoding(850);
 
             bool isElevated = IsProcessElevated();
 
-            // Si on demande runas ET qu'on est dÈj‡ ÈlevÈ, on peut capturer sans UAC.
+            // Si on demande runas ET qu'on est d√©j√† √©lev√©, on peut capturer sans UAC.
             bool needUac = runAsAdmin && !isElevated;
 
             var psi = new ProcessStartInfo
@@ -51,16 +51,16 @@ namespace MCEMonitor.Common
             if (needUac)
                 psi.Verb = "runas";
 
-            Process p;
+            Process? p;
             try
             {
                 p = Process.Start(psi);
                 if (p == null)
-                    return (-1, "", "Process.Start a retournÈ null.");
+                    return (-1, "", "Process.Start a retourn√© null.");
             }
             catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
-                return (-1, "", "UAC refusÈ par l'utilisateur.");
+                return (-1, "", "UAC refus√© par l'utilisateur.");
             }
             catch (Exception ex)
             {
@@ -80,7 +80,7 @@ namespace MCEMonitor.Common
                     return (p.ExitCode, "", "");
                 }
 
-                // --- Mode capturÈ : lecture parallËle pour Èviter le deadlock ---
+                // --- Mode captur√© : lecture parall√®le pour √©viter le deadlock ---
                 Task<string> outTask = p.StandardOutput.ReadToEndAsync();
                 Task<string> errTask = p.StandardError.ReadToEndAsync();
 
@@ -107,7 +107,7 @@ namespace MCEMonitor.Common
             string arguments,
             int timeoutMs = DefaultTimeoutMs,
             bool runAsAdmin = false,
-            Encoding encoding = null)
+            Encoding? encoding = null)
         {
             var (code, output, error) = Run(fileName, arguments, timeoutMs, runAsAdmin, encoding);
 
@@ -118,7 +118,7 @@ namespace MCEMonitor.Common
         }
 
         /// <summary>
-        /// Indique si le processus courant est dÈj‡ ÈlevÈ (admin).
+        /// Indique si le processus courant est d√©j√† √©lev√© (admin).
         /// </summary>
         public static bool IsProcessElevated()
         {

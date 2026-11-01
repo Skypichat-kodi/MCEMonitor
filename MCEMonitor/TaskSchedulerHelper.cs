@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
@@ -41,7 +41,7 @@ namespace MCEMonitor.Utils
             => QueryTask("MCEMonitor_WakeMonitor");
 
         // ============================================================
-        // MEDIA MONITOR – SERVICE (DÉMARRAGE AUTOMATIQUE)
+        // MEDIA MONITOR â€“ SERVICE (DÃ‰MARRAGE AUTOMATIQUE)
         // ============================================================
         public static string CreateMediaMonitorServiceTask()
         {
@@ -75,7 +75,7 @@ namespace MCEMonitor.Utils
             string exePath = Application.ExecutablePath;
 
             int taskHour   = hour;
-            int taskMinute = minute - 5;   // 5 min avant l'heure réelle
+            int taskMinute = minute - 5;   // 5 min avant l'heure rÃ©elle
 
             if (taskMinute < 0)
             {
@@ -130,8 +130,8 @@ namespace MCEMonitor.Utils
 
                 foreach (var line in output.Split('\n'))
                 {
-                    // Attention : selon la locale, "Heure de début" peut être mal encodé
-                    // (dtbut dans le fichier source d'origine). On reste tolérant.
+                    // Attention : selon la locale, "Heure de dÃ©but" peut Ãªtre mal encodÃ©
+                    // (dtbut dans le fichier source d'origine). On reste tolÃ©rant.
                     string trimmed = line.Trim();
                     if (trimmed.StartsWith("Heure de d", StringComparison.OrdinalIgnoreCase))
                     {
@@ -158,7 +158,7 @@ namespace MCEMonitor.Utils
             }
         }
 
-        public static string GetShutdownTaskMode()
+        public static string? GetShutdownTaskMode()
         {
             try
             {
@@ -362,15 +362,15 @@ namespace MCEMonitor.Utils
         }
 
         /// <summary>
-        /// Exécute une commande schtasks avec élévation UAC et timeout dur.
-        /// - Si le processus est déjà élevé ? capture stdout/stderr normalement.
+        /// ExÃ©cute une commande schtasks avec Ã©lÃ©vation UAC et timeout dur.
+        /// - Si le processus est dÃ©jÃ  Ã©levÃ© ? capture stdout/stderr normalement.
         /// - Sinon ? UAC (UseShellExecute=true, pas de capture), timeout 30 s.
         /// </summary>
         private static string RunAdmin(string args)
         {
             const string exe = "schtasks.exe";
 
-            // Extraire les arguments après "schtasks" si présents
+            // Extraire les arguments aprÃ¨s "schtasks" si prÃ©sents
             string realArgs = args.StartsWith("schtasks ", StringComparison.OrdinalIgnoreCase)
                 ? args.Substring("schtasks ".Length)
                 : args;
@@ -396,7 +396,7 @@ namespace MCEMonitor.Utils
             try
             {
                 using var p = Process.Start(psi);
-                if (p == null) return "ERREUR : démarrage schtasks impossible.";
+                if (p == null) return "ERREUR : dÃ©marrage schtasks impossible.";
 
                 if (needUac)
                 {
@@ -412,7 +412,7 @@ namespace MCEMonitor.Utils
                         : $"ERREUR : schtasks code {p.ExitCode}.";
                 }
 
-                // Mode capturé
+                // Mode capturÃ©
                 Task<string> outTask = p.StandardOutput.ReadToEndAsync();
                 Task<string> errTask = p.StandardError.ReadToEndAsync();
 
@@ -429,7 +429,7 @@ namespace MCEMonitor.Utils
             }
             catch (System.ComponentModel.Win32Exception ex) when (ex.NativeErrorCode == 1223)
             {
-                return "ERREUR : UAC refusé par l'utilisateur.";
+                return "ERREUR : UAC refusÃ© par l'utilisateur.";
             }
             catch (Exception ex)
             {

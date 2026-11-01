@@ -1,4 +1,4 @@
-public class ToggleSwitch : Control
+﻿public class ToggleSwitch : Control
 {
     private bool isOn = false;
     private int knobX = 2;
@@ -66,9 +66,9 @@ public class ToggleSwitch : Control
         animationTimer.Start();
     }
 
-    private void Animate(object sender, EventArgs e)
+    private void Animate(object? sender, EventArgs e)
     {
-        int target = isOn ? Width - Height + 2 : 2; // fonctionne aussi pour 36�18
+        int target = isOn ? Width - Height + 2 : 2; // fonctionne aussi pour 36×18
 
         if (isOn && knobX < target)
             knobX += 2;

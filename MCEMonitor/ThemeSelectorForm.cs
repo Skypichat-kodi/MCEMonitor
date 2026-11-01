@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
@@ -8,9 +8,9 @@ namespace MCEMonitor
 {
     public class ThemeSelectorForm : KryptonForm
     {
-        private KryptonThemeListBox _themeList;
-        private KryptonButton _btnClose;
-        private KryptonLabel _lblInfo;
+        private KryptonThemeListBox _themeList = null!;
+        private KryptonButton       _btnClose  = null!;
+        private KryptonLabel        _lblInfo   = null!;
 
         private static string ThemeConfigPath => Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -25,7 +25,7 @@ namespace MCEMonitor
 
         private void InitializeUI()
         {
-            this.Text = LanguageManager.Get("Choix du thËme") ?? "Choix du thËme";
+            this.Text = LanguageManager.Get("Choix du th√®me") ?? "Choix du th√®me";
             this.ClientSize = new Size(440, 380);
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
             this.MaximizeBox = false;
@@ -34,8 +34,8 @@ namespace MCEMonitor
 
             _lblInfo = new KryptonLabel
             {
-                Text = LanguageManager.Get("SÈlectionnez un thËme (appliquÈ immÈdiatement) :")
-                    ?? "SÈlectionnez un thËme (appliquÈ immÈdiatement) :",
+                Text = LanguageManager.Get("S√©lectionnez un th√®me (appliqu√© imm√©diatement) :")
+                    ?? "S√©lectionnez un th√®me (appliqu√© imm√©diatement) :",
                 Location = new Point(20, 15),
                 Size = new Size(400, 25),
                 Font = new Font("Segoe UI", 9F)
@@ -47,12 +47,12 @@ namespace MCEMonitor
                 Size = new Size(400, 280)
             };
 
-            // Restaure la sÈlection actuelle
+            // Restaure la s√©lection actuelle
             var current = LoadSavedTheme();
             if (_themeList.Items.Contains(current))
                 _themeList.SelectedItem = current;
 
-            // Applique le thËme dËs qu'on change la sÈlection
+            // Applique le th√®me d√®s qu'on change la s√©lection
             _themeList.SelectedIndexChanged += ThemeList_SelectedIndexChanged;
 
             _btnClose = new KryptonButton
@@ -68,23 +68,23 @@ namespace MCEMonitor
             this.Controls.Add(_btnClose);
         }
 
-        private void ThemeList_SelectedIndexChanged(object sender, EventArgs e)
+        private void ThemeList_SelectedIndexChanged(object? sender, EventArgs e)
         {
-            // ? Approche robuste : on lit directement l'Ètat du KryptonManager
-            // Peu importe ce que contient SelectedItem, on applique le thËme actuel
+            // ? Approche robuste : on lit directement l'√©tat du KryptonManager
+            // Peu importe ce que contient SelectedItem, on applique le th√®me actuel
             var mode = KryptonManager.CurrentGlobalPaletteMode;
 
-            // Si la liste permet de changer le thËme au vol, on force la synchro
+            // Si la liste permet de changer le th√®me au vol, on force la synchro
             if (_themeList.SelectedItem != null)
             {
-                // Tentative de rÈcupÈration via Value (si wrapper KryptonListItem)
+                // Tentative de r√©cup√©ration via Value (si wrapper KryptonListItem)
                 var valueProp = _themeList.SelectedItem.GetType().GetProperty("Value");
                 if (valueProp != null && valueProp.GetValue(_themeList.SelectedItem) is PaletteMode pm)
                 {
                     mode = pm;
                     Program.SharedManager.GlobalPaletteMode = pm;
                 }
-                // Tentative directe (si c'est dÈj‡ un PaletteMode)
+                // Tentative directe (si c'est d√©j√† un PaletteMode)
                 else if (_themeList.SelectedItem is PaletteMode pmDirect)
                 {
                     mode = pmDirect;

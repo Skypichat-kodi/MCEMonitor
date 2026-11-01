@@ -379,7 +379,7 @@ namespace MCEMonitor
                     return;
                 }
 
-                string lastCode01 = File.ReadLines(path)
+                string? lastCode01 = File.ReadLines(path)
                     .Reverse()
                     .FirstOrDefault(l => l.Contains("[CODE01]"));
 
@@ -675,7 +675,7 @@ namespace MCEMonitor
                     return;
                 }
 
-                string lastCode02 = File.ReadLines(path)
+                string? lastCode02 = File.ReadLines(path)
                     .Reverse()
                     .FirstOrDefault(l => l.Contains("[CODE02]"));
 
@@ -763,7 +763,7 @@ namespace MCEMonitor
 
             string path = Path.Combine(dir, "WakeMonitor.config");
 
-            Directory.CreateDirectory(Path.GetDirectoryName(path));
+            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             File.WriteAllLines(path, lines);
 
             PopupHelper.ShowBottomPopup(
@@ -1100,7 +1100,9 @@ namespace MCEMonitor
         {
             if (TaskSchedulerHelper.ShutdownTaskExists())
             {
-                SetSelectedShutdownMode(TaskSchedulerHelper.GetShutdownTaskMode());
+                var mode = TaskSchedulerHelper.GetShutdownTaskMode();
+                if (mode != null)
+                    SetSelectedShutdownMode(mode);
             }
         }
 
@@ -1183,7 +1185,7 @@ namespace MCEMonitor
             }
         }
 
-        private async void BtnSaveRomConfig_Click(object sender, EventArgs e)
+        private void BtnSaveRomConfig_Click(object sender, EventArgs e)
         {
             try
             {
@@ -2844,7 +2846,7 @@ namespace MCEMonitor
             }
         }
 
-        private async void BtnSaveSystemConfig_Click(object sender, EventArgs e)
+        private void BtnSaveSystemConfig_Click(object sender, EventArgs e)
         {
             try
             {

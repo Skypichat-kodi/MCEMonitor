@@ -15,14 +15,14 @@ namespace MCEMonitor
 {
     internal static class Program
     {
-        private static Mutex _mutex;
+        private static Mutex? _mutex; 
 
         private const string MutexName = "Global\\MCEMonitor_MainUI";
         private const string PipeName  = "MCEMonitor_Activate";
 
-        public static KryptonManager SharedManager { get; private set; }
+        public static KryptonManager SharedManager { get; private set; } = null!;
 
-        private static MainForm _mainForm;
+        private static MainForm? _mainForm; 
 
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -77,7 +77,7 @@ namespace MCEMonitor
                 // ============================================================
                 //  GESTION DE LA LANGUE (argument > auto-détection Windows)
                 // ============================================================
-                string selectedLang = null;
+                string? selectedLang = null;
 
                 if (args.Contains("-EN", StringComparer.OrdinalIgnoreCase))
                     selectedLang = "en-GB";

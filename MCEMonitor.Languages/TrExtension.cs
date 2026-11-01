@@ -6,7 +6,7 @@ namespace MCEMonitor.Languages
     [MarkupExtensionReturnType(typeof(string))]
     public class TrExtension : MarkupExtension
     {
-        public string Key { get; set; }
+        public string? Key { get; set; }
 
         public TrExtension() { }
 
@@ -21,11 +21,10 @@ namespace MCEMonitor.Languages
                 return "";
 
             // Appel direct à ton LanguageManager
-            string value = LanguageManager.Get(Key);
+            string? value = LanguageManager.Get(Key);
 
             // Si null ? fallback sur la clé brute
             return value ?? Key;
         }
     }
 }
-

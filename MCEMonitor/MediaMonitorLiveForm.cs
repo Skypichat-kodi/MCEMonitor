@@ -1,8 +1,7 @@
-using System;
+ï»¿using System;
 using System.Windows.Forms;
 using Krypton.Toolkit;
 using MCEMonitor.Services;
-using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
@@ -23,14 +22,14 @@ namespace MCEMonitor
             _timer.Start();
         }
 
-        private void UpdateStatus(object sender, EventArgs e)
+        private void UpdateStatus(object? sender, EventArgs e)
         {
             var s = _media.GetLiveStatus();
 
             lblCpu.Text = $"CPU : {s.CpuUsage}%";
             lblGpu.Text = $"GPU : {s.GpuUsage}%";
-            lblTemp.Text = $"Temp CPU : {s.CpuTemp}°C";
-            lblNetwork.Text = $"Réseau : {s.NetworkUsage} Mb/s";
+            lblTemp.Text = $"Temp CPU : {s.CpuTemp}Â°C";
+            lblNetwork.Text = $"RÃ©seau : {s.NetworkUsage} Mb/s";
             lblDisk.Text = $"Disque : {s.DiskUsage}%";
         }
     }

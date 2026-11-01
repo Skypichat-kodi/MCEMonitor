@@ -13,21 +13,21 @@ namespace MCEMonitor
 {
     public class MailConfigPage : UserControl
     {
-        private KryptonTextBox txtFrom;
-        private KryptonTextBox txtPassword;
-        private KryptonTextBox txtTo;
-        private KryptonTextBox txtServer;
-        private KryptonNumericUpDown numPort;
-        private KryptonComboBox cboSecurity;
-        private KryptonButton btnSave;
-        private KryptonButton btnTest;
-        private KryptonPictureBox picStatus;
-        private KryptonLabel lblFrom;
-        private KryptonLabel lblPassword;
-        private KryptonLabel lblTo;
-        private KryptonLabel lblServer;
-        private KryptonLabel lblPort;
-        private KryptonLabel lblSecurity;
+        private KryptonTextBox       txtFrom     = null!;
+        private KryptonTextBox       txtPassword = null!;
+        private KryptonTextBox       txtTo       = null!;
+        private KryptonTextBox       txtServer   = null!;
+        private KryptonNumericUpDown numPort     = null!;
+        private KryptonComboBox      cboSecurity = null!;
+        private KryptonButton        btnSave     = null!;
+        private KryptonButton        btnTest     = null!;
+        private KryptonPictureBox    picStatus   = null!;
+        private KryptonLabel         lblFrom     = null!;
+        private KryptonLabel         lblPassword = null!;
+        private KryptonLabel         lblTo       = null!;
+        private KryptonLabel         lblServer   = null!;
+        private KryptonLabel         lblPort     = null!;
+        private KryptonLabel         lblSecurity = null!;
 
         public MailConfigPage()
         {

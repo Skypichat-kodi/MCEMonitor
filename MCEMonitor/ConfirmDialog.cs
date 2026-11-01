@@ -12,10 +12,10 @@ namespace MCEMonitor
     /// </summary>
     public class ConfirmDialog : KryptonForm
     {
-        private KryptonPictureBox _picIcon;
-        private KryptonLabel _lblMessage;
-        private KryptonButton _btnYes;
-        private KryptonButton _btnNo;
+        private KryptonPictureBox _picIcon    = null!;
+        private KryptonLabel      _lblMessage = null!;
+        private KryptonButton     _btnYes     = null!;
+        private KryptonButton     _btnNo      = null!;
 
         public bool Result { get; private set; } = false;
 
