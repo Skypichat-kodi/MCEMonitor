@@ -41,5 +41,9 @@ namespace RomMonitor.Service
             }
             catch { }
         }
+        public static void Debug(string message)
+        {
+            Write("[DEBUG] " + message);
+        }     
     }
 }

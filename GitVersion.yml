@@ -1,0 +1,9 @@
+﻿# Version de base que GitVersion utilisera pour calculer la prochaine version.
+# Utile pour démarrer à une version précise ou pour sauter un palier.
+next-version: 2.5.0
+
+# Mode de calcul (ContinuousDelivery est un bon choix par défaut)
+mode: ContinuousDelivery
+
+# Préfixe des tags Git (ex: v2.5.0 ou V2.5.0)
+tag-prefix: '[vV]'

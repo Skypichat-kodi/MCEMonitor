@@ -11,4 +11,10 @@
     <ApplicationIcon>Autotrad.ico</ApplicationIcon>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  
 </Project>

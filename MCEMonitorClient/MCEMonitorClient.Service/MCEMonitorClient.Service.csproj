@@ -11,6 +11,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 
