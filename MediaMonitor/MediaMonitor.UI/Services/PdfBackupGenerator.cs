@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -6,6 +6,11 @@ using MediaMonitor.Core.Models;
 using MediaMonitor.UI.Models;
 using PdfSharp.Drawing;
 using PdfSharp.Pdf;
+
+// PDFsharp 6.1 : les conversions implicites int/double <-> XUnit sont obsolètes.
+// On garde les conversions implicites pour l'instant (le rendu est correct) ;
+// migration vers XUnit.FromPoint() / .Point à planifier séparément.
+#pragma warning disable CS0618
 
 namespace MediaMonitor.UI.Services
 {
@@ -23,8 +28,8 @@ namespace MediaMonitor.UI.Services
 
             var gfx = XGraphics.FromPdfPage(page);
 
-            var titleFont  = new XFont("Arial", 18, XFontStyle.Bold);
-            var headerFont = new XFont("Arial", 10, XFontStyle.Bold);
+            var titleFont  = new XFont("Arial", 18, XFontStyleEx.Bold);   // ← ; ajouté
+            var headerFont = new XFont("Arial", 10, XFontStyleEx.Bold);   // ← ; ajouté
             var textFont   = new XFont("Arial", 9);
             var footerFont = new XFont("Arial", 8);
 
@@ -36,9 +41,9 @@ namespace MediaMonitor.UI.Services
             y = 70;
             gfx.DrawString($"Historique sur {backup.RetentionDays} jours",
                 headerFont, XBrushes.Black, 20, y);
-            gfx.DrawString($"�v�nements : {items.Count}",
+            gfx.DrawString($"Événements : {items.Count}",                          // ← mojibake corrigé
                 headerFont, XBrushes.Black, 220, y);
-            gfx.DrawString($"G�n�r� le {DateTime.Now:dd/MM/yyyy HH:mm}",
+            gfx.DrawString($"Généré le {DateTime.Now:dd/MM/yyyy HH:mm}",          // ← mojibake corrigé
                 headerFont, XBrushes.Black, 420, y);
             y += 25;
 

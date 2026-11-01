@@ -15,7 +15,7 @@ namespace MediaMonitor.Service.Web.Handlers
 
         public void Show(HandlerContext ctx)
         {
-            string filePath = WebUtility.UrlDecode(ctx.Http.Request.QueryString["path"]);
+            string? filePath = WebUtility.UrlDecode(ctx.Http.Request.QueryString["path"]);
 
             if (string.IsNullOrWhiteSpace(filePath))
             {
@@ -234,7 +234,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 try
                 {
                     byte[] bytes = File.ReadAllBytes(item.Path);
-                    string ext = Path.GetExtension(item.Path).ToLowerInvariant();
+                    string ext = (Path.GetExtension(item.Path) ?? "").ToLowerInvariant();
                     string mime = ext switch
                     {
                         ".png"  => "image/png",

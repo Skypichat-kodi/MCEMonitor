@@ -66,7 +66,7 @@ namespace MediaMonitor.Service.Web
             return TrRegex.Replace(html, m =>
             {
                 string key = m.Groups[1].Value.Trim();
-                string translated = LanguageManager.Get(key);
+                string? translated = LanguageManager.Get(key);   // ? corrigé
                 return string.IsNullOrEmpty(translated) ? key : translated;
             });
         }

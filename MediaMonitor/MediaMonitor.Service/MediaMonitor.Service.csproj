@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PdfSharp" Version="1.50.5147" />
+    <PackageReference Include="PDFsharp" Version="6.1.1" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
@@ -23,7 +23,6 @@
     </Content>
   </ItemGroup>
 
-  <!-- Templates HTML (tous, y compris sous-dossiers) + ressources templates non-HTML -->
   <ItemGroup>
     <Content Include="Templates\**\*.html">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

@@ -13,7 +13,7 @@ namespace MediaMonitor.UI.Converters
             if (value is string key)
             {
                 // Appelle directement ton LanguageManager.Get()
-                string translated = LanguageManager.Get(key);
+                string? translated = LanguageManager.Get(key);   // ? corrigé
 
                 // Si pas trouvé ? retourne le texte original
                 return translated ?? key;
@@ -29,4 +29,3 @@ namespace MediaMonitor.UI.Converters
         }
     }
 }
-

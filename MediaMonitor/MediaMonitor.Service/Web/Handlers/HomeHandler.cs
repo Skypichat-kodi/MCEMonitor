@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +13,7 @@ namespace MediaMonitor.Service.Web.Handlers
         private readonly MediaMonitorEngine _engine;
         private readonly int _port;
 
-        // Ces compteurs restent sur le WebServer, on les passe en param�tre.
+        // Ces compteurs restent sur le WebServer, on les passe en paramètre.
         public HomeHandler(MediaMonitorEngine engine, int port)
         {
             _engine = engine;
@@ -62,7 +62,7 @@ namespace MediaMonitor.Service.Web.Handlers
                 ["History24h"]       = history24h,
                 ["HasHistory"]       = historyCount > 0,
                 ["LastEvent"]        = historyCount > 0
-                                        ? $"{history.Last().Timestamp:HH:mm:ss} � " +
+                                        ? $"{history.Last().Timestamp:HH:mm:ss} – " +
                                           $"{WebUtility.HtmlEncode(history.Last().MediaType)} " +
                                           $"({WebUtility.HtmlEncode(history.Last().ClientDisplay)})"
                                         : "",
@@ -88,7 +88,7 @@ namespace MediaMonitor.Service.Web.Handlers
                     return d;
                 }).ToList(),
 
-                // Tableau historique (200 derniers, ordre d�croissant)
+                // Tableau historique (200 derniers, ordre décroissant)
                 ["HistoryItems"] = history
                                     .OrderByDescending(h => h.Timestamp)
                                     .Take(200)
@@ -115,7 +115,7 @@ namespace MediaMonitor.Service.Web.Handlers
             if (!File.Exists(path)) return DateTime.MinValue;
 
             // Nouveau format : "[CODE02]|2026-09-15 20:10:08"
-            string lastLine = File.ReadLines(path)
+            string? lastLine = File.ReadLines(path)
                 .LastOrDefault(l => l.Contains("[CODE02]|"));
             if (lastLine == null) return DateTime.MinValue;
 
@@ -137,7 +137,7 @@ namespace MediaMonitor.Service.Web.Handlers
             if (!File.Exists(path)) return DateTime.MinValue;
 
             // Nouveau format : "[CODE01]|11:50|15h 39min"
-            string lastLine = File.ReadLines(path)
+            string? lastLine = File.ReadLines(path)                        // ← corrigé
                 .LastOrDefault(l => l.Contains("[CODE01]|"));
             if (lastLine == null) return DateTime.MinValue;
 
@@ -162,28 +162,28 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         /// <summary>
-        /// Construit l'ic�ne appropri�e selon le type et la cha�ne.
-        /// - tv     ? tv.png
-        /// - rec    ? logo de la cha�ne (fallback si absent)
-        /// - autres ? rom.png (fichiers locaux)
+        /// Construit l'icône appropriée selon le type et la chaîne.
+        /// - tv     → tv.png
+        /// - rec    → logo de la chaîne (fallback si absent)
+        /// - autres → rom.png (fichiers locaux)
         /// </summary>
-        private static string BuildMediaIcon(string channel, string mediaType)
+        private static string BuildMediaIcon(string? channel, string? mediaType)
         {
             string mt = (mediaType ?? "").ToLowerInvariant();
 
-            // TV ? ic�ne fixe
+            // TV → icône fixe
             if (mt == "tv")
                 return BuildStaticIcon("tv.png", "TV");
 
-            // REC ? logo de cha�ne
+            // REC → logo de chaîne
             if (mt == "rec")
                 return BuildChannelIcon(channel);
 
-            // Fichiers locaux ? rom.png
+            // Fichiers locaux → rom.png
             if (mt == "serie" || mt == "video" || mt == "image" || mt == "audio")
                 return BuildStaticIcon("rom.png", mediaType);
 
-            // Fallback : si une cha�ne est renseign�e, on met le logo
+            // Fallback : si une chaîne est renseignée, on met le logo
             if (!string.IsNullOrWhiteSpace(channel))
                 return BuildChannelIcon(channel);
 
@@ -191,9 +191,9 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         /// <summary>
-        /// Logo de cha�ne (avec fallback texte si l'image ne charge pas).
+        /// Logo de chaîne (avec fallback texte si l'image ne charge pas).
         /// </summary>
-        private static string BuildChannelIcon(string channel)
+        private static string BuildChannelIcon(string? channel)   // ← corrigé
         {
             if (string.IsNullOrWhiteSpace(channel))
                 return "";
@@ -211,9 +211,9 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         /// <summary>
-        /// Ic�ne statique depuis /Resources/Icons/.
+        /// Icône statique depuis /Resources/Icons/.
         /// </summary>
-        private static string BuildStaticIcon(string iconFile, string title)
+        private static string BuildStaticIcon(string iconFile, string? title)   // ← corrigé
         {
             string safeTitle = WebUtility.HtmlEncode(title ?? "");
 

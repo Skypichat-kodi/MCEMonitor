@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Threading;
 using MediaMonitor.Core.Services;
@@ -13,8 +13,8 @@ namespace MediaMonitor.Service.Service
         private readonly BackupService _backupService;
         private readonly Action _onShutdownChanged;
 
-        private FileSystemWatcher _shutdownWatcher;
-        private FileSystemWatcher _webConfigWatcher;
+        private FileSystemWatcher? _shutdownWatcher;
+        private FileSystemWatcher? _webConfigWatcher;
 
         private DateTime _lastConfigChange = DateTime.MinValue;
         private DateTime _lastWebConfigChange = DateTime.MinValue;
@@ -80,7 +80,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  Shutdown.config modifié
+        //  Shutdown.config modifiÃ©
         // ---------------------------------------------------------------
         private void OnShutdownChanged(object sender, FileSystemEventArgs e)
         {
@@ -107,12 +107,12 @@ namespace MediaMonitor.Service.Service
                 if (changed)
                 {
                     ScheduleLogger.Write(
-                        $"Nouvelle heure détectée : {newTime.Value.hour:D2}:{newTime.Value.minute:D2}"
+                        $"Nouvelle heure dÃ©tectÃ©e : {newTime.Value.hour:D2}:{newTime.Value.minute:D2}"
                     );
                 }
 
                 ScheduleLogger.Write(
-                    $"Shutdown.config chargé : {newTime.Value.hour:D2}:{newTime.Value.minute:D2}"
+                    $"Shutdown.config chargÃ© : {newTime.Value.hour:D2}:{newTime.Value.minute:D2}"
                 );
 
                 ScheduleLogger.Write(Program.LastReportStatus);
@@ -126,7 +126,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  MediaMonitor.Web.config modifié
+        //  MediaMonitor.Web.config modifiÃ©
         // ---------------------------------------------------------------
         private void OnWebConfigChanged(object sender, FileSystemEventArgs e)
         {
@@ -135,7 +135,7 @@ namespace MediaMonitor.Service.Service
 
             _lastWebConfigChange = DateTime.Now;
 
-            // --- Rétention ---
+            // --- RÃ©tention ---
             try
             {
                 Thread.Sleep(200);
@@ -143,8 +143,8 @@ namespace MediaMonitor.Service.Service
                 int days = WebServerSettings.Load().RetentionDays;
                 _backupService.Restart();
 
-                ScheduleLogger.Write($"Rétention mise à jour : {days} jours");
-                ScheduleLogger.Write("Timer de sauvegarde reprogrammé suite au changement de rétention.");
+                ScheduleLogger.Write($"RÃ©tention mise Ã  jour : {days} jours");
+                ScheduleLogger.Write("Timer de sauvegarde reprogrammÃ© suite au changement de rÃ©tention.");
             }
             catch (Exception ex)
             {
@@ -177,7 +177,7 @@ namespace MediaMonitor.Service.Service
                             _dvbViewerEnabled = enabled;
                             Program.Engine.DvbViewerEnabled = enabled;
 
-                            CoreLog.Write("DVBViewer RS " + (enabled ? "ACTIVÉ" : "DÉSACTIVÉ") + " via Web.config");
+                            CoreLog.Write("DVBViewer RS " + (enabled ? "ACTIVÃ‰" : "DÃ‰SACTIVÃ‰") + " via Web.config");
                         }
                     }
                 }

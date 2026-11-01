@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Net;
 using System.Text;
@@ -16,7 +16,7 @@ namespace MediaMonitor.Service
         private readonly HttpListener _listener = new();
         private readonly MediaMonitorEngine _engine;
         private readonly int _port;
-        private Thread _thread;
+        private Thread? _thread;
         private bool _running = false;
         private long _requestCount = 0;
         private DateTime _lastRequestTime = DateTime.MinValue;
@@ -80,7 +80,7 @@ namespace MediaMonitor.Service
             _router.Map("/clear",       ctx => _apiHandler.Clear(ctx));
             _router.Map("/api/summary", ctx =>  ApiSummary(ctx));
 
-            // Ressources (routes par préfixe)
+            // Ressources (routes par prÃ©fixe)
             _router.Map("/favicon.ico",               ctx => _resourceHandler.Favicon(ctx));
             _router.MapPrefix("/resources/icons/",    ctx => _resourceHandler.Icon(ctx));
             _router.MapPrefix("/resources/images/",   ctx => _resourceHandler.Image(ctx));
@@ -89,7 +89,7 @@ namespace MediaMonitor.Service
         public void ReloadSettings()
         {
             _settings = WebServerSettings.Load();
-            CoreLog.Write("WebServer : paramètres rechargés.");
+            CoreLog.Write("WebServer : paramÃ¨tres rechargÃ©s.");
         }
 
         public void Start()
@@ -99,7 +99,7 @@ namespace MediaMonitor.Service
             _listener.Start();
             _thread = new Thread(ServerLoop) { IsBackground = true };
             _thread.Start();
-            CoreLog.Write($"WebServer démarré sur http://localhost:{_port}/");
+            CoreLog.Write($"WebServer dÃ©marrÃ© sur http://localhost:{_port}/");
         }
 
         public void Stop()
@@ -108,7 +108,7 @@ namespace MediaMonitor.Service
             {
                 _running = false;
                 _listener.Stop();
-                CoreLog.Write("WebServer arrêté.");
+                CoreLog.Write("WebServer arrÃªtÃ©.");
             }
             catch { }
         }
@@ -145,11 +145,11 @@ namespace MediaMonitor.Service
                 }
 
                 // Langue
-                string lang = ctx.Request.QueryString["lang"];
+                string? lang = ctx.Request.QueryString["lang"];   
                 if (!string.IsNullOrEmpty(lang))
                     LanguageManager.Load(lang);
 
-                string path = ctx.Request.Url.AbsolutePath.ToLowerInvariant();
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();   
 
                 var hctx = new HandlerContext(ctx, _engine, _settings, _port);
 
@@ -167,7 +167,7 @@ namespace MediaMonitor.Service
 
         private bool CheckAuth(HttpListenerContext ctx)
         {
-            string auth = ctx.Request.Headers["Authorization"];
+            string? auth = ctx.Request.Headers["Authorization"];   
             if (string.IsNullOrEmpty(auth) || !auth.StartsWith("Basic "))
                 return false;
 
@@ -190,7 +190,7 @@ namespace MediaMonitor.Service
                 worstSeverity = "ok"
             };
 
-            // Récupérer les médias en cours
+            // RÃ©cupÃ©rer les mÃ©dias en cours
             var live = _engine.GetCurrentOpenFiles();
 
             foreach (var item in live)

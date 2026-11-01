@@ -9,7 +9,7 @@ namespace MediaMonitor.Service
     internal class ReportScheduler
     {
         private readonly MediaMonitorEngine _engine;
-        private Timer _timer;
+        private Timer? _timer;   // ? corrigé
         private DateTime _lastReportSent = DateTime.MinValue;
         private bool _isSending = false;
 
@@ -44,12 +44,12 @@ namespace MediaMonitor.Service
         // ------------------------------------------------------------
         public void OnWakeUp()
         {
-            Write("Sortie de veille détectée ? reprogrammation du timer");
+            Write("Sortie de veille détectée ? reprogrammation du timer"); 
             ScheduleNext();
         }
 
         // ------------------------------------------------------------
-        // CALCUL DE L’HEURE D’ENVOI
+        // CALCUL DE L'HEURE D'ENVOI
         // ------------------------------------------------------------
         private DateTime ComputeNextSendTime()
         {
@@ -57,7 +57,7 @@ namespace MediaMonitor.Service
 
             if (shutdown == null)
             {
-                Write("Aucune heure de shutdown ? envoi dans 1 minute");
+                Write("Aucune heure de shutdown ? envoi dans 1 minute"); 
                 NextReportTime = DateTime.Now.AddMinutes(1);
                 return NextReportTime;
             }
@@ -131,7 +131,7 @@ namespace MediaMonitor.Service
                         // Empêcher un deuxième rapport le même jour
                         if (_lastReportSent.Date == DateTime.Now.Date)
                         {
-                            Write("Rapport déjà envoyé aujourd'hui ? pas de reprogrammation.");
+                            Write("Rapport déjà envoyé aujourd'hui ? pas de reprogrammation.");   // ? corrigé
                             return;
                         }
 

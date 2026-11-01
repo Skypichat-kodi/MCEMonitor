@@ -21,7 +21,7 @@ namespace MediaMonitor.UI
     public partial class MainWindow : Window
     {
         private bool IsLoggingEnabled = false;
-        public static Action<string> StaticUiLog;
+        public static Action<string> StaticUiLog = _ => { };
 
         private readonly ObservableCollection<MediaUsageItem> _items = new();
         private readonly ObservableCollection<MediaUsageItem> _history = new();
@@ -30,9 +30,8 @@ namespace MediaMonitor.UI
         private readonly ObservableCollection<MediaUsageItem> _backupAll      = new();
         private readonly ObservableCollection<MediaUsageItem> _backupFiltered = new();
         private BackupFileModel? _currentBackup;
-        private bool _backupTabInitialized = false;
 
-        private readonly DispatcherTimer _refreshTimer;
+        private readonly DispatcherTimer _refreshTimer = null!;
         private bool _isRefreshing = false;
         private bool _loadingConfig = false;
 
@@ -181,7 +180,7 @@ namespace MediaMonitor.UI
                 await Task.Delay(1500);
                 await RefreshStateSafe();
                 await LoadEmailSwitch();
-                Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
+                await Dispatcher.InvokeAsync(() => { }, DispatcherPriority.Background);
             }
             catch (Exception ex)
             {
@@ -847,6 +846,17 @@ namespace MediaMonitor.UI
             try
             {
                 var fullInfo = await ServiceIpcClient.GetFileInfoAsync(path);
+
+                if (fullInfo == null)
+                {
+                    MessageBox.Show(
+                        LanguageManager.Get("Impossible d'obtenir les informations du fichier.") 
+                            ?? "Impossible d'obtenir les informations du fichier.",
+                        LanguageManager.Get("Erreur IPC") ?? "Erreur IPC",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
                 ShowInfoPopup(fullInfo);
             }
             catch (Exception ex)

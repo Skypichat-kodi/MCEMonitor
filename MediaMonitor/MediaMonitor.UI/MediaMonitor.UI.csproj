@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+<Project Sdk="Microsoft.NET.Sdk">                            
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -9,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="PdfSharp" Version="1.50.5147" />
+    <PackageReference Include="PDFsharp" Version="6.1.1" /> 
     <ProjectReference Include="..\MediaMonitor.Core\MediaMonitor.Core.csproj" />
     <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>

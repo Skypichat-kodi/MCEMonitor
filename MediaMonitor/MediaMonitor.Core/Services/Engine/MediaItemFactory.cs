@@ -17,7 +17,7 @@ namespace MediaMonitor.Core.Services.Engine
         // ---------------------------------------------------------------
         public static MediaUsageItem BuildItem(SmbOpenFile f, SmbSession? match)
         {
-            string clientName = match?.ClientComputerName;
+            string? clientName = match?.ClientComputerName;
             if (string.IsNullOrWhiteSpace(clientName))
                 clientName = match?.ClientIPAddress;
             if (string.IsNullOrWhiteSpace(clientName))

@@ -13,7 +13,7 @@ namespace MediaMonitor.Service.Web.Handlers
         {
             try
             {
-                string channel = ctx.Http.Request.QueryString["channel"];
+                string? channel = ctx.Http.Request.QueryString["channel"];
 
                 if (string.IsNullOrWhiteSpace(channel))
                 {

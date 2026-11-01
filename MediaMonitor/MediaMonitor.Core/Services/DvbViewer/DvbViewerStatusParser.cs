@@ -68,7 +68,7 @@ namespace MediaMonitor.Core.DvbViewer
                 int trIndex = tr.Index;
 
                 // Trouver le tuner le plus proche au-dessus
-                Match bestTuner = null;
+                Match? bestTuner = null;
 
                 foreach (Match tuner in matches)
                 {

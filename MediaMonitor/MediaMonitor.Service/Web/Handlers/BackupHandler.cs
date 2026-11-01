@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,7 +26,7 @@ namespace MediaMonitor.Service.Web.Handlers
             const string folder = @"C:\ProgramData\MCEMonitor\Backups";
 
             if (!Directory.Exists(folder))
-                return RenderNoBackupMessage("{{tr:Aucune sauvegarde trouvée}}");
+                return RenderNoBackupMessage("{{tr:Aucune sauvegarde trouvÃ©e}}");
 
             var files = Directory.GetFiles(folder, "history_*.json");
             if (files.Length == 0)
@@ -39,7 +39,7 @@ namespace MediaMonitor.Service.Web.Handlers
             if (backup == null || backup.Reports == null)
                 return "<html><body><h2>Sauvegarde invalide.</h2></body></html>";
 
-            // Fusion des rapports du même jour
+            // Fusion des rapports du mÃªme jour
             backup.Reports = backup.Reports
                 .GroupBy(r => r.Date.Date)
                 .Select(g => new DailyReport
@@ -291,7 +291,7 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         // ---------------------------------------------------------------
-        //  Helpers stats avancées
+        //  Helpers stats avancÃ©es
         // ---------------------------------------------------------------
         private (string Serie, string Episode) ExtractSerie(string nom)
         {
@@ -415,20 +415,20 @@ namespace MediaMonitor.Service.Web.Handlers
         }
         
         /// <summary>
-        /// Construit l'icône appropriée selon le type et la chaîne.
+        /// Construit l'icÃ´ne appropriÃ©e selon le type et la chaÃ®ne.
         /// - tv     ? tv.png
-        /// - rec    ? logo de la chaîne (fallback si absent)
+        /// - rec    ? logo de la chaÃ®ne (fallback si absent)
         /// - autres ? rom.png (fichiers locaux)
         /// </summary>
-        private static string BuildMediaIcon(string channel, string mediaType)
+        private static string BuildMediaIcon(string? channel, string? mediaType)
         {
             string mt = (mediaType ?? "").ToLowerInvariant();
 
-            // TV ? icône fixe
+            // TV ? icÃ´ne fixe
             if (mt == "tv")
                 return BuildStaticIcon("tv.png", "TV");
 
-            // REC ? logo de chaîne
+            // REC ? logo de chaÃ®ne
             if (mt == "rec")
                 return BuildChannelIcon(channel);
 
@@ -436,7 +436,7 @@ namespace MediaMonitor.Service.Web.Handlers
             if (mt == "serie" || mt == "video" || mt == "image" || mt == "audio")
                 return BuildStaticIcon("rom.png", mediaType);
 
-            // Fallback : si une chaîne est renseignée, on met le logo
+            // Fallback : si une chaÃ®ne est renseignÃ©e, on met le logo
             if (!string.IsNullOrWhiteSpace(channel))
                 return BuildChannelIcon(channel);
 
@@ -444,9 +444,9 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         /// <summary>
-        /// Logo de chaîne (avec fallback texte si l'image ne charge pas).
+        /// Logo de chaÃ®ne (avec fallback texte si l'image ne charge pas).
         /// </summary>
-        private static string BuildChannelIcon(string channel)
+        private static string BuildChannelIcon(string? channel)
         {
             if (string.IsNullOrWhiteSpace(channel))
                 return "";
@@ -464,9 +464,9 @@ namespace MediaMonitor.Service.Web.Handlers
         }
 
         /// <summary>
-        /// Icône statique depuis /Resources/Icons/.
+        /// IcÃ´ne statique depuis /Resources/Icons/.
         /// </summary>
-        private static string BuildStaticIcon(string iconFile, string title)
+        private static string BuildStaticIcon(string iconFile, string? title)
         {
             string safeTitle = WebUtility.HtmlEncode(title ?? "");
 

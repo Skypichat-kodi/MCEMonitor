@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 
 namespace MediaMonitor.Core.DvbViewer
 {
@@ -8,22 +8,21 @@ namespace MediaMonitor.Core.DvbViewer
         /// Colonne "Client" dans l'UI.
         /// Exemple : "192.168.1.34" ou "DVB-T Tuner/Demod (2)"
         /// </summary>
-        public string Client { get; set; }
+        public string Client { get; set; } = string.Empty;
 
         /// <summary>
         /// Colonne "Type" dans l'UI.
-        /// Exemple : "TV" ou "REC F3 Rh�ne-Alpes"
+        /// Exemple : "TV" ou "REC F3 Rhône-Alpes"
         /// </summary>
-        public string Type { get; set; }
+        public string Type { get; set; } = string.Empty;
 
         /// <summary>
         /// Colonne "Nom" dans l'UI.
         /// Exemple : "LiveTV (W)" ou "Des racines et des ailes..."
         /// </summary>
-        public string Nom { get; set; }
+        public string Nom { get; set; } = string.Empty;
 
         public override string ToString()
             => $"{Client} | {Type} | {Nom}";
     }
 }
-

@@ -155,7 +155,7 @@ namespace MediaMonitor.Core.Services
         // ffprobe : durée + codecs
         // ---------------------------
         // ffprobe -v quiet -print_format json -show_streams -show_format "path"
-        private static (Format format, StreamInfo[] streams) RunFfprobe(string path)
+        private static (Format? format, StreamInfo[] streams) RunFfprobe(string path)
         {
             var psi = new ProcessStartInfo
             {
@@ -170,26 +170,28 @@ namespace MediaMonitor.Core.Services
             using var proc = new Process { StartInfo = psi };
 
             if (!proc.Start())
-                return (null!, Array.Empty<StreamInfo>());
+                return (null, Array.Empty<StreamInfo>());
 
-            // Lecture asynchrone des deux flux pour éviter tout deadlock.
             var stdoutTask = proc.StandardOutput.ReadToEndAsync();
             var stderrTask = proc.StandardError.ReadToEndAsync();
 
             if (!proc.WaitForExit(FfprobeTimeoutMs))
             {
                 try { proc.Kill(entireProcessTree: true); } catch { }
-                return (null!, Array.Empty<StreamInfo>());
+                return (null, Array.Empty<StreamInfo>());
             }
 
             string json = stdoutTask.GetAwaiter().GetResult();
-            _ = stderrTask.GetAwaiter().GetResult(); // consommé, même si ignoré
+            _ = stderrTask.GetAwaiter().GetResult();
 
             if (string.IsNullOrWhiteSpace(json))
-                return (null!, Array.Empty<StreamInfo>());
+                return (null, Array.Empty<StreamInfo>());
 
             var doc = JsonSerializer.Deserialize<FfprobeResult>(json);
-            return (doc!.format, doc.streams ?? Array.Empty<StreamInfo>());
+            if (doc == null)
+                return (null, Array.Empty<StreamInfo>());
+
+            return (doc.format, doc.streams ?? Array.Empty<StreamInfo>());
         }
 
         // ---------------------------
@@ -231,19 +233,19 @@ namespace MediaMonitor.Core.Services
         // ---------------------------
         private class FfprobeResult
         {
-            public Format format { get; set; }
-            public StreamInfo[] streams { get; set; }
+            public Format?      format  { get; set; }
+            public StreamInfo[]? streams { get; set; }
         }
 
         private class Format
         {
-            public string duration { get; set; }
+            public string? duration { get; set; }
         }
 
         private class StreamInfo
         {
-            public string codec_type { get; set; }
-            public string codec_name { get; set; }
+            public string? codec_type { get; set; }
+            public string? codec_name { get; set; }
         }
 
         // ---------------------------

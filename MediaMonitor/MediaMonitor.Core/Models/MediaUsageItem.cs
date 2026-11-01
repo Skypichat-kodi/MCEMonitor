@@ -22,7 +22,7 @@ public class MediaUsageItem
 
     // Programme TV
     public bool IfChannelLogo { get; set; }
-    public string ChannelLogo { get; set; }
+    public string ChannelLogo { get; set; } = "";
     public string Channel { get; set; } = "";
     public string Country { get; set; } = "";
     public string AgeRating { get; set; } = "";

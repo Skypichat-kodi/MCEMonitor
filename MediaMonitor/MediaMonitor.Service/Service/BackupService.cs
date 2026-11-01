@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -11,12 +11,12 @@ using Newtonsoft.Json;
 namespace MediaMonitor.Service.Service
 {
     /// <summary>
-    /// GËre les sauvegardes horaires de l'historique.
+    /// G√®re les sauvegardes horaires de l'historique.
     /// </summary>
     public class BackupService
     {
         private readonly MediaMonitorEngine _engine;
-        private System.Threading.Timer _hourlyBackupTimer;
+        private System.Threading.Timer? _hourlyBackupTimer;   
 
         private bool _isWakeUp = false;
         private DateTime _lastWakeUp = DateTime.MinValue;
@@ -27,7 +27,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  DÈmarrage du timer
+        //  D√©marrage du timer
         // ---------------------------------------------------------------
         public void Start()
         {
@@ -42,14 +42,14 @@ namespace MediaMonitor.Service.Service
 
                     if (count == 0)
                     {
-                        ScheduleLogger.Write("Backup effectuÈ (historique vide pour le moment).");
+                        ScheduleLogger.Write("Backup effectu√© (historique vide pour le moment).");
                     }
                     else
                     {
-                        ScheduleLogger.Write($"Backup effectuÈ ({count} mÈdias).");
+                        ScheduleLogger.Write($"Backup effectu√© ({count} m√©dias).");
                     }
 
-                    _hourlyBackupTimer.Change(TimeSpan.FromHours(1), Timeout.InfiniteTimeSpan);
+                    _hourlyBackupTimer?.Change(TimeSpan.FromHours(1), Timeout.InfiniteTimeSpan);   // ‚Üê ?.
                 }
                 catch (Exception ex)
                 {
@@ -59,7 +59,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  RedÈmarrage du timer (ex : changement de rÈtention)
+        //  Red√©marrage du timer (ex : changement de r√©tention)
         // ---------------------------------------------------------------
         public void Restart()
         {
@@ -67,7 +67,7 @@ namespace MediaMonitor.Service.Service
             {
                 _hourlyBackupTimer?.Dispose();
                 Start();
-                ScheduleLogger.Write("Timer de sauvegarde redÈmarrÈ suite au changement de rÈtention.");
+                ScheduleLogger.Write("Timer de sauvegarde red√©marr√© suite au changement de r√©tention.");
             }
             catch (Exception ex)
             {
@@ -82,7 +82,7 @@ namespace MediaMonitor.Service.Service
         {
             _lastWakeUp = DateTime.Now;
             _isWakeUp = true;
-            ScheduleLogger.Write("[WAKEUP] Sortie de veille dÈtectÈe. Backup suspendu 10 secondes.");
+            ScheduleLogger.Write("[WAKEUP] Sortie de veille d√©tect√©e. Backup suspendu 10 secondes.");
         }
 
         // ---------------------------------------------------------------
@@ -96,13 +96,13 @@ namespace MediaMonitor.Service.Service
                 {
                     if ((DateTime.Now - _lastWakeUp).TotalSeconds < 10)
                     {
-                        ScheduleLogger.Write("[WAKEUP] Backup ignorÈ (machine vient de sortir de veille).");
+                        ScheduleLogger.Write("[WAKEUP] Backup ignor√© (machine vient de sortir de veille).");
                         return;
                     }
                     else
                     {
                         _isWakeUp = false;
-                        ScheduleLogger.Write("[WAKEUP] Backup rÈactivÈ.");
+                        ScheduleLogger.Write("[WAKEUP] Backup r√©activ√©.");
                     }
                 }
 
@@ -115,7 +115,7 @@ namespace MediaMonitor.Service.Service
             }
             catch (Exception ex)
             {
-                LogService.WriteError("Erreur lors de la sauvegarde cumulÈe : " + ex.Message);
+                LogService.WriteError("Erreur lors de la sauvegarde cumul√©e : " + ex.Message);
             }
             finally
             {
@@ -124,7 +124,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  Logique de sauvegarde cumulÈe
+        //  Logique de sauvegarde cumul√©e
         // ---------------------------------------------------------------
         private void DoBackup(int retentionDays)
         {
@@ -138,7 +138,7 @@ namespace MediaMonitor.Service.Service
 
             string backupPath = Path.Combine(backupDir, "history_backup.json");
 
-            BackupFileModel backup = null;
+            BackupFileModel? backup = null;
 
             if (File.Exists(backupPath))
             {
@@ -147,47 +147,55 @@ namespace MediaMonitor.Service.Service
                 int half = oldJson.Length / 2;
                 if (oldJson.Length > 100 && oldJson.Substring(0, half) == oldJson.Substring(half))
                 {
-                    ScheduleLogger.Write("[CODE05] Duplication dÈtectÈe dans le JSON. RÈparation en cours.");
+                    ScheduleLogger.Write("[CODE05] Duplication d√©tect√©e dans le JSON. R√©paration en cours.");
                 }
 
                 backup = JsonConvert.DeserializeObject<BackupFileModel>(oldJson);
 
-                var allItems = backup.Reports
-                    .SelectMany(r => r.Items)
-                    .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode, i.Timestamp })
-                    .Select(g => g.First())
-                    .ToList();
-
-                int totalBefore = backup.Reports.Sum(r => r.Items.Count);
-                int totalAfter = allItems.Count;
-
-                if (totalAfter < totalBefore)
+                // ‚Üê NOUVEAU : ne manipuler backup que s'il n'est pas null
+                if (backup != null)
                 {
-                    ScheduleLogger.Write($"[CODE07] RÈparation globale : {totalBefore - totalAfter} doublons supprimÈs.");
-                }
-
-                foreach (var report in backup.Reports)
-                {
-                    report.Items = allItems
-                        .Where(i => report.Date == i.Timestamp.Date)
-                        .ToList();
-                }
-
-                foreach (var report in backup.Reports)
-                {
-                    int before = report.Items.Count;
-
-                    report.Items = report.Items
-                        .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
+                    var allItems = backup.Reports
+                        .SelectMany(r => r.Items)
+                        .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode, i.Timestamp })
                         .Select(g => g.First())
                         .ToList();
 
-                    int after = report.Items.Count;
+                    int totalBefore = backup.Reports.Sum(r => r.Items.Count);
+                    int totalAfter = allItems.Count;
 
-                    if (after < before)
+                    if (totalAfter < totalBefore)
                     {
-                        ScheduleLogger.Write($"[CODE06] RÈparation JSON : {before - after} doublons dans le jour {report.Date:yyyy-MM-dd}");
+                        ScheduleLogger.Write($"[CODE07] R√©paration globale : {totalBefore - totalAfter} doublons supprim√©s.");
                     }
+
+                    foreach (var report in backup.Reports)
+                    {
+                        report.Items = allItems
+                            .Where(i => report.Date == i.Timestamp.Date)
+                            .ToList();
+                    }
+
+                    foreach (var report in backup.Reports)
+                    {
+                        int before = report.Items.Count;
+
+                        report.Items = report.Items
+                            .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
+                            .Select(g => g.First())
+                            .ToList();
+
+                        int after = report.Items.Count;
+
+                        if (after < before)
+                        {
+                            ScheduleLogger.Write($"[CODE06] R√©paration JSON : {before - after} doublons dans le jour {report.Date:yyyy-MM-dd}");
+                        }
+                    }
+                }
+                else
+                {
+                    ScheduleLogger.Write("[CODE05bis] JSON illisible ‚Äî repartir de z√©ro.");
                 }
             }
 
@@ -214,7 +222,8 @@ namespace MediaMonitor.Service.Service
                 }
                 else
                 {
-                    ScheduleLogger.Write("Backup : aucun mÈdia aujourd'hui, jour non crÈÈ.");
+                    ScheduleLogger.Write("Backup : aucun m√©dia aujourd'hui, jour non cr√©√©.");
+                    // ‚Üê FIX : on skip la suite de la manipulation de existing
                 }
             }
             else
@@ -235,31 +244,35 @@ namespace MediaMonitor.Service.Service
                 foreach (var item in newFilteredItems)
                     existing.Items.Add(item);
 
-                ScheduleLogger.Write($"Backup : {newFilteredItems.Count} nouveaux items ajoutÈs");
+                ScheduleLogger.Write($"Backup : {newFilteredItems.Count} nouveaux items ajout√©s");
             }
 
-            existing.Items = existing.Items
-                .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
-                .Select(g => g.First())
-                .ToList();
+            // ‚Üê FIX : ne manipuler existing QUE s'il existe (sinon NRE !)
+            if (existing != null)
+            {
+                existing.Items = existing.Items
+                    .GroupBy(i => new { i.Path, i.FileName, i.MediaType, i.Nom, i.Saison, i.Episode })
+                    .Select(g => g.First())
+                    .ToList();
 
-            var newItems = _engine.GetHistory();
+                var newItems = _engine.GetHistory();
 
-            var filtered = newItems.Where(item =>
-                !existing.Items.Any(x =>
-                    x.Path == item.Path &&
-                    x.FileName == item.FileName &&
-                    x.MediaType == item.MediaType &&
-                    x.Nom == item.Nom &&
-                    x.Saison == item.Saison &&
-                    x.Episode == item.Episode
-                )
-            ).ToList();
+                var filtered = newItems.Where(item =>
+                    !existing.Items.Any(x =>
+                        x.Path == item.Path &&
+                        x.FileName == item.FileName &&
+                        x.MediaType == item.MediaType &&
+                        x.Nom == item.Nom &&
+                        x.Saison == item.Saison &&
+                        x.Episode == item.Episode
+                    )
+                ).ToList();
 
-            foreach (var item in filtered)
-                existing.Items.Add(item);
+                foreach (var item in filtered)
+                    existing.Items.Add(item);
 
-            ScheduleLogger.Write($"Backup : {filtered.Count} nouveaux items ajoutÈs sans doublon");
+                ScheduleLogger.Write($"Backup : {filtered.Count} nouveaux items ajout√©s sans doublon");
+            }
 
             DateTime limit = today.AddDays(-retentionDays);
             backup.Reports.RemoveAll(r => r.Date < limit);

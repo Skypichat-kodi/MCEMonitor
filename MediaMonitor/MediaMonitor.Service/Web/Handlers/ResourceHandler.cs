@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using MediaMonitor.Service.Web;
 
@@ -33,7 +33,7 @@ namespace MediaMonitor.Service.Web.Handlers
 
         private static void ServeFromDirectory(HandlerContext ctx, string dir, string contentType)
         {
-            string path = ctx.Http.Request.Url.AbsolutePath.ToLowerInvariant();
+            string path = (ctx.Http.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
             string fileName = Path.GetFileName(path);
             string fullPath = Path.Combine(dir, fileName);
 

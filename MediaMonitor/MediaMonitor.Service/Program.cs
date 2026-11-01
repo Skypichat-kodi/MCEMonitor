@@ -13,7 +13,7 @@ namespace MediaMonitor.Service
         // ---------------------------------------------------------------
         //  État partagé avec les autres classes
         // ---------------------------------------------------------------
-        internal static MediaMonitorEngine Engine { get; private set; }
+        internal static MediaMonitorEngine Engine { get; private set; } = null!;  
 
         private static string _lastReportStatus = "[CODE02]|AUCUN";
         internal static string LastReportStatus
@@ -22,11 +22,11 @@ namespace MediaMonitor.Service
             set => _lastReportStatus = value;
         }
 
-        private static Mutex _mutex;
-        private static WebServer _webServer;
-        private static ReportScheduler _reportScheduler;
-        private static BackupService _backupService;
-        private static ConfigWatcher _configWatcher;
+        private static Mutex?           _mutex;                       
+        private static WebServer?       _webServer;                   
+        private static ReportScheduler? _reportScheduler;            
+        private static BackupService    _backupService      = null!;  
+        private static ConfigWatcher    _configWatcher      = null!;  
 
         // ---------------------------------------------------------------
         //  Entrée du programme

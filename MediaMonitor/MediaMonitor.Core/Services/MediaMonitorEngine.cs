@@ -38,8 +38,6 @@ namespace MediaMonitor.Core.Services
 
         private string _dvbBaseUrl = "";
 
-        private System.Timers.Timer? _dvbTimer;
-
         private readonly Dictionary<string, DateTime> _openSince = new();
         private readonly object _sync = new();
 
