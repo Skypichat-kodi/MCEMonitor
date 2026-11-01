@@ -18,6 +18,7 @@ echo ============================================
 
 REM --- Racine du projet ---
 set ROOT=Z:\Compilations Programmes\Projet MCEMonitor
+cd /d "%ROOT%"
 
 REM --- Dossiers de destination ---
 set DEST=%ROOT%\MCEMonitor Ver 1.0
@@ -76,6 +77,9 @@ echo %ESC%[32m[OK] TOUS LES EXECUTABLES SONT ARRETÉS%ESC%[0m
 
 echo.
 echo          PUBLISH DES PROJETS
+echo           SDK .NET utilisé :
+dotnet --version
+where dotnet
 echo ============================================
 
 REM === ProgramFiles ===
@@ -266,7 +270,7 @@ echo  PUBLISH (single-file) : %~nx1
 echo ============================================
 echo Vers    : !DEST_DIR!
 
-dotnet publish "!CSPROJ!" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o "!DEST_DIR!" --nologo -v q
+dotnet publish "!CSPROJ!" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o "!DEST_DIR!" --nologo -v q 
 
 if errorlevel 1 (
     echo %ESC%[31m[ERREUR] Publish échoué : !CSPROJ!%ESC%[0m
