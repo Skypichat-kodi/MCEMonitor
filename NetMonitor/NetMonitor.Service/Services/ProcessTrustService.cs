@@ -359,15 +359,48 @@ public sealed class ProcessTrustService
         // 3. Résout le chemin complet (avec capture de l'erreur)
         string? fullPath = TryGetFullPath(pid, out int pathError);
 
+        // Log de debug pour comprendre
+        if (CoreLog.Verbose)
+        {
+            CoreLog.Debug($"[TRUST] PID {pid} ({name}) → path={fullPath ?? "<null>"}, win32err={pathError}");
+        }
+
         // ⚠ 4. AUTO-TRUST MICROSOFT (avant tout le reste)
         // Élimine les faux positifs OneDrive, Office, Edge, GameBar...
+        if (fullPath != null && IsSignedBy(fullPath, "Microsoft Corporation"))
+        {
+            CoreLog.Debug($"[TRUST] {name} auto-trusté (signature Microsoft)");
+            return new ProcessTrustResult
+            {
+                Level = ProcessTrustLevel.Trusted,
+                ProcessName = name,
+                FullPath = fullPath,
+                Publisher = "Microsoft Corporation",
+                Reason = "signé Microsoft (auto-trust)",
+                MatchedEntry = "<auto:Microsoft>"
+            };
+        }
+
+        // 5. Aucun candidat dans la whitelist → Unknown
+        if (candidates.Count == 0)
+        {
+            return new ProcessTrustResult
+            {
+                Level = ProcessTrustLevel.Unknown,
+                ProcessName = name,
+                FullPath = fullPath,
+                Reason = "nom absent de la whitelist"
+            };
+        }
+
+        // 6. Chemin inaccessible → Unknown avec Win32Error
         if (fullPath == null)
         {
             return new ProcessTrustResult
             {
                 Level = ProcessTrustLevel.Unknown,
                 ProcessName = name,
-                Win32Error = pathError,   // <-- NOUVEAU : on stocke l'erreur
+                Win32Error = pathError,
                 Reason = pathError == 5 ? "chemin inaccessible (droits insuffisants ?)" 
                                         : "chemin inaccessible (processus terminé ?)"
             };
@@ -620,11 +653,8 @@ public sealed class ProcessTrustService
 
         try
         {
-            string? subject = TryGetAuthenticodePublisher(filePath);
-            if (string.IsNullOrEmpty(subject))
-                return false;
-
-            return subject.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
+            using var cert = X509Certificate.CreateFromSignedFile(filePath);
+            return cert.Subject.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
         }
         catch
         {

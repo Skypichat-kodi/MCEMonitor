@@ -1793,7 +1793,6 @@ namespace NetMonitor.UI
                 MapActiveWebView.Source = new Uri($"http://127.0.0.1:{port}/map-active");
                 _mapActiveInitialized = true;
 
-                CoreLog.Write($"WebView2 : carte des actives chargée sur port {port}");
             }
             catch (Exception ex)
             {
@@ -1867,7 +1866,6 @@ namespace NetMonitor.UI
                 MapBlockedWebView.Source = new Uri($"http://127.0.0.1:{port}/map-blocked");
                 _mapBlockedInitialized = true;
 
-                CoreLog.Write($"WebView2 : carte des bloquées chargée sur port {port}");
             }
             catch (Exception ex)
             {
@@ -1942,7 +1940,6 @@ namespace NetMonitor.UI
                 ChartsWebView.Source = new Uri($"http://127.0.0.1:{port}/charts");
                 _chartsInitialized = true;
 
-                CoreLog.Write($"WebView2 Charts : graphiques chargés sur port {port}");
             }
             catch (Exception ex)
             {

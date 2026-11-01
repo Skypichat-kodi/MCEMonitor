@@ -18,6 +18,10 @@ namespace RomMonitor.Service
         private static string _smartctlPath = "";
         private const int SmartctlTimeoutMs = 15000;   // 15 secondes par disque
 
+        // ? NOUVEAU : mémorise le dernier nombre de disques vu
+        // pour ne pas spammer le log résumé à chaque tick.
+        private static int _lastDiskCount = -1;
+
         // ------------------------------------------------------------------
         //  Chemin de smartctl.exe
         // ------------------------------------------------------------------
@@ -75,7 +79,15 @@ namespace RomMonitor.Service
 
                             result[key] = info;
 
-                            CoreLog.Write($"SMART : {device} - {info.Model} | S/N {info.Serial} | {info.Status}");
+                            // ? MODIFIÉ : on ne log en clair QUE si le disque n'est pas OK
+                            if (!string.Equals(info.Status, "OK", StringComparison.OrdinalIgnoreCase))
+                            {
+                                CoreLog.Write($"SMART : {device} - {info.Model} | S/N {info.Serial} | {info.Status} ({info.StatusReason})");
+                            }
+                            else
+                            {
+                                CoreLog.Debug($"SMART : {device} - {info.Model} | S/N {info.Serial} | OK");
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -84,8 +96,13 @@ namespace RomMonitor.Service
                     }
                 }
 
-                // 3. Résumé
-                CoreLog.Write($"SMART : {result.Count} disque(s) avec SMART sur {devices.Count} device(s)");
+                // ? MODIFIÉ : Résumé loggué UNIQUEMENT si le nombre de disques a changé
+                // Évite de spammer "SMART : 9 disque(s)..." à chaque tick.
+                if (result.Count != _lastDiskCount)
+                {
+                    _lastDiskCount = result.Count;
+                    CoreLog.Write($"SMART : {result.Count} disque(s) avec SMART sur {devices.Count} device(s)");
+                }
             }
             catch (Exception ex)
             {
@@ -119,11 +136,6 @@ namespace RomMonitor.Service
                 using var p = Process.Start(psi);
                 if (p == null) return result;
 
-                // ?? CRITIQUE : lire stdout ET stderr en parallèle AVANT WaitForExit.
-                // Sinon, si smartctl écrit sur stderr (ce qu'il fait souvent), le
-                // buffer stderr se remplit ? smartctl se bloque en écriture ?
-                // stdout n'est jamais fermé ? ReadToEnd() synchrone se bloque ?
-                // WaitForExit(ms) n'est JAMAIS atteint ? deadlock infini.
                 Task<string> outTask = p.StandardOutput.ReadToEndAsync();
                 Task<string> errTask = p.StandardError.ReadToEndAsync();
 
@@ -137,8 +149,9 @@ namespace RomMonitor.Service
                 string json = SafeResult(outTask);
                 string err  = SafeResult(errTask);
 
+                // ? MODIFIÉ : stderr passe en Debug (bruit smartctl)
                 if (!string.IsNullOrWhiteSpace(err))
-                    CoreLog.Write($"SMART : stderr --scan : {err.Trim()}");
+                    CoreLog.Debug($"SMART : stderr --scan : {err.Trim()}");
 
                 if (string.IsNullOrWhiteSpace(json))
                     return result;
@@ -186,8 +199,6 @@ namespace RomMonitor.Service
             using var p = Process.Start(psi);
             if (p == null) return null;
 
-            // ?? CRITIQUE : lecture parallèle stdout + stderr AVANT WaitForExit.
-            // Même raison que dans ScanDevices : smartctl est bavard sur stderr.
             Task<string> outTask = p.StandardOutput.ReadToEndAsync();
             Task<string> errTask = p.StandardError.ReadToEndAsync();
 
@@ -201,10 +212,9 @@ namespace RomMonitor.Service
             string json = SafeResult(outTask);
             string err  = SafeResult(errTask);
 
-            // Les messages d'erreur smartctl (device non supporté, accès refusé,
-            // etc.) arrivent sur stderr : on les log mais on ne bloque pas.
+            // ? MODIFIÉ : stderr par device passe en Debug (bruit smartctl)
             if (!string.IsNullOrWhiteSpace(err))
-                CoreLog.Write($"SMART : stderr {device} : {err.Trim()}");
+                CoreLog.Debug($"SMART : stderr {device} : {err.Trim()}");
 
             if (string.IsNullOrWhiteSpace(json))
                 return null;
@@ -324,10 +334,6 @@ namespace RomMonitor.Service
             info.Status = "OK";
             info.StatusReason = "";
 
-            // =====================================================
-            //  Priorité 1 : CRITICAL
-            // =====================================================
-
             if (!info.Passed)
             {
                 info.Status = "Critical";
@@ -357,11 +363,6 @@ namespace RomMonitor.Service
                 info.Status = "Critical";
                 info.StatusReason = $"Température critique : {info.Temperature.Value}°C";
             }
-
-            // =====================================================
-            //  Priorité 2 : WARNING (seulement si pas déjà Critical)
-            // =====================================================
-
             else if (info.ReallocatedSectors.HasValue && info.ReallocatedSectors.Value > 0)
             {
                 info.Status = "Warning";

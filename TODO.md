@@ -29,6 +29,17 @@ _(rien)_
 
 ## ✅ Terminé
 
+### Session 2026-11-01 — Fix Processus Fantômes & Nettoyage Logs
+
+- [x] `ProcessTrustService` : capture de `Win32Error` et propagation dans les résultats.
+- [x] `IsSignedBy` : utilisation de `X509Certificate.CreateFromSignedFile` (au lieu de `WinVerifyTrust`).
+- [x] `UntrustedProcessDetector` : filtrage par `Win32Error` (fini les processus "inconnus" sans chemin).
+- [x] Gestion des race conditions (chemin vide + Win32Error=0).
+- [x] NetMonitor : logs Firewall/GeoIP/blocage passés en `Debug`.
+- [x] NetMonitor UI : suppression des logs WebView2 de succès.
+- [x] RomMonitor : logs SMART anti-spam (seulement si Warning/Critical ou changement du nombre de disques).
+- [x] RomMonitor : logs stderr smartctl, ForceTick et config email en `Debug`.
+
 - [x] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit ») - *Résolu : Ajout de l'option `IgnoreSearchScanners` et édition de `ScannerPatterns` via l'UI WPF.*
 - [x] Fix Processus en attente : capture de `Win32Error` dans `ProcessTrustService` et filtrage des PID morts/protégés dans `UntrustedProcessDetector` (suppression des processus "fantômes").
 - [x] Blocage automatique granulaire : cases indépendantes pour Critical, Warning et Subnet dans l'UI. Les services Safe/Whitelisted sont exclus du blocage.
