@@ -31,6 +31,8 @@ _(rien)_
 
 ### Session 2026-11-01 — Fix Processus Fantômes & Nettoyage Logs
 
+- [x] Build/Installeur : l'installeur Inno Setup récupère automatiquement la version depuis l'EXE via le `build.bat`.
+- [x] UI (À propos) : affichage de la version dynamique lue dans l'assembly (ex: `2.3.6-80`), synchronisée avec GitVersion.
 - [x] `ProcessTrustService` : capture de `Win32Error` et propagation dans les résultats.
 - [x] `IsSignedBy` : utilisation de `X509Certificate.CreateFromSignedFile` (au lieu de `WinVerifyTrust`).
 - [x] `UntrustedProcessDetector` : filtrage par `Win32Error` (fini les processus "inconnus" sans chemin).

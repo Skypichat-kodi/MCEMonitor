@@ -912,7 +912,7 @@ namespace MCEMonitor
                 "----------------------------------------\n" +
                 "LICENCE MIT\n" +
                 "----------------------------------------\n\n" +
-            @"MCEMonitor (Version 2.5.0)
+            @"MCEMonitor (Version {VERSION})
             Outil de supervision et d'automatisation pour Media Server (KODI).
 
             MIT License

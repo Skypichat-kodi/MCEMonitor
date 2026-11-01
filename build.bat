@@ -150,8 +150,20 @@ if %ERROR%==0 (
             goto endFinal
         )
 
-        echo ISCC trouvé. Compilation en cours...
-        "!ISCC!" "%ROOT%\MCEMonitorInstaller.iss"
+        echo ISCC trouvé. Récupération de la version depuis MCEMonitor.exe...
+        
+        set "MCEMONITOR_EXE=%DEST_PROGRAM%\MCEMonitor.exe"
+        for /f "delims=" %%v in ('powershell -NoProfile -Command "(Get-Item '!MCEMONITOR_EXE!').VersionInfo.FileVersion"') do set "APP_VERSION=%%v"
+        
+        if not defined APP_VERSION (
+            echo %ESC%[31m[ERREUR] Impossible de lire la version de !MCEMONITOR_EXE!%ESC%[0m
+            goto endFinal
+        )
+        
+        echo Version détectée : !APP_VERSION!
+        echo Compilation en cours...
+        
+        "!ISCC!" /DMyAppVersion="!APP_VERSION!" "%ROOT%\MCEMonitorInstaller.iss"
 
         REM Réactiver le support VT (ISCC.exe l'a désactivé)
         powershell -NoProfile -Command "$k='[DllImport(\"kernel32.dll\")]public static extern IntPtr GetStdHandle(int n);[DllImport(\"kernel32.dll\")]public static extern bool GetConsoleMode(IntPtr h,out uint m);[DllImport(\"kernel32.dll\")]public static extern bool SetConsoleMode(IntPtr h,uint m);';$a=Add-Type -MemberDefinition $k -Name K -Namespace W -PassThru;$h=$a::GetStdHandle(-11);$m=0;[void]$a::GetConsoleMode($h,[ref]$m);[void]$a::SetConsoleMode($h,$m -bor 0x0004)" >nul 2>&1

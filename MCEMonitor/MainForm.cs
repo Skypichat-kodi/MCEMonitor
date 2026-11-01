@@ -123,6 +123,19 @@ namespace MCEMonitor
 
             InitializeComponent();
 
+            // --- Mise à jour dynamique de la version dans le À propos ---
+            var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+            string fullVersion = assembly
+                .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+                .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+                .FirstOrDefault()?.InformationalVersion ?? "Inconnue";
+
+            // On coupe après le '+' pour ne garder que "2.3.6"
+            string displayVersion = fullVersion.Split('+')[0];
+
+            // On remplace la version en dur par la version dynamique
+            this.lblAbout.Text = this.lblAbout.Text.Replace("{VERSION}", displayVersion);
+
             // Double-buffering pour éliminer les repaints parasites
             this.SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint, true);
             this.UpdateStyles();
