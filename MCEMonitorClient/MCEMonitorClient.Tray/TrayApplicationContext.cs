@@ -546,9 +546,52 @@ namespace MCEMonitorClient.Tray
                 }
                 else if (alert.Status == "offline")
                 {
+                    // Branche 2 : Offline
                     title = $"{alert.ServerName} - Hors ligne";
                     message = "Le serveur ne répond plus";
                     isOffline = true;
+                }
+                else if (alert.Status == alert.PreviousStatus
+                         && alert.NewProblems != null && alert.NewProblems.Count > 0)
+                {
+                    int newCount = alert.NewProblems.Count;
+
+                    // Compte les ToCheck parmi les nouveaux problèmes
+                    int toCheckCount = alert.NewProblems.Count(p =>
+                        string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase));
+
+                    title = toCheckCount > 0
+                        ? $"{alert.ServerName} - {newCount} nouveau(x) problème(s) à vérifier"
+                        : $"{alert.ServerName} - {newCount} nouveau(x) problème(s)";
+
+                    var lines = new List<string>();
+
+                    if (toCheckCount > 0)
+                        lines.Add($"⚠ {toCheckCount} alerte(s) à vérifier — cliquer « Safe ? » dans l'interface");
+
+                    int maxShown = toCheckCount > 0 ? 2 : 3;
+                    for (int i = 0; i < Math.Min(newCount, maxShown); i++)
+                    {
+                        var p = alert.NewProblems[i];
+                        string prefix = p.Severity switch
+                        {
+                            "critical" => "[CRIT]",
+                            "high"     => "[CRIT]",
+                            "tocheck"  => "[À VERIF]",
+                            _          => "[WARN]"
+                        };
+                        lines.Add($"{prefix} {p.Message}");
+                    }
+                    if (newCount > maxShown) lines.Add($"... et {newCount - maxShown} autre(s)");
+
+                    message = string.Join("\n", lines);
+
+                    if (alert.Status == "critical")      isCritical = true;
+                    else if (alert.Status == "warning")
+                    {
+                        isWarning = true;
+                        if (toCheckCount > 0) isToCheck = true;
+                    }
                 }
                 else if (alert.Problems != null && alert.Problems.Count > 0)
                 {
@@ -1017,9 +1060,12 @@ namespace MCEMonitorClient.Tray
             // ---- Problèmes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
-                // PRIORITÉ 1 : ToCheck (violet) — décision manuelle requise
-                if (alert.Problems.Any(p =>
-                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)))
+                // ToCheck prioritaire dans Problems OU NewProblems
+                bool hasToCheck =
+                    alert.Problems.Any(p => string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase))
+                    || (alert.NewProblems?.Any(p => string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)) ?? false);
+
+                if (hasToCheck)
                 {
                     return "tocheck.png";
                 }

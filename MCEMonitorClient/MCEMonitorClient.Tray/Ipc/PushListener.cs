@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO.Pipes;
 using System.Text;
 using System.Text.Json;
@@ -8,7 +8,7 @@ using MCEMonitorClient.Tray.Logs;
 namespace MCEMonitorClient.Tray.Ipc
 {
     /// <summary>
-    /// Écoute le pipe de push du Service et déclenche un événement à chaque message.
+    /// Ã‰coute le pipe de push du Service et dÃ©clenche un Ã©vÃ©nement Ã  chaque message.
     /// </summary>
     public class PushListener
     {
@@ -18,7 +18,7 @@ namespace MCEMonitorClient.Tray.Ipc
         private bool _running;
 
         /// <summary>
-        /// Event déclenché quand le Service envoie une alerte.
+        /// Event dÃ©clenchÃ© quand le Service envoie une alerte.
         /// </summary>
         public event Action<PushAlert>? OnAlert;
         public event Action<PushMedia>? OnMedia;
@@ -31,7 +31,7 @@ namespace MCEMonitorClient.Tray.Ipc
             _thread = new Thread(Loop) { IsBackground = true };
             _thread.Start();
 
-            CoreLog.Write("PushListener démarré");
+            CoreLog.Write("PushListener dÃ©marrÃ©");
         }
 
         public void Stop()
@@ -56,7 +56,7 @@ namespace MCEMonitorClient.Tray.Ipc
                         continue;
                     }
 
-                    CoreLog.Write("PushListener : connecté au Service");
+                    CoreLog.Write("PushListener : connectÃ© au Service");
 
                     using var reader = new System.IO.StreamReader(pipe, Encoding.UTF8);
 
@@ -66,14 +66,14 @@ namespace MCEMonitorClient.Tray.Ipc
 
                         if (line == null)
                         {
-                            CoreLog.Write("PushListener : pipe fermé");
+                            CoreLog.Write("PushListener : pipe fermÃ©");
                             break;
                         }
 
                         if (string.IsNullOrWhiteSpace(line))
                             continue;
 
-                        CoreLog.Write($"PushListener : message reçu = {line.Substring(0, Math.Min(150, line.Length))}...");
+                        CoreLog.Write($"PushListener : message reÃ§u = {line.Substring(0, Math.Min(150, line.Length))}...");
 
                         try
                         {
@@ -122,63 +122,64 @@ namespace MCEMonitorClient.Tray.Ipc
                 }
 
                 if (_running)
-                    Thread.Sleep(5000);   // Retry après 5s
+                    Thread.Sleep(5000);   // Retry aprÃ¨s 5s
             }
 
-            CoreLog.Write("PushListener arrêté");
+            CoreLog.Write("PushListener arrÃªtÃ©");
         }
     }
 
     /// <summary>
-    /// Alerte reçue du Service via push.
+    /// Alerte reÃ§ue du Service via push.
     /// </summary>
     public class PushAlert
     {
-        public string Type { get; set; } = "";
-        public string ServerId { get; set; } = "";
-        public string ServerName { get; set; } = "";
-        public string ServiceType { get; set; } = "";
-        public string BaseUrl { get; set; } = "";
-        public string Status { get; set; } = "ok";
-        public string PreviousStatus { get; set; } = "unknown";
-        public int ProblemCount { get; set; }
-        public string FirstProblem { get; set; } = "";
-        public LastBlockInfo? LastBlock { get; set; }
-        public System.Collections.Generic.List<ProblemItem> Problems { get; set; } = new();
-        public System.Collections.Generic.List<ProblemItem> PreviousProblems { get; set; } = new();
-        public System.Collections.Generic.List<ProblemItem> ResolvedProblems { get; set; } = new();
+        public string Type                                                      { get; set; } = "";
+        public string ServerId                                                  { get; set; } = "";
+        public string ServerName                                                { get; set; } = "";
+        public string ServiceType                                               { get; set; } = "";
+        public string BaseUrl                                                   { get; set; } = "";
+        public string Status                                                    { get; set; } = "ok";
+        public string PreviousStatus                                            { get; set; } = "unknown";
+        public int ProblemCount                                                 { get; set; }
+        public string FirstProblem                                              { get; set; } = "";
+        public LastBlockInfo? LastBlock                                         { get; set; }
+        public System.Collections.Generic.List<ProblemItem> Problems            { get; set; } = new();
+        public System.Collections.Generic.List<ProblemItem> PreviousProblems    { get; set; } = new();
+        public System.Collections.Generic.List<ProblemItem> ResolvedProblems    { get; set; } = new();
+        public System.Collections.Generic.List<ProblemItem> NewProblems         { get; set; } = new();
         public DateTime Timestamp { get; set; }
     }
 
     public class ProblemItem
     {
-        public string Severity { get; set; } = "";
-        public string Category { get; set; } = "";
-        public string Target   { get; set; } = "";
-        public string Message { get; set; } = "";
+        public string Severity  { get; set; } = "";
+        public string Category  { get; set; } = "";
+        public string Target    { get; set; } = "";
+        public string Message   { get; set; } = "";
     }
     
     public class PushMedia
     {
-        public string Type { get; set; } = "";
-        public string EventType { get; set; } = "";    // "started" / "stopped"
-        public string ServerId { get; set; } = "";
-        public string ServerName { get; set; } = "";
-        public string ServiceType { get; set; } = "";
-        public string BaseUrl { get; set; } = "";
-        public string Client { get; set; } = "";
-        public string MediaType { get; set; } = "";
-        public string Title { get; set; } = "";
-        public int Saison { get; set; }
-        public int Episode { get; set; }
-        public DateTime Timestamp { get; set; }
+        public string Type          { get; set; } = "";
+        public string EventType     { get; set; } = "";    
+        public string ServerId      { get; set; } = "";
+        public string ServerName    { get; set; } = "";
+        public string ServiceType   { get; set; } = "";
+        public string BaseUrl       { get; set; } = "";
+        public string Client        { get; set; } = "";
+        public string MediaType     { get; set; } = "";
+        public string Title         { get; set; } = "";
+        public int Saison           { get; set; }
+        public int Episode          { get; set; }
+        public DateTime Timestamp   { get; set; }
     }
     
     public class LastBlockInfo
     {
-        public string Ip { get; set; } = "";
-        public string? Detector { get; set; }
-        public DateTime Timestamp { get; set; }
-        public bool Automatic { get; set; }
+        public string Ip            { get; set; } = "";
+        public string? Detector     { get; set; }
+        public DateTime Timestamp   { get; set; }
+        public bool Automatic       { get; set; }
     }        
 }
