@@ -125,7 +125,15 @@ namespace NetMonitor.Service.Ipc
                 HandleSetManualSeverity(server, command);
                 return;
             }
-                        
+
+            if (command.StartsWith("mark-safe ", StringComparison.OrdinalIgnoreCase))
+            {
+                string ip = command.Substring("mark-safe ".Length).Trim();
+                bool ok = _engine.MarkSafe(ip);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", ip, marked = ok });
+                return;
+            }
+                              
             switch (command.ToLowerInvariant())
             {
                 case "get-status":              HandleGetStatus(server); break;
@@ -152,7 +160,6 @@ namespace NetMonitor.Service.Ipc
                 case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
                 case "get-persistent-problems": HandleGetPersistentProblems(server); break;
                 case "restart-computer":        HandleRestartComputer(server); break;
-                case "set-manual-severity":     HandleSetManualSeverity(server, command); break;
                 case "clear-all-blocked":       HandleClearAllBlocked(server); break;                                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
@@ -204,18 +211,22 @@ namespace NetMonitor.Service.Ipc
                 var alerts = _engine.GetAlerts();
                 var projected = alerts.Select(a => new
                 {
-                    timestamp = a.Timestamp,
-                    source = a.Source,
-                    severity = a.Severity.ToString(),
-                    message = a.Message,
-                    remoteIp = a.RemoteIp,
-                    remotePort = a.RemotePort,
-                    localPort = a.LocalPort,
-                    pid = a.Pid,
-                    processName = a.ProcessName,
-                    processPath = a.ProcessPath,
-                    trustReason = a.TrustReason,                   
-                    details = a.Details
+                    timestamp      = a.Timestamp,
+                    source         = a.Source,
+                    severity       = a.Severity.ToString(),
+                    message        = a.Message,
+                    remoteIp       = a.RemoteIp,
+                    remotePort     = a.RemotePort,
+                    localPort      = a.LocalPort,
+                    pid            = a.Pid,
+                    processName    = a.ProcessName,
+                    processPath    = a.ProcessPath,
+                    trustReason    = a.TrustReason,
+                    details        = a.Details,
+                    isKnownScanner = a.IsKnownScanner,
+                    country        = a.Country,
+                    countryCode    = a.CountryCode,
+                    isp            = a.Isp           
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -427,19 +438,22 @@ namespace NetMonitor.Service.Ipc
                 var list = _engine.GetActiveIntrusions();
                 var projected = list.Select(a => new
                 {
-                    timestamp = a.Timestamp,
-                    source = a.Source,
-                    severity = a.Severity.ToString(),
-                    message = a.Message,
-                    remoteIp = a.RemoteIp,
-                    remotePort = a.RemotePort,
-                    localPort = a.LocalPort,
-                    pid = a.Pid,
-                    processName = a.ProcessName,
-                    processPath = a.ProcessPath,
-                    trustReason = a.TrustReason,                     
-                    details = a.Details,
-                    isKnownScanner = a.IsKnownScanner
+                    timestamp       = a.Timestamp,
+                    source          = a.Source,
+                    severity        = a.Severity.ToString(),
+                    message         = a.Message,
+                    remoteIp        = a.RemoteIp,
+                    remotePort      = a.RemotePort,
+                    localPort       = a.LocalPort,
+                    pid             = a.Pid,
+                    processName     = a.ProcessName,
+                    processPath     = a.ProcessPath,
+                    trustReason     = a.TrustReason,                     
+                    details         = a.Details,
+                    isKnownScanner  = a.IsKnownScanner,
+                    country         = a.Country,
+                    countryCode     = a.CountryCode,
+                    isp             = a.Isp
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -478,12 +492,12 @@ namespace NetMonitor.Service.Ipc
                 var projected = retries.Select(r => new
                 {
                     ip = r.Ip,
-                    originalDetector = r.OriginalDetector,
-                    blockedAt = r.BlockedAt,
-                    firstRetryAt = r.FirstRetryAt,
-                    lastRetryAt = r.LastRetryAt,
-                    retryCount = r.RetryCount,
-                    severity = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-"
+                    originalDetector    = r.OriginalDetector,
+                    blockedAt           = r.BlockedAt,
+                    firstRetryAt        = r.FirstRetryAt,
+                    lastRetryAt         = r.LastRetryAt,
+                    retryCount          = r.RetryCount,
+                    severity            = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-"
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -514,7 +528,11 @@ namespace NetMonitor.Service.Ipc
                 string? details  = parts.Length > 3 ? parts[3] : null;
                 string? severity = parts.Length > 4 ? parts[4] : null;
 
-                bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity);
+                // L'IPC est déclenché uniquement par des actions humaines (UI WPF ou page web)
+                // → tout blocage via IPC est par définition manuel, donc forceManual=true.
+                bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
+                                          isAutomatic: false,
+                                          forceManual: true);
                 
                 if (ok)
                     IpcResponse.Json(server, new { status = "ok", blocked = true, ip });
@@ -542,19 +560,19 @@ namespace NetMonitor.Service.Ipc
                 var list = _engine.GetAuditHistory();
                 var projected = list.Select(a => new
                 {
-                    timestamp = a.Timestamp,
-                    source = a.Source,
-                    severity = a.Severity.ToString(),
-                    message = a.Message,
-                    remoteIp = a.RemoteIp,
-                    remotePort = a.RemotePort,
-                    localPort = a.LocalPort,
-                    pid = a.Pid,
-                    processName = a.ProcessName,
-                    processPath = a.ProcessPath,
-                    trustReason = a.TrustReason,                     
-                    details = a.Details,
-                    isKnownScanner = a.IsKnownScanner
+                    timestamp       = a.Timestamp,
+                    source          = a.Source,
+                    severity        = a.Severity.ToString(),
+                    message         = a.Message,
+                    remoteIp        = a.RemoteIp,
+                    remotePort      = a.RemotePort,
+                    localPort       = a.LocalPort,
+                    pid             = a.Pid,
+                    processName     = a.ProcessName,
+                    processPath     = a.ProcessPath,
+                    trustReason     = a.TrustReason,                     
+                    details         = a.Details,
+                    isKnownScanner  = a.IsKnownScanner
                 }).ToList();
                 IpcResponse.Json(server, projected);
             }
@@ -572,20 +590,24 @@ namespace NetMonitor.Service.Ipc
                 // ce qui casse la désérialisation côté UI (AuditGroupedDto.Severity est string).
                 var projected = list.Select(a => new
                 {
-                    firstSeen   = a.FirstSeen,
-                    lastSeen    = a.LastSeen,
-                    count       = a.Count,
-                    severity    = a.Severity.ToString(),
-                    source      = a.Source,
-                    remoteIp    = a.RemoteIp,
-                    remotePort  = a.RemotePort,
-                    localPort   = a.LocalPort,
-                    pid         = a.Pid,
-                    processName = a.ProcessName,
-                    processPath = a.ProcessPath,
-                    trustReason = a.TrustReason,
-                    details     = a.Details,
-                    isKnownScanner = a.IsKnownScanner
+                    firstSeen      = a.FirstSeen,
+                    lastSeen       = a.LastSeen,
+                    count          = a.Count,
+                    severity       = a.Severity.ToString(),
+                    source         = a.Source,
+                    remoteIp       = a.RemoteIp,
+                    remotePort     = a.RemotePort,
+                    localPort      = a.LocalPort,
+                    pid            = a.Pid,
+                    processName    = a.ProcessName,
+                    processPath    = a.ProcessPath,
+                    trustReason    = a.TrustReason,
+                    details        = a.Details,
+                    isKnownScanner = a.IsKnownScanner,
+                    country        = a.Country,          
+                    countryCode    = a.CountryCode,      
+                    isp            = a.Isp,              
+                    groupKey       = a.GroupKey          
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -718,6 +740,6 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Error("Erreur HandleSetManualSeverity : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                                                                
+        }                                                                      
     }
 }

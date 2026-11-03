@@ -23,46 +23,63 @@ namespace NetMonitor.Service
         // ============================================================
         //  Plages d'IP critiques (� ne JAMAIS bloquer)
         // ============================================================
-        private static readonly string[] CriticalNetworks = new[]
+        // Plages qui IDENTIFIENT un candidat Microsoft (heuristique large, sera raffinée par le JSON)
+        private static readonly string[] MicrosoftNetworks = new[]
         {
-            // Loopback & priv� (r�seau local)
-            "127.0.0.0/8",
-            "10.0.0.0/8",
-            "172.16.0.0/12",
-            "192.168.0.0/16",
-            "169.254.0.0/16",
-
-            // Microsoft / Azure
             "13.107.0.0/16",
-            "20.0.0.0/8",
+            "20.0.0.0/8",       // ← large, but volontaire : le JSON filtrera les vrais MS
             "40.0.0.0/8",
             "52.0.0.0/8",
             "204.79.197.0/24",
             "65.52.0.0/14",
-            "157.56.0.0/14",
+            "157.56.0.0/14"
+        };
 
-            // Google
-            "142.250.0.0/15",
-            "172.217.0.0/16",
-            "216.58.192.0/19",
-            "74.125.0.0/16",
+        // Plages critiques NON-Microsoft (Google, Cloudflare, privé)
+        private static readonly string[] OtherCriticalNetworks = new[]
+        {
+            "127.0.0.0/8", 
+            "10.0.0.0/8", 
+            "172.16.0.0/12", 
+            "192.168.0.0/16", 
+            "169.254.0.0/16",
+            "142.250.0.0/15", 
+            "172.217.0.0/16", 
+            "216.58.192.0/19", 
+            "74.125.0.0/16", 
             "173.194.0.0/16",
-
-            // Cloudflare
-            "104.16.0.0/12",
-            "172.64.0.0/13",
-            "1.1.1.0/24",
+            "104.16.0.0/12", 
+            "172.64.0.0/13", 
+            "1.1.1.0/24", 
             "1.0.0.0/24"
         };
 
+        /// <summary>
+        /// L'IP ressemble-t-elle à Microsoft (via plages hardcodées) ?
+        /// Utilisé pour déclencher la vérification JSON. Ne retourne PAS true pour
+        /// Google/Cloudflare/privé.
+        /// </summary>
+        public static bool IsMicrosoftLike(string ip)
+        {
+            if (!IPAddress.TryParse(ip, out var addr)) return false;
+            foreach (var cidr in MicrosoftNetworks)
+                if (IsInCidr(addr, cidr)) return true;
+            return false;
+        }
+
+        /// <summary>
+        /// L'IP est-elle critique (Microsoft + Google + Cloudflare + privé) ?
+        /// Comportement inchangé côté API, mais basé sur deux tableaux séparés.
+        /// </summary>
         public static bool IsCriticalIp(string ip)
         {
             if (!IPAddress.TryParse(ip, out var addr)) return false;
 
-            foreach (var cidr in CriticalNetworks)
-            {
+            foreach (var cidr in MicrosoftNetworks)
                 if (IsInCidr(addr, cidr)) return true;
-            }
+
+            foreach (var cidr in OtherCriticalNetworks)
+                if (IsInCidr(addr, cidr)) return true;
 
             return false;
         }

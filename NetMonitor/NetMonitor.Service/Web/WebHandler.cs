@@ -29,29 +29,32 @@ namespace NetMonitor.Service.Web
                     var grouped = active
                         .Where(a => !string.IsNullOrWhiteSpace(a.RemoteIp))
                         .GroupBy(a => a.RemoteIp!)
-                        .Select(g =>
+                    .Select(g =>
+                    {
+                        var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
+                        var mostRecent = g.OrderByDescending(x => x.Timestamp).First();
+
+                        string detectorList = string.Join(", ",
+                            g.Select(x => x.Source).Distinct().OrderBy(x => x));
+
+                        return new
                         {
-                            var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
-                            var mostRecent = g.OrderByDescending(x => x.Timestamp).First();
-
-                            string detectorList = string.Join(", ",
-                                g.Select(x => x.Source).Distinct().OrderBy(x => x));
-
-                            return new
-                            {
-                                Ip              = g.Key,
-                                Count           = g.Count(),
-                                Severity        = mostSevere.Severity,
-                                Detectors       = detectorList,
-                                FirstSeen       = g.Min(x => x.Timestamp),
-                                LastSeen        = g.Max(x => x.Timestamp),
-                                Message         = mostRecent.Message,
-                                Pid             = mostRecent.Pid,
-                                ProcessPath     = mostRecent.ProcessPath,
-                                TrustReason     = mostRecent.TrustReason,
-                                IsKnownScanner  = g.Any(x => x.IsKnownScanner)
-                            };
-                        })
+                            Ip              = g.Key,
+                            Count           = g.Count(),
+                            Severity        = mostSevere.Severity,
+                            Detectors       = detectorList,
+                            FirstSeen       = g.Min(x => x.Timestamp),
+                            LastSeen        = g.Max(x => x.Timestamp),
+                            Message         = mostRecent.Message,
+                            Pid             = mostRecent.Pid,
+                            ProcessPath     = mostRecent.ProcessPath,
+                            TrustReason     = mostRecent.TrustReason,
+                            Country         = mostRecent.Country,
+                            CountryCode     = mostRecent.CountryCode,
+                            Isp             = mostRecent.Isp,
+                            IsKnownScanner  = g.Any(x => x.IsKnownScanner)
+                        };
+                    })
                         .OrderByDescending(x => (int)x.Severity)
                         .ThenByDescending(x => x.Count)
                         .ThenByDescending(x => x.LastSeen)
@@ -69,13 +72,24 @@ namespace NetMonitor.Service.Web
                                             item.Count >= 5  ? "c5"  :
                                             item.Count >= 2  ? "c2"  : "c1";
 
+                        // Bouton Safe ? (uniquement pour les alertes ToCheck)
+                        string safeBtn = "";
+                        if (item.Severity == Severity.ToCheck)
+                        {
+                            safeBtn = $" <button type='button' class='safe-btn' " +
+                                      $"onclick=\"event.stopPropagation(); markSafe('{ipEnc}')\" " +
+                                      $"title='Marquer comme Safe (liste Microsoft vérifiée)'>Safe ?</button>";
+                        }
+
                         activeRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'active-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>
                             <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
-                            <td><span class='badge {sevClass}'>{item.Severity}</span></td>
+                            <td><span class='badge {sevClass}'>{item.Severity}</span>{safeBtn}</td>
                             <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
                             <td>{ipEnc}</td>
+                            <td>{WebUtility.HtmlEncode(FormatCountry(item.Country, item.CountryCode))}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(item.Isp) ? "-" : item.Isp)}</td>                            
                             <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
                             <td>{WebUtility.HtmlEncode(item.Message)}</td>
                         </tr>");
@@ -167,28 +181,22 @@ namespace NetMonitor.Service.Web
                               "'>🔒</span>"
                             : "";
 
-                        string sevButton = b.IsProcess
-                            ? ""
-                            : $"<button type='button' class='severity-btn' " +
-                              $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
-                              $"'{WebUtility.HtmlEncode(b.Severity)}', " +
-                              $"{(b.ManualSeverity.HasValue ? "true" : "false")})\" " +
-                              $"title='Changer la sévérité'>⚙&#xFE0E;</button>";
-
                         // ⚠ 2. Append APRÈS les déclarations
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{typeLabel}</td>
                             <td title='{displayEnc}'><b>{WebUtility.HtmlEncode(Truncate(display, 60))}</b></td>
+                            <td>{WebUtility.HtmlEncode(FormatCountry(b.Country, b.CountryCode))}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(b.Isp) ? "-" : b.Isp)}</td>
                             <td class='info-cell'>{infoCell}</td>
-                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span>{manualLock}{sevButton}</td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span>{manualLock}</td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='7' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
+                else blockedRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
                 // --- Tableau 3 : Historique (enrichi) ---
                 var historyRows = new System.Text.StringBuilder();
@@ -209,6 +217,8 @@ namespace NetMonitor.Service.Web
                             <td><span class='badge {sevClass}'>{h.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
                             <td>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
+                            <td>{WebUtility.HtmlEncode(FormatCountry(h.Country, h.CountryCode))}</td>  
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(h.Isp) ? "-" : h.Isp)}</td>                         
                             <td class='info-cell'>{BuildIpInfoLink(h.RemoteIp, lookupUrl)}</td>
                             <td>{h.RemotePort}</td>
                             <td>{h.LocalPort}</td>
@@ -247,10 +257,12 @@ namespace NetMonitor.Service.Web
                         auditRows.Append($@"<tr>
                             <td>{a.FirstSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{a.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
-                            <td class='count-cell'><span class='count-badge {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
+                            <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
+                            <td>{WebUtility.HtmlEncode(FormatCountry(a.Country, a.CountryCode))}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Isp) ? "-" : a.Isp)}</td>                          
                             <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
                             <td>{a.RemotePort}</td>
                             <td>{a.LocalPort}</td>
@@ -638,6 +650,13 @@ namespace NetMonitor.Service.Web
             if (string.IsNullOrEmpty(text)) return "-";
             return text.Length <= max ? text : text.Substring(0, max - 1) + "…";
         }
+
+        private static string FormatCountry(string? country, string? code)
+        {
+            if (string.IsNullOrWhiteSpace(country)) return "-";
+            if (string.IsNullOrWhiteSpace(code))   return country;
+            return $"{country} ({code})";
+        }
         
         /// <summary>
         /// Mappe une sévérité (enum stringifiée) vers sa classe CSS.
@@ -646,13 +665,14 @@ namespace NetMonitor.Service.Web
         private static string SeverityToCssClass(string? severity) => severity switch
         {
             "Critical"    => "critical",
-            "High"        => "critical",    // legacy : même couleur que Critical
+            "High"        => "critical",
             "Warning"     => "warning",
+            "ToCheck"     => "tocheck",
             "Info"        => "info",
             "Safe"        => "safe",
             "Trusted"     => "trusted",
             "Whitelisted" => "whitelisted",
-            _             => "unknown"       // null, "", "-"
-        };                        
+            _             => "unknown"
+        };                       
     }
 }

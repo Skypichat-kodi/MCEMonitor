@@ -26,6 +26,14 @@ namespace NetMonitor.Service
         private EmailDigestScheduler? _emailScheduler;
         private ProcessTrustService? _processTrust;
 
+        // Microsoft IP ranges + overrides manuels "Safe ?"
+        private MicrosoftIpRangeService? _msRanges;
+        private readonly ConcurrentDictionary<string, DateTime> _manualSafeIps = new();
+
+        private static readonly string ManualSafeFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "manual_safe_ips.json");
+
         private readonly ConcurrentQueue<ConnectionInfo> _recentConnections = new();
         private const int MaxRecentConnections = 1000;
         
@@ -181,6 +189,11 @@ namespace NetMonitor.Service
         {
             _threatIntel?.Start();
 
+            _msRanges = new MicrosoftIpRangeService(_settings.MicrosoftIpRangeEnabled,
+                                                     _settings.MicrosoftIpRangeRefreshHours);
+            _msRanges.Start();
+            LoadManualSafeIps();
+
             _emailScheduler = new EmailDigestScheduler(_settings);
             _emailScheduler.Start();
 
@@ -302,6 +315,7 @@ namespace NetMonitor.Service
         public void Stop()
         {
             _threatIntel?.Stop();
+            _msRanges?.Stop();
 
             _emailScheduler?.Stop();
             _emailScheduler?.Dispose();
@@ -364,7 +378,30 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public List<IntrusionEvent> GetAlerts()
         {
-            lock (_alertsLock) return _alerts.ToList();
+            lock (_alertsLock)
+            {
+                if (_geoIp != null && _geoIp.IsEnabled)
+                {
+                    foreach (var a in _alerts)
+                    {
+                        if (string.IsNullOrWhiteSpace(a.RemoteIp)) continue;
+                        if (!string.IsNullOrWhiteSpace(a.CountryCode)) continue;
+
+                        var geo = _geoIp.TryGetCached(a.RemoteIp);
+                        if (geo != null)
+                        {
+                            a.Country     = geo.Country;
+                            a.CountryCode = geo.CountryCode;
+                            a.Isp         = geo.Isp;
+                        }
+                        else
+                        {
+                            _geoIp.ResolveInBackground(a.RemoteIp);
+                        }
+                    }
+                }
+                return _alerts.ToList();
+            }
         }
 
         public void ClearAlerts()
@@ -379,7 +416,30 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public List<IntrusionEvent> GetActiveIntrusions()
         {
-            lock (_alertsLock) return _activeIntrusions.ToList();
+            lock (_alertsLock)
+            {
+                if (_geoIp != null && _geoIp.IsEnabled)
+                {
+                    foreach (var a in _activeIntrusions)
+                    {
+                        if (string.IsNullOrWhiteSpace(a.RemoteIp)) continue;
+                        if (!string.IsNullOrWhiteSpace(a.CountryCode)) continue;
+
+                        var geo = _geoIp.TryGetCached(a.RemoteIp);
+                        if (geo != null)
+                        {
+                            a.Country     = geo.Country;
+                            a.CountryCode = geo.CountryCode;
+                            a.Isp         = geo.Isp;
+                        }
+                        else
+                        {
+                            _geoIp.ResolveInBackground(a.RemoteIp);
+                        }
+                    }
+                }
+                return _activeIntrusions.ToList();
+            }
         }
 
         public void ClearActiveIntrusions()
@@ -439,7 +499,8 @@ namespace NetMonitor.Service
         public bool BlockIp(string ip, out string errorMessage,
                             string? source = null, string? message = null,
                             string? details = null, string? severity = null,
-                            bool isAutomatic = false)
+                            bool isAutomatic = false,
+                            bool forceManual = false)
         {
                     errorMessage = "";
 
@@ -449,11 +510,16 @@ namespace NetMonitor.Service
                 return false;
             }
 
-            if (FirewallHelper.IsCriticalIp(ip))
+            if (FirewallHelper.IsCriticalIp(ip) && !forceManual)
             {
                 errorMessage = $"L'adresse {ip} fait partie d'une plage critique et ne peut pas être bloquée.";
-                CoreLog.Warn($"Blocage refusé : {ip} (IP critique)");
+                CoreLog.Warn($"Blocage refusé : {ip} (IP critique, non forcé)");
                 return false;
+            }
+
+            if (FirewallHelper.IsCriticalIp(ip) && forceManual)
+            {
+                CoreLog.Warn($"[FORCE] Blocage manuel d'une IP critique : {ip}");
             }
 
             bool alreadyBlocked = false;
@@ -1420,7 +1486,6 @@ namespace NetMonitor.Service
         {
             // ============================================================
             //  Évaluation de la sévérité via SeverityScorer (D5)
-            //  ⚠ N'interfère PAS avec la décision de bloquer : c'est purement cosmétique.
             // ============================================================
             var giForSeverity = string.IsNullOrWhiteSpace(evt.RemoteIp)
                 ? null
@@ -1433,10 +1498,8 @@ namespace NetMonitor.Service
                 evt.Source,
                 evt.Severity,
                 _settings);
-                
-            // Marquer les scanners connus (sans les ignorer) ---
-            // Le flag IsKnownScanner servira uniquement à l'affichage (badge vert "Subnet").
-            // La sévérité logique reste Warning, donc l'alerte reste bloquable.
+
+            // Marquer les scanners connus (sans les ignorer)
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
@@ -1449,16 +1512,13 @@ namespace NetMonitor.Service
                 {
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
                 }
-            }                
-
-            bool isWhitelisted = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp);
+            }
 
             // --- 1. Détection des scanners de recherche légitimes ---
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 var known = _trustedScanners.TryGetCached(evt.RemoteIp);
 
-                // Si le reverse DNS est vide, on regarde l'Org/Isp (via GeoIP)
                 if (known != true && giForSeverity != null)
                 {
                     bool isOrgMatch = MatchesScannerPatterns(giForSeverity.Org, _settings.ScannerPatterns) ||
@@ -1468,28 +1528,23 @@ namespace NetMonitor.Service
 
                 if (known == true)
                 {
-                    // On ne l'envoie PLUS dans l'audit. On le laisse en Warning
-                    // avec le flag IsKnownScanner pour qu'il ait le badge "Subnet" vert.
                     evt.IsKnownScanner = true;
                     evt.Severity = Severity.Warning;
                     evt.Message = $"[SCANNER CONNU] {evt.Message}";
                     evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
-                    
-                    // On ne fait PAS de return ici : l'alerte continue son chemin
-                    // vers les Intrusions Actives et pourra être bloquée par AutoBlock.
                 }
                 else if (!known.HasValue)
                 {
                     _trustedScanners.CheckInBackground(evt.RemoteIp);
                 }
             }
-            
-            // --- 2. Filtre whitelist (Microsoft, Google, Cloudflare, réseau local) ---
-            if (isWhitelisted)
+
+            // --- 2a. Override manuel "Safe ?" ---
+            if (!string.IsNullOrWhiteSpace(evt.RemoteIp) && _manualSafeIps.ContainsKey(evt.RemoteIp))
             {
-                evt.Severity = Severity.Safe;   // ← au lieu de Info
+                evt.Severity = Severity.Safe;
                 evt.Message = $"[WHITELIST] {evt.Message}";
-                evt.TrustReason = "IP de confiance (Microsoft / Google / Cloudflare / réseau local)";
+                evt.TrustReason = "Marqué Safe manuellement";
 
                 lock (_alertsLock)
                 {
@@ -1498,36 +1553,84 @@ namespace NetMonitor.Service
                 }
                 SaveAudit();
 
-                if (!string.IsNullOrWhiteSpace(evt.RemoteIp))
-                    _geoIp?.ResolveInBackground(evt.RemoteIp);
+                _geoIp?.ResolveInBackground(evt.RemoteIp);
+                CoreLog.Debug($"[SAFE?] {evt.RemoteIp} → Safe (override manuel)");
+                return;
+            }
 
-                CoreLog.Debug($"[FILTRÉ] Alerte ignorée pour IP critique : {evt.RemoteIp} ({evt.Source})");
+            // --- 2b. Cas "Microsoft-like" — vérifier dans le JSON officiel ---
+            bool isMSLike = !string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsMicrosoftLike(evt.RemoteIp);
+
+            if (isMSLike)
+            {
+                bool inJson = _msRanges?.IsMicrosoftIp(evt.RemoteIp!) == true;
+
+                if (inJson)
+                {
+                    // ✓ Vraie IP Microsoft → Safe (audit)
+                    evt.Severity = Severity.Safe;
+                    evt.Message = $"[WHITELIST] {evt.Message}";
+                    evt.TrustReason = "IP Microsoft vérifiée (liste officielle)";
+
+                    lock (_alertsLock)
+                    {
+                        _auditHistory.Add(evt);
+                        if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
+                    }
+                    SaveAudit();
+
+                    _geoIp?.ResolveInBackground(evt.RemoteIp!);
+                    CoreLog.Debug($"[MS-VERIFIED] {evt.RemoteIp} → Safe (liste officielle)");
+                    return;
+                }
+                else
+                {
+                    // ✗ Absente du JSON → ToCheck (tableau 1, pas d'auto-block)
+                    evt.Severity = Severity.ToCheck;
+                    evt.Message = $"[À VÉRIFIER] {evt.Message}";
+                    evt.TrustReason = "Ressemble à Microsoft mais absente de la liste officielle";
+                    CoreLog.Warn($"[MS-SUSPECT] {evt.RemoteIp} → ToCheck " +
+                                 $"(JSON: {(_msRanges?.IsLoaded == true ? "chargé" : "non chargé")})");
+                    // ↓ Continue vers les intrusions actives
+                }
+            }
+            // --- 2c. Autres IP critiques (Google / Cloudflare / privé) → Safe ---
+            else if (!string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp))
+            {
+                evt.Severity = Severity.Safe;
+                evt.Message = $"[WHITELIST] {evt.Message}";
+                evt.TrustReason = "IP de confiance (Google / Cloudflare / réseau local)";
+
+                lock (_alertsLock)
+                {
+                    _auditHistory.Add(evt);
+                    if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
+                }
+                SaveAudit();
+
+                _geoIp?.ResolveInBackground(evt.RemoteIp);
+                CoreLog.Debug($"[FILTRÉ] {evt.RemoteIp} → Safe (autre IP critique)");
                 return;
             }
 
             // --- 3. BLOCAGE AUTOMATIQUE (si activé) ---
-            // ⚠ Plus de condition sur la sévérité : on bloque TOUT ce qui a une IP
-            // --- 3. BLOCAGE AUTOMATIQUE (si activé et selon la politique choisie) ---
             if (_settings.AutoBlock && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
                 bool shouldBlock = false;
 
                 if (evt.IsKnownScanner)
                 {
-                    // C'est un scanner connu (badge Subnet)
                     shouldBlock = _settings.AutoBlockSubnet;
                 }
                 else if (evt.Severity == Severity.Critical)
                 {
-                    // Menace critique (Rouge)
                     shouldBlock = _settings.AutoBlockCritical;
                 }
                 else if (evt.Severity == Severity.Warning)
                 {
-                    // Menace inconnue (Orange)
                     shouldBlock = _settings.AutoBlockWarning;
                 }
-                // On ne bloque jamais Safe, Whitelisted, ni Info.
+                // On ne bloque jamais Safe, Whitelisted, Info, ni ToCheck.
 
                 if (shouldBlock)
                 {
@@ -1570,8 +1673,7 @@ namespace NetMonitor.Service
             CoreLog.Write($"[ALERT] {evt.Severity} | {evt.Source} | {evt.Message}");
             SaveHistory();
 
-            // --- 5. Enqueue email (le scheduler décide quand envoyer) ---
-            // Option B : envoyer pour Warning et plus (exclure Trusted/Safe/Whitelisted)
+            // --- 5. Enqueue email ---
             if (isNewAlert &&
                 (evt.Severity == Severity.Warning ||
                  evt.Severity == Severity.High ||
@@ -1669,12 +1771,28 @@ namespace NetMonitor.Service
                         var last  = g.OrderBy(x => x.Timestamp).Last();
                         var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
 
+                        // GeoIP sur l'IP distante du groupe
+                        string? country = null, countryCode = null, isp = null;
+                        if (_geoIp != null && _geoIp.IsEnabled && !string.IsNullOrWhiteSpace(last.RemoteIp))
+                        {
+                            var geo = _geoIp.TryGetCached(last.RemoteIp);
+                            if (geo != null)
+                            {
+                                country     = geo.Country;
+                                countryCode = geo.CountryCode;
+                                isp         = geo.Isp;
+                            }
+                            else
+                            {
+                                _geoIp.ResolveInBackground(last.RemoteIp);
+                            }
+                        }
+
                         return new AuditGroupedEntry
                         {
                             FirstSeen   = first.Timestamp,
                             LastSeen    = last.Timestamp,
                             Count       = g.Count(),
-
                             Severity    = mostSevere.Severity,
                             Source      = last.Source,
                             RemoteIp    = last.RemoteIp,
@@ -1685,7 +1803,10 @@ namespace NetMonitor.Service
                             ProcessPath = last.ProcessPath,
                             TrustReason = mostSevere.TrustReason,
                             Details     = mostSevere.Details,
-                            IsKnownScanner = g.Any(x => x.IsKnownScanner)
+                            IsKnownScanner = g.Any(x => x.IsKnownScanner),
+                            Country     = country,
+                            CountryCode = countryCode,
+                            Isp         = isp
                         };
                     })
                     .OrderByDescending(x => x.LastSeen)
@@ -1734,7 +1855,77 @@ namespace NetMonitor.Service
                     return true;
             }
             return false;
-        }                
+        }
+        
+        /// <summary>
+        /// Marque une IP comme "Safe" manuellement (bouton "Safe ?" du tableau 1).
+        /// - Migre toutes les alertes ToCheck de cette IP vers _auditHistory.
+        /// - Persiste un override pour que les futures alertes sur cette IP
+        ///   soient automatiquement classées Safe (bypass du check JSON Microsoft).
+        /// </summary>
+        public bool MarkSafe(string ip)
+        {
+            if (string.IsNullOrWhiteSpace(ip)) return false;
+
+            int migrated = 0;
+            lock (_alertsLock)
+            {
+                var toMigrate = _activeIntrusions
+                    .Where(a => string.Equals(a.RemoteIp, ip, StringComparison.OrdinalIgnoreCase)
+                             && a.Severity == Severity.ToCheck)
+                    .ToList();
+
+                foreach (var evt in toMigrate)
+                {
+                    _activeIntrusions.Remove(evt);
+                    _alerts.Remove(evt);
+
+                    evt.Severity = Severity.Safe;
+                    evt.TrustReason = "Marqué Safe manuellement";
+                    if (evt.Message?.StartsWith("[À VÉRIFIER]") == true)
+                        evt.Message = evt.Message.Substring("[À VÉRIFIER] ".Length);
+
+                    _auditHistory.Add(evt);
+                    migrated++;
+                }
+
+                if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
+                _manualSafeIps[ip] = DateTime.UtcNow;
+            }
+
+            SaveAudit();
+            SaveHistory();
+            SaveManualSafeIps();
+            CoreLog.Info($"[SAFE?] {ip} → Safe (manuel, {migrated} alerte(s) migrée(s))");
+            return migrated > 0;
+        }
+
+        private void LoadManualSafeIps()
+        {
+            try
+            {
+                if (!File.Exists(ManualSafeFile)) return;
+                var json = File.ReadAllText(ManualSafeFile);
+                var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, DateTime>>(json);
+                if (dict == null) return;
+                foreach (var kv in dict) _manualSafeIps[kv.Key] = kv.Value;
+                CoreLog.Info($"[SAFE?] {dict.Count} override(s) 'Safe' chargé(s)");
+            }
+            catch (Exception ex) { CoreLog.Warn($"LoadManualSafeIps : {ex.Message}"); }
+        }
+
+        private void SaveManualSafeIps()
+        {
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(ManualSafeFile)!);
+                var json = System.Text.Json.JsonSerializer.Serialize(
+                    _manualSafeIps.ToDictionary(kv => kv.Key, kv => kv.Value),
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                File.WriteAllText(ManualSafeFile, json);
+            }
+            catch (Exception ex) { CoreLog.Warn($"SaveManualSafeIps : {ex.Message}"); }
+        }                              
     }
     
     public class ProblemItem

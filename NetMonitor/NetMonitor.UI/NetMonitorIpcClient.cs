@@ -24,19 +24,22 @@ namespace NetMonitor.UI
 
     public class NetAlert
     {
-        public DateTime timestamp { get; set; }
-        public string? source { get; set; }
-        public string? severity { get; set; }
-        public string? message { get; set; }
-        public string? remoteIp { get; set; }
-        public int remotePort { get; set; }
-        public int localPort { get; set; }
-        public int pid { get; set; }
-        public string? processName { get; set; }
-        public string? processPath { get; set; }
-        public string? trustReason { get; set; }
-        public string? details { get; set; }
-        public bool isKnownScanner { get; set; }
+        public DateTime timestamp   { get; set; }
+        public string? source       { get; set; }
+        public string? severity     { get; set; }
+        public string? message      { get; set; }
+        public string? remoteIp     { get; set; }
+        public int remotePort       { get; set; }
+        public int localPort        { get; set; }
+        public int pid              { get; set; }
+        public string? processName  { get; set; }
+        public string? processPath  { get; set; }
+        public string? trustReason  { get; set; }
+        public string? details      { get; set; }
+        public bool isKnownScanner  { get; set; }
+        public string? country      { get; set; }
+        public string? countryCode  { get; set; }
+        public string? isp          { get; set; }        
     }
 
     public class NetConnection
@@ -100,7 +103,10 @@ namespace NetMonitor.UI
         public string? ProcessPath { get; set; }
         public string? ManualSeverity { get; set; }
         public DateTime? ManualSeveritySetAt { get; set; }
-        public bool IsKnownScanner { get; set; }        
+        public bool IsKnownScanner { get; set; }
+        public string? Country     { get; set; }
+        public string? CountryCode { get; set; }
+        public string? Isp         { get; set; }
     }
 
     public class BlockedIpRetryDto
@@ -200,20 +206,24 @@ namespace NetMonitor.UI
     
     public class AuditGroupedDto
     {
-        public DateTime FirstSeen { get; set; }
-        public DateTime LastSeen { get; set; }
-        public int Count { get; set; }
-        public string Severity { get; set; } = "";
-        public string Source { get; set; } = "";
-        public string? RemoteIp { get; set; }
-        public int RemotePort { get; set; }
-        public int LocalPort { get; set; }
-        public int Pid { get; set; }
-        public string? ProcessName { get; set; }
-        public string? ProcessPath { get; set; }
-        public string? TrustReason { get; set; }
-        public string? Details { get; set; }
-        public bool isKnownScanner { get; set; }
+        public DateTime FirstSeen   { get; set; }
+        public DateTime LastSeen    { get; set; }
+        public int Count            { get; set; }
+        public string Severity      { get; set; } = "";
+        public string Source        { get; set; } = "";
+        public string? RemoteIp     { get; set; }
+        public int RemotePort       { get; set; }
+        public int LocalPort        { get; set; }
+        public int Pid              { get; set; }
+        public string? ProcessName  { get; set; }
+        public string? ProcessPath  { get; set; }
+        public string? TrustReason  { get; set; }
+        public string? Details      { get; set; }
+        public bool isKnownScanner  { get; set; }
+        public string? Country      { get; set; }
+        public string? CountryCode  { get; set; }
+        public string? Isp          { get; set; }
+        public string GroupKey      { get; set; } = "";        
     }    
 
     public class PersistentProblemDto
@@ -396,7 +406,10 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand("restart-computer"));
             
         public static async Task<bool> ClearAllBlockedIpsAsync()
-            => IsOk(await SendCommand("clear-all-blocked"));            
+            => IsOk(await SendCommand("clear-all-blocked"));
+            
+        public static async Task<bool> MarkSafeAsync(string ip)
+            => IsOk(await SendCommand($"mark-safe {ip}"));
             
         public static async Task<bool> SetManualSeverityAsync(string ip, string? severityOrAuto)
         {

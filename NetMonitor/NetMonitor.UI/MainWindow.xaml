@@ -280,6 +280,9 @@
                             <DataTrigger Binding="{Binding Severity}" Value="Warning">
                                 <Setter Property="Background" Value="#FFB900"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
+                                <Setter Property="Background" Value="#A855F7"/>
+                            </DataTrigger>                            
                             <DataTrigger Binding="{Binding Severity}" Value="Info">
                                 <Setter Property="Background" Value="#4CC2FF"/>
                             </DataTrigger>
@@ -769,8 +772,33 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
+                                  AlternationCount="2"
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
+
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                    <Setter Property="Background" Value="#4A1F0F"/>
+                                    <Setter Property="Foreground" Value="#FFC7B5"/>
+                                    <Setter Property="BorderBrush" Value="#6B2D1A"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                    <Setter Property="Background" Value="#231310"/>
+                                    <Setter Property="BorderBrush" Value="#3A221B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                            <Setter Property="Background" Value="#2A1815"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3A221B"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
                                 
@@ -802,7 +830,35 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="180">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                                <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                                <Button Content="Safe ?" Margin="6,0,0,0" Padding="6,1" FontSize="10"
+                                                        Click="MarkSafe_Click" Tag="{Binding RemoteIp}"
+                                                        ToolTip="Marquer comme Safe (liste Microsoft vérifiée)">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                            <Setter Property="Background" Value="#3A7A33"/>
+                                                            <Setter Property="BorderBrush" Value="#6CCB5F"/>
+                                                            <Setter Property="Foreground" Value="White"/>
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
+                                                                    <Setter Property="Visibility" Value="Visible"/>
+                                                                </DataTrigger>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter Property="Background" Value="#4A9A40"/>
+                                                                </Trigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
@@ -944,8 +1000,33 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single"
+                                  AlternationCount="2"
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
+
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                    <Setter Property="Background" Value="#4A1F0F"/>
+                                    <Setter Property="Foreground" Value="#FFC7B5"/>
+                                    <Setter Property="BorderBrush" Value="#6B2D1A"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
+
+                            <DataGrid.RowStyle>
+                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                    <Setter Property="Background" Value="#231310"/>
+                                    <Setter Property="BorderBrush" Value="#3A221B"/>
+                                    <Style.Triggers>
+                                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                            <Setter Property="Background" Value="#2A1815"/>
+                                        </Trigger>
+                                        <Trigger Property="IsMouseOver" Value="True">
+                                            <Setter Property="Background" Value="#3A221B"/>
+                                        </Trigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </DataGrid.RowStyle>
+                            
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
                                 
@@ -1156,14 +1237,17 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                                 <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="*" MinWidth="180">
+                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="*" MinWidth="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
                                             <Setter Property="ToolTip" Value="{Binding ProcessPath}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="170"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"   Binding="{Binding IspDisplay}"     SortMemberPath="Isp"     Width="230"/>                        
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1274,7 +1358,32 @@
                               IsReadOnly="True"
                               HeadersVisibility="Column"
                               SelectionMode="Single"
+                              AlternationCount="2"
                               ScrollViewer.HorizontalScrollBarVisibility="Visible">
+
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                <Setter Property="Background" Value="#1A3A5C"/>
+                                <Setter Property="Foreground" Value="#B5D7FF"/>
+                                <Setter Property="BorderBrush" Value="#2E5A8A"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
+
+                        <DataGrid.RowStyle>
+                            <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                                <Setter Property="Background" Value="#0A1520"/>
+                                <Setter Property="BorderBrush" Value="#1F3A52"/>
+                                <Style.Triggers>
+                                    <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                        <Setter Property="Background" Value="#0F1F2E"/>
+                                    </Trigger>
+                                    <Trigger Property="IsMouseOver" Value="True">
+                                        <Setter Property="Background" Value="#16324F"/>
+                                    </Trigger>
+                                </Style.Triggers>
+                            </Style>
+                        </DataGrid.RowStyle>
+
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
@@ -1419,6 +1528,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                                
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1478,9 +1589,9 @@
                         <!-- Tableau 4 : Audit Whitelist -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
-                                       Foreground="#888" VerticalAlignment="Center"/>
+                                       Foreground="#6CCB5F" VerticalAlignment="Center"/>
                             <TextBlock Text="Alertes ignorées (IP de confiance)" FontSize="14"
-                                       FontWeight="SemiBold" Foreground="#888"
+                                       FontWeight="SemiBold" Foreground="#6CCB5F"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
@@ -1576,6 +1687,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                                
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1667,7 +1780,7 @@
                                             <Setter Property="ToolTip" Value="{Binding Details}"/>
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
-                                </DataGridTextColumn>
+                                </DataGridTextColumn>                           
                             </DataGrid.Columns>
                         </DataGrid>
 

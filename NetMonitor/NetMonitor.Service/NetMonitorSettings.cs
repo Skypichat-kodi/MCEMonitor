@@ -17,42 +17,39 @@ namespace NetMonitor.Service
         // ============================================================
         //  Détecteurs
         // ============================================================
-        public int PortScanWindowSeconds { get; set; } = 10;
-        public int PortScanThreshold { get; set; } = 20;
-        public int BeaconWindowSeconds { get; set; } = 300;
-        public int BeaconMinHits { get; set; } = 6;
-        public double BeaconJitterTolerancePct { get; set; } = 0.05;
-        public bool EnableProcessTrust { get; set; } = true;
-        public bool AutoBlock { get; set; } = false;
-        public bool AutoBlockCritical { get; set; } = true;
-        public bool AutoBlockWarning { get; set; } = true;
-        public bool AutoBlockSubnet { get; set; } = false;
-
-        /// <summary>
-        /// Si true, les scanners de recherche (Shodan, Censys...) sont ignorés (envoyés dans l'audit).
-        /// Si false, ils sont traités comme des menaces classiques (évalués, bloqués si AutoBlock).
-        /// </summary>
-        public bool IgnoreSearchScanners { get; set; } = false;
+        public int PortScanWindowSeconds            { get; set; } = 10;
+        public int PortScanThreshold                { get; set; } = 20;
+        public int BeaconWindowSeconds              { get; set; } = 300;
+        public int BeaconMinHits                    { get; set; } = 6;
+        public int  MicrosoftIpRangeRefreshHours    { get; set; } = 24;
+        public double BeaconJitterTolerancePct      { get; set; } = 0.05;
+        public bool EnableProcessTrust              { get; set; } = true;
+        public bool AutoBlock                       { get; set; } = false;
+        public bool AutoBlockCritical               { get; set; } = true;
+        public bool AutoBlockWarning                { get; set; } = true;
+        public bool AutoBlockSubnet                 { get; set; } = false;
+        public bool MicrosoftIpRangeEnabled         { get; set; } = true;
+        public bool IgnoreSearchScanners            { get; set; } = false;
 
         // ============================================================
         //  Serveur Web
         // ============================================================
-        public bool WebEnabled { get; set; } = true;
-        public int WebPort { get; set; } = 8086;
-        public string WebUsername { get; set; } = "admin";
-        public string WebPassword { get; set; } = "changeme";
+        public bool WebEnabled                      { get; set; } = true;
+        public int WebPort                          { get; set; } = 8086;
+        public string WebUsername                   { get; set; } = "admin";
+        public string WebPassword                   { get; set; } = "changeme";
 
         // ============================================================
         //  Recherche d'IP (lien externe vers un service d'analyse)
         // ============================================================
-        public string IpLookupUrl { get; set; } = "https://www.abuseipdb.com/check/{ip}";
+        public string IpLookupUrl                   { get; set; } = "https://www.abuseipdb.com/check/{ip}";
 
         // ============================================================
         //  Géolocalisation IP
         // ============================================================
-        public bool GeoIpEnabled { get; set; } = true;
-        public string GeoIpProvider { get; set; } = "https://ipwho.is/{ip}";
-        public bool ReverseDnsEnabled { get; set; } = true;
+        public bool GeoIpEnabled                    { get; set; } = true;
+        public string GeoIpProvider                 { get; set; } = "https://ipwho.is/{ip}";
+        public bool ReverseDnsEnabled               { get; set; } = true;
 
         // ============================================================
         //  Sévérité — patterns de classification (reverse DNS / ISP / Org)
@@ -62,7 +59,7 @@ namespace NetMonitor.Service
         /// Domaines considérés comme vraiment malveillants (bulletproof hosting).
         /// Match ? Severity.Critical (rouge).
         /// </summary>
-        public string[] CriticalPatterns { get; set; } = new[]
+        public string[] CriticalPatterns            { get; set; } = new[]
         {
             "infrawat.ch",         // Hydra Communications / Infrawatch
             "bulsat.com",
@@ -117,8 +114,8 @@ namespace NetMonitor.Service
         // ============================================================
         //  Bruit / Faux positifs
         // ============================================================
-        public int[] IgnoredRemotePorts { get; set; } = { 53, 123 };
-        public string[] IgnoredProcesses { get; set; } = new[]
+        public int[] IgnoredRemotePorts     { get; set; } = { 53, 123 };
+        public string[] IgnoredProcesses    { get; set; } = new[]
         {
             "svchost", "System", "Idle", "CrossDeviceService", "OneDrive",
             "OneDriveSetup", "MicrosoftEdgeUpdate", "MicrosoftEdgeUpdateSetup",
@@ -128,10 +125,10 @@ namespace NetMonitor.Service
             "StartMenuExperienceHost", "Widgets", "MsMpEng", "NisSrv",
             "SecurityHealthService", "WpnService", "WpnUserService"
         };
-        public string[] IgnoredNetworks { get; set; } = new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
-        public bool DisableFilters { get; set; } = false;
-        public int[] SuspiciousRemotePorts { get; set; } = { 4444, 1337, 31337, 6667, 3389 };
-        public int BlacklistLevel { get; set; } = 3;
+        public string[] IgnoredNetworks     { get; set; } = new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
+        public bool DisableFilters          { get; set; } = false;
+        public int[] SuspiciousRemotePorts  { get; set; } = { 4444, 1337, 31337, 6667, 3389 };
+        public int BlacklistLevel           { get; set; } = 3;
         public DateTime BlacklistLastUpdate { get; set; } = DateTime.MinValue;
 
         // ============================================================
@@ -172,8 +169,8 @@ namespace NetMonitor.Service
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
                             case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break; // NOUVEAU
 
-                            // Sévérité — compatibilité ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns" (nouveau)
-                            case "TrustedScannerPatterns":
+                            // Sévérité — compatibilité ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns"
+                            case "TrustedScannerPatterns":                            
                             case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
                             case "ScannerPatterns"              : settings.ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
@@ -184,7 +181,9 @@ namespace NetMonitor.Service
                             case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
                             case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) settings.AutoBlockCritical = abc; break;
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) settings.AutoBlockWarning = abw; break;
-                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;                            
+                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;
+                            case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire)) settings.MicrosoftIpRangeEnabled = mire; break;
+                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr)) settings.MicrosoftIpRangeRefreshHours = mirr; break;                                                     
                         }
                     }
                 }
@@ -299,7 +298,11 @@ namespace NetMonitor.Service
                     $"AutoBlock={AutoBlock.ToString().ToLower()}",
                     $"AutoBlockCritical={AutoBlockCritical.ToString().ToLower()}",
                     $"AutoBlockWarning={AutoBlockWarning.ToString().ToLower()}",
-                    $"AutoBlockSubnet={AutoBlockSubnet.ToString().ToLower()}",                    
+                    $"AutoBlockSubnet={AutoBlockSubnet.ToString().ToLower()}",
+                    "",
+                    "# --- Fichier Microsoft IP Ranges ---",
+                    $"MicrosoftIpRangeEnabled={MicrosoftIpRangeEnabled.ToString().ToLower()}",
+                    $"MicrosoftIpRangeRefreshHours={MicrosoftIpRangeRefreshHours}",                                        
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -353,7 +356,9 @@ namespace NetMonitor.Service
                             case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
                             case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) AutoBlockCritical = abc; break;
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) AutoBlockWarning = abw; break;
-                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;      
+                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;
+                            case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire2)) MicrosoftIpRangeEnabled = mire2; break;
+                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr2)) MicrosoftIpRangeRefreshHours = mirr2; break;                                  
                             case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;

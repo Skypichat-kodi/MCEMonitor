@@ -13,13 +13,14 @@
 /// </summary>
 public enum Severity
 {
-    Whitelisted = 0,   // Override manuel utilisateur (vert foncé)
+    Whitelisted = 0,   // Override manuel utilisateur   (vert foncé)
     Trusted     = 1,   // Scanner de recherche connu    (vert moyen)
     Safe        = 2,   // Domaine légitime connu        (vert clair)
-    Info        = 3,   // Niveau d'information (bas)
-    Warning     = 4,   // À vérifier                    (orange)
-    High        = 5,   // Élevé (legacy, conservé)
-    Critical    = 6    // Vraiment malveillant          (rouge)
+    Info        = 3,   // Niveau d'information          (bas)
+    ToCheck     = 4,   // Décision manuelle requise     (violet) — ni bloqué ni ignoré
+    Warning     = 5,   // À vérifier                    (orange)
+    High        = 6,   // Élevé (legacy, conservé)
+    Critical    = 7    // Vraiment malveillant          (rouge)
 }
 
 public sealed class DetectorResult

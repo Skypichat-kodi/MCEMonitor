@@ -1,4 +1,4 @@
-using NetMonitor.Service.Models;
+ï»¿using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Services;
 
@@ -47,8 +47,8 @@ public static class StatsBuilder
         stats.Active = await BuildBlockFromEventsAsync(activeEvents, geo,
             topIpsLimit, topCountriesLimit, topDetectorsLimit);
 
-        // ========= Bloc 2 : IP bloquées =========
-        // On EXCLUT les processus bloqués : ils n'ont pas d'IP résolvable,
+        // ========= Bloc 2 : IP bloquÃ©es =========
+        // On EXCLUT les processus bloquÃ©s : ils n'ont pas d'IP rÃ©solvable,
         // fausseraient DistinctIps / DistinctCountries et le GeoIP.
         var blockedList = engine.GetBlockedIps()
             .Where(b => !string.IsNullOrWhiteSpace(b.Ip) && !b.IsProcess)
@@ -57,10 +57,10 @@ public static class StatsBuilder
             topIpsLimit, topCountriesLimit, topDetectorsLimit);
 
         // ============================================================
-        //  Analyses enrichies (ports, heures, jours, processus…)
+        //  Analyses enrichies (ports, heures, jours, processusâ€¦)
         // ============================================================
 
-        // --- Top 10 ports locaux ciblés ---
+        // --- Top 10 ports locaux ciblÃ©s ---
         stats.TopLocalPorts = validAlerts
             .Where(e => e.LocalPort > 0)
             .GroupBy(e => e.LocalPort)
@@ -88,7 +88,7 @@ public static class StatsBuilder
             .Take(10)
             .ToList();
 
-        // --- Activité par heure (24 buckets, y compris heures vides) ---
+        // --- ActivitÃ© par heure (24 buckets, y compris heures vides) ---
         var hourMap = validAlerts
             .GroupBy(e => e.Timestamp.Hour)
             .ToDictionary(g => g.Key, g => new
@@ -106,7 +106,7 @@ public static class StatsBuilder
             })
             .ToList();
 
-        // --- Activité par jour de la semaine (7 buckets) ---
+        // --- ActivitÃ© par jour de la semaine (7 buckets) ---
         string[] dayNames = { "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi" };
         var dayMap = validAlerts
             .GroupBy(e => (int)e.Timestamp.DayOfWeek)
@@ -123,7 +123,7 @@ public static class StatsBuilder
             .OrderBy(d => (d.DayOfWeek + 6) % 7)
             .ToList();
 
-        // --- Top 10 processus visés ---
+        // --- Top 10 processus visÃ©s ---
         stats.TopProcesses = validAlerts
             .Where(e => !string.IsNullOrWhiteSpace(e.ProcessName) && e.ProcessName != "Network Packet")
             .GroupBy(e => e.ProcessName!)
@@ -136,10 +136,10 @@ public static class StatsBuilder
             .Take(10)
             .ToList();
 
-        // --- Distribution des sévérités (toujours 4 entrées, y compris à 0) ---
+        // --- Distribution des sÃ©vÃ©ritÃ©s (toujours 8 entrÃ©es, y compris Ã  0) ---
         var sevOrder = new[]
         {
-            Severity.Critical, Severity.High, Severity.Warning,
+            Severity.Critical, Severity.High, Severity.Warning, Severity.ToCheck,
             Severity.Info, Severity.Safe, Severity.Trusted, Severity.Whitelisted
         };
         stats.SeverityDistribution = sevOrder
@@ -148,10 +148,10 @@ public static class StatsBuilder
                 Severity = s.ToString(),
                 Count = validAlerts.Count(e => e.Severity == s)
             })
-            .Where(s => s.Count > 0)   // ? filtre les niveaux à 0
+            .Where(s => s.Count > 0)   // ? filtre les niveaux Ã  0
             .ToList();
 
-        // --- Top détecteurs globaux ---
+        // --- Top dÃ©tecteurs globaux ---
         stats.TopDetectors = validAlerts
             .GroupBy(e => e.Source)
             .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
@@ -163,7 +163,7 @@ public static class StatsBuilder
     }
 
     // -------------------------------------------------------------
-    //  Bloc à partir d'une liste d'IntrusionEvent (actives)
+    //  Bloc Ã  partir d'une liste d'IntrusionEvent (actives)
     // -------------------------------------------------------------
     private static async Task<StatsBlock> BuildBlockFromEventsAsync(
         List<IntrusionEvent> events,
@@ -176,7 +176,7 @@ public static class StatsBuilder
             DistinctIps = events.Select(e => e.RemoteIp).Distinct().Count()
         };
 
-        // --- Pré-résolution GeoIP (cache local pour éviter les appels en double) ---
+        // --- PrÃ©-rÃ©solution GeoIP (cache local pour Ã©viter les appels en double) ---
         var geoMap = new Dictionary<string, GeoInfo>();
         foreach (var ip in events.Select(e => e.RemoteIp!).Distinct())
         {
@@ -247,7 +247,7 @@ public static class StatsBuilder
             .Distinct()
             .Count();
 
-        // --- Détecteurs ---
+        // --- DÃ©tecteurs ---
         block.TopDetectors = events
             .GroupBy(e => e.Source)
             .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
@@ -275,15 +275,15 @@ public static class StatsBuilder
     }
 
     // -------------------------------------------------------------
-    //  Bloc à partir d'une liste de BlockedIpInfo (bloquées)
-    //  ? Lecture pure des champs persistés, zéro appel API.
+    //  Bloc Ã  partir d'une liste de BlockedIpInfo (bloquÃ©es)
+    //  ? Lecture pure des champs persistÃ©s, zÃ©ro appel API.
     // -------------------------------------------------------------
     private static Task<StatsBlock> BuildBlockFromBlockedAsync(
         List<BlockedIpInfo> blockedList,
         GeoIpService geo,
         int topIpsLimit, int topCountriesLimit, int topDetectorsLimit)
     {
-        // Double sécurité : si l'appelant n'a pas filtré, on le fait ici.
+        // Double sÃ©curitÃ© : si l'appelant n'a pas filtrÃ©, on le fait ici.
         blockedList = blockedList
             .Where(b => !b.IsProcess && !string.IsNullOrWhiteSpace(b.Ip))
             .ToList();
@@ -295,7 +295,7 @@ public static class StatsBuilder
             WorstSeverity = "blocked"
         };
 
-        // --- Top IPs : lecture directe des champs GeoIP persistés ---
+        // --- Top IPs : lecture directe des champs GeoIP persistÃ©s ---
         var ipStatsList = blockedList
             .Select(b => new IpStats
             {
@@ -318,7 +318,7 @@ public static class StatsBuilder
             .ToList();
         block.TopIps = ipStatsList;
 
-        // --- Pays : agrégation sur TOUTES les bloquées (pas seulement le top) ---
+        // --- Pays : agrÃ©gation sur TOUTES les bloquÃ©es (pas seulement le top) ---
         block.TopCountries = blockedList
             .Where(b => !b.IsPrivate && !string.IsNullOrEmpty(b.Country))
             .GroupBy(b => new { b.Country, b.CountryCode })
@@ -339,7 +339,7 @@ public static class StatsBuilder
             .Distinct()
             .Count();
 
-        // --- Détecteurs ---
+        // --- DÃ©tecteurs ---
         block.TopDetectors = blockedList
             .GroupBy(b => b.Source)
             .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
@@ -347,7 +347,7 @@ public static class StatsBuilder
             .Take(topDetectorsLimit)
             .ToList();
 
-        // --- Map data : alertes par pays (sur TOUTES les bloquées) ---
+        // --- Map data : alertes par pays (sur TOUTES les bloquÃ©es) ---
         var countryMap = new Dictionary<string, int>();
         foreach (var b in blockedList)
         {

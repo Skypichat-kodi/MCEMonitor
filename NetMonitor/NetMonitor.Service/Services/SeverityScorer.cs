@@ -46,6 +46,11 @@ namespace NetMonitor.Service.Services
             if (MatchesAnyPattern(candidates, settings.WhitelistPatterns))
                 return Severity.Whitelisted;
 
+            // 1bis. Si un détecteur a explicitement demandé une vérification manuelle,
+            //       on préserve son choix (utile pour de futurs détecteurs ToCheck)
+            if (detectorSeverity == Severity.ToCheck)
+                return Severity.ToCheck;
+
             // 2. Services légitimes connus (Microsoft, Google...)
             if (MatchesAnyPattern(candidates, settings.SafePatterns))
                 return Severity.Safe;

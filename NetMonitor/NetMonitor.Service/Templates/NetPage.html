@@ -109,18 +109,34 @@
     /* ============================================================ */
     /*  Badges de sévérité — 5 niveaux + compat legacy              */
     /* ============================================================ */
-    .badge.critical    { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
-    .badge.warning     { background: #FFB900; color: black; }    /* Orange - à vérifier */
-    .badge.info        { background: #4CC2FF; color: black; }    /* Bleu - information */
-    .badge.safe        { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
-    .badge.trusted     { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
-    .badge.whitelisted { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
-    .badge.unknown     { background: #555; color: #ccc; }        /* Gris foncé - inconnu */
+    .badge.critical     { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
+    .badge.warning      { background: #FFB900; color: black; }    /* Orange - à vérifier */
+    .badge.info         { background: #4CC2FF; color: black; }    /* Bleu - information */
+    .badge.safe         { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
+    .badge.trusted      { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
+    .badge.whitelisted  { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
+    .badge.unknown      { background: #555; color: #ccc; }        /* Gris foncé - inconnu */
+    .badge.tocheck      { background: #A855F7; color: white; }
 
     /* Compat : anciens noms de classes */
     .badge.ok     { background: #6CCB5F; color: black; }
     .badge.danger { background: #FF6347; color: white; }
 
+    .safe-btn {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 2px 8px;
+        background: #3A7A33;
+        color: #fff;
+        border: 1px solid #6CCB5F;
+        border-radius: 4px;
+        font-size: 11px;
+        cursor: pointer;
+        vertical-align: middle;
+        transition: background 0.15s ease;
+    }
+    .safe-btn:hover { background: #4A9A40; }
+    
     /* Cadenas 🔒 pour les sévérités manuelles */
     .manual-lock {
         display: inline-block;
@@ -624,6 +640,8 @@
                 <th>{{tr:Date}}</th>
                 <th>{{tr:Type}}</th>
                 <th>{{tr:IP}} / {{tr:Processus}}</th>
+                <th>{{tr:Pays}}</th>      <!-- NOUVEAU -->
+                <th>{{tr:FAI}}</th>       <!-- NOUVEAU -->
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Détecteur}}</th>
@@ -682,6 +700,8 @@
                 <th style="width:8%">{{tr:Sévérité}}</th>
                 <th style="width:9%">{{tr:Détecteur}}</th>
                 <th style="width:10%">{{tr:IP}}</th>
+                <th>{{tr:Pays}}</th>    
+                <th>{{tr:FAI}}</th>                
                 <th style="width:4%">{{tr:Info}}</th>
                 <th style="width:6%">{{tr:Port dst}}</th>
                 <th style="width:6%">{{tr:Port loc}}</th>
@@ -714,6 +734,8 @@
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
+                <th>{{tr:Pays}}</th>    
+                <th>{{tr:FAI}}</th>                  
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Port dst}}</th>
                 <th>{{tr:Port loc}}</th>
@@ -886,6 +908,18 @@ function changeSeverity(ip, currentSeverity, hasManual) {
         sessionStorage.removeItem('sel-blocked-sel');
         location.reload();
     });
+}
+
+function markSafe(ip) {
+    if (!confirm("Marquer " + ip + " comme Safe (liste Microsoft vérifiée) ?\n\n" +
+                 "Cette alerte sera déplacée dans le tableau vert 'Alertes ignorées'."))
+        return;
+
+    fetch('/mark-safe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'ip=' + encodeURIComponent(ip)
+    }).then(function () { location.reload(); });
 }
 
 function blockSelectedProcess() {

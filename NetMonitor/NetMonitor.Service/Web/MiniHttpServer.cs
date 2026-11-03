@@ -189,7 +189,10 @@ namespace NetMonitor.Service.Web
                         severity = matching.Severity.ToString();
                     }
 
-                    bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity);
+                    // Web = toujours une action humaine → bypass IsCriticalIp
+                    bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
+                                              isAutomatic: false,
+                                              forceManual: true);
                     CoreLog.Write(ok
                         ? $"WebServer : IP {ip} bloquée" + (matching != null
                             ? $" (source={source})"
@@ -245,7 +248,24 @@ namespace NetMonitor.Service.Web
                         : $"WebServer : échec changement sévérité de {ip}");
 
                     Redirect(ctx);
-                }                
+                }
+                else if (path == "/mark-safe" && ctx.Request.HttpMethod == "POST")
+                {
+                    string ip = ReadFormValue(ctx, "ip");
+                    if (string.IsNullOrWhiteSpace(ip))
+                    {
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    bool ok = _engine.MarkSafe(ip);
+                    CoreLog.Write(ok
+                        ? $"WebServer : IP {ip} marquée Safe manuellement"
+                        : $"WebServer : échec mark-safe {ip}");
+
+                    Redirect(ctx);
+                }                                
                 else if (path == "/block-process" && ctx.Request.HttpMethod == "POST")
                 {
                     string processPath = ReadFormValue(ctx, "path");
