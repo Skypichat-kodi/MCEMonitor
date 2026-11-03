@@ -114,7 +114,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    activeRows.Append("<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                    activeRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
                 }
 
                 // --- Tableau 1bis : Processus en attente d'examen ---
@@ -154,14 +154,14 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    pendingRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
+                    pendingRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
                 }
 
                 // --- Tableau 2 : IP Bloquées ---
                 var blockedRows = new System.Text.StringBuilder();
                 if (blocked.Count > 0)
                 {
-                    foreach (var b in blocked.OrderByDescending(x => x.BlockedAt).Take(50))
+                    foreach (var b in blocked.OrderByDescending(x => x.BlockedAt).Take(200))
                     {
                         string ipEnc = WebUtility.HtmlEncode(b.Ip);
 
@@ -196,7 +196,7 @@ namespace NetMonitor.Service.Web
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
+                else blockedRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
                 // --- Tableau 3 : Historique (enrichi) ---
                 var historyRows = new System.Text.StringBuilder();
@@ -229,7 +229,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='9' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit (groupé) ---
@@ -276,16 +276,16 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='16' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                  // --- Tableau 5 : tentatives sur IP bloquée ---
-                var blockedRetriesRows = new System.Text.StringBuilder();  // <-- LA LIGNE MANQUANTE
+                var blockedRetriesRows = new System.Text.StringBuilder();  
                 var blockedRetries = engine.GetBlockedIpRetries();
                 if (blockedRetries.Count > 0)
                 {
                     // Dictionnaire pour récupérer la sévérité des IPs bloquées
-                    var blockedDict = blocked.ToDictionary(b => b.Ip, b => b.Severity, StringComparer.OrdinalIgnoreCase);
+                    var blockedDict = blocked.ToDictionary(b => b.Ip, b => b, StringComparer.OrdinalIgnoreCase);
 
                     foreach (var r in blockedRetries.Take(100))
                     {
@@ -294,8 +294,13 @@ namespace NetMonitor.Service.Web
                                             r.RetryCount >= 5  ? "c5"  :
                                             r.RetryCount >= 2  ? "c2"  : "c1";
 
-                        string sev = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-";
-                        string sevClass = SeverityToCssClass(sev);
+                        // Jointure GeoIP depuis les IP bloquées
+                        blockedDict.TryGetValue(r.Ip, out var info);
+                        string sev     = info?.Severity ?? "-";
+                        string country = FormatCountry(info?.Country, info?.CountryCode);
+                        string isp     = string.IsNullOrWhiteSpace(info?.Isp) ? "-" : info.Isp!;
+
+                        string sevClass  = SeverityToCssClass(sev);
                         string sevButton = $"<button type='button' class='severity-btn' " +
                                            $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
                                            $"'{WebUtility.HtmlEncode(sev)}', false)\" " +
@@ -304,6 +309,8 @@ namespace NetMonitor.Service.Web
                         blockedRetriesRows.Append($@"<tr>
                             <td class='count-cell'><span class='count-badge blue {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                             <td><b>{ipEnc}</b></td>
+                            <td>{WebUtility.HtmlEncode(country)}</td>
+                            <td>{WebUtility.HtmlEncode(isp)}</td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
                             <td class='text-center'><span class='badge {sevClass}'>{sev}</span>{sevButton}</td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
@@ -315,9 +322,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    blockedRetriesRows.Append(
-                        "<tr><td colspan='8' style='text-align:center;color:#888;padding:20px'>" +
-                        "Aucune tentative détectée sur les IP bloquées</td></tr>");
+                    blockedRetriesRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 
                 // --- Modèle ---

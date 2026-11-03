@@ -486,18 +486,27 @@ namespace NetMonitor.Service.Ipc
             try
             {
                 var retries = _engine.GetBlockedIpRetries();
-                var blockedDict = _engine.GetBlockedIps()
-                    .ToDictionary(b => b.Ip, b => b.Severity, StringComparer.OrdinalIgnoreCase);
 
-                var projected = retries.Select(r => new
+                // On joint avec les infos GeoIP persistées dans BlockedIpInfo
+                var blockedDict = _engine.GetBlockedIps()
+                    .ToDictionary(b => b.Ip, b => b, StringComparer.OrdinalIgnoreCase);
+
+                var projected = retries.Select(r =>
                 {
-                    ip = r.Ip,
-                    originalDetector    = r.OriginalDetector,
-                    blockedAt           = r.BlockedAt,
-                    firstRetryAt        = r.FirstRetryAt,
-                    lastRetryAt         = r.LastRetryAt,
-                    retryCount          = r.RetryCount,
-                    severity            = blockedDict.TryGetValue(r.Ip, out var s) ? s : "-"
+                    blockedDict.TryGetValue(r.Ip, out var info);
+                    return new
+                    {
+                        ip                  = r.Ip,
+                        originalDetector    = r.OriginalDetector,
+                        blockedAt           = r.BlockedAt,
+                        firstRetryAt        = r.FirstRetryAt,
+                        lastRetryAt         = r.LastRetryAt,
+                        retryCount          = r.RetryCount,
+                        severity            = info?.Severity ?? "-",
+                        country             = info?.Country,
+                        countryCode         = info?.CountryCode,
+                        isp                 = info?.Isp
+                    };
                 }).ToList();
 
                 IpcResponse.Json(server, projected);

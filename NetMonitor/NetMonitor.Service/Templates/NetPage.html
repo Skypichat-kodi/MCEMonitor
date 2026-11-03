@@ -504,12 +504,11 @@
         white-space: nowrap;
     }
 
-    /* Sur petit écran, on laisse la colonne Détails wrapper au lieu d'être tronquée */
+    /* Détails sur une seule ligne avec ellipsis (plus de wrap sur 2 lignes) */
     .table-wrapper.table-history td:last-child {
-        white-space: normal;
-        overflow-wrap: anywhere;   /* ← casse les URLs/chemins longs sans espaces */
-        word-break: break-word;
+        white-space: nowrap;
         overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     /* Centre les cellules qui contiennent un badge */
@@ -575,6 +574,8 @@
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
+                <th>{{tr:Pays}}</th>
+                <th>{{tr:FAI}}</th>                
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Message}}</th>
             </tr>
@@ -615,6 +616,7 @@
                 <th>{{tr:Raison}}</th>
                 <th>{{tr:IP distante}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>
+                <th style="width:40px">{{tr:Action}}</th>
             </tr>
         </thead>
         <tbody>
@@ -669,6 +671,8 @@
             <tr>
                 <th style="width:100px">{{tr:Tentatives}}</th>
                 <th style="width:150px">{{tr:IP}}</th>
+                <th>{{tr:Pays}}</th>
+                <th>{{tr:FAI}}</th>                
                 <th style="width:32px">{{tr:Info}}</th>
                 <th class="text-center">{{tr:Sévérité}}</th>                
                 <th style="width:150px">{{tr:Détecteur initial}}</th>
@@ -697,8 +701,8 @@
         <thead>
             <tr>
                 <th style="width:9%">{{tr:Date}}</th>
-                <th style="width:8%">{{tr:Sévérité}}</th>
-                <th style="width:9%">{{tr:Détecteur}}</th>
+                <th style="width:6%">{{tr:Sévérité}}</th>
+                <th style="width:7%">{{tr:Détecteur}}</th>
                 <th style="width:10%">{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>    
                 <th>{{tr:FAI}}</th>                

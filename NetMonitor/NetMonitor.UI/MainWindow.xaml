@@ -1387,6 +1387,8 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
+                            <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                            
                             <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                             
                             <!-- NOUVELLE COLONNE SÉVÉRITÉ -->

@@ -44,80 +44,83 @@ namespace NetMonitor.UI
 
     public class NetConnection
     {
-        public int pid { get; set; }
-        public string? processName { get; set; }
-        public string localIp { get; set; } = "";
-        public int localPort { get; set; }
-        public string remoteIp { get; set; } = "";
-        public int remotePort { get; set; }
-        public string protocol { get; set; } = "Tcp";
-        public DateTime timestamp { get; set; }
+        public int pid              { get; set; }
+        public string? processName  { get; set; }
+        public string localIp       { get; set; } = "";
+        public int localPort        { get; set; }
+        public string remoteIp      { get; set; } = "";
+        public int remotePort       { get; set; }
+        public string protocol      { get; set; } = "Tcp";
+        public DateTime timestamp   { get; set; }
     }
 
     public class NetProblem
     {
-        public DateTime timestamp { get; set; }
-        public string severity { get; set; } = "";
-        public string category { get; set; } = "";
-        public string message { get; set; } = "";
+        public DateTime timestamp   { get; set; }
+        public string severity      { get; set; } = "";
+        public string category      { get; set; } = "";
+        public string message       { get; set; } = "";
     }
 
     public class NetConfig
     {
-        public int portScanWindowSeconds { get; set; }
-        public int portScanThreshold { get; set; }
-        public int beaconWindowSeconds { get; set; }
-        public int beaconMinHits { get; set; }
-        public double beaconJitterTolerancePct { get; set; }
-        public bool autoBlock { get; set; }
-        public bool autoBlockCritical { get; set; }
-        public bool autoBlockWarning { get; set; }
-        public bool autoBlockSubnet { get; set; }
-        public string[] ignoredNetworks { get; set; } = Array.Empty<string>();
-        public bool disableFilters { get; set; }
-        public int blacklistLevel { get; set; }             
-        public DateTime blacklistLastUpdate { get; set; }  
+        public int portScanWindowSeconds        { get; set; }
+        public int portScanThreshold            { get; set; }
+        public int beaconWindowSeconds          { get; set; }
+        public int beaconMinHits                { get; set; }
+        public double beaconJitterTolerancePct  { get; set; }
+        public bool autoBlock                   { get; set; }
+        public bool autoBlockCritical           { get; set; }
+        public bool autoBlockWarning            { get; set; }
+        public bool autoBlockSubnet             { get; set; }
+        public string[] ignoredNetworks         { get; set; } = Array.Empty<string>();
+        public bool disableFilters              { get; set; }
+        public int blacklistLevel               { get; set; }             
+        public DateTime blacklistLastUpdate     { get; set; }  
 
         // Scanners de recherche (Trusted) ---
-        public bool ignoreSearchScanners { get; set; }
-        public string[] scannerPatterns { get; set; } = Array.Empty<string>();
+        public bool ignoreSearchScanners    { get; set; }
+        public string[] scannerPatterns     { get; set; } = Array.Empty<string>();
     }
 
     public class NetWebStatus
     {
-        public bool enabled { get; set; }
-        public int port { get; set; }
-        public string username { get; set; } = "";
-        public string? password { get; set; }
+        public bool enabled         { get; set; }
+        public int port             { get; set; }
+        public string username      { get; set; } = "";
+        public string? password     { get; set; }
     }
 
     public class BlockedIpDto
     {
-        public string Ip { get; set; } = "";
-        public DateTime BlockedAt { get; set; }
-        public string Source { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string? Details { get; set; }
-        public string Severity { get; set; } = "-";
-        public bool IsProcess { get; set; }
-        public string? ProcessPath { get; set; }
-        public string? ManualSeverity { get; set; }
-        public DateTime? ManualSeveritySetAt { get; set; }
-        public bool IsKnownScanner { get; set; }
-        public string? Country     { get; set; }
-        public string? CountryCode { get; set; }
-        public string? Isp         { get; set; }
+        public string Ip                        { get; set; } = "";
+        public DateTime BlockedAt               { get; set; }
+        public string Source                    { get; set; } = "";
+        public string Message                   { get; set; } = "";
+        public string? Details                  { get; set; }
+        public string Severity                  { get; set; } = "-";
+        public bool IsProcess                   { get; set; }
+        public string? ProcessPath              { get; set; }
+        public string? ManualSeverity           { get; set; }
+        public DateTime? ManualSeveritySetAt    { get; set; }
+        public bool IsKnownScanner              { get; set; }
+        public string? Country                  { get; set; }
+        public string? CountryCode              { get; set; }
+        public string? Isp                      { get; set; }
     }
 
     public class BlockedIpRetryDto
     {
-        public string Ip { get; set; } = "";
-        public string OriginalDetector { get; set; } = "-";
-        public DateTime BlockedAt { get; set; }
-        public DateTime FirstRetryAt { get; set; }
-        public DateTime LastRetryAt { get; set; }
-        public int RetryCount { get; set; }
-        public string Severity { get; set; } = "-";
+        public string Ip                { get; set; } = "";
+        public string OriginalDetector  { get; set; } = "-";
+        public DateTime BlockedAt       { get; set; }
+        public DateTime FirstRetryAt    { get; set; }
+        public DateTime LastRetryAt     { get; set; }
+        public int RetryCount           { get; set; }
+        public string Severity          { get; set; } = "-";
+        public string? Country          { get; set; }
+        public string? CountryCode      { get; set; }
+        public string? Isp              { get; set; }        
     }
 
     // ============================================================
@@ -125,83 +128,83 @@ namespace NetMonitor.UI
     // ============================================================
     public class IpStatDto
     {
-        public string Ip { get; set; } = "";
-        public int Count { get; set; }
-        public DateTime FirstSeen { get; set; }
-        public DateTime LastSeen { get; set; }
-        public string MaxSeverity { get; set; } = "ok";
-        public List<string> Detectors { get; set; } = new();
-        public string? Country { get; set; }
-        public string? CountryCode { get; set; }
-        public string? City { get; set; }
-        public string? Isp { get; set; }
-        public string? ReverseDns { get; set; }
-        public bool IsPrivate { get; set; }
+        public string Ip                { get; set; } = "";
+        public int Count                { get; set; }
+        public DateTime FirstSeen       { get; set; }
+        public DateTime LastSeen        { get; set; }
+        public string MaxSeverity       { get; set; } = "ok";
+        public List<string> Detectors   { get; set; } = new();
+        public string? Country          { get; set; }
+        public string? CountryCode      { get; set; }
+        public string? City             { get; set; }
+        public string? Isp              { get; set; }
+        public string? ReverseDns       { get; set; }
+        public bool IsPrivate           { get; set; }
     }
 
     public class CountryStatDto
     {
-        public string Country { get; set; } = "";
-        public string CountryCode { get; set; } = "";
-        public int Count { get; set; }
-        public int DistinctIps { get; set; }
+        public string Country       { get; set; } = "";
+        public string CountryCode   { get; set; } = "";
+        public int Count            { get; set; }
+        public int DistinctIps      { get; set; }
     }
 
     public class DetectorStatDto
     {
-        public string Detector { get; set; } = "";
-        public int Count { get; set; }
+        public string Detector  { get; set; } = "";
+        public int Count        { get; set; }
     }
 
     public class StatsBlockDto
     {
-        public int TotalAlerts { get; set; }
-        public int DistinctIps { get; set; }
-        public int DistinctCountries { get; set; }
-        public string WorstSeverity { get; set; } = "ok";
-        public List<IpStatDto> TopIps { get; set; } = new();
-        public List<CountryStatDto> TopCountries { get; set; } = new();
-        public List<DetectorStatDto> TopDetectors { get; set; } = new();
-        public Dictionary<string, int> AlertsByCountryCode { get; set; } = new();
+        public int TotalAlerts                              { get; set; }
+        public int DistinctIps                              { get; set; }
+        public int DistinctCountries                        { get; set; }
+        public string WorstSeverity                         { get; set; } = "ok";
+        public List<IpStatDto> TopIps                       { get; set; } = new();
+        public List<CountryStatDto> TopCountries            { get; set; } = new();
+        public List<DetectorStatDto> TopDetectors           { get; set; } = new();
+        public Dictionary<string, int> AlertsByCountryCode  { get; set; } = new();
     }
 
     public class GlobalStatsDto
     {
-        public int TotalAlerts { get; set; }
-        public int DistinctIps { get; set; }
-        public int DistinctCountries { get; set; }
-        public string WorstSeverity { get; set; } = "ok";
-        public DateTime GeneratedAt { get; set; }
-        public Dictionary<string, int> SeverityCounts { get; set; } = new();
-        public StatsBlockDto Active { get; set; } = new();
-        public StatsBlockDto Blocked { get; set; } = new();
-        public List<ProcessStatDto> TopProcesses { get; set; } = new();
-        public List<HourlyStatDto> ActivityByHour { get; set; } = new();
-        public List<SeverityStatDto> SeverityDistribution { get; set; } = new();        
+        public int TotalAlerts                              { get; set; }
+        public int DistinctIps                              { get; set; }
+        public int DistinctCountries                        { get; set; }
+        public string WorstSeverity                         { get; set; } = "ok";
+        public DateTime GeneratedAt                         { get; set; }
+        public Dictionary<string, int> SeverityCounts       { get; set; } = new();
+        public StatsBlockDto Active                         { get; set; } = new();
+        public StatsBlockDto Blocked                        { get; set; } = new();
+        public List<ProcessStatDto> TopProcesses            { get; set; } = new();
+        public List<HourlyStatDto> ActivityByHour           { get; set; } = new();
+        public List<SeverityStatDto> SeverityDistribution   { get; set; } = new();        
     }
 
     public class WhitelistEntryDto
     {
-        public string Name { get; set; } = "";
-        public string Path { get; set; } = "";
-        public string? Sha256 { get; set; }
-        public string? Publisher { get; set; }
-        public bool Enabled { get; set; } = true;
+        public string Name          { get; set; } = "";
+        public string Path          { get; set; } = "";
+        public string? Sha256       { get; set; }
+        public string? Publisher    { get; set; }
+        public bool Enabled         { get; set; } = true;
     }
 
     public class NetPendingProcess
     {
-        public string processPath { get; set; } = "";
-        public string processName { get; set; } = "";
-        public string? trustReason { get; set; }
-        public string? remoteIp { get; set; }
-        public int remotePort { get; set; }
-        public int pid { get; set; }
-        public DateTime firstSeen { get; set; }
-        public DateTime lastSeen { get; set; }
-        public int count { get; set; }
-        public string severity { get; set; } = "";
-        public string? detector { get; set; }
+        public string processPath   { get; set; } = "";
+        public string processName   { get; set; } = "";
+        public string? trustReason  { get; set; }
+        public string? remoteIp     { get; set; }
+        public int remotePort       { get; set; }
+        public int pid              { get; set; }
+        public DateTime firstSeen   { get; set; }
+        public DateTime lastSeen    { get; set; }
+        public int count            { get; set; }
+        public string severity      { get; set; } = "";
+        public string? detector     { get; set; }
     }
     
     public class AuditGroupedDto
@@ -228,29 +231,29 @@ namespace NetMonitor.UI
 
     public class PersistentProblemDto
     {
-        public DateTime Timestamp { get; set; }
-        public string Severity { get; set; } = "";
-        public string Category { get; set; } = "";
-        public string Message { get; set; } = "";
+        public DateTime Timestamp   { get; set; }
+        public string Severity      { get; set; } = "";
+        public string Category      { get; set; } = "";
+        public string Message       { get; set; } = "";
     }
 
     public class ProcessStatDto
     {
-        public string ProcessName { get; set; } = "";
-        public int Count { get; set; }
+        public string ProcessName   { get; set; } = "";
+        public int Count            { get; set; }
     }
 
     public class HourlyStatDto
     {
-        public int Hour { get; set; }
-        public int Count { get; set; }
-        public int CriticalCount { get; set; }
+        public int Hour             { get; set; }
+        public int Count            { get; set; }
+        public int CriticalCount    { get; set; }
     }
 
     public class SeverityStatDto
     {
-        public string Severity { get; set; } = "";
-        public int Count { get; set; }
+        public string Severity  { get; set; } = "";
+        public int Count        { get; set; }
     }
     
     // ============================================================

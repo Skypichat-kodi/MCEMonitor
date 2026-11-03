@@ -455,7 +455,10 @@ namespace NetMonitor.UI
                             FirstRetryAt = r.FirstRetryAt.ToLocalTime(),
                             LastRetryAt = r.LastRetryAt.ToLocalTime(),
                             RetryCount = r.RetryCount,
-                            Severity = r.Severity
+                            Severity = r.Severity,
+                            Country = r.Country,           
+                            CountryCode = r.CountryCode,   
+                            Isp = r.Isp                    
                         });
                     }
 
@@ -2750,16 +2753,16 @@ namespace NetMonitor.UI
 
     public class BlockedIpRow
     {
-        public string Ip { get; set; } = "";
-        public DateTime BlockedAt { get; set; }
+        public string Ip            { get; set; } = "";
+        public DateTime BlockedAt   { get; set; }
         public string BlockedAtText => BlockedAt.ToString("dd/MM/yyyy HH:mm:ss");
-        public string Source { get; set; } = "";
-        public string Message { get; set; } = "";
-        public string? Details { get; set; }
-        public string Severity { get; set; } = "-";
+        public string Source        { get; set; } = "";
+        public string Message       { get; set; } = "";
+        public string? Details      { get; set; }
+        public string Severity      { get; set; } = "-";
 
-        public bool IsProcess { get; set; }
-        public string? ProcessPath { get; set; }
+        public bool IsProcess       { get; set; }
+        public string? ProcessPath  { get; set; }
 
         public string TypeDisplay => IsProcess ? "Processus" : "IP";
         public string IpDisplay => IsProcess ? (ProcessPath ?? Ip) : Ip;
@@ -2772,9 +2775,9 @@ namespace NetMonitor.UI
         public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
 
         // NOUVEAU : Pays / FAI
-        public string? Country { get; set; }
-        public string? CountryCode { get; set; }
-        public string? Isp { get; set; }
+        public string? Country      { get; set; }
+        public string? CountryCode  { get; set; }
+        public string? Isp          { get; set; }
 
         public string CountryDisplay
         {
@@ -2800,34 +2803,33 @@ namespace NetMonitor.UI
 
     public class ConnectionRow
     {
-        public DateTime Timestamp { get; set; }
+        public DateTime Timestamp       { get; set; }
         public string TimestampText => Timestamp.ToString("HH:mm:ss");
-        public string Protocol { get; set; } = "";
-        public string LocalEndpoint { get; set; } = "";
-        public string RemoteEndpoint { get; set; } = "";
-        public int Pid { get; set; }
-        public string ProcessName { get; set; } = "";
+        public string Protocol          { get; set; } = "";
+        public string LocalEndpoint     { get; set; } = "";
+        public string RemoteEndpoint    { get; set; } = "";
+        public int Pid                  { get; set; }
+        public string ProcessName       { get; set; } = "";
     }
 
     public class GroupedAlertRow
     {
-        public DateTime FirstSeen { get; set; }
-        public DateTime LastSeen { get; set; }
+        public DateTime FirstSeen           { get; set; }
+        public DateTime LastSeen            { get; set; }
         public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
         public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
-        public string Severity { get; set; } = "";
-        public string Detectors { get; set; } = "";
-        public string? RemoteIp { get; set; }
-        public string Message { get; set; } = "";
-        public int Count { get; set; }
-        public string RemotePortsDisplay { get; set; } = "-";
-        public string? Details { get; set; }
-
-        public int Pid { get; set; }
-        public string? ProcessName { get; set; }
-        public string? ProcessPath { get; set; }
-        public string? TrustReason { get; set; }
-        public bool IsKnownScanner { get; set; }
+        public string Severity              { get; set; } = "";
+        public string Detectors             { get; set; } = "";
+        public string? RemoteIp             { get; set; }
+        public string Message               { get; set; } = "";
+        public int Count                    { get; set; }
+        public string RemotePortsDisplay    { get; set; } = "-";
+        public string? Details              { get; set; }
+        public int Pid                      { get; set; }
+        public string? ProcessName          { get; set; }
+        public string? ProcessPath          { get; set; }
+        public string? TrustReason          { get; set; }
+        public bool IsKnownScanner          { get; set; }
         
         public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
 
@@ -2865,22 +2867,22 @@ namespace NetMonitor.UI
 
     public class StatsIpRow
     {
-        public string Ip { get; set; } = "";
-        public string CountryDisplay { get; set; } = "-";
-        public string Isp { get; set; } = "-";
-        public string SeverityDisplay { get; set; } = "ok";
-        public int Count { get; set; }
-        public string DetectorsDisplay { get; set; } = "-";
-        public DateTime LastSeen { get; set; }
+        public string Ip                { get; set; } = "";
+        public string CountryDisplay    { get; set; } = "-";
+        public string Isp               { get; set; } = "-";
+        public string SeverityDisplay   { get; set; } = "ok";
+        public int Count                { get; set; }
+        public string DetectorsDisplay  { get; set; } = "-";
+        public DateTime LastSeen        { get; set; }
         public string LastSeenText => LastSeen.ToString("dd/MM HH:mm");
     }
 
     public class StatsCountryRow
     {
-        public string CountryDisplay { get; set; } = "";
-        public int Count { get; set; }
-        public int DistinctIps { get; set; }
-    }
+        public string CountryDisplay    { get; set; } = "";
+        public int Count                { get; set; }
+        public int DistinctIps          { get; set; }
+    }   
 
     public class StatsDetectorRow
     {
@@ -2890,17 +2892,17 @@ namespace NetMonitor.UI
     
     public class PendingProcessRow
     {
-        public string ProcessPath { get; set; } = "";
-        public string ProcessName { get; set; } = "";
-        public string? TrustReason { get; set; }
-        public string? RemoteIp { get; set; }
-        public int RemotePort { get; set; }
-        public int Pid { get; set; }
-        public DateTime FirstSeen { get; set; }
-        public DateTime LastSeen { get; set; }
-        public int Count { get; set; }
-        public string Severity { get; set; } = "";
-        public string? Detector { get; set; }
+        public string ProcessPath   { get; set; } = "";
+        public string ProcessName   { get; set; } = "";
+        public string? TrustReason  { get; set; }
+        public string? RemoteIp     { get; set; }
+        public int RemotePort       { get; set; }
+        public int Pid              { get; set; }
+        public DateTime FirstSeen   { get; set; }
+        public DateTime LastSeen    { get; set; }
+        public int Count            { get; set; }
+        public string Severity      { get; set; } = "";
+        public string? Detector     { get; set; }
 
         public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
         public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
@@ -2928,13 +2930,23 @@ namespace NetMonitor.UI
     
     public class BlockedIpRetryRow
     {
-        public string Ip { get; set; } = "";
-        public string OriginalDetector { get; set; } = "-";
-        public DateTime BlockedAt { get; set; }
-        public DateTime FirstRetryAt { get; set; }
-        public DateTime LastRetryAt { get; set; }
-        public int RetryCount { get; set; }
-        public string Severity { get; set; } = "-";
+        public string Ip                { get; set; } = "";
+        public string OriginalDetector  { get; set; } = "-";
+        public DateTime BlockedAt       { get; set; }
+        public DateTime FirstRetryAt    { get; set; }
+        public DateTime LastRetryAt     { get; set; }
+        public int RetryCount           { get; set; }
+        public string Severity          { get; set; } = "-";
+        public string? Country          { get; set; }
+        public string? CountryCode      { get; set; }
+        public string? Isp              { get; set; }
+
+        public string CountryDisplay =>
+            string.IsNullOrWhiteSpace(Country)     ? "-" :
+            string.IsNullOrWhiteSpace(CountryCode) ? Country :
+            $"{Country} ({CountryCode})";
+
+        public string IspDisplay => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
 
         public string BlockedAtText => BlockedAt.ToString("dd/MM HH:mm:ss");
         public string FirstRetryAtText => FirstRetryAt.ToString("dd/MM HH:mm:ss");
@@ -2953,11 +2965,11 @@ namespace NetMonitor.UI
     
     public class WhitelistEntryRow
     {
-        public string Name { get; set; } = "";
-        public string Path { get; set; } = "";
-        public string? Sha256 { get; set; }
-        public string? Publisher { get; set; }
-        public bool Enabled { get; set; }
+        public string Name          { get; set; } = "";
+        public string Path          { get; set; } = "";
+        public string? Sha256       { get; set; }
+        public string? Publisher    { get; set; }
+        public bool Enabled         { get; set; }
 
         public string PublisherDisplay =>
             string.IsNullOrWhiteSpace(Publisher) ? "-" : Publisher;
