@@ -1,4 +1,4 @@
-using Android.App;
+ï»¿using Android.App;
 using Android.Content;
 using Android.Media;
 using Android.OS;
@@ -49,19 +49,19 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             warning.SetSound(warningSound, new AudioAttributes.Builder()
                 .SetUsage(AudioUsageKind.Notification).Build());
 
-            // ---------- Canal DISCONNECT : son système par défaut ----------
+            // ---------- Canal DISCONNECT : son systÃ¨me par dÃ©faut ----------
             // IMPORTANCE_DEFAULT + aucun SetSound() ? Android utilise le son
-            // de notification système par défaut. Non urgent, mais audible.
+            // de notification systÃ¨me par dÃ©faut. Non urgent, mais audible.
             var disconnect = new NotificationChannel(
                 ChannelDisconnect,
-                "Déconnexions serveur",
+                "DÃ©connexions serveur",
                 NotificationImportance.Default)
             {
-                Description = "Notifications de déconnexion / reconnexion des serveurs"
+                Description = "Notifications de dÃ©connexion / reconnexion des serveurs"
             };
-            // ? On n'appelle PAS SetSound() ici ? son système par défaut
+            // ? On n'appelle PAS SetSound() ici ? son systÃ¨me par dÃ©faut
 
-            // ---------- Canal INFO : silencieux (média) ----------
+            // ---------- Canal INFO : silencieux (mÃ©dia) ----------
             var info = new NotificationChannel(ChannelInfo, "Informations",
                 NotificationImportance.Low)
             {
@@ -86,13 +86,13 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void ShowAlert(Context context, PushAlert alert)
         {
-            // Routage par canal selon l'état
+            // Routage par canal selon l'Ã©tat
             string channel = alert.Status switch
             {
                 "critical" => ChannelCritical,
                 "warning"  => ChannelWarning,
-                "offline"  => ChannelDisconnect,   // ? nouveau : son système par défaut
-                "ok"       => ChannelDisconnect,   // ? retour à la normale, idem
+                "offline"  => ChannelDisconnect,   // ? nouveau : son systÃ¨me par dÃ©faut
+                "ok"       => ChannelDisconnect,   // ? retour Ã  la normale, idem
                 _          => ChannelInfo
             };
 
@@ -107,13 +107,13 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             string title;
 
-            // 1. Menace neutralisée (NetMonitor)
+            // 1. Menace neutralisÃ©e (NetMonitor)
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
-                title = $"{alert.ServerName} - Menace neutralisée";
+                title = $"{alert.ServerName} - Menace neutralisÃ©e";
             }
-            // 2. Résolution détaillée
+            // 2. RÃ©solution dÃ©taillÃ©e
             else if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
                      alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
             {
@@ -123,14 +123,14 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 });
 
                 title = realCount <= 1
-                    ? $"{alert.ServerName} - Retour à la normale"
-                    : $"{alert.ServerName} - {realCount} alertes résolues";
+                    ? $"{alert.ServerName} - Retour Ã  la normale"
+                    : $"{alert.ServerName} - {realCount} alertes rÃ©solues";
             }
-            // 3. Nouveaux problèmes sans changement de statut
+            // 3. Nouveaux problÃ¨mes sans changement de statut
             else if (alert.NewProblems != null && alert.NewProblems.Count > 0
                      && alert.Status == alert.PreviousStatus)
             {
-                // On liste les catégories concernées
+                // On liste les catÃ©gories concernÃ©es
                 var kindLabels = alert.NewProblems
                     .Select(p => Classify(p))
                     .Where(k => k != ProblemKind.Unknown && k != ProblemKind.Bsod)
@@ -148,14 +148,25 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             // 4. Cas standard
             else
             {
-                title = alert.Status switch
+                // Compte les ToCheck pour adapter le titre
+                int toCheckCount = alert.Problems?.Count(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)) ?? 0;
+
+                if (toCheckCount > 0)
                 {
-                    "critical" => $"{alert.ServerName} - CRITIQUE",
-                    "warning"  => $"{alert.ServerName} - Alerte",
-                    "offline"  => $"{alert.ServerName} - Hors ligne",
-                    "ok"       => $"{alert.ServerName} - OK",
-                    _          => alert.ServerName
-                };
+                    title = $"{alert.ServerName} - Alerte Ã  vÃ©rifier ({toCheckCount})";
+                }
+                else
+                {
+                    title = alert.Status switch
+                    {
+                        "critical" => $"{alert.ServerName} - CRITIQUE",
+                        "warning"  => $"{alert.ServerName} - Alerte",
+                        "offline"  => $"{alert.ServerName} - Hors ligne",
+                        "ok"       => $"{alert.ServerName} - OK",
+                        _          => alert.ServerName
+                    };
+                }
             }
 
             string message = BuildAlertMessage(alert);
@@ -186,7 +197,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void ShowMedia(Context context, PushMedia media)
         {
-            // Ignore les arrêts de lecture audio (trop fréquent, pas utile)
+            // Ignore les arrÃªts de lecture audio (trop frÃ©quent, pas utile)
             if (media.EventType == "stopped" && IsAudioType(media.MediaType))
             {
                 return;
@@ -194,7 +205,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             string title = media.EventType == "started"
                 ? $"{media.ServerName} - Lecture en cours"
-                : $"{media.ServerName} - Lecture terminée";
+                : $"{media.ServerName} - Lecture terminÃ©e";
 
             string info = "";
             if (!string.IsNullOrEmpty(media.Client))
@@ -229,18 +240,18 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string BuildAlertMessage(PushAlert alert)
         {
-            // ---- Menace neutralisée (NetMonitor) ----
+            // ---- Menace neutralisÃ©e (NetMonitor) ----
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
                 string mode = alert.LastBlock.Automatic ? "automatiquement" : "manuellement";
-                string msg = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                string msg = $"L'IP {alert.LastBlock.Ip} a Ã©tÃ© bloquÃ©e {mode} par le pare-feu";
                 if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
-                    msg += $" (détecteur : {alert.LastBlock.Detector})";
+                    msg += $" (dÃ©tecteur : {alert.LastBlock.Detector})";
                 return msg;
             }
 
-            // ---- Résolution détaillée ----
+            // ---- RÃ©solution dÃ©taillÃ©e ----
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
                 alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
             {
@@ -254,7 +265,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 if (realResolved.Count == 0)
                     return "Le serveur est de nouveau joignable";
 
-                // Résumé par catégorie
+                // RÃ©sumÃ© par catÃ©gorie
                 var byKind = realResolved
                     .Select(p => Classify(p))
                     .GroupBy(k => k)
@@ -270,20 +281,20 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                         parts.Add($"{label} ?");
                 }
 
-                string summary = string.Join(" • ", parts);
+                string summary = string.Join(" â€¢ ", parts);
 
-                // Détail (max 3)
+                // DÃ©tail (max 3)
                 var lines = new List<string> { summary };
                 int max = 3;
                 for (int i = 0; i < System.Math.Min(realResolved.Count, max); i++)
-                    lines.Add($"• {realResolved[i].Message}");
+                    lines.Add($"â€¢ {realResolved[i].Message}");
                 if (realResolved.Count > max)
-                    lines.Add($"… et {realResolved.Count - max} autre(s)");
+                    lines.Add($"â€¦ et {realResolved.Count - max} autre(s)");
 
                 return string.Join("\n", lines);
             }
 
-            // ---- Nouveaux problèmes (sans changement de statut global) ----
+            // ---- Nouveaux problÃ¨mes (sans changement de statut global) ----
             if (alert.NewProblems != null && alert.NewProblems.Count > 0 && alert.Status != "ok")
             {
                 var lines = new List<string>();
@@ -301,17 +312,33 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             // ---- Offline ----
             if (alert.Status == "offline")
-                return "Le serveur ne répond plus";
+                return "Le serveur ne rÃ©pond plus";
 
-            // ---- Problèmes en cours (cas standard) ----
+            // ---- ProblÃ¨mes en cours (cas standard) ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
+                int toCheckCount = alert.Problems.Count(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase));
+
                 var lines = new List<string>();
-                int maxShown = 3;
+
+                // PrÃ©ambule ToCheck (guidance utilisateur)
+                if (toCheckCount > 0)
+                {
+                    lines.Add($"âš  {toCheckCount} alerte(s) Ã  vÃ©rifier â€” cliquer Â« Safe ? Â» dans l'interface");
+                }
+
+                int maxShown = toCheckCount > 0 ? 2 : 3;
                 for (int i = 0; i < System.Math.Min(alert.Problems.Count, maxShown); i++)
                 {
                     var p = alert.Problems[i];
-                    string prefix = (p.Severity == "critical" || p.Severity == "high") ? "[CRIT]" : "[WARN]";
+                    string prefix = p.Severity switch
+                    {
+                        "critical" => "[CRIT]",
+                        "high"     => "[CRIT]",
+                        "tocheck"  => "[Ã€ VERIF]",
+                        _          => "[WARN]"
+                    };
                     lines.Add($"{prefix} {p.Message}");
                 }
                 if (alert.Problems.Count > maxShown)
@@ -344,14 +371,14 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string GetAlertIconName(PushAlert alert)
         {
-            // ---- NetMonitor : menace neutralisée (inchangé) ----
+            // ---- NetMonitor : menace neutralisÃ©e (inchangÃ©) ----
             if (alert.Status == "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
                 return "ok";
             }
 
-            // ---- Résolution : problème(s) résolu(s) ----
+            // ---- RÃ©solution : problÃ¨me(s) rÃ©solu(s) ----
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
                 alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
             {
@@ -371,10 +398,10 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 if (ram  > 0) groups++;
                 if (gpu  > 0) groups++;
 
-                // Cas groupé : plusieurs catégories distinctes ? icône générique
+                // Cas groupÃ© : plusieurs catÃ©gories distinctes ? icÃ´ne gÃ©nÃ©rique
                 if (groups > 1) return "systemok";
 
-                // Cas simple : une seule catégorie
+                // Cas simple : une seule catÃ©gorie
                 if (disk > 0) return "romok";
                 if (cpu  > 0) return "cpuok";
                 if (ram  > 0) return "ramok";
@@ -383,9 +410,15 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 return "check";
             }
 
-            // ---- Problèmes en cours ----
+            // ---- ProblÃ¨mes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
+                // PRIORITÃ‰ 1 : ToCheck (violet) â€” dÃ©cision manuelle requise
+                if (alert.Problems.Any(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return "tocheck";
+                }
                 int disk = 0, cpuU = 0, cpuT = 0, ram = 0, gpu = 0;
                 foreach (var p in alert.Problems)
                 {
@@ -403,10 +436,10 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 if (ram  > 0) groups++;
                 if (gpu  > 0) groups++;
 
-                // Cas groupé ? icône générique (underscore pour Android)
+                // Cas groupÃ© ? icÃ´ne gÃ©nÃ©rique (underscore pour Android)
                 if (groups > 1) return "system_critical";
 
-                // Cas simple ? icône spécifique
+                // Cas simple ? icÃ´ne spÃ©cifique
                 if (disk > 0) return "hdd_critical";
                 if (cpuT > 0) return "cpu_temp";
                 if (cpuU > 0) return "cpu_overload";
@@ -472,7 +505,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             string msg = (p.Message ?? "").ToLowerInvariant();
 
             return (cat.Contains("cpu") && (cat.Contains("temp") || cat.Contains("thermal")))
-                || (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("chaud") || msg.Contains("°c")))
+                || (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("chaud") || msg.Contains("Â°c")))
                 || cat.Contains("temperature")
                 || cat.Contains("thermal");
         }
@@ -501,7 +534,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 || msg.Contains("memoire");
         }
         // ============================================================
-        //  Classification des problèmes (équivalent de Windows)
+        //  Classification des problÃ¨mes (Ã©quivalent de Windows)
         // ============================================================
         private enum ProblemKind
         {
@@ -524,9 +557,9 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
             // Fallback pour futurs moniteurs
             string msg = (p.Message ?? "").ToLowerInvariant();
-            if (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("°c") || msg.Contains("therm"))) return ProblemKind.CpuTemp;
+            if (msg.Contains("cpu") && (msg.Contains("temp") || msg.Contains("Â°c") || msg.Contains("therm"))) return ProblemKind.CpuTemp;
             if (msg.Contains("cpu") || msg.Contains("processeur")) return ProblemKind.CpuUsage;
-            if (msg.Contains("ram") || msg.Contains("mémoire") || msg.Contains("memory")) return ProblemKind.RamUsage;
+            if (msg.Contains("ram") || msg.Contains("mÃ©moire") || msg.Contains("memory")) return ProblemKind.RamUsage;
             if (msg.Contains("gpu") || msg.Contains("nvidia") || msg.Contains("geforce")) return ProblemKind.GpuTemp;
             if (msg.Contains("smart")) return ProblemKind.DiskSmart;
             if (msg.Contains("espace") || msg.Contains("disque") || msg.Contains("disk")) return ProblemKind.DiskSpace;
@@ -543,9 +576,9 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
         {
             ProblemKind.DiskSpace => "Disque (espace)",
             ProblemKind.DiskSmart => "Disque (SMART)",
-            ProblemKind.DiskTemp  => "Disque (température)",
+            ProblemKind.DiskTemp  => "Disque (tempÃ©rature)",
             ProblemKind.CpuUsage  => "CPU (surcharge)",
-            ProblemKind.CpuTemp   => "CPU (température)",
+            ProblemKind.CpuTemp   => "CPU (tempÃ©rature)",
             ProblemKind.RamUsage  => "RAM",
             ProblemKind.GpuTemp   => "GPU",
             _                     => ""
