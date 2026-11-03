@@ -454,6 +454,7 @@ namespace MCEMonitorClient.Tray
                 bool isCritical = false;
                 bool isWarning  = false;
                 bool isOffline  = false;
+                bool isToCheck  = false;
 
                 // BSOD expiré : pas une vraie résolution → on n'affiche rien
                 if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
@@ -556,12 +557,26 @@ namespace MCEMonitorClient.Tray
                         ? $"{alert.ServerName} - 1 problème détecté"
                         : $"{alert.ServerName} - {count} problèmes détectés";
 
+                    // Compte les alertes ToCheck pour adapter le message
+                    int toCheckCount = alert.Problems.Count(p =>
+                        string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase));
+
                     var lines = new List<string>();
-                    int maxShown = 3;
+                    if (toCheckCount > 0)
+                    {
+                        lines.Add($"⚠ {toCheckCount} alerte(s) à vérifier — cliquer « Safe ? » dans l'interface");
+                    }
+
+                    int maxShown = toCheckCount > 0 ? 2 : 3;   // moins de lignes si on a déjà le préambule
                     for (int i = 0; i < Math.Min(count, maxShown); i++)
                     {
                         var p = alert.Problems[i];
-                        string prefix = p.Severity == "critical" ? "[CRIT]" : "[WARN]";
+                        string prefix = p.Severity switch
+                        {
+                            "critical" => "[CRIT]",
+                            "tocheck"  => "[À VERIF]",
+                            _          => "[WARN]"
+                        };
                         lines.Add($"{prefix} {p.Message}");
                     }
                     if (count > maxShown) lines.Add($"... et {count - maxShown} autre(s)");
@@ -569,6 +584,10 @@ namespace MCEMonitorClient.Tray
 
                     if (alert.Status == "critical")     isCritical = true;
                     else if (alert.Status == "warning") isWarning  = true;
+
+                    // Détection ToCheck : déclenche le son dédié + écrase le son warning
+                    if (toCheckCount > 0 && alert.Status != "critical")
+                        isToCheck = true;
                 }
                 else
                 {
@@ -584,6 +603,7 @@ namespace MCEMonitorClient.Tray
                 ToastHelper.Show(title, message, iconFile, alert.BaseUrl, silent);
 
                 if (isCritical)     PlayAlarm();
+                else if (isToCheck) PlayToCheck();
                 else if (isWarning) PlayWarning();
                 else if (isOffline) PlaySystemSound("DeviceDisconnect");
             }
@@ -619,6 +639,19 @@ namespace MCEMonitorClient.Tray
             });
         }
 
+        private void PlayToCheck()
+        {
+            Task.Run(() =>
+            {
+                try
+                {
+                    if (_warningPlayer != null) _warningPlayer.PlaySync();
+                    else Console.Beep(900, 120);
+                }
+                catch { }
+            });
+        }
+        
         // ---------------------------------------------
         //  Polling (fallback : pull toutes les 30s)
         // ---------------------------------------------
@@ -984,6 +1017,13 @@ namespace MCEMonitorClient.Tray
             // ---- Problèmes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
+                // PRIORITÉ 1 : ToCheck (violet) — décision manuelle requise
+                if (alert.Problems.Any(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)))
+                {
+                    return "tocheck.png";
+                }
+                
                 int disk = 0, cpuU = 0, cpuT = 0, ram = 0, gpu = 0;
                 foreach (var p in alert.Problems)
                 {

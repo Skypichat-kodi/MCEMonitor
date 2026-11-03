@@ -238,6 +238,7 @@ namespace MCEMonitorClient.Tray
                 {
                     "ok"       => Color.FromArgb(0x6C, 0xCB, 0x5F),
                     "warning"  => Color.FromArgb(0xFF, 0xB9, 0x00),
+                    "tocheck"  => Color.FromArgb(0xA8, 0x55, 0xF7),
                     "critical" => Color.FromArgb(0xFF, 0x63, 0x47),
                     _          => Color.FromArgb(0x88, 0x88, 0x88)
                 };
