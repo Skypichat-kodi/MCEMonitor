@@ -1,5 +1,4 @@
-using Android.Content;
-using Android.OS;
+﻿using Android.Content;
 
 namespace MCEMonitorClient.Maui.Platforms.Android.Services
 {
@@ -10,10 +9,16 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             var intent = new Intent(context, typeof(PollingForegroundService));
             intent.SetAction(PollingForegroundService.ActionStart);
 
-            if (Build.VERSION.SdkInt >= BuildVersionCodes.O)
+            // StartForegroundService est API 26+.
+            // L'analyseur CA1416 ne reconnaît pas toujours le guard
+            // OperatingSystem.IsAndroidVersionAtLeast() sur certaines versions du SDK.
+            // On utilise un pragma ciblé pour garantir un build propre.
+#pragma warning disable CA1416
+            if (OperatingSystem.IsAndroidVersionAtLeast(26))
                 context.StartForegroundService(intent);
             else
                 context.StartService(intent);
+#pragma warning restore CA1416
         }
 
         public static void Stop(Context context)

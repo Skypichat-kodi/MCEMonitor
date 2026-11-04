@@ -21,7 +21,9 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void CreateChannels(Context context)
         {
-            if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+            // L'analyseur CA1416 ne reconnaît que OperatingSystem.IsAndroidVersionAtLeast()
+            // Build.VERSION.SdkInt < BuildVersionCodes.O ne satisfait pas le checker.
+            if (!OperatingSystem.IsAndroidVersionAtLeast(26))
                 return;
 
             var manager = (NotificationManager)context.GetSystemService(Context.NotificationService)!;
@@ -34,8 +36,14 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             {
                 Description = "Alertes serveur critiques"
             };
-            critical.SetSound(criticalSound, new AudioAttributes.Builder()
-                .SetUsage(AudioUsageKind.Notification).Build());
+
+            // Le binding .NET Android marque AudioAttributes.Builder() comme nullable
+            // (annotation exagérée, le constructeur ne retourne jamais null).
+            #pragma warning disable CS8602
+            var criticalAttrs = new AudioAttributes.Builder()
+                .SetUsage(AudioUsageKind.Notification).Build();
+            #pragma warning restore CS8602
+            critical.SetSound(criticalSound, criticalAttrs);
             critical.EnableVibration(true);
 
             // ---------- Canal WARNING : warning.wav ----------
@@ -46,8 +54,12 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             {
                 Description = "Avertissements serveur"
             };
-            warning.SetSound(warningSound, new AudioAttributes.Builder()
-                .SetUsage(AudioUsageKind.Notification).Build());
+
+            #pragma warning disable CS8602
+            var warningAttrs = new AudioAttributes.Builder()
+                .SetUsage(AudioUsageKind.Notification).Build();
+            #pragma warning restore CS8602
+            warning.SetSound(warningSound, warningAttrs);
 
             // ---------- Canal DISCONNECT : son système par défaut ----------
             // IMPORTANCE_DEFAULT + aucun SetSound() ? Android utilise le son

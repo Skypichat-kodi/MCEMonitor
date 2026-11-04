@@ -1,4 +1,4 @@
-using Android.Content;
+﻿using Android.Content;
 using Android.OS;
 using Android.Provider;
 using Android.Net;
@@ -66,6 +66,14 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void OpenNotificationSettings(Context context)
         {
+            // ActionAppNotificationSettings est API 26+ → fallback sur les
+            // paramètres de l'app pour Android 7.x (API 24-25).
+            if (!OperatingSystem.IsAndroidVersionAtLeast(26))
+            {
+                OpenAppDetails(context);
+                return;
+            }
+
             try
             {
                 var intent = new Intent(Settings.ActionAppNotificationSettings);
@@ -77,15 +85,20 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             }
             catch
             {
-                try
-                {
-                    var appIntent = new Intent(Settings.ActionApplicationDetailsSettings);
-                    appIntent.SetData(global::Android.Net.Uri.Parse("package:" + context.PackageName));
-                    appIntent.AddFlags(ActivityFlags.NewTask);
-                    context.StartActivity(appIntent);
-                }
-                catch { }
+                OpenAppDetails(context);
             }
+        }
+
+        private static void OpenAppDetails(Context context)
+        {
+            try
+            {
+                var appIntent = new Intent(Settings.ActionApplicationDetailsSettings);
+                appIntent.SetData(global::Android.Net.Uri.Parse("package:" + context.PackageName));
+                appIntent.AddFlags(ActivityFlags.NewTask);
+                context.StartActivity(appIntent);
+            }
+            catch { }
         }
         
         public static bool IsIgnoringBatteryOptimizations(Context context)

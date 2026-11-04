@@ -11,11 +11,11 @@ public class MainActivity : MauiAppCompatActivity
     {
         base.OnCreate(savedInstanceState);
 
-        // Crée les canaux de notification Android (critique, warning, info, service)
         Platforms.Android.Services.AndroidNotificationService.CreateChannels(this);
 
-        // Demande la permission POST_NOTIFICATIONS (obligatoire Android 13+)
-        if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu)
+        // POST_NOTIFICATIONS est API 33+ ; OperatingSystem.IsAndroidVersionAtLeast
+        // est reconnu par l'analyseur CA1416.
+        if (OperatingSystem.IsAndroidVersionAtLeast(33))
         {
             if (CheckSelfPermission(global::Android.Manifest.Permission.PostNotifications)
                 != global::Android.Content.PM.Permission.Granted)
