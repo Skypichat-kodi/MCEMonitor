@@ -92,6 +92,13 @@ _(rien)_
   - Actuellement garanti par `AppData.Initialize()` en amont, mais fragile si l'ordre change
   - Fix 1 ligne : `Directory.CreateDirectory(AppData.BasePath);` avant l'écriture
 
+### 🟡 Priorité moyenne — Charts.html (WebView2 WPF)
+
+- [ ] **Appliquer les courbes dans `Charts.html`**
+  - `chartHours` et `chartDays` → `type: 'line'` + `tension: 0.4` + `fill: true`
+  - Cohérence visuelle avec `/stats` (déjà en courbes)
+  - Effort : 5 min
+  
 ### 🟢 Priorité basse — MediaMonitor vignettes album
 
 - [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg
@@ -101,6 +108,33 @@ _(rien)_
 - [ ] (optionnel) Support WebP
 
 ## ✅ Terminé
+
+### Session 2026-11-04 (suite) — Stats : 4 niveaux de lecture + Top FAI
+
+**Architecture des Statistiques clarifiée en 4 couches distinctes.**
+
+- [x] **4 niveaux de lecture** séparés sémantiquement :
+  - Carte 1 mode auto : activité des **24h glissantes** (vue temporelle)
+  - Carte 1 mode manuel : activité **réelle** (IPs actives en attente)
+  - Carte 2 : vue **"depuis le début"** (toutes IPs bloquées du pare-feu)
+  - Onglet Interceptions : **récidives** (botnets persistants)
+- [x] **`GlobalStats.AutoBlockMode`** propagé de `NetMonitorEngine` → `StatsBuilder` → IPC → UI/Web
+- [x] **`StatsBuilder.BuildAsync`** : filtre `BlockedAt >= now - 24h` en mode auto
+- [x] **Top IPs → Top FAI par pays** sur les 3 tableaux concernés :
+  - Nouvelle classe `IspStats` (Isp + Country + CountryCode + Count)
+  - Groupement par couple `(Isp, Country)` sur `_blockedIps`
+  - Carte 1 manuel : "Top FAI par pays" (colonne Alertes)
+  - Carte 1 auto : "Top FAI par pays (24h)" (colonne IPs bloquées)
+  - Carte 2 : "Top FAI par pays (depuis le début)" (colonne IPs bloquées)
+- [x] **Titres adaptatifs UI** : 8 `x:Name` sur les TextBlock de la carte 1 + bloc `if (stats.AutoBlockMode)` dans `RefreshStatsAsync`
+- [x] **Titres adaptatifs Web** : 10 variables `{{ActiveSectionTitle}}`, `{{ActiveTotalLabel}}`… dans `WebHandler`
+- [x] **Charts `chartHours` et `chartDays`** : `type: 'bar'` → `type: 'line'` avec `tension: 0.4` + `fill: true` (courbes lissées)
+- [x] **Confirmé** : les charts utilisent les **alertes** (vue réseau), pas les IPs bloquées → séparation logique voulue
+- [x] **Confirmé** : la carte 2 utilise **toutes** les IPs bloquées du pare-feu (pas seulement l'affichage)
+- [x] **Hydra Communications Ltd** identifié comme FAI #1 des attaques → validation du système
+
+**Reste à patcher (optionnel) :**
+- [ ] `Charts.html` (WebView2 WPF) — les 2 charts Activité sont encore en barres
 
 ### Session 2026-11-04 — `ProcessTrustService` auto-update (Steam/NVIDIA)
 
