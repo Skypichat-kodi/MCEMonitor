@@ -1,4 +1,4 @@
-using System.Net.Http;
+Ôªøusing System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Linq;
@@ -10,6 +10,7 @@ namespace MCEMonitorClient.Maui.Pages;
 public partial class ServerEditPage : ContentPage
 {
     private readonly ServerEntry? _existing;
+    private int _autoDetectVersion = 0;
 
     public ServerEditPage(ServerEntry? existing)
     {
@@ -35,6 +36,10 @@ public partial class ServerEditPage : ContentPage
         {
             cmbType.SelectedIndex = 0;
         }
+
+        // Auto-d√©tection quand l'URL ou le port perd le focus (comme Windows)
+        txtUrl.Unfocused  += async (s, e) => await AutoDetectAsync();
+        txtPort.Unfocused += async (s, e) => await AutoDetectAsync();
     }
 
     private async void OnCancelClicked(object sender, EventArgs e)
@@ -72,34 +77,31 @@ public partial class ServerEditPage : ContentPage
         {
             var entry = new ServerEntry
             {
-                Name = name,
-                BaseUrl = url.TrimEnd('/'),
-                Port = port,
-                Username = txtUsername.Text?.Trim() ?? "",
-                Password = txtPassword.Text ?? "",
+                Name        = name,
+                BaseUrl     = url.TrimEnd('/'),
+                Port        = port,
+                Username    = txtUsername.Text?.Trim() ?? "",
+                Password    = txtPassword.Text ?? "",
                 ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor",
-                Enabled = swEnabled.IsToggled
+                Enabled     = swEnabled.IsToggled
             };
             config.Servers.Add(entry);
         }
         else
         {
-            // RÈcupËre la mÍme instance dans la liste fraÓchement chargÈe
             var existing = config.Servers.FirstOrDefault(s => s.Id == _existing!.Id);
-
             if (existing != null)
             {
-                existing.Name = name;
-                existing.BaseUrl = url.TrimEnd('/');
-                existing.Port = port;
-                existing.Username = txtUsername.Text?.Trim() ?? "";
-                existing.Password = txtPassword.Text ?? "";
+                existing.Name        = name;
+                existing.BaseUrl     = url.TrimEnd('/');
+                existing.Port        = port;
+                existing.Username    = txtUsername.Text?.Trim() ?? "";
+                existing.Password    = txtPassword.Text ?? "";
                 existing.ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor";
-                existing.Enabled = swEnabled.IsToggled;
+                existing.Enabled     = swEnabled.IsToggled;
             }
             else
             {
-                // Cas improbable : le serveur a ÈtÈ supprimÈ entre-temps
                 await DisplayAlert("Erreur", "Serveur introuvable.", "OK");
                 return;
             }
@@ -108,13 +110,51 @@ public partial class ServerEditPage : ContentPage
         ConfigService.Save(config);
         await Navigation.PopModalAsync();
     }
-    
+
     private async void OnTestClicked(object sender, EventArgs e)
     {
+        await TestConnectionAsync(autoMode: false);
+    }
+
+    // ============================================================
+    //  Auto-d√©tection (d√©clench√©e sur Unfocused URL/Port)
+    // ============================================================
+    private async Task AutoDetectAsync()
+    {
+        if (!btnTest.IsEnabled)
+            return;
+
         string url = txtUrl.Text?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(url) || url == "http://" || url == "https://")
+            return;
+
+        int myVersion = ++_autoDetectVersion;
+        await Task.Delay(400);
+
+        if (!IsVisible) return;
+
+        if (myVersion != _autoDetectVersion)
+            return;
+
+        url = txtUrl.Text?.Trim() ?? "";
+        if (string.IsNullOrWhiteSpace(url) || url == "http://" || url == "https://")
+            return;
+
+        if (!btnTest.IsEnabled)
+            return;
+
+        await TestConnectionAsync(autoMode: true);
+    }
+
+    // ============================================================
+    //  Test de connexion + d√©tection du service
+    // ============================================================
+    private async Task TestConnectionAsync(bool autoMode)
+    {
+        string url     = txtUrl.Text?.Trim() ?? "";
         string portStr = txtPort.Text?.Trim() ?? "8083";
-        string user = txtUsername.Text?.Trim() ?? "";
-        string pass = txtPassword.Text ?? "";
+        string user    = txtUsername.Text?.Trim() ?? "";
+        string pass    = txtPassword.Text ?? "";
 
         if (string.IsNullOrWhiteSpace(url))
         {
@@ -137,9 +177,10 @@ public partial class ServerEditPage : ContentPage
         string testUrl = $"{baseUrl}:{port}/api/summary";
 
         btnTest.IsEnabled = false;
-        btnTest.Text = "Test en cours...";
+        if (!autoMode) btnTest.Text = "Test en cours...";
+
         lblTestResult.TextColor = Color.FromArgb("#B4B4B4");
-        lblTestResult.Text = "Connexion r " + testUrl;
+        lblTestResult.Text = "Connexion √† " + testUrl;
 
         try
         {
@@ -162,22 +203,28 @@ public partial class ServerEditPage : ContentPage
                 return;
             }
 
-            // --- NOUVEAU : DÈtection automatique du service ---
+            // --- D√©tection automatique du service + machine ---
             string json = await resp.Content.ReadAsStringAsync();
             string detectedService = "Inconnu";
+            string detectedMachine = "";
 
             try
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(json);
                 if (doc.RootElement.TryGetProperty("service", out var serviceProp))
                     detectedService = serviceProp.GetString() ?? "Inconnu";
+                if (doc.RootElement.TryGetProperty("machine", out var machineProp))
+                    detectedMachine = machineProp.GetString() ?? "";
             }
             catch { /* JSON invalide */ }
 
-            lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
-            lblTestResult.Text = $"[OK] Connexion rÈussie ó Service : {detectedService}";
+            // --- Machine (fallback sur le host de l'URL) ---
+            string hostFallback = baseUrl;
+            try { hostFallback = new Uri(baseUrl).Host; } catch { }
 
-            // Met r jour le Picker
+            string machine = !string.IsNullOrEmpty(detectedMachine) ? detectedMachine : hostFallback;
+
+            // --- Met √† jour le Picker (si le service d√©tect√© y est pr√©sent) ---
             if (cmbType.ItemsSource is System.Collections.IList list)
             {
                 int idx = list.IndexOf(detectedService);
@@ -185,22 +232,26 @@ public partial class ServerEditPage : ContentPage
                     cmbType.SelectedIndex = idx;
             }
 
-            // Propose un nom si vide
-            if (string.IsNullOrWhiteSpace(txtName.Text))
-                txtName.Text = $"{detectedService} ({url}:{port})";
+            // --- Propose un nom (uniquement si vide ou auto-g√©n√©r√©) ---
+            string proposedName = $"Service {detectedService} sur {machine}";
+            string currentName  = txtName.Text?.Trim() ?? "";
 
-            // Popup de confirmation
-            bool confirm = await DisplayAlert(
-                "Service dÈtectÈ",
-                $"Connexion rÈussie !\n\n" +
-                $"Service : {detectedService}\n" +
-                $"Serveur : {url}:{port}\n\n" +
-                $"Utiliser ce nom ?\n? {detectedService} ({url}:{port})",
-                "Oui",
-                "Non");
+            bool shouldUpdateName =
+                string.IsNullOrWhiteSpace(currentName)
+                || currentName == "http://"
+                || currentName.StartsWith("Service ",        StringComparison.OrdinalIgnoreCase)
+                || currentName.StartsWith("SystemMonitor (", StringComparison.OrdinalIgnoreCase)
+                || currentName.StartsWith("RomMonitor (",    StringComparison.OrdinalIgnoreCase)
+                || currentName.StartsWith("MediaMonitor (",  StringComparison.OrdinalIgnoreCase)
+                || currentName.StartsWith("NetMonitor (",    StringComparison.OrdinalIgnoreCase)
+                || currentName.StartsWith("Inconnu (",       StringComparison.OrdinalIgnoreCase);
 
-            if (confirm)
-                txtName.Text = $"{detectedService} ({url}:{port})";
+            if (shouldUpdateName)
+                txtName.Text = proposedName;
+
+            // --- R√©sultat visuel (plus de popup, comme Windows) ---
+            lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
+            lblTestResult.Text = $"[OK] Service {detectedService} sur {machine}";
         }
         catch (TaskCanceledException)
         {
@@ -218,10 +269,10 @@ public partial class ServerEditPage : ContentPage
             btnTest.Text = "Tester la connexion";
         }
     }
-    
+
     private void OnTogglePasswordClicked(object sender, EventArgs e)
     {
         txtPassword.IsPassword = !txtPassword.IsPassword;
         btnTogglePass.Source = txtPassword.IsPassword ? "eye.png" : "eye_off.png";
-    }       
+    }
 }
