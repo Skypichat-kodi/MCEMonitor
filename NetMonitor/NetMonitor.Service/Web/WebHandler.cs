@@ -405,29 +405,46 @@ namespace NetMonitor.Service.Web
 
                 var model = new Dictionary<string, object?>
                 {
-                    ["MachineName"]       = Environment.MachineName,
-                    ["GeneratedAt"]       = stats.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss"),
-                    ["TotalAlerts"]       = stats.TotalAlerts,
-                    ["DistinctIps"]       = stats.DistinctIps,
-                    ["DistinctCountries"] = stats.DistinctCountries,
-                    ["WorstSeverity"]     = stats.WorstSeverity,
-                    ["WorstClass"]        = worstClass,
+                    ["MachineName"]             = Environment.MachineName,
+                    ["GeneratedAt"]             = stats.GeneratedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss"),
+                    ["TotalAlerts"]             = stats.TotalAlerts,
+                    ["DistinctIps"]             = stats.DistinctIps,
+                    ["DistinctCountries"]       = stats.DistinctCountries,
+                    ["WorstSeverity"]           = stats.WorstSeverity,
+                    ["WorstClass"]              = worstClass,
 
-                    ["ActiveTotal"]        = stats.Active.TotalAlerts,
-                    ["ActiveIps"]          = stats.Active.DistinctIps,
-                    ["ActiveCountries"]    = stats.Active.DistinctCountries,
-                    ["ActiveIpRows"]       = BuildActiveIpRows(stats.Active.TopIps),
-                    ["ActiveCountryRows"]  = BuildCountryRows(stats.Active.TopCountries),
-                    ["ActiveDetectorRows"] = BuildDetectorRows(stats.Active.TopDetectors),
-                    ["ActiveMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
+                    ["ActiveTotal"]             = stats.Active.TotalAlerts,
+                    ["ActiveIps"]               = stats.Active.DistinctIps,
+                    ["ActiveCountries"]         = stats.Active.DistinctCountries,
+                    ["ActiveIpRows"]            = BuildActiveIpRows(stats.Active.TopIps),
+                    ["ActiveIspRows"]           = BuildIspRows(stats.Active.TopIsps),
+                    ["ActiveCountryRows"]       = BuildCountryRows(stats.Active.TopCountries),
+                    ["ActiveDetectorRows"]      = BuildDetectorRows(stats.Active.TopDetectors),
+                    ["ActiveMapData"]           = System.Text.Json.JsonSerializer.Serialize(stats.Active.AlertsByCountryCode),
+                    
+                    ["ActiveSectionTitle"]      = stats.AutoBlockMode ? "IPs bloquées (24h)" : "En attente de traitement",
+                    ["ActiveCounts"]            = stats.AutoBlockMode
+                        ? $"{stats.Active.DistinctIps} IPs · {stats.Active.DistinctCountries} pays"
+                        : $"{stats.Active.TotalAlerts} alertes · {stats.Active.DistinctIps} IPs · {stats.Active.DistinctCountries} pays",
+                    ["ActiveTotalLabel"]        = stats.AutoBlockMode ? "IPs bloquées 24h" : "Alertes actives",
+                    ["ActiveIpsLabel"]          = stats.AutoBlockMode ? "IPs distinctes"   : "IPs actives",
+                    ["ActiveCountriesLabel"]    = stats.AutoBlockMode ? "Pays distincts"   : "Pays actives",
+                    ["ActiveWorstLabel"]        = "Pire sévérité",
+                    ["ActiveTopIspsTitle"]      = stats.AutoBlockMode ? "Top FAI par pays (24h)" : "Top FAI par pays",
+                    ["ActiveIspsCountLabel"]    = stats.AutoBlockMode ? "IPs bloquées" : "Alertes",
+                    ["BlockedIspsTitle"]        = "Top FAI par pays (depuis le début)",
+                    ["ActiveCountriesTitle"]    = stats.AutoBlockMode ? "Répartition par pays (24h)"      : "Répartition par pays (actives)",
+                    ["ActiveDetectorsTitle"]    = stats.AutoBlockMode ? "Répartition par détecteur (24h)" : "Répartition par détecteur (actives)",
+                    ["ActiveMapTitle"]          = stats.AutoBlockMode ? "Carte des IPs bloquées (24h)"    : "Carte des IPs actives",                   
 
-                    ["BlockedTotal"]        = stats.Blocked.TotalAlerts,
-                    ["BlockedIps"]          = stats.Blocked.DistinctIps,
-                    ["BlockedCountries"]    = stats.Blocked.DistinctCountries,
-                    ["BlockedIpRows"]       = BuildBlockedIpRows(stats.Blocked.TopIps),
-                    ["BlockedCountryRows"]  = BuildCountryRows(stats.Blocked.TopCountries),
-                    ["BlockedDetectorRows"] = BuildDetectorRows(stats.Blocked.TopDetectors),
-                    ["BlockedMapData"]      = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode),
+                    ["BlockedTotal"]            = stats.Blocked.TotalAlerts,
+                    ["BlockedIps"]              = stats.Blocked.DistinctIps,
+                    ["BlockedCountries"]        = stats.Blocked.DistinctCountries,
+                    ["BlockedIpRows"]           = BuildBlockedIpRows(stats.Blocked.TopIps),
+                    ["BlockedIspRows"]          = BuildIspRows(stats.Blocked.TopIsps),
+                    ["BlockedCountryRows"]      = BuildCountryRows(stats.Blocked.TopCountries),
+                    ["BlockedDetectorRows"]     = BuildDetectorRows(stats.Blocked.TopDetectors),
+                    ["BlockedMapData"]          = System.Text.Json.JsonSerializer.Serialize(stats.Blocked.AlertsByCountryCode),
                     
                     // --- Analyses (graphiques) ---
                     ["TopLocalPortsJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.TopLocalPorts),
@@ -497,6 +514,26 @@ namespace NetMonitor.Service.Web
             }
             if (!list.Any())
                 sb.Append("<tr><td colspan='5' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
+            return sb.ToString();
+        }
+
+        private static string BuildIspRows(IEnumerable<IspStats> list, string countLabel = "IPs")
+        {
+            var sb = new System.Text.StringBuilder();
+            foreach (var item in list)
+            {
+                string country = string.IsNullOrEmpty(item.CountryCode)
+                    ? (item.Country ?? "-")
+                    : $"{item.Country} ({item.CountryCode})";
+
+                sb.Append($@"<tr>
+                    <td><b>{WebUtility.HtmlEncode(item.Isp)}</b></td>
+                    <td>{WebUtility.HtmlEncode(country)}</td>
+                    <td style='text-align:right'>{item.Count}</td>
+                </tr>");
+            }
+            if (!list.Any())
+                sb.Append($"<tr><td colspan='3' style='text-align:center;color:#888;padding:15px'>Aucune donnée</td></tr>");
             return sb.ToString();
         }
 

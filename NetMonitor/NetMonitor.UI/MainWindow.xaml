@@ -2368,7 +2368,8 @@
 
                                 <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                     <TextBlock Text="⏳" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{loc:Tr 'En attente de traitement'}" FontSize="16"
+                                    <TextBlock x:Name="txtStatsActiveSectionTitle"
+                                               Text="{loc:Tr 'En attente de traitement'}" FontSize="16"
                                                FontWeight="Bold" Foreground="#FFB900" VerticalAlignment="Center"/>
                                     <TextBlock x:Name="txtActiveSummary" FontSize="12" Foreground="#999"
                                                Margin="15,0,0,0" VerticalAlignment="Center"/>
@@ -2385,7 +2386,8 @@
 
                                     <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Alertes actives'}" FontSize="11"
+                                            <TextBlock x:Name="txtStatsActiveTotalLabel"
+                                                       Text="{loc:Tr 'Alertes actives'}" FontSize="11"
                                                        Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                             <TextBlock x:Name="txtStatsActiveTotal" FontSize="26" FontWeight="Bold"
                                                        Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
@@ -2394,7 +2396,8 @@
 
                                     <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'IPs actives'}" FontSize="11"
+                                            <TextBlock x:Name="txtStatsActiveIpsLabel"
+                                                       Text="{loc:Tr 'IPs actives'}" FontSize="11"
                                                        Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                             <TextBlock x:Name="txtStatsActiveIps" FontSize="26" FontWeight="Bold"
                                                        Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
@@ -2403,7 +2406,8 @@
 
                                     <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Pays actives'}" FontSize="11"
+                                            <TextBlock x:Name="txtStatsActiveCountriesLabel"
+                                                       Text="{loc:Tr 'Pays actives'}" FontSize="11"
                                                        Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                             <TextBlock x:Name="txtStatsActiveCountries" FontSize="26" FontWeight="Bold"
                                                        Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
@@ -2412,7 +2416,8 @@
 
                                     <Border Grid.Column="3" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
                                         <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
+                                            <TextBlock x:Name="txtStatsActiveWorstLabel"
+                                                       Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
                                                        Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                             <TextBlock x:Name="txtStatsActiveWorst" FontSize="20" FontWeight="Bold"
                                                        Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
@@ -2421,31 +2426,31 @@
                                 </Grid>
 
                                 <!-- Carte des actives -->
-                                <TextBlock Text="{loc:Tr 'Carte des IPs actives'}" FontSize="12"
+                                <TextBlock x:Name="txtStatsActiveMapTitle"
+                                           Text="{loc:Tr 'Carte des IPs actives'}" FontSize="12"
                                            FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                 <Border CornerRadius="6" ClipToBounds="True" Height="400"
                                         BorderBrush="#8B6914" BorderThickness="1" Margin="0,0,0,15">
                                     <wv2:WebView2 x:Name="MapActiveWebView" />
                                 </Border>
 
-                                <!-- Top IPs actives -->
-                                <TextBlock Text="{loc:Tr 'Top IPs actives'}" FontSize="12"
+                                <!-- Top FAI par pays -->
+                                <TextBlock x:Name="txtStatsActiveTopIspsTitle"
+                                           Text="Top FAI par pays" FontSize="12"
                                            FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsActiveIpsGrid" MinHeight="120" MaxHeight="220"
+                                <DataGrid x:Name="StatsActiveIspsGrid" MinHeight="120" MaxHeight="220"
                                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                           HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="130"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="140"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding SeverityDisplay}" Width="100"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="80"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Détecteurs'}" Binding="{Binding DetectorsDisplay}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
+                                        <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="Alertes" Binding="{Binding Count}" Width="100"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
 
                                 <!-- Pays actives -->
-                                <TextBlock Text="{loc:Tr 'Répartition par pays (actives)'}" FontSize="12"
+                                <TextBlock x:Name="txtStatsActiveCountriesTitle"
+                                           Text="{loc:Tr 'Répartition par pays (actives)'}" FontSize="12"
                                            FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                 <DataGrid x:Name="StatsActiveCountriesGrid" MinHeight="100" MaxHeight="180"
                                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
@@ -2458,7 +2463,8 @@
                                 </DataGrid>
 
                                 <!-- Détecteurs actives -->
-                                <TextBlock Text="{loc:Tr 'Répartition par détecteur (actives)'}" FontSize="12"
+                                <TextBlock x:Name="txtStatsActiveDetectorsTitle"
+                                           Text="{loc:Tr 'Répartition par détecteur (actives)'}" FontSize="12"
                                            FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                 <DataGrid x:Name="StatsActiveDetectorsGrid" MinHeight="100" MaxHeight="180"
                                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
@@ -2577,18 +2583,16 @@
                                     </TabItem>
                                 </TabControl>
 
-                                <!-- Top IPs bloquées -->
-                                <TextBlock Text="{loc:Tr 'Top IPs bloquées'}" FontSize="12"
+                                <!-- Top FAI par pays (depuis le début) -->
+                                <TextBlock Text="Top FAI par pays (depuis le début)" FontSize="12"
                                            FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsBlockedIpsGrid" MinHeight="120" MaxHeight="220"
+                                <DataGrid x:Name="StatsBlockedIspsGrid" MinHeight="120" MaxHeight="220"
                                           AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                           HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                     <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="130"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="140"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="140"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding DetectorsDisplay}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding LastSeenText}" Width="120"/>
+                                        <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
+                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
+                                        <DataGridTextColumn Header="{loc:Tr 'IPs bloquées'}" Binding="{Binding Count}" Width="120"/>
                                     </DataGrid.Columns>
                                 </DataGrid>
 

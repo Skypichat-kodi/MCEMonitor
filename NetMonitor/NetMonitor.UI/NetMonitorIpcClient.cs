@@ -156,6 +156,14 @@ namespace NetMonitor.UI
         public int Count        { get; set; }
     }
 
+    public class IspStatDto
+    {
+        public string Isp         { get; set; } = "";
+        public string Country     { get; set; } = "";
+        public string CountryCode { get; set; } = "";
+        public int Count          { get; set; }
+    }
+
     public class StatsBlockDto
     {
         public int TotalAlerts                              { get; set; }
@@ -166,6 +174,7 @@ namespace NetMonitor.UI
         public List<CountryStatDto> TopCountries            { get; set; } = new();
         public List<DetectorStatDto> TopDetectors           { get; set; } = new();
         public Dictionary<string, int> AlertsByCountryCode  { get; set; } = new();
+        public List<IspStatDto> TopIsps                     { get; set; } = new();
     }
 
     public class GlobalStatsDto
@@ -176,6 +185,7 @@ namespace NetMonitor.UI
         public string WorstSeverity                         { get; set; } = "ok";
         public DateTime GeneratedAt                         { get; set; }
         public Dictionary<string, int> SeverityCounts       { get; set; } = new();
+        public bool AutoBlockMode                           { get; set; }
         public StatsBlockDto Active                         { get; set; } = new();
         public StatsBlockDto Blocked                        { get; set; } = new();
         public List<ProcessStatDto> TopProcesses            { get; set; } = new();

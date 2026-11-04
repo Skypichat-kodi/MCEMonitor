@@ -1825,7 +1825,8 @@ namespace NetMonitor.Service
         {
             if (_geoIp == null)
                 _geoIp = new GeoIpService(_settings.GeoIpProvider, _settings.GeoIpEnabled, _settings.ReverseDnsEnabled);
-            return await StatsBuilder.BuildAsync(this, _geoIp, topIps, topCountries);
+            return await StatsBuilder.BuildAsync(this, _geoIp, topIps, topCountries,
+                autoBlockMode: _settings.AutoBlock);
         }
         
         /// <summary>

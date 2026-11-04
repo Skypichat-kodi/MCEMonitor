@@ -232,14 +232,14 @@
 
     <div class="section-header">
         <span>🔥</span>
-        <span>{{tr:Intrusions actives}}</span>
-        <span class="counts">{{ActiveTotal}} alertes · {{ActiveIps}} IPs · {{ActiveCountries}} pays</span>
+        <span>{{ActiveSectionTitle}}</span>
+        <span class="counts">{{ActiveCounts}}</span>
     </div>
 
     <div class="map-side">
         <div id="map-active" class="map-container"></div>
         <div class="legend">
-            <span>{{tr:Alertes :}}</span>
+            <span>{{ActiveMapTitle}} :</span>
             <div class="legend-item"><div class="legend-color" style="background:#ffffb2"></div> 1</div>
             <div class="legend-item"><div class="legend-color" style="background:#feb24c"></div> 2-5</div>
             <div class="legend-item"><div class="legend-color" style="background:#f03b20"></div> 6-10</div>
@@ -249,22 +249,20 @@
 
     <div class="tables-side">
         <div class="mini-section">
-            <h3>{{tr:Top IPs (par nombre d'alertes)}}</h3>
+            <h3>{{ActiveTopIspsTitle}}</h3>
             <div class="table-wrapper">
                 <table>
                     <thead><tr>
-                        <th>{{tr:IP}}</th>
+                        <th>{{tr:FAI}}</th>
                         <th>{{tr:Pays}}</th>
-                        <th>{{tr:Sévérité}}</th>
-                        <th style="text-align:right">{{tr:Alertes}}</th>
-                        <th>{{tr:Dernière}}</th>
+                        <th style="text-align:right">{{ActiveIspsCountLabel}}</th>
                     </tr></thead>
-                    <tbody>{{ActiveIpRows}}</tbody>
+                    <tbody>{{ActiveIspRows}}</tbody>
                 </table>
             </div>
         </div>
         <div class="mini-section">
-            <h3>{{tr:Répartition par pays}}</h3>
+            <h3>{{ActiveCountriesTitle}}</h3>
             <div class="table-wrapper">
                 <table>
                     <thead><tr>
@@ -277,7 +275,7 @@
             </div>
         </div>
         <div class="mini-section">
-            <h3>{{tr:Répartition par détecteur}}</h3>
+            <h3>{{ActiveDetectorsTitle}}</h3>
             <div class="table-wrapper">
                 <table>
                     <thead><tr>
@@ -319,17 +317,15 @@
 
     <div class="tables-side">
         <div class="mini-section">
-            <h3>{{tr:Top IPs bloquées}}</h3>
+            <h3>{{BlockedIspsTitle}}</h3>
             <div class="table-wrapper">
                 <table>
                     <thead><tr>
-                        <th>{{tr:IP}}</th>
-                        <th>{{tr:Pays}}</th>
                         <th>{{tr:FAI}}</th>
-                        <th>{{tr:Détecteur}}</th>
-                        <th>{{tr:Bloquée le}}</th>
+                        <th>{{tr:Pays}}</th>
+                        <th style="text-align:right">{{tr:IPs bloquées}}</th>
                     </tr></thead>
-                    <tbody>{{BlockedIpRows}}</tbody>
+                    <tbody>{{BlockedIspRows}}</tbody>
                 </table>
             </div>
         </div>
@@ -624,21 +620,22 @@
     if (activityByHour && activityByHour.length > 0) {
         const maxHour = Math.max(...activityByHour.map(h => h.Count));
         new Chart(document.getElementById('chartHours'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: activityByHour.map(h => h.Hour + 'h'),
                 datasets: [{
                     label: 'Alertes',
                     data: activityByHour.map(h => h.Count),
-                    backgroundColor: activityByHour.map(h => {
-                        // Dégradé : plus c'est chargé, plus c'est rouge
-                        if (maxHour === 0) return COLORS.gray;
-                        const ratio = h.Count / maxHour;
-                        if (ratio > 0.7) return COLORS.red;
-                        if (ratio > 0.4) return COLORS.orange;
-                        return COLORS.blue;
-                    }),
-                    borderRadius: 4
+                    borderColor: COLORS.blue,
+                    backgroundColor: 'rgba(76, 194, 255, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: COLORS.blue,
+                    pointBorderColor: '#1e1e1e',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -659,20 +656,22 @@
     if (activityByDay && activityByDay.length > 0) {
         const maxDay = Math.max(...activityByDay.map(d => d.Count));
         new Chart(document.getElementById('chartDays'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: activityByDay.map(d => d.DayName.substring(0, 3)),
                 datasets: [{
                     label: 'Alertes',
                     data: activityByDay.map(d => d.Count),
-                    backgroundColor: activityByDay.map(d => {
-                        if (maxDay === 0) return COLORS.gray;
-                        const ratio = d.Count / maxDay;
-                        if (ratio > 0.7) return COLORS.red;
-                        if (ratio > 0.4) return COLORS.orange;
-                        return COLORS.blue;
-                    }),
-                    borderRadius: 4
+                    borderColor: COLORS.orange,
+                    backgroundColor: 'rgba(255, 185, 0, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: COLORS.orange,
+                    pointBorderColor: '#1e1e1e',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {

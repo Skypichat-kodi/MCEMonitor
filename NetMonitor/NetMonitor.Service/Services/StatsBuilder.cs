@@ -9,9 +9,14 @@ public static class StatsBuilder
         GeoIpService geo,
         int topIpsLimit = 30,
         int topCountriesLimit = 15,
-        int topDetectorsLimit = 15)
+        int topDetectorsLimit = 15,
+        bool autoBlockMode = false)
     {
-        var stats = new GlobalStats { GeneratedAt = DateTime.UtcNow };
+        var stats = new GlobalStats
+        {
+            GeneratedAt = DateTime.UtcNow,
+            AutoBlockMode = autoBlockMode
+        };
 
         // ========= Global summary (toutes les alertes) =========
         var alerts = engine.GetAlerts();
@@ -40,12 +45,29 @@ public static class StatsBuilder
         }
         stats.DistinctCountries = globalCountries.Count;
 
-        // ========= Bloc 1 : intrusions actives =========
-        var activeEvents = engine.GetActiveIntrusions()
-            .Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp))
-            .ToList();
-        stats.Active = await BuildBlockFromEventsAsync(activeEvents, geo,
-            topIpsLimit, topCountriesLimit, topDetectorsLimit);
+        // ========= Bloc 1 : intrusions actives / IPs bloquées 24h =========
+        if (autoBlockMode)
+        {
+            // Mode auto : IPs bloquées des dernières 24h glissantes
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+            var blocked24h = engine.GetBlockedIps()
+                .Where(b => !b.IsProcess
+                         && !string.IsNullOrWhiteSpace(b.Ip)
+                         && b.BlockedAt >= cutoff)
+                .ToList();
+
+            stats.Active = await BuildBlockFromBlockedAsync(blocked24h, geo,
+                topIpsLimit, topCountriesLimit, topDetectorsLimit);
+        }
+        else
+        {
+            // Mode manuel : IPs actives actuelles (comportement original)
+            var activeEvents = engine.GetActiveIntrusions()
+                .Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp))
+                .ToList();
+            stats.Active = await BuildBlockFromEventsAsync(activeEvents, geo,
+                topIpsLimit, topCountriesLimit, topDetectorsLimit);
+        }
 
         // ========= Bloc 2 : IP bloquées =========
         // On EXCLUT les processus bloqués : ils n'ont pas d'IP résolvable,
@@ -255,6 +277,26 @@ public static class StatsBuilder
             .Take(topDetectorsLimit)
             .ToList();
 
+        // --- Top FAI par pays (carte 1 mode manuel = alertes actives) ---
+        block.TopIsps = events
+            .Where(e => !string.IsNullOrWhiteSpace(e.RemoteIp))
+            .Select(e => new { Ev = e, Geo = geoMap.TryGetValue(e.RemoteIp!, out var g) ? g : null })
+            .Where(x => x.Geo != null
+                     && !x.Geo.IsPrivate
+                     && !string.IsNullOrWhiteSpace(x.Geo.Isp)
+                     && !string.IsNullOrWhiteSpace(x.Geo.Country))
+            .GroupBy(x => new { x.Geo!.Isp, x.Geo.Country, x.Geo.CountryCode })
+            .Select(g => new IspStats
+            {
+                Isp         = g.Key.Isp!,
+                Country     = g.Key.Country!,
+                CountryCode = g.Key.CountryCode ?? "",
+                Count       = g.Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .Take(topIpsLimit)
+            .ToList();
+
         // --- Worst severity ---
         block.WorstSeverity = events.Any(e => e.Severity == Severity.Critical) ? "critical"
                             : events.Any(e => e.Severity == Severity.High ||
@@ -345,6 +387,23 @@ public static class StatsBuilder
             .Select(g => new DetectorStats { Detector = g.Key, Count = g.Count() })
             .OrderByDescending(x => x.Count)
             .Take(topDetectorsLimit)
+            .ToList();
+
+        // --- Top FAI par pays (carte 1 mode auto + carte 2 = IPs bloquées) ---
+        block.TopIsps = blockedList
+            .Where(b => !b.IsPrivate
+                     && !string.IsNullOrWhiteSpace(b.Isp)
+                     && !string.IsNullOrWhiteSpace(b.Country))
+            .GroupBy(b => new { b.Isp, b.Country, b.CountryCode })
+            .Select(g => new IspStats
+            {
+                Isp         = g.Key.Isp!,
+                Country     = g.Key.Country!,
+                CountryCode = g.Key.CountryCode ?? "",
+                Count       = g.Count()
+            })
+            .OrderByDescending(x => x.Count)
+            .Take(topIpsLimit)
             .ToList();
 
         // --- Map data : alertes par pays (sur TOUTES les bloquées) ---

@@ -34,17 +34,17 @@ namespace NetMonitor.UI
         private bool                                                _showAllPending         = false;        
         
         // --- Stats ---
-        private readonly ObservableCollection<StatsIpRow>        _statsActiveIps            = new();
-        private readonly ObservableCollection<StatsCountryRow>   _statsActiveCountries      = new();
-        private readonly ObservableCollection<StatsDetectorRow>  _statsActiveDetectors      = new();
-        private readonly ObservableCollection<StatsIpRow>        _statsBlockedIps           = new();
-        private readonly ObservableCollection<StatsCountryRow>   _statsBlockedCountries     = new();
-        private readonly ObservableCollection<StatsDetectorRow>  _statsBlockedDetectors     = new();
-        private readonly ObservableCollection<BlockedIpRetryRow> _blockedRetries            = new();
-        private readonly ObservableCollection<WhitelistEntryRow> _whitelistEntries          = new();
-        private readonly ObservableCollection<StatsProcessRow>   _statsTopProcesses         = new();
-        private readonly ObservableCollection<StatsHourRow>      _statsActivityByHour       = new();
-        private readonly ObservableCollection<StatsSeverityRow>  _statsSeverityDistribution = new();        
+        private readonly ObservableCollection<StatsCountryRow>      _statsActiveCountries      = new();
+        private readonly ObservableCollection<StatsDetectorRow>     _statsActiveDetectors      = new();
+        private readonly ObservableCollection<StatsCountryRow>      _statsBlockedCountries     = new();
+        private readonly ObservableCollection<StatsDetectorRow>     _statsBlockedDetectors     = new();
+        private readonly ObservableCollection<BlockedIpRetryRow>    _blockedRetries            = new();
+        private readonly ObservableCollection<WhitelistEntryRow>    _whitelistEntries          = new();
+        private readonly ObservableCollection<StatsProcessRow>      _statsTopProcesses         = new();
+        private readonly ObservableCollection<StatsHourRow>         _statsActivityByHour       = new();
+        private readonly ObservableCollection<StatsSeverityRow>     _statsSeverityDistribution = new();
+        private readonly ObservableCollection<StatsIspRow>          _statsActiveIsps           = new();
+        private readonly ObservableCollection<StatsIspRow>          _statsBlockedIsps          = new();        
 
         // Données complètes (pour le dépliage Voir plus)
         private List<GroupedAlertRow>   _allActiveGrouped   = new();
@@ -105,22 +105,35 @@ namespace NetMonitor.UI
             ConnectionsGrid.ItemsSource                 = _connections;
             AuditGrid.ItemsSource                       = _auditGrouped;
             PendingProcessesGrid.ItemsSource            = _pendingProcesses;
-            PendingProcessesGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;            
-            StatsActiveIpsGrid.ItemsSource              = _statsActiveIps;
+            PendingProcessesGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
+
+            // Stats — section 1 (Active / 24h selon mode)
+            StatsActiveIspsGrid.ItemsSource             = _statsActiveIsps;
             StatsActiveCountriesGrid.ItemsSource        = _statsActiveCountries;
             StatsActiveDetectorsGrid.ItemsSource        = _statsActiveDetectors;
-            StatsBlockedIpsGrid.ItemsSource             = _statsBlockedIps;
+
+            // Stats — section 2 (bloquées depuis le début)
+            StatsBlockedIspsGrid.ItemsSource            = _statsBlockedIsps;
             StatsBlockedCountriesGrid.ItemsSource       = _statsBlockedCountries;
             StatsBlockedDetectorsGrid.ItemsSource       = _statsBlockedDetectors;
+
+            // Stats — graphiques et analyses
             StatsTopProcessesGrid.ItemsSource           = _statsTopProcesses;
             StatsActivityByHourGrid.ItemsSource         = _statsActivityByHour;
-            StatsSeverityDistributionGrid.ItemsSource   = _statsSeverityDistribution;            
+            StatsSeverityDistributionGrid.ItemsSource   = _statsSeverityDistribution;
+
+            // Scroll global sur les onglets
             ActiveIntrusionsGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+
+            // Onglet actif
             MainTabControl.SelectionChanged             += MainTabControl_SelectionChanged;
+
+            // Interceptions
             BlockedRetriesGrid.ItemsSource              = _blockedRetries;
+            
             WireAllGridSorting();
             WireAllGridDoubleClick();
             InitializeAllFilters();            
@@ -1588,6 +1601,34 @@ namespace NetMonitor.UI
                     return;
                 }
 
+                // ═══════════════════════════════════════════════════════════════
+                //  Adapte les titres/labels de la section 1 selon le mode
+                // ═══════════════════════════════════════════════════════════════
+                if (stats.AutoBlockMode)
+                {
+                    txtStatsActiveSectionTitle.Text         = "IPs bloquées (24h)";
+                    txtStatsActiveTotalLabel.Text           = "IPs bloquées 24h";
+                    txtStatsActiveIpsLabel.Text             = "IPs distinctes";
+                    txtStatsActiveCountriesLabel.Text       = "Pays distincts";
+                    txtStatsActiveMapTitle.Text             = "Carte des IPs bloquées (24h)";
+                    txtStatsActiveTopIspsTitle.Text         = "Top FAI par pays (24h)";        
+                    txtStatsActiveIspsCountHeader.Header    = "IPs bloquées";                 
+                    txtStatsActiveCountriesTitle.Text       = "Répartition par pays (24h)";
+                    txtStatsActiveDetectorsTitle.Text       = "Répartition par détecteur (24h)";
+                }
+                else
+                {
+                    txtStatsActiveSectionTitle.Text         = "En attente de traitement";
+                    txtStatsActiveTotalLabel.Text           = "Alertes actives";
+                    txtStatsActiveIpsLabel.Text             = "IPs actives";
+                    txtStatsActiveCountriesLabel.Text       = "Pays actives";
+                    txtStatsActiveMapTitle.Text             = "Carte des IPs actives";
+                    txtStatsActiveTopIspsTitle.Text         = "Top FAI par pays";              
+                    txtStatsActiveIspsCountHeader.Header    = "Alertes";                       
+                    txtStatsActiveCountriesTitle.Text       = "Répartition par pays (actives)";
+                    txtStatsActiveDetectorsTitle.Text       = "Répartition par détecteur (actives)";
+                }
+
                 // ═══════════════════════════════════════════════════════
                 //  SECTION 1 : EN COURS D'ANALYSE (actives)
                 // ═══════════════════════════════════════════════════════
@@ -1613,17 +1654,14 @@ namespace NetMonitor.UI
                                         $"{stats.Active.DistinctIps} IPs · " +
                                         $"{stats.Active.DistinctCountries} pays";
 
-                _statsActiveIps.Clear();
-                foreach (var ip in stats.Active.TopIps)
+                _statsActiveIsps.Clear();
+                foreach (var isp in stats.Active.TopIsps)
                 {
-                    _statsActiveIps.Add(new StatsIpRow
+                    _statsActiveIsps.Add(new StatsIspRow
                     {
-                        Ip = ip.Ip,
-                        CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
-                        SeverityDisplay = ip.MaxSeverity,
-                        Count = ip.Count,
-                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "-",
-                        LastSeen = ip.LastSeen.ToLocalTime()
+                        Isp = string.IsNullOrWhiteSpace(isp.Isp) ? "-" : isp.Isp,
+                        CountryDisplay = BuildCountryDisplay(isp.Country, isp.CountryCode),
+                        Count = isp.Count
                     });
                 }
 
@@ -1666,16 +1704,14 @@ namespace NetMonitor.UI
                 txtBlockedSummary.Text = $"{stats.Blocked.TotalAlerts} IPs · " +
                                          $"{stats.Blocked.DistinctCountries} pays";
 
-                _statsBlockedIps.Clear();
-                foreach (var ip in stats.Blocked.TopIps)
+                _statsBlockedIsps.Clear();
+                foreach (var isp in stats.Blocked.TopIsps)
                 {
-                    _statsBlockedIps.Add(new StatsIpRow
+                    _statsBlockedIsps.Add(new StatsIspRow
                     {
-                        Ip = ip.Ip,
-                        CountryDisplay = BuildCountryDisplay(ip.Country, ip.CountryCode),
-                        Isp = string.IsNullOrWhiteSpace(ip.Isp) ? "-" : ip.Isp,
-                        DetectorsDisplay = ip.Detectors.Count > 0 ? string.Join(", ", ip.Detectors) : "-",
-                        LastSeen = ip.LastSeen.ToLocalTime()
+                        Isp = string.IsNullOrWhiteSpace(isp.Isp) ? "-" : isp.Isp,
+                        CountryDisplay = BuildCountryDisplay(isp.Country, isp.CountryCode),
+                        Count = isp.Count
                     });
                 }
 
@@ -2875,6 +2911,13 @@ namespace NetMonitor.UI
         public string DetectorsDisplay  { get; set; } = "-";
         public DateTime LastSeen        { get; set; }
         public string LastSeenText => LastSeen.ToString("dd/MM HH:mm");
+    }
+
+    public class StatsIspRow
+    {
+        public string Isp               { get; set; } = "-";
+        public string CountryDisplay    { get; set; } = "-";
+        public int Count                { get; set; }
     }
 
     public class StatsCountryRow
