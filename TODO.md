@@ -1,4 +1,4 @@
-﻿﻿﻿﻿# TODO MCEMonitor
+﻿# TODO MCEMonitor
 
 TODO global du projet, organisé par thème.
 
@@ -31,6 +31,48 @@ _(rien)_
   - [ ] Config vide : vider un fichier `.config`, redémarrer → fallback `new T()` OK
   - [ ] MediaMonitor Live : affichage `Réseau` / `°C` correct
 
+### 🔴 Priorité haute — Validation ToCheck end-to-end
+
+- [ ] **Test complet du workflow ToCheck** sur les 3 plateformes (WPF, Tray Windows, Android)
+  - Mode debug : passer `MicrosoftIpRangeEnabled=false` dans `NetMonitor.config`
+  - Recharger la config (bouton UI ou restart service)
+  - Déclencher une alerte Microsoft-like non vérifiée (ex : `ping -n 100 20.0.0.99`)
+  - Vérifier :
+    - **WPF** : ligne violette dans tableau 1 + bouton `Safe ?` cliquable
+    - **Web** : badge `.tocheck` + bouton `Safe ?` + colonnes Pays/FAI visibles
+    - **Tray Windows** : Toast `[À VERIF]` + préambule `« Safe ? »` + 2 bips courts
+    - **Android** : notification `"Alerte à vérifier (N)"` + texte `[À VERIF]`
+  - Cliquer `Safe ?` (WPF ou Web) → la ligne migre dans l'audit vert
+  - Vérifier que les futures alertes sur la même IP sont classées `Safe` (via `_manualSafeIps`)
+  - **Remettre `MicrosoftIpRangeEnabled=true`** après le test
+
+- [ ] **Créer les icônes `tocheck.png`**
+  - Emplacement 1 : `NetMonitor.Tray/Resources/Icons/tocheck.png`
+  - Emplacement 2 : `NetMonitor.Maui/Resources/Images/tocheck.png`
+  - Taille : 32×32 (Tray) / 64×64 (Android)
+  - Couleur recommandée : violet `#A855F7` avec point d'interrogation blanc
+  - Non bloquant (fallback silencieux sur icône app), mais meilleure UX
+
+- [ ] **Documenter le workflow ToCheck** dans le README du projet
+  - Expliquer le pipeline : IP détectée → Microsoft-like ? → JSON JSON officiel ? → Safe / ToCheck
+  - Expliquer les 6 cas de la matrice Trust (chemin/hash/publisher)
+  - Expliquer le comportement de `Safe ?` et `Bloquer` sur les alertes ToCheck
+
+### 🟡 Priorité moyenne — ToCheck suite (optionnel)
+
+- [ ] **Canal Android `mcem_tocheck` avec son dédié** (confort)
+  - Actuellement : ToCheck emprunte le canal `mcem_warning` → son `warning.wav`
+  - Créer un canal dédié → son distinct (2 bips courts comme Windows Tray)
+  - ⚠️ Nécessite **réinstallation de l'APK** (les canaux sont figés à la création sur Android 8+)
+  - Bénéfice : distinction auditive ToCheck vs Warning
+  - Coût : 10 min + réinstallation
+
+- [ ] **Persister `_manualCriticalOverrides`** dans `NetMonitorEngine`
+  - Actuellement en mémoire uniquement → perdu au redémarrage du service
+  - Créer un fichier `manual_critical_overrides.json` (même pattern que `manual_safe_ips.json`)
+  - Bénéfice : les overrides manuels survivent aux redémarrages
+  - Non critique (rare), mais cohérence avec `_manualSafeIps`
+
 ### 🟡 Priorité moyenne — Bug latent `GetShutdownTaskTime`
 
 - [ ] **`TaskSchedulerHelper.GetShutdownTaskTime()` — parsing de `schtasks` cassé**
@@ -59,6 +101,76 @@ _(rien)_
 - [ ] (optionnel) Support WebP
 
 ## ✅ Terminé
+
+### Session 2026-11-04 — `ProcessTrustService` auto-update (Steam/NVIDIA)
+
+**Refonte de la logique de confiance pour éliminer les faux positifs sur binaires auto-updatés.**
+
+- [x] **Auto-update du hash après MAJ légitime** — chemin identique + hash changé + signature éditeur OK → mise à jour silencieuse du hash en base au lieu de `Spoofed`
+- [x] **Gestion du changement de répertoire** — chemin différent + nom whitelisté + éditeur compatible → `Unknown` (contrôle manuel) au lieu de `Spoofed`
+- [x] **`AddToWhitelist` : update au lieu de doublon** — si même nom + même éditeur, mise à jour du chemin/hash au lieu de créer une 2ᵉ entrée
+- [x] **Audit auto-trust** — fichier `auto_trust_audit.log` séparé (audit a posteriori des binaires Microsoft, sans polluer le log principal)
+- [x] **Fix warning `CS8600`** — `string? entryPubName` dans le CAS B (`publisherMatch`)
+- [x] **Réalignement complet du fichier** — indentation cohérente, méthodes utilitaires regroupées
+- [x] Résultat : build **0 warning**
+
+**Bénéfice** : Steam, NVIDIA, Chrome et autres auto-updatés ne génèrent plus de pending à chaque mise à jour. Les vraies usurpations (binaire non signé au nom whitelisté, éditeur étranger) restent détectées.
+
+### Session 2026-11-03 — ToCheck + vérification Microsoft IP ranges
+
+**Introduction d'un niveau `ToCheck` entre `Safe` et `Warning` pour les IPs Microsoft-like absentes du JSON officiel. Workflow de décision manuelle `Safe ?` / `Bloquer`.**
+
+**Backend**
+- [x] `Severity.ToCheck = 4` ajouté entre `Info` et `Warning` (enum réordonné)
+- [x] `MicrosoftIpRangeService` — téléchargement quotidien du JSON Azure/O365 (source : `microsoft.com/en-us/download/details.aspx?id=56519`, scraping de l'URL `ServiceTags_Public_YYYYMMDD.json`, cache local, retry 3×, fallback cache 7j)
+- [x] `FirewallHelper` : séparation `MicrosoftNetworks` / `OtherCriticalNetworks` + `IsMicrosoftLike()` (heuristique distincte de `IsCriticalIp`)
+- [x] `NetMonitorEngine.AddIntrusion` : pipeline 3 étapes (2a override manuel → 2b vérif JSON MS → 2c autres IPs critiques)
+- [x] `NetMonitorEngine.MarkSafe()` : migration `ToCheck` → `Safe` + persistance `manual_safe_ips.json` (les futures alertes restent Safe)
+- [x] `NetMonitorEngine.BlockIp(forceManual)` : bypass `IsCriticalIp` sur action humaine (IPC/Web)
+- [x] `IpcCommandHandler` : commande `mark-safe` + `forceManual: true` sur `block-ip`
+- [x] `MiniHttpServer` : route `/mark-safe`
+
+**UI WPF**
+- [x] `SeverityBadgeTemplate` : `DataTrigger ToCheck` violet `#A855F7`
+- [x] Bouton `Safe ?` dans `ActiveIntrusionsGrid` (visible uniquement sur `ToCheck`)
+- [x] Suppression du bouton ⚙ du tableau « Alertes ignorées » (remplacé par le workflow ToCheck)
+- [x] Colonnes Pays/FAI sur `ActiveIntrusionsGrid`, `AlertsHistoryGrid`, `AuditGrid`
+- [x] `SeverityRank` étendu (`ToCheck = 2`, entre `Safe` et `Warning`)
+- [x] `MarkSafeAsync` remplace `SetAuditSeverityAsync` dans `NetMonitorIpcClient`
+
+**Web**
+- [x] CSS `.badge.tocheck` + `.safe-btn`
+- [x] JS `markSafe(ip)` + suppression `changeAuditSeverity`
+- [x] Bouton `Safe ?` dans le tableau 1
+- [x] Colonnes Pays/FAI sur tableaux 1 (actives) / 3 (historique) / 4 (audit)
+
+**Clients Windows (Tray)**
+- [x] `PushAlert.NewProblems` ajouté (alignement avec Android, évite la perte silencieuse de nouveaux problèmes sans changement de statut)
+- [x] Branche `NewProblems` dans `ShowNotification` (titre `"N nouveau(x) problème(s)"` + préfixe `[À VERIF]`)
+- [x] Priorité `tocheck.png` dans `GetAlertIcon` (avant disk/cpu/ram)
+- [x] Préambule `[À VERIF]` + guidance `« Safe ? »` dans les Toast
+- [x] `PlayToCheck()` : 2 bips courts 900 Hz distincts du warning
+
+**Clients Android**
+- [x] `ShowAlert` : titre `"Alerte à vérifier (N)"` si ToCheck présent
+- [x] `BuildAlertMessage` : préambule + préfixe `[À VERIF]`
+- [x] `GetAlertIconName` : priorité `tocheck` (drawable)
+- [x] Alignement avec Windows sur `NewProblems`, `ResolvedProblems`, hystérésis offline (3 échecs avant offline), recovery threshold (2 succès avant ok)
+
+**Design ToCheck — matrice de décision**
+- IP Safe/Whitelisted/Trusted existante → inchangé (audit vert)
+- IP Microsoft-like **dans** le JSON officiel → `Safe` (audit vert)
+- IP Microsoft-like **absente** du JSON officiel → `ToCheck` (tableau 1, pas d'auto-block)
+- Décision manuelle `Safe ?` → migration vers audit vert + override persistant
+- Décision manuelle `Bloquer` → blocage via `forceManual` (bypass `IsCriticalIp`)
+
+### Session 2026-11-03 — Cosmétiques UI/Web (avant ToCheck)
+
+- [x] Pays + FAI sur « Tentatives sur IP bloquée » (UI + Web) — jointure GeoIP depuis `BlockedIpInfo` (pas de duplication dans `BlockedIpRetryInfo`)
+- [x] Historique Web : détails sur 1 ligne (CSS `nowrap` + ellipsis), largeurs Sévérité 8→6% et Détecteur 9→7%
+- [x] IP bloquées Web : limite 50 → 500 lignes
+- [x] Correction de 5 `colspan` de fallback erronés (8→10, 11→12, 9→11, 14→16, 8→10)
+- [x] Désalignements `<th>` vs `<td>` corrigés sur Intrusions Actives et Pending
 
 ### Session 2026-11-01 (suite) — Chasse aux warnings NULL + nettoyage build
 
