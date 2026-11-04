@@ -38,19 +38,13 @@
                    BackgroundColor="#252526" />
 
             <Label Text="Type" TextColor="#B4B4B4" />
-            <Picker x:Name="cmbType"
-                    TextColor="#E5E5E5"
-                    BackgroundColor="#252526">
-                <Picker.ItemsSource>
-                    <x:Array Type="{x:Type x:String}">
-                        <x:String>SystemMonitor</x:String>
-                        <x:String>RomMonitor</x:String>
-                        <x:String>MediaMonitor</x:String>
-                        <x:String>NetMonitor</x:String>
-                        <x:String>Inconnu</x:String>
-                    </x:Array>
-                </Picker.ItemsSource>
-            </Picker>
+            <Border BackgroundColor="#252526" StrokeThickness="1"
+                    Stroke="#3C3C3C" Padding="12,10">
+                <Label x:Name="lblDetectedService"
+                       Text="— Non détecté —"
+                       FontSize="14"
+                       TextColor="#888888" />
+            </Border>
 
             <Label Text="Login" TextColor="#B4B4B4" />
             <Entry x:Name="txtUsername"

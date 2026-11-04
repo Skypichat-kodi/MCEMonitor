@@ -11,6 +11,7 @@ public partial class ServerEditPage : ContentPage
 {
     private readonly ServerEntry? _existing;
     private int _autoDetectVersion = 0;
+    private string _detectedServiceType = "";
 
     public ServerEditPage(ServerEntry? existing)
     {
@@ -28,14 +29,9 @@ public partial class ServerEditPage : ContentPage
             txtPassword.Text = existing.Password;
             swEnabled.IsToggled = existing.Enabled;
 
-            int idx = cmbType.ItemsSource?.IndexOf(existing.ServiceType) ?? -1;
-            if (idx >= 0) cmbType.SelectedIndex = idx;
-            else cmbType.SelectedIndex = 0;
+            SetDetectedService(existing.ServiceType);
         }
-        else
-        {
-            cmbType.SelectedIndex = 0;
-        }
+        // Nouveau serveur : label reste "— Non détecté —"
 
         // Auto-détection quand l'URL ou le port perd le focus (comme Windows)
         txtUrl.Unfocused  += async (s, e) => await AutoDetectAsync();
@@ -82,7 +78,7 @@ public partial class ServerEditPage : ContentPage
                 Port        = port,
                 Username    = txtUsername.Text?.Trim() ?? "",
                 Password    = txtPassword.Text ?? "",
-                ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor",
+                ServiceType = GetDetectedService(),   // <- virgule
                 Enabled     = swEnabled.IsToggled
             };
             config.Servers.Add(entry);
@@ -97,7 +93,7 @@ public partial class ServerEditPage : ContentPage
                 existing.Port        = port;
                 existing.Username    = txtUsername.Text?.Trim() ?? "";
                 existing.Password    = txtPassword.Text ?? "";
-                existing.ServiceType = cmbType.SelectedItem?.ToString() ?? "SystemMonitor";
+                existing.ServiceType = GetDetectedService();   // <- point-virgule
                 existing.Enabled     = swEnabled.IsToggled;
             }
             else
@@ -224,13 +220,8 @@ public partial class ServerEditPage : ContentPage
 
             string machine = !string.IsNullOrEmpty(detectedMachine) ? detectedMachine : hostFallback;
 
-            // --- Met à jour le Picker (si le service détecté y est présent) ---
-            if (cmbType.ItemsSource is System.Collections.IList list)
-            {
-                int idx = list.IndexOf(detectedService);
-                if (idx >= 0)
-                    cmbType.SelectedIndex = idx;
-            }
+            // --- Met à jour le label "Type" ---
+            SetDetectedService(detectedService);
 
             // --- Propose un nom (uniquement si vide ou auto-généré) ---
             string proposedName = $"Service {detectedService} sur {machine}";
@@ -275,4 +266,32 @@ public partial class ServerEditPage : ContentPage
         txtPassword.IsPassword = !txtPassword.IsPassword;
         btnTogglePass.Source = txtPassword.IsPassword ? "eye.png" : "eye_off.png";
     }
+    
+    /// <summary>
+    /// Met à jour le label "Type" avec le service détecté.
+    /// Le label est en lecture seule : l'utilisateur ne peut pas le modifier
+    /// manuellement (comme sur le client Windows).
+    /// </summary>
+    private void SetDetectedService(string? serviceType)
+    {
+        _detectedServiceType = serviceType ?? "";
+
+        lblDetectedService.Text = string.IsNullOrWhiteSpace(serviceType)
+            ? "— Non détecté —"
+            : serviceType!;
+
+        lblDetectedService.TextColor = string.IsNullOrWhiteSpace(serviceType)
+            ? Color.FromArgb("#888888")   // gris = non détecté
+            : Color.FromArgb("#6CCB5F");  // vert = détecté
+    }
+
+    /// <summary>
+    /// Retourne le service détecté ou "Inconnu" si aucun test n'a été fait.
+    /// </summary>
+    private string GetDetectedService()
+    {
+        return string.IsNullOrWhiteSpace(_detectedServiceType)
+            ? "Inconnu"
+            : _detectedServiceType;
+    }    
 }
