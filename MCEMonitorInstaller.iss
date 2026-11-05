@@ -432,14 +432,23 @@ begin
     begin
       // ── 1) Liste des fichiers de configuration à conserver ──
       ConfigFiles := [
-        'email.config',
-        'MCEMonitorClient.config',
-        'MediaMonitor.Web.config',
-        'RomMonitor.config',
-        'Shutdown.config',
-        'SystemMonitor.config',
-        'theme.config',
-        'WakeMonitor.config'
+          'email.config',
+          'MCEMonitorClient.config',
+          'MediaMonitor.Web.config',
+          'NetMonitor.config',
+          'RomMonitor.config',
+          'Shutdown.config',
+          'SystemMonitor.config',
+          'theme.config',
+          'WakeMonitor.config',
+          'NetMonitor\blocked_ips.json',
+          'NetMonitor\alert_history.json',
+          'NetMonitor\audit_history.json',
+          'NetMonitor\manual_safe_ips.json',
+          'NetMonitor\trusted_processes.json',
+          'NetMonitor\blocked_ip_retries.json',
+          'NetMonitor\blacklist.txt',
+          'NetMonitor\blacklist_auto.txt'
       ];
 
       // ── 2) Sauvegarde des .config dans un dossier temporaire ──
@@ -448,20 +457,22 @@ begin
 
       for i := 0 to GetArrayLength(ConfigFiles) - 1 do
       begin
-        SourceFile := AddBackslash(DataDir) + ConfigFiles[i];
-        DestFile   := AddBackslash(BackupDir) + ConfigFiles[i];
+          SourceFile := AddBackslash(DataDir) + ConfigFiles[i];
+          DestFile   := AddBackslash(BackupDir) + ConfigFiles[i];
 
-        if FileExists(SourceFile) then
-        begin
-          CopyFile(SourceFile, DestFile, False);
-          Log('Config sauvegardé : ' + ConfigFiles[i]);
-        end;
+          if FileExists(SourceFile) then
+          begin
+              // Crée le sous-dossier de destination si besoin (ex: NetMonitor\)
+              ForceDirectories(ExtractFileDir(DestFile));
+              CopyFile(SourceFile, DestFile, False);
+              Log('Sauvegardé : ' + ConfigFiles[i]);
+          end;
       end;
 
       // ── 3) Suppression complète du dossier ──
       DelTree(DataDir, True, True, True);
 
-      // ── 4) Restauration du dossier + des .config ──
+      // ── 4) Restauration du dossier + des fichiers sauvegardés ──
       ForceDirectories(DataDir);
 
       for i := 0 to GetArrayLength(ConfigFiles) - 1 do
@@ -471,6 +482,8 @@ begin
 
         if FileExists(SourceFile) then
         begin
+          // Crée le sous-dossier de destination (ex: NetMonitor\)
+          ForceDirectories(ExtractFileDir(DestFile));
           CopyFile(SourceFile, DestFile, False);
           Log('Config restauré : ' + ConfigFiles[i]);
         end;
