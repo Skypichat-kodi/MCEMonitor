@@ -1,0 +1,51 @@
+﻿<UserControl x:Class="NetMonitor.UI.Controls.CountriesMapPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mapsui="clr-namespace:Mapsui.UI.Wpf;assembly=Mapsui.UI.Wpf">
+
+    <Grid>
+        <mapsui:MapControl x:Name="MapControl" />
+
+        <!-- Boutons zoom (coin haut-droit) -->
+        <StackPanel HorizontalAlignment="Right"
+                    VerticalAlignment="Top"
+                    Margin="0,10,10,0">
+            <Button x:Name="BtnZoomIn"
+                    Content="+"
+                    Width="32" Height="32"
+                    FontSize="18" FontWeight="Bold"
+                    Background="#EE252526"
+                    Foreground="#E5E5E5"
+                    BorderBrush="#4CC2FF" BorderThickness="1"
+                    Cursor="Hand"
+                    Click="BtnZoomIn_Click"
+                    ToolTip="Zoom avant"/>
+            <Button x:Name="BtnZoomOut"
+                    Content="−"
+                    Width="32" Height="32" Margin="0,4,0,0"
+                    FontSize="18" FontWeight="Bold"
+                    Background="#EE252526"
+                    Foreground="#E5E5E5"
+                    BorderBrush="#4CC2FF" BorderThickness="1"
+                    Cursor="Hand"
+                    Click="BtnZoomOut_Click"
+                    ToolTip="Zoom arrière"/>
+        </StackPanel>
+
+        <!-- Tooltip WPF overlay -->
+        <Border x:Name="TooltipBorder"
+                Background="#EE252526"
+                BorderBrush="#4CC2FF"
+                BorderThickness="1"
+                CornerRadius="4"
+                Padding="8,4"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Top"
+                IsHitTestVisible="False"
+                Visibility="Collapsed">
+            <TextBlock x:Name="TooltipText"
+                       Foreground="#E5E5E5"
+                       FontSize="12" />
+        </Border>
+    </Grid>
+</UserControl>

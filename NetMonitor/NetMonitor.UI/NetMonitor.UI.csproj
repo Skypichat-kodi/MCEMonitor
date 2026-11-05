@@ -28,9 +28,14 @@
   </ItemGroup>
   
   <ItemGroup>
-      <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3179.45" />
       <PackageReference Include="LiveChartsCore.SkiaSharpView.WPF" Version="2.0.0-rc5.4" />
       <PackageReference Include="Mapsui.Wpf" Version="5.1.0" />
   </ItemGroup>  
 
+  <ItemGroup>
+      <Content Include="..\NetMonitor.Service\Data\countries.geojson">
+          <Link>Data\countries.geojson</Link>
+          <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      </Content>
+  </ItemGroup>
 </Project>
