@@ -1,0 +1,331 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Controls;
+using LiveChartsCore;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore.SkiaSharpView.Painting;
+using LiveChartsCore.SkiaSharpView.WPF;
+using SkiaSharp;
+
+namespace NetMonitor.UI.Controls
+{
+    public partial class StatsChartsPanel : UserControl
+    {
+        // Palette partagée avec la version web
+        private static readonly SKColor Blue    = SKColor.Parse("#4CC2FF");
+        private static readonly SKColor Red     = SKColor.Parse("#FF6347");
+        private static readonly SKColor Orange  = SKColor.Parse("#FFB900");
+        private static readonly SKColor Green   = SKColor.Parse("#6CCB5F");
+        private static readonly SKColor Purple  = SKColor.Parse("#7B4FE0");
+        private static readonly SKColor Gray    = SKColor.Parse("#666666");
+
+        private static readonly SKColor TextColor  = SKColor.Parse("#E5E5E5");
+        private static readonly SKColor AxisColor  = SKColor.Parse("#3C3C3C");
+
+        private static readonly SKColor[] Palette =
+        {
+            Blue, Red, Orange, Green, Purple,
+            SKColor.Parse("#FF8A72"), SKColor.Parse("#41AB5D"), SKColor.Parse("#9ECAE1")
+        };
+
+        public StatsChartsPanel()
+        {
+            InitializeComponent();
+            ApplyTheme();
+        }
+
+        /// <summary>
+        /// Applique le thème sombre aux 6 charts (une seule fois au démarrage).
+        /// </summary>
+        private void ApplyTheme()
+        {
+            foreach (var chart in new[] { ChartPorts, ChartHours, ChartDays, ChartRemotePorts })
+            {
+                if (chart == null) continue;
+                chart.LegendPosition = LiveChartsCore.Measure.LegendPosition.Hidden;
+            }
+
+            foreach (var chart in new[] { ChartSeverity, ChartDetectors })
+            {
+                if (chart == null) continue;
+                chart.LegendPosition = LiveChartsCore.Measure.LegendPosition.Right;
+            }
+        }
+
+        /// <summary>
+        /// Met à jour les 6 graphiques depuis les statistiques reçues.
+        /// </summary>
+        public void Update(GlobalStatsDto stats)
+        {
+            if (stats == null) return;
+
+            UpdatePortsChart(ChartPorts, stats.TopLocalPorts, "Ports locaux", Blue);
+            UpdatePortsChart(ChartRemotePorts, stats.TopRemotePorts, "Ports distants", Orange);
+
+            UpdateSeverityChart(ChartSeverity, stats.SeverityDistribution);
+            UpdateDetectorsChart(ChartDetectors, stats.TopDetectors);
+
+            UpdateHoursChart(ChartHours, stats.ActivityByHour);
+            UpdateDaysChart(ChartDays, stats.ActivityByDay);
+        }
+
+        // ────────────────────────────────────────────────────────────
+        //  Top ports (bar horizontal)
+        // ────────────────────────────────────────────────────────────
+        private void UpdatePortsChart(CartesianChart chart, List<PortStatDto> data, string tooltipLabel, SKColor color)
+        {
+            if (chart == null) return;
+
+            if (data == null || data.Count == 0)
+            {
+                chart.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            var ordered = data.OrderBy(x => x.Count).ToList();  // croissant : le plus grand à la fin = en haut
+            var labels = ordered.Select(x => ":" + x.Port).ToArray();
+            var values = ordered.Select(x => (double)x.Count).ToArray();
+
+            chart.Series = new ISeries[]
+            {
+                new RowSeries<double>
+                {
+                    Values = values,
+                    Fill = new SolidColorPaint(color),
+                    Name = tooltipLabel,
+                    DataLabelsPaint = new SolidColorPaint(SKColors.White),
+                    DataLabelsSize = 11,
+                    DataLabelsPosition = LiveChartsCore.Measure.DataLabelsPosition.End,
+                    Rx = 4,
+                    Ry = 4
+                }
+            };
+
+            chart.XAxes = new[]
+            {
+                new Axis
+                {
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11
+                }
+            };
+
+            chart.YAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = labels,
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11,
+                }
+            };
+        }
+
+        // ────────────────────────────────────────────────────────────
+        //  Distribution sévérité (doughnut)
+        // ────────────────────────────────────────────────────────────
+        private void UpdateSeverityChart(PieChart chart, List<SeverityStatDto> data)
+        {
+            if (chart == null) return;
+
+            if (data == null || data.Count == 0)
+            {
+                chart.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            var sevColors = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase)
+            {
+                { "Critical",    Red },
+                { "High",        SKColor.Parse("#FF8A72") },
+                { "Warning",     Orange },
+                { "ToCheck",     Purple },
+                { "Info",        Blue },
+                { "Safe",        Green },
+                { "Trusted",     SKColor.Parse("#4CAF50") },
+                { "Whitelisted", SKColor.Parse("#2E7D32") }
+            };
+
+            var series = data
+                .Where(x => x.Count > 0)
+                .Select(x => new PieSeries<double>
+                {
+                    Values = new[] { (double)x.Count },
+                    Name = x.Severity,
+                    Fill = new SolidColorPaint(
+                        sevColors.TryGetValue(x.Severity, out var c) ? c : Gray),
+                    InnerRadius = 60,
+                    Pushout = 0,                                       // ← pas de popout au survol
+                    DataLabelsPaint = new SolidColorPaint(TextColor),  // ← gris clair au lieu de blanc
+                    DataLabelsSize = 12,
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsRotation = 0,          // ← texte horizontal (par défaut : suit l'angle)
+                    HoverPushout       = 0,          // ← pas d'écartement au survol
+                    DataLabelsFormatter = p => $"{p.StackedValue?.Share:P0}"
+                })
+                .ToArray();
+
+            chart.Series = series;
+
+            // Animation rapide (limite le "mouvement du cercle" au chargement)
+            chart.AnimationsSpeed = TimeSpan.Zero;
+
+            // Texte de la légende en clair (par défaut noir sur fond sombre = invisible)
+            chart.LegendTextPaint = new SolidColorPaint(TextColor);
+            chart.LegendTextSize  = 12;
+        }
+
+        // ────────────────────────────────────────────────────────────
+        //  Types d'attaque (doughnut)
+        // ────────────────────────────────────────────────────────────
+        private void UpdateDetectorsChart(PieChart chart, List<DetectorStatDto> data)
+        {
+            if (chart == null) return;
+
+            if (data == null || data.Count == 0)
+            {
+                chart.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            int i = 0;
+            var series = data
+                .Where(x => x.Count > 0)
+                .Select(x => new PieSeries<double>
+                {
+                    Values = new[] { (double)x.Count },
+                    Name = x.Detector,                                  // ← Detector, pas Severity
+                    Fill = new SolidColorPaint(Palette[i++ % Palette.Length]),  // ← Palette, pas sevColors
+                    InnerRadius = 60,
+                    Pushout = 0,
+                    DataLabelsPaint = new SolidColorPaint(TextColor),
+                    DataLabelsSize = 12,
+                    DataLabelsPosition = LiveChartsCore.Measure.PolarLabelsPosition.Middle,
+                    DataLabelsRotation = 0,          // ← texte horizontal (par défaut : suit l'angle)
+                    HoverPushout       = 0,          // ← pas d'écartement au survol
+                    DataLabelsFormatter = p => $"{p.StackedValue?.Share:P0}"
+                })
+                .ToArray();
+
+            chart.Series = series;
+
+            // Animation rapide (limite le "mouvement du cercle" au chargement)
+            chart.AnimationsSpeed = TimeSpan.Zero;
+
+            // Texte de la légende en clair (par défaut noir sur fond sombre = invisible)
+            chart.LegendTextPaint = new SolidColorPaint(TextColor);
+            chart.LegendTextSize  = 12;
+        }
+
+        // ────────────────────────────────────────────────────────────
+        //  Activité par heure (courbe)
+        // ────────────────────────────────────────────────────────────
+        private void UpdateHoursChart(CartesianChart chart, List<HourlyStatDto> data)
+        {
+            if (chart == null) return;
+
+            if (data == null || data.Count == 0)
+            {
+                chart.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            var labels = data.Select(x => x.Hour + "h").ToArray();
+            var values = data.Select(x => (double)x.Count).ToArray();
+
+            chart.Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = values,
+                    Name = "Alertes",
+                    Stroke = new SolidColorPaint(Blue, 2),
+                    Fill = new SolidColorPaint(Blue.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(Blue),
+                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometrySize = 8,
+                    LineSmoothness = 0.5
+                }
+            };
+
+            chart.XAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = labels,
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11
+                }
+            };
+
+            chart.YAxes = new[]
+            {
+                new Axis
+                {
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11,
+                    MinLimit = 0
+                }
+            };
+        }
+
+        // ────────────────────────────────────────────────────────────
+        //  Activité par jour (courbe)
+        // ────────────────────────────────────────────────────────────
+        private void UpdateDaysChart(CartesianChart chart, List<DailyStatDto> data)
+        {
+            if (chart == null) return;
+
+            if (data == null || data.Count == 0)
+            {
+                chart.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            var labels = data.Select(x => x.DayName?.Substring(0, Math.Min(3, x.DayName.Length)) ?? "?").ToArray();
+            var values = data.Select(x => (double)x.Count).ToArray();
+
+            chart.Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = values,
+                    Name = "Alertes",
+                    Stroke = new SolidColorPaint(Orange, 2),
+                    Fill = new SolidColorPaint(Orange.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(Orange),
+                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometrySize = 8,
+                    LineSmoothness = 0.5
+                }
+            };
+
+            chart.XAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = labels,
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11
+                }
+            };
+
+            chart.YAxes = new[]
+            {
+                new Axis
+                {
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11,
+                    MinLimit = 0
+                }
+            };
+        }
+    }
+}

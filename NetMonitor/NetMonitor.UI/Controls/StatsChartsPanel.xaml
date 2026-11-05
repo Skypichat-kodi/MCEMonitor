@@ -1,0 +1,74 @@
+﻿<UserControl x:Class="NetMonitor.UI.Controls.StatsChartsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
+
+    <!-- Style local : doit être défini ici car un UserControl ne peut pas
+         accéder aux ressources de la Window parente -->
+    <UserControl.Resources>
+        <Style x:Key="CardBorder" TargetType="Border">
+            <Setter Property="Background" Value="#252526"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Padding" Value="15"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <!-- Ligne 1 -->
+        <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,8">
+            <StackPanel>
+                <TextBlock Text="🎯 Top 10 ports locaux ciblés" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:CartesianChart x:Name="ChartPorts" Height="240"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,8">
+            <StackPanel>
+                <TextBlock Text="⚠️ Distribution des sévérités" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:PieChart x:Name="ChartSeverity" Height="240"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Ligne 2 -->
+        <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,8">
+            <StackPanel>
+                <TextBlock Text="🕐 Activité par heure (0-23h)" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:CartesianChart x:Name="ChartHours" Height="240"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,8">
+            <StackPanel>
+                <TextBlock Text="📅 Activité par jour" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:CartesianChart x:Name="ChartDays" Height="240"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Ligne 3 -->
+        <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,0">
+            <StackPanel>
+                <TextBlock Text="⚔️ Types d'attaque" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:PieChart x:Name="ChartDetectors" Height="240"/>
+            </StackPanel>
+        </Border>
+
+        <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,0">
+            <StackPanel>
+                <TextBlock Text="🌐 Top 10 ports distants (source)" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <lvc:CartesianChart x:Name="ChartRemotePorts" Height="240"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

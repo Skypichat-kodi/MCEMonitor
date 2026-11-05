@@ -65,7 +65,6 @@ namespace NetMonitor.UI
         private bool                        _loadingWebConfig = false;
         private bool                        _mapActiveInitialized  = false;
         private bool                        _mapBlockedInitialized = false;
-        private bool                        _chartsInitialized     = false;
 
         // ⚠ hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
@@ -127,6 +126,9 @@ namespace NetMonitor.UI
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
             AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+            StatsActiveScrollViewer.ScrollChanged       += StatsScrollViewer_ScrollChanged;
+            StatsGlobalScrollViewer.ScrollChanged       += StatsScrollViewer_ScrollChanged;
+            StatsSubTabControl.SelectionChanged         += StatsSubTabControl_SelectionChanged;                      
 
             // Onglet actif
             MainTabControl.SelectionChanged             += MainTabControl_SelectionChanged;
@@ -156,7 +158,6 @@ namespace NetMonitor.UI
             _ = LoadWebConfig();
             _ = InitMapActiveWebViewAsync();
             _ = InitMapBlockedWebViewAsync();
-            _ = InitChartsWebViewAsync();
             _ = RefreshStatsAsync();
         }
 
@@ -1585,19 +1586,20 @@ namespace NetMonitor.UI
             await RefreshStatsAsync();
             if (_mapActiveInitialized)  MapActiveWebView?.Reload();
             if (_mapBlockedInitialized) MapBlockedWebView?.Reload();
-            if (_chartsInitialized)     ChartsWebView?.Reload();
         }
 
         private async Task RefreshStatsAsync()
         {
             try
             {
-                txtStatsLastUpdate.Text = "Chargement...";
+                txtStatsLastUpdateActivity.Text = "Chargement...";
+                txtStatsLastUpdateGlobal.Text   = "Chargement...";
 
                 var stats = await NetMonitorIpcClient.GetStatsAsync();
                 if (stats == null)
                 {
-                    txtStatsLastUpdate.Text = "Service non joignable";
+                    txtStatsLastUpdateActivity.Text = "Service non joignable";
+                    txtStatsLastUpdateGlobal.Text   = "Service non joignable";
                     return;
                 }
 
@@ -1761,11 +1763,17 @@ namespace NetMonitor.UI
                         Count = s.Count
                     });
 
-                txtStatsLastUpdate.Text = $"Dernière mise à jour : {stats.GeneratedAt.ToLocalTime():HH:mm:ss}";
+                string lastUpdateText = $"Dernière mise à jour : {stats.GeneratedAt.ToLocalTime():HH:mm:ss}";
+                txtStatsLastUpdateActivity.Text = lastUpdateText;
+                txtStatsLastUpdateGlobal.Text   = lastUpdateText;
+                // Mise à jour des graphiques LiveCharts2
+                ChartsPanel?.Update(stats);                
             }
             catch (Exception ex)
             {
-                txtStatsLastUpdate.Text = "Erreur : " + ex.Message;
+                string errText = "Erreur : " + ex.Message;
+                txtStatsLastUpdateActivity.Text = errText;
+                txtStatsLastUpdateGlobal.Text   = errText;
             }
         }
 
@@ -1843,6 +1851,10 @@ namespace NetMonitor.UI
                 MapActiveWebView.Source = new Uri($"http://127.0.0.1:{port}/map-active");
                 _mapActiveInitialized = true;
 
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                    UpdateWebViewVisibility(MapActiveWebView, StatsActiveScrollViewer)),
+                    DispatcherPriority.Loaded);                
+
             }
             catch (Exception ex)
             {
@@ -1916,84 +1928,14 @@ namespace NetMonitor.UI
                 MapBlockedWebView.Source = new Uri($"http://127.0.0.1:{port}/map-blocked");
                 _mapBlockedInitialized = true;
 
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                    UpdateWebViewVisibility(MapBlockedWebView, StatsGlobalScrollViewer)),
+                    DispatcherPriority.Loaded);              
+
             }
             catch (Exception ex)
             {
                 CoreLog.Write("InitMapBlockedWebView : " + ex.Message);
-            }
-        }
-
-        private async Task InitChartsWebViewAsync()
-        {
-            if (_chartsInitialized) return;
-            if (ChartsWebView == null) return;
-
-            try
-            {
-                var status = await NetMonitorIpcClient.GetWebStatus();
-                if (status == null || !status.enabled) return;
-
-                int port = status.port;
-                string user = status.username ?? "";
-                string pass = status.password ?? "";
-
-                string userDataFolder = System.IO.Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                    "MCEMonitor", "WebView2-Charts");
-                System.IO.Directory.CreateDirectory(userDataFolder);
-
-                var env = await CoreWebView2Environment.CreateAsync(null, userDataFolder);
-                await ChartsWebView.EnsureCoreWebView2Async(env);
-                ChartsWebView.NavigationStarting  += (s, e) => ChartsWebView.IsHitTestVisible = false;
-                ChartsWebView.NavigationCompleted += (s, e) => ChartsWebView.IsHitTestVisible = true;
-
-                string filter127 = $"http://127.0.0.1:{port}/*";
-                string filterLoc = $"http://localhost:{port}/*";
-                ChartsWebView.CoreWebView2.AddWebResourceRequestedFilter(filter127, CoreWebView2WebResourceContext.All);
-                ChartsWebView.CoreWebView2.AddWebResourceRequestedFilter(filterLoc, CoreWebView2WebResourceContext.All);
-
-                string credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{user}:{pass}"));
-                ChartsWebView.CoreWebView2.WebResourceRequested += (s, e) =>
-                {
-                    try { e.Request.Headers.SetHeader("Authorization", "Basic " + credentials); }
-                    catch { }
-                };
-
-                ChartsWebView.CoreWebView2.Settings.AreDevToolsEnabled = false;
-                ChartsWebView.CoreWebView2.Settings.AreDefaultContextMenusEnabled = false;
-                ChartsWebView.CoreWebView2.Settings.IsStatusBarEnabled = false;
-
-                string jsScroll = @"
-                    window.addEventListener('wheel', function(e) {
-                        window.chrome.webview.postMessage('scroll:' + e.deltaY);
-                        e.preventDefault();
-                    }, { passive: false });
-                ";
-                await ChartsWebView.CoreWebView2.AddScriptToExecuteOnDocumentCreatedAsync(jsScroll);
-
-                // ⚠ Forward des événements wheel du WebView2 vers le ScrollViewer parent
-                ChartsWebView.CoreWebView2.WebMessageReceived += (s, e) =>
-                {
-                    var msg = e.TryGetWebMessageAsString();
-                    if (msg != null && msg.StartsWith("scroll:"))
-                    {
-                        if (double.TryParse(msg.Substring(7),
-                                            System.Globalization.NumberStyles.Float,
-                                            System.Globalization.CultureInfo.InvariantCulture,
-                                            out double delta))
-                        {
-                            ScrollParent((int)delta);
-                        }
-                    }
-                };
-
-                ChartsWebView.Source = new Uri($"http://127.0.0.1:{port}/charts");
-                _chartsInitialized = true;
-
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Write("InitChartsWebView : " + ex.Message);
             }
         }
 
@@ -2062,6 +2004,16 @@ namespace NetMonitor.UI
 
         private ScrollViewer? GetActiveTabScrollViewer()
         {
+            // Onglet Statistiques : 2 sous-onglets, chacun avec son ScrollViewer
+            if (StatsSubTabControl != null
+                && StatsSubTabControl.IsVisible
+                && StatsSubTabControl.SelectedItem is TabItem subTab
+                && subTab.Content is ScrollViewer subScroll)
+            {
+                return subScroll;
+            }
+
+            // Autres onglets : Content = ScrollViewer directement
             return MainTabControl.SelectedContent as ScrollViewer;
         }
 
@@ -2625,14 +2577,64 @@ namespace NetMonitor.UI
         
         private void MainTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            // N'agir que quand l'onglet Statistiques devient l'onglet actif
             if (MainTabControl.SelectedItem is TabItem ti &&
-                ti.Header?.ToString() == "Statistiques") // ou la clé localisée
+                ti.Header?.ToString() == "Statistiques")
             {
                 _ = InitMapActiveWebViewAsync();
                 _ = InitMapBlockedWebViewAsync();
-                _ = InitChartsWebViewAsync();
+
+                _ = Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    UpdateWebViewVisibility(MapActiveWebView, StatsActiveScrollViewer);
+                    UpdateWebViewVisibility(MapBlockedWebView, StatsGlobalScrollViewer);
+                }), DispatcherPriority.Loaded);
             }
+        }
+
+        /// <summary>
+        /// Cache les WebView2 (HWND natif) qui sortent du viewport du ScrollViewer
+        /// pour éviter l'airspace WPF (le HWND reste toujours au-dessus du contenu WPF).
+        /// </summary>
+        private static void UpdateWebViewVisibility(FrameworkElement? webView, ScrollViewer? sv)
+        {
+            if (webView == null || sv == null) return;
+
+            try
+            {
+                var transform = webView.TransformToAncestor(sv);
+                var bounds = transform.TransformBounds(
+                    new Rect(0, 0, webView.ActualWidth, webView.ActualHeight));
+
+                // Visible seulement si entièrement dans le viewport
+                bool fullyVisible = bounds.Top >= 0 && bounds.Bottom <= sv.ViewportHeight;
+                webView.Visibility = fullyVisible ? Visibility.Visible : Visibility.Hidden;
+            }
+            catch
+            {
+                // WebView2 pas encore dans l'arbre visuel au démarrage
+            }
+        }
+
+        private void StatsScrollViewer_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if (sender is not ScrollViewer sv) return;
+
+            if (sv == StatsActiveScrollViewer)
+                UpdateWebViewVisibility(MapActiveWebView, sv);
+            else if (sv == StatsGlobalScrollViewer)
+            {
+                UpdateWebViewVisibility(MapBlockedWebView, sv);
+            }
+        }
+
+        private void StatsSubTabControl_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            // Recalcule au changement de sous-onglet (le ScrollViewer actif change)
+            _ = Dispatcher.BeginInvoke(new Action(() =>
+            {
+                UpdateWebViewVisibility(MapActiveWebView, StatsActiveScrollViewer);
+                UpdateWebViewVisibility(MapBlockedWebView, StatsGlobalScrollViewer);
+            }), DispatcherPriority.Loaded);
         }
         
         private async void ChangeSeverity_Click(object sender, RoutedEventArgs e)

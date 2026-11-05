@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         xmlns:wv2="clr-namespace:Microsoft.Web.WebView2.Wpf;assembly=Microsoft.Web.WebView2.Wpf"
+        xmlns:controls="clr-namespace:NetMonitor.UI.Controls"
         Title="NetMonitor"
         Height="850"
         Width="1500"
@@ -2337,338 +2338,395 @@
             </TabItem>
 
             <!-- ====================================================== -->
-            <!--  ONGLET STATISTIQUES                                   -->
+            <!--  ONGLET STATISTIQUES (2 sous-onglets)                 -->
             <!-- ====================================================== -->
             <TabItem Header="{loc:Tr 'Statistiques'}">
-                <ScrollViewer x:Name="StatsScrollViewer"
-                              VerticalScrollBarVisibility="Auto"
-                              HorizontalScrollBarVisibility="Disabled"
-                              Padding="0,0,5,0"
-                              PreviewMouseWheel="StatsScrollViewer_PreviewMouseWheel">
-                    <StackPanel Margin="0,10,0,0">
+                <TabControl x:Name="StatsSubTabControl"
+                            Background="Transparent" BorderThickness="0"
+                            Margin="0,10,0,0">
 
-                        <!-- Barre d'actions -->
-                        <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                            <Button Width="160" Click="RefreshStats_Click" Margin="0,0,10,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{loc:Tr 'Actualiser'}" VerticalAlignment="Center"/>
+                    <TabControl.Resources>
+                        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="TabItem">
+                                        <Border x:Name="border" Background="#252526"
+                                                BorderBrush="#3C3C3C" BorderThickness="0,0,0,2"
+                                                Padding="20,8">
+                                            <ContentPresenter ContentSource="Header"
+                                                              HorizontalAlignment="Center"
+                                                              VerticalAlignment="Center"/>
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsSelected" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                                            </Trigger>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </TabControl.Resources>
+
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <!--  SOUS-ONGLET 1 : ACTIVITÉ                            -->
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <TabItem Header="{loc:Tr 'Activité'}">
+                        <ScrollViewer x:Name="StatsActiveScrollViewer" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,10,5,0"
+                                      PreviewMouseWheel="StatsScrollViewer_PreviewMouseWheel">
+                            <StackPanel Margin="0,0,0,0">
+
+                                <!-- Barre d'actions (DANS le ScrollViewer) -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <Button Width="160" Click="RefreshStats_Click" Margin="0,0,10,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Tr 'Actualiser'}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="txtStatsLastUpdateActivity" VerticalAlignment="Center"
+                                               Foreground="#888" Text=""/>
                                 </StackPanel>
-                            </Button>
-                            <TextBlock x:Name="txtStatsLastUpdate" VerticalAlignment="Center"
-                                       Foreground="#888" Text=""/>
-                        </StackPanel>
 
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <!--  SECTION 1 : EN COURS D'ANALYSE                      -->
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <Border Background="#2A1E10" BorderBrush="#8B6914" BorderThickness="1"
-                                CornerRadius="6" Padding="15" Margin="0,0,0,20">
-                            <StackPanel>
+                                <!-- Section 1 (Border ambré) -->
+                                <Border Background="#2A1E10" BorderBrush="#8B6914" BorderThickness="1"
+                                        CornerRadius="6" Padding="15">
+                                    <StackPanel>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                    <TextBlock Text="⏳" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="txtStatsActiveSectionTitle"
-                                               Text="{loc:Tr 'En attente de traitement'}" FontSize="16"
-                                               FontWeight="Bold" Foreground="#FFB900" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="txtActiveSummary" FontSize="12" Foreground="#999"
-                                               Margin="15,0,0,0" VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <!-- KPI actives -->
-                                <Grid Margin="0,0,0,15">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock x:Name="txtStatsActiveTotalLabel"
-                                                       Text="{loc:Tr 'Alertes actives'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsActiveTotal" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <TextBlock Text="⏳" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="txtStatsActiveSectionTitle"
+                                                       Text="{loc:Tr 'En attente de traitement'}" FontSize="16"
+                                                       FontWeight="Bold" Foreground="#FFB900" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="txtActiveSummary" FontSize="12" Foreground="#999"
+                                                       Margin="15,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                    </Border>
 
-                                    <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock x:Name="txtStatsActiveIpsLabel"
-                                                       Text="{loc:Tr 'IPs actives'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsActiveIps" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
-                                        </StackPanel>
-                                    </Border>
+                                        <!-- KPI actives -->
+                                        <Grid Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
 
-                                    <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock x:Name="txtStatsActiveCountriesLabel"
-                                                       Text="{loc:Tr 'Pays actives'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsActiveCountries" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
-                                        </StackPanel>
-                                    </Border>
+                                            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock x:Name="txtStatsActiveTotalLabel"
+                                                               Text="{loc:Tr 'Alertes actives'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsActiveTotal" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
 
-                                    <Border Grid.Column="3" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock x:Name="txtStatsActiveWorstLabel"
-                                                       Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsActiveWorst" FontSize="20" FontWeight="Bold"
-                                                       Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
+                                            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock x:Name="txtStatsActiveIpsLabel"
+                                                               Text="{loc:Tr 'IPs actives'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsActiveIps" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
 
-                                <!-- Carte des actives -->
-                                <TextBlock x:Name="txtStatsActiveMapTitle"
-                                           Text="{loc:Tr 'Carte des IPs actives'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
-                                <Border CornerRadius="6" ClipToBounds="True" Height="400"
-                                        BorderBrush="#8B6914" BorderThickness="1" Margin="0,0,0,15">
-                                    <wv2:WebView2 x:Name="MapActiveWebView" />
+                                            <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock x:Name="txtStatsActiveCountriesLabel"
+                                                               Text="{loc:Tr 'Pays actives'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsActiveCountries" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#FFB900" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="3" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock x:Name="txtStatsActiveWorstLabel"
+                                                               Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsActiveWorst" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Carte des actives -->
+                                        <TextBlock x:Name="txtStatsActiveMapTitle"
+                                                   Text="{loc:Tr 'Carte des IPs actives'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
+                                        <Border CornerRadius="6" ClipToBounds="True" Height="650"
+                                                BorderBrush="#8B6914" BorderThickness="1" Margin="0,0,0,15">
+                                            <wv2:WebView2 x:Name="MapActiveWebView" />
+                                        </Border>
+
+                                        <!-- Top FAI par pays -->
+                                        <TextBlock x:Name="txtStatsActiveTopIspsTitle"
+                                                   Text="Top FAI par pays" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsActiveIspsGrid" MinHeight="120" MaxHeight="220"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
+                                                <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="Alertes" Binding="{Binding Count}" Width="100"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Pays actives -->
+                                        <TextBlock x:Name="txtStatsActiveCountriesTitle"
+                                                   Text="{loc:Tr 'Répartition par pays (actives)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsActiveCountriesGrid" MinHeight="100" MaxHeight="180"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Détecteurs actives -->
+                                        <TextBlock x:Name="txtStatsActiveDetectorsTitle"
+                                                   Text="{loc:Tr 'Répartition par détecteur (actives)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsActiveDetectorsGrid" MinHeight="100" MaxHeight="180"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                    </StackPanel>
                                 </Border>
-
-                                <!-- Top FAI par pays -->
-                                <TextBlock x:Name="txtStatsActiveTopIspsTitle"
-                                           Text="Top FAI par pays" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsActiveIspsGrid" MinHeight="120" MaxHeight="220"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
-                                        <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="Alertes" Binding="{Binding Count}" Width="100"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Pays actives -->
-                                <TextBlock x:Name="txtStatsActiveCountriesTitle"
-                                           Text="{loc:Tr 'Répartition par pays (actives)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsActiveCountriesGrid" MinHeight="100" MaxHeight="180"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'IPs distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Détecteurs actives -->
-                                <TextBlock x:Name="txtStatsActiveDetectorsTitle"
-                                           Text="{loc:Tr 'Répartition par détecteur (actives)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsActiveDetectorsGrid" MinHeight="100" MaxHeight="180"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
                             </StackPanel>
-                        </Border>
+                        </ScrollViewer>
+                    </TabItem>
 
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <!--  SECTION 2 : HISTORIQUE ET BLOCAGES                  -->
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <Border Background="#1A2412" BorderBrush="#2E5A1A" BorderThickness="1"
-                                CornerRadius="6" Padding="15" Margin="0,0,0,20">
-                            <StackPanel>
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <!--  SOUS-ONGLET 2 : GLOBAL                              -->
+                    <!-- ══════════════════════════════════════════════════════ -->
+                    <TabItem Header="{loc:Tr 'Global'}">
+                        <ScrollViewer x:Name="StatsGlobalScrollViewer" VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Padding="0,10,5,0"
+                                      PreviewMouseWheel="StatsScrollViewer_PreviewMouseWheel">
+                            <StackPanel Margin="0,0,0,0">
 
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                    <TextBlock Text="📈" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{loc:Tr 'Historique et blocages'}" FontSize="16"
-                                               FontWeight="Bold" Foreground="#6CCB5F" VerticalAlignment="Center"/>
-                                    <TextBlock x:Name="txtBlockedSummary" FontSize="12" Foreground="#999"
-                                               Margin="15,0,0,0" VerticalAlignment="Center"/>
+                                <!-- Barre d'actions (DANS le ScrollViewer) -->
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <Button Width="160" Click="RefreshStats_Click" Margin="0,0,10,0">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Tr 'Actualiser'}" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                    <TextBlock x:Name="txtStatsLastUpdateGlobal" VerticalAlignment="Center"
+                                               Foreground="#888" Text=""/>
                                 </StackPanel>
 
-                                <!-- KPI globaux -->
-                                <Grid Margin="0,0,0,15">
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
+                                <!-- Section 2 (Border vert) -->
+                                <Border Background="#1A2412" BorderBrush="#2E5A1A" BorderThickness="1"
+                                        CornerRadius="6" Padding="15">
+                                    <StackPanel>
 
-                                    <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Total alertes'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsTotalAlerts" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                            <TextBlock Text="📈" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Tr 'Historique et blocages'}" FontSize="16"
+                                                       FontWeight="Bold" Foreground="#6CCB5F" VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="txtBlockedSummary" FontSize="12" Foreground="#999"
+                                                       Margin="15,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                    </Border>
 
-                                    <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'IPs distinctes'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsDistinctIps" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                        <!-- KPI globaux -->
+                                        <Grid Margin="0,0,0,15">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <Border Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Tr 'Total alertes'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsTotalAlerts" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="1" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Tr 'IPs distinctes'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsDistinctIps" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Tr 'Pays distincts'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsDistinctCountries" FontSize="26" FontWeight="Bold"
+                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                </StackPanel>
+                                            </Border>
+
+                                            <Border Grid.Column="3" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
+                                                <StackPanel HorizontalAlignment="Center">
+                                                    <TextBlock Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
+                                                               Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
+                                                    <TextBlock x:Name="txtStatsWorstSeverity" FontSize="20" FontWeight="Bold"
+                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Grid>
+
+                                        <!-- Carte (bloquées) + Graphiques (historique) en sous-onglets -->
+                                        <TabControl Background="Transparent" BorderThickness="0" Margin="0,0,0,15">
+                                            <TabControl.Resources>
+                                                <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                                    <Setter Property="Template">
+                                                        <Setter.Value>
+                                                            <ControlTemplate TargetType="TabItem">
+                                                                <Border x:Name="border" Background="#252526"
+                                                                        BorderBrush="#3C3C3C" BorderThickness="0,0,0,2"
+                                                                        Padding="15,6">
+                                                                    <ContentPresenter ContentSource="Header"
+                                                                                      HorizontalAlignment="Center"
+                                                                                      VerticalAlignment="Center"/>
+                                                                </Border>
+                                                                <ControlTemplate.Triggers>
+                                                                    <Trigger Property="IsSelected" Value="True">
+                                                                        <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                                                        <Setter TargetName="border" Property="BorderBrush" Value="#6CCB5F"/>
+                                                                    </Trigger>
+                                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                                        <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                                                    </Trigger>
+                                                                </ControlTemplate.Triggers>
+                                                            </ControlTemplate>
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </Style>
+                                            </TabControl.Resources>
+
+                                            <TabItem Header="{loc:Tr 'Carte des IPs bloquées'}">
+                                                <Border CornerRadius="6" ClipToBounds="True" Height="650"
+                                                        BorderBrush="#2E5A1A" BorderThickness="1" Margin="0,10,0,0">
+                                                    <wv2:WebView2 x:Name="MapBlockedWebView" />
+                                                </Border>
+                                            </TabItem>
+
+                                            <TabItem Header="{loc:Tr 'Graphiques'}">
+                                                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                                              HorizontalScrollBarVisibility="Disabled"
+                                                              Padding="0,10,5,0">
+                                                    <controls:StatsChartsPanel x:Name="ChartsPanel" Margin="0,0,0,0" />
+                                                </ScrollViewer>
+                                            </TabItem>
+                                        </TabControl>
+
+                                        <!-- Top FAI par pays (depuis le début) -->
+                                        <TextBlock Text="Top FAI par pays (depuis le début)" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsBlockedIspsGrid" MinHeight="120" MaxHeight="220"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs bloquées'}" Binding="{Binding Count}" Width="120"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Pays bloquées -->
+                                        <TextBlock Text="{loc:Tr 'Répartition par pays (bloquées)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsBlockedCountriesGrid" MinHeight="100" MaxHeight="180"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Détecteurs bloquées -->
+                                        <TextBlock Text="{loc:Tr 'Répartition par détecteur (bloquées)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsBlockedDetectorsGrid" MinHeight="100" MaxHeight="180"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Top processus -->
+                                        <TextBlock Text="{loc:Tr 'Top processus (historique complet)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsTopProcessesGrid" MinHeight="100" MaxHeight="200"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessName}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
+
+                                        <!-- Activité par heure -->
+                                        <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
+                                            <TextBlock Text="{loc:Tr 'Activité par heure'}" FontSize="12"
+                                                       FontWeight="SemiBold" Foreground="#8FDA80"/>
+                                            <TextBlock x:Name="txtActivityHourSummary" FontSize="11" Foreground="#999"
+                                                       Margin="10,0,0,0"/>
                                         </StackPanel>
-                                    </Border>
+                                        <DataGrid x:Name="StatsActivityByHourGrid" MinHeight="100" MaxHeight="200"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Heure'}" Binding="{Binding HourLabel}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Dont critiques'}" Binding="{Binding CriticalCount}" Width="140"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
 
-                                    <Border Grid.Column="2" Style="{StaticResource CardBorder}" Margin="5,0,5,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Pays distincts'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsDistinctCountries" FontSize="26" FontWeight="Bold"
-                                                       Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
-                                        </StackPanel>
-                                    </Border>
+                                        <!-- Distribution sévérité -->
+                                        <TextBlock Text="{loc:Tr 'Distribution par sévérité (historique)'}" FontSize="12"
+                                                   FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
+                                        <DataGrid x:Name="StatsSeverityDistributionGrid" MinHeight="100" MaxHeight="200"
+                                                  AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
+                                                  HeadersVisibility="Column" SelectionMode="Single">
+                                            <DataGrid.Columns>
+                                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="*"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Occurrences'}" Binding="{Binding Count}" Width="140"/>
+                                            </DataGrid.Columns>
+                                        </DataGrid>
 
-                                    <Border Grid.Column="3" Style="{StaticResource CardBorder}" Margin="5,0,0,0">
-                                        <StackPanel HorizontalAlignment="Center">
-                                            <TextBlock Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
-                                                       Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
-                                            <TextBlock x:Name="txtStatsWorstSeverity" FontSize="20" FontWeight="Bold"
-                                                       Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
-                                        </StackPanel>
-                                    </Border>
-                                </Grid>
-
-                                <!-- Carte (bloquées) + Graphiques (historique) en sous-onglets -->
-                                <TabControl Background="Transparent" BorderThickness="0" Margin="0,0,0,15">
-                                    <TabControl.Resources>
-                                        <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
-                                            <Setter Property="Template">
-                                                <Setter.Value>
-                                                    <ControlTemplate TargetType="TabItem">
-                                                        <Border x:Name="border" Background="#252526"
-                                                                BorderBrush="#3C3C3C" BorderThickness="0,0,0,2"
-                                                                Padding="15,6">
-                                                            <ContentPresenter ContentSource="Header"
-                                                                              HorizontalAlignment="Center"
-                                                                              VerticalAlignment="Center"/>
-                                                        </Border>
-                                                        <ControlTemplate.Triggers>
-                                                            <Trigger Property="IsSelected" Value="True">
-                                                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
-                                                                <Setter TargetName="border" Property="BorderBrush" Value="#6CCB5F"/>
-                                                            </Trigger>
-                                                            <Trigger Property="IsMouseOver" Value="True">
-                                                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
-                                                            </Trigger>
-                                                        </ControlTemplate.Triggers>
-                                                    </ControlTemplate>
-                                                </Setter.Value>
-                                            </Setter>
-                                        </Style>
-                                    </TabControl.Resources>
-
-                                    <TabItem Header="{loc:Tr 'Carte des IPs bloquées'}">
-                                        <Border CornerRadius="6" ClipToBounds="True" Height="560"
-                                                BorderBrush="#2E5A1A" BorderThickness="1" Margin="0,10,0,0">
-                                            <wv2:WebView2 x:Name="MapBlockedWebView" />
-                                        </Border>
-                                    </TabItem>
-
-                                    <TabItem Header="{loc:Tr 'Graphiques'}">
-                                        <Border CornerRadius="6" ClipToBounds="True" Height="560"
-                                                BorderBrush="#2E5A1A" BorderThickness="1" Margin="0,10,0,0">
-                                            <wv2:WebView2 x:Name="ChartsWebView" />
-                                        </Border>
-                                    </TabItem>
-                                </TabControl>
-
-                                <!-- Top FAI par pays (depuis le début) -->
-                                <TextBlock Text="Top FAI par pays (depuis le début)" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsBlockedIspsGrid" MinHeight="120" MaxHeight="220"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'IPs bloquées'}" Binding="{Binding Count}" Width="120"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Pays bloquées -->
-                                <TextBlock Text="{loc:Tr 'Répartition par pays (bloquées)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsBlockedCountriesGrid" MinHeight="100" MaxHeight="180"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Détecteurs bloquées -->
-                                <TextBlock Text="{loc:Tr 'Répartition par détecteur (bloquées)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsBlockedDetectorsGrid" MinHeight="100" MaxHeight="180"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Top processus -->
-                                <TextBlock Text="{loc:Tr 'Top processus (historique complet)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsTopProcessesGrid" MinHeight="100" MaxHeight="200"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessName}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Activité par heure -->
-                                <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
-                                    <TextBlock Text="{loc:Tr 'Activité par heure'}" FontSize="12"
-                                               FontWeight="SemiBold" Foreground="#8FDA80"/>
-                                    <TextBlock x:Name="txtActivityHourSummary" FontSize="11" Foreground="#999"
-                                               Margin="10,0,0,0"/>
-                                </StackPanel>
-                                <DataGrid x:Name="StatsActivityByHourGrid" MinHeight="100" MaxHeight="200"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Heure'}" Binding="{Binding HourLabel}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Dont critiques'}" Binding="{Binding CriticalCount}" Width="140"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
-                                <!-- Distribution sévérité -->
-                                <TextBlock Text="{loc:Tr 'Distribution par sévérité (historique)'}" FontSize="12"
-                                           FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
-                                <DataGrid x:Name="StatsSeverityDistributionGrid" MinHeight="100" MaxHeight="200"
-                                          AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                          HeadersVisibility="Column" SelectionMode="Single">
-                                    <DataGrid.Columns>
-                                        <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="*"/>
-                                        <DataGridTextColumn Header="{loc:Tr 'Occurrences'}" Binding="{Binding Count}" Width="140"/>
-                                    </DataGrid.Columns>
-                                </DataGrid>
-
+                                    </StackPanel>
+                                </Border>
                             </StackPanel>
-                        </Border>
+                        </ScrollViewer>
+                    </TabItem>
 
-                    </StackPanel>
-                </ScrollViewer>
+                </TabControl>
             </TabItem>
-
         </TabControl>
 
         <Border Grid.Row="2"

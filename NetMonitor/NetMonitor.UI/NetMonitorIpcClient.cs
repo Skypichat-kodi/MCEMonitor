@@ -190,7 +190,11 @@ namespace NetMonitor.UI
         public StatsBlockDto Blocked                        { get; set; } = new();
         public List<ProcessStatDto> TopProcesses            { get; set; } = new();
         public List<HourlyStatDto> ActivityByHour           { get; set; } = new();
-        public List<SeverityStatDto> SeverityDistribution   { get; set; } = new();        
+        public List<SeverityStatDto> SeverityDistribution   { get; set; } = new();
+        public List<PortStatDto> TopLocalPorts              { get; set; } = new();
+        public List<PortStatDto> TopRemotePorts             { get; set; } = new();
+        public List<DailyStatDto> ActivityByDay             { get; set; } = new();
+        public List<DetectorStatDto> TopDetectors           { get; set; } = new();                
     }
 
     public class WhitelistEntryDto
@@ -264,6 +268,20 @@ namespace NetMonitor.UI
     {
         public string Severity  { get; set; } = "";
         public int Count        { get; set; }
+    }
+
+    public class PortStatDto
+    {
+        public int Port { get; set; }
+        public int Count { get; set; }
+        public List<string> TopDetectors { get; set; } = new();
+    }
+
+    public class DailyStatDto
+    {
+        public int DayOfWeek { get; set; }
+        public string DayName { get; set; } = "";
+        public int Count { get; set; }
     }
     
     // ============================================================
