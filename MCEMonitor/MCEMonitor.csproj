@@ -8,8 +8,6 @@
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\MCEMonitor.ico</ApplicationIcon>
-
-    <!-- Fix RDP : rendu texte en GDI (stable avec Krypton en session RDP/VNC) -->
     <ApplicationUseCompatibleTextRendering>true</ApplicationUseCompatibleTextRendering>
   </PropertyGroup>
 
