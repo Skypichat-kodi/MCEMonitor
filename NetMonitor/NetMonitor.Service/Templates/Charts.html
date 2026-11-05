@@ -174,23 +174,25 @@
     }
 
     // 3. Activité par heure
+    // 3. Activité par heure (courbe lissée)
     if (activityByHour && activityByHour.length > 0) {
-        const maxHour = Math.max(...activityByHour.map(h => h.Count));
         new Chart(document.getElementById('chartHours'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: activityByHour.map(h => h.Hour + 'h'),
                 datasets: [{
                     label: 'Alertes',
                     data: activityByHour.map(h => h.Count),
-                    backgroundColor: activityByHour.map(h => {
-                        if (maxHour === 0) return COLORS.gray;
-                        const ratio = h.Count / maxHour;
-                        if (ratio > 0.7) return COLORS.red;
-                        if (ratio > 0.4) return COLORS.orange;
-                        return COLORS.blue;
-                    }),
-                    borderRadius: 4
+                    borderColor: COLORS.blue,
+                    backgroundColor: 'rgba(76, 194, 255, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: COLORS.blue,
+                    pointBorderColor: '#1e1e1e',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
@@ -206,23 +208,25 @@
     }
 
     // 4. Activité par jour
+    // 4. Activité par jour (courbe lissée)
     if (activityByDay && activityByDay.length > 0) {
-        const maxDay = Math.max(...activityByDay.map(d => d.Count));
         new Chart(document.getElementById('chartDays'), {
-            type: 'bar',
+            type: 'line',
             data: {
                 labels: activityByDay.map(d => d.DayName.substring(0, 3)),
                 datasets: [{
                     label: 'Alertes',
                     data: activityByDay.map(d => d.Count),
-                    backgroundColor: activityByDay.map(d => {
-                        if (maxDay === 0) return COLORS.gray;
-                        const ratio = d.Count / maxDay;
-                        if (ratio > 0.7) return COLORS.red;
-                        if (ratio > 0.4) return COLORS.orange;
-                        return COLORS.blue;
-                    }),
-                    borderRadius: 4
+                    borderColor: COLORS.orange,
+                    backgroundColor: 'rgba(255, 185, 0, 0.15)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: COLORS.orange,
+                    pointBorderColor: '#1e1e1e',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
                 }]
             },
             options: {
