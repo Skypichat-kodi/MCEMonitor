@@ -86,6 +86,50 @@ _(rien)_
 
 ## ✅ Terminé
 
+### Session 2026-11-06 — Refactoring configs Web (séparation + uniformisation)
+
+**Séparation des paramètres Web de RomMonitor et SystemMonitor dans des fichiers `*.web.config` dédiés. Prépare la protection en lecture seule des configs Web dans une prochaine étape.**
+
+**RomMonitor + SystemMonitor — séparation `*.web.config`**
+- [x] `RomMonitorSettings.cs` : refonte complète
+  - `ConfigPath` = `RomMonitor.config` (config principale)
+  - `WebConfigPath` = `RomMonitor.web.config` (config Web)
+  - `Load()` : lit les 2 fichiers, migration one-shot si besoin
+  - `Save()` : n'écrit plus que les paramètres non-Web
+  - `SaveWeb()` : nouvelle méthode, écrit uniquement `*.web.config`
+  - `Reload()` : recharge les 2 fichiers
+  - `MigrateWebConfigIfNeeded()` : extrait les clés Web du `.config` existant vers `.web.config` et nettoie le `.config` (one-shot, idempotent)
+- [x] `SystemMonitorSettings.cs` : idem (symétrique)
+- [x] `Program.cs` (RomMonitor + SystemMonitor) : +1 log de debug du port Web
+- [x] `IpcCommandHandler.cs` (RomMonitor + SystemMonitor) : `_settings.Save()` → `_settings.SaveWeb()` dans `HandleSetWebConfig`
+- [x] Correction `CoreLog.Info/Warn` → `CoreLog.Write` dans les 2 `Settings.cs` (ces méthodes n'existent pas dans RomMonitor/SystemMonitor)
+
+**Uniformisation de la casse des `*.web.config`**
+- [x] `MediaMonitor.Web.config` → `MediaMonitor.web.config` dans le code
+- [x] `NetMonitor.Web.config` → `NetMonitor.web.config` dans le code
+- [x] Aucune migration nécessaire (Windows NTFS insensible à la casse)
+- [x] Aucun renommage physique des fichiers sur disque
+- [x] `MCEMonitorInstaller.iss` mis à jour (`ConfigFiles` + `[Files]`)
+
+**Installeur Inno Setup**
+- [x] `ConfigFiles` étendu pour préserver les `*.web.config` à travers désinstallation/réinstallation :
+  - `+MediaMonitor.web.config`
+  - `+NetMonitor.web.config`
+  - `+RomMonitor.web.config`
+  - `+SystemMonitor.web.config`
+- [x] `[Files]` : ajout de `RomMonitor.web.config` et `SystemMonitor.web.config` en `onlyifdoesntexist`
+- [x] Correction : `AppVersion` en double dans `[Setup]` (erreur `already specified`)
+- [x] Correction : `ConfigFiles` avec 2 bugs de ponctuation (virgule manquante + double virgule)
+- [x] Ajout de la garde `#error MyAppVersion n'est pas défini` (protège contre `iscc.exe` lancé directement)
+
+**Migration testée** :
+- Config existante avec `WebPort=8085` → migré en 1 démarrage
+- Log : `[MIGRATION] OK : 4 clé(s) Web déplacée(s)`
+- Config principale nettoyée (plus de clés Web)
+- Web config contient les 4 clés avec valeurs préservées
+
+**Résultat** : build 0 warning, 0 erreur. Tous les services ont maintenant une structure cohérente `{ServiceName}.config` + `{ServiceName}.web.config`.
+
 ### Session 2026-11-06 — Robustesse Firewall + Installateur + JSON
 
 **Trois corrections pour la robustesse du service et la préservation des données.**
