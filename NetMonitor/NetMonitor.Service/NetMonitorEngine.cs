@@ -761,9 +761,13 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public void LoadHistory()
         {
-        try
-        {
-            if (!File.Exists(HistoryFile)) return;
+            try
+            {
+                if (!File.Exists(HistoryFile))
+                {
+                    SaveHistory();
+                    return;
+                }
             var json = File.ReadAllText(HistoryFile);
             var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json, JsonFileOpts);
             if (list == null) return;
@@ -889,6 +893,9 @@ namespace NetMonitor.Service
                 .Select(b => b.Ip)
                 .ToList();
 
+            // Force la suppression de TOUTES les règles NetMonitor-Block-*, même orphelines
+            FirewallHelper.DeleteAllBlockRules();
+            
             bool syncOk = FirewallHelper.SyncFirewallRules(remainingIps);
 
             // Purge des compteurs de tentatives (ils n'ont plus de sens)
@@ -910,7 +917,12 @@ namespace NetMonitor.Service
         {
             try
             {
-                if (!File.Exists(BlockedIpsFile)) return;
+                if (!File.Exists(BlockedIpsFile))
+                {
+                    // Crée un fichier vide pour matérialiser l'état (0 IP bloquée)
+                    SaveBlockedIps();
+                    return;
+                }
 
                 var json = File.ReadAllText(BlockedIpsFile);
                 var list = System.Text.Json.JsonSerializer.Deserialize<List<BlockedIpInfo>>(json, JsonFileOpts);
@@ -1718,7 +1730,11 @@ namespace NetMonitor.Service
         {
             try
             {
-                if (!File.Exists(AuditFile)) return;
+                if (!File.Exists(AuditFile))
+                {
+                    SaveAudit();
+                    return;
+                }
                 var json = File.ReadAllText(AuditFile);
                 var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json, JsonFileOpts);
                 if (list != null)
@@ -1905,7 +1921,11 @@ namespace NetMonitor.Service
         {
             try
             {
-                if (!File.Exists(ManualSafeFile)) return;
+                if (!File.Exists(ManualSafeFile))
+                {
+                    SaveManualSafeIps();
+                    return;
+                }
                 var json = File.ReadAllText(ManualSafeFile);
                 var dict = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, DateTime>>(json);
                 if (dict == null) return;

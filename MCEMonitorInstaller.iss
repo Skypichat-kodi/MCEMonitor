@@ -9,6 +9,7 @@
 #endif
 AppName=MCEMonitor
 AppVersion={#MyAppVersion}
+UninstallDisplayName=MCEMonitor {#MyAppVersion}
 OutputBaseFilename=MCEMonitorSetup-{#MyAppVersion}
 DefaultDirName={autopf}\MCEMonitor
 DefaultGroupName=MCEMonitor
@@ -30,7 +31,7 @@ MinVersion=10.0.10240
 
 ; Icônes
 SetupIconFile="MCEMonitor\Assets\MCEMonitor.ico"
-UninstallDisplayIcon="{app}\MCEMonitor.ico"
+UninstallDisplayIcon={app}\MCEMonitor.exe
 
 ; Langues
 ShowLanguageDialog=yes

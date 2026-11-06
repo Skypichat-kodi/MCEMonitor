@@ -12,24 +12,24 @@ _(rien)_
 
 ### 🔴 Priorité haute — Qualité du build & encodage
 
-- [ ] **Ré-encodage global du projet en UTF-8 (sans BOM)**
+- [x] **Ré-encodage global du projet en UTF-8 (sans BOM)**
   - Mojibake systémique dans les 15 fichiers `.cs` (`thčme`, `déją`, `Rťseau`, `parallčle`…)
   - Littéraux affichés à l'utilisateur concernés : `MediaMonitorLiveForm`, `ThemeSelectorForm`, `FormWolMacManager`, `MailConfigPage`, `MainForm`
   - ⚠️ Impact critique sur les `.json` de `Languages/` : les clés en mojibake ne matchent pas les `LanguageManager.Get("…")` → fallback systématique
   - Procédure : VS → Outils → Options → Environnement → Documents → UTF-8 sans signature, puis Ctrl+S sur chaque fichier
   - Vérification post-correction : `Réseau`, `thème`, `déjà`, `°C` doivent s'afficher correctement en IntelliSense et à l'écran
 
-- [ ] **Vérifier `MCEMonitor.Languages.csproj`**
+- [x] **Vérifier `MCEMonitor.Languages.csproj`**
   - Même migration SDK que `MCEMonitor.csproj` (`Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk`)
   - Ajouter `<UseWPF>true</UseWPF>` (nécessaire pour `TrExtension` / `MarkupExtension`)
   - Vérifier l'absence de warnings NETSDK1137 sur ce projet
 
-- [ ] **Tests de fumée post-refacto nullabilité** (15 min)
-  - [ ] Démarrage normal (toutes les pages s'affichent)
-  - [ ] Config email : sauvegarde + test SMTP + badge de statut
-  - [ ] Arrêt programmé : sauvegarde + changement Veille ↔ Arrêt
-  - [ ] Config vide : vider un fichier `.config`, redémarrer → fallback `new T()` OK
-  - [ ] MediaMonitor Live : affichage `Réseau` / `°C` correct
+- [x] **Tests de fumée post-refacto nullabilité** (15 min)
+  - [x] Démarrage normal (toutes les pages s'affichent)
+  - [x] Config email : sauvegarde + test SMTP + badge de statut
+  - [x] Arrêt programmé : sauvegarde + changement Veille ↔ Arrêt
+  - [x] Config vide : vider un fichier `.config`, redémarrer → fallback `new T()` OK
+  - [x] MediaMonitor Live : affichage `Réseau` / `°C` correct
 
 ### 🔴 Priorité haute — Validation ToCheck end-to-end
 
@@ -46,7 +46,7 @@ _(rien)_
   - Vérifier que les futures alertes sur la même IP sont classées `Safe` (via `_manualSafeIps`)
   - **Remettre `MicrosoftIpRangeEnabled=true`** après le test
 
-- [ ] **Créer les icônes `tocheck.png`**
+- [x] **Créer les icônes `tocheck.png`**
   - Emplacement 1 : `NetMonitor.Tray/Resources/Icons/tocheck.png`
   - Emplacement 2 : `NetMonitor.Maui/Resources/Images/tocheck.png`
   - Taille : 32×32 (Tray) / 64×64 (Android)
@@ -94,7 +94,7 @@ _(rien)_
 
 ### 🟡 Priorité moyenne — Charts.html (WebView2 WPF)
 
-- [ ] **Appliquer les courbes dans `Charts.html`**
+- [x] **Appliquer les courbes dans `Charts.html`**
   - `chartHours` et `chartDays` → `type: 'line'` + `tension: 0.4` + `fill: true`
   - Cohérence visuelle avec `/stats` (déjà en courbes)
   - Effort : 5 min

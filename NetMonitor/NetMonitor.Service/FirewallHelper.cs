@@ -15,13 +15,13 @@ namespace NetMonitor.Service
         private const string BlockPrefix = "NetMonitor-Block-";
         private const int IpsPerRule = 200;   // Limite conservative (netsh ~4096 chars)
 
-        private const int NETSH_TIMEOUT_MS = 15000;   // netsh peut �tre lent (r�gles nombreuses, GPO�)
+        private const int NETSH_TIMEOUT_MS = 15000;   // netsh peut étre lent (règles nombreuses, GPOé)
 
-        // Verrou pour �viter les race conditions sur SyncFirewallRules
+        // Verrou pour éviter les race conditions sur SyncFirewallRules
         private static readonly object _syncLock = new();
 
         // ============================================================
-        //  Plages d'IP critiques (� ne JAMAIS bloquer)
+        //  Plages d'IP critiques (é ne JAMAIS bloquer)
         // ============================================================
         // Plages qui IDENTIFIENT un candidat Microsoft (heuristique large, sera raffinée par le JSON)
         private static readonly string[] MicrosoftNetworks = new[]
@@ -116,11 +116,11 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  Synchronisation des r�gles de blocage (group�es par blocs)
+        //  Synchronisation des règles de blocage (groupées par blocs)
         // ============================================================
         /// <summary>
-        /// Reconstruit TOUTES les r�gles de blocage NetMonitor � partir de la
-        /// liste compl�te des IPs bloqu�es. R�partit les IPs en blocs de 200.
+        /// Reconstruit TOUTES les règles de blocage NetMonitor à partir de la
+        /// liste compléte des IPs bloquées. Répartit les IPs en blocs de 200.
         /// </summary>
         public static bool SyncFirewallRules(IEnumerable<string> blockedIps)
         {
@@ -133,16 +133,16 @@ namespace NetMonitor.Service
                         .Distinct()
                         .ToList();
 
-                    // 1. Supprimer toutes les anciennes r�gles NetMonitor-Block-*
+                    // 1. Supprimer toutes les anciennes règles NetMonitor-Block-*
                     DeleteAllBlockRules();
 
                     if (ips.Count == 0)
                     {
-                        CoreLog.Info("Firewall : aucune IP bloqu�e, toutes les r�gles ont �t� supprim�es");
+                        CoreLog.Info("Firewall : aucune IP bloquée, toutes les règles ont été supprimées");
                         return true;
                     }
 
-                    // 2. Recr�er les r�gles par blocs de 200 IPs
+                    // 2. Recréer les règles par blocs de 200 IPs
                     int blockCount = (int)Math.Ceiling(ips.Count / (double)IpsPerRule);
                     int successCount = 0;
 
@@ -165,16 +165,16 @@ namespace NetMonitor.Service
                         if (okIn && okOut)
                         {
                             successCount++;
-                            CoreLog.Info($"Firewall : bloc {suffix} cr�� ({batch.Count} IPs)");
+                            CoreLog.Info($"Firewall : bloc {suffix} créé ({batch.Count} IPs)");
                         }
                         else
                         {
-                            CoreLog.Warn($"Firewall : �chec cr�ation bloc {suffix} " +
+                            CoreLog.Warn($"Firewall : échec création bloc {suffix} " +
                                          $"(in={okIn}, out={okOut}, {batch.Count} IPs)");
                         }
                     }
 
-                    CoreLog.Info($"Firewall : synchronisation termin�e ({successCount}/{blockCount} bloc(s), {ips.Count} IPs)");
+                    CoreLog.Info($"Firewall : synchronisation terminée ({successCount}/{blockCount} bloc(s), {ips.Count} IPs)");
                     return successCount == blockCount;
                 }
                 catch (Exception ex)
@@ -186,71 +186,78 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  Suppression de toutes les r�gles NetMonitor-Block-*
+        //  Suppression de toutes les règles NetMonitor-Block-* du pare-feu
+        //  Utilise PowerShell (Get-NetFirewallRule) car netsh est limité
+        //  à 4096 caractères de sortie → les règles en fin de liste
+        //  ne sont pas détectées quand il y en a beaucoup.
         // ============================================================
-        private static void DeleteAllBlockRules()
+        public static void DeleteAllBlockRules()
         {
             try
             {
-                var psi = new ProcessStartInfo("netsh", "advfirewall firewall show rule name=all")
+                // 1. Listing via PowerShell (fiable même avec beaucoup de règles)
+                var psScript = @"
+                    Get-NetFirewallRule -DisplayName 'NetMonitor-Block-*' -ErrorAction SilentlyContinue |
+                    Select-Object -ExpandProperty DisplayName
+                ";
+
+                var psi = new ProcessStartInfo("powershell.exe",
+                    $"-NoProfile -ExecutionPolicy Bypass -Command \"{psScript}\"")
                 {
                     RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                    StandardOutputEncoding = System.Text.Encoding.Default,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = System.Text.Encoding.UTF8
                 };
 
                 using var p = Process.Start(psi);
                 if (p == null)
                 {
-                    CoreLog.Warn("DeleteAllBlockRules : impossible de lancer netsh");
+                    CoreLog.Warn("DeleteAllBlockRules : impossible de lancer PowerShell, fallback netsh");
+                    DeleteAllBlockRulesNetsh();
                     return;
                 }
 
-                // Lire stdout AVANT WaitForExit pour �viter les deadlocks
-                var outputBuilder = new System.Text.StringBuilder();
-                p.OutputDataReceived += (s, e) =>
-                {
-                    if (e.Data != null) outputBuilder.AppendLine(e.Data);
-                };
-                p.BeginOutputReadLine();
+                var outTask = p.StandardOutput.ReadToEndAsync();
+                var errTask = p.StandardError.ReadToEndAsync();
 
-                // ?? Timeout dur : netsh peut se bloquer si le pare-feu est verrouill� (GPO, antivirus�)
                 if (!p.WaitForExit(NETSH_TIMEOUT_MS))
                 {
                     try { p.Kill(true); } catch { }
-                    CoreLog.Warn($"DeleteAllBlockRules : timeout netsh ({NETSH_TIMEOUT_MS} ms) � suppression ignor�e");
+                    CoreLog.Warn($"DeleteAllBlockRules : timeout PowerShell ({NETSH_TIMEOUT_MS} ms)");
                     return;
                 }
 
-                // ?? OBLIGATOIRE avec BeginOutputReadLine : garantit que tous les
-                // handlers OutputDataReceived ont fini de vider le buffer.
-                // S�r ici : le process a d�j� quitt� (WaitForExit(ms) a retourn� true).
-                p.WaitForExit();
+                string output = SafeResult(outTask);
+                string error  = SafeResult(errTask);
 
-                string output = outputBuilder.ToString();
-                CoreLog.Debug($"DeleteAllBlockRules : sortie netsh = {output.Length} caract�res");
+                if (!string.IsNullOrWhiteSpace(error))
+                    CoreLog.Debug($"DeleteAllBlockRules PowerShell stderr : {error}");
 
-                // Cherche tous les noms de r�gles NetMonitor-Block-*
-                var regex = new Regex(@"(NetMonitor-Block-[\w\.\-]+)", RegexOptions.IgnoreCase);
-                var ruleNames = regex.Matches(output)
-                                     .Select(m => m.Groups[1].Value)
-                                     .Where(n => !string.IsNullOrWhiteSpace(n))
-                                     .Distinct()
-                                     .ToList();
+                // 2. Parse : un nom de règle par ligne
+                var ruleNames = output
+                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(s => s.Trim())
+                    .Where(s => s.StartsWith("NetMonitor-Block-", StringComparison.OrdinalIgnoreCase))
+                    .Distinct()
+                    .ToList();
 
-                CoreLog.Info($"DeleteAllBlockRules : {ruleNames.Count} r�gle(s) trouv�e(s) � supprimer");
+                CoreLog.Info($"DeleteAllBlockRules : {ruleNames.Count} règle(s) trouvée(s) via PowerShell");
 
+                if (ruleNames.Count == 0) return;
+
+                // 3. Suppression via netsh (rapide pour chaque règle)
                 int deleted = 0;
                 foreach (var ruleName in ruleNames)
                 {
                     if (ExecuteNetsh($"advfirewall firewall delete rule name=\"{ruleName}\""))
                         deleted++;
                     else
-                        CoreLog.Warn($"DeleteAllBlockRules : �chec suppression '{ruleName}'");
+                        CoreLog.Warn($"DeleteAllBlockRules : échec suppression '{ruleName}'");
                 }
 
-                CoreLog.Info($"Firewall : {deleted}/{ruleNames.Count} ancienne(s) r�gle(s) supprim�e(s)");
+                CoreLog.Info($"Firewall : {deleted}/{ruleNames.Count} ancienne(s) règle(s) supprimée(s)");
             }
             catch (Exception ex)
             {
@@ -259,8 +266,68 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  V�rifie si une IP est pr�sente dans AU MOINS une r�gle
-        //  (utilis� pour diagnostic uniquement � pas critique)
+        //  Fallback : ancienne méthode via netsh (limitée à 4096 caractères)
+        //  Utilisée uniquement si PowerShell est indisponible
+        // ============================================================
+        private static void DeleteAllBlockRulesNetsh()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo("netsh", "advfirewall firewall show rule name=all")
+                {
+                    RedirectStandardOutput = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = System.Text.Encoding.Default,
+                };
+
+                using var p = Process.Start(psi);
+                if (p == null) return;
+
+                var outputBuilder = new System.Text.StringBuilder();
+                p.OutputDataReceived += (s, e) =>
+                {
+                    if (e.Data != null) outputBuilder.AppendLine(e.Data);
+                };
+                p.BeginOutputReadLine();
+
+                if (!p.WaitForExit(NETSH_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    CoreLog.Warn($"DeleteAllBlockRulesNetsh : timeout ({NETSH_TIMEOUT_MS} ms)");
+                    return;
+                }
+
+                p.WaitForExit();
+
+                string output = outputBuilder.ToString();
+                var regex = new Regex(@"(NetMonitor-Block-[\w\.\-]+)", RegexOptions.IgnoreCase);
+                var ruleNames = regex.Matches(output)
+                                     .Select(m => m.Groups[1].Value)
+                                     .Where(n => !string.IsNullOrWhiteSpace(n))
+                                     .Distinct()
+                                     .ToList();
+
+                CoreLog.Info($"DeleteAllBlockRulesNetsh : {ruleNames.Count} règle(s) trouvée(s)");
+
+                int deleted = 0;
+                foreach (var ruleName in ruleNames)
+                {
+                    if (ExecuteNetsh($"advfirewall firewall delete rule name=\"{ruleName}\""))
+                        deleted++;
+                }
+
+                CoreLog.Info($"Firewall : {deleted}/{ruleNames.Count} ancienne(s) règle(s) supprimée(s) (fallback)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"DeleteAllBlockRulesNetsh : {ex.Message}");
+            }
+        }
+
+        // ============================================================
+        //  Vérifie si une IP est présente dans AU MOINS une règle
+        //  (utilisé pour diagnostic uniquement é pas critique)
         // ============================================================
         public static bool IsAlreadyBlocked(string ip)
         {
@@ -277,7 +344,7 @@ namespace NetMonitor.Service
                 using var p = Process.Start(psi);
                 if (p == null) return false;
 
-                // Lecture asynchrone + timeout dur (�vite le deadlock de ReadToEnd() synchrone)
+                // Lecture asynchrone + timeout dur (évite le deadlock de ReadToEnd() synchrone)
                 var outTask = p.StandardOutput.ReadToEndAsync();
 
                 if (!p.WaitForExit(3000))
@@ -288,7 +355,7 @@ namespace NetMonitor.Service
 
                 string output = SafeResult(outTask);
 
-                // Cherche l'IP exacte (avec d�limiteurs pour �viter les sous-cha�nes)
+                // Cherche l'IP exacte (avec délimiteurs pour éviter les sous-chaînes)
                 return Regex.IsMatch(output, $@"(^|[\s,]){Regex.Escape(ip)}([\s,]|$)",
                                      RegexOptions.IgnoreCase);
             }
@@ -296,23 +363,23 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  R�gle Web (inchang�e)
+        //  règle Web (inchangée)
         // ============================================================
         public static void UpdateFirewallRule(int port)
         {
             ExecuteNetsh($"advfirewall firewall delete rule name=\"{WebRuleName}\"");
             ExecuteNetsh($"advfirewall firewall add rule name=\"{WebRuleName}\" dir=in action=allow protocol=TCP localport={port}");
-            CoreLog.Info($"Firewall : r�gle Web mise � jour pour port {port}");
+            CoreLog.Info($"Firewall : règle Web mise é jour pour port {port}");
         }
 
         public static void RemoveRule()
         {
             ExecuteNetsh($"advfirewall firewall delete rule name=\"{WebRuleName}\"");
-            CoreLog.Info("Firewall : r�gle Web supprim�e");
+            CoreLog.Info("Firewall : règle Web supprimée");
         }
 
         // ============================================================
-        //  Ex�cution netsh
+        //  Exécution netsh
         // ============================================================
         private static bool ExecuteNetsh(string args)
         {
@@ -331,7 +398,7 @@ namespace NetMonitor.Service
                 using var p = Process.Start(psi);
                 if (p is null) return false;
 
-                // Lire stdout ET stderr en parall�le pour �viter le deadlock
+                // Lire stdout ET stderr en paralléle pour éviter le deadlock
                 var stdoutTask = p.StandardOutput.ReadToEndAsync();
                 var stderrTask = p.StandardError.ReadToEndAsync();
 
@@ -343,7 +410,7 @@ namespace NetMonitor.Service
                     return false;
                 }
 
-                // Lecture s�re (ne bloque pas m�me si les t�ches async tardent)
+                // Lecture sére (ne bloque pas méme si les tâches async tardent)
                 string stdout = SafeResult(stdoutTask);
                 string stderr = SafeResult(stderrTask);
 
@@ -363,7 +430,7 @@ namespace NetMonitor.Service
         }
 
         // ============================================================
-        //  Utilitaire : lecture s�re d'une Task<string> d�j� termin�e
+        //  Utilitaire : lecture sûre d'une Task<string> déjà terminée
         // ============================================================
         private static string SafeResult(Task<string> t)
         {
