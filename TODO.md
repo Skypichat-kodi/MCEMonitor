@@ -10,27 +10,6 @@ _(rien)_
 
 ## 📋 À faire
 
-### 🔴 Priorité haute — Qualité du build & encodage
-
-- [x] **Ré-encodage global du projet en UTF-8 (sans BOM)**
-  - Mojibake systémique dans les 15 fichiers `.cs` (`thčme`, `déją`, `Rťseau`, `parallčle`…)
-  - Littéraux affichés à l'utilisateur concernés : `MediaMonitorLiveForm`, `ThemeSelectorForm`, `FormWolMacManager`, `MailConfigPage`, `MainForm`
-  - ⚠️ Impact critique sur les `.json` de `Languages/` : les clés en mojibake ne matchent pas les `LanguageManager.Get("…")` → fallback systématique
-  - Procédure : VS → Outils → Options → Environnement → Documents → UTF-8 sans signature, puis Ctrl+S sur chaque fichier
-  - Vérification post-correction : `Réseau`, `thème`, `déjà`, `°C` doivent s'afficher correctement en IntelliSense et à l'écran
-
-- [x] **Vérifier `MCEMonitor.Languages.csproj`**
-  - Même migration SDK que `MCEMonitor.csproj` (`Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk`)
-  - Ajouter `<UseWPF>true</UseWPF>` (nécessaire pour `TrExtension` / `MarkupExtension`)
-  - Vérifier l'absence de warnings NETSDK1137 sur ce projet
-
-- [x] **Tests de fumée post-refacto nullabilité** (15 min)
-  - [x] Démarrage normal (toutes les pages s'affichent)
-  - [x] Config email : sauvegarde + test SMTP + badge de statut
-  - [x] Arrêt programmé : sauvegarde + changement Veille ↔ Arrêt
-  - [x] Config vide : vider un fichier `.config`, redémarrer → fallback `new T()` OK
-  - [x] MediaMonitor Live : affichage `Réseau` / `°C` correct
-
 ### 🔴 Priorité haute — Validation ToCheck end-to-end
 
 - [ ] **Test complet du workflow ToCheck** sur les 3 plateformes (WPF, Tray Windows, Android)
@@ -46,15 +25,8 @@ _(rien)_
   - Vérifier que les futures alertes sur la même IP sont classées `Safe` (via `_manualSafeIps`)
   - **Remettre `MicrosoftIpRangeEnabled=true`** après le test
 
-- [x] **Créer les icônes `tocheck.png`**
-  - Emplacement 1 : `NetMonitor.Tray/Resources/Icons/tocheck.png`
-  - Emplacement 2 : `NetMonitor.Maui/Resources/Images/tocheck.png`
-  - Taille : 32×32 (Tray) / 64×64 (Android)
-  - Couleur recommandée : violet `#A855F7` avec point d'interrogation blanc
-  - Non bloquant (fallback silencieux sur icône app), mais meilleure UX
-
 - [ ] **Documenter le workflow ToCheck** dans le README du projet
-  - Expliquer le pipeline : IP détectée → Microsoft-like ? → JSON JSON officiel ? → Safe / ToCheck
+  - Expliquer le pipeline : IP détectée → Microsoft-like ? → JSON officiel ? → Safe / ToCheck
   - Expliquer les 6 cas de la matrice Trust (chemin/hash/publisher)
   - Expliquer le comportement de `Safe ?` et `Bloquer` sur les alertes ToCheck
 
@@ -72,6 +44,18 @@ _(rien)_
   - Créer un fichier `manual_critical_overrides.json` (même pattern que `manual_safe_ips.json`)
   - Bénéfice : les overrides manuels survivent aux redémarrages
   - Non critique (rare), mais cohérence avec `_manualSafeIps`
+
+- [ ] **Test end-to-end de la préservation des JSON** à travers désinstallation/réinstallation
+  - Désinstaller avec l'option "supprimer les logs"
+  - Vérifier que `blocked_ips.json` + `alert_history.json` + `audit_history.json` + `manual_safe_ips.json` + `trusted_processes.json` + `NetMonitor.config` survivent
+  - Réinstaller et vérifier que le service recharge les IPs (`Chargement N IP bloquées`)
+  - Vérifier que les règles de pare-feu sont reconstruites avec les bonnes IPs
+
+- [ ] **Test end-to-end de la suppression des règles orphelines**
+  - Créer 2 règles `NetMonitor-Block-01-In` / `Out` manuellement via `netsh`
+  - Redémarrer le service
+  - Cliquer "Libérer toutes les IP bloquées"
+  - Vérifier que les règles sont supprimées (même avec beaucoup de règles Windows)
 
 ### 🟡 Priorité moyenne — Bug latent `GetShutdownTaskTime`
 
@@ -92,13 +76,6 @@ _(rien)_
   - Actuellement garanti par `AppData.Initialize()` en amont, mais fragile si l'ordre change
   - Fix 1 ligne : `Directory.CreateDirectory(AppData.BasePath);` avant l'écriture
 
-### 🟡 Priorité moyenne — Charts.html (WebView2 WPF)
-
-- [x] **Appliquer les courbes dans `Charts.html`**
-  - `chartHours` et `chartDays` → `type: 'line'` + `tension: 0.4` + `fill: true`
-  - Cohérence visuelle avec `/stats` (déjà en courbes)
-  - Effort : 5 min
-  
 ### 🟢 Priorité basse — MediaMonitor vignettes album
 
 - [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg
@@ -108,6 +85,40 @@ _(rien)_
 - [ ] (optionnel) Support WebP
 
 ## ✅ Terminé
+
+### Session 2026-11-06 — Robustesse Firewall + Installateur + JSON
+
+**Trois corrections pour la robustesse du service et la préservation des données.**
+
+**Firewall**
+- [x] `DeleteAllBlockRules()` réécrite pour utiliser PowerShell (`Get-NetFirewallRule -DisplayName 'NetMonitor-Block-*'`) au lieu de parser `netsh advfirewall show rule name=all`
+  - Cause : `netsh` tronque sa sortie à 4096 caractères, ce qui fait rater les règles `NetMonitor-Block-*` quand il y a beaucoup de règles Windows (antivirus, GPO, Hyper-V…)
+  - Résultat : les règles orphelines persistaient après "Libérer toutes les IP bloquées"
+- [x] Fallback `DeleteAllBlockRulesNetsh()` conservé si PowerShell indisponible
+- [x] Méthode rendue `public` pour être appelée explicitement dans `ClearAllBlockedIps()` avant `SyncFirewallRules()`
+- [x] Fix compilation `CS0117` : `DeleteAllBlockRulesPublic()` → `DeleteAllBlockRules()` dans `NetMonitorEngine.ClearAllBlockedIps`
+
+**Création des JSON vides au démarrage**
+- [x] `LoadBlockedIps()` / `LoadHistory()` / `LoadAudit()` / `LoadManualSafeIps()` appellent leur `Save*()` correspondant si le fichier est absent
+  - Matérialise l'état "0 IP bloquée / 0 alerte" immédiatement après le démarrage
+  - Fichiers créés : `blocked_ips.json` (`[]`), `alert_history.json` (`[]`), `audit_history.json` (`[]`), `manual_safe_ips.json` (`{}`)
+
+**Installateur Inno Setup**
+- [x] `ConfigFiles` étendu pour préserver les données NetMonitor à travers désinstallation/réinstallation :
+  - `+NetMonitor.config` (était absent !)
+  - `+NetMonitor\blocked_ips.json`
+  - `+NetMonitor\alert_history.json`
+  - `+NetMonitor\audit_history.json`
+  - `+NetMonitor\manual_safe_ips.json`
+  - `+NetMonitor\trusted_processes.json`
+  - `+NetMonitor\blocked_ip_retries.json`
+  - `+NetMonitor\blacklist.txt`
+  - `+NetMonitor\blacklist_auto.txt`
+- [x] `ForceDirectories(ExtractFileDir(DestFile))` ajouté dans les 2 boucles (sauvegarde ET restauration) : indispensable car `CopyFile` ne crée pas les dossiers parents
+- [x] Corrige la perte des IPs bloquées et du `NetMonitor.config` à chaque désinstallation
+- [x] `ms-ip-ranges.json` volontairement NON préservé (4.5 Mo, re-téléchargé au démarrage)
+
+**Résultat** : build 0 warning, 0 erreur (hors NU1701 déjà ignoré).
 
 ### Session 2026-11-04 (suite) — Stats : 4 niveaux de lecture + Top FAI
 
@@ -129,12 +140,9 @@ _(rien)_
 - [x] **Titres adaptatifs UI** : 8 `x:Name` sur les TextBlock de la carte 1 + bloc `if (stats.AutoBlockMode)` dans `RefreshStatsAsync`
 - [x] **Titres adaptatifs Web** : 10 variables `{{ActiveSectionTitle}}`, `{{ActiveTotalLabel}}`… dans `WebHandler`
 - [x] **Charts `chartHours` et `chartDays`** : `type: 'bar'` → `type: 'line'` avec `tension: 0.4` + `fill: true` (courbes lissées)
-- [x] **Confirmé** : les charts utilisent les **alertes** (vue réseau), pas les IPs bloquées → séparation logique voulue
-- [x] **Confirmé** : la carte 2 utilise **toutes** les IPs bloquées du pare-feu (pas seulement l'affichage)
+- [x] **Confirmé** : les charts utilisent les **alertes** (vue réseau), pas les IPs bloquées
+- [x] **Confirmé** : la carte 2 utilise **toutes** les IPs bloquées du pare-feu
 - [x] **Hydra Communications Ltd** identifié comme FAI #1 des attaques → validation du système
-
-**Reste à patcher (optionnel) :**
-- [ ] `Charts.html` (WebView2 WPF) — les 2 charts Activité sont encore en barres
 
 ### Session 2026-11-04 — `ProcessTrustService` auto-update (Steam/NVIDIA)
 
@@ -143,185 +151,147 @@ _(rien)_
 - [x] **Auto-update du hash après MAJ légitime** — chemin identique + hash changé + signature éditeur OK → mise à jour silencieuse du hash en base au lieu de `Spoofed`
 - [x] **Gestion du changement de répertoire** — chemin différent + nom whitelisté + éditeur compatible → `Unknown` (contrôle manuel) au lieu de `Spoofed`
 - [x] **`AddToWhitelist` : update au lieu de doublon** — si même nom + même éditeur, mise à jour du chemin/hash au lieu de créer une 2ᵉ entrée
-- [x] **Audit auto-trust** — fichier `auto_trust_audit.log` séparé (audit a posteriori des binaires Microsoft, sans polluer le log principal)
-- [x] **Fix warning `CS8600`** — `string? entryPubName` dans le CAS B (`publisherMatch`)
+- [x] **Audit auto-trust** — fichier `auto_trust_audit.log` séparé
+- [x] **Fix warning `CS8600`** — `string? entryPubName` dans le CAS B
 - [x] **Réalignement complet du fichier** — indentation cohérente, méthodes utilitaires regroupées
 - [x] Résultat : build **0 warning**
-
-**Bénéfice** : Steam, NVIDIA, Chrome et autres auto-updatés ne génèrent plus de pending à chaque mise à jour. Les vraies usurpations (binaire non signé au nom whitelisté, éditeur étranger) restent détectées.
 
 ### Session 2026-11-03 — ToCheck + vérification Microsoft IP ranges
 
 **Introduction d'un niveau `ToCheck` entre `Safe` et `Warning` pour les IPs Microsoft-like absentes du JSON officiel. Workflow de décision manuelle `Safe ?` / `Bloquer`.**
 
 **Backend**
-- [x] `Severity.ToCheck = 4` ajouté entre `Info` et `Warning` (enum réordonné)
-- [x] `MicrosoftIpRangeService` — téléchargement quotidien du JSON Azure/O365 (source : `microsoft.com/en-us/download/details.aspx?id=56519`, scraping de l'URL `ServiceTags_Public_YYYYMMDD.json`, cache local, retry 3×, fallback cache 7j)
-- [x] `FirewallHelper` : séparation `MicrosoftNetworks` / `OtherCriticalNetworks` + `IsMicrosoftLike()` (heuristique distincte de `IsCriticalIp`)
-- [x] `NetMonitorEngine.AddIntrusion` : pipeline 3 étapes (2a override manuel → 2b vérif JSON MS → 2c autres IPs critiques)
-- [x] `NetMonitorEngine.MarkSafe()` : migration `ToCheck` → `Safe` + persistance `manual_safe_ips.json` (les futures alertes restent Safe)
-- [x] `NetMonitorEngine.BlockIp(forceManual)` : bypass `IsCriticalIp` sur action humaine (IPC/Web)
+- [x] `Severity.ToCheck = 4` ajouté entre `Info` et `Warning`
+- [x] `MicrosoftIpRangeService` — téléchargement quotidien du JSON Azure/O365
+- [x] `FirewallHelper` : séparation `MicrosoftNetworks` / `OtherCriticalNetworks` + `IsMicrosoftLike()`
+- [x] `NetMonitorEngine.AddIntrusion` : pipeline 3 étapes
+- [x] `NetMonitorEngine.MarkSafe()` : migration `ToCheck` → `Safe` + persistance `manual_safe_ips.json`
+- [x] `NetMonitorEngine.BlockIp(forceManual)` : bypass `IsCriticalIp` sur action humaine
 - [x] `IpcCommandHandler` : commande `mark-safe` + `forceManual: true` sur `block-ip`
 - [x] `MiniHttpServer` : route `/mark-safe`
 
 **UI WPF**
 - [x] `SeverityBadgeTemplate` : `DataTrigger ToCheck` violet `#A855F7`
-- [x] Bouton `Safe ?` dans `ActiveIntrusionsGrid` (visible uniquement sur `ToCheck`)
-- [x] Suppression du bouton ⚙ du tableau « Alertes ignorées » (remplacé par le workflow ToCheck)
+- [x] Bouton `Safe ?` dans `ActiveIntrusionsGrid`
+- [x] Suppression du bouton ⚙ du tableau « Alertes ignorées »
 - [x] Colonnes Pays/FAI sur `ActiveIntrusionsGrid`, `AlertsHistoryGrid`, `AuditGrid`
-- [x] `SeverityRank` étendu (`ToCheck = 2`, entre `Safe` et `Warning`)
-- [x] `MarkSafeAsync` remplace `SetAuditSeverityAsync` dans `NetMonitorIpcClient`
+- [x] `SeverityRank` étendu (`ToCheck = 2`)
+- [x] `MarkSafeAsync` remplace `SetAuditSeverityAsync`
 
 **Web**
 - [x] CSS `.badge.tocheck` + `.safe-btn`
 - [x] JS `markSafe(ip)` + suppression `changeAuditSeverity`
 - [x] Bouton `Safe ?` dans le tableau 1
-- [x] Colonnes Pays/FAI sur tableaux 1 (actives) / 3 (historique) / 4 (audit)
+- [x] Colonnes Pays/FAI sur tableaux 1 / 3 / 4
 
 **Clients Windows (Tray)**
-- [x] `PushAlert.NewProblems` ajouté (alignement avec Android, évite la perte silencieuse de nouveaux problèmes sans changement de statut)
-- [x] Branche `NewProblems` dans `ShowNotification` (titre `"N nouveau(x) problème(s)"` + préfixe `[À VERIF]`)
-- [x] Priorité `tocheck.png` dans `GetAlertIcon` (avant disk/cpu/ram)
-- [x] Préambule `[À VERIF]` + guidance `« Safe ? »` dans les Toast
-- [x] `PlayToCheck()` : 2 bips courts 900 Hz distincts du warning
+- [x] `PushAlert.NewProblems` ajouté
+- [x] Branche `NewProblems` dans `ShowNotification`
+- [x] Priorité `tocheck.png` dans `GetAlertIcon`
+- [x] Préambule `[À VERIF]` + guidance `« Safe ? »`
+- [x] `PlayToCheck()` : 2 bips courts
 
 **Clients Android**
-- [x] `ShowAlert` : titre `"Alerte à vérifier (N)"` si ToCheck présent
+- [x] `ShowAlert` : titre `"Alerte à vérifier (N)"`
 - [x] `BuildAlertMessage` : préambule + préfixe `[À VERIF]`
-- [x] `GetAlertIconName` : priorité `tocheck` (drawable)
-- [x] Alignement avec Windows sur `NewProblems`, `ResolvedProblems`, hystérésis offline (3 échecs avant offline), recovery threshold (2 succès avant ok)
+- [x] `GetAlertIconName` : priorité `tocheck`
+- [x] Alignement avec Windows sur `NewProblems`, `ResolvedProblems`, hystérésis offline, recovery threshold
 
-**Design ToCheck — matrice de décision**
-- IP Safe/Whitelisted/Trusted existante → inchangé (audit vert)
-- IP Microsoft-like **dans** le JSON officiel → `Safe` (audit vert)
-- IP Microsoft-like **absente** du JSON officiel → `ToCheck` (tableau 1, pas d'auto-block)
-- Décision manuelle `Safe ?` → migration vers audit vert + override persistant
-- Décision manuelle `Bloquer` → blocage via `forceManual` (bypass `IsCriticalIp`)
+**Icônes**
+- [x] `tocheck.png` créé (Tray Windows + Android)
 
-### Session 2026-11-03 — Cosmétiques UI/Web (avant ToCheck)
+### Session 2026-11-03 — Cosmétiques UI/Web
 
-- [x] Pays + FAI sur « Tentatives sur IP bloquée » (UI + Web) — jointure GeoIP depuis `BlockedIpInfo` (pas de duplication dans `BlockedIpRetryInfo`)
-- [x] Historique Web : détails sur 1 ligne (CSS `nowrap` + ellipsis), largeurs Sévérité 8→6% et Détecteur 9→7%
+- [x] Pays + FAI sur « Tentatives sur IP bloquée »
+- [x] Historique Web : détails sur 1 ligne, largeurs Sévérité/Détecteur ajustées
 - [x] IP bloquées Web : limite 50 → 500 lignes
-- [x] Correction de 5 `colspan` de fallback erronés (8→10, 11→12, 9→11, 14→16, 8→10)
-- [x] Désalignements `<th>` vs `<td>` corrigés sur Intrusions Actives et Pending
+- [x] 5 `colspan` erronés corrigés
+- [x] Désalignements `<th>` vs `<td>` corrigés
 
 ### Session 2026-11-01 (suite) — Chasse aux warnings NULL + nettoyage build
 
-**Nullabilité (55 warnings CS86xx éliminés sur 15 fichiers)**
-
-- [x] **Champs WinForms / designer (CS8618)** → `= null!`
-  - `MailConfigPage` (15 champs), `ConfirmDialog` (3), `ThemeSelectorForm` (3), `FormWolMacManager` (1), `Program` (3)
-- [x] **Propriétés de configuration (CS8618)** → `= string.Empty`
-  - `EmailSettings` : `Smtp`, `From`, `To`, `Password`
-- [x] **Analyse de flux (CS8600 / CS8602 / CS8603 / CS8604 / CS8625)**
-  - `LanguageManager.Get()` : `string` → `string?`
-  - `TaskSchedulerHelper.GetShutdownTaskMode()` : `string` → `string?`
-  - `ConfigManager.Load<T>()` : `?? new T()` si fichier vide/corrompu
-  - `ProcessRunner` : `Encoding? encoding`, `Process? p`
-  - `MainForm` : 2× `string?`, null-check explicite sur `GetShutdownTaskMode()`
-  - `AppData.BasePath` : accès protégé avec `InvalidOperationException`
-- [x] **Délégués `EventHandler` (CS8622)** → `object? sender`
-  - `ToggleSwitch.Animate`, `MediaMonitorLiveForm.UpdateStatus`, `ThemeSelectorForm.ThemeList_SelectedIndexChanged`, `FormWolMacManager.textBoxMac_TextChanged`
-- [x] **Null-forgiving localisés (`!`)**
-  - `Path.GetDirectoryName(...)!` aux endroits où le compilateur ne peut pas prouver la non-nullité
-
-**Warnings annexes (3 éliminés)**
-
-- [x] **NETSDK1137** : `Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk` + ajout `<UseWPF>true</UseWPF>` (requis pour `TrExtension` / `MarkupExtension`)
-- [x] **CS1998 ×2** : retrait du mot-clé `async` sur `BtnSaveRomConfig_Click` et `BtnSaveSystemConfig_Click` (aucun `await` dans le corps, fire-and-forget assumé via `_ = ...Async()`)
-
-**Changements de comportement volontaires (documentés dans le commit)**
-
-- [x] `ConfigManager.Load<T>` retourne `new T()` au lieu de `null` si la config est vide/corrompue
-- [x] `MainForm.UpdateShutdownTaskStatus` ne touche plus au combo si le mode n'est pas déterminable (préserve le choix utilisateur)
-- [x] `EmailSettings` : propriétés initialisées à `""` au lieu de `null`
-
-**Corrections d'affichage (mojibake)**
-
-- [x] `MediaMonitorLiveForm` : `Rťseau` → `Réseau`, `įC` → `°C`
-- [x] `ThemeSelectorForm`, `FormWolMacManager` : littéraux accentués corrigés
+- [x] **Ré-encodage global du projet en UTF-8 (sans BOM)** — 15 fichiers `.cs` corrigés
+- [x] **Vérifier `MCEMonitor.Languages.csproj`** — migration SDK + `<UseWPF>true</UseWPF>`
+- [x] **Tests de fumée post-refacto nullabilité** — 5 tests validés
+- [x] **55 warnings CS86xx éliminés** sur 15 fichiers
+- [x] **NETSDK1137** : `Microsoft.NET.Sdk.WindowsDesktop` → `Microsoft.NET.Sdk`
+- [x] **CS1998 ×2** : retrait `async` inutile
+- [x] **Corrections de mojibake** : `Réseau`, `°C`, accents
 
 **Résultat** : build 100% propre (0 warning, 0 erreur).
 
 ### Session 2026-11-01 — Fix Processus Fantômes & Nettoyage Logs
 
-- [x] Build/Installeur : l'installeur Inno Setup récupère automatiquement la version depuis l'EXE via le `build.bat`.
-- [x] UI (À propos) : affichage de la version dynamique lue dans l'assembly (ex: `2.3.6-80`), synchronisée avec GitVersion.
-- [x] `ProcessTrustService` : capture de `Win32Error` et propagation dans les résultats.
-- [x] `IsSignedBy` : utilisation de `X509Certificate.CreateFromSignedFile` (au lieu de `WinVerifyTrust`).
-- [x] `UntrustedProcessDetector` : filtrage par `Win32Error` (fini les processus "inconnus" sans chemin).
-- [x] Gestion des race conditions (chemin vide + Win32Error=0).
-- [x] NetMonitor : logs Firewall/GeoIP/blocage passés en `Debug`.
-- [x] NetMonitor UI : suppression des logs WebView2 de succès.
-- [x] RomMonitor : logs SMART anti-spam (seulement si Warning/Critical ou changement du nombre de disques).
-- [x] RomMonitor : logs stderr smartctl, ForceTick et config email en `Debug`.
-
-- [x] Vider `TrustedScannerPatterns` (philosophie « tout bot est maudit ») - *Résolu : Ajout de l'option `IgnoreSearchScanners` et édition de `ScannerPatterns` via l'UI WPF.*
-- [x] Fix Processus en attente : capture de `Win32Error` dans `ProcessTrustService` et filtrage des PID morts/protégés dans `UntrustedProcessDetector` (suppression des processus "fantômes").
-- [x] Blocage automatique granulaire : cases indépendantes pour Critical, Warning et Subnet dans l'UI. Les services Safe/Whitelisted sont exclus du blocage.
-- [x] Moteur : refonte de `SeverityScorer` pour respecter la sévérité initiale du détecteur (ex: Blacklist = Critical) tout en appliquant la politique stricte.
+- [x] Build/Installeur : version dynamique via GitVersion
+- [x] UI (À propos) : version dynamique
+- [x] `ProcessTrustService` : capture `Win32Error`
+- [x] `IsSignedBy` : `X509Certificate.CreateFromSignedFile`
+- [x] `UntrustedProcessDetector` : filtrage par `Win32Error`
+- [x] Gestion race conditions
+- [x] Logs NetMonitor/RomMonitor en `Debug`
+- [x] `IgnoreSearchScanners` + `ScannerPatterns` éditables
+- [x] Blocage automatique granulaire
+- [x] `SeverityScorer` refonte
 
 ### Session 2026-10-31 (Suite) — Contrôle des blocages & Tentatives
 
-- [x] Web : bouton "Retirer de la liste" pour les processus en attente (route `/dismiss-pending` + JS).
-- [x] UI & Web : ajout de la colonne Sévérité et du bouton de reclassement dans "Tentatives sur IP bloquée".
-- [x] Service : jointure IPC pour exposer la sévérité des retries.
-- [x] UI WPF : "Zone de danger" dans les Réglages avec bouton "Libérer toutes les IP bloquées" (purge globale du pare-feu).
-- [x] Service : `ClearAllBlockedIps()` pour purger le pare-feu d'un coup sans toucher aux processus bloqués.
-- [x] UI : remplacement du 🎨 par ⚙ partout pour la cohérence visuelle.
+- [x] Web : bouton "Retirer de la liste" pending
+- [x] UI & Web : colonne Sévérité + bouton reclassement dans Tentatives
+- [x] Service : jointure IPC pour retries
+- [x] UI WPF : Zone de danger + "Libérer toutes les IP bloquées"
+- [x] Service : `ClearAllBlockedIps()`
+- [x] UI : 🎨 → ⚙
 
 ### Session 2026-10-31 — Scanners "Subnet", GeoIP & Fix UI Web
 
-- [x] Détection : le moteur identifie les scanners via leur Org/Isp GeoIP (ex: Palo Alto, ONYPHE) même sans Reverse DNS
-- [x] Modèles : ajout de `IsKnownScanner` sur `IntrusionEvent`, `BlockedIpInfo` et `AuditGroupedEntry`
-- [x] UI WPF & Web : affichage d'un badge vert "Subnet" pour les scanners connus, sans altérer leur sévérité réelle (Warning) pour le filtrage/blocage
-- [x] UI WPF : ajout de la case "Bloquer les scanners" + champ d'édition `ScannerPatterns` dans les Réglages
-- [x] Migration : les anciennes IP bloquées récupèrent leur statut de scanner au démarrage (`LoadBlockedIps`)
-- [x] Web : déplacement de la colonne « Compteur » après « Date » (Intrusions Actives)
-- [x] Web : déplacement de la colonne « Tentatives » avant « IP » + badges bleus (Tentatives sur IP bloquée)
-- [x] Web : badges verts pour le tableau « Alertes ignorées » (IP de confiance)
-- [x] Web : fix de l'élargissement des lignes causé par les longues chaînes de type "Info" (Historique + Audit)
-- [x] Web : fix du conflit CSS `.info` (panneau) vs `.badge.info` (badge bleu) → renommé en `.info-panel`
-- [x] Web : centrage global des badges de sévérité dans leurs cellules via CSS (`td:has(.badge)`)
+- [x] Détection scanners via Org/Isp GeoIP
+- [x] `IsKnownScanner` sur `IntrusionEvent`, `BlockedIpInfo`, `AuditGroupedEntry`
+- [x] Badge vert "Subnet" (UI WPF + Web)
+- [x] Case "Bloquer les scanners" + `ScannerPatterns`
+- [x] Migration `LoadBlockedIps`
+- [x] Web : colonnes réorganisées (Compteur, Tentatives)
+- [x] Web : badges verts audit
+- [x] Web : fix largeur lignes
+- [x] Web : fix conflit `.info` / `.badge.info`
+- [x] Web : centrage badges via `td:has(.badge)`
 
 ### Session 2026-10-30 (soir) — Refonte de la sévérité
 
-- [x] `SeverityScorer` créé dans `NetMonitor.Service/Services/`
-- [x] Taxonomie : Critical / Warning / Safe / Trusted / Whitelisted (5 niveaux)
-- [x] Config : `CriticalPatterns`, `ScannerPatterns`, `SafePatterns`, `WhitelistPatterns` dans `NetMonitor.config`
-- [x] Intégration dans `AddIntrusion`, `BlockIp`, `LoadBlockedIps`
-- [x] Migration one-shot au démarrage (`SeverityVersion 0 → 2`)
-- [x] `ManualSeverity` + `ManualSeveritySetAt` sur `BlockedIpInfo` (attributs du blocage)
-- [x] `JsonFileOpts` avec `JsonStringEnumConverter` : tous les fichiers JSON persistés stockent les enums en string
-- [x] Branchement `SetManualSeverity(ip, severity?)` côté service
-- [x] IPC : commande `set-manual-severity <ip>|<severity|auto>`
-- [x] UI WPF : `SeverityPickerWindow` (5 couleurs + Auto)
-- [x] UI WPF : bouton 🎨 dans `BlockedIpsGrid` + cadenas 🔒 + tooltip avec date
-- [x] UI WPF : `SeverityBadgeTemplate` étendu aux 5 niveaux
-- [x] UI WPF : stubs `HasManualSeverity=false` sur les 4 autres rows
-- [x] Web : CSS badges 6 classes + `.manual-lock` + `.severity-btn`
-- [x] Web : helper `SeverityToCssClass` (7 valeurs dont legacy)
-- [x] Web : route POST `/set-severity` + prompt natif avec options 1-5 et `a`
-- [x] Web : bouton ⚙ + cadenas 🔒 sur les IPs bloquées manuellement
-- [x] UI WPF : colonne Info (badge `i` AbuseIPDB) dans `BlockedIpsGrid`
-- [x] `StatsBuilder` : distribution 7 niveaux avec `.Where(Count > 0)`
-- [x] `StatsBuilder` : `WorstSeverity` prend maintenant en compte `Warning`
-- [x] Fix badge `Info` : gris → bleu `#4CC2FF` (convention universelle)
-- [x] Fix tableau Historique Web : `table-layout: fixed` + `width: 100%` + largeurs en %
+- [x] `SeverityScorer` créé
+- [x] Taxonomie 5 niveaux
+- [x] Config patterns (Critical/Scanner/Safe/Whitelist)
+- [x] Intégration `AddIntrusion`, `BlockIp`, `LoadBlockedIps`
+- [x] Migration one-shot `SeverityVersion 0 → 2`
+- [x] `ManualSeverity` + `ManualSeveritySetAt`
+- [x] `JsonFileOpts` avec `JsonStringEnumConverter`
+- [x] `SetManualSeverity(ip, severity?)`
+- [x] IPC `set-manual-severity`
+- [x] `SeverityPickerWindow`
+- [x] Bouton 🎨 + cadenas 🔒 + tooltip
+- [x] `SeverityBadgeTemplate` 5 niveaux
+- [x] Stubs `HasManualSeverity=false`
+- [x] CSS badges + `.manual-lock` + `.severity-btn`
+- [x] `SeverityToCssClass` (7 valeurs)
+- [x] Route POST `/set-severity` + prompt natif
+- [x] Bouton ⚙ + cadenas
+- [x] Colonne Info (badge `i` AbuseIPDB)
+- [x] `StatsBuilder` distribution 7 niveaux
+- [x] `WorstSeverity` prend en compte `Warning`
+- [x] Fix badge `Info` gris → bleu
+- [x] Fix Historique Web (`table-layout: fixed`)
 
 ### Session 2026-10-30 (matin)
 
-- [x] CoverFinder (fallback folder.jpg / cover.jpg / poster.jpg)
+- [x] CoverFinder
 - [x] Nettoyage debug `HardwareMonitorService`
-- [x] Compactage du tableau « Activité par heure » (heures actives uniquement)
-- [x] Badges compteurs : dégradés inversés (foncé = plus grave)
-- [x] Tri interceptions par count décroissant
-- [x] Boutons de nettoyage par tableau sur la page Web
+- [x] Compactage « Activité par heure »
+- [x] Badges compteurs dégradés
+- [x] Tri interceptions par count
+- [x] Boutons nettoyage par tableau
 - [x] Persistance GeoIP au blocage
 
 ### Sessions précédentes
 
-- [x] Fix tableau « IP de confiance » (mismatch enum/string IPC)
-- [x] Retry WinDivert + popup « Redémarrer le PC ? »
-- [x] Refonte onglet Statistiques (2 sections, cartes active/bloquée)
+- [x] Fix tableau « IP de confiance »
+- [x] Retry WinDivert + popup
+- [x] Refonte Statistiques (2 sections)
