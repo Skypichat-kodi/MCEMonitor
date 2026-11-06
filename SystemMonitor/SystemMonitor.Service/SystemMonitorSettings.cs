@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Linq;
+using System.Diagnostics;
 
 namespace SystemMonitor.Service
 {
@@ -114,7 +115,7 @@ namespace SystemMonitor.Service
                     }
                 }
 
-                // 2) Config Web
+                // Config Web
                 if (!File.Exists(WebConfigPath))
                 {
                     settings.SaveWeb();
@@ -149,6 +150,9 @@ namespace SystemMonitor.Service
                         }
                     }
                 }
+                
+                // Protéger le fichier *.web.config en lecture seule
+                EnsureWebConfigProtected();                
             }
             catch (Exception ex)
             {
@@ -380,6 +384,90 @@ namespace SystemMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur Reload settings : " + ex.Message);
+            }
+        }
+        
+        /// <summary>
+        /// Protège le fichier *.web.config en lecture seule pour les utilisateurs
+        /// standards, tout en gardant l'écriture pour SYSTEM (le service) et
+        /// Administrators (dépannage manuel).
+        /// 
+        /// Utilise les SID universels (S-1-5-*) pour être indépendant de la
+        /// langue de Windows (FR, EN, DE, JP...).
+        /// 
+        /// Deux étapes obligatoires :
+        ///  1. takeown → prendre possession du fichier (sinon icacls = Accès refusé)
+        ///  2. icacls  → appliquer les ACL (avec SID universels)
+        /// </summary>
+        private static void EnsureWebConfigProtected()
+        {
+            if (!File.Exists(WebConfigPath)) return;
+
+            try
+            {
+                // 1) Prendre possession du fichier (au groupe Administrateurs via /a)
+                var takeownPsi = new ProcessStartInfo("takeown",
+                    $"/f \"{WebConfigPath}\" /a")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using (var p = Process.Start(takeownPsi))
+                {
+                    if (p != null)
+                    {
+                        var takeownOut = p.StandardOutput.ReadToEndAsync();
+                        var takeownErr = p.StandardError.ReadToEndAsync();
+
+                        if (p.WaitForExit(3000))
+                        {
+                            _ = takeownOut.Result;
+                            _ = takeownErr.Result;
+                        }
+                    }
+                }
+
+                // 2) Appliquer les ACL avec les SID universels
+                //    *S-1-5-18     = SYSTEM
+                //    *S-1-5-32-544 = Administrateurs
+                //    *S-1-5-32-545 = Utilisateurs
+                var icaclsPsi = new ProcessStartInfo("icacls",
+                    $"\"{WebConfigPath}\" /inheritance:r " +
+                    $"/grant \"*S-1-5-18:(F)\" " +
+                    $"/grant \"*S-1-5-32-544:(F)\" " +
+                    $"/grant \"*S-1-5-32-545:(R)\"")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var p2 = Process.Start(icaclsPsi);
+                if (p2 == null) return;
+
+                // Lire stdout/stderr AVANT WaitForExit pour éviter le deadlock
+                var outTask = p2.StandardOutput.ReadToEndAsync();
+                var errTask = p2.StandardError.ReadToEndAsync();
+
+                if (!p2.WaitForExit(5000))
+                {
+                    try { p2.Kill(true); } catch { }
+                    CoreLog.Write($"[PROTECT] {Path.GetFileName(WebConfigPath)} : timeout (5s)");
+                    return;
+                }
+
+                if (p2.ExitCode == 0)
+                    CoreLog.Write($"[PROTECT] {Path.GetFileName(WebConfigPath)} protégé en lecture seule");
+                else
+                    CoreLog.Write($"[PROTECT] {Path.GetFileName(WebConfigPath)} : échec (code {p2.ExitCode}) — {errTask.Result}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write($"[PROTECT] Erreur : {ex.Message}");
             }
         }
     }

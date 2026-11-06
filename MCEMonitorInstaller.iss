@@ -169,7 +169,36 @@ Filename: "{tmp}\PawnIO_setup.exe"; \
     StatusMsg: "Installation du pilote PawnIO (capteurs matériels)..."; \
     Flags: runhidden waituntilterminated; \
     Check: not IsPawnIOInstalled
-    
+   
+; --- Protection des *.web.config en lecture seule (après installation) ---
+Filename: "icacls.exe"; \
+    Parameters: """{commonappdata}\MCEMonitor\RomMonitor.web.config"" /inheritance:r /grant ""SYSTEM:(F)"" /grant ""BUILTIN\Administrators:(F)"" /grant ""BUILTIN\Users:(R)"""; \
+    Flags: runhidden waituntilterminated; \
+    StatusMsg: "Protection de RomMonitor.web.config..."; \
+    Check: FileExists(ExpandConstant('{commonappdata}\MCEMonitor\RomMonitor.web.config')); \
+    Components: core
+
+Filename: "icacls.exe"; \
+    Parameters: """{commonappdata}\MCEMonitor\SystemMonitor.web.config"" /inheritance:r /grant ""SYSTEM:(F)"" /grant ""BUILTIN\Administrators:(F)"" /grant ""BUILTIN\Users:(R)"""; \
+    Flags: runhidden waituntilterminated; \
+    StatusMsg: "Protection de SystemMonitor.web.config..."; \
+    Check: FileExists(ExpandConstant('{commonappdata}\MCEMonitor\SystemMonitor.web.config')); \
+    Components: core
+
+Filename: "icacls.exe"; \
+    Parameters: """{commonappdata}\MCEMonitor\NetMonitor.web.config"" /inheritance:r /grant ""SYSTEM:(F)"" /grant ""BUILTIN\Administrators:(F)"" /grant ""BUILTIN\Users:(R)"""; \
+    Flags: runhidden waituntilterminated; \
+    StatusMsg: "Protection de NetMonitor.web.config..."; \
+    Check: FileExists(ExpandConstant('{commonappdata}\MCEMonitor\NetMonitor.web.config')); \
+    Components: core
+
+Filename: "icacls.exe"; \
+    Parameters: """{commonappdata}\MCEMonitor\MediaMonitor.web.config"" /inheritance:r /grant ""SYSTEM:(F)"" /grant ""BUILTIN\Administrators:(F)"" /grant ""BUILTIN\Users:(R)"""; \
+    Flags: runhidden waituntilterminated; \
+    StatusMsg: "Protection de MediaMonitor.web.config..."; \
+    Check: FileExists(ExpandConstant('{commonappdata}\MCEMonitor\MediaMonitor.web.config')); \
+    Components: core
+        
 ; Lancement AVEC UAC — MCEMonitor (core)
 Filename: "{app}\MCEMonitor.exe"; \
     Description: "{cm:LaunchProgram,MCEMonitor}"; \
