@@ -215,16 +215,43 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 return;
             }
 
-            string title = media.EventType == "started"
-                ? $"{media.ServerName} - Lecture en cours"
-                : $"{media.ServerName} - Lecture terminée";
+            bool isRecording = IsRecordingType(media.MediaType);
+            bool isStarted   = media.EventType == "started";
 
+            string title;
             string info = "";
-            if (!string.IsNullOrEmpty(media.Client))
-                info += $"Depuis : {media.Client}\n";
-            info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
-            if (media.Saison > 0 || media.Episode > 0)
-                info += $"  ({media.Saison:00}x{media.Episode:00})";
+
+            if (isRecording)
+            {
+                // ─── Enregistrement DVBViewer ───
+                title = isStarted
+                    ? $"{media.ServerName} - Enregistrement démarré"
+                    : $"{media.ServerName} - Enregistrement terminé";
+
+                if (!string.IsNullOrEmpty(media.Title))
+                    info += media.Title;
+                else
+                    info += "(enregistrement)";
+
+                if (!string.IsNullOrEmpty(media.Client))
+                    info += $"\nDepuis : {media.Client}";
+
+                if (media.Saison > 0 || media.Episode > 0)
+                    info += $"  ({media.Saison:00}x{media.Episode:00})";
+            }
+            else
+            {
+                // ─── Lecture classique (audio/video/tv/image) ───
+                title = isStarted
+                    ? $"{media.ServerName} - Lecture en cours"
+                    : $"{media.ServerName} - Lecture terminée";
+
+                if (!string.IsNullOrEmpty(media.Client))
+                    info += $"Depuis : {media.Client}\n";
+                info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
+                if (media.Saison > 0 || media.Episode > 0)
+                    info += $"  ({media.Saison:00}x{media.Episode:00})";
+            }
 
             var intent = new Intent(Intent.ActionView,
                 global::Android.Net.Uri.Parse(media.BaseUrl));
@@ -471,9 +498,15 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
         private static string GetMediaIconName(string? mediaType, string eventType)
         {
             bool isStop = eventType == "stopped";
-            string prefix = isStop ? "stop_" : "play_";
-
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
+
+            // --- Cas particulier : enregistrement DVBViewer ---
+            // Noms de ressources Android : underscore obligatoire (pas de tiret)
+            if (IsRecordingType(t))
+                return isStop ? "dvbviewer_stop" : "dvbviewer_rec";
+
+            string prefix   = isStop ? "stop_" : "play_";
+            string fallback = isStop ? "stop" : "play";
 
             string suffix = t switch
             {
@@ -484,15 +517,19 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 _                                        => ""
             };
 
-            return string.IsNullOrEmpty(suffix)
-                ? (isStop ? "stop" : "play")
-                : prefix + suffix;
+            return string.IsNullOrEmpty(suffix) ? fallback : prefix + suffix;
         }
 
         private static bool IsAudioType(string? mediaType)
         {
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
             return t == "audio" || t == "music" || t == "musique";
+        }
+
+        private static bool IsRecordingType(string? mediaType)
+        {
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+            return t == "rec" || t == "recording" || t == "enregistrement" || t == "dvbviewer";
         }
 
         private static bool IsDiskProblem(ProblemItem p)
