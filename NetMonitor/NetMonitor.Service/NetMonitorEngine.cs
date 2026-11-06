@@ -94,6 +94,8 @@ namespace NetMonitor.Service
         private static readonly string BlockedIpRetriesFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "blocked_ip_retries.json");            
+
+        private static readonly object _saveBlockedLock = new();
             
         public bool IsRunning => _etw.IsRunning;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
@@ -600,6 +602,10 @@ namespace NetMonitor.Service
         ///
         /// Retry : 3 tentatives avec backoff (5s, 10s, 15s) pour absorber
         /// les micro-coupures réseau de l'API ipwho.is.
+        ///
+        /// ⚠ Le backoff s'applique AUSSI quand la réponse est vide (pas seulement
+        ///   en cas d'exception) — sinon les 3 tentatives s'enchaînent en rafale
+        ///   et déclenchent le rate-limit de l'API.
         /// </summary>
         private async Task FinalizeBlockedIpGeoAsync(string ip)
         {
@@ -607,20 +613,35 @@ namespace NetMonitor.Service
             if (_geoIp == null || !_geoIp.IsEnabled) return;
 
             GeoInfo? geo = null;
+            string lastReason = "inconnue";
 
             for (int attempt = 1; attempt <= 3; attempt++)
             {
                 try
                 {
-                    geo = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
+                    var result = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
 
-                    if (geo != null && !string.IsNullOrEmpty(geo.CountryCode))
-                        break;   // succès
+                    // Succès = CountryCode non vide ET ResolvedAt valide
+                    if (result != null &&
+                        !string.IsNullOrEmpty(result.CountryCode) &&
+                        result.ResolvedAt != DateTime.MinValue)
+                    {
+                        geo = result;
+                        break;
+                    }
+
+                    lastReason = result == null
+                        ? "réponse nulle"
+                        : (result.ResolvedAt == DateTime.MinValue
+                            ? "échec API (non caché)"
+                            : "CountryCode vide");
                 }
                 catch (Exception ex)
                 {
-                    CoreLog.Warn($"[GEOIP] {ip} tentative {attempt}/3 : {ex.Message}");
+                    lastReason = ex.Message;
                 }
+
+                CoreLog.Warn($"[GEOIP] {ip} tentative {attempt}/3 : {lastReason}");
 
                 if (attempt < 3)
                 {
@@ -629,9 +650,10 @@ namespace NetMonitor.Service
                 }
             }
 
-            if (geo == null || string.IsNullOrEmpty(geo.CountryCode))
+            if (geo == null)
             {
-                CoreLog.Warn($"[GEOIP] {ip} non résolue après 3 tentatives (sera retentée au prochain démarrage)");
+                CoreLog.Warn($"[GEOIP] {ip} non résolue après 3 tentatives ({lastReason}) " +
+                             $"(sera retentée au prochain démarrage)");
                 return;
             }
 
@@ -659,7 +681,6 @@ namespace NetMonitor.Service
 
                 if (entry == null) return;   // l'IP a été débloquée entre-temps
 
-                // Affectations GeoIP
                 entry.Country       = geo.Country;
                 entry.CountryCode   = geo.CountryCode;
                 entry.City          = geo.City;
@@ -669,19 +690,17 @@ namespace NetMonitor.Service
                 entry.ReverseDns    = geo.ReverseDns;
                 entry.GeoResolvedAt = DateTime.UtcNow;
 
-                // Affectation Scanner
                 if (isKnownScanner && !entry.IsKnownScanner)
-                {
                     entry.IsKnownScanner = true;
-                }
-                
+
                 updated = true;
             }
 
             if (updated)
             {
                 SaveBlockedIps();
-                CoreLog.Info($"[GEOIP] {ip} enrichie : {geo.Country} ({geo.CountryCode}) — {geo.Isp} {(isKnownScanner ? "[SCANNER CONNU]" : "")}");
+                CoreLog.Info($"[GEOIP] {ip} enrichie : {geo.Country} ({geo.CountryCode}) — {geo.Isp} " +
+                             $"{(isKnownScanner ? "[SCANNER CONNU]" : "")}");
             }
         }
 
@@ -1053,20 +1072,43 @@ namespace NetMonitor.Service
 
         private void SaveBlockedIps()
         {
-            try
+            lock (_saveBlockedLock)   // ✅ un seul writer à la fois
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(BlockedIpsFile)!);
+                try
+                {
+                    Directory.CreateDirectory(Path.GetDirectoryName(BlockedIpsFile)!);
 
-                List<BlockedIpInfo> snapshot;
-                lock (_alertsLock) snapshot = _blockedIps.ToList();
+                    List<BlockedIpInfo> snapshot;
+                    lock (_alertsLock) snapshot = _blockedIps.ToList();
 
-                var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
+                    var json = System.Text.Json.JsonSerializer.Serialize(snapshot, JsonFileOpts);
 
-                File.WriteAllText(BlockedIpsFile, json);
-            }
-            catch (Exception ex)
-            {
-                CoreLog.Warn($"SaveBlockedIps : {ex.Message}");
+                    // ✅ Écriture atomique : tmp + rename → pas de fichier à moitié écrit
+                    //    et Windows accepte le Move même si un lecteur (UI) a le fichier ouvert.
+                    string tmpFile = BlockedIpsFile + ".tmp";
+                    File.WriteAllText(tmpFile, json);
+
+                    // Move avec écrasement (Windows : File.Move(src, dst, overwrite:true) sur .NET 5+)
+                    try
+                    {
+                        File.Move(tmpFile, BlockedIpsFile, overwrite: true);
+                    }
+                    catch (IOException)
+                    {
+                        // Fallback : si le rename échoue (antivirus, lecteur lent), on retente
+                        // après un court délai, puis on écrit directement en dernier recours.
+                        try { Thread.Sleep(50); File.Move(tmpFile, BlockedIpsFile, overwrite: true); }
+                        catch (IOException)
+                        {
+                            File.WriteAllText(BlockedIpsFile, json);
+                            try { File.Delete(tmpFile); } catch { }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Warn($"SaveBlockedIps : {ex.Message}");
+                }
             }
         }
 

@@ -10,7 +10,7 @@ public sealed class GeoIpService
 {
     private readonly ConcurrentDictionary<string, GeoInfo> _cache = new();
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
-    private readonly SemaphoreSlim _throttle = new(5, 5);
+    private readonly SemaphoreSlim _throttle = new(2, 2);   // était new(5, 5)
     private readonly string _providerTemplate;
     private readonly bool _enabled;
     private readonly bool _reverseDnsEnabled;
@@ -40,7 +40,13 @@ public sealed class GeoIpService
     {
         if (!_enabled) return;
         if (string.IsNullOrWhiteSpace(ip)) return;
-        if (_cache.ContainsKey(ip)) return;
+
+        // Ne pas relancer si on a déjà une entrée valide (non expirée, avec CountryCode)
+        if (_cache.TryGetValue(ip, out var existing) &&
+            DateTime.UtcNow - existing.ResolvedAt < CacheTtl &&
+            !string.IsNullOrEmpty(existing.CountryCode))
+            return;
+
         _ = ResolveAsync(ip);
     }
 
@@ -49,19 +55,18 @@ public sealed class GeoIpService
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
+        // Cache hit : seulement si CountryCode non vide (sinon = échec caché)
         if (_cache.TryGetValue(ip, out var cached) &&
-            DateTime.UtcNow - cached.ResolvedAt < CacheTtl)
+            DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
+            !string.IsNullOrEmpty(cached.CountryCode))
         {
-            // Cache hit : si on n'a pas besoin du reverse DNS, ou qu'il est déjà là,
-            // on retourne directement (économie d'un appel réseau).
             if (!includeReverseDns || !string.IsNullOrEmpty(cached.ReverseDns) || !_reverseDnsEnabled)
                 return cached;
-            // Sinon on continue pour re-fetcher (rare : cache sans reverse DNS alors qu'on le veut)
         }
 
-        // Sécurité : si ce n'est pas une IP valide, ne pas appeler l'API
         if (!IPAddress.TryParse(ip, out _))
         {
+            // IP invalide : on peut cacher, c'est stable
             var invalid = new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.UtcNow };
             _cache[ip] = invalid;
             return invalid;
@@ -84,41 +89,67 @@ public sealed class GeoIpService
         await _throttle.WaitAsync();
         try
         {
+            // Re-check sous le sémaphore (un autre thread a pu résoudre entre-temps)
             if (_cache.TryGetValue(ip, out cached) &&
-                DateTime.UtcNow - cached.ResolvedAt < CacheTtl)
+                DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
+                !string.IsNullOrEmpty(cached.CountryCode))
             {
                 if (!includeReverseDns || !string.IsNullOrEmpty(cached.ReverseDns) || !_reverseDnsEnabled)
                     return cached;
             }
 
-            var info = await FetchGeoAsync(ip);
-            info.Ip = ip;
-            info.ResolvedAt = DateTime.UtcNow;
+            var fetched = await FetchGeoAsync(ip);
+
+            if (fetched == null)
+            {
+                // ? Échec : on retourne un objet "transitoire" SANS le mettre en cache.
+                //    FinalizeBlockedIpGeoAsync le verra avec CountryCode vide et retentera.
+                //    (L'appelant peut différencier via ResolvedAt == DateTime.MinValue)
+                return new GeoInfo
+                {
+                    Ip = ip,
+                    Country = "?",
+                    CountryCode = "",
+                    ResolvedAt = DateTime.MinValue   // ? marqueur "pas résolu, pas caché"
+                };
+            }
+
+            fetched.Ip = ip;
+            fetched.ResolvedAt = DateTime.UtcNow;
 
             if (_reverseDnsEnabled && includeReverseDns)
-                info.ReverseDns = await TryReverseDnsAsync(ip);
+                fetched.ReverseDns = await TryReverseDnsAsync(ip);
 
-            _cache[ip] = info;
-            return info;
+            _cache[ip] = fetched;   // ? cache uniquement sur succès
+            return fetched;
         }
         finally { _throttle.Release(); }
     }
 
-    private async Task<GeoInfo> FetchGeoAsync(string ip)
+    private async Task<GeoInfo?> FetchGeoAsync(string ip)
     {
         try
         {
             string url = _providerTemplate.Replace("{ip}", Uri.EscapeDataString(ip));
             using var resp = await _http.GetAsync(url);
+
             if (!resp.IsSuccessStatusCode)
-                return new GeoInfo { Country = "?", CountryCode = "" };
+            {
+                // ? Log status HTTP pour diagnostiquer rate-limit vs refus
+                CoreLog.Warn($"[GEOIP] {ip} HTTP {(int)resp.StatusCode} ({resp.ReasonPhrase})");
+                return null;   // ? PAS de cache
+            }
 
             string json = await resp.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
             var root = doc.RootElement;
 
             if (root.TryGetProperty("success", out var s) && s.ValueKind == JsonValueKind.False)
-                return new GeoInfo { Country = "?", CountryCode = "" };
+            {
+                string msg = GetStr(root, "message");
+                CoreLog.Warn($"[GEOIP] {ip} refusé par l'API : {(string.IsNullOrEmpty(msg) ? "raison inconnue" : msg)}");
+                return null;   // ? PAS de cache
+            }
 
             string country = GetStr(root, "country");
             string code = GetStr(root, "country_code");
@@ -132,6 +163,14 @@ public sealed class GeoIpService
                 org = GetStr(conn, "org");
             }
 
+            // ? Si le code pays est vide alors que l'API a répondu "success",
+            //    c'est suspect : on log mais on accepte (IP sans géoloc connue)
+            if (string.IsNullOrEmpty(code))
+            {
+                CoreLog.Warn($"[GEOIP] {ip} succès mais country_code vide (country='{country}')");
+                return null;   // ? on préfère re-tenter plus tard
+            }
+
             return new GeoInfo
             {
                 Country = country,
@@ -141,10 +180,15 @@ public sealed class GeoIpService
                 Org = org
             };
         }
+        catch (TaskCanceledException)
+        {
+            CoreLog.Warn($"[GEOIP] {ip} timeout (> {_http.Timeout.TotalSeconds:F0}s)");
+            return null;
+        }
         catch (Exception ex)
         {
-            CoreLog.Warn($"GeoIP lookup failed for {ip}: {ex.Message}");
-            return new GeoInfo { Country = "?", CountryCode = "" };
+            CoreLog.Warn($"[GEOIP] {ip} erreur : {ex.Message}");
+            return null;
         }
     }
 
