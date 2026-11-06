@@ -113,6 +113,35 @@ _(rien)_
 
 ## ✅ Terminé
 
+### Session 2026-11-06 (suite 2) — Optimisation ffmpeg (-50 Mo)
+
+**Suppression de la duplication de ffmpeg entre `ProgramFiles\` et `ProgramData\`.**
+
+**Diagnostic**
+- `FileAnalyzer` (seul consommateur de ffmpeg) est appelé **uniquement** par :
+  - `MediaMonitor.Service\Ipc\IpcCommandHandler.cs` (ligne 421)
+  - `MediaMonitor.Service\Web\Handlers\InfoHandler.cs` (lignes 43, 50, 60)
+- Aucun appel dans `MediaMonitor.UI`, `MediaMonitor.Tray`, `MediaMonitor.Core` (hors déf.)
+- ffmpeg était copié 2 fois (via `MediaMonitor.Core` dans `ProgramFiles\` et via `MediaMonitor.Service` dans `ProgramData\`)
+
+**Correction (2 fichiers .csproj uniquement)**
+- [x] `MediaMonitor.Core.csproj` : retiré `<Content Include="ffmpeg\**\*">`
+- [x] `MediaMonitor.Service.csproj` : ajouté `<Content Include="..\MediaMonitor.Core\ffmpeg\**\*" Link="ffmpeg\...">`
+- [x] **Aucun changement** dans `build.bat` (le publish transitif de `MediaMonitor.Core.dll` continue de fonctionner)
+- [x] **Aucun changement** dans `FileAnalyzer.cs` (`AppContext.BaseDirectory` reste correct)
+
+**Vérifications validées**
+- [x] `ProgramData\ffmpeg\` existe
+- [x] `ProgramFiles\ffmpeg\` n'existe plus
+- [x] `ProgramFiles\MediaMonitor.Core.dll` existe toujours (publish transitif)
+- [x] Build 0 warning, 0 erreur
+- [x] Installeur **-50 Mo**
+- [x] Miniatures UI (popups média) fonctionnent
+- [x] Miniatures Web (tuiles média) fonctionnent
+- [x] Popup DVBViewer (logo chaîne) fonctionne
+
+**Résultat** : ~50 Mo économisés dans l'installeur et sur le disque utilisateur, sans aucune régression.
+
 ### Session 2026-11-06 (suite) — Nettoyage dépendances mortes & fix vignettes MP3
 
 **Audit des packages NuGet, du code Interop, et correction du fallback de vignettes audio.**
