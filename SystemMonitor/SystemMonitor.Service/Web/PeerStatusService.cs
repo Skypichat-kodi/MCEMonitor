@@ -39,13 +39,13 @@ namespace SystemMonitor.Service.Web
                 new[] { "WebUsername","Username" },
                 new[] { "WebPassword","Password" }),
 
-            new PeerDef("MediaMonitor", "MediaMonitor.Web.config",
+            new PeerDef("MediaMonitor", "MediaMonitor.web.config",
                 new[] { "Enabled", "WebEnabled" },
                 new[] { "Port",    "WebPort" },
                 new[] { "Username","WebUsername" },
                 new[] { "Password","WebPassword" }),
                 
-            new PeerDef("NetMonitor", "NetMonitor.Web.config",
+            new PeerDef("NetMonitor", "NetMonitor.web.config",
                 new[] { "WebEnabled", "Enabled" },
                 new[] { "WebPort",    "Port" },
                 new[] { "WebUsername","Username" },

@@ -12,7 +12,7 @@ namespace NetMonitor.Service
         );
 
         private static readonly string ConfigPath = Path.Combine(ConfigFolder, "NetMonitor.config");
-        private static readonly string WebConfigPath = Path.Combine(ConfigFolder, "NetMonitor.Web.config");
+        private static readonly string WebConfigPath = Path.Combine(ConfigFolder, "NetMonitor.web.config");
 
         // ============================================================
         //  Détecteurs
@@ -317,7 +317,7 @@ namespace NetMonitor.Service
                 var lines = new[]
                 {
                     "# ============================================================",
-                    "# NetMonitor.Web.config",
+                    "# NetMonitor.web.config",
                     "# Configuration du serveur Web de NetMonitor",
                     "# ============================================================",
                     "",

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO.Pipes;
 using System.Linq;
 using RomMonitor.Service.Ipc;
@@ -179,7 +179,7 @@ namespace RomMonitor.Service
                     }
                 }
 
-                _settings.Save();
+                _settings.SaveWeb();
 
                 // ============================================================
                 //  ?? GESTION DU PARE-FEU
@@ -190,21 +190,21 @@ namespace RomMonitor.Service
 
                 if (newEnabled)
                 {
-                    // Met à jour la règle pour le nouveau port (supprime + ajoute)
+                    // Met Ã  jour la rÃ¨gle pour le nouveau port (supprime + ajoute)
                     FirewallHelper.UpdateFirewallRule(newPort);
                 }
                 else
                 {
-                    // Web désactivé ? supprime la règle
+                    // Web dÃ©sactivÃ© ? supprime la rÃ¨gle
                     FirewallHelper.RemoveRule();
                 }
 
                 // ============================================================
-                //  Redémarrer le WebServer
+                //  RedÃ©marrer le WebServer
                 // ============================================================
                 Program.RestartWebServer();
 
-                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={newEnabled}, port={newPort})");
+                CoreLog.Write($"IPC : config WebServer mise Ã  jour (enabled={newEnabled}, port={newPort})");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -233,7 +233,7 @@ namespace RomMonitor.Service
         private void HandleShutdown(NamedPipeServerStream server)
         {
             IpcResponse.Ok(server);
-            CoreLog.Write("IPC : shutdown demandé");
+            CoreLog.Write("IPC : shutdown demandÃ©");
 
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
         }
@@ -242,7 +242,7 @@ namespace RomMonitor.Service
         {
             try
             {
-                // Récupérer la partie après "set-config "
+                // RÃ©cupÃ©rer la partie aprÃ¨s "set-config "
                 string payload = command.Substring("set-config ".Length).Trim();
                 var parts = payload.Split('&');
 
@@ -284,7 +284,7 @@ namespace RomMonitor.Service
                 }
 
                 _settings.Save();
-                CoreLog.Write("IPC : config RomMonitor mise à jour");
+                CoreLog.Write("IPC : config RomMonitor mise Ã  jour");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -312,7 +312,7 @@ namespace RomMonitor.Service
             try
             {
                 _engine.ClearAlerts();
-                CoreLog.Write("IPC : historique des alertes vidé");
+                CoreLog.Write("IPC : historique des alertes vidÃ©");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)

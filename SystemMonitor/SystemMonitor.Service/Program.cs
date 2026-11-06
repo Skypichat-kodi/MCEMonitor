@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Globalization;
 using System.IO;
 using System.Threading;
@@ -21,7 +21,7 @@ namespace SystemMonitor.Service
 
             if (!createdNew)
             {
-                CoreLog.Write("SystemMonitor.Service dÈj‡ en cours. Sortie.");
+                CoreLog.Write("SystemMonitor.Service d√©j√† en cours. Sortie.");
                 return;
             }
 
@@ -64,13 +64,14 @@ namespace SystemMonitor.Service
             //  Logs
             // ============================================================
             CoreLog.Clear();
-            CoreLog.Write($"=== SystemMonitor.Service dÈmarrÈ (langue = {selectedLang}) ===");
+            CoreLog.Write($"=== SystemMonitor.Service d√©marr√© (langue = {selectedLang}) ===");
 
             // ============================================================
             //  Configuration
             // ============================================================
             var settings = SystemMonitorSettings.Load();
             CoreLog.Write($"Config : Interval={settings.Interval}s, WebEnabled={settings.WebEnabled}");
+            CoreLog.Write($"Web : Port={settings.WebPort}");
 
             // ============================================================
             //  Moteur de collecte
@@ -101,7 +102,7 @@ namespace SystemMonitor.Service
         }
 
         /// <summary>
-        /// RedÈmarre le serveur web (appelÈ par IPC aprËs changement de config).
+        /// Red√©marre le serveur web (appel√© par IPC apr√®s changement de config).
         /// </summary>
         internal static void RestartWebServer()
         {
@@ -118,7 +119,7 @@ namespace SystemMonitor.Service
                 _webServer = new Web.MiniHttpServer(_engine, settings);
                 _webServer.Start();
 
-                CoreLog.Write("WebServer redÈmarrÈ");
+                CoreLog.Write("WebServer red√©marr√©");
             }
             catch (Exception ex)
             {

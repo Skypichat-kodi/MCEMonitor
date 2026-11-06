@@ -102,7 +102,7 @@ namespace MediaMonitor.UI
 
                     var settingsPath = Path.Combine(
                         Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "MCEMonitor", "MediaMonitor.Web.config");
+                        "MCEMonitor", "MediaMonitor.web.config");
 
                     if (File.Exists(settingsPath))
                     {
@@ -472,7 +472,7 @@ namespace MediaMonitor.UI
         {
             string path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "MCEMonitor", "MediaMonitor.Web.config");
+                "MCEMonitor", "MediaMonitor.web.config");
 
             var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : new List<string>();
             bool found = false;
@@ -492,7 +492,7 @@ namespace MediaMonitor.UI
 
         private void LoadDvbSettings()
         {
-            string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.Web.config";
+            string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.web.config";
             if (!File.Exists(configPath)) return;
 
             foreach (var line in File.ReadAllLines(configPath))
@@ -509,7 +509,7 @@ namespace MediaMonitor.UI
         {
             string path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                "MCEMonitor", "MediaMonitor.Web.config");
+                "MCEMonitor", "MediaMonitor.web.config");
 
             var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : new List<string>();
             bool found = false;
@@ -542,7 +542,7 @@ namespace MediaMonitor.UI
 
                 string path = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor", "MediaMonitor.Web.config");
+                    "MCEMonitor", "MediaMonitor.web.config");
 
                 var lines = File.Exists(path) ? File.ReadAllLines(path).ToList() : new List<string>();
                 bool fU = false, fUs = false, fP = false;

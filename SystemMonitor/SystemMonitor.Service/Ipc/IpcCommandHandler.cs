@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO.Pipes;
 using System.Linq;
 
@@ -179,7 +179,7 @@ namespace SystemMonitor.Service.Ipc
                 }
 
                 _settings.Save();
-                CoreLog.Write("IPC : config SystemMonitor mise à jour");
+                CoreLog.Write("IPC : config SystemMonitor mise Ã  jour");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -233,12 +233,12 @@ namespace SystemMonitor.Service.Ipc
                     }
                 }
 
-                _settings.Save();
+                _settings.SaveWeb();
 
-                // Redémarrer le WebServer
+                // RedÃ©marrer le WebServer
                 Program.RestartWebServer();
 
-                CoreLog.Write($"IPC : config WebServer mise à jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
+                CoreLog.Write($"IPC : config WebServer mise Ã  jour (enabled={_settings.WebEnabled}, port={_settings.WebPort})");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -268,7 +268,7 @@ namespace SystemMonitor.Service.Ipc
         private void HandleShutdown(NamedPipeServerStream server)
         {
             IpcResponse.Ok(server);
-            CoreLog.Write("IPC : shutdown demandé");
+            CoreLog.Write("IPC : shutdown demandÃ©");
 
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
         }
@@ -303,7 +303,7 @@ namespace SystemMonitor.Service.Ipc
             try
             {
                 _engine.ClearAlerts();
-                CoreLog.Write("IPC : historique des alertes vidé");
+                CoreLog.Write("IPC : historique des alertes vidÃ©");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -331,7 +331,7 @@ namespace SystemMonitor.Service.Ipc
             try
             {
                 _engine.ClearHistory();
-                CoreLog.Write("IPC : historique des mesures vidé");
+                CoreLog.Write("IPC : historique des mesures vidÃ©");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)
@@ -359,7 +359,7 @@ namespace SystemMonitor.Service.Ipc
             try
             {
                 _engine.ClearBsods();
-                CoreLog.Write("IPC : historique BSOD vidé");
+                CoreLog.Write("IPC : historique BSOD vidÃ©");
                 IpcResponse.Ok(server);
             }
             catch (Exception ex)

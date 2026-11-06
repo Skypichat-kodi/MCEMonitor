@@ -6,7 +6,7 @@ using MediaMonitor.Core.Services;
 namespace MediaMonitor.Service.Service
 {
     /// <summary>
-    /// Surveille Shutdown.config et MediaMonitor.Web.config.
+    /// Surveille Shutdown.config et MediaMonitor.web.config.
     /// </summary>
     public class ConfigWatcher : IDisposable
     {
@@ -59,10 +59,10 @@ namespace MediaMonitor.Service.Service
                 CoreLog.Write("ERREUR FileSystemWatcher Shutdown : " + ex);
             }
 
-            // --- MediaMonitor.Web.config ---
+            // --- MediaMonitor.web.config ---
             try
             {
-                _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.Web.config")
+                _webConfigWatcher = new FileSystemWatcher(folder, "MediaMonitor.web.config")
                 {
                     NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.Size | NotifyFilters.CreationTime
                 };
@@ -71,7 +71,7 @@ namespace MediaMonitor.Service.Service
                 _webConfigWatcher.Renamed += OnWebConfigChanged;
                 _webConfigWatcher.EnableRaisingEvents = true;
 
-                CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.Web.config");
+                CoreLog.Write("FileSystemWatcher actif sur MediaMonitor.web.config");
             }
             catch (Exception ex)
             {
@@ -126,7 +126,7 @@ namespace MediaMonitor.Service.Service
         }
 
         // ---------------------------------------------------------------
-        //  MediaMonitor.Web.config modifié
+        //  MediaMonitor.web.config modifié
         // ---------------------------------------------------------------
         private void OnWebConfigChanged(object sender, FileSystemEventArgs e)
         {
@@ -159,7 +159,7 @@ namespace MediaMonitor.Service.Service
                 string path = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                     "MCEMonitor",
-                    "MediaMonitor.Web.config"
+                    "MediaMonitor.web.config"
                 );
 
                 if (!File.Exists(path))

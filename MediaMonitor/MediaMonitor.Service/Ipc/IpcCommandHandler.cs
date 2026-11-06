@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.IO.Pipes;
 using System.Text.Json;
@@ -10,7 +10,7 @@ using MediaMonitor.Service.Reports;
 namespace MediaMonitor.Service.Ipc
 {
     /// <summary>
-    /// Traite les commandes IPC (lecture, écriture de config, actions).
+    /// Traite les commandes IPC (lecture, Ã©criture de config, actions).
     /// </summary>
     public class IpcCommandHandler
     {
@@ -263,7 +263,7 @@ namespace MediaMonitor.Service.Ipc
 
                 Program.RestartBackupTimer();
 
-                IpcResponse.OkWithMessage(writer, server, "Rétention mise à jour. Sauvegarde reprogrammée.");
+                IpcResponse.OkWithMessage(writer, server, "RÃ©tention mise Ã  jour. Sauvegarde reprogrammÃ©e.");
             }
             catch (Exception ex)
             {
@@ -291,14 +291,14 @@ namespace MediaMonitor.Service.Ipc
                 cfg.DvbViewerPass = parts[2];
                 cfg.Save();
 
-                // 2) ? Propagation à chaud vers l'engine (sans redémarrage)
+                // 2) ? Propagation Ã  chaud vers l'engine (sans redÃ©marrage)
                 if (Program.Engine != null)
                 {
                     Program.Engine.DvbViewerUrl  = parts[0];
                     Program.Engine.DvbViewerUser = parts[1];
                     Program.Engine.DvbViewerPass = parts[2];
 
-                    CoreLog.Write($"IPC : config DVBViewer propagée à l'engine (URL={parts[0]})");
+                    CoreLog.Write($"IPC : config DVBViewer propagÃ©e Ã  l'engine (URL={parts[0]})");
                 }
                 else
                 {
@@ -477,7 +477,7 @@ namespace MediaMonitor.Service.Ipc
 
                 Directory.CreateDirectory(folder);
 
-                string path = Path.Combine(folder, "MediaMonitor.Service.config");
+                string path = Path.Combine(folder, "MediaMonitor.config");
 
                 File.WriteAllText(path, enabled ? "EmailEnabled=true" : "EmailEnabled=false");
             }

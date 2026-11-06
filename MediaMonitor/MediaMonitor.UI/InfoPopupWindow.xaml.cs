@@ -403,7 +403,7 @@ private void LoadChannelLogo()
         string dvbUser = "";
         string dvbPass = "";
 
-        string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.Web.config";
+        string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.web.config";
 
         if (File.Exists(configPath))
         {

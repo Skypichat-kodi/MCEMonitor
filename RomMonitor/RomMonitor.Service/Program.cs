@@ -72,6 +72,7 @@ namespace RomMonitor.Service
 
             var settings = RomMonitorSettings.Load();
             CoreLog.Write($"Config : Interval={settings.Interval}min, AlertOnSmartFailure={settings.AlertOnSmartFailure}");
+            CoreLog.Write($"Web : Enabled={settings.WebEnabled}, Port={settings.WebPort}");
 
             _engine = new RomMonitorEngine(settings);
             _engine.Start();

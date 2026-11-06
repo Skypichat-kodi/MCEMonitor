@@ -1,10 +1,10 @@
-using System;
+﻿using System;
 using System.IO;
 
 namespace MediaMonitor.Service.Service
 {
     /// <summary>
-    /// Charge les configurations (Shutdown.config, MediaMonitor.Service.config).
+    /// Charge les configurations (Shutdown.config, MediaMonitor.config).
     /// </summary>
     public static class ConfigLoader
     {
@@ -47,13 +47,13 @@ namespace MediaMonitor.Service.Service
         }
 
         /// <summary>
-        /// Charge l'�tat d'activation de l'envoi d'email.
+        /// Charge l'état d'activation de l'envoi d'email.
         /// </summary>
         public static bool LoadEmailEnabled()
         {
             try
             {
-                string path = Path.Combine(ConfigFolder, "MediaMonitor.Service.config");
+                string path = Path.Combine(ConfigFolder, "MediaMonitor.config");
 
                 if (!File.Exists(path))
                     return true;

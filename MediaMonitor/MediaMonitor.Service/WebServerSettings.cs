@@ -26,7 +26,7 @@ namespace MediaMonitor.Service
 
             Directory.CreateDirectory(folder);
 
-            return Path.Combine(folder, "MediaMonitor.Web.config");
+            return Path.Combine(folder, "MediaMonitor.web.config");
         }
 
         public static WebServerSettings Load()
