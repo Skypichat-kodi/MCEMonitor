@@ -38,4 +38,14 @@
     </Content>
   </ItemGroup>
 
+  <!-- ffmpeg : attaché au Service (seul consommateur via FileAnalyzer)
+       Source : MediaMonitor.Core\ffmpeg\ (référence unique, pas de duplication)
+       Destination : ProgramData\MCEMonitor\ffmpeg\ à l'installation -->
+  <ItemGroup>
+    <Content Include="..\MediaMonitor.Core\ffmpeg\**\*">
+      <Link>ffmpeg\%(RecursiveDir)%(Filename)%(Extension)</Link>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

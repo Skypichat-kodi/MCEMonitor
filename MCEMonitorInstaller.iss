@@ -53,6 +53,12 @@ Name: "deletetasks"; \
 Name: "core";   Description: "MCEMonitor (application principale, services, tray, UI)"; Types: full
 Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MCE distants)"; Types: full
 
+[InstallDelete]
+; Nettoyage des vestiges d'anciennes versions
+; ffmpeg était installé dans Program Files avant la version <nouvelle>.
+; Il est maintenant uniquement dans ProgramData.
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\ffmpeg"
+
 [Files]
 Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
 
