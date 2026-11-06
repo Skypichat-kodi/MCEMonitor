@@ -286,6 +286,36 @@ en.RAMError=MCEMonitor requires at least 8 GB of RAM.%nDetected RAM: %1 GB.%n%nS
 
 [Code]
 // ============================================================
+//  Attend que la clé de registre WinDivert ait disparu
+//  (ou timeout après ~10 secondes)
+// ============================================================
+function WaitForWinDivertCleanup(MaxWaitMs: Integer): Boolean;
+var
+  Elapsed: Integer;
+begin
+  Result := False;
+  Elapsed := 0;
+
+  while Elapsed < MaxWaitMs do
+  begin
+    // RegKeyExists vérifie l'existence de la CLÉ (pas d'une valeur)
+    if RegKeyExists(HKEY_LOCAL_MACHINE, 'SYSTEM\CurrentControlSet\Services\WinDivert') then
+    begin
+      Sleep(500);
+      Elapsed := Elapsed + 500;
+      Log('WaitForWinDivertCleanup : clé encore présente (' + IntToStr(Elapsed) + ' ms)');
+    end
+    else
+    begin
+      Log('WaitForWinDivertCleanup : clé supprimée après ' + IntToStr(Elapsed) + ' ms');
+      Result := True;
+      Exit;
+    end;
+  end;
+
+  Log('WaitForWinDivertCleanup : timeout après ' + IntToStr(MaxWaitMs) + ' ms');
+end;
+// ============================================================
 //  Détection du pilote PawnIO (version fiable)
 //  Vérifie la clé de registre de désinstallation — méthode
 //  utilisée par LibreHardwareMonitor lui-même.
@@ -389,6 +419,9 @@ begin
   Log('=== Exécution du script d''arrêt (batch) ===');
   Exec(BatchFile, '', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Log('=== Script terminé (code ' + IntToStr(ResultCode) + ') ===');
+  
+    // ⚡ Attendre que Windows finalise la suppression de WinDivert
+  WaitForWinDivertCleanup(10000);   // jusqu'à 10 secondes
 
   Sleep(3000);
 end;

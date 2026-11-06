@@ -14,6 +14,81 @@ namespace NetMonitor.Service
         private static NetMonitorEngine    _engine        = null!;       
         private static ServiceIpcServer?   _ipc;                         
         private static MiniHttpServer?     _webServer;                  
+
+        /// <summary>
+        /// Nettoie un éventuel service WinDivert orphelin avant le démarrage du moteur.
+        /// Corrige l'erreur 1058 sur les machines où une clé de registre
+        /// "Start=4" (DISABLED) est restée après une désinstallation incomplète.
+        /// </summary>
+        private static void EnsureWinDivertClean()
+        {
+            try
+            {
+                // -- 1. Vérifier si la clé de registre existe encore --
+                bool serviceExists = false;
+                try
+                {
+                    using var regKey = Microsoft.Win32.Registry.LocalMachine
+                        .OpenSubKey(@"SYSTEM\CurrentControlSet\Services\WinDivert");
+
+                    serviceExists = regKey != null;
+                }
+                catch { /* ignore */ }
+
+                if (!serviceExists)
+                {
+                    CoreLog.Write("[WINDIVERT] Aucun service orphelin détecté");
+                    return;
+                }
+
+                CoreLog.Write("[WINDIVERT] Service orphelin détecté ? nettoyage");
+
+                // -- 2. Tenter sc delete (ignorera l'erreur si déjà supprimé) --
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo("sc", "delete WinDivert")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false,
+                        RedirectStandardOutput = true,
+                        RedirectStandardError = true
+                    };
+                    using var proc = System.Diagnostics.Process.Start(psi);
+                    proc?.WaitForExit(3000);
+                }
+                catch { /* ignore */ }
+
+                // -- 3. Attendre que Windows finalise (crucial) --
+                Thread.Sleep(1500);
+
+                // -- 4. Vérifier que la clé a bien disparu --
+                try
+                {
+                    using var regKey = Microsoft.Win32.Registry.LocalMachine
+                        .OpenSubKey(@"SYSTEM\CurrentControlSet\Services\WinDivert");
+
+                    if (regKey != null)
+                    {
+                        // La clé existe toujours ? suppression directe en dernier recours
+                        CoreLog.Write("[WINDIVERT] Clé de registre persistante ? suppression directe");
+                        Microsoft.Win32.Registry.LocalMachine.DeleteSubKeyTree(
+                            @"SYSTEM\CurrentControlSet\Services\WinDivert",
+                            throwOnMissingSubKey: false);
+                        Thread.Sleep(500);
+                    }
+
+                    CoreLog.Write("[WINDIVERT] Nettoyage terminé");
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Write("[WINDIVERT] Erreur suppression registre : " + ex.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("[WINDIVERT] Erreur EnsureWinDivertClean : " + ex.Message);
+            }
+        }
         
         static void Main(string[] args)
         {
@@ -81,6 +156,9 @@ namespace NetMonitor.Service
             _engine.LoadBlockedIpRetries();
             _engine.LoadHistory();
             _engine.LoadAudit();
+            
+            EnsureWinDivertClean();
+            
             _engine.Start();
 
             CoreLog.Write($"Scanners whitelistés : {string.Join(", ", settings.ScannerPatterns)}");
