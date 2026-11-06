@@ -926,15 +926,43 @@ namespace MCEMonitorClient.Tray
 
                 if (media.EventType == "started" || media.EventType == "stopped")
                 {
-                    string title = media.EventType == "started"
-                        ? $"{media.ServerName} - Lecture en cours"
-                        : $"{media.ServerName} - Lecture terminée";
+                    bool isRecording = IsRecordingType(media.MediaType);
+                    bool isStarted   = media.EventType == "started";
 
+                    string title;
                     string info = "";
-                    if (!string.IsNullOrEmpty(media.Client)) info += $"Depuis : {media.Client}\n";
-                    info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
-                    if (media.Saison > 0 || media.Episode > 0)
-                        info += $"  ({media.Saison:00}x{media.Episode:00})";
+
+                    if (isRecording)
+                    {
+                        // ─── Enregistrement DVBViewer ───
+                        title = isStarted
+                            ? $"{media.ServerName} - Enregistrement démarré"
+                            : $"{media.ServerName} - Enregistrement terminé";
+
+                        // Corps : titre de l'émission + chaîne éventuelle + saison/épisode
+                        if (!string.IsNullOrEmpty(media.Title))
+                            info += media.Title;
+                        else
+                            info += "(enregistrement)";
+
+                        if (!string.IsNullOrEmpty(media.Client))
+                            info += $"\nDepuis : {media.Client}";
+
+                        if (media.Saison > 0 || media.Episode > 0)
+                            info += $"  ({media.Saison:00}x{media.Episode:00})";
+                    }
+                    else
+                    {
+                        // ─── Lecture classique (audio/video/tv/image) ───
+                        title = isStarted
+                            ? $"{media.ServerName} - Lecture en cours"
+                            : $"{media.ServerName} - Lecture terminée";
+
+                        if (!string.IsNullOrEmpty(media.Client)) info += $"Depuis : {media.Client}\n";
+                        info += string.IsNullOrEmpty(media.Title) ? media.MediaType : media.Title;
+                        if (media.Saison > 0 || media.Episode > 0)
+                            info += $"  ({media.Saison:00}x{media.Episode:00})";
+                    }
 
                     ToastHelper.Show(title, info, iconFile, media.BaseUrl);
                 }
@@ -948,14 +976,14 @@ namespace MCEMonitorClient.Tray
         private static string GetMediaIcon(string? mediaType, string eventType)
         {
             string t = (mediaType ?? "").Trim().ToLowerInvariant();
-
-            // --- Cas particulier : enregistrement ? icône fixe "dot-red.png" ---
-            // (indépendant de started/stopped : c'est le point rouge d'enregistrement)
-            if (t == "rec" || t == "recording" || t == "enregistrement")
-                return "dot-red.png";
-
             bool isStop = eventType == "stopped";
-            string prefix = isStop ? "stop-" : "play-";
+
+            // Enregistrement DVBViewer
+            if (IsRecordingType(t))
+                return isStop ? "dvbviewer-stop.png" : "dvbviewer-rec.png";
+
+            // Lecture classique
+            string prefix   = isStop ? "stop-" : "play-";
             string fallback = isStop ? "stop.png" : "play.png";
 
             string suffix = t switch
@@ -976,6 +1004,12 @@ namespace MCEMonitorClient.Tray
             return t == "audio" || t == "music" || t == "musique";
         }
 
+        private static bool IsRecordingType(string? mediaType)
+        {
+            string t = (mediaType ?? "").Trim().ToLowerInvariant();
+            return t == "rec" || t == "recording" || t == "enregistrement" || t == "dvbviewer";
+        }
+        
         // ============================================================
         //  Classification des problèmes (utilisée par ShowNotification
         //  et par GetAlertIcon — étape 6)
