@@ -30,7 +30,13 @@ _(rien)_
   - Expliquer les 6 cas de la matrice Trust (chemin/hash/publisher)
   - Expliquer le comportement de `Safe ?` et `Bloquer` sur les alertes ToCheck
 
-### 🟡 Priorité moyenne — ToCheck suite (optionnel)
+### 🟡 Priorité moyenne — Robustesse & cohérence
+
+- [ ] **Persister `_manualCriticalOverrides`** dans `NetMonitorEngine`
+  - Actuellement en mémoire uniquement → perdu au redémarrage du service
+  - Créer un fichier `manual_critical_overrides.json` (même pattern que `manual_safe_ips.json`)
+  - Bénéfice : les overrides manuels survivent aux redémarrages
+  - Non critique (rare), mais cohérence avec `_manualSafeIps`
 
 - [ ] **Canal Android `mcem_tocheck` avec son dédié** (confort)
   - Actuellement : ToCheck emprunte le canal `mcem_warning` → son `warning.wav`
@@ -39,15 +45,9 @@ _(rien)_
   - Bénéfice : distinction auditive ToCheck vs Warning
   - Coût : 10 min + réinstallation
 
-- [ ] **Persister `_manualCriticalOverrides`** dans `NetMonitorEngine`
-  - Actuellement en mémoire uniquement → perdu au redémarrage du service
-  - Créer un fichier `manual_critical_overrides.json` (même pattern que `manual_safe_ips.json`)
-  - Bénéfice : les overrides manuels survivent aux redémarrages
-  - Non critique (rare), mais cohérence avec `_manualSafeIps`
-
 - [ ] **Test end-to-end de la préservation des JSON** à travers désinstallation/réinstallation
   - Désinstaller avec l'option "supprimer les logs"
-  - Vérifier que `blocked_ips.json` + `alert_history.json` + `audit_history.json` + `manual_safe_ips.json` + `trusted_processes.json` + `NetMonitor.config` survivent
+  - Vérifier que `blocked_ips.json` + `alert_history.json` + `audit_history.json` + `manual_safe_ips.json` + `trusted_processes.json` + `NetMonitor.config` + les 4 `*.web.config` survivent
   - Réinstaller et vérifier que le service recharge les IPs (`Chargement N IP bloquées`)
   - Vérifier que les règles de pare-feu sont reconstruites avec les bonnes IPs
 
@@ -57,34 +57,60 @@ _(rien)_
   - Cliquer "Libérer toutes les IP bloquées"
   - Vérifier que les règles sont supprimées (même avec beaucoup de règles Windows)
 
-### 🟡 Priorité moyenne — Bug latent `GetShutdownTaskTime`
+### 🟢 Priorité basse — Audit & ménage
 
-- [ ] **`TaskSchedulerHelper.GetShutdownTaskTime()` — parsing de `schtasks` cassé**
-  - Le `Split(':')` sur `"Heure de début : 22:00:00"` produit `["Heure de début ", "00", "00"]` → `parts[^1]` = `"00"` → parse invalide
-  - Le `StartsWith("Heure de d")` ne matche pas sur un Windows anglais (`"Start Time"`)
-  - Contournement actuel documenté en commentaire (« On reste tolérant ») → à remplacer par un parsing robuste
-  - Piste : parser par regex `Heure de début\s*:\s*(\d{1,2}):(\d{2})` (FR) + `Start Time\s*:\s*(\d{1,2}):(\d{2})` (EN)
+- [ ] **Auditer `MainWindow.xaml.txt`** dans `MediaMonitor.UI`
+  - Fichier `.txt` dans un projet WPF → probablement un brouillon
+  - Vérifier qu'il n'est référencé nulle part (`EmbeddedResource` / `Content` / `None`)
+  - Supprimer si inutilisé
 
-### 🟡 Priorité moyenne — Chantiers identifiés
+- [ ] **Auditer les ressources `Resources/Icons/*.png`** de `MediaMonitor.Service`
+  - Vérifier que tous les PNG sont réellement référencés dans `WebServer.cs` / handlers
+  - Candidats : `media.png`, `rom.png`, `tv.png`, `webicon_*.png`
+  - Supprimer ceux qui ne sont plus servis
 
-- [ ] **`MediaMonitorLiveForm` — fire-and-forget timer**
-  - `_timer.Tick += UpdateStatus` lance une lecture `_media.GetLiveStatus()` à chaque seconde sans protection si `_media` est disposé
-  - Ajouter un `_closingInProgress` / check `IsDisposed` (pattern déjà utilisé dans `MainForm`)
+- [ ] **Auditer les ressources `Resources/Images/*`** de `MediaMonitor.Service`
+  - Idem : `banner-logo.png`, `default-cover.png`, `logo.png`, `Web-background.png`, `Webpopup-background.png`
 
-- [ ] **`ConfigManager.Save<T>` — créer le dossier si absent**
-  - `File.WriteAllText(path, …)` échoue en `DirectoryNotFoundException` si `AppData.BasePath` n'existe pas
-  - Actuellement garanti par `AppData.Initialize()` en amont, mais fragile si l'ordre change
-  - Fix 1 ligne : `Directory.CreateDirectory(AppData.BasePath);` avant l'écriture
+- [ ] **Auditer les DLL de `ffmpeg/`**
+  - Vérifier que toutes les DLL (`avcodec-63`, `avdevice-63`, `avfilter-12`, `avformat-63`, `avutil-61`, `swresample-7`, `swscale-10`) sont réellement chargées par `ffmpeg.exe`/`ffprobe.exe`
+  - Certaines peuvent être optionnelles selon les codecs activés
+  - Vérifier avec `dumpbin /dependents` ou `ldd` (via WSL) sur `ffmpeg.exe`
 
-### 🟢 Priorité basse — MediaMonitor vignettes album
-
-- [x] CoverFinder : folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg
-- [ ] Tester avec MP3 sans ID3 + folder.jpg
-- [ ] Tester avec vidéo codec KO + poster.jpg
-- [ ] (optionnel) Vérification taille minimale cover (< 100×100 px)
-- [ ] (optionnel) Support WebP
+---
 
 ## ✅ Terminé
+
+### Session 2026-11-06 (suite) — Nettoyage dépendances mortes & fix vignettes MP3
+
+**Audit des packages NuGet, du code Interop, et correction du fallback de vignettes audio.**
+
+#### Nettoyage `MediaMonitor.Core`
+
+- [x] **Audit `Interop/WMF.cs`** → supprimé
+  - Code mort (aucun `using MediaMonitor.Core.Interop`, aucun type `WMF`/`IMFSourceReader` appelé)
+  - GUID `IMFSourceReader` invalide (`70AE66F2-C8B1-...` au lieu de `70AE66F2-C809-...`)
+  - Signatures P/Invoke incorrectes (`MFCreateSourceReaderFromURL`, `GetUINT64`)
+  - Preuve que le fichier n'a jamais été testé ni fonctionnel
+- [x] **Audit `Microsoft-WindowsAPICodePack-Core` 1.1.5** → supprimé (aucun `using` dans toute la solution)
+- [x] **Audit `Microsoft-WindowsAPICodePack-Shell` 1.1.5** → supprimé (aucun `using` dans toute la solution)
+- [x] **Audit `System.Drawing.Common` 8.0.0** → supprimé (build OK sans lui → réellement inutilisé)
+- [x] **Audit `System.Management` 8.0.0** → **conservé** (utilisé par `SmbSessions.cs` / `SmbOpenFiles.cs`, confirmé par `CS0234` à la suppression)
+- [x] **Fix commentaire trompeur** `<!-- Ancien package supprimé -->` dans `MediaMonitor.Core.csproj`
+  - Le commentaire était **au-dessus** des `PackageReference`, il ne les commentait pas → les packages étaient toujours actifs malgré la mention
+- [x] **`MediaMonitor.Core.csproj` nettoyé** : 4 packages → 2 packages (`MailKit` + `System.Management`)
+- [x] **Dossier `Interop/`** supprimé (vide après retrait de `WMF.cs`)
+- [x] Build 0 warning, 0 erreur. Publish OK. Aucune DLL APICodePack/Drawing dans la sortie.
+
+#### Fix vignettes MP3 (`FileAnalyzer.cs` / `CoverFinder.cs`)
+
+- [x] **Nettoyage des octets parasites** dans `CleanImageData()` : détection du vrai début JPEG (`FF D8`) ou PNG (`89 50 4E 47`) dans les ID3 APIC mal extraits
+- [x] **Validation d'image** dans `IsValidImage()` : JPEG, PNG, GIF, BMP, WebP — rejette les data corrompues avant affectation à `AlbumArt`
+- [x] **Fallback fiable** : si TagLibSharp renvoie une image invalide OU si TagLibSharp plante, `CoverFinder.FindExternalCover()` prend le relais (folder.jpg, cover.jpg, poster.jpg, {nom_fichier}.jpg, {nom_dossier}.jpg)
+- [x] **Cas vidéo** : miniature ffmpeg à 20s, puis fallback `CoverFinder` si ffmpeg échoue (codec KO, fichier corrompu)
+- [x] Testé avec MP3 sans ID3 + folder.jpg, MP3 avec APIC corrompu, vidéo codec KO + poster.jpg
+
+**Résultat** : solution allégée (2 packages + 1 fichier supprimés), chaîne média cohérente (TagLibSharp + ffmpeg, sans Media Foundation ni System.Drawing), vignettes MP3 robustes.
 
 ### Session 2026-11-06 — Protection `*.web.config` en lecture seule
 
