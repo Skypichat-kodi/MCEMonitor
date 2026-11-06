@@ -5,10 +5,10 @@
 
 [Setup]
 #ifndef MyAppVersion
-  #define MyAppVersion "1.0.0"
+  #error MyAppVersion n'est pas défini. Lancez build.bat, pas iscc.exe directement.
 #endif
-AppName=MCEMonitor
 AppVersion={#MyAppVersion}
+AppName=MCEMonitor
 UninstallDisplayName=MCEMonitor {#MyAppVersion}
 OutputBaseFilename=MCEMonitorSetup-{#MyAppVersion}
 DefaultDirName={autopf}\MCEMonitor
@@ -433,15 +433,24 @@ begin
     begin
       // ── 1) Liste des fichiers de configuration à conserver ──
       ConfigFiles := [
+          // ── Configs principales ──
           'email.config',
           'MCEMonitorClient.config',
-          'MediaMonitor.Web.config',
+          'MediaMonitor.config',
           'NetMonitor.config',
           'RomMonitor.config',
           'Shutdown.config',
           'SystemMonitor.config',
           'theme.config',
           'WakeMonitor.config',
+
+          // ── Configs Web (*.web.config) ──
+          'MediaMonitor.web.config',
+          'NetMonitor.web.config',
+          'RomMonitor.web.config',
+          'SystemMonitor.web.config',
+
+          // ── Données NetMonitor ──
           'NetMonitor\blocked_ips.json',
           'NetMonitor\alert_history.json',
           'NetMonitor\audit_history.json',
