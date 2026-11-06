@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -10,61 +10,62 @@ using System.Threading.Tasks;
 namespace RomMonitor.UI
 {
     // ============================================================
-    //  Modèles de réponse
+    //  ModÃ¨les de rÃ©ponse
     // ============================================================
 
     public class RomStatus
     {
-        public DateTime lastCheck { get; set; }
-        public int diskCount { get; set; }
-        public int smartCount { get; set; }
-        public int alertCount { get; set; }
-        public int interval { get; set; }
-        public bool alertOnSmartFailure { get; set; }
+        public DateTime lastCheck           { get; set; }
+        public int diskCount                { get; set; }
+        public int smartCount               { get; set; }
+        public int alertCount               { get; set; }
+        public int interval                 { get; set; }
+        public bool alertOnSmartFailure     { get; set; }
     }
 
     public class RomDisk
     {
-        public string name { get; set; } = "";
-        public string label { get; set; } = "";
-        public string driveType { get; set; } = "";
-        public double totalGo { get; set; }
-        public double freeGo { get; set; }
-        public double freePercent { get; set; }
-        public string physicalSerial { get; set; } = "";
-        public int? physicalDiskNumber { get; set; }
-        public double physicalSizeGo { get; set; }    
+        public string name                  { get; set; } = "";
+        public string label                 { get; set; } = "";
+        public string driveType             { get; set; } = "";
+        public double totalGo               { get; set; }
+        public double freeGo                { get; set; }
+        public double freePercent           { get; set; }
+        public string physicalSerial        { get; set; } = "";
+        public int? physicalDiskNumber      { get; set; }
+        public double physicalSizeGo        { get; set; }    
     }
 
     public class RomSmart
     {
-        public string device { get; set; } = "";
-        public string model { get; set; } = "";
-        public string serial { get; set; } = "";
-        public string type { get; set; } = "";
-        public string status { get; set; } = "";
-        public string statusReason { get; set; } = "";
-        public int? temperature { get; set; }
-        public int? powerOnHours { get; set; }
-        public bool passed { get; set; }
-        public double capacityGo { get; set; }    // ??
+        public string device                { get; set; } = "";
+        public string model                 { get; set; } = "";
+        public string serial                { get; set; } = "";
+        public string type                  { get; set; } = "";
+        public string status                { get; set; } = "";
+        public string statusReason          { get; set; } = "";
+        public int? temperature             { get; set; }
+        public int? powerOnHours            { get; set; }
+        public bool passed                  { get; set; }
+        public double capacityGo            { get; set; }    // ??
     }
 
     public class RomAlert
     {
-        public DateTime timestamp { get; set; }
-        public string type { get; set; } = "";
-        public string severity { get; set; } = "";
-        public string target { get; set; } = "";
-        public string message { get; set; } = "";
-        public bool emailSent { get; set; }
+        public DateTime timestamp           { get; set; }
+        public string type                  { get; set; } = "";
+        public string severity              { get; set; } = "";
+        public string target                { get; set; } = "";
+        public string message               { get; set; } = "";
+        public bool emailSent               { get; set; }
     }
 
     public class RomWebStatus
     {
-        public bool enabled { get; set; }
-        public int port { get; set; }
-        public string username { get; set; } = "";
+        public bool enabled                 { get; set; }
+        public int port                     { get; set; }
+        public string username              { get; set; } = "";
+        public string password              { get; set; } = "";
     }
     
     // ============================================================

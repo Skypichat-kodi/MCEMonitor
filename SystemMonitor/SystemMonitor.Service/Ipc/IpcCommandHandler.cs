@@ -197,7 +197,8 @@ namespace SystemMonitor.Service.Ipc
             {
                 enabled = _settings.WebEnabled,
                 port = _settings.WebPort,
-                username = _settings.WebUsername
+                username = _settings.WebUsername,
+                password = _settings.WebPassword
             });
         }
 

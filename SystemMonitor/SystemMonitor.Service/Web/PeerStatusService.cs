@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -27,13 +27,13 @@ namespace SystemMonitor.Service.Web
 
         private static readonly PeerDef[] AllPeers = new[]
         {
-            new PeerDef("SystemMonitor", "SystemMonitor.config",
+            new PeerDef("SystemMonitor", "SystemMonitor.web.config",
                 new[] { "WebEnabled", "Enabled" },
                 new[] { "WebPort",    "Port" },
                 new[] { "WebUsername","Username" },
                 new[] { "WebPassword","Password" }),
 
-            new PeerDef("RomMonitor", "RomMonitor.config",
+            new PeerDef("RomMonitor", "RomMonitor.web.config",
                 new[] { "WebEnabled", "Enabled" },
                 new[] { "WebPort",    "Port" },
                 new[] { "WebUsername","Username" },
@@ -160,7 +160,7 @@ namespace SystemMonitor.Service.Web
         }
         
         // ============================================================
-        //  Cache en arrière-plan
+        //  Cache en arriÃ¨re-plan
         // ============================================================
         private static List<PeerStatus> _cachedPeers = new();
         private static readonly object _cacheLock = new();
@@ -171,7 +171,7 @@ namespace SystemMonitor.Service.Web
         {
             _selfName = selfName;
 
-            // Premier refresh immédiat
+            // Premier refresh immÃ©diat
             _ = RefreshCacheAsync();
 
             // Puis toutes les 10 s
@@ -220,10 +220,10 @@ namespace SystemMonitor.Service.Web
                 string extraBtn = isDisabled ? "disabled" : (isOnline ? "" : "offline");
 
                 string tooltip = isDisabled
-                    ? $"{p.Name} — désactivé"
+                    ? $"{p.Name} â€” dÃ©sactivÃ©"
                     : isOnline
-                        ? $"{p.Name} — en ligne ({p.ResponseMs} ms)"
-                        : $"{p.Name} — hors ligne";
+                        ? $"{p.Name} â€” en ligne ({p.ResponseMs} ms)"
+                        : $"{p.Name} â€” hors ligne";
 
                 string inner = $@"<span class=""peer-dot {dotClass}""></span><span class=""peer-name"">{p.Name}</span>";
 

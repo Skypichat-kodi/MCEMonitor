@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Pipes;
@@ -10,121 +10,122 @@ using System.Threading.Tasks;
 namespace SystemMonitor.UI
 {
     // ============================================================
-    //  Modèles de réponse
+    //  ModÃ¨les de rÃ©ponse
     // ============================================================
 
     public class SysStatus
     {
-        public bool running { get; set; }
-        public DateTime lastUpdate { get; set; }
-        public int interval { get; set; }
-        public double cpuUsage { get; set; }
-        public double? cpuTemp { get; set; }
-        public double ramUsage { get; set; }
-        public int gpuCount { get; set; }
+        public bool running         { get; set; }
+        public DateTime lastUpdate  { get; set; }
+        public int interval         { get; set; }
+        public double cpuUsage      { get; set; }
+        public double? cpuTemp      { get; set; }
+        public double ramUsage      { get; set; }
+        public int gpuCount         { get; set; }
     }
 
     public class SysCpu
     {
-        public string name { get; set; } = "";
-        public double usagePercent { get; set; }
-        public double? temperature { get; set; }
-        public double? frequencyMHz { get; set; }
-        public double? maxFrequencyMHz { get; set; }
-        public List<SysCpuCore> cores { get; set; } = new();
+        public string name              { get; set; } = "";
+        public double usagePercent      { get; set; }
+        public double? temperature      { get; set; }
+        public double? frequencyMHz     { get; set; }
+        public double? maxFrequencyMHz  { get; set; }
+        public List<SysCpuCore> cores   { get; set; } = new();
     }
 
     public class SysCpuCore
     {
-        public string name { get; set; } = "";
-        public double usagePercent { get; set; }
+        public string name          { get; set; } = "";
+        public double usagePercent  { get; set; }
     }
 
     public class SysGpu
     {
-        public string name { get; set; } = "";
-        public double usagePercent { get; set; }
-        public double? temperature { get; set; }
-        public double? vramUsedMB { get; set; }
-        public double? vramTotalMB { get; set; }
+        public string name          { get; set; } = "";
+        public double usagePercent  { get; set; }
+        public double? temperature  { get; set; }
+        public double? vramUsedMB   { get; set; }
+        public double? vramTotalMB  { get; set; }
     }
 
     public class SysRam
     {
-        public double totalGB { get; set; }
-        public double usedGB { get; set; }
-        public double freeGB { get; set; }
-        public double usagePercent { get; set; }
+        public double totalGB       { get; set; }
+        public double usedGB        { get; set; }
+        public double freeGB        { get; set; }
+        public double usagePercent  { get; set; }
     }
 
     public class SysNetwork
     {
-        public string name { get; set; } = "";
-        public double downloadKBps { get; set; }
-        public double uploadKBps { get; set; }
+        public string name          { get; set; } = "";
+        public double downloadKBps  { get; set; }
+        public double uploadKBps    { get; set; }
     }
 
     public class SysConfig
     {
-        public int interval { get; set; }
-        public bool alertOnHighCpu { get; set; }
-        public int cpuThresholdPercent { get; set; }
-        public int cpuCooldownMinutes { get; set; }
-        public bool alertOnHighRam { get; set; }
-        public int ramThresholdPercent { get; set; }
-        public bool alertOnHighTemp { get; set; }
-        public int tempThresholdCelsius { get; set; }
-        public bool alertOnHighGpuTemp { get; set; }
-        public int gpuTempThresholdCelsius { get; set; }        
+        public int interval                 { get; set; }
+        public bool alertOnHighCpu          { get; set; }
+        public int cpuThresholdPercent      { get; set; }
+        public int cpuCooldownMinutes       { get; set; }
+        public bool alertOnHighRam          { get; set; }
+        public int ramThresholdPercent      { get; set; }
+        public bool alertOnHighTemp         { get; set; }
+        public int tempThresholdCelsius     { get; set; }
+        public bool alertOnHighGpuTemp      { get; set; }
+        public int gpuTempThresholdCelsius  { get; set; }        
     }
 
     public class SysWebStatus
     {
-        public bool enabled { get; set; }
-        public int port { get; set; }
-        public string username { get; set; } = "";
+        public bool enabled         { get; set; }
+        public int port             { get; set; }
+        public string username      { get; set; } = "";
+        public string password      { get; set; } = "";
     }
 
     public class SysSnapshot
     {
-        public DateTime timestamp { get; set; }
-        public SysCpu cpu { get; set; } = new();
-        public List<SysGpu> gpus { get; set; } = new();
-        public SysRam ram { get; set; } = new();
-        public List<SysNetwork> networks { get; set; } = new();
+        public DateTime timestamp           { get; set; }
+        public SysCpu cpu                   { get; set; } = new();
+        public List<SysGpu> gpus            { get; set; } = new();
+        public SysRam ram                   { get; set; } = new();
+        public List<SysNetwork> networks    { get; set; } = new();
     }
 
     public class SysAlert
     {
-        public DateTime timestamp { get; set; }
-        public string type { get; set; } = "";
-        public string severity { get; set; } = "";
-        public string target { get; set; } = "";
-        public string message { get; set; } = "";
-        public bool emailSent { get; set; }
+        public DateTime timestamp   { get; set; }
+        public string type          { get; set; } = "";
+        public string severity      { get; set; } = "";
+        public string target        { get; set; } = "";
+        public string message       { get; set; } = "";
+        public bool emailSent       { get; set; }
     }
 
     public class SysHistoryPoint
     {
-        public DateTime timestamp { get; set; }
-        public double cpuUsage { get; set; }
-        public double ramUsage { get; set; }
-        public double? cpuTemp { get; set; }
-        public double? gpuUsage { get; set; }
-        public double? gpuTemp { get; set; }
+        public DateTime timestamp   { get; set; }
+        public double cpuUsage      { get; set; }
+        public double ramUsage      { get; set; }
+        public double? cpuTemp      { get; set; }
+        public double? gpuUsage     { get; set; }
+        public double? gpuTemp      { get; set; }
     }
 
     public class SysBsod
     {
-        public DateTime timestamp { get; set; }
-        public string bugCheckCode { get; set; } = "";
-        public string bugCheckName { get; set; } = "";
-        public string parameters { get; set; } = "";
-        public string dumpPath { get; set; } = "";
-        public bool dumpExists { get; set; }
-        public string source { get; set; } = "";
-        public string faultyModule { get; set; } = "";  
-        public string faultAddress { get; set; } = "";
+        public DateTime timestamp   { get; set; }
+        public string bugCheckCode  { get; set; } = "";
+        public string bugCheckName  { get; set; } = "";
+        public string parameters    { get; set; } = "";
+        public string dumpPath      { get; set; } = "";
+        public bool dumpExists      { get; set; }
+        public string source        { get; set; } = "";
+        public string faultyModule  { get; set; } = "";  
+        public string faultAddress  { get; set; } = "";
     }
             
     // ============================================================
@@ -136,7 +137,7 @@ namespace SystemMonitor.UI
         private const string PIPE_NAME = "MCEMonitor_SystemMonitorPipe";
         private const int GLOBAL_TIMEOUT_MS = 3000;
 
-        // Passer à true pour activer les logs de debug
+        // Passer Ã  true pour activer les logs de debug
         private static readonly bool EnableDebugLog = false;
 
         private static void LogDebug(string message)

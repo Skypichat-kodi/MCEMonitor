@@ -460,26 +460,33 @@ namespace SystemMonitor.UI
                 txtWebPort.Text = status.port.ToString();
                 txtWebLogin.Text = status.username;
 
-                // Mot de passe : lu depuis le fichier config local
-                string configPath = Path.Combine(
-                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor",
-                    "SystemMonitor.config"
-                );
+                // Mot de passe : priorité à la valeur IPC (si le service l'envoie),
+                // sinon fallback sur le fichier *.web.config
+                string pass = status.password ?? "";
 
-                if (File.Exists(configPath))
+                if (string.IsNullOrEmpty(pass))
                 {
-                    foreach (var line in File.ReadAllLines(configPath))
+                    string webConfigPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "MCEMonitor",
+                        "SystemMonitor.web.config"
+                    );
+
+                    if (File.Exists(webConfigPath))
                     {
-                        if (line.StartsWith("WebPassword=", StringComparison.OrdinalIgnoreCase))
+                        foreach (var line in File.ReadAllLines(webConfigPath))
                         {
-                            string pass = line.Split('=', 2)[1].Trim();
-                            txtWebPassword.Password = pass;
-                            txtWebPasswordVisible.Text = pass;
-                            break;
+                            if (line.StartsWith("WebPassword=", StringComparison.OrdinalIgnoreCase))
+                            {
+                                pass = line.Split('=', 2)[1].Trim();
+                                break;
+                            }
                         }
                     }
                 }
+
+                txtWebPassword.Password = pass;
+                txtWebPasswordVisible.Text = pass;
             }
             catch { }
             finally
