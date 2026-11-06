@@ -101,7 +101,13 @@ _(rien)_
 - [ ] **Re-tester 5-6 MP3 variés** après le fix vignettes (validation croisée)
   - APIC JPEG valide / APIC PNG / APIC corrompu / sans APIC + folder.jpg / sans rien / APIC + folder.jpg
 
-- [ ] **Centraliser les ressources** dans `MCEMonitor.Shared` (gros chantier)
+- [ ] **Ajouter les exclusions Defender** sur la machine W10 Q9550
+  - `Add-MpPreference -ExclusionPath "C:\ProgramData\MCEMonitor"`
+  - `Add-MpPreference -ExclusionProcess "NetMonitor.Service.exe"`
+  - `Add-MpPreference -ExclusionExtension ".sys"`
+  - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
+
+- [ ] **Centraliser les ressources** dans `MCEMonitor.Shared` (gros chantier, optionnel)
   - ~15 icônes × 10 projets, 5 `.ico` × 3 copies, 2 `.wav` × 3 projets
   - Optionnel — gain de maintenance à long terme
 
@@ -113,57 +119,69 @@ _(rien)_
 
 ## ✅ Terminé
 
-### Session 2026-11-06 (suite 2) — Optimisation ffmpeg (-50 Mo)
+### Session 2026-11-06 — Nettoyage global + fix WinDivert 1058
 
-**Suppression de la duplication de ffmpeg entre `ProgramFiles\` et `ProgramData\`.**
-
-**Diagnostic**
-- `FileAnalyzer` (seul consommateur de ffmpeg) est appelé **uniquement** par :
-  - `MediaMonitor.Service\Ipc\IpcCommandHandler.cs` (ligne 421)
-  - `MediaMonitor.Service\Web\Handlers\InfoHandler.cs` (lignes 43, 50, 60)
-- Aucun appel dans `MediaMonitor.UI`, `MediaMonitor.Tray`, `MediaMonitor.Core` (hors déf.)
-- ffmpeg était copié 2 fois (via `MediaMonitor.Core` dans `ProgramFiles\` et via `MediaMonitor.Service` dans `ProgramData\`)
-
-**Correction (2 fichiers .csproj uniquement)**
-- [x] `MediaMonitor.Core.csproj` : retiré `<Content Include="ffmpeg\**\*">`
-- [x] `MediaMonitor.Service.csproj` : ajouté `<Content Include="..\MediaMonitor.Core\ffmpeg\**\*" Link="ffmpeg\...">`
-- [x] **Aucun changement** dans `build.bat` (le publish transitif de `MediaMonitor.Core.dll` continue de fonctionner)
-- [x] **Aucun changement** dans `FileAnalyzer.cs` (`AppContext.BaseDirectory` reste correct)
-
-**Vérifications validées**
-- [x] `ProgramData\ffmpeg\` existe
-- [x] `ProgramFiles\ffmpeg\` n'existe plus
-- [x] `ProgramFiles\MediaMonitor.Core.dll` existe toujours (publish transitif)
-- [x] Build 0 warning, 0 erreur
-- [x] Installeur **-50 Mo**
-- [x] Miniatures UI (popups média) fonctionnent
-- [x] Miniatures Web (tuiles média) fonctionnent
-- [x] Popup DVBViewer (logo chaîne) fonctionne
-
-**Résultat** : ~50 Mo économisés dans l'installeur et sur le disque utilisateur, sans aucune régression.
-
-### Session 2026-11-06 (suite) — Nettoyage dépendances mortes & fix vignettes MP3
-
-**Audit des packages NuGet, du code Interop, et correction du fallback de vignettes audio.**
+**Audit des packages NuGet, du code Interop, correction du fallback de vignettes audio, et fix d'un bug WinDivert sur W10.**
 
 #### Nettoyage `MediaMonitor.Core`
 
 - [x] **Audit `Interop/WMF.cs`** → supprimé
   - Code mort (aucun `using MediaMonitor.Core.Interop`, aucun type `WMF`/`IMFSourceReader` appelé)
-  - GUID `IMFSourceReader` invalide + signatures P/Invoke incorrectes → fichier jamais testé ni fonctionnel
-- [x] **Audit `Microsoft-WindowsAPICodePack-Core` 1.1.5** → supprimé (aucun `using` dans toute la solution)
-- [x] **Audit `Microsoft-WindowsAPICodePack-Shell` 1.1.5** → supprimé (aucun `using` dans toute la solution)
-- [x] **Audit `System.Drawing.Common` 8.0.0** → supprimé (build OK sans lui → réellement inutilisé)
+  - GUID `IMFSourceReader` invalide (`70AE66F2-C8B1-...` au lieu de `70AE66F2-C809-...`)
+  - Signatures P/Invoke incorrectes (`MFCreateSourceReaderFromURL`, `GetUINT64`)
+- [x] **Audit `Microsoft-WindowsAPICodePack-Core` 1.1.5** → supprimé (aucun `using`)
+- [x] **Audit `Microsoft-WindowsAPICodePack-Shell` 1.1.5** → supprimé (aucun `using`)
+- [x] **Audit `System.Drawing.Common` 8.0.0** → supprimé (build OK sans lui)
 - [x] **Audit `System.Management` 8.0.0** → **conservé** (utilisé par `SmbSessions.cs` / `SmbOpenFiles.cs`)
 - [x] **Fix commentaire trompeur** `<!-- Ancien package supprimé -->` dans `MediaMonitor.Core.csproj`
-  - Le commentaire était au-dessus des `PackageReference`, il ne les commentait pas
 - [x] **`MediaMonitor.Core.csproj` nettoyé** : 4 packages → 2 (`MailKit` + `System.Management`)
 - [x] Dossier `Interop/` supprimé (vide après retrait de `WMF.cs`)
 - [x] Build 0 warning, 0 erreur. Publish OK. Aucune DLL APICodePack/Drawing dans la sortie.
 
-#### Fix vignettes MP3
+#### Fix vignettes MP3 (`FileAnalyzer.cs`)
 
-- [x] **`CleanImageData()`** : détection du vrai début JPEG (`FF D8`) ou PNG (`89 50 4E 47`)
+- [x] **`CleanImageData()`** : détection du vrai début JPEG (`FF D8`) ou PNG (`89 50 4E 47`) dans les ID3 APIC mal extraits
 - [x] **`IsValidImage()`** : validation JPEG, PNG, GIF, BMP, WebP
 - [x] **Fallback fiable** : si TagLibSharp plante ou renvoie une image invalide → `CoverFinder.FindExternalCover()`
 - [x] Testé avec MP3 sans ID3 + folder.jpg, MP3 avec APIC corrompu, vidéo codec KO + poster.jpg
+
+#### Optimisation ffmpeg (-50 Mo)
+
+- [x] **Diagnostic** : `FileAnalyzer` (seul consommateur de ffmpeg) est appelé **uniquement** par :
+  - `MediaMonitor.Service\Ipc\IpcCommandHandler.cs` (ligne 421)
+  - `MediaMonitor.Service\Web\Handlers\InfoHandler.cs` (lignes 43, 50, 60)
+  - Aucun appel dans `MediaMonitor.UI`, `MediaMonitor.Tray`, `MediaMonitor.Core`
+- [x] **`MediaMonitor.Core.csproj`** : retiré `<Content Include="ffmpeg\**\*">`
+- [x] **`MediaMonitor.Service.csproj`** : ajouté `<Content Include="..\MediaMonitor.Core\ffmpeg\**\*" Link="ffmpeg\...">`
+- [x] **`MCEMonitorInstaller.iss`** : ajouté `[InstallDelete]` pour `{autopf}\MCEMonitor\ffmpeg`
+- [x] **Aucun changement** dans `build.bat` (publish transitif OK)
+- [x] **Aucun changement** dans `FileAnalyzer.cs` (`AppContext.BaseDirectory` correct)
+- [x] **Vérifications validées** :
+  - `ProgramData\ffmpeg\` existe (utilisé par le service)
+  - `ProgramFiles\ffmpeg\` n'existe plus
+  - `ProgramFiles\MediaMonitor.Core.dll` existe toujours
+  - Test par renommage `ProgramFiles\ffmpeg` → `ffmpeg_OLD` : tout fonctionne
+  - Installeur **-50 Mo**
+
+#### Fix WinDivert 1058 (W10)
+
+- [x] **Diagnostic** : clé orpheline `HKLM\SYSTEM\CurrentControlSet\Services\WinDivert` avec `Start=0x4` (DISABLED) laissée par `sc delete` non finalisé
+- [x] **Cause** : handle retenu par **SmartScreen** sur `WinDivert64.sys` (machine Q9550 lente)
+- [x] **Nettoyage manuel** sur W10 : `reg delete "HKLM\SYSTEM\CurrentControlSet\Services\WinDivert" /f`
+- [x] **`NetMonitor.Service\Program.cs`** : `EnsureWinDivertClean()` appelé avant `_engine.Start()`
+  - Détecte la clé orpheline via `Registry.LocalMachine.OpenSubKey`
+  - `sc delete` + `Thread.Sleep(1500)`
+  - Suppression directe via `DeleteSubKeyTree` si la clé persiste
+- [x] **`MCEMonitorInstaller.iss`** : `WaitForWinDivertCleanup(10000)` dans `[Code]` avec `RegKeyExists` (boucle 500 ms)
+- [x] **`sc query WinDivert` vide** et `Start=0x4` → comportement **normal** de WinDivert au repos
+- [x] **Vérifications validées** :
+  - Plus d'erreur 1058 dans les logs
+  - `WinDivert : capture démarrée avec le filtre 'ip'`
+  - `Session ETW démarrée (NetworkTCPIP)`
+  - `ImagePath` = `C:\ProgramData\MCEMonitor\runtimes\win-x64\native\WinDivert64.sys`
+  - Fonctionne **sans reboot** sur Q9550/W10 comme sur Ryzen 7/32 Go
+
+**Résultat global** : ~50 Mo économisés, 1 fichier de code mort supprimé, 3 packages obsolètes retirés, 3 bugs corrigés (vignettes MP3, WinDivert 1058, dépendances mortes), 0 régression sur 2 machines.
+
+### Session 2026-11-06 — Protection `*.web.config` en lecture seule
+
