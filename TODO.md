@@ -86,6 +86,46 @@ _(rien)_
 
 ## ✅ Terminé
 
+### Session 2026-11-06 — Protection `*.web.config` en lecture seule
+
+**Protège les 4 fichiers `*.web.config` contre la modification par des utilisateurs standards ou des malwares, tout en gardant l'écriture possible pour le service (SYSTEM) et les administrateurs.**
+
+**Mécanisme (2 étapes obligatoires, dans l'ordre)**
+- [x] **`takeown /f <file> /a`** — prendre possession du fichier (au groupe Administrateurs)
+  - ⚠️ Sans cette étape, `icacls` refuse la modification (`Accès refusé`) car le fichier appartient à SYSTEM et admin n'est pas propriétaire
+- [x] **`icacls <file> /inheritance:r /grant <SID>...`** — appliquer les ACL avec SID universels
+
+**ACL appliquées via SID universels (indépendants de la langue Windows)**
+- [x] `*S-1-5-18:(F)` = AUTORITE NT\Système → contrôle total (le service doit pouvoir écrire)
+- [x] `*S-1-5-32-544:(F)` = BUILTIN\Administrateurs → contrôle total (dépannage manuel)
+- [x] `*S-1-5-32-545:(R)` = BUILTIN\Utilisateurs → lecture seule
+
+**Note portabilité internationale**
+- Les noms de groupes locaux (`BUILTIN\Administrators` vs `BUILTIN\Administrateurs`, `BUILTIN\Users` vs `BUILTIN\Utilisateurs`) varient selon la langue Windows → utilisation des SID garantit la portabilité (FR, EN, DE, JP, ZH...)
+
+**Fichiers modifiés**
+- [x] `RomMonitorSettings.cs` / `SystemMonitorSettings.cs` / `NetMonitorSettings.cs` :
+  - + méthode `EnsureWebConfigProtected()` (takeown + icacls, SID universels)
+  - + appel dans `Load()` après la lecture du fichier web
+- [x] `WebServerSettings.cs` (MediaMonitor) :
+  - + méthode `EnsureWebConfigProtected(string path)` (idem)
+  - + appel dans `Load()` et `Save()`
+  - + fix : `Save()` est maintenant appelé si le fichier n'existe pas (avant le `return`), pour matérialiser le fichier au premier démarrage
+- [x] `MCEMonitorInstaller.iss` :
+  - + 4 commandes `takeown` + `icacls` dans `[Run]` pour protéger les fichiers existants lors de l'installation (avec `Check: FileExists` pour éviter les erreurs sur première installation vierge)
+
+**Robustesse processus externes (règle du script d'audit)**
+- [x] Lecture de `takeown` via `ReadToEndAsync()` (au lieu de `ReadToEnd()` synchrone) pour éviter tout risque de deadlock
+- [x] Variables renommées `takeownOut` / `takeownErr` pour éviter le conflit de portée avec `outTask` / `errTask` du bloc `icacls`
+
+**Tests validés**
+- [x] Les 4 fichiers ont les bonnes ACL : `Système:(F)`, `Administrateurs:(F)`, `Utilisateurs:(R)` — sans `(I)` (héritage)
+- [x] Le service peut toujours écrire (changement de port via l'UI fonctionne)
+- [x] Un utilisateur non-admin ne peut plus modifier les fichiers via un éditeur de texte
+- [x] Fonctionne sur Windows français, anglais, allemand, japonais, chinois (grâce aux SID)
+
+**Résultat** : build 0 warning, 0 erreur. Audit : 0 violation. Les 4 services protègent automatiquement leur `*.web.config` à chaque démarrage.
+
 ### Session 2026-11-06 — Refactoring configs Web (séparation + uniformisation)
 
 **Séparation des paramètres Web de RomMonitor et SystemMonitor dans des fichiers `*.web.config` dédiés. Prépare la protection en lecture seule des configs Web dans une prochaine étape.**
