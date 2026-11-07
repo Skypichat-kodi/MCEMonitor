@@ -1,3 +1,23 @@
+Network management software with UI and Web interfaces.
+
+- On/Off: Management of shutdown and sleep functions.
+- MediaMonitor: Monitoring of multimedia reads within a LAN (SMB), (Information on multimedia files: images, movies, series, music. FFMPEG, TagLib and links to TMDB and Discogs).
+- MediaMonitor: Monitoring of TV channel viewings and DVBViewer recordings.
+- SystemMonitor: Monitoring of hardware resources CPU, RAM, GPU, Network (Temperatures, load).
+- RomMonitor: Monitoring of physical media such as HDD, SSD, NVMe... (Overload, temperatures, SMART).
+- NetMonitor: Monitoring of web intrusions with firewall blocking (WinDivert, GeoIP, Beaconing, Port scanning).
+
+- Receiving monitoring and multimedia reports by email.
+- Exporting monitoring and reports in PDF format.
+
+Windows client allowing notifications from servers on all monitoring. (Can be installed separately).
+
+A version of the client exists for Android. It allows receiving monitoring notifications like the Windows client (Separate APK download).
+
+Space required for installation: 400 MB Operating systems: Windows 10, 11, Server Minimum RAM: 8 GB DDR2 non-shared
+
+
+__________________________________________________________________________________________________________________________________
 Logiciel de gestion réseau par interfaces UI et Web.
 
 - On/Off: Gestion des fonctions d'arrêt et de veille.
