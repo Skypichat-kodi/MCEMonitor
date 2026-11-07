@@ -684,15 +684,17 @@
     }
 
     function buildPeriodChart(granularity) {
+        // ⚠️ On cherche la clé avec la bonne casse ("Hour", "Day"...)
         const buckets = (activityByGranularity && activityByGranularity[granularity]) || [];
         const canvas = document.getElementById('chartPeriod');
         if (!canvas) return;
 
+        // ✅ On utilise les mêmes propriétés que pour "Activité par jour"
         const labels = buckets.map(b => b.label);
         const counts = buckets.map(b => b.count);
         const color = granularityColors[granularity] || COLORS.blue;
 
-        // Met à jour le résumé textuel
+        // Mise à jour du résumé
         const summary = document.getElementById('granularitySummary');
         if (summary) {
             const total = counts.reduce((a, b) => a + b, 0);
@@ -727,7 +729,7 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: {
+                    x: { 
                         grid: { color: '#3c3c3c' },
                         ticks: {
                             maxRotation: buckets.length > 20 ? 60 : 0,
@@ -735,13 +737,23 @@
                             maxTicksLimit: 24
                         }
                     },
-                    y: {
-                        beginAtZero: true,
-                        grid: { color: '#3c3c3c' }
-                    }
+                    y: { beginAtZero: true, grid: { color: '#3c3c3c' } }
                 }
             }
         });
+    }
+
+    // Initialisation + écoute du changement
+    if (activityByGranularity) {
+        buildPeriodChart(currentGranularity);
+
+        const select = document.getElementById('granularitySelect');
+        if (select) {
+            select.addEventListener('change', function () {
+                currentGranularity = this.value;
+                buildPeriodChart(currentGranularity);
+            });
+        }
     }
 
     // Initialisation + écoute du changement

@@ -457,7 +457,13 @@ namespace NetMonitor.Service.Web
                     ["SeverityDistributionJson"] = System.Text.Json.JsonSerializer.Serialize(stats.SeverityDistribution),
                     
                     // --- Granularités temporelles ---
-                    ["ActivityByGranularityJson"] = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByGranularity),                    
+                    ["ActivityByGranularityJson"] = System.Text.Json.JsonSerializer.Serialize(
+                        stats.ActivityByGranularity.ToDictionary(
+                            kvp => kvp.Key.ToString(), // Force "Hour", "Day", etc.
+                            kvp => kvp.Value
+                        ),
+                        new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }
+                    ),                   
                 };
 
                 string html = ViewRenderer.Render("Stats.html", model);
