@@ -98,97 +98,229 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         public static void ShowAlert(Context context, PushAlert alert)
         {
-            // Routage par canal selon l'état
-            string channel = alert.Status switch
+            // ---- BSOD expiré : pas une vraie résolution → on n'affiche rien ----
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
+                alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0 &&
+                alert.ResolvedProblems.All(p =>
+                    (p.Category ?? "").Trim().ToLowerInvariant() == "bsod"))
             {
-                "critical" => ChannelCritical,
-                "warning"  => ChannelWarning,
-                "offline"  => ChannelDisconnect,   // ? nouveau : son système par défaut
-                "ok"       => ChannelDisconnect,   // ? retour à la normale, idem
-                _          => ChannelInfo
-            };
+                return; // notification ignorée (équivalent Windows)
+            }
 
-            int priority = alert.Status switch
-            {
-                "critical" => (int)NotificationPriority.High,
-                "warning"  => (int)NotificationPriority.Default,
-                "offline"  => (int)NotificationPriority.Default,
-                "ok"       => (int)NotificationPriority.Default,
-                _          => (int)NotificationPriority.Low
-            };
-
+            // ---- Construction du titre + message (logique identique à Windows) ----
             string title;
+            string message;
+            bool isCritical = false;
+            bool isWarning  = false;
+            bool isOffline  = false;
+            bool isToCheck  = false;
 
-            // 1. Menace neutralisée (NetMonitor)
-            if (alert.Status == "ok" && alert.PreviousStatus != "ok" && alert.LastBlock != null &&
-                (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
+            if (alert.Status == "ok" && alert.PreviousStatus != "ok")
             {
-                title = $"{alert.ServerName} - Menace neutralisée";
-            }
-            // 2. Résolution détaillée
-            else if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
-                     alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
-            {
-                int realCount = alert.ResolvedProblems.Count(p => {
-                    var k = Classify(p);
-                    return k != ProblemKind.Unknown && k != ProblemKind.Bsod;
-                });
+                bool recentBlock = alert.LastBlock != null &&
+                                   (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5;
 
-                title = realCount <= 1
-                    ? $"{alert.ServerName} - Retour à la normale"
-                    : $"{alert.ServerName} - {realCount} alertes résolues";
-            }
-            // 3. Nouveaux problèmes sans changement de statut
-            else if (alert.NewProblems != null && alert.NewProblems.Count > 0
-                     && alert.Status == alert.PreviousStatus)
-            {
-                // On liste les catégories concernées
-                var kindLabels = alert.NewProblems
-                    .Select(p => Classify(p))
-                    .Where(k => k != ProblemKind.Unknown && k != ProblemKind.Bsod)
-                    .Distinct()
-                    .Select(KindLabel)
-                    .Where(s => !string.IsNullOrEmpty(s))
-                    .ToList();
-
-                string detail = kindLabels.Count > 0
-                    ? string.Join(", ", kindLabels)
-                    : $"{alert.NewProblems.Count} nouveau(x)";
-
-                title = $"{alert.ServerName} - Nouveau : {detail}";
-            }
-            // 4. Cas standard
-            else
-            {
-                // Compte les ToCheck pour adapter le titre
-                int toCheckCount = alert.Problems?.Count(p =>
-                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)) ?? 0;
-
-                if (toCheckCount > 0)
+                if (recentBlock)
                 {
-                    title = $"{alert.ServerName} - Alerte à vérifier ({toCheckCount})";
+                    title = $"{alert.ServerName} - Menace neutralisée";
+                    string mode = alert.LastBlock!.Automatic ? "automatiquement" : "manuellement";
+                    message = $"L'IP {alert.LastBlock.Ip} a été bloquée {mode} par le pare-feu";
+                    if (!string.IsNullOrWhiteSpace(alert.LastBlock.Detector))
+                        message += $" (détecteur : {alert.LastBlock.Detector})";
+                }
+                else if (alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)
+                {
+                    var realResolved = alert.ResolvedProblems
+                        .Where(p => {
+                            var k = Classify(p);
+                            return k != ProblemKind.Unknown && k != ProblemKind.Bsod;
+                        })
+                        .ToList();
+
+                    if (realResolved.Count == 0)
+                    {
+                        // Tous Unknown/Bsod → fallback générique
+                        title = $"{alert.ServerName} - Retour à la normale";
+                        message = "Le serveur est de nouveau joignable";
+                    }
+                    else
+                    {
+                        var byKind = realResolved
+                            .Select(p => Classify(p))
+                            .GroupBy(k => k)
+                            .OrderByDescending(g => IsDiskKind(g.Key))
+                            .ThenByDescending(g => IsCpuKind(g.Key))
+                            .ToList();
+
+                        var parts = new List<string>();
+                        foreach (var g in byKind)
+                        {
+                            parts.Add(g.Key switch
+                            {
+                                ProblemKind.DiskSpace => "Disque (espace) ✓",
+                                ProblemKind.DiskSmart => "Disque (SMART) ✓",
+                                ProblemKind.DiskTemp  => "Disque (température) ✓",
+                                ProblemKind.CpuUsage  => "CPU (surcharge) ✓",
+                                ProblemKind.CpuTemp   => "CPU (température) ✓",
+                                ProblemKind.RamUsage  => "RAM ✓",
+                                ProblemKind.GpuTemp   => "GPU ✓",
+                                _                     => ""
+                            });
+                        }
+
+                        title = realResolved.Count == 1
+                            ? $"{alert.ServerName} - Retour à la normale"
+                            : $"{alert.ServerName} - {realResolved.Count} alertes résolues";
+
+                        message = string.Join(" • ", parts.Where(s => !string.IsNullOrEmpty(s)));
+
+                        int max = 3;
+                        for (int i = 0; i < Math.Min(realResolved.Count, max); i++)
+                            message += $"\n• {realResolved[i].Message}";
+                        if (realResolved.Count > max)
+                            message += $"\n… et {realResolved.Count - max} autre(s)";
+                    }
                 }
                 else
                 {
-                    title = alert.Status switch
-                    {
-                        "critical" => $"{alert.ServerName} - CRITIQUE",
-                        "warning"  => $"{alert.ServerName} - Alerte",
-                        "offline"  => $"{alert.ServerName} - Hors ligne",
-                        "ok"       => $"{alert.ServerName} - OK",
-                        _          => alert.ServerName
-                    };
+                    // ⚠️ CAS MANQUANT dans la version Android actuelle
+                    title = $"{alert.ServerName} - Retour à la normale";
+                    message = "Le serveur est de nouveau joignable";
                 }
             }
+            else if (alert.Status == "offline")
+            {
+                title = $"{alert.ServerName} - Hors ligne";
+                message = "Le serveur ne répond plus";
+                isOffline = true;
+            }
+            else if (alert.Status == alert.PreviousStatus
+                     && alert.NewProblems != null && alert.NewProblems.Count > 0)
+            {
+                int newCount = alert.NewProblems.Count;
 
-            string message = BuildAlertMessage(alert);
+                int toCheckCount = alert.NewProblems.Count(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase));
 
+                title = toCheckCount > 0
+                    ? $"{alert.ServerName} - {newCount} nouveau(x) problème(s) à vérifier"
+                    : $"{alert.ServerName} - {newCount} nouveau(x) problème(s)";
+
+                var lines = new List<string>();
+
+                if (toCheckCount > 0)
+                    lines.Add($"⚠ {toCheckCount} alerte(s) à vérifier — cliquer « Safe ? » dans l'interface");
+
+                int maxShown = toCheckCount > 0 ? 2 : 3;
+                for (int i = 0; i < Math.Min(newCount, maxShown); i++)
+                {
+                    var p = alert.NewProblems[i];
+                    string prefix = p.Severity switch
+                    {
+                        "critical" => "[CRIT]",
+                        "high"     => "[CRIT]",
+                        "tocheck"  => "[À VERIF]",
+                        _          => "[WARN]"
+                    };
+                    lines.Add($"{prefix} {p.Message}");
+                }
+                if (newCount > maxShown) lines.Add($"... et {newCount - maxShown} autre(s)");
+
+                message = string.Join("\n", lines);
+
+                if (alert.Status == "critical")      isCritical = true;
+                else if (alert.Status == "warning")
+                {
+                    isWarning = true;
+                    if (toCheckCount > 0) isToCheck = true;
+                }
+            }
+            else if (alert.Problems != null && alert.Problems.Count > 0)
+            {
+                int count = alert.Problems.Count;
+                title = count == 1
+                    ? $"{alert.ServerName} - 1 problème détecté"
+                    : $"{alert.ServerName} - {count} problèmes détectés";
+
+                int toCheckCount = alert.Problems.Count(p =>
+                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase));
+
+                var lines = new List<string>();
+                if (toCheckCount > 0)
+                    lines.Add($"⚠ {toCheckCount} alerte(s) à vérifier — cliquer « Safe ? » dans l'interface");
+
+                int maxShown = toCheckCount > 0 ? 2 : 3;
+                for (int i = 0; i < Math.Min(count, maxShown); i++)
+                {
+                    var p = alert.Problems[i];
+                    string prefix = p.Severity switch
+                    {
+                        "critical" => "[CRIT]",
+                        "tocheck"  => "[À VERIF]",
+                        _          => "[WARN]"
+                    };
+                    lines.Add($"{prefix} {p.Message}");
+                }
+                if (count > maxShown) lines.Add($"... et {count - maxShown} autre(s)");
+                message = string.Join("\n", lines);
+
+                if (alert.Status == "critical")     isCritical = true;
+                else if (alert.Status == "warning") isWarning  = true;
+
+                if (toCheckCount > 0 && alert.Status != "critical")
+                    isToCheck = true;
+            }
+            else
+            {
+                title = $"{alert.ServerName} - Changement d'état";
+                message = string.IsNullOrEmpty(alert.FirstProblem)
+                    ? $"État : {alert.Status}"
+                    : alert.FirstProblem;
+            }
+
+            // ---- Choix du canal Android selon l'état réel ----
+            // Priorité : critical > toCheck/warning > offline > info (ok, etc.)
+            string channel;
+            int priority;
+
+            if (isCritical)
+            {
+                channel  = ChannelCritical;
+                priority = (int)NotificationPriority.High;
+            }
+            else if (isToCheck || isWarning)
+            {
+                // ⚠️ ToCheck utilise le canal Warning (même son, cohérent avec Windows qui
+                //    joue PlayToCheck() = warning.wav). Si vous voulez un son distinct,
+                //    créez un ChannelToCheck dédié + raw.wav dédié.
+                channel  = ChannelWarning;
+                priority = (int)NotificationPriority.Default;
+            }
+            else if (isOffline)
+            {
+                channel  = ChannelDisconnect;
+                priority = (int)NotificationPriority.Default;
+            }
+            else if (alert.Status == "ok" && alert.PreviousStatus != "ok")
+            {
+                // Retour à la normale / Menace neutralisée → canal disconnect (son système)
+                channel  = ChannelDisconnect;
+                priority = (int)NotificationPriority.Default;
+            }
+            else
+            {
+                channel  = ChannelInfo;
+                priority = (int)NotificationPriority.Low;
+            }
+
+            // ---- Intent + PendingIntent ----
             var intent = new Intent(Intent.ActionView,
                 global::Android.Net.Uri.Parse(alert.BaseUrl));
             var pending = PendingIntent.GetActivity(
                 context, 0, intent,
                 PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
 
+            // ---- Builder ----
             var builder = new NotificationCompat.Builder(context, channel)
                 .SetContentTitle(title)
                 .SetContentText(message)
@@ -410,7 +542,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
 
         private static string GetAlertIconName(PushAlert alert)
         {
-            // ---- NetMonitor : menace neutralisée (inchangé) ----
+            // ---- NetMonitor : menace neutralisée ----
             if (alert.Status == "ok" && alert.LastBlock != null &&
                 (DateTime.UtcNow - alert.LastBlock.Timestamp.ToUniversalTime()).TotalMinutes < 5)
             {
@@ -437,10 +569,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 if (ram  > 0) groups++;
                 if (gpu  > 0) groups++;
 
-                // Cas groupé : plusieurs catégories distinctes ? icône générique
                 if (groups > 1) return "systemok";
-
-                // Cas simple : une seule catégorie
                 if (disk > 0) return "romok";
                 if (cpu  > 0) return "cpuok";
                 if (ram  > 0) return "ramok";
@@ -452,17 +581,18 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             // ---- Problèmes en cours ----
             if (alert.Problems != null && alert.Problems.Count > 0)
             {
-                // PRIORITÉ 1 : ToCheck (violet) — décision manuelle requise
-                if (alert.Problems.Any(p =>
-                    string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)))
-                {
-                    return "tocheck";
-                }
+                // ✅ Alignement Windows : ToCheck dans Problems OU NewProblems
+                bool hasToCheck =
+                    alert.Problems.Any(p => string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase))
+                    || (alert.NewProblems?.Any(p => string.Equals(p.Severity, "tocheck", StringComparison.OrdinalIgnoreCase)) ?? false);
+
+                if (hasToCheck) return "tocheck";
+
                 int disk = 0, cpuU = 0, cpuT = 0, ram = 0, gpu = 0;
                 foreach (var p in alert.Problems)
                 {
                     var k = Classify(p);
-                    if (k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp) disk++;
+                    if      (k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp) disk++;
                     else if (k == ProblemKind.CpuTemp)   cpuT++;
                     else if (k == ProblemKind.CpuUsage)  cpuU++;
                     else if (k == ProblemKind.RamUsage)  ram++;
@@ -475,10 +605,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 if (ram  > 0) groups++;
                 if (gpu  > 0) groups++;
 
-                // Cas groupé ? icône générique (underscore pour Android)
                 if (groups > 1) return "system_critical";
-
-                // Cas simple ? icône spécifique
                 if (disk > 0) return "hdd_critical";
                 if (cpuT > 0) return "cpu_temp";
                 if (cpuU > 0) return "cpu_overload";
