@@ -110,7 +110,7 @@ public static class StatsBuilder
             .Take(10)
             .ToList();
 
-        // --- Activité par heure (24 buckets, y compris heures vides) ---
+        // --- Activité par heure (rétrocompat : 24 buckets, y compris vides) ---
         var hourMap = validAlerts
             .GroupBy(e => e.Timestamp.Hour)
             .ToDictionary(g => g.Key, g => new
@@ -127,6 +127,11 @@ public static class StatsBuilder
                 CriticalCount = hourMap.TryGetValue(h, out var cv) ? cv.Critical : 0
             })
             .ToList();
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Activité multi-granularités (Hour / Day / Week / Month / Year)
+        // ═══════════════════════════════════════════════════════════════
+        stats.ActivityByGranularity = BuildActivityByGranularity(validAlerts, DateTime.UtcNow);
 
         // --- Activité par jour de la semaine (7 buckets) ---
         string[] dayNames = { "Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi" };
@@ -417,4 +422,102 @@ public static class StatsBuilder
 
         return Task.FromResult(block);
     }
+    
+    // ═══════════════════════════════════════════════════════════════
+    //  Agrégation multi-granularités
+    // ═══════════════════════════════════════════════════════════════
+    private static Dictionary<TimeGranularity, List<TimeBucket>> BuildActivityByGranularity(
+        List<IntrusionEvent> alerts, DateTime nowUtc)
+    {
+        return new Dictionary<TimeGranularity, List<TimeBucket>>
+        {
+            [TimeGranularity.Hour]  = BuildBuckets(alerts, nowUtc, TimeGranularity.Hour,  24),
+            [TimeGranularity.Day]   = BuildBuckets(alerts, nowUtc, TimeGranularity.Day,   30),
+            [TimeGranularity.Week]  = BuildBuckets(alerts, nowUtc, TimeGranularity.Week,  12),
+            [TimeGranularity.Month] = BuildBuckets(alerts, nowUtc, TimeGranularity.Month, 12),
+            [TimeGranularity.Year]  = BuildBuckets(alerts, nowUtc, TimeGranularity.Year,   5),
+        };
+    }
+
+    private static List<TimeBucket> BuildBuckets(
+        List<IntrusionEvent> alerts,
+        DateTime nowUtc,
+        TimeGranularity granularity,
+        int windowSize)
+    {
+        // 1) Groupe les alertes par bucket "flooré"
+        var grouped = alerts
+            .GroupBy(e => FloorTo(e.Timestamp, granularity))
+            .ToDictionary(
+                g => g.Key,
+                g => new
+                {
+                    Count    = g.Count(),
+                    Critical = g.Count(e => e.Severity == Severity.Critical)
+                });
+
+        // 2) Détermine le dernier bucket (celui de "maintenant")
+        DateTime lastBucketStart = FloorTo(nowUtc, granularity);
+
+        // 3) Construit la fenêtre glissante en remontant
+        var buckets = new List<TimeBucket>(windowSize);
+        for (int i = windowSize - 1; i >= 0; i--)
+        {
+            DateTime bucketStart = OffsetBucket(lastBucketStart, granularity, -i);
+
+            grouped.TryGetValue(bucketStart, out var data);
+            buckets.Add(new TimeBucket
+            {
+                BucketStart   = bucketStart,
+                Label         = BuildLabel(bucketStart, granularity),
+                Count         = data?.Count ?? 0,
+                CriticalCount = data?.Critical ?? 0
+            });
+        }
+
+        return buckets;
+    }
+
+    private static DateTime FloorTo(DateTime dt, TimeGranularity g) => g switch
+    {
+        TimeGranularity.Hour  => new DateTime(dt.Year, dt.Month, dt.Day, dt.Hour, 0, 0, dt.Kind),
+        TimeGranularity.Day   => dt.Date,
+        TimeGranularity.Week  => StartOfIsoWeek(dt),
+        TimeGranularity.Month => new DateTime(dt.Year, dt.Month, 1, 0, 0, 0, dt.Kind),
+        TimeGranularity.Year  => new DateTime(dt.Year, 1, 1, 0, 0, 0, dt.Kind),
+        _ => dt
+    };
+
+    private static DateTime StartOfIsoWeek(DateTime dt)
+    {
+        // Lundi = début de semaine ISO
+        int diff = ((int)dt.DayOfWeek + 6) % 7;   // 0=lun … 6=dim
+        return dt.Date.AddDays(-diff);
+    }
+
+    private static DateTime OffsetBucket(DateTime bucketStart, TimeGranularity g, int offset) => g switch
+    {
+        TimeGranularity.Hour  => bucketStart.AddHours(offset),
+        TimeGranularity.Day   => bucketStart.AddDays(offset),
+        TimeGranularity.Week  => bucketStart.AddDays(offset * 7),
+        TimeGranularity.Month => bucketStart.AddMonths(offset),
+        TimeGranularity.Year  => bucketStart.AddYears(offset),
+        _ => bucketStart
+    };
+
+    private static string BuildLabel(DateTime bucketStart, TimeGranularity g)
+    {
+        // BucketStart est en UTC → on affiche en local
+        var local = bucketStart.ToLocalTime();
+
+        return g switch
+        {
+            TimeGranularity.Hour  => $"{local:HH}h",
+            TimeGranularity.Day   => $"{local:dd/MM}",
+            TimeGranularity.Week  => $"S{System.Globalization.ISOWeek.GetWeekOfYear(local):D2}",
+            TimeGranularity.Month => $"{local:MMM yyyy}",
+            TimeGranularity.Year  => $"{local:yyyy}",
+            _ => local.ToString("g")
+        };
+    }    
 }

@@ -2637,6 +2637,7 @@
                                                     <controls:StatsChartsPanel x:Name="ChartsPanel" Margin="0,0,0,0" />
                                                 </ScrollViewer>
                                             </TabItem>
+                                            
                                         </TabControl>
 
                                         <!-- Top FAI par pays (depuis le début) -->
@@ -2689,18 +2690,20 @@
                                             </DataGrid.Columns>
                                         </DataGrid>
 
-                                        <!-- Activité par heure -->
+                                        <!-- Activité par période (multi-granularités) -->
                                         <StackPanel Orientation="Horizontal" Margin="0,5,0,5">
-                                            <TextBlock Text="{loc:Tr 'Activité par heure'}" FontSize="12"
-                                                       FontWeight="SemiBold" Foreground="#8FDA80"/>
-                                            <TextBlock x:Name="txtActivityHourSummary" FontSize="11" Foreground="#999"
-                                                       Margin="10,0,0,0"/>
+                                            <TextBlock x:Name="txtActivityPeriodTitle"
+                                                       Text="{loc:Tr 'Activité par période'}" FontSize="12"
+                                                       FontWeight="SemiBold" Foreground="#8FDA80"
+                                                       VerticalAlignment="Center"/>
+                                            <TextBlock x:Name="txtActivityPeriodSummary" FontSize="11" Foreground="#999"
+                                                       Margin="10,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
-                                        <DataGrid x:Name="StatsActivityByHourGrid" MinHeight="100" MaxHeight="200"
+                                        <DataGrid x:Name="StatsActivityGrid" MinHeight="100" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Heure'}" Binding="{Binding HourLabel}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Période'}" Binding="{Binding Label}" Width="140"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Dont critiques'}" Binding="{Binding CriticalCount}" Width="140"/>
                                             </DataGrid.Columns>

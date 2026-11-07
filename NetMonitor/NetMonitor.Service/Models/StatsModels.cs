@@ -70,6 +70,7 @@ public sealed class GlobalStats
     public List<PortStats> TopLocalPorts            { get; set; } = new();
     public List<PortStats> TopRemotePorts           { get; set; } = new();
     public List<HourlyStats> ActivityByHour         { get; set; } = new();
+    public Dictionary<TimeGranularity, List<TimeBucket>> ActivityByGranularity { get; set; } = new();
     public List<DailyStats> ActivityByDay           { get; set; } = new();
     public List<ProcessStats> TopProcesses          { get; set; } = new();
     public List<SeverityStat> SeverityDistribution  { get; set; } = new();
@@ -109,4 +110,17 @@ public sealed class SeverityStat
 {
     public string Severity  { get; set; } = "";
     public int Count        { get; set; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  Granularités temporelles
+// ═══════════════════════════════════════════════════════════════
+public enum TimeGranularity { Hour, Day, Week, Month, Year }
+
+public sealed class TimeBucket
+{
+    public DateTime BucketStart   { get; set; }
+    public string   Label         { get; set; } = "";
+    public int      Count         { get; set; }
+    public int      CriticalCount { get; set; }
 }

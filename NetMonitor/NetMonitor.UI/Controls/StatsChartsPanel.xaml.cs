@@ -35,6 +35,18 @@ namespace NetMonitor.UI.Controls
             ApplyTheme();
         }
 
+        // Événement pour prévenir MainWindow du changement
+        public event Action<TimeGranularity>? GranularityChanged;
+
+        private void CmbGranularityChart_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (CmbGranularityChart.SelectedItem is not ComboBoxItem item) return;
+            if (item.Tag is not string tag) return;
+            if (!Enum.TryParse<TimeGranularity>(tag, out var g)) return;
+
+            GranularityChanged?.Invoke(g);
+        }
+
         /// <summary>
         /// Applique le thème sombre aux 6 charts (une seule fois au démarrage).
         /// </summary>
@@ -66,8 +78,81 @@ namespace NetMonitor.UI.Controls
             UpdateSeverityChart(ChartSeverity, stats.SeverityDistribution);
             UpdateDetectorsChart(ChartDetectors, stats.TopDetectors);
 
-            UpdateHoursChart(ChartHours, stats.ActivityByHour);
-            UpdateDaysChart(ChartDays, stats.ActivityByDay);
+            // ⚠ L'activité par heure/jour est maintenant gérée par UpdateActivitySeries()
+            // appelée depuis MainWindow.ApplyGranularity(). On garde un fallback :
+            if (stats.ActivityByGranularity.TryGetValue(TimeGranularity.Hour, out var hourBuckets))
+                UpdateActivitySeries(hourBuckets, TimeGranularity.Hour);
+            else
+                UpdateHoursChart(ChartHours, stats.ActivityByHour);   // rétrocompat
+
+            UpdateDaysChart(ChartDays, stats.ActivityByDay);          // répartition hebdo conservée
+        }
+
+        /// <summary>
+        /// Met à jour le graphique "Activité par période" (ChartHours) selon
+        /// la granularité choisie (Heure/Jour/Semaine/Mois/Année).
+        /// </summary>
+        public void UpdateActivitySeries(List<TimeBucketDto> buckets, TimeGranularity g)
+        {
+            if (ChartHours == null) return;
+
+            if (buckets == null || buckets.Count == 0)
+            {
+                ChartHours.Series = Array.Empty<ISeries>();
+                return;
+            }
+
+            var labels = buckets.Select(b => b.Label).ToArray();
+            var counts = buckets.Select(b => (double)b.Count).ToArray();
+
+            var color = g switch
+            {
+                TimeGranularity.Hour  => Blue,
+                TimeGranularity.Day   => Orange,
+                TimeGranularity.Week  => Green,
+                TimeGranularity.Month => Purple,
+                TimeGranularity.Year  => SKColor.Parse("#FF8A72"),
+                _ => Blue
+            };
+
+            ChartHours.Series = new ISeries[]
+            {
+                new LineSeries<double>
+                {
+                    Values = counts,
+                    Name = "Alertes",
+                    Stroke = new SolidColorPaint(color, 2),
+                    Fill = new SolidColorPaint(color.WithAlpha(40)),
+                    GeometryFill = new SolidColorPaint(color),
+                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometrySize = buckets.Count > 20 ? 4 : 8,   // points plus petits si beaucoup de buckets
+                    LineSmoothness = 0.5
+                }
+            };
+
+            ChartHours.XAxes = new[]
+            {
+                new Axis
+                {
+                    Labels = labels,
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11,
+                    MinStep = 1,
+                    LabelsRotation = buckets.Count > 20 ? 45 : 0   // rotation si beaucoup de labels
+                }
+            };
+
+            ChartHours.YAxes = new[]
+            {
+                new Axis
+                {
+                    LabelsPaint = new SolidColorPaint(TextColor),
+                    SeparatorsPaint = new SolidColorPaint(AxisColor),
+                    TextSize = 11,
+                    MinLimit = 0
+                }
+            };
         }
 
         // ────────────────────────────────────────────────────────────

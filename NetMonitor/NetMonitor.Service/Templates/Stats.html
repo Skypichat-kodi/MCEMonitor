@@ -185,7 +185,43 @@
     .chart-container {
         position: relative;
         height: 220px;
-    }        
+    }
+    
+    /* --- Sélecteur de granularité --- */
+    .granularity-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        padding: 10px 15px;
+        background: #252526;
+        border: 1px solid #3c3c3c;
+        border-radius: 6px;
+        font-size: 13px;
+    }
+    .granularity-bar label {
+        color: #999;
+        font-size: 12px;
+    }
+    .granularity-bar select {
+        background: #2d2d30;
+        border: 1px solid #3c3c3c;
+        color: #e5e5e5;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-size: 13px;
+        font-family: inherit;
+        cursor: pointer;
+    }
+    .granularity-bar select:focus {
+        outline: none;
+        border-color: #4CC2FF;
+    }
+    .granularity-summary {
+        color: #999;
+        font-size: 12px;
+        margin-left: auto;
+    }            
     </style>
 </head>
 <body>
@@ -377,10 +413,21 @@
         <div class="chart-container"><canvas id="chartSeverity"></canvas></div>
     </div>
 
-    <!-- Activité par heure -->
+    <!-- Activité par période (multi-granularités) -->
     <div class="chart-card">
-        <h3>🕐 {{tr:Activité par heure (0-23h)}}</h3>
-        <div class="chart-container"><canvas id="chartHours"></canvas></div>
+        <h3>🕐 {{tr:Activité par période}}</h3>
+        <div class="granularity-bar">
+            <label for="granularitySelect">{{tr:Période}}</label>
+            <select id="granularitySelect">
+                <option value="Hour" selected>{{tr:Heure}}</option>
+                <option value="Day">{{tr:Jour}}</option>
+                <option value="Week">{{tr:Semaine}}</option>
+                <option value="Month">{{tr:Mois}}</option>
+                <option value="Year">{{tr:Année}}</option>
+            </select>
+            <span id="granularitySummary" class="granularity-summary"></span>
+        </div>
+        <div class="chart-container"><canvas id="chartPeriod"></canvas></div>
     </div>
 
     <!-- Activité par jour -->
@@ -615,26 +662,63 @@
     }
 
     // ============================================================
-    //  3. Activité par heure (bar)
+    //  3. Activité par période (multi-granularités)
     // ============================================================
-    if (activityByHour && activityByHour.length > 0) {
-        const maxHour = Math.max(...activityByHour.map(h => h.Count));
-        new Chart(document.getElementById('chartHours'), {
+    var activityByGranularity = {{ActivityByGranularityJson}};
+    var periodChart = null;
+    var currentGranularity = 'Hour';
+
+    const granularityColors = {
+        Hour:  COLORS.blue,
+        Day:   COLORS.orange,
+        Week:  COLORS.green,
+        Month: COLORS.purple,
+        Year:  '#FF8A72'
+    };
+
+    function hexToRgba(hex, alpha) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function buildPeriodChart(granularity) {
+        const buckets = (activityByGranularity && activityByGranularity[granularity]) || [];
+        const canvas = document.getElementById('chartPeriod');
+        if (!canvas) return;
+
+        const labels = buckets.map(b => b.label);
+        const counts = buckets.map(b => b.count);
+        const color = granularityColors[granularity] || COLORS.blue;
+
+        // Met à jour le résumé textuel
+        const summary = document.getElementById('granularitySummary');
+        if (summary) {
+            const total = counts.reduce((a, b) => a + b, 0);
+            summary.textContent = buckets.length === 0
+                ? 'aucune activité'
+                : buckets.length + ' période(s) · ' + total + ' alerte(s)';
+        }
+
+        if (periodChart) periodChart.destroy();
+
+        periodChart = new Chart(canvas, {
             type: 'line',
             data: {
-                labels: activityByHour.map(h => h.Hour + 'h'),
+                labels: labels,
                 datasets: [{
                     label: 'Alertes',
-                    data: activityByHour.map(h => h.Count),
-                    borderColor: COLORS.blue,
-                    backgroundColor: 'rgba(76, 194, 255, 0.15)',
+                    data: counts,
+                    borderColor: color,
+                    backgroundColor: hexToRgba(color, 0.15),
                     borderWidth: 2,
                     tension: 0.4,
                     fill: true,
-                    pointBackgroundColor: COLORS.blue,
+                    pointBackgroundColor: color,
                     pointBorderColor: '#1e1e1e',
                     pointBorderWidth: 2,
-                    pointRadius: 4,
+                    pointRadius: buckets.length > 20 ? 3 : 4,
                     pointHoverRadius: 6
                 }]
             },
@@ -643,11 +727,34 @@
                 maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    x: { grid: { color: '#3c3c3c' } },
-                    y: { beginAtZero: true, grid: { color: '#3c3c3c' } }
+                    x: {
+                        grid: { color: '#3c3c3c' },
+                        ticks: {
+                            maxRotation: buckets.length > 20 ? 60 : 0,
+                            autoSkip: true,
+                            maxTicksLimit: 24
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: '#3c3c3c' }
+                    }
                 }
             }
         });
+    }
+
+    // Initialisation + écoute du changement
+    if (activityByGranularity) {
+        buildPeriodChart(currentGranularity);
+
+        const select = document.getElementById('granularitySelect');
+        if (select) {
+            select.addEventListener('change', function () {
+                currentGranularity = this.value;
+                buildPeriodChart(currentGranularity);
+            });
+        }
     }
 
     // ============================================================

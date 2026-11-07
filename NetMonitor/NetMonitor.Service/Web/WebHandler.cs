@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using NetMonitor.Service.Models;
+using System.Text.Json;
 
 namespace NetMonitor.Service.Web
 {
@@ -453,7 +454,10 @@ namespace NetMonitor.Service.Web
                     ["ActivityByDayJson"]        = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByDay),
                     ["TopProcessesJson"]         = System.Text.Json.JsonSerializer.Serialize(stats.TopProcesses),
                     ["TopDetectorsJson"]         = System.Text.Json.JsonSerializer.Serialize(stats.TopDetectors),
-                    ["SeverityDistributionJson"] = System.Text.Json.JsonSerializer.Serialize(stats.SeverityDistribution)                    
+                    ["SeverityDistributionJson"] = System.Text.Json.JsonSerializer.Serialize(stats.SeverityDistribution),
+                    
+                    // --- Granularités temporelles ---
+                    ["ActivityByGranularityJson"] = System.Text.Json.JsonSerializer.Serialize(stats.ActivityByGranularity),                    
                 };
 
                 string html = ViewRenderer.Render("Stats.html", model);

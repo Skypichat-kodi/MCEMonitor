@@ -40,7 +40,9 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<BlockedIpRetryRow>    _blockedRetries            = new();
         private readonly ObservableCollection<WhitelistEntryRow>    _whitelistEntries          = new();
         private readonly ObservableCollection<StatsProcessRow>      _statsTopProcesses         = new();
-        private readonly ObservableCollection<StatsHourRow>         _statsActivityByHour       = new();
+        private readonly ObservableCollection<StatsBucketRow>       _statsActivityBuckets       = new();
+        private GlobalStatsDto?                                     _lastStats;
+        private TimeGranularity                                     _currentGranularity         = TimeGranularity.Hour;        
         private readonly ObservableCollection<StatsSeverityRow>     _statsSeverityDistribution = new();
         private readonly ObservableCollection<StatsIspRow>          _statsActiveIsps           = new();
         private readonly ObservableCollection<StatsIspRow>          _statsBlockedIsps          = new();        
@@ -115,23 +117,25 @@ namespace NetMonitor.UI
 
             // Stats — graphiques et analyses
             StatsTopProcessesGrid.ItemsSource           = _statsTopProcesses;
-            StatsActivityByHourGrid.ItemsSource         = _statsActivityByHour;
             StatsSeverityDistributionGrid.ItemsSource   = _statsSeverityDistribution;
+
+            // Stats — activité multi-granularités
+            StatsActivityGrid.ItemsSource               = _statsActivityBuckets;           
 
             // Scroll global sur les onglets
             ActiveIntrusionsGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
             BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
             AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
-            AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;                 
+            AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
 
             // Interceptions
             BlockedRetriesGrid.ItemsSource              = _blockedRetries;
-            
+
             WireAllGridSorting();
             WireAllGridDoubleClick();
-            InitializeAllFilters();            
-            WhitelistGrid.ItemsSource                   = _whitelistEntries;        
-
+            InitializeAllFilters();
+            WhitelistGrid.ItemsSource                   = _whitelistEntries;
+            
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) =>
             {
@@ -148,6 +152,13 @@ namespace NetMonitor.UI
             LoadSettings();
             _ = LoadWebConfig();
             _ = RefreshStatsAsync();
+            
+            // Écoute le changement de granularité depuis le panneau des graphiques
+            ChartsPanel.GranularityChanged += (g) =>
+            {
+                _currentGranularity = g;
+                ApplyGranularity();
+            };            
         }
 
         // ------------------------------------------------------------
@@ -1724,22 +1735,9 @@ namespace NetMonitor.UI
                 foreach (var p in stats.TopProcesses)
                     _statsTopProcesses.Add(new StatsProcessRow { ProcessName = p.ProcessName, Count = p.Count });
 
-                // --- Activité par heure (uniquement les heures avec activité) ---
-                _statsActivityByHour.Clear();
-                var activeHours = stats.ActivityByHour.Where(x => x.Count > 0).OrderBy(x => x.Hour).ToList();
-                foreach (var h in activeHours)
-                    _statsActivityByHour.Add(new StatsHourRow
-                    {
-                        Hour = h.Hour,
-                        Count = h.Count,
-                        CriticalCount = h.CriticalCount
-                    });
-
-                // Titre : "N heure(s) sur 24 · X alertes"
-                int totalFromHours = activeHours.Sum(x => x.Count);
-                txtActivityHourSummary.Text = activeHours.Count == 0
-                    ? "aucune activité"
-                    : $"{activeHours.Count} / 24 heure(s) · {totalFromHours} alerte(s)";
+                // --- Activité par période (multi-granularités) ---
+                _lastStats = stats;
+                ApplyGranularity();
 
                 // --- Distribution par sévérité ---
                 _statsSeverityDistribution.Clear();
@@ -1774,6 +1772,46 @@ namespace NetMonitor.UI
             return $"{country} ({code})";
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        //  Granularité temporelle
+        // ═══════════════════════════════════════════════════════════════
+        private void ApplyGranularity()
+        {
+            if (_lastStats is null) return;
+
+            if (!_lastStats.ActivityByGranularity.TryGetValue(_currentGranularity, out var buckets))
+                buckets = new List<TimeBucketDto>();
+
+            _statsActivityBuckets.Clear();
+            foreach (var b in buckets)
+                _statsActivityBuckets.Add(new StatsBucketRow
+                {
+                    BucketStart   = b.BucketStart,
+                    Label         = b.Label,
+                    Count         = b.Count,
+                    CriticalCount = b.CriticalCount
+                });
+
+            // Résumé textuel
+            int totalFromBuckets = buckets.Sum(x => x.Count);
+            txtActivityPeriodSummary.Text = buckets.Count == 0
+                ? "aucune activité"
+                : $"{buckets.Count} période(s) · {totalFromBuckets} alerte(s)";
+
+            // Titre dynamique
+            txtActivityPeriodTitle.Text = _currentGranularity switch
+            {
+                TimeGranularity.Hour  => "Activité par heure",
+                TimeGranularity.Day   => "Activité par jour",
+                TimeGranularity.Week  => "Activité par semaine",
+                TimeGranularity.Month => "Activité par mois",
+                TimeGranularity.Year  => "Activité par année",
+                _ => "Activité"
+            };
+
+            ChartsPanel?.UpdateActivitySeries(buckets, _currentGranularity);
+        }
+        
         // ------------------------------------------------------------
         //  Préservation du scroll
         // ------------------------------------------------------------
@@ -2858,21 +2896,21 @@ namespace NetMonitor.UI
     
     public class StatsProcessRow
     {
-        public string ProcessName { get; set; } = "";
-        public int Count { get; set; }
+        public string ProcessName       { get; set; } = "";
+        public int Count                { get; set; }
     }
 
-    public class StatsHourRow
+    public class StatsBucketRow
     {
-        public int Hour { get; set; }
-        public int Count { get; set; }
-        public int CriticalCount { get; set; }
-        public string HourLabel => $"{Hour:D2}h00";
+        public DateTime BucketStart     { get; set; }
+        public string   Label           { get; set; } = "";
+        public int      Count           { get; set; }
+        public int      CriticalCount   { get; set; }
     }
 
     public class StatsSeverityRow
     {
-        public string Severity { get; set; } = "";
-        public int Count { get; set; }
+        public string Severity          { get; set; } = "";
+        public int Count                { get; set; }
     }                    
 }

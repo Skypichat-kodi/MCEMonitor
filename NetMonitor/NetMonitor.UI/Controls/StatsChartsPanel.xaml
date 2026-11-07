@@ -1,10 +1,10 @@
 ﻿<UserControl x:Class="NetMonitor.UI.Controls.StatsChartsPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF">
+             xmlns:lvc="clr-namespace:LiveChartsCore.SkiaSharpView.WPF;assembly=LiveChartsCore.SkiaSharpView.WPF"
+             xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages">
 
-    <!-- Style local : doit être défini ici car un UserControl ne peut pas
-         accéder aux ressources de la Window parente -->
+    <!-- Style local -->
     <UserControl.Resources>
         <Style x:Key="CardBorder" TargetType="Border">
             <Setter Property="Background" Value="#252526"/>
@@ -26,7 +26,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Ligne 1 -->
+        <!-- Ligne 1, Colonne 0 : Top 10 ports locaux -->
         <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,8">
             <StackPanel>
                 <TextBlock Text="🎯 Top 10 ports locaux ciblés" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
@@ -34,6 +34,7 @@
             </StackPanel>
         </Border>
 
+        <!-- Ligne 1, Colonne 1 : Distribution des sévérités -->
         <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,8">
             <StackPanel>
                 <TextBlock Text="⚠️ Distribution des sévérités" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
@@ -41,14 +42,30 @@
             </StackPanel>
         </Border>
 
-        <!-- Ligne 2 -->
+        <!-- Ligne 2, Colonne 0 : Activité par période AVEC le sélecteur -->
         <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,8">
             <StackPanel>
-                <TextBlock Text="🕐 Activité par heure (0-23h)" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
+                <Grid Margin="0,0,0,8">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Grid.Column="0" Text="🕐 Activité par période" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                    
+                    <ComboBox Grid.Column="1" x:Name="CmbGranularityChart" Width="120" SelectedIndex="0" 
+                              FontSize="11" Padding="4,2" SelectionChanged="CmbGranularityChart_SelectionChanged">
+                        <ComboBoxItem Content="{loc:Tr 'Heure'}"   Tag="Hour"/>
+                        <ComboBoxItem Content="{loc:Tr 'Jour'}"    Tag="Day"/>
+                        <ComboBoxItem Content="{loc:Tr 'Semaine'}" Tag="Week"/>
+                        <ComboBoxItem Content="{loc:Tr 'Mois'}"    Tag="Month"/>
+                        <ComboBoxItem Content="{loc:Tr 'Année'}"   Tag="Year"/>
+                    </ComboBox>
+                </Grid>
                 <lvc:CartesianChart x:Name="ChartHours" Height="240"/>
             </StackPanel>
         </Border>
 
+        <!-- Ligne 2, Colonne 1 : Activité par jour -->
         <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,8">
             <StackPanel>
                 <TextBlock Text="📅 Activité par jour" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
@@ -56,7 +73,7 @@
             </StackPanel>
         </Border>
 
-        <!-- Ligne 3 -->
+        <!-- Ligne 3, Colonne 0 : Types d'attaque -->
         <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorder}" Margin="0,0,8,0">
             <StackPanel>
                 <TextBlock Text="⚔️ Types d'attaque" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
@@ -64,6 +81,7 @@
             </StackPanel>
         </Border>
 
+        <!-- Ligne 3, Colonne 1 : Top 10 ports distants -->
         <Border Grid.Row="2" Grid.Column="1" Style="{StaticResource CardBorder}" Margin="8,0,0,0">
             <StackPanel>
                 <TextBlock Text="🌐 Top 10 ports distants (source)" FontSize="13" FontWeight="SemiBold" Foreground="#4CC2FF" Margin="0,0,0,8"/>
