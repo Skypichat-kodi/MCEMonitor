@@ -57,6 +57,12 @@ namespace NetMonitor.Service
         // IPs auto-bloquées à retirer des actives après expiration
         private readonly ConcurrentDictionary<string, DateTime> _autoBlockedTempIps = new();
 
+        // Refresh périodique des géolocs anciennes (rotation par lot)
+        private DateTime _lastGeoRefresh = DateTime.MinValue;
+        private DateTime _lastGeoRefreshCursor = DateTime.MinValue;
+        private const int GeoRefreshBatchSize = 50;
+        private static readonly TimeSpan GeoRefreshInterval = TimeSpan.FromHours(12);
+
         private const int AutoBlockVisibilitySeconds = 60;   // ? Ajustable
         
         private PacketCaptureService? _capture;
@@ -312,6 +318,140 @@ namespace NetMonitor.Service
                     CoreLog.Debug($"[PENDING] Purge auto : {deadProcesses.Count} processus mort(s) retiré(s).");
                 }
             }
+            
+            // Refresh périodique des géolocs anciennes (toutes les 12h, lot de 50)
+            if (DateTime.UtcNow - _lastGeoRefresh >= GeoRefreshInterval)
+            {
+                _lastGeoRefresh = DateTime.UtcNow;
+                RefreshOldGeoIps();
+            }            
+        }
+
+        /// <summary>
+        /// Refresh périodique des géolocs anciennes, par lots de 50, toutes les 12h.
+        ///
+        /// Rotation : on prend les 50 IPs dont GeoResolvedAt est le plus ancien,
+        /// uniquement celles résolues avant _lastGeoRefreshCursor. Après traitement,
+        /// le curseur avance → au bout d'un tour complet, il est réinitialisé.
+        ///
+        /// Garanties :
+        ///   - Aucune IP n'est rafraîchie deux fois avant que toutes les autres
+        ///     n'aient eu leur tour.
+        ///   - Si le quota API est épuisé, le lot est reporté au prochain cycle.
+        ///   - Délai d'1s entre chaque appel (pas de rafale).
+        /// </summary>
+        private void RefreshOldGeoIps()
+        {
+            if (_geoIp == null || !_geoIp.IsEnabled) return;
+            if (_geoIp.IsQuotaExceeded)
+            {
+                CoreLog.Debug("[GEOIP-REFRESH] Quota épuisé — lot reporté au prochain cycle");
+                return;
+            }
+
+            // ✅ Priorité 1 : rattraper les IPs jamais résolues (GeoResolvedAt == null)
+            //    (typiquement celles bloquées pendant une période de quota épuisé)
+            List<string> missing;
+            lock (_alertsLock)
+            {
+                missing = _blockedIps
+                    .Where(b => !b.IsProcess
+                                && !string.IsNullOrWhiteSpace(b.Ip)
+                                && !b.GeoResolvedAt.HasValue)
+                    .Select(b => b.Ip)
+                    .Take(GeoRefreshBatchSize)
+                    .ToList();
+            }
+
+            if (missing.Count > 0)
+            {
+                CoreLog.Info($"[GEOIP-REFRESH] Priorité : {missing.Count} IP(s) jamais résolue(s) à rattraper");
+                _ = Task.Run(async () =>
+                {
+                    int ok = 0, ko = 0;
+                    foreach (var ip in missing)
+                    {
+                        if (_geoIp.IsQuotaExceeded) { ko = missing.Count - ok; break; }
+                        await FinalizeBlockedIpGeoAsync(ip);
+                        bool resolved;
+                        lock (_alertsLock)
+                        {
+                            var e = _blockedIps.FirstOrDefault(b => !b.IsProcess
+                                && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+                            resolved = e?.GeoResolvedAt.HasValue == true;
+                        }
+                        if (resolved) ok++; else ko++;
+                        await Task.Delay(1000);
+                    }
+                    CoreLog.Info($"[GEOIP-REFRESH] Rattrapage terminé : {ok} OK, {ko} KO");
+                });
+                return;   // on ne traite pas le lot "anciennes" ce cycle-ci
+            }
+
+            List<string> batch;
+            lock (_alertsLock)
+            {
+                var cursor = _lastGeoRefreshCursor == DateTime.MinValue
+                    ? DateTime.UtcNow
+                    : _lastGeoRefreshCursor;
+
+                batch = _blockedIps
+                    .Where(b => !b.IsProcess
+                                && !string.IsNullOrWhiteSpace(b.Ip)
+                                && b.GeoResolvedAt.HasValue
+                                && b.GeoResolvedAt.Value < cursor)
+                    .OrderBy(b => b.GeoResolvedAt)
+                    .Take(GeoRefreshBatchSize)
+                    .Select(b => b.Ip)
+                    .ToList();
+            }
+
+            if (batch.Count == 0)
+            {
+                if (_lastGeoRefreshCursor != DateTime.MinValue)
+                {
+                    CoreLog.Info("[GEOIP-REFRESH] Tour complet — curseur réinitialisé");
+                    _lastGeoRefreshCursor = DateTime.MinValue;
+                }
+                return;
+            }
+
+            CoreLog.Info($"[GEOIP-REFRESH] Lot de {batch.Count} IP(s) à rafraîchir " +
+                         $"(curseur: {_lastGeoRefreshCursor:yyyy-MM-dd HH:mm})");
+
+            // Avance le curseur AVANT le traitement async
+            _lastGeoRefreshCursor = DateTime.UtcNow;
+
+            _ = Task.Run(async () =>
+            {
+                int ok = 0, ko = 0, skip = 0;
+                foreach (var ip in batch)
+                {
+                    if (_geoIp.IsQuotaExceeded)
+                    {
+                        skip = batch.Count - ok - ko;
+                        CoreLog.Warn($"[GEOIP-REFRESH] Quota épuisé en cours de lot " +
+                                     $"({ok} OK, {ko} KO, {skip} reportée(s))");
+                        break;
+                    }
+
+                    _geoIp.InvalidateCache(ip);
+                    await FinalizeBlockedIpGeoAsync(ip);
+
+                    bool updated;
+                    lock (_alertsLock)
+                    {
+                        var entry = _blockedIps.FirstOrDefault(b =>
+                            !b.IsProcess && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+                        updated = entry?.GeoResolvedAt.HasValue == true;
+                    }
+
+                    if (updated) ok++; else ko++;
+                    await Task.Delay(1000);
+                }
+
+                CoreLog.Info($"[GEOIP-REFRESH] Lot terminé : {ok} OK, {ko} KO, {skip} reportée(s)");
+            });
         }
 
         public void Stop()
@@ -612,11 +752,22 @@ namespace NetMonitor.Service
             if (string.IsNullOrWhiteSpace(ip)) return;
             if (_geoIp == null || !_geoIp.IsEnabled) return;
 
+            if (_geoIp.IsQuotaExceeded)
+            {
+                CoreLog.Debug($"[GEOIP] {ip} reportée (quota épuisé)");
+                return;
+            }
+            
             GeoInfo? geo = null;
             string lastReason = "inconnue";
 
             for (int attempt = 1; attempt <= 3; attempt++)
             {
+                if (_geoIp.IsQuotaExceeded)
+                {
+                    lastReason = "quota épuisé";
+                    break;
+                }                       
                 try
                 {
                     var result = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
@@ -843,6 +994,33 @@ namespace NetMonitor.Service
 
             CoreLog.Info($"Historique restauré : {_alerts.Count} alertes, {_activeIntrusions.Count} actives.");
 
+            // ✅ Amorcer le cache GeoIP avec les géolocs déjà connues de l'historique
+            //    (évite que GetAlerts() déclenche des résolutions en boucle sur l'UI)
+            if (_geoIp != null && _geoIp.IsEnabled)
+            {
+                int seeded = 0;
+                lock (_alertsLock)
+                {
+                    foreach (var a in _alerts)
+                    {
+                        if (string.IsNullOrWhiteSpace(a.RemoteIp)) continue;
+                        if (string.IsNullOrWhiteSpace(a.CountryCode)) continue;
+
+                        _geoIp.SeedCache(a.RemoteIp, new GeoInfo
+                        {
+                            Ip          = a.RemoteIp,
+                            Country     = a.Country ?? "",
+                            CountryCode = a.CountryCode,
+                            Isp         = a.Isp ?? "",
+                            ResolvedAt  = a.Timestamp   // approximation : la géoloc a été faite au moment de l'alerte
+                        });
+                        seeded++;
+                    }
+                }
+                if (seeded > 0)
+                    CoreLog.Info($"[GEOIP] Cache amorcé : {seeded} IP(s) depuis alert_history.json");
+            }
+
             // Pré-charger les scanners légitimes connus (popule le cache en arrière-plan)
             if (_trustedScanners != null)
             {
@@ -970,6 +1148,35 @@ namespace NetMonitor.Service
                 {
                     _blockedIps.Clear();
                     _blockedIps.AddRange(list);
+                }
+
+                // ✅ Amorcer le cache GeoIP avec les géolocs déjà connues
+                //    → aucune requête réseau pour ces IPs au démarrage ni ensuite
+                if (_geoIp != null && _geoIp.IsEnabled)
+                {
+                    int seeded = 0;
+                    foreach (var b in list)
+                    {
+                        if (b.IsProcess) continue;
+                        if (string.IsNullOrWhiteSpace(b.Ip)) continue;
+                        if (!b.GeoResolvedAt.HasValue) continue;
+                        if (string.IsNullOrWhiteSpace(b.CountryCode)) continue;
+
+                        _geoIp.SeedCache(b.Ip, new GeoInfo
+                        {
+                            Ip          = b.Ip,
+                            Country     = b.Country ?? "",
+                            CountryCode = b.CountryCode,
+                            City        = b.City ?? "",
+                            Isp         = b.Isp ?? "",
+                            Org         = b.Org ?? "",
+                            IsPrivate   = b.IsPrivate,
+                            ReverseDns  = b.ReverseDns,
+                            ResolvedAt  = b.GeoResolvedAt.Value
+                        });
+                        seeded++;
+                    }
+                    CoreLog.Info($"[GEOIP] Cache amorcé : {seeded} IP(s) depuis blocked_ips.json");
                 }
 
                 CoreLog.Info($"Chargement {list.Count} IP bloquées depuis le fichier");

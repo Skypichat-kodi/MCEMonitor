@@ -18,6 +18,10 @@ public sealed class GeoIpService
 
     public bool IsEnabled => _enabled;
     
+    // Quota API épuisé (429) — partagé avec NetMonitorEngine pour reporter les lots
+    private DateTime _quotaExceededUntil = DateTime.MinValue;
+    public bool IsQuotaExceeded => DateTime.UtcNow < _quotaExceededUntil;    
+    
     public GeoIpService(string providerTemplate, bool enabled, bool reverseDnsEnabled)
     {
         _providerTemplate = string.IsNullOrWhiteSpace(providerTemplate)
@@ -35,7 +39,29 @@ public sealed class GeoIpService
             return info;
         return null;
     }
+    
+    /// <summary>
+    /// Amorce le cache avec une géoloc déjà connue (typiquement lue depuis
+    /// blocked_ips.json ou alert_history.json au démarrage).
+    /// Ne fait rien si CountryCode est vide (pas de géoloc valide à seeder).
+    /// </summary>
+    public void SeedCache(string ip, GeoInfo info)
+    {
+        if (string.IsNullOrWhiteSpace(ip) || info == null) return;
+        if (string.IsNullOrWhiteSpace(info.CountryCode)) return;
+        _cache[ip] = info;
+    }
 
+    /// <summary>
+    /// Invalide l'entrée de cache d'une IP (force un re-fetch au prochain ResolveAsync).
+    /// Utilisé par le refresh périodique.
+    /// </summary>
+    public void InvalidateCache(string ip)
+    {
+        if (string.IsNullOrWhiteSpace(ip)) return;
+        _cache.TryRemove(ip, out _);
+    }
+    
     public void ResolveInBackground(string ip)
     {
         if (!_enabled) return;
@@ -55,6 +81,10 @@ public sealed class GeoIpService
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
+        // Quota épuisé : ne pas appeler l'API, retourner un objet transitoire non caché
+        if (DateTime.UtcNow < _quotaExceededUntil)
+            return new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.MinValue };
+        
         // Cache hit : seulement si CountryCode non vide (sinon = échec caché)
         if (_cache.TryGetValue(ip, out var cached) &&
             DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
@@ -133,12 +163,18 @@ public sealed class GeoIpService
             string url = _providerTemplate.Replace("{ip}", Uri.EscapeDataString(ip));
             using var resp = await _http.GetAsync(url);
 
-            if (!resp.IsSuccessStatusCode)
-            {
-                // ? Log status HTTP pour diagnostiquer rate-limit vs refus
-                CoreLog.Warn($"[GEOIP] {ip} HTTP {(int)resp.StatusCode} ({resp.ReasonPhrase})");
-                return null;   // ? PAS de cache
-            }
+                if ((int)resp.StatusCode == 429)
+                {
+                    // ipwho.is : quota journalier ? pause de 24h par défaut
+                    // (Retry-After si présent, mais souvent absent ou court)
+                    var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromHours(24);
+                    if (retryAfter < TimeSpan.FromHours(24))
+                        retryAfter = TimeSpan.FromHours(24);   // forcer 24h minimum
+
+                    _quotaExceededUntil = DateTime.UtcNow + retryAfter;
+                    CoreLog.Warn($"[GEOIP] Quota épuisé — pause jusqu'à {_quotaExceededUntil.ToLocalTime():yyyy-MM-dd HH:mm}");
+                    return null;
+                }
 
             string json = await resp.Content.ReadAsStringAsync();
             using var doc = JsonDocument.Parse(json);
