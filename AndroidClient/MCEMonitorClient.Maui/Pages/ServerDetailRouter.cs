@@ -17,13 +17,14 @@ public static class ServerDetailRouter
     public static string GetRouteForService(string? serviceType, string serverId)
     {
         string type = (serviceType ?? "").Trim().ToLowerInvariant();
+        string encodedId = Uri.EscapeDataString(serverId);
 
         return type switch
         {
-            "systemmonitor" => $"systemmonitor/detail?id={Uri.EscapeDataString(serverId)}",
-            // "rommonitor"   => $"rommonitor/detail?id={...}",
-            // "netmonitor"   => $"netmonitor/detail?id={...}",
-            // "mediamonitor" => $"mediamonitor/detail?id={...}",
+            "systemmonitor" => $"systemmonitor/detail?id={encodedId}",
+            "rommonitor"    => $"rommonitor/detail?id={encodedId}",
+            // "netmonitor"   => $"netmonitor/detail?id={encodedId}",
+            // "mediamonitor" => $"mediamonitor/detail?id={encodedId}",
             _ => ""
         };
     }

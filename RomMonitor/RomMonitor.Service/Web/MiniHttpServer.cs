@@ -194,7 +194,128 @@ namespace RomMonitor.Service.Web
                         });
 
                     SendJson(ctx, json);
-                }                
+                }
+                else if (path == "/api/detail")
+                {
+                    var detail = new RomMonitor.Service.Api.ApiDetail
+                    {
+                        service = "RomMonitor",
+                        machine = Environment.MachineName,
+                        timestamp = DateTime.Now,
+                        worstSeverity = _engine.WorstSeverity,
+                        lastCheckTime = _engine.LastCheckTime,
+                        problems = new System.Collections.Generic.List<RomMonitor.Service.Api.ApiProblem>(),
+                        disks = new System.Collections.Generic.List<RomMonitor.Service.Api.DiskDetailDto>(),
+                        smart = new System.Collections.Generic.List<RomMonitor.Service.Api.SmartDetailDto>()
+                    };
+
+                    // --- Problèmes SMART + espace disque (même logique que /api/summary) ---
+                    foreach (var s in _engine.LastSmart)
+                    {
+                        if (!s.Available) continue;
+                        if (s.Status != "Critical" && s.Status != "Warning") continue;
+
+                        detail.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                        {
+                            severity = s.Status == "Critical" ? "critical" : "warning",
+                            category = "Smart",
+                            target   = !string.IsNullOrEmpty(s.Serial) ? s.Serial : s.Device,
+                            message  = $"{s.Model} : {s.StatusReason}"
+                        });
+                    }
+
+                    var settings = RomMonitorSettings.Load();
+
+                    foreach (var d in _engine.LastDisks)
+                    {
+                        bool critical = d.FreePercent < settings.DiskSpaceCriticalPercent
+                                     || d.FreeGo < settings.DiskSpaceCriticalGo;
+
+                        bool warn = d.FreePercent < settings.DiskSpaceWarnPercent
+                                 || d.FreeGo < settings.DiskSpaceWarnGo;
+
+                        if (critical)
+                        {
+                            detail.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                            {
+                                severity = "critical",
+                                category = "DiskSpace",
+                                target   = d.Name,
+                                message  = $"Disque {d.Name} : {d.FreePercent:F1}% libre ({d.FreeGo:F1} Go)"
+                            });
+                        }
+                        else if (warn)
+                        {
+                            detail.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                            {
+                                severity = "warning",
+                                category = "DiskSpace",
+                                target   = d.Name,
+                                message  = $"Disque {d.Name} : espace faible ({d.FreePercent:F1}%)"
+                            });
+                        }
+                    }
+
+                    // --- Disques (volumes logiques) ---
+                    foreach (var d in _engine.LastDisks)
+                    {
+                        detail.disks.Add(new RomMonitor.Service.Api.DiskDetailDto
+                        {
+                            name                = d.Name,
+                            label               = d.Label,
+                            driveType           = d.DriveType,
+                            totalGo             = d.TotalGo,
+                            freeGo              = d.FreeGo,
+                            freePercent         = d.FreePercent,
+                            physicalDiskNumber  = d.PhysicalDiskNumber,
+                            physicalSerial      = d.PhysicalSerial,
+                            physicalSizeGo      = d.PhysicalSizeGo,
+                            smartAvailable      = d.SmartAvailable,
+                            smartPredictFailure = d.SmartPredictFailure,
+                            smartStatus         = d.SmartStatus,
+                            model               = d.Model,
+                            serialNumber        = d.SerialNumber
+                        });
+                    }
+
+                    // --- Disques physiques (SMART détaillé) ---
+                    foreach (var s in _engine.LastSmart)
+                    {
+                        detail.smart.Add(new RomMonitor.Service.Api.SmartDetailDto
+                        {
+                            device               = s.Device,
+                            type                 = s.Type,
+                            model                = s.Model,
+                            serial               = s.Serial,
+                            firmware             = s.Firmware,
+                            capacityGo           = s.CapacityGo,
+                            available            = s.Available,
+                            passed               = s.Passed,
+                            temperature          = s.Temperature,
+                            powerOnHours         = s.PowerOnHours,
+                            mediaErrors          = s.MediaErrors,
+                            criticalWarning      = s.CriticalWarning,
+                            percentageUsed       = s.PercentageUsed,
+                            availableSpare       = s.AvailableSpare,
+                            reallocatedSectors   = s.ReallocatedSectors,
+                            pendingSectors       = s.PendingSectors,
+                            uncorrectableSectors = s.UncorrectableSectors,
+                            spinRetryCount       = s.SpinRetryCount,
+                            status               = s.Status,
+                            statusReason         = s.StatusReason
+                        });
+                    }
+
+                    string jsonDetail = System.Text.Json.JsonSerializer.Serialize(detail,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                            WriteIndented = false,
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                        });
+
+                    SendJson(ctx, jsonDetail);
+                }
                 else if (path == "/clear-history")
                 {
                     try

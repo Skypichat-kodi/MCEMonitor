@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:converters="clr-namespace:MCEMonitorClient.Maui.Converters"
+             x:Class="MCEMonitorClient.Maui.Pages.RomMonitorDetailPage"
+             Title="Détail ROM"
+             BackgroundColor="#1E1E1E">
+
+    <ContentPage.Resources>
+        <ResourceDictionary>
+            <converters:IsStringNotEmptyConverter x:Key="IsStringNotEmptyConverter" />
+        </ResourceDictionary>
+    </ContentPage.Resources>
+
+    <RefreshView x:Name="refreshView"
+                 IsRefreshing="{Binding IsRefreshing}"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="12" Spacing="12">
+
+                <!-- ============================================================ -->
+                <!-- Header -->
+                <!-- ============================================================ -->
+                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding ServerName}"
+                               FontSize="20" FontAttributes="Bold"
+                               TextColor="#E5E5E5" />
+                        <Label Text="{Binding FullUrl}"
+                               FontSize="12" TextColor="#B4B4B4" />
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                            <Ellipse Grid.Column="0"
+                                     WidthRequest="12" HeightRequest="12"
+                                     Fill="{Binding StatusColor}"
+                                     VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding StatusText}"
+                                   FontSize="14" FontAttributes="Bold"
+                                   TextColor="{Binding StatusColor}"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="2"
+                                   Text="{Binding LastCheckText, StringFormat='Scan {0}'}"
+                                   FontSize="11" TextColor="#888888"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Erreur -->
+                <Border IsVisible="{Binding HasError}"
+                        BackgroundColor="#3A1A1A" Stroke="#FF6347"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="#FF6347" FontSize="13" />
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Problèmes actifs -->
+                <!-- ============================================================ -->
+                <Border IsVisible="{Binding HasProblems}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="PROBLÈMES ACTIFS"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#FF6347" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Problems}"
+                                             Spacing="8">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#1E1E1E"
+                                            Stroke="#3C3C3C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="10,8">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                                                <Ellipse Grid.Column="0"
+                                                         WidthRequest="8" HeightRequest="8"
+                                                         Fill="{Binding SeverityColor}"
+                                                         VerticalOptions="Center" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding Target}"
+                                                       FontSize="12" FontAttributes="Bold"
+                                                       TextColor="#E5E5E5"
+                                                       VerticalOptions="Center" />
+                                                <Label Grid.Column="2"
+                                                       Text="{Binding Category}"
+                                                       FontSize="10" TextColor="#888888"
+                                                       VerticalOptions="Center"
+                                                       HorizontalTextAlignment="End" />
+                                            </Grid>
+                                            <Label Text="{Binding Message}"
+                                                   FontSize="12" TextColor="#B4B4B4" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Volumes -->
+                <!-- ============================================================ -->
+                <Border IsVisible="{Binding HasDisks}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="VOLUMES"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#4CC2FF" />
+
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Disks}"
+                                             Spacing="14">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <VerticalStackLayout Spacing="6">
+                                        <Grid ColumnDefinitions="*,Auto">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding DisplayName}"
+                                                   FontSize="13"
+                                                   TextColor="#E5E5E5"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding FreePercentText}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="{Binding BarColor}" />
+                                        </Grid>
+
+                                        <ProgressBar Progress="{Binding BarProgress}"
+                                                     ProgressColor="{Binding BarColor}"
+                                                     BackgroundColor="#3C3C3C"
+                                                     HeightRequest="8" />
+
+                                        <Label Text="{Binding FreeText}"
+                                               FontSize="11" TextColor="#888888" />
+                                    </VerticalStackLayout>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Disques physiques (SMART) -->
+                <!-- ============================================================ -->
+                <Border IsVisible="{Binding HasSmart}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="DISQUES PHYSIQUES (SMART)"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#4CC2FF" />
+
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Smart}"
+                                             Spacing="14">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#1E1E1E"
+                                            Stroke="#3C3C3C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="12,10">
+                                        <VerticalStackLayout Spacing="8">
+
+                                            <!-- Modèle + Type -->
+                                            <Grid ColumnDefinitions="*,Auto">
+                                                <Label Grid.Column="0"
+                                                       Text="{Binding Model}"
+                                                       FontSize="14" FontAttributes="Bold"
+                                                       TextColor="#E5E5E5"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding TypeText}"
+                                                       FontSize="10"
+                                                       TextColor="#888888"
+                                                       VerticalOptions="Center"
+                                                       Margin="8,0,0,0" />
+                                            </Grid>
+
+                                            <!-- Statut SMART -->
+                                            <Grid ColumnDefinitions="Auto,*" ColumnSpacing="6">
+                                                <Ellipse Grid.Column="0"
+                                                         WidthRequest="10" HeightRequest="10"
+                                                         Fill="{Binding StatusColor}"
+                                                         VerticalOptions="Center" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding StatusText}"
+                                                       FontSize="12"
+                                                       TextColor="{Binding StatusColor}"
+                                                       VerticalOptions="Center" />
+                                            </Grid>
+
+                                            <!-- Grille : Temp / Heures / Capacité -->
+                                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                                                <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                                    <Label Text="Température"
+                                                           FontSize="10" TextColor="#888888" />
+                                                    <Label Text="{Binding TemperatureText}"
+                                                           FontSize="13" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                </VerticalStackLayout>
+                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                    <Label Text="Allumé depuis"
+                                                           FontSize="10" TextColor="#888888" />
+                                                    <Label Text="{Binding PowerOnText}"
+                                                           FontSize="13" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                </VerticalStackLayout>
+                                                <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                                    <Label Text="Capacité"
+                                                           FontSize="10" TextColor="#888888" />
+                                                    <Label Text="{Binding CapacityText}"
+                                                           FontSize="13" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                </VerticalStackLayout>
+                                            </Grid>
+
+                                            <!-- Détails (usure, secteurs...) -->
+                                            <Label Text="{Binding Details}"
+                                                   FontSize="11" TextColor="#B4B4B4"
+                                                   IsVisible="{Binding Details, Converter={StaticResource IsStringNotEmptyConverter}}" />
+
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Label Text="Tirer vers le bas pour rafraîchir"
+                       FontSize="11" TextColor="#666666"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,8,0,0" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>
