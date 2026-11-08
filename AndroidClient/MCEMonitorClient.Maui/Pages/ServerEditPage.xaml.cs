@@ -30,10 +30,15 @@ public partial class ServerEditPage : ContentPage
             swEnabled.IsToggled = existing.Enabled;
 
             SetDetectedService(existing.ServiceType);
-        }
-        // Nouveau serveur : label reste "— Non détecté —"
 
-        // Auto-détection quand l'URL ou le port perd le focus (comme Windows)
+            // Indicateur : mot de passe absent alors qu'un login existe
+            if (string.IsNullOrEmpty(existing.Password) && !string.IsNullOrEmpty(existing.Username))
+            {
+                lblTestResult.TextColor = Color.FromArgb("#FFB900");
+                lblTestResult.Text = "Mot de passe à re-saisir (stockage sécurisé vide).";
+            }
+        }
+
         txtUrl.Unfocused  += async (s, e) => await AutoDetectAsync();
         txtPort.Unfocused += async (s, e) => await AutoDetectAsync();
     }
@@ -67,7 +72,7 @@ public partial class ServerEditPage : ContentPage
             return;
         }
 
-        var config = ConfigService.Load();
+        var config = await ConfigService.LoadAsync();
 
         if (_existing == null)
         {
@@ -78,7 +83,7 @@ public partial class ServerEditPage : ContentPage
                 Port        = port,
                 Username    = txtUsername.Text?.Trim() ?? "",
                 Password    = txtPassword.Text ?? "",
-                ServiceType = GetDetectedService(),   // <- virgule
+                ServiceType = GetDetectedService(),
                 Enabled     = swEnabled.IsToggled
             };
             config.Servers.Add(entry);
@@ -93,7 +98,7 @@ public partial class ServerEditPage : ContentPage
                 existing.Port        = port;
                 existing.Username    = txtUsername.Text?.Trim() ?? "";
                 existing.Password    = txtPassword.Text ?? "";
-                existing.ServiceType = GetDetectedService();   // <- point-virgule
+                existing.ServiceType = GetDetectedService();
                 existing.Enabled     = swEnabled.IsToggled;
             }
             else
@@ -103,7 +108,7 @@ public partial class ServerEditPage : ContentPage
             }
         }
 
-        ConfigService.Save(config);
+        await ConfigService.SaveAsync(config);
         await Navigation.PopModalAsync();
     }
 
@@ -112,9 +117,6 @@ public partial class ServerEditPage : ContentPage
         await TestConnectionAsync(autoMode: false);
     }
 
-    // ============================================================
-    //  Auto-détection (déclenchée sur Unfocused URL/Port)
-    // ============================================================
     private async Task AutoDetectAsync()
     {
         if (!btnTest.IsEnabled)
@@ -142,9 +144,6 @@ public partial class ServerEditPage : ContentPage
         await TestConnectionAsync(autoMode: true);
     }
 
-    // ============================================================
-    //  Test de connexion + détection du service
-    // ============================================================
     private async Task TestConnectionAsync(bool autoMode)
     {
         string url     = txtUrl.Text?.Trim() ?? "";
@@ -199,7 +198,6 @@ public partial class ServerEditPage : ContentPage
                 return;
             }
 
-            // --- Détection automatique du service + machine ---
             string json = await resp.Content.ReadAsStringAsync();
             string detectedService = "Inconnu";
             string detectedMachine = "";
@@ -212,18 +210,15 @@ public partial class ServerEditPage : ContentPage
                 if (doc.RootElement.TryGetProperty("machine", out var machineProp))
                     detectedMachine = machineProp.GetString() ?? "";
             }
-            catch { /* JSON invalide */ }
+            catch { }
 
-            // --- Machine (fallback sur le host de l'URL) ---
             string hostFallback = baseUrl;
             try { hostFallback = new Uri(baseUrl).Host; } catch { }
 
             string machine = !string.IsNullOrEmpty(detectedMachine) ? detectedMachine : hostFallback;
 
-            // --- Met à jour le label "Type" ---
             SetDetectedService(detectedService);
 
-            // --- Propose un nom (uniquement si vide ou auto-généré) ---
             string proposedName = $"Service {detectedService} sur {machine}";
             string currentName  = txtName.Text?.Trim() ?? "";
 
@@ -240,7 +235,6 @@ public partial class ServerEditPage : ContentPage
             if (shouldUpdateName)
                 txtName.Text = proposedName;
 
-            // --- Résultat visuel (plus de popup, comme Windows) ---
             lblTestResult.TextColor = Color.FromArgb("#6CCB5F");
             lblTestResult.Text = $"[OK] Service {detectedService} sur {machine}";
         }
@@ -266,12 +260,7 @@ public partial class ServerEditPage : ContentPage
         txtPassword.IsPassword = !txtPassword.IsPassword;
         btnTogglePass.Source = txtPassword.IsPassword ? "eye.png" : "eye_off.png";
     }
-    
-    /// <summary>
-    /// Met à jour le label "Type" avec le service détecté.
-    /// Le label est en lecture seule : l'utilisateur ne peut pas le modifier
-    /// manuellement (comme sur le client Windows).
-    /// </summary>
+
     private void SetDetectedService(string? serviceType)
     {
         _detectedServiceType = serviceType ?? "";
@@ -281,17 +270,14 @@ public partial class ServerEditPage : ContentPage
             : serviceType!;
 
         lblDetectedService.TextColor = string.IsNullOrWhiteSpace(serviceType)
-            ? Color.FromArgb("#888888")   // gris = non détecté
-            : Color.FromArgb("#6CCB5F");  // vert = détecté
+            ? Color.FromArgb("#888888")
+            : Color.FromArgb("#6CCB5F");
     }
 
-    /// <summary>
-    /// Retourne le service détecté ou "Inconnu" si aucun test n'a été fait.
-    /// </summary>
     private string GetDetectedService()
     {
         return string.IsNullOrWhiteSpace(_detectedServiceType)
             ? "Inconnu"
             : _detectedServiceType;
-    }    
+    }
 }

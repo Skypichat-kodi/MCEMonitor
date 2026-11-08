@@ -314,11 +314,19 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             }
 
             // ---- Intent + PendingIntent ----
-            var intent = new Intent(Intent.ActionView,
-                global::Android.Net.Uri.Parse(alert.BaseUrl));
+            // Ouvre l'app sur la page de détail du serveur.
+            // CancelCurrent est indispensable : sans lui, Android réutilise l'ancien
+            // PendingIntent (qui pointait vers l'URL web) et la navigation échoue.
+            var intent = new Intent(context, typeof(MainActivity));
+            intent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
+            intent.PutExtra("server_id", alert.ServerId);
+            intent.PutExtra("service_type", alert.ServiceType);
+
             var pending = PendingIntent.GetActivity(
                 context, 0, intent,
-                PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+                PendingIntentFlags.CancelCurrent
+                | PendingIntentFlags.UpdateCurrent
+                | PendingIntentFlags.Immutable);
 
             // ---- Builder ----
             var builder = new NotificationCompat.Builder(context, channel)

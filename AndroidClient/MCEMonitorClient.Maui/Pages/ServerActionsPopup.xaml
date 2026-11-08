@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<toolkit:Popup xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+               xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+               xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+               x:Class="MCEMonitorClient.Maui.Pages.ServerActionsPopup"
+               Color="#B0000000">
+
+    <Border BackgroundColor="#252526"
+            Stroke="#3C3C3C"
+            StrokeThickness="1"
+            StrokeShape="RoundRectangle 14"
+            Padding="20"
+            WidthRequest="320">
+
+        <VerticalStackLayout Spacing="14">
+
+            <!-- Titre : nom du serveur -->
+            <Label x:Name="lblServerName"
+                   Text="Serveur"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="#E5E5E5"
+                   HorizontalTextAlignment="Center"
+                   LineBreakMode="TailTruncation" />
+
+            <!-- Sous-titre : type de service -->
+            <Label x:Name="lblServiceType"
+                   Text=""
+                   FontSize="12"
+                   TextColor="#888888"
+                   HorizontalTextAlignment="Center"
+                   Margin="0,-8,0,0" />
+
+            <!-- Séparateur -->
+            <BoxView HeightRequest="1" Color="#3C3C3C" Margin="0,4" />
+
+            <!-- Consulter (accent) -->
+            <Button x:Name="btnConsume"
+                    Text="Consulter"
+                    BackgroundColor="#4CC2FF"
+                    TextColor="Black"
+                    FontAttributes="Bold"
+                    FontSize="15"
+                    CornerRadius="10"
+                    HeightRequest="48"
+                    Clicked="OnConsumeClicked" />
+
+            <!-- Modifier (neutre) -->
+            <Button x:Name="btnEdit"
+                    Text="Modifier"
+                    BackgroundColor="#3C3C3C"
+                    TextColor="#E5E5E5"
+                    FontSize="15"
+                    CornerRadius="10"
+                    HeightRequest="48"
+                    Clicked="OnEditClicked" />
+
+            <!-- Supprimer (destructif) -->
+            <Button x:Name="btnDelete"
+                    Text="Supprimer"
+                    BackgroundColor="#F44336"
+                    TextColor="White"
+                    FontAttributes="Bold"
+                    FontSize="15"
+                    CornerRadius="10"
+                    HeightRequest="48"
+                    Clicked="OnDeleteClicked" />
+
+            <!-- Annuler (discret) -->
+            <Button x:Name="btnCancel"
+                    Text="Annuler"
+                    BackgroundColor="Transparent"
+                    TextColor="#888888"
+                    FontSize="14"
+                    CornerRadius="10"
+                    HeightRequest="40"
+                    Clicked="OnCancelClicked" />
+
+        </VerticalStackLayout>
+    </Border>
+
+</toolkit:Popup>

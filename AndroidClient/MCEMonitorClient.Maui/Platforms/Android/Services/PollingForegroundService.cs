@@ -81,7 +81,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             {
                 try
                 {
-                    var config = _store!.Load();
+                    var config = await _store!.LoadAsync();
 
                     global::Android.Util.Log.Info(Tag,
                         $"Polling : {config.Servers.Count} serveur(s) configuré(s), " +

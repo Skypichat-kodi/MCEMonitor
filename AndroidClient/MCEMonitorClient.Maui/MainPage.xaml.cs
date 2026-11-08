@@ -2,7 +2,9 @@
 using MCEMonitorClient.Maui.Pages;
 using MCEMonitorClient.Maui.Services;
 using MCEMonitorClient.Maui.ViewModels;
+using CommunityToolkit.Maui.Views;
 using MCEMonitorClient.Shared.Models;
+using CommunityToolkit.Maui;
 #if ANDROID
 using MCEMonitorClient.Maui.Platforms.Android.Services;
 #endif
@@ -24,14 +26,16 @@ public partial class MainPage : ContentPage
         _serviceRunning = Preferences.Get(PrefKeyServiceRunning, false);
     }
 
-    protected override void OnAppearing()
+    protected override async void OnAppearing()
     {
         base.OnAppearing();
-        LoadServers();
+
+        if (_servers.Count == 0)
+            await LoadServersAsync();
+
         UpdateServiceStatus();
         RefreshStatusColors();
 
-        // Timer pour rafraîchir les pastilles toutes les 2s
         _refreshTimer = Dispatcher.CreateTimer();
         _refreshTimer.Interval = TimeSpan.FromSeconds(2);
         _refreshTimer.Tick += (s, e) => RefreshStatusColors();
@@ -45,10 +49,10 @@ public partial class MainPage : ContentPage
         _refreshTimer = null;
     }
 
-    private void LoadServers()
+    private async Task LoadServersAsync()
     {
         _servers.Clear();
-        var config = ConfigService.Load();
+        var config = await ConfigService.LoadAsync();
         foreach (var s in config.Servers)
             _servers.Add(new ServerItemViewModel(s));
     }
@@ -97,44 +101,9 @@ public partial class MainPage : ContentPage
     {
         var page = new ServerEditPage(null);
         await Navigation.PushModalAsync(page);
-    }
 
-    private async void OnEditClicked(object sender, EventArgs e)
-    {
-        var vm = GetSelected();
-        if (vm == null)
-        {
-            await DisplayAlert("Info", "Sélectionnez un serveur.", "OK");
-            return;
-        }
-
-        var page = new ServerEditPage(vm.Server);
-        await Navigation.PushModalAsync(page);
-    }
-
-    private async void OnDeleteClicked(object sender, EventArgs e)
-    {
-        var vm = GetSelected();
-        if (vm == null)
-        {
-            await DisplayAlert("Info", "Sélectionnez un serveur.", "OK");
-            return;
-        }
-
-        bool ok = await DisplayAlert("Confirmation",
-            $"Supprimer le serveur \"{vm.Name}\" ?", "Oui", "Non");
-
-        if (!ok) return;
-
-        var config = ConfigService.Load();
-        var toRemove = config.Servers.FirstOrDefault(s => s.Id == vm.Server.Id);
-        if (toRemove != null)
-        {
-            config.Servers.Remove(toRemove);
-            ConfigService.Save(config);
-            LoadServers();
-            RefreshStatusColors();
-        }
+        // Rafraîchir au retour
+        page.Disappearing += async (_, __) => await LoadServersAsync();
     }
 
     private async void OnOptionsClicked(object sender, EventArgs e)
@@ -145,7 +114,7 @@ public partial class MainPage : ContentPage
 
     private async void OnToggleServiceClicked(object sender, EventArgs e)
     {
-#if ANDROID
+    #if ANDROID
         var ctx = Android.App.Application.Context;
 
         if (_serviceRunning)
@@ -161,20 +130,131 @@ public partial class MainPage : ContentPage
 
         Preferences.Set(PrefKeyServiceRunning, _serviceRunning);
         UpdateServiceStatus();
-#endif
+    #endif
         await Task.CompletedTask;
     }
 
     private void OnServerSelected(object sender, SelectionChangedEventArgs e)
     {
-        // La sélection est stockée dans serversList.SelectedItem
+        // Plus utilisé : on passe par OnServerTapped + menu contextuel
     }
 
-    private void OnServerTapped(object sender, TappedEventArgs e)
+    private async void OnServerTapped(object sender, TappedEventArgs e)
     {
-        if (sender is Border border && border.BindingContext is ServerItemViewModel vm)
+        if (sender is not Border border || border.BindingContext is not ServerItemViewModel vm)
+            return;
+
+        serversList.SelectedItem = vm;
+
+        // Déterminer si le serveur est online (état connu du dernier poll)
+        string knownStatus = PollingState.GetStatus(vm.Server.Id);
+        bool online = knownStatus != "offline" && knownStatus != "unknown";
+
+        // Afficher la popup
+        var popup = new Pages.ServerActionsPopup(vm.Name, vm.Server.ServiceType, online);
+        await this.ShowPopupAsync(popup);
+
+        // Traiter l'action choisie
+        switch (popup.SelectedAction)
         {
-            serversList.SelectedItem = vm;
+            case "Consulter":
+                await ConsumeServerAsync(vm);
+                break;
+            case "Modifier":
+                await EditServerAsync(vm);
+                break;
+            case "Supprimer":
+                await DeleteServerAsync(vm);
+                break;
+            // "" (Annuler) ou null : rien
+        }
+    }
+    
+    private async Task ConsumeServerAsync(ServerItemViewModel vm)
+    {
+        // Vérification fraîche (l'état de la popup peut être obsolète de quelques secondes)
+        bool online = await IsServerReachableAsync(vm.Server);
+
+        if (!online)
+        {
+            await DisplayAlert(
+                "Serveur hors ligne",
+                $"« {vm.Name} » ne répond plus. Vérifiez la connexion réseau.",
+                "OK");
+            return;
+        }
+
+        // Navigation
+        string route = Pages.ServerDetailRouter.GetRouteForService(vm.Server.ServiceType, vm.Server.Id);
+
+        if (!string.IsNullOrEmpty(route))
+        {
+            await Shell.Current.GoToAsync(route);
+        }
+        else
+        {
+            await DisplayAlert(
+                "Bientôt disponible",
+                $"La page de détail pour « {vm.Server.ServiceType} » n'est pas encore disponible.",
+                "OK");
+        }
+    }
+
+    private async Task<bool> IsServerReachableAsync(ServerEntry server)
+    {
+        if (server == null || string.IsNullOrWhiteSpace(server.FullUrl))
+            return false;
+
+        try
+        {
+            using var http = new System.Net.Http.HttpClient
+            {
+                Timeout = TimeSpan.FromSeconds(5)
+            };
+
+            if (!string.IsNullOrEmpty(server.Username))
+            {
+                string raw = $"{server.Username}:{server.Password}";
+                string b64 = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(raw));
+                http.DefaultRequestHeaders.Authorization =
+                    new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", b64);
+            }
+
+            using var resp = await http.GetAsync($"{server.FullUrl}/api/summary");
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task EditServerAsync(ServerItemViewModel vm)
+    {
+        var page = new ServerEditPage(vm.Server);
+        await Navigation.PushModalAsync(page);
+
+        // Rafraîchir au retour
+        page.Disappearing += async (_, __) => await LoadServersAsync();
+    }
+
+    private async Task DeleteServerAsync(ServerItemViewModel vm)
+    {
+        bool ok = await DisplayAlert(
+            "Confirmation",
+            $"Supprimer le serveur \"{vm.Name}\" ?",
+            "Oui", "Non");
+
+        if (!ok) return;
+
+        var config = await ConfigService.LoadAsync();
+        var toRemove = config.Servers.FirstOrDefault(s => s.Id == vm.Server.Id);
+        if (toRemove != null)
+        {
+            config.Servers.Remove(toRemove);
+            await ConfigService.SaveAsync(config);
+            await LoadServersAsync();
+            RefreshStatusColors();
         }
     }
 }

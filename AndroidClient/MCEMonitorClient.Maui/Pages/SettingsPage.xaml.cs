@@ -1,4 +1,4 @@
-using MCEMonitorClient.Maui.Services;
+ï»¿using MCEMonitorClient.Maui.Services;
 
 namespace MCEMonitorClient.Maui.Pages;
 
@@ -7,8 +7,12 @@ public partial class SettingsPage : ContentPage
     public SettingsPage()
     {
         InitializeComponent();
+        _ = InitializeAsync();
+    }
 
-        var config = ConfigService.Load();
+    private async Task InitializeAsync()
+    {
+        var config = await ConfigService.LoadAsync();
         txtInterval.Text = config.PollIntervalSeconds.ToString();
         swNotify.IsToggled = config.NotifyOnStateChange;
         swSound.IsToggled = config.PlaySoundOnCritical;
@@ -16,6 +20,7 @@ public partial class SettingsPage : ContentPage
 #if ANDROID
         UpdateBatteryButton();
 #endif
+        await Task.CompletedTask;
     }
 
     private async void OnCancelClicked(object sender, EventArgs e)
@@ -31,11 +36,11 @@ public partial class SettingsPage : ContentPage
             return;
         }
 
-        var config = ConfigService.Load();
+        var config = await ConfigService.LoadAsync();
         config.PollIntervalSeconds = interval;
         config.NotifyOnStateChange = swNotify.IsToggled;
         config.PlaySoundOnCritical = swSound.IsToggled;
-        ConfigService.Save(config);
+        await ConfigService.SaveAsync(config);
 
         await Navigation.PopModalAsync();
     }
@@ -45,9 +50,9 @@ public partial class SettingsPage : ContentPage
         bool ok = await ImportExportService.ExportAsync();
 
         if (ok)
-            await DisplayAlert("Export", "Configuration exportée avec succès.", "OK");
+            await DisplayAlert("Export", "Configuration exportÃ©e avec succÃ¨s.", "OK");
         else
-            await DisplayAlert("Export", "Export annulé ou échec.", "OK");
+            await DisplayAlert("Export", "Export annulÃ© ou Ã©chec.", "OK");
     }
 
     private async void OnImportClicked(object sender, EventArgs e)
@@ -56,7 +61,7 @@ public partial class SettingsPage : ContentPage
 
         if (imported == null)
         {
-            await DisplayAlert("Import", "Import annulé ou fichier invalide.", "OK");
+            await DisplayAlert("Import", "Import annulÃ© ou fichier invalide.", "OK");
             return;
         }
 
@@ -69,9 +74,9 @@ public partial class SettingsPage : ContentPage
 
         if (!confirm) return;
 
-        ConfigService.Save(imported);
+        await ConfigService.SaveAsync(imported);
 
-        await DisplayAlert("Import", $"Configuration importée ({imported.Servers.Count} serveur(s)).", "OK");
+        await DisplayAlert("Import", $"Configuration importÃ©e ({imported.Servers.Count} serveur(s)).", "OK");
     }
 
 #if ANDROID

@@ -149,7 +149,105 @@ namespace SystemMonitor.Service.Web
                         });
 
                     SendJson(ctx, json);
-                }
+                }                
+                else if (path == "/api/detail")
+                {
+                    var snap = _engine.LastSnapshot;
+
+                    var detail = new SystemMonitor.Service.Api.ApiDetail
+                    {
+                        service = "SystemMonitor",
+                        machine = Environment.MachineName,
+                        timestamp = DateTime.Now,
+                        worstSeverity = _engine.WorstSeverity,
+                        system = new SystemMonitor.Service.Api.SystemInfoDto
+                        {
+                            lastUpdate = _engine.LastUpdateTime,
+                            cpu = new SystemMonitor.Service.Api.CpuDto
+                            {
+                                name = snap.Cpu.Name,
+                                usagePercent = snap.Cpu.UsagePercent,
+                                temperature = snap.Cpu.Temperature,
+                                frequencyMHz = snap.Cpu.FrequencyMHz,
+                                maxFrequencyMHz = snap.Cpu.MaxFrequencyMHz,
+                                cores = System.Linq.Enumerable.ToList(
+                                    System.Linq.Enumerable.Select(snap.Cpu.Cores, c =>
+                                        new SystemMonitor.Service.Api.CpuCoreDto
+                                        {
+                                            name = c.Name,
+                                            usagePercent = c.UsagePercent
+                                        }))
+                            },
+                            ram = new SystemMonitor.Service.Api.RamDto
+                            {
+                                totalGB = snap.Ram.TotalGB,
+                                usedGB = snap.Ram.UsedGB,
+                                freeGB = snap.Ram.FreeGB,
+                                usagePercent = snap.Ram.UsagePercent
+                            },
+                            gpus = System.Linq.Enumerable.ToList(
+                                System.Linq.Enumerable.Select(snap.Gpus, g =>
+                                    new SystemMonitor.Service.Api.GpuDto
+                                    {
+                                        name = g.Name,
+                                        usagePercent = g.UsagePercent,
+                                        temperature = g.Temperature,
+                                        vramUsedMB = g.VramUsedMB,
+                                        vramTotalMB = g.VramTotalMB
+                                    })),
+                            networks = System.Linq.Enumerable.ToList(
+                                System.Linq.Enumerable.Select(snap.Networks, n =>
+                                    new SystemMonitor.Service.Api.NetworkDto
+                                    {
+                                        name = n.Name,
+                                        downloadKBps = n.DownloadKBps,
+                                        uploadKBps = n.UploadKBps
+                                    })),
+                            history = System.Linq.Enumerable.ToList(
+                                System.Linq.Enumerable.Select(_engine.GetHistory(), h =>
+                                    new SystemMonitor.Service.Api.HistoryPointDto
+                                    {
+                                        timestamp = h.Timestamp,
+                                        cpuUsage = h.CpuUsage,
+                                        ramUsage = h.RamUsage,
+                                        cpuTemp = h.CpuTemp,
+                                        gpuUsage = h.GpuUsage,
+                                        gpuTemp = h.GpuTemp
+                                    }))
+                        },
+                        bsods = System.Linq.Enumerable.ToList(
+                            System.Linq.Enumerable.Select(_engine.GetBsods(), b =>
+                                new SystemMonitor.Service.Api.BsodDto
+                                {
+                                    timestamp = b.Timestamp,
+                                    bugCheckCode = b.BugCheckCode,
+                                    bugCheckName = b.BugCheckName,
+                                    faultyModule = b.FaultyModule,
+                                    dumpExists = b.DumpExists
+                                })),
+                        alerts = System.Linq.Enumerable.ToList(
+                            System.Linq.Enumerable.Select(_engine.GetAlerts(), a =>
+                                new SystemMonitor.Service.Api.AlertDto
+                                {
+                                    timestamp = a.Timestamp,
+                                    type = a.Type.ToString(),
+                                    severity = a.Severity,
+                                    target = a.Target,
+                                    message = a.Message,
+                                    emailSent = a.EmailSent
+                                }))
+                    };
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(detail,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                            WriteIndented = false,
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                        });
+
+                    SendJson(ctx, json);
+                }                
                 else if (path == "/peers")
                 {
                     var peers = PeerStatusService.CheckAllAsync("SystemMonitor")

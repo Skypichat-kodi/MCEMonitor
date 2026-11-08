@@ -5,7 +5,7 @@
              x:Class="MCEMonitorClient.Maui.MainPage"
              Title="Serveurs"
              BackgroundColor="#1E1E1E">
-            
+
     <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="12" RowSpacing="12">
 
         <!-- Titre + état du service -->
@@ -35,7 +35,6 @@
                         </Border.GestureRecognizers>
 
                         <Grid ColumnDefinitions="Auto,*,Auto">
-                            <!-- Pastille de couleur -->
                             <Ellipse Grid.Column="0"
                                      WidthRequest="14"
                                      HeightRequest="14"
@@ -43,7 +42,6 @@
                                      VerticalOptions="Center"
                                      Margin="0,0,12,0" />
 
-                            <!-- Infos serveur -->
                             <VerticalStackLayout Grid.Column="1" Spacing="2">
                                 <Label Text="{Binding Name}"
                                        FontSize="16"
@@ -57,7 +55,6 @@
                                        TextColor="#888888" />
                             </VerticalStackLayout>
 
-                            <!-- Actif/Inactif -->
                             <Label Grid.Column="2"
                                    Text="{Binding EnabledText}"
                                    FontSize="12"
@@ -69,8 +66,8 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
-        <!-- Boutons du bas -->
-        <Grid Grid.Row="2" ColumnDefinitions="*,*,*" ColumnSpacing="8">
+        <!-- Ligne 2 : Ajouter + Options -->
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="8">
             <Button Grid.Column="0"
                     Text="Ajouter"
                     BackgroundColor="#4CC2FF"
@@ -78,32 +75,20 @@
                     FontAttributes="Bold"
                     Clicked="OnAddClicked" />
             <Button Grid.Column="1"
-                    Text="Modifier"
-                    BackgroundColor="#3C3C3C"
-                    TextColor="#E5E5E5"
-                    Clicked="OnEditClicked" />
-            <Button Grid.Column="2"
-                    Text="Supprimer"
-                    BackgroundColor="#3C3C3C"
-                    TextColor="#E5E5E5"
-                    Clicked="OnDeleteClicked" />
-        </Grid>
-
-        <!-- Options + démarrer/arrêter le service -->
-        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="8">
-            <Button Grid.Column="0"
                     Text="Options"
                     BackgroundColor="#3C3C3C"
                     TextColor="#E5E5E5"
                     Clicked="OnOptionsClicked" />
-            <Button Grid.Column="1"
-                    x:Name="btnToggleService"
-                    Text="Démarrer"
-                    BackgroundColor="#4CAF50"
-                    TextColor="White"
-                    FontAttributes="Bold"
-                    Clicked="OnToggleServiceClicked" />
         </Grid>
+
+        <!-- Ligne 3 : Démarrer/Arrêter -->
+        <Button Grid.Row="3"
+                x:Name="btnToggleService"
+                Text="Démarrer"
+                BackgroundColor="#4CAF50"
+                TextColor="White"
+                FontAttributes="Bold"
+                Clicked="OnToggleServiceClicked" />
 
     </Grid>
 
