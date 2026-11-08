@@ -23,8 +23,8 @@ public static class ServerDetailRouter
         {
             "systemmonitor" => $"systemmonitor/detail?id={encodedId}",
             "rommonitor"    => $"rommonitor/detail?id={encodedId}",
-            "netmonitor"   => $"netmonitor/detail?id={encodedId}",
-            // "mediamonitor" => $"mediamonitor/detail?id={encodedId}",
+            "netmonitor"    => $"netmonitor/detail?id={encodedId}",
+            "mediamonitor"  => $"mediamonitor/detail?id={encodedId}",
             _ => ""
         };
     }

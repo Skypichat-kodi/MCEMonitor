@@ -1,0 +1,375 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MCEMonitorClient.Maui.Pages.MediaMonitorDetailPage"
+             Title="Détail MÉDIA"
+             BackgroundColor="#1E1E1E">
+
+    <RefreshView x:Name="refreshView"
+                 IsRefreshing="{Binding IsRefreshing}"
+                 Refreshing="OnRefreshing">
+        <ScrollView>
+            <VerticalStackLayout Padding="12" Spacing="12">
+
+                <!-- ============================================================ -->
+                <!-- Header -->
+                <!-- ============================================================ -->
+                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="{Binding ServerName}"
+                               FontSize="20" FontAttributes="Bold"
+                               TextColor="#E5E5E5" />
+                        <Label Text="{Binding FullUrl}"
+                               FontSize="12" TextColor="#B4B4B4" />
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="{Binding SummaryText}"
+                                   FontSize="13" FontAttributes="Bold"
+                                   TextColor="#4CC2FF"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding LastUpdateText}"
+                                   FontSize="11" TextColor="#888888"
+                                   VerticalOptions="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Erreur -->
+                <Border IsVisible="{Binding HasError}"
+                        BackgroundColor="#3A1A1A" Stroke="#FF6347"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="12">
+                    <Label Text="{Binding ErrorMessage}"
+                           TextColor="#FF6347" FontSize="13" />
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- En cours -->
+                <!-- ============================================================ -->
+                <Border IsVisible="{Binding HasLive}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="EN COURS"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#6CCB5F" />
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Live}"
+                                             Spacing="8">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#1E1E1E"
+                                            Stroke="#3C3C3C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="12,10">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Icon}"
+                                                   FontSize="22"
+                                                   VerticalOptions="Center" />
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding Nom}"
+                                                       FontSize="14" FontAttributes="Bold"
+                                                       TextColor="#E5E5E5"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding SubInfo}"
+                                                       FontSize="11" TextColor="#B4B4B4"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                                <Label Text="{Binding SaisonEpisodeText}"
+                                                       FontSize="11" FontAttributes="Bold"
+                                                       TextColor="{Binding TypeColor}"
+                                                       HorizontalTextAlignment="End" />
+                                                <Label Text="{Binding MediaType}"
+                                                       FontSize="10"
+                                                       TextColor="{Binding TypeColor}"
+                                                       HorizontalTextAlignment="End" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Aucune lecture en cours -->
+                <Border IsVisible="{Binding HasNoLive}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="16">
+                    <VerticalStackLayout Spacing="6" HorizontalOptions="Center">
+                        <Label Text="—"
+                               FontSize="30" TextColor="#666666"
+                               HorizontalTextAlignment="Center" />
+                        <Label Text="Aucune lecture en cours"
+                               FontSize="13" TextColor="#888888"
+                               HorizontalTextAlignment="Center" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Dernière image -->
+                <!-- ============================================================ -->
+                <Border IsVisible="{Binding HasLastImage}"
+                        BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="12,10">
+                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10">
+                        <Label Grid.Column="0"
+                               Text="🖼️"
+                               FontSize="20"
+                               VerticalOptions="Center" />
+                        <VerticalStackLayout Grid.Column="1" Spacing="2">
+                            <Label Text="DERNIÈRE IMAGE"
+                                   FontSize="10" FontAttributes="Bold"
+                                   TextColor="#4CAF50" />
+                            <Label Text="{Binding LastImage}"
+                                   FontSize="12" TextColor="#B4B4B4"
+                                   LineBreakMode="TailTruncation" />
+                        </VerticalStackLayout>
+                    </Grid>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Historique avec filtre -->
+                <!-- ============================================================ -->
+                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Grid ColumnDefinitions="*,Auto">
+                            <Label Grid.Column="0"
+                                   Text="HISTORIQUE RÉCENT"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF"
+                                   VerticalOptions="Center" />
+                            <Label Grid.Column="1"
+                                   Text="{Binding HistoryFiltered.Count, StringFormat='{0} item(s)'}"
+                                   FontSize="11" TextColor="#888888"
+                                   VerticalOptions="Center" />
+                        </Grid>
+
+                        <!-- Filtres par type -->
+                        <ScrollView Orientation="Horizontal"
+                                    HorizontalScrollBarVisibility="Never">
+                            <HorizontalStackLayout Spacing="6">
+                                <Button Text="Tous"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterAllColor}"
+                                        TextColor="{Binding FilterAllTextColor}"
+                                        Clicked="OnFilterAllClicked" />
+                                <Button Text="Audio"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterAudioColor}"
+                                        TextColor="{Binding FilterAudioTextColor}"
+                                        Clicked="OnFilterAudioClicked" />
+                                <Button Text="Série"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterSerieColor}"
+                                        TextColor="{Binding FilterSerieTextColor}"
+                                        Clicked="OnFilterSerieClicked" />
+                                <Button Text="Vidéo"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterVideoColor}"
+                                        TextColor="{Binding FilterVideoTextColor}"
+                                        Clicked="OnFilterVideoClicked" />
+                                <Button Text="Image"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterImageColor}"
+                                        TextColor="{Binding FilterImageTextColor}"
+                                        Clicked="OnFilterImageClicked" />
+                                <Button Text="TV / REC"
+                                        FontSize="11" Padding="12,6"
+                                        CornerRadius="14" HeightRequest="32"
+                                        BackgroundColor="{Binding FilterTvRecColor}"
+                                        TextColor="{Binding FilterTvRecTextColor}"
+                                        Clicked="OnFilterTvRecClicked" />
+                            </HorizontalStackLayout>
+                        </ScrollView>
+
+                        <!-- Liste filtrée -->
+                        <VerticalStackLayout IsVisible="{Binding HasHistory}"
+                                             BindableLayout.ItemsSource="{Binding HistoryFiltered}"
+                                             Spacing="6">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#1E1E1E"
+                                            Stroke="#3C3C3C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="10,8">
+                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Icon}"
+                                                   FontSize="18"
+                                                   VerticalOptions="Center" />
+                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                <Label Text="{Binding Nom}"
+                                                       FontSize="12"
+                                                       TextColor="#E5E5E5"
+                                                       LineBreakMode="TailTruncation" />
+                                                <Label Text="{Binding SubInfo}"
+                                                       FontSize="10"
+                                                       TextColor="#888888"
+                                                       LineBreakMode="TailTruncation" />
+                                            </VerticalStackLayout>
+                                            <VerticalStackLayout Grid.Column="2" Spacing="2">
+                                                <Label Text="{Binding TimestampText}"
+                                                       FontSize="10"
+                                                       TextColor="#888888"
+                                                       HorizontalTextAlignment="End" />
+                                                <Label Text="{Binding SaisonEpisodeText}"
+                                                       FontSize="10"
+                                                       TextColor="{Binding TypeColor}"
+                                                       HorizontalTextAlignment="End" />
+                                            </VerticalStackLayout>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <!-- Aucun item -->
+                        <Label IsVisible="{Binding HasNoHistory}"
+                               Text="Aucun item pour ce filtre"
+                               FontSize="12" TextColor="#888888"
+                               HorizontalTextAlignment="Center"
+                               Margin="0,10" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- ============================================================ -->
+                <!-- Stats -->
+                <!-- ============================================================ -->
+                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14">
+                    <VerticalStackLayout Spacing="10">
+
+                        <Label Text="STATISTIQUES"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#4CC2FF" />
+
+                        <!-- Répartition par type -->
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding TypeStats}"
+                                             Spacing="6">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                        <BoxView Grid.Column="0"
+                                                 WidthRequest="8" HeightRequest="8"
+                                                 CornerRadius="4"
+                                                 Color="{Binding Color}"
+                                                 VerticalOptions="Center" />
+                                        <Label Grid.Column="1"
+                                               Text="{Binding Label}"
+                                               FontSize="12" TextColor="#E5E5E5" />
+                                        <Label Grid.Column="2"
+                                               Text="{Binding CountText}"
+                                               FontSize="12" FontAttributes="Bold"
+                                               TextColor="#B4B4B4" />
+                                    </Grid>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+
+                        <!-- Top séries -->
+                        <VerticalStackLayout IsVisible="{Binding HasTopSeries}" Spacing="6">
+                            <Label Text="TOP SÉRIES"
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="#C586C0"
+                                   Margin="0,8,0,0" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopSeries}"
+                                                 Spacing="4">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Label}"
+                                                   FontSize="11" TextColor="#E5E5E5"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding CountText, StringFormat='x{0}'}"
+                                                   FontSize="11" FontAttributes="Bold"
+                                                   TextColor="#C586C0" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!-- Top artistes -->
+                        <VerticalStackLayout IsVisible="{Binding HasTopArtists}" Spacing="6">
+                            <Label Text="TOP ARTISTES"
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="#007ACC"
+                                   Margin="0,8,0,0" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopArtists}"
+                                                 Spacing="4">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Label}"
+                                                   FontSize="11" TextColor="#E5E5E5"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding CountText, StringFormat='x{0}'}"
+                                                   FontSize="11" FontAttributes="Bold"
+                                                   TextColor="#007ACC" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+
+                        <!-- Top clients -->
+                        <VerticalStackLayout IsVisible="{Binding HasTopClients}" Spacing="6">
+                            <Label Text="TOP CLIENTS"
+                                   FontSize="11" FontAttributes="Bold"
+                                   TextColor="#FFB900"
+                                   Margin="0,8,0,0" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopClients}"
+                                                 Spacing="4">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Label}"
+                                                   FontSize="11" TextColor="#E5E5E5"
+                                                   LineBreakMode="TailTruncation" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding CountText, StringFormat='x{0}'}"
+                                                   FontSize="11" FontAttributes="Bold"
+                                                   TextColor="#FFB900" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+
+                    </VerticalStackLayout>
+                </Border>
+
+                <!-- Pied de page -->
+                <Label Text="Tirer vers le bas pour rafraîchir"
+                       FontSize="11" TextColor="#666666"
+                       HorizontalTextAlignment="Center"
+                       Margin="0,8,0,0" />
+
+            </VerticalStackLayout>
+        </ScrollView>
+    </RefreshView>
+</ContentPage>

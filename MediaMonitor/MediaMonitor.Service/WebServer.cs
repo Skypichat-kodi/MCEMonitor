@@ -2,6 +2,7 @@
 using System.IO;
 using System.Net;
 using System.Text;
+using System.Linq;
 using System.Threading;
 using MediaMonitor.Core.Services;
 using MCEMonitor.Languages;
@@ -79,6 +80,7 @@ namespace MediaMonitor.Service
             _router.Map("/report",      ctx => _apiHandler.Report(ctx));
             _router.Map("/clear",       ctx => _apiHandler.Clear(ctx));
             _router.Map("/api/summary", ctx =>  ApiSummary(ctx));
+            _router.Map("/api/detail",  ctx => ApiDetailHandler(ctx));
 
             // Ressources (routes par préfixe)
             _router.Map("/favicon.ico",               ctx => _resourceHandler.Favicon(ctx));
@@ -207,5 +209,113 @@ namespace MediaMonitor.Service
 
             HttpWriter.WriteJson(ctx.Http, summary);
         }
+        
+        private void ApiDetailHandler(HandlerContext ctx)
+        {
+            var live    = _engine.GetCurrentOpenFiles();
+            var history = _engine.GetHistory();
+            var lastImg = _engine.GetLastImage();
+
+            var detail = new MediaMonitor.Service.Api.ApiDetail
+            {
+                service = "MediaMonitor",
+                machine = Environment.MachineName,
+                timestamp = DateTime.Now,
+                openCount = live.Count,
+                historyCount = history.Count,
+                lastImage = string.IsNullOrWhiteSpace(lastImg) ? null : lastImg
+            };
+
+            // ---- Live ----
+            foreach (var item in live)
+            {
+                detail.live.Add(ConvertToDto(item));
+            }
+
+            // ---- History (limité aux 50 plus récents) ----
+            var recentHistory = history
+                .OrderByDescending(x => x.Timestamp)
+                .Take(50)
+                .ToList();
+
+            foreach (var item in recentHistory)
+            {
+                detail.history.Add(ConvertToDto(item));
+            }
+
+            // ---- Stats (calculées sur l'historique complet, pas seulement les 50) ----
+            detail.stats.total = history.Count;
+
+            foreach (var item in history)
+            {
+                string key = (item.MediaType ?? "").Trim();
+                if (string.IsNullOrEmpty(key)) key = "Inconnu";
+
+                if (!detail.stats.byType.ContainsKey(key))
+                    detail.stats.byType[key] = 0;
+                detail.stats.byType[key]++;
+            }
+
+            // Top séries (uniquement les items avec MediaType == "Serie")
+            detail.stats.topSeries = history
+                .Where(x => string.Equals(x.MediaType, "Serie", StringComparison.OrdinalIgnoreCase))
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.SeriesName) ? x.Nom : x.SeriesName)
+                .Select(g => new MediaMonitor.Service.Api.MediaStatRowDto
+                {
+                    label = g.Key ?? "Inconnu",
+                    count = g.Count()
+                })
+                .OrderByDescending(x => x.count)
+                .Take(10)
+                .ToList();
+
+            // Top artistes (uniquement les items avec MediaType == "Audio")
+            detail.stats.topArtists = history
+                .Where(x => string.Equals(x.MediaType, "Audio", StringComparison.OrdinalIgnoreCase))
+                .GroupBy(x => string.IsNullOrWhiteSpace(x.Artist) ? "Artiste inconnu" : x.Artist)
+                .Select(g => new MediaMonitor.Service.Api.MediaStatRowDto
+                {
+                    label = g.Key,
+                    count = g.Count()
+                })
+                .OrderByDescending(x => x.count)
+                .Take(10)
+                .ToList();
+
+            // Top clients
+            detail.stats.topClients = history
+                .Where(x => !string.IsNullOrWhiteSpace(x.ClientDisplay))
+                .GroupBy(x => x.ClientDisplay)
+                .Select(g => new MediaMonitor.Service.Api.MediaStatRowDto
+                {
+                    label = g.Key,
+                    count = g.Count()
+                })
+                .OrderByDescending(x => x.count)
+                .Take(10)
+                .ToList();
+
+            HttpWriter.WriteJson(ctx.Http, detail);
+        }
+
+        private static MediaMonitor.Service.Api.MediaItemDto ConvertToDto(MediaUsageItem item)
+        {
+            return new MediaMonitor.Service.Api.MediaItemDto
+            {
+                client       = item.ClientDisplay ?? "",
+                mediaType    = item.MediaType ?? "",
+                nom          = item.Nom ?? "",
+                fileName     = item.FileName ?? "",
+                channel      = item.Channel ?? "",
+                seriesName   = item.SeriesName ?? "",
+                episodeName  = item.EpisodeName ?? "",
+                saison       = item.Saison,
+                episode      = item.Episode,
+                timestamp    = item.Timestamp,
+                title        = item.Title ?? "",
+                artist       = item.Artist ?? "",
+                album        = item.Album ?? ""
+            };
+        }        
     }
 }

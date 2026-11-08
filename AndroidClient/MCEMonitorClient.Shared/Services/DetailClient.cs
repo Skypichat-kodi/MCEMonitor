@@ -17,6 +17,16 @@ namespace MCEMonitorClient.Shared.Services
         };
 
         // ============================================================
+        //  MediaMonitor
+        // ============================================================
+        public async Task<MediaDetailDto?> FetchMediaDetailAsync(
+            ServerEntry server,
+            CancellationToken ct = default)
+        {
+            return await FetchDetailAsync<MediaDetailDto>(server, "api/detail", ct);
+        }
+
+        // ============================================================
         //  NetMonitor
         // ============================================================
         public async Task<NetDetailDto?> FetchNetDetailAsync(
