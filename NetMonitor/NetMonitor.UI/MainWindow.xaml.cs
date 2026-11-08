@@ -1185,9 +1185,18 @@ namespace NetMonitor.UI
                 chkBlockSearchScanners.IsChecked = !cfg.ignoreSearchScanners;
                 
                 if (cfg.scannerPatterns != null && cfg.scannerPatterns.Length > 0)
+                {
                     txtScannerPatterns.Text = string.Join(Environment.NewLine, cfg.scannerPatterns);
+                }
                 else
-                    txtScannerPatterns.Text = "";
+                {
+                    // Valeur par défaut visible dans l'UI (au lieu de vide)
+                    txtScannerPatterns.Text = string.Join(Environment.NewLine, new[]
+                    {
+                        "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
+                        "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
+                    });
+                }
             }
             catch { }
         }
@@ -1227,11 +1236,16 @@ namespace NetMonitor.UI
                     ? txtWebPassword.Password
                     : txtWebPasswordVisible.Text;
 
-                // --- NOUVEAU : Préparation de la liste des scanners ---
                 var scannerPatterns = txtScannerPatterns.Text
                     .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
                     .Select(s => s.Trim())
-                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .ToArray();
+
+                // ✅ Garde-fou : si l'utilisateur n'a rien mis, conserver la valeur par défaut
+                string scannerPatternsValue = scannerPatterns.Length > 0
+                    ? string.Join(",", scannerPatterns)
+                    : "shadowserver.org,censys.io,shodan.io,onyphe.com,binaryedge.io,internet-measurement.com,rapid7.com,stretchoid.com";
 
                 var lines = new[]
                 {
@@ -1258,6 +1272,7 @@ namespace NetMonitor.UI
                     "# --- Filtres et Whitelists ---",
                     $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
                     $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",
+                    $"ScannerPatterns={scannerPatternsValue}",
                     "",
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",

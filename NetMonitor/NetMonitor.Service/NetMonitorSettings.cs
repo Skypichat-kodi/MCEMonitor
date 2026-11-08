@@ -174,7 +174,11 @@ namespace NetMonitor.Service
                             case "TrustedScannerPatterns":                            
                             case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
-                            case "ScannerPatterns"              : settings.ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "ScannerPatterns":
+                                var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                if (patterns.Length > 0) settings.ScannerPatterns = patterns;
+                                // sinon : on garde la valeur par défaut (la liste complète)
+                                break;
                             case "CriticalPatterns"             : settings.CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : settings.SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "WhitelistPatterns"            : settings.WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
@@ -279,7 +283,7 @@ namespace NetMonitor.Service
                     $"CriticalPatterns={string.Join(",", CriticalPatterns)}",
                     "",
                     "# Scanners de recherche connus (vert moyen)",
-                    $"ScannerPatterns={string.Join(",", ScannerPatterns)}",
+                    $"ScannerPatterns={JoinOrFallback(ScannerPatterns, DefaultScannerPatterns)}",
                     "",
                     "# Domaines légitimes connus (vert clair)",
                     $"SafePatterns={string.Join(",", SafePatterns)}",
@@ -370,11 +374,11 @@ namespace NetMonitor.Service
                             case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
-                            case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) EnableProcessTrust = ept; break;
-                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) IgnoreSearchScanners = iss; break; // NOUVEAU
-
+                          case "ScannerPatterns":
+                              var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                              if (patterns.Length > 0) ScannerPatterns = patterns;
+                              break;
                             case "TrustedScannerPatterns":
-                            case "ScannerPatterns"              : ScannerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "CriticalPatterns"             : CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                      
@@ -493,5 +497,14 @@ namespace NetMonitor.Service
                 CoreLog.Write($"[PROTECT] Erreur : {ex.Message}");
             }
         }
+        
+        private static string JoinOrFallback(string[] values, string[] fallback)
+            => string.Join(",", values.Length > 0 ? values : fallback);
+
+        private static readonly string[] DefaultScannerPatterns = new[]
+        {
+            "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
+            "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
+        };        
     }
 }
