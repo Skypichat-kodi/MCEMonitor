@@ -367,6 +367,197 @@ namespace NetMonitor.Service.Web
                 {
                     SendHtml(ctx, "pong");
                 }
+                else if (path == "/api/detail")
+                {
+                    var activeIntrusions = _engine.GetActiveIntrusions();
+                    var blocked = _engine.GetBlockedIps();
+                    var retries = _engine.GetBlockedIpRetries();
+                    var pending = _engine.GetPendingProcesses();
+                    var persistentProblems = _engine.GetPersistentProblems();
+
+                    var detail = new NetMonitor.Service.Api.ApiDetail
+                    {
+                        service = "NetMonitor",
+                        machine = Environment.MachineName,
+                        timestamp = DateTime.Now,
+                        worstSeverity = _engine.WorstSeverity,
+                        activeCount = activeIntrusions.Count,
+                        blockedCount = blocked.Count
+                    };
+
+                    // ---- Intrusions actives ----
+                    foreach (var a in activeIntrusions)
+                    {
+                        detail.active.Add(new NetMonitor.Service.Api.IntrusionDetailDto
+                        {
+                            timestamp      = a.Timestamp,
+                            source         = a.Source,
+                            severity       = a.Severity.ToString().ToLowerInvariant(),
+                            message        = a.Message,
+                            remoteIp       = a.RemoteIp,
+                            remotePort     = a.RemotePort,
+                            localPort      = a.LocalPort,
+                            pid            = a.Pid,
+                            processName    = a.ProcessName,
+                            country        = a.Country,
+                            countryCode    = a.CountryCode,
+                            isp            = a.Isp,
+                            isKnownScanner = a.IsKnownScanner
+                        });
+                    }
+
+                    // ---- IP bloquées ----
+                    foreach (var b in blocked)
+                    {
+                        detail.blocked.Add(new NetMonitor.Service.Api.BlockedIpDetailDto
+                        {
+                            ip             = b.Ip,
+                            blockedAt      = b.BlockedAt,
+                            source         = b.Source,
+                            message        = b.Message,
+                            severity       = b.Severity,
+                            isProcess      = b.IsProcess,
+                            processPath    = b.ProcessPath,
+                            country        = b.Country,
+                            countryCode    = b.CountryCode,
+                            city           = b.City,
+                            isp            = b.Isp,
+                            isPrivate      = b.IsPrivate,
+                            isKnownScanner = b.IsKnownScanner
+                        });
+                    }
+
+                    // ---- Retries ----
+                    foreach (var r in retries)
+                    {
+                        detail.retries.Add(new NetMonitor.Service.Api.BlockedRetryDetailDto
+                        {
+                            ip               = r.Ip,
+                            originalDetector = r.OriginalDetector,
+                            blockedAt        = r.BlockedAt,
+                            firstRetryAt     = r.FirstRetryAt,
+                            lastRetryAt      = r.LastRetryAt,
+                            retryCount       = r.RetryCount
+                        });
+                    }
+
+                    // ---- Processus en attente ----
+                    foreach (var p in pending)
+                    {
+                        detail.pending.Add(new NetMonitor.Service.Api.PendingProcessDetailDto
+                        {
+                            processPath = p.ProcessPath,
+                            processName = p.ProcessName,
+                            trustReason = p.TrustReason,
+                            remoteIp    = p.RemoteIp,
+                            remotePort  = p.RemotePort,
+                            pid         = p.Pid,
+                            firstSeen   = p.FirstSeen,
+                            lastSeen    = p.LastSeen,
+                            count       = p.Count,
+                            severity    = p.Severity.ToString(),
+                            detector    = p.Detector
+                        });
+                    }
+
+                    // ---- Whitelist processus ----
+                    var whitelist = _engine.GetWhitelistEntries();
+                    foreach (var w in whitelist)
+                    {
+                        detail.whitelist.Add(new NetMonitor.Service.Api.WhitelistProcessDto
+                        {
+                            name    = w.Name ?? "",
+                            path    = w.Path ?? "",
+                            enabled = w.Enabled
+                        });
+                    }
+
+                    // ---- Problèmes persistants ----
+                    foreach (var p in persistentProblems)
+                    {
+                        detail.problems.Add(new NetMonitor.Service.Api.ProblemDetailDto
+                        {
+                            timestamp = p.Timestamp,
+                            severity  = p.Severity,
+                            category  = p.Category,
+                            message   = p.Message
+                        });
+                    }
+
+                    // ---- Stats (top IPs, pays, détecteurs) ----
+                    var stats = await _engine.GetStatsAsync();
+                    if (stats != null)
+                    {
+                        detail.stats.totalAlerts       = stats.TotalAlerts;
+                        detail.stats.distinctIps       = stats.DistinctIps;
+                        detail.stats.distinctCountries = stats.DistinctCountries;
+
+                        if (stats.Active?.TopIps != null)
+                        {
+                            foreach (var ip in stats.Active.TopIps.Take(10))
+                            {
+                                detail.stats.topIps.Add(new NetMonitor.Service.Api.TopIpDto
+                                {
+                                    ip          = ip.Ip,
+                                    count       = ip.Count,
+                                    maxSeverity = ip.MaxSeverity,
+                                    country     = ip.Country,
+                                    countryCode = ip.CountryCode,
+                                    isp         = ip.Isp
+                                });
+                            }
+                        }
+
+                        if (stats.Active?.TopCountries != null)
+                        {
+                            foreach (var c in stats.Active.TopCountries.Take(10))
+                            {
+                                detail.stats.topCountries.Add(new NetMonitor.Service.Api.TopCountryDto
+                                {
+                                    country     = c.Country,
+                                    countryCode = c.CountryCode,
+                                    count       = c.Count,
+                                    distinctIps = c.DistinctIps
+                                });
+                            }
+                        }
+
+                        if (stats.Active?.TopDetectors != null)
+                        {
+                            foreach (var d in stats.Active.TopDetectors.Take(10))
+                            {
+                                detail.stats.topDetectors.Add(new NetMonitor.Service.Api.TopDetectorDto
+                                {
+                                    detector = d.Detector,
+                                    count    = d.Count
+                                });
+                            }
+                        }
+                    }
+
+                    // ---- LastBlock ----
+                    var lb = _engine.LastBlock;
+                    if (lb != null)
+                    {
+                        detail.lastBlock = new NetMonitor.Service.Api.LastBlockDetailDto
+                        {
+                            ip        = lb.Ip,
+                            detector  = lb.Detector,
+                            timestamp = lb.Timestamp,
+                            automatic = lb.Automatic
+                        };
+                    }
+
+                    string jsonDetail = System.Text.Json.JsonSerializer.Serialize(detail,
+                        new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase,
+                            WriteIndented = false,
+                            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull
+                        });
+
+                    SendJson(ctx, jsonDetail);
+                }                
                 else if (path == "/api/summary")
                 {
                     var activeIntrusions = _engine.GetActiveIntrusions();

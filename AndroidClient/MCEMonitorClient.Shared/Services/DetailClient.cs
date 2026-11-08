@@ -17,6 +17,16 @@ namespace MCEMonitorClient.Shared.Services
         };
 
         // ============================================================
+        //  NetMonitor
+        // ============================================================
+        public async Task<NetDetailDto?> FetchNetDetailAsync(
+            ServerEntry server,
+            CancellationToken ct = default)
+        {
+            return await FetchDetailAsync<NetDetailDto>(server, "api/detail", ct);
+        }
+
+        // ============================================================
         //  SystemMonitor
         // ============================================================
         public async Task<SystemDetailDto?> FetchSystemDetailAsync(
