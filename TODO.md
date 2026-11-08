@@ -10,6 +10,39 @@ _(rien)_
 
 ## 📋 À faire
 
+### 🔴 Sécurité — Audit et durcissement du client Android
+
+- [ ] **Migrer le stockage des identifiants Android vers `SecureStorage`**
+  - **État actuel** : `ServerConfigStore` sérialise `Username` et `Password` en clair dans un JSON local (`FileSystem.AppDataDirectory`)
+  - **Risque** : toute personne avec accès à l'appareil (root, débogage USB, faille d'app) peut lire tous les identifiants de tous les serveurs
+  - **Solution** : `SecureStorage.Default.SetAsync()` (AES-256-GCM via `EncryptedSharedPreferences` + Android Keystore)
+  - **Fichiers impactés** : `ServerConfigStore.cs` (Shared), `ServerEditPage.xaml.cs` (Maui), `MainPage.xaml.cs` (Maui)
+  - **Test** : `adb shell run-as com.mcemonitor.client cat shared_prefs/*.xml` → ne doit contenir que des clés chiffrées
+  - **Coût** : 1-2 h
+  - **Priorité** : 🔴 haute
+
+- [ ] **Forcer HTTPS sur tous les endpoints API**
+  - **État actuel** : `http://` + Basic Auth = identifiants en clair sur le réseau
+  - **Risque** : interception LAN / WiFi public / VLAN compromis
+  - **Solution** : TLS sur `MiniHttpServer` (certificat auto-signé + pinning côté Android, ou certificat Let's Encrypt si domaine)
+  - **Impact multi-modules** : SystemMonitor, RomMonitor, NetMonitor, MediaMonitor
+  - **Coût** : 4-6 h (chantier transverse)
+  - **Priorité** : 🔴 haute (mais peut être fait en parallèle du reste)
+
+- [ ] **Vérifier que l'API HTTP est strictement en lecture seule**
+  - **Contexte** : l'UI Android doit être limitée à la consultation (seule l'UI PC a tous les réglages)
+  - **À vérifier** : dans chaque `MiniHttpServer` / `WebHandler`, aucune opération d'écriture (`set-config`, `shutdown`, `clear-*`) n'est exposée via HTTP
+  - **Fichiers à auditer** : `SystemMonitor.Service/Web/MiniHttpServer.cs`, équivalents RomMonitor / NetMonitor / MediaMonitor
+  - **Test** : `curl -u user:pass http://serveur:8083/` ne doit exposer aucun formulaire POST
+  - **Coût** : 30 min
+  - **Priorité** : 🔴 haute (vérification, pas de code à écrire si déjà bon)
+
+- [ ] **Désactiver `android:allowBackup` (AndroidManifest.xml)**
+  - **Risque** : `SecureStorage` peut devenir illisible après restauration, mais surtout la sauvegarde cloud peut exfiltrer des données
+  - **Solution** : `android:allowBackup="false"` ou `auto_backup_rules.xml` excluant `SecureStorage`
+  - **Coût** : 10 min
+  - **Priorité** : 🟡 moyenne
+
 ### 🔴 Sécurité — vérification unique
 
 - [ ] **Confirmer que `mcemonitor.keystore` n'est pas versionné**
@@ -44,6 +77,11 @@ _(rien)_
   - **Procédure** : désinstaller, vérifier que les 6 JSON + `NetMonitor.config` + 4 `*.web.config` survivent, réinstaller, vérifier rechargement
   - **Coût** : 20-30 min
 
+- [ ] **Tester la migration `SecureStorage` sur appareil réel**
+  - **Déclencheur** : après implémentation de la migration
+  - **Procédure** : configurer 3 serveurs, tuer l'app, relancer, vérifier reconnexion auto ; `adb backup` doit échouer ou être vide
+  - **Coût** : 15 min
+
 ### 🟡 Planifié
 
 - [ ] **Vérifier les `ProjectReference` vers `MCEMonitor.Languages`** dans les 3 UI
@@ -66,6 +104,11 @@ _(rien)_
   - Son distinct (2 bips courts comme Windows Tray)
   - ⚠️ Nécessite réinstallation de l'APK
   - **Quand** : prochaine réinstallation APK prévue
+
+- [ ] **Tests automatisés de non-régression sécurité**
+  - Vérifier qu'aucun `Password` n'apparaît en clair dans les logs Android (`adb logcat | Select-String "Password"`)
+  - Vérifier que `ServerConfigStore.Save` ne persiste plus que des champs non sensibles
+  - **Coût** : 30 min
 
 ### 🟢 Opportuniste
 
