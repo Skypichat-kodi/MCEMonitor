@@ -210,7 +210,7 @@ namespace MCEMonitorClient.Maui.ViewModels
                         : $"{disk.Name}  ·  {disk.Label}",
                     FreeText = $"{disk.FreeGo:F1} Go libres / {disk.TotalGo:F1} Go",
                     FreePercentText = $"{disk.FreePercent:F1} %",
-                    BarProgress = Math.Clamp(disk.FreePercent / 100.0, 0, 1),
+                    BarProgress = Math.Clamp((100 - disk.FreePercent) / 100.0, 0, 1),
                     BarColor = barColor
                 });
             }
