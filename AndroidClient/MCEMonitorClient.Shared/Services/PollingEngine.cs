@@ -123,6 +123,14 @@ namespace MCEMonitorClient.Shared.Services
 
                 result.Online = true;
 
+                // Lire le ServiceType depuis le JSON (fallback si ServerEntry.ServiceType est vide)
+                if (root.TryGetProperty("service", out var serviceProp))
+                {
+                    string detected = serviceProp.GetString() ?? "";
+                    if (!string.IsNullOrEmpty(detected))
+                        result.ServiceType = detected;
+                }
+
                 if (root.TryGetProperty("status", out var statusProp))
                     result.Status = statusProp.GetString() ?? "ok";
 
