@@ -16,7 +16,22 @@ namespace MCEMonitorClient.Maui.ViewModels
         private readonly ServerEntry _server;
         private readonly DetailClient _client = new();
         private CancellationTokenSource? _cts;
-        private IDispatcherTimer? _refreshTimer;
+
+        private bool _isInitialLoading;
+        public bool IsInitialLoading
+        {
+            get => _isInitialLoading;
+            private set
+            {
+                if (_isInitialLoading != value)
+                {
+                    _isInitialLoading = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasLoadedOrError));
+                }
+            }
+        }
+        public bool HasLoadedOrError => !IsInitialLoading;
 
         public ServerEntry Server => _server;
 
@@ -124,14 +139,14 @@ namespace MCEMonitorClient.Maui.ViewModels
         // ============================================================
         public async Task StartAsync()
         {
-            await RefreshAsync(showSpinner: false);
-
-            _refreshTimer = Application.Current?.Dispatcher.CreateTimer();
-            if (_refreshTimer != null)
+            IsInitialLoading = true;
+            try
             {
-                _refreshTimer.Interval = TimeSpan.FromSeconds(15);
-                _refreshTimer.Tick += async (s, e) => await RefreshAsync(showSpinner: false);
-                _refreshTimer.Start();
+                await RefreshAsync(showSpinner: false);
+            }
+            finally
+            {
+                IsInitialLoading = false;
             }
         }
 
@@ -139,9 +154,6 @@ namespace MCEMonitorClient.Maui.ViewModels
         {
             try { _cts?.Cancel(); } catch { }
             _cts = null;
-
-            _refreshTimer?.Stop();
-            _refreshTimer = null;
         }
 
         public async Task RefreshManuallyAsync()
@@ -190,7 +202,11 @@ namespace MCEMonitorClient.Maui.ViewModels
         {
             // ---- Header ----
             LastUpdateText = d.Timestamp.ToString("dd/MM HH:mm:ss");
-            CountersText = $"{d.ActiveCount} active(s)  ·  {d.BlockedCount} bloquée(s)";
+            
+            // Calculer le nombre d'IPs bloquées dans les 24 h pour le header
+            var blocked24hCount = d.Blocked.Count(x => x.BlockedAt.ToUniversalTime() >= DateTime.UtcNow.AddHours(-24));
+
+            CountersText = $"{d.ActiveCount} active(s)  ·  {blocked24hCount} bloquée(s) / 24 h  ·  {d.BlockedCount} au total";
 
             StatusText = d.WorstSeverity switch
             {
@@ -227,9 +243,17 @@ namespace MCEMonitorClient.Maui.ViewModels
             OnPropertyChanged(nameof(HasActive));
             OnPropertyChanged(nameof(HasNoActive));
 
-            // ---- Bloqués ----
+            // ---- Bloqués (24 dernières heures, limité aux 10 plus récents) ----
+            const int MAX_BLOCKED_DISPLAYED = 10;
+            var cutoff = DateTime.UtcNow.AddHours(-24);
+
+            var blockedLast24h = d.Blocked
+                .Where(x => x.BlockedAt.ToUniversalTime() >= cutoff)
+                .OrderByDescending(x => x.BlockedAt)
+                .ToList();
+
             Blocked.Clear();
-            foreach (var b in d.Blocked.OrderByDescending(x => x.BlockedAt))
+            foreach (var b in blockedLast24h.Take(MAX_BLOCKED_DISPLAYED))
             {
                 Blocked.Add(new NetBlockedItem
                 {
@@ -246,12 +270,20 @@ namespace MCEMonitorClient.Maui.ViewModels
                     IsKnownScanner = b.IsKnownScanner
                 });
             }
+
+            BlockedOverflowText = blockedLast24h.Count > MAX_BLOCKED_DISPLAYED
+                ? $"+ {blockedLast24h.Count - MAX_BLOCKED_DISPLAYED} autre(s) IP bloquée(s) dans les 24 h"
+                : "";
+
             OnPropertyChanged(nameof(HasBlocked));
             OnPropertyChanged(nameof(HasNoBlocked));
+            OnPropertyChanged(nameof(HasBlockedOverflow));
 
-            // ---- Retries ----
+            // ---- Retries (triés par nombre de tentatives décroissant, top 5) ----
+            const int MAX_RETRIES_DISPLAYED = 5;
+
             Retries.Clear();
-            foreach (var r in d.Retries.OrderByDescending(x => x.LastRetryAt).Take(30))
+            foreach (var r in d.Retries.OrderByDescending(x => x.RetryCount).Take(MAX_RETRIES_DISPLAYED))
             {
                 Retries.Add(new NetRetryItem
                 {
@@ -378,6 +410,22 @@ namespace MCEMonitorClient.Maui.ViewModels
             if (string.IsNullOrWhiteSpace(code)) return country;
             return $"{country} ({code})";
         }
+        
+        private string _blockedOverflowText = "";
+        public string BlockedOverflowText
+        {
+            get => _blockedOverflowText;
+            private set
+            {
+                if (_blockedOverflowText != value)
+                {
+                    _blockedOverflowText = value;
+                    OnPropertyChanged();
+                    OnPropertyChanged(nameof(HasBlockedOverflow));
+                }
+            }
+        }
+        public bool HasBlockedOverflow => !string.IsNullOrEmpty(_blockedOverflowText);        
 
         // ============================================================
         //  INotifyPropertyChanged

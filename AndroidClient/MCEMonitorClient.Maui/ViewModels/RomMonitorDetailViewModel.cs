@@ -16,7 +16,6 @@ namespace MCEMonitorClient.Maui.ViewModels
         private readonly ServerEntry _server;
         private readonly DetailClient _client = new();
         private CancellationTokenSource? _cts;
-        private IDispatcherTimer? _refreshTimer;
 
         public ServerEntry Server => _server;
 
@@ -92,23 +91,12 @@ namespace MCEMonitorClient.Maui.ViewModels
         public async Task StartAsync()
         {
             await RefreshAsync(showSpinner: false);
-
-            _refreshTimer = Application.Current?.Dispatcher.CreateTimer();
-            if (_refreshTimer != null)
-            {
-                _refreshTimer.Interval = TimeSpan.FromSeconds(10); // RomMonitor scan toutes les 5 min, 10 s suffit
-                _refreshTimer.Tick += async (s, e) => await RefreshAsync(showSpinner: false);
-                _refreshTimer.Start();
-            }
         }
 
         public void Stop()
         {
             try { _cts?.Cancel(); } catch { }
             _cts = null;
-
-            _refreshTimer?.Stop();
-            _refreshTimer = null;
         }
 
         public async Task RefreshManuallyAsync()

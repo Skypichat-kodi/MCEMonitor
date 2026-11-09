@@ -5,472 +5,489 @@
              Title="Détail NET"
              BackgroundColor="#1E1E1E">
 
-    <RefreshView x:Name="refreshView"
-                 IsRefreshing="{Binding IsRefreshing}"
-                 Refreshing="OnRefreshing">
-        <ScrollView>
-            <VerticalStackLayout Padding="12" Spacing="12">
+    <Grid>
+        <RefreshView x:Name="refreshView"
+                     IsRefreshing="{Binding IsRefreshing}"
+                     IsVisible="{Binding HasLoadedOrError}"
+                     Refreshing="OnRefreshing">
+            <ScrollView>
+                <VerticalStackLayout Padding="12" Spacing="12">
 
-                <!-- ============================================================ -->
-                <!-- Header -->
-                <!-- ============================================================ -->
-                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="{Binding ServerName}"
-                               FontSize="20" FontAttributes="Bold"
-                               TextColor="#E5E5E5" />
-                        <Label Text="{Binding FullUrl}"
-                               FontSize="12" TextColor="#B4B4B4" />
-                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                            <Ellipse Grid.Column="0"
-                                     WidthRequest="12" HeightRequest="12"
-                                     Fill="{Binding StatusColor}"
-                                     VerticalOptions="Center" />
-                            <Label Grid.Column="1"
-                                   Text="{Binding StatusText}"
+                    <!-- ============================================================ -->
+                    <!-- Header -->
+                    <!-- ============================================================ -->
+                    <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="{Binding ServerName}"
+                                   FontSize="20" FontAttributes="Bold"
+                                   TextColor="#E5E5E5" />
+                            <Label Text="{Binding FullUrl}"
+                                   FontSize="12" TextColor="#B4B4B4" />
+                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                <Ellipse Grid.Column="0"
+                                         WidthRequest="12" HeightRequest="12"
+                                         Fill="{Binding StatusColor}"
+                                         VerticalOptions="Center" />
+                                <Label Grid.Column="1"
+                                       Text="{Binding StatusText}"
+                                       FontSize="14" FontAttributes="Bold"
+                                       TextColor="{Binding StatusColor}"
+                                       VerticalOptions="Center" />
+                                <Label Grid.Column="2"
+                                       Text="{Binding LastUpdateText}"
+                                       FontSize="11" TextColor="#888888"
+                                       VerticalOptions="Center" />
+                            </Grid>
+                            <Label Text="{Binding CountersText}"
+                                   FontSize="12" TextColor="#B4B4B4" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- Erreur -->
+                    <Border IsVisible="{Binding HasError}"
+                            BackgroundColor="#3A1A1A" Stroke="#FF6347"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="12">
+                        <Label Text="{Binding ErrorMessage}"
+                               TextColor="#FF6347" FontSize="13" />
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Problèmes persistants -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasProblems}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="PROBLÈMES PERSISTANTS"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#FF6347" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Problems}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#1E1E1E"
+                                                Stroke="#3C3C3C"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
+                                                    <Ellipse Grid.Column="0"
+                                                             WidthRequest="8" HeightRequest="8"
+                                                             Fill="{Binding SeverityColor}"
+                                                             VerticalOptions="Center" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding Category}"
+                                                           FontSize="12" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding Timestamp}"
+                                                           FontSize="10" TextColor="#888888"
+                                                           HorizontalTextAlignment="End" />
+                                                </Grid>
+                                                <Label Text="{Binding Message}"
+                                                       FontSize="12" TextColor="#B4B4B4" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Aucune intrusion -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasNoActive}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="20">
+                        <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
+                            <Label Text="✓"
+                                   FontSize="40" TextColor="#6CCB5F"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Aucune intrusion active"
                                    FontSize="14" FontAttributes="Bold"
-                                   TextColor="{Binding StatusColor}"
-                                   VerticalOptions="Center" />
-                            <Label Grid.Column="2"
-                                   Text="{Binding LastUpdateText}"
-                                   FontSize="11" TextColor="#888888"
-                                   VerticalOptions="Center" />
-                        </Grid>
-                        <Label Text="{Binding CountersText}"
-                               FontSize="12" TextColor="#B4B4B4" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- Erreur -->
-                <Border IsVisible="{Binding HasError}"
-                        BackgroundColor="#3A1A1A" Stroke="#FF6347"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="12">
-                    <Label Text="{Binding ErrorMessage}"
-                           TextColor="#FF6347" FontSize="13" />
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Problèmes persistants -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasProblems}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="PROBLÈMES PERSISTANTS"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#FF6347" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Problems}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#1E1E1E"
-                                            Stroke="#3C3C3C"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 6"
-                                            Padding="10,8">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="6">
-                                                <Ellipse Grid.Column="0"
-                                                         WidthRequest="8" HeightRequest="8"
-                                                         Fill="{Binding SeverityColor}"
-                                                         VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding Category}"
-                                                       FontSize="12" FontAttributes="Bold"
-                                                       TextColor="#E5E5E5" />
-                                                <Label Grid.Column="2"
-                                                       Text="{Binding Timestamp}"
-                                                       FontSize="10" TextColor="#888888"
-                                                       HorizontalTextAlignment="End" />
-                                            </Grid>
-                                            <Label Text="{Binding Message}"
-                                                   FontSize="12" TextColor="#B4B4B4" />
-                                        </VerticalStackLayout>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                                   TextColor="#E5E5E5"
+                                   HorizontalTextAlignment="Center" />
+                            <Label Text="Le serveur est protégé."
+                                   FontSize="12" TextColor="#888888"
+                                   HorizontalTextAlignment="Center" />
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </Border>
 
-                <!-- ============================================================ -->
-                <!-- Aucune intrusion -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasNoActive}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="20">
-                    <VerticalStackLayout Spacing="8" HorizontalOptions="Center">
-                        <Label Text="✓"
-                               FontSize="40" TextColor="#6CCB5F"
-                               HorizontalTextAlignment="Center" />
-                        <Label Text="Aucune intrusion active"
-                               FontSize="14" FontAttributes="Bold"
-                               TextColor="#E5E5E5"
-                               HorizontalTextAlignment="Center" />
-                        <Label Text="Le serveur est protégé."
-                               FontSize="12" TextColor="#888888"
-                               HorizontalTextAlignment="Center" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Intrusions actives -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasActive}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="INTRUSIONS ACTIVES"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#FF6347" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Active}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#1E1E1E"
-                                            Stroke="#3C3C3C"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 6"
-                                            Padding="10,8">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                                <Ellipse Grid.Column="0"
-                                                         WidthRequest="10" HeightRequest="10"
-                                                         Fill="{Binding SeverityColor}"
-                                                         VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding Source}"
-                                                       FontSize="12" FontAttributes="Bold"
-                                                       TextColor="#E5E5E5" />
-                                                <Label Grid.Column="2"
-                                                       Text="{Binding Timestamp}"
+                    <!-- ============================================================ -->
+                    <!-- Intrusions actives -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasActive}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="INTRUSIONS ACTIVES"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#FF6347" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Active}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#1E1E1E"
+                                                Stroke="#3C3C3C"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                    <Ellipse Grid.Column="0"
+                                                             WidthRequest="10" HeightRequest="10"
+                                                             Fill="{Binding SeverityColor}"
+                                                             VerticalOptions="Center" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding Source}"
+                                                           FontSize="12" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding Timestamp}"
+                                                           FontSize="10" TextColor="#888888" />
+                                                </Grid>
+                                                <Label Text="{Binding Message}"
+                                                       FontSize="12" TextColor="#B4B4B4" />
+                                                <Label Text="{Binding Country}"
                                                        FontSize="10" TextColor="#888888" />
-                                            </Grid>
-                                            <Label Text="{Binding Message}"
-                                                   FontSize="12" TextColor="#B4B4B4" />
-                                            <Label Text="{Binding Country}"
-                                                   FontSize="10" TextColor="#888888" />
-                                        </VerticalStackLayout>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </Border>
 
-                <!-- ============================================================ -->
-                <!-- IP bloquées -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasBlocked}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="IP BLOQUÉES"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#4CC2FF" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Blocked}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#1E1E1E"
-                                            Stroke="#3C3C3C"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 6"
-                                            Padding="10,8">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                                <Ellipse Grid.Column="0"
-                                                         WidthRequest="10" HeightRequest="10"
-                                                         Fill="{Binding SeverityColor}"
-                                                         VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding Ip}"
-                                                       FontSize="14" FontAttributes="Bold"
-                                                       TextColor="#E5E5E5" />
-                                                <Label Grid.Column="2"
-                                                       Text="{Binding BlockedAtText}"
-                                                       FontSize="10" TextColor="#888888" />
-                                            </Grid>
-                                            <Label Text="{Binding Message}"
-                                                   FontSize="12" TextColor="#B4B4B4" />
-                                            <Label Text="{Binding Country}"
-                                                   FontSize="11" TextColor="#888888" />
-                                            <Label Text="{Binding Isp}"
-                                                   FontSize="11" TextColor="#888888" />
-                                        </VerticalStackLayout>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                    <!-- ============================================================ -->
+                    <!-- IP bloquées -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasBlocked}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="IP BLOQUÉES"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Blocked}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#1E1E1E"
+                                                Stroke="#3C3C3C"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                    <Ellipse Grid.Column="0"
+                                                             WidthRequest="10" HeightRequest="10"
+                                                             Fill="{Binding SeverityColor}"
+                                                             VerticalOptions="Center" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding Ip}"
+                                                           FontSize="14" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding BlockedAtText}"
+                                                           FontSize="10" TextColor="#888888" />
+                                                </Grid>
+                                                <Label Text="{Binding Message}"
+                                                       FontSize="12" TextColor="#B4B4B4" />
+                                                <Label Text="{Binding Country}"
+                                                       FontSize="11" TextColor="#888888" />
+                                                <Label Text="{Binding Isp}"
+                                                       FontSize="11" TextColor="#888888" />
+                                            </VerticalStackLayout>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                            <Label IsVisible="{Binding HasBlockedOverflow}"
+                                   Text="{Binding BlockedOverflowText}"
+                                   FontSize="11" TextColor="#666666"
+                                   HorizontalTextAlignment="Center"
+                                   Margin="0,8,0,0" />
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </Border>
 
-                <!-- Aucune IP bloquée -->
-                <Border IsVisible="{Binding HasNoBlocked}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="16">
-                    <Label Text="Aucune IP bloquée"
-                           FontSize="13" TextColor="#888888"
-                           HorizontalTextAlignment="Center" />
-                </Border>
+                    <!-- Aucune IP bloquée -->
+                    <Border IsVisible="{Binding HasNoBlocked}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="16">
+                        <Label Text="Aucune IP bloquée"
+                               FontSize="13" TextColor="#888888"
+                               HorizontalTextAlignment="Center" />
+                    </Border>
 
-                <!-- ============================================================ -->
-                <!-- Tentatives sur IP bloquées -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasRetries}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="TENTATIVES SUR IP BLOQUÉES"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#FFB900" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Retries}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Ip}"
-                                               FontSize="13" TextColor="#E5E5E5" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding Count, StringFormat='x{0}'}"
-                                               FontSize="13" FontAttributes="Bold"
-                                               TextColor="#FFB900" />
-                                        <Label Grid.Column="2"
-                                               Text="{Binding LastRetryText}"
-                                               FontSize="10" TextColor="#888888"
-                                               VerticalOptions="Center" />
-                                    </Grid>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Résumé stats -->
-                <!-- ============================================================ -->
-                <Border BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="RÉSUMÉ"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#4CC2FF" />
-                        <Label Text="{Binding StatsSummaryText}"
-                               FontSize="14" TextColor="#E5E5E5" />
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Top IPs -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasTopIps}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="TOP IPs"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#4CC2FF" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopIps}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                        <Ellipse Grid.Column="0"
-                                                 WidthRequest="8" HeightRequest="8"
-                                                 Fill="{Binding SeverityColor}"
-                                                 VerticalOptions="Center" />
-                                        <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                            <Label Text="{Binding Ip}"
+                    <!-- ============================================================ -->
+                    <!-- Tentatives sur IP bloquées -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasRetries}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="TENTATIVES SUR IP BLOQUÉES"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#FFB900" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Retries}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Ip}"
                                                    FontSize="13" TextColor="#E5E5E5" />
-                                            <Label Text="{Binding Isp}"
-                                                   FontSize="10" TextColor="#888888" />
-                                        </VerticalStackLayout>
-                                        <Label Grid.Column="2"
-                                               Text="{Binding Count, StringFormat='x{0}'}"
-                                               FontSize="13" FontAttributes="Bold"
-                                               TextColor="#FFB900" />
-                                    </Grid>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Top pays -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasTopCountries}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="TOP PAYS"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#4CC2FF" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopCountries}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Country}"
-                                               FontSize="13" TextColor="#E5E5E5" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding CountryCode}"
-                                               FontSize="10" TextColor="#888888" />
-                                        <Label Grid.Column="2"
-                                               Text="{Binding Count, StringFormat='x{0}'}"
-                                               FontSize="13" FontAttributes="Bold"
-                                               TextColor="#FFB900" />
-                                    </Grid>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Top détecteurs -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasTopDetectors}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="TOP DÉTECTEURS"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#4CC2FF" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopDetectors}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                                        <Label Grid.Column="0"
-                                               Text="{Binding Detector}"
-                                               FontSize="13" TextColor="#E5E5E5" />
-                                        <Label Grid.Column="1"
-                                               Text="{Binding Count, StringFormat='x{0}'}"
-                                               FontSize="13" FontAttributes="Bold"
-                                               TextColor="#FFB900" />
-                                    </Grid>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
-                <!-- ============================================================ -->
-                <!-- Processus en attente -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasPending}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="PROCESSUS EN ATTENTE"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#FFB900" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Pending}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#1E1E1E"
-                                            Stroke="#3C3C3C"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 6"
-                                            Padding="10,8">
-                                        <VerticalStackLayout Spacing="4">
-                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
-                                                <Ellipse Grid.Column="0"
-                                                         WidthRequest="10" HeightRequest="10"
-                                                         Fill="{Binding SeverityColor}"
-                                                         VerticalOptions="Center" />
-                                                <Label Grid.Column="1"
-                                                       Text="{Binding ProcessName}"
-                                                       FontSize="13" FontAttributes="Bold"
-                                                       TextColor="#E5E5E5" />
-                                                <Label Grid.Column="2"
-                                                       Text="{Binding Count, StringFormat='x{0}'}"
-                                                       FontSize="11" TextColor="#FFB900" />
-                                            </Grid>
-                                            <Label Text="{Binding TrustReason}"
-                                                   FontSize="11" TextColor="#B4B4B4" />
-                                            <Label Text="{Binding ProcessPath}"
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Count, StringFormat='x{0}'}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="#FFB900" />
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding LastRetryText}"
                                                    FontSize="10" TextColor="#888888"
-                                                   LineBreakMode="TailTruncation" />
-                                        </VerticalStackLayout>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                                                   VerticalOptions="Center" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </Border>
 
-                <!-- ============================================================ -->
-                <!-- Whitelist -->
-                <!-- ============================================================ -->
-                <Border IsVisible="{Binding HasWhitelist}"
-                        BackgroundColor="#252526" Stroke="#3C3C3C"
-                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                        Padding="14">
-                    <VerticalStackLayout Spacing="10">
-                        <Label Text="WHITELIST"
-                               FontSize="12" FontAttributes="Bold"
-                               TextColor="#6CCB5F" />
-                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding Whitelist}"
-                                             Spacing="8">
-                            <BindableLayout.ItemTemplate>
-                                <DataTemplate>
-                                    <Border BackgroundColor="#1E1E1E"
-                                            Stroke="#3C3C3C"
-                                            StrokeThickness="1"
-                                            StrokeShape="RoundRectangle 6"
-                                            Padding="10,8">
+                    <!-- ============================================================ -->
+                    <!-- Résumé stats -->
+                    <!-- ============================================================ -->
+                    <Border BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="RÉSUMÉ"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF" />
+                            <Label Text="{Binding StatsSummaryText}"
+                                   FontSize="14" TextColor="#E5E5E5" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Top IPs -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasTopIps}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="TOP IPs"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopIps}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
                                         <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
                                             <Ellipse Grid.Column="0"
                                                      WidthRequest="8" HeightRequest="8"
-                                                     Fill="{Binding EnabledColor}"
+                                                     Fill="{Binding SeverityColor}"
                                                      VerticalOptions="Center" />
                                             <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                <Label Text="{Binding Name}"
-                                                       FontSize="13" FontAttributes="Bold"
-                                                       TextColor="#E5E5E5" />
-                                                <Label Text="{Binding Path}"
+                                                <Label Text="{Binding Ip}"
+                                                       FontSize="13" TextColor="#E5E5E5" />
+                                                <Label Text="{Binding Isp}"
+                                                       FontSize="10" TextColor="#888888" />
+                                            </VerticalStackLayout>
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding Count, StringFormat='x{0}'}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="#FFB900" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Top pays -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasTopCountries}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="TOP PAYS"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopCountries}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Country}"
+                                                   FontSize="13" TextColor="#E5E5E5" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding CountryCode}"
+                                                   FontSize="10" TextColor="#888888" />
+                                            <Label Grid.Column="2"
+                                                   Text="{Binding Count, StringFormat='x{0}'}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="#FFB900" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Top détecteurs -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasTopDetectors}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="TOP DÉTECTEURS"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#4CC2FF" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopDetectors}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                                            <Label Grid.Column="0"
+                                                   Text="{Binding Detector}"
+                                                   FontSize="13" TextColor="#E5E5E5" />
+                                            <Label Grid.Column="1"
+                                                   Text="{Binding Count, StringFormat='x{0}'}"
+                                                   FontSize="13" FontAttributes="Bold"
+                                                   TextColor="#FFB900" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <!-- ============================================================ -->
+                    <!-- Processus en attente -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasPending}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="PROCESSUS EN ATTENTE"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#FFB900" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Pending}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#1E1E1E"
+                                                Stroke="#3C3C3C"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <VerticalStackLayout Spacing="4">
+                                                <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="6">
+                                                    <Ellipse Grid.Column="0"
+                                                             WidthRequest="10" HeightRequest="10"
+                                                             Fill="{Binding SeverityColor}"
+                                                             VerticalOptions="Center" />
+                                                    <Label Grid.Column="1"
+                                                           Text="{Binding ProcessName}"
+                                                           FontSize="13" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                    <Label Grid.Column="2"
+                                                           Text="{Binding Count, StringFormat='x{0}'}"
+                                                           FontSize="11" TextColor="#FFB900" />
+                                                </Grid>
+                                                <Label Text="{Binding TrustReason}"
+                                                       FontSize="11" TextColor="#B4B4B4" />
+                                                <Label Text="{Binding ProcessPath}"
                                                        FontSize="10" TextColor="#888888"
                                                        LineBreakMode="TailTruncation" />
                                             </VerticalStackLayout>
-                                            <Label Grid.Column="2"
-                                                   Text="{Binding EnabledText}"
-                                                   FontSize="11"
-                                                   TextColor="{Binding EnabledColor}"
-                                                   VerticalOptions="Center" />
-                                        </Grid>
-                                    </Border>
-                                </DataTemplate>
-                            </BindableLayout.ItemTemplate>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
                         </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
+                    </Border>
 
-                <!-- Pied de page -->
-                <Label Text="Tirer vers le bas pour rafraîchir"
-                       FontSize="11" TextColor="#666666"
-                       HorizontalTextAlignment="Center"
-                       Margin="0,8,0,0" />
+                    <!-- ============================================================ -->
+                    <!-- Whitelist -->
+                    <!-- ============================================================ -->
+                    <Border IsVisible="{Binding HasWhitelist}"
+                            BackgroundColor="#252526" Stroke="#3C3C3C"
+                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                            Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="WHITELIST"
+                                   FontSize="12" FontAttributes="Bold"
+                                   TextColor="#6CCB5F" />
+                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding Whitelist}"
+                                                 Spacing="8">
+                                <BindableLayout.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border BackgroundColor="#1E1E1E"
+                                                Stroke="#3C3C3C"
+                                                StrokeThickness="1"
+                                                StrokeShape="RoundRectangle 6"
+                                                Padding="10,8">
+                                            <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                                                <Ellipse Grid.Column="0"
+                                                         WidthRequest="8" HeightRequest="8"
+                                                         Fill="{Binding EnabledColor}"
+                                                         VerticalOptions="Center" />
+                                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                                    <Label Text="{Binding Name}"
+                                                           FontSize="13" FontAttributes="Bold"
+                                                           TextColor="#E5E5E5" />
+                                                    <Label Text="{Binding Path}"
+                                                           FontSize="10" TextColor="#888888"
+                                                           LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                                <Label Grid.Column="2"
+                                                       Text="{Binding EnabledText}"
+                                                       FontSize="11"
+                                                       TextColor="{Binding EnabledColor}"
+                                                       VerticalOptions="Center" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </BindableLayout.ItemTemplate>
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
 
-            </VerticalStackLayout>
-        </ScrollView>
-    </RefreshView>
+                    <!-- Pied de page -->
+                    <Label Text="Tirer vers le bas pour rafraîchir"
+                           FontSize="11" TextColor="#666666"
+                           HorizontalTextAlignment="Center"
+                           Margin="0,8,0,0" />
+
+                </VerticalStackLayout>
+            </ScrollView>
+        </RefreshView>
+
+        <ActivityIndicator IsRunning="{Binding IsInitialLoading}"
+                           IsVisible="{Binding IsInitialLoading}"
+                           Color="#4CC2FF"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           WidthRequest="40"
+                           HeightRequest="40" />
+    </Grid>
+
 </ContentPage>
