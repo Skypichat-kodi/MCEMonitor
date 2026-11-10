@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using System.Reflection;
+using System.Collections.ObjectModel;
 using MCEMonitorClient.Maui.Pages;
 using MCEMonitorClient.Maui.Services;
 using MCEMonitorClient.Maui.ViewModels;
@@ -24,6 +25,20 @@ public partial class MainPage : ContentPage
         InitializeComponent();
         serversList.ItemsSource = _servers;
         _serviceRunning = Preferences.Get(PrefKeyServiceRunning, false);
+
+        // --- Mise à jour dynamique de la version ---
+        var assembly = System.Reflection.Assembly.GetExecutingAssembly();
+        string fullVersion = assembly
+            .GetCustomAttributes(typeof(System.Reflection.AssemblyInformationalVersionAttribute), false)
+            .OfType<System.Reflection.AssemblyInformationalVersionAttribute>()
+            .FirstOrDefault()?.InformationalVersion ?? "Inconnue";
+
+        // GitVersion ajoute souvent des métadonnées après '+' (ex: "1.2.3+5.Branch.main.Sha.abc")
+        // On coupe pour n'afficher que la partie lisible
+        int plusIndex = fullVersion.IndexOf('+');
+        string version = plusIndex > 0 ? fullVersion.Substring(0, plusIndex) : fullVersion;
+
+        lblAppVersion.Text = $"v{version}";
     }
 
     protected override async void OnAppearing()

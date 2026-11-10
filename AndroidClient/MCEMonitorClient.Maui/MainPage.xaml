@@ -20,6 +20,15 @@
                    TextColor="#888888" />
         </VerticalStackLayout>
 
+        <!-- Version de l'application en haut à droite -->
+        <Label Grid.Column="1"
+               x:Name="lblAppVersion"
+               Text="v0.0.0"
+               FontSize="11"
+               TextColor="#666666"
+               VerticalOptions="Start"
+               HorizontalOptions="End" />
+
         <!-- Liste des serveurs -->
         <CollectionView Grid.Row="1"
                         x:Name="serversList"
