@@ -17,9 +17,9 @@ namespace RomMonitor.Service.Web
         {
             try
             {
-                var disks = engine.LastDisks;
-                var smart = engine.LastSmart;
-                var alerts = engine.LastAlerts;
+                var disks  = engine.LastDisks  ?? new List<DiskInfo>();
+                var smart  = engine.LastSmart  ?? new List<SmartInfo>();
+                var alerts = engine.LastAlerts ?? new List<Alert>();
 
                 // ============================================================
                 //  1. Matching SMART ? disque physique (même logique que l'UI)
@@ -32,7 +32,7 @@ namespace RomMonitor.Service.Web
                     // Liste des disques physiques uniques
                     var uniqueDiskNumbers = new HashSet<int>();
 
-                    foreach (var d in disks)
+                    foreach (var d in disks.Where(x => x != null))
                     {
                         if (d.PhysicalDiskNumber.HasValue)
                             uniqueDiskNumbers.Add(d.PhysicalDiskNumber.Value);
@@ -59,7 +59,7 @@ namespace RomMonitor.Service.Web
                         SmartInfo? best = null;
                         double bestDelta = double.MaxValue;
 
-                        foreach (var s in smart)
+                        foreach (var s in smart.Where(x => x != null))
                         {
                             if (s.CapacityGo <= 0) continue;
                             if (usedSmartSerials.Contains(s.Serial ?? "")) continue;
@@ -165,7 +165,7 @@ namespace RomMonitor.Service.Web
                 // ============================================================
                 var alertRows = new System.Text.StringBuilder();
 
-                foreach (var a in alerts.OrderByDescending(x => x.Timestamp).Take(50))
+                foreach (var a in alerts.Where(x => x != null).OrderByDescending(x => x.Timestamp).Take(50))
                 {
                     string sevClass = a.Severity == "Critical" ? "danger"
                                     : a.Severity == "Warning" ? "warning"
@@ -197,12 +197,21 @@ namespace RomMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("RomPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                try
+                {
+                    html = html.Replace("<!--PEERBAR-->",
+                        PeerStatusService.BuildPeerBarHtml(publicHost ?? "localhost"));
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Write("PeerBar ERROR : " + ex);
+                    html = html.Replace("<!--PEERBAR-->", "");
+                }
                 return html;
             }
             catch (Exception ex)
             {
-                CoreLog.Write("WebHandler ERROR : " + ex.Message);
+                CoreLog.Write("WebHandler ERROR : " + ex.ToString());
                 string err = LanguageManager.Get("Erreur") ?? "Erreur";
                 return $"<html><body><h2>{err} : {WebUtility.HtmlEncode(ex.Message)}</h2></body></html>";
             }

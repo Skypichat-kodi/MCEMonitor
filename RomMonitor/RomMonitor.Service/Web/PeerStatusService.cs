@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -165,21 +166,6 @@ namespace RomMonitor.Service.Web
         private static System.Threading.Timer? _refreshTimer;
         private static string _selfName = "";
 
-        public static void StartBackgroundRefresh(string selfName)
-        {
-            _selfName = selfName;
-
-            // Premier refresh immédiat
-            _ = RefreshCacheAsync();
-
-            // Puis toutes les 10 s
-            _refreshTimer = new System.Threading.Timer(
-                _ => _ = RefreshCacheAsync(),
-                null,
-                TimeSpan.FromSeconds(10),
-                TimeSpan.FromSeconds(10));
-        }
-
         private static async Task RefreshCacheAsync()
         {
             try
@@ -193,11 +179,23 @@ namespace RomMonitor.Service.Web
             catch { /* silencieux */ }
         }
 
-        public static List<PeerStatus> GetCachedPeers()
+        public static void StartBackgroundRefresh(string selfName)
+        {
+            _selfName = selfName ?? "";
+            Interlocked.Exchange(ref _refreshTimer, null)?.Dispose();
+            _ = RefreshCacheAsync();
+            _refreshTimer = new System.Threading.Timer(
+                _ => _ = RefreshCacheAsync(),
+                null,
+                TimeSpan.FromSeconds(10),
+                TimeSpan.FromSeconds(10));
+        }
+
+        public static IReadOnlyList<PeerStatus> GetCachedPeers()
         {
             lock (_cacheLock)
             {
-                return new List<PeerStatus>(_cachedPeers);
+                return _cachedPeers.ToArray();
             }
         }
 
