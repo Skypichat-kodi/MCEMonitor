@@ -317,13 +317,17 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             // Ouvre l'app sur la page de détail du serveur.
             // CancelCurrent est indispensable : sans lui, Android réutilise l'ancien
             // PendingIntent (qui pointait vers l'URL web) et la navigation échoue.
+            // requestCode unique (notifId) : sinon Android considère deux notifications
+            // comme le même PendingIntent (filterEquals ignore les extras).
+            int notifId = _nextId++;
+
             var intent = new Intent(context, typeof(MainActivity));
             intent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
             intent.PutExtra("server_id", alert.ServerId);
             intent.PutExtra("service_type", alert.ServiceType);
 
             var pending = PendingIntent.GetActivity(
-                context, 0, intent,
+                context, notifId, intent,
                 PendingIntentFlags.CancelCurrent
                 | PendingIntentFlags.UpdateCurrent
                 | PendingIntentFlags.Immutable);
@@ -344,7 +348,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 builder.SetLargeIcon(largeIcon);
 
             var manager = NotificationManagerCompat.From(context);
-            manager.Notify(_nextId++, builder.Build());
+            manager.Notify(notifId, builder.Build());
         }
 
         public static void ShowMedia(Context context, PushMedia media)
@@ -397,13 +401,15 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             // Ouvre l'app sur la page de détail du serveur (comme pour les alertes).
             // CancelCurrent est indispensable : sans lui, Android réutilise l'ancien
             // PendingIntent (qui pointait vers l'URL web) et la navigation échoue.
+            int notifId = _nextId++;
+
             var intent = new Intent(context, typeof(MainActivity));
             intent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
             intent.PutExtra("server_id", media.ServerId);
             intent.PutExtra("service_type", media.ServiceType);
 
             var pending = PendingIntent.GetActivity(
-                context, 0, intent,
+                context, notifId, intent,
                 PendingIntentFlags.CancelCurrent
                 | PendingIntentFlags.UpdateCurrent
                 | PendingIntentFlags.Immutable);
@@ -423,7 +429,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 builder.SetLargeIcon(largeIcon);
 
             var manager = NotificationManagerCompat.From(context);
-            manager.Notify(_nextId++, builder.Build());
+            manager.Notify(notifId, builder.Build());
         }
 
         private static string BuildAlertMessage(PushAlert alert)
