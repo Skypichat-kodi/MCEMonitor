@@ -33,65 +33,7 @@ _(rien)_
   - **Coût** : 30 min
   - **Priorité** : 🔴 haute (vérification, pas de code à écrire si tout est bon)
 
-### 🟠 Réactif — déclenché par un événement
-
-> Ces tâches ne sont pas urgentes en soi, mais **doivent être prêtes à être exécutées** dès que l'événement déclencheur se produit.
-
-- [ ] **Test end-to-end de la suppression des règles orphelines**
-  - **Déclencheur** : après une attaque massive (50+ IPs bloquées d'un coup), OU après un redémarrage du service qui n'a pas nettoyé les règles
-  - **Procédure** : créer 2 règles `NetMonitor-Block-01-In/Out` via `netsh`, redémarrer le service, cliquer "Libérer toutes les IP bloquées", vérifier la suppression
-  - **Coût** : 10 min
-
-- [ ] **Test end-to-end de la préservation des JSON** à travers désinstallation/réinstallation
-  - **Déclencheur** : avant une mise à jour majeure, OU après modification de `MCEMonitorInstaller.iss`
-  - **Procédure** : désinstaller, vérifier que les 6 JSON + `NetMonitor.config` + 4 `*.web.config` survivent, réinstaller, vérifier rechargement
-  - **Coût** : 20-30 min
-
-- [ ] **Test notifications Android** sur les 4 services
-  - **Déclencheur** : avant diffusion publique de l'APK
-  - **Procédure** : déclencher une alerte de chaque type (SystemMonitor CPU, RomMonitor disque, NetMonitor intrusion, MediaMonitor lecture), cliquer sur chaque notification → vérifier navigation vers la bonne page de détail
-  - **Coût** : 15 min
-
 ### 🟡 Planifié
-
-- [ ] **Spinner de chargement sur les 3 autres services**
-  - NetMonitor l'a (imperceptible en temps normal, visible si serveur lent)
-  - À ajouter sur SystemMonitor, RomMonitor, MediaMonitor si lenteurs constatées
-  - Non prioritaire : ces pages répondent vite, le spinner serait invisible
-  - **Priorité** : 🟢 opportuniste
-
-- [ ] **Vérifier les `ProjectReference` vers `MCEMonitor.Languages`** dans les 3 UI
-  - `NetMonitor.UI`, `RomMonitor.UI`, `SystemMonitor.UI`
-  - Vérifier `Ctrl+Shift+F` sur `LanguageManager` / `TrExtension` dans ces 3 projets
-  - Si utilisés sans `<ProjectReference>` : ajouter la référence
-  - **Priorité haute fonctionnelle** — impact direct sur les traductions
-
-- [ ] **Documenter le workflow ToCheck** dans le README
-  - Pipeline : IP détectée → Microsoft-like ? → JSON officiel ? → Safe / ToCheck
-  - Matrice Trust (chemin/hash/publisher, 6 cas)
-  - Comportement de `Safe ?` et `Bloquer` sur les alertes ToCheck
-
-- [ ] **Persister `_manualCriticalOverrides`** dans `NetMonitorEngine`
-  - Fichier `manual_critical_overrides.json` (même pattern que `manual_safe_ips.json`)
-  - Bénéfice : survit aux redémarrages
-  - Non critique (rare), mais cohérence avec `_manualSafeIps`
-
-- [ ] **Canal Android `mcem_tocheck` dédié** (confort)
-  - Son distinct (2 bips courts comme Windows Tray)
-  - ⚠️ Nécessite réinstallation de l'APK
-  - **Quand** : prochaine réinstallation APK prévue
-
-- [ ] **MediaMonitor — tags ID3 dans `/api/detail`**
-  - `MediaItemFactory.BuildItem` (SMB) ne lit pas les tags ID3
-  - `Artist` / `Album` / `Title` vides actuellement dans le JSON
-  - À ajouter si l'UI Android en a besoin (analyse `FileAnalyzer` côté serveur)
-  - **Priorité** : 🟡 moyenne (confort, pas critique)
-
-- [ ] **Refactoring : `ServerDetailPageBase` commune**
-  - 4 pages quasi-identiques (SystemMonitor, RomMonitor, NetMonitor, MediaMonitor)
-  - Extraire le header, `RefreshView`, cycle de vie dans une classe de base
-  - Optionnel — gain de maintenance à long terme
-  - **Priorité** : 🟢 opportuniste
 
 - [ ] **MediaMonitor — affichage "Depuis quand"**
   - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
@@ -106,55 +48,68 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
-- [ ] **Nettoyer les dossiers vides**
-  - `MCEMonitor\Controls\`
-  - `MCEMonitor\Resources\Images\`
-  - `NetMonitor\NetMonitor.Service\Api\`
-  - `RomMonitor\RomMonitor.UI\Converters\`
-
-- [ ] **Vérifier `MainWindow.xaml.txt`** dans `MediaMonitor.UI`
-  - Fichier `.txt` orphelin → supprimer si non référencé
-
-- [ ] **Vérifier les fichiers template MAUI**
-  - `AndroidClient\MCEMonitorClient.Maui\Resources\Images\dotnet_bot.png`
-  - `AndroidClient\MCEMonitorClient.Maui\Resources\Raw\AboutAssets.txt`
-  - Supprimer si non référencés
-
-- [ ] **Choisir entre `LICENSE` et `LICENSE.txt`**
-  - Vérifier s'ils sont identiques
-  - Garder `LICENSE` (convention), supprimer l'autre
-
-- [ ] **Vérifier `MCEMonitor.png` à la racine**
-  - Référencé dans `README.md` ? Si non : supprimer (doublon dans `WakeMonitor\Assets\`)
-
-- [ ] **Auditer les ressources `MediaMonitor.Service\Resources\`**
-  - `Icons\*.png` (media, rom, tv, webicon_*.png) — référencés dans les handlers ?
-  - `Images\*` (banner-logo, default-cover, logo, backgrounds) — idem
-
-- [ ] **Auditer les DLL de `ffmpeg\`**
-  - Vérifier avec `dumpbin /dependents ffmpeg.exe` que toutes les DLL sont chargées
-  - Supprimer celles qui ne le sont jamais
-
-- [ ] **Re-tester 5-6 MP3 variés** après le fix vignettes (validation croisée)
-  - APIC JPEG valide / APIC PNG / APIC corrompu / sans APIC + folder.jpg / sans rien / APIC + folder.jpg
-
 - [ ] **Ajouter les exclusions Defender** sur la machine W10 Q9550
   - `Add-MpPreference -ExclusionPath "C:\ProgramData\MCEMonitor"`
   - `Add-MpPreference -ExclusionProcess "NetMonitor.Service.exe"`
   - `Add-MpPreference -ExclusionExtension ".sys"`
   - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
 
-- [ ] **Centraliser les ressources** dans `MCEMonitor.Shared` (gros chantier, optionnel)
-  - ~15 icônes × 10 projets, 5 `.ico` × 3 copies, 2 `.wav` × 3 projets
-  - Optionnel — gain de maintenance à long terme
-
-- [ ] **`Directory.Build.props` à la racine**
-  - Factoriser `<TargetFramework>`, `<Nullable>`, `<ImplicitUsings>` pour les 23 projets
-  - Optionnel — gain de lisibilité
-
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-10 — Vérifications, correctifs Android, nettoyages
+
+**Session de validation complète : tests réactifs, correctifs Android, nettoyages opportunistes, et audit de code.**
+
+#### Correctifs Android
+
+- [x] **`requestCode` unique par notification** dans `AndroidNotificationService.cs`
+  - **Cause** : `PendingIntent.GetActivity(context, 0, ...)` avec `requestCode = 0` fixe → Android considère toutes les notifications comme le même `PendingIntent` (`filterEquals` ignore les extras)
+  - **Conséquence** : seule la dernière notification écrasait les précédentes → clic sans effet sur les plus anciennes
+  - **Correction** : `int notifId = _nextId++;` puis `PendingIntent.GetActivity(context, notifId, ...)` et `manager.Notify(notifId, ...)`
+  - Corrigé dans `ShowAlert` et `ShowMedia`
+- [x] **Lecture du champ `service` dans `PollingEngine.PollOneAsync`**
+  - **Cause** : `result.ServiceType` était initialisé depuis `ServerEntry.ServiceType`, mais jamais relu depuis le JSON `/api/summary`. Si le serveur avait été ajouté avant la détection automatique (cas MediaMonitor), `ServiceType` restait vide → pas de route résolue → clic sans effet
+  - **Correction** : lecture de `"service"` depuis le JSON, prioritaire sur `ServerEntry.ServiceType`
+  - Doublon accidentel de la lecture `status` supprimé (CS0128)
+- [x] **Affichage de la version GitVersion dans `MainPage`**
+  - **Cause** : `AppInfo.Current.VersionString` lit `ApplicationDisplayVersion` statique du `.csproj` (valeur `1.0`), pas la version calculée par GitVersion
+  - **Correction** : lecture de `AssemblyInformationalVersionAttribute` (injecté par GitVersion.MsBuild), pattern identique à `MCEMonitor` (WPF)
+  - Coupure des métadonnées après `+` (ex : `1.2.3+5.Branch.main` → `1.2.3`)
+  - Label `lblAppVersion` ajouté en haut à droite de `MainPage.xaml`
+
+#### Tests réactifs (déclencheurs validés)
+
+- [x] **Test end-to-end de la suppression des règles orphelines**
+  - Procédure validée : créer 2 règles `NetMonitor-Block-01-In/Out` via `netsh`, redémarrer le service, cliquer "Libérer toutes les IP bloquées", vérifier la suppression
+- [x] **Test end-to-end de la préservation des JSON** à travers désinstallation/réinstallation
+  - Les 6 JSON + `NetMonitor.config` + 4 `*.web.config` survivent à la désinstallation/réinstallation
+- [x] **Test notifications Android** sur les 4 services
+  - Les 4 services ouvrent leur page de détail respective (SystemMonitor, RomMonitor, NetMonitor, MediaMonitor)
+  - Testé avec notifications récentes et anciennes (après correctif `requestCode`)
+
+#### Planifiés validés
+
+- [x] **Spinner de chargement** : NetMonitor l'a, imperceptible en temps normal (serveur rapide), visible si lent
+- [x] **`ProjectReference` vers `MCEMonitor.Languages`** dans les 3 UI : vérifié, présent
+- [x] **Workflow ToCheck documenté** dans le README
+- [x] **`_manualCriticalOverrides` persisté** dans `NetMonitorEngine` (`manual_critical_overrides.json`)
+- [x] **Canal Android `mcem_tocheck` dédié** : en place avec son distinct
+- [x] **MediaMonitor — tags ID3** dans `/api/detail` : `Artist` / `Album` / `Title` remplis
+
+#### Nettoyages opportunistes
+
+- [x] **Dossiers vides supprimés** : `MCEMonitor\Controls\`, `MCEMonitor\Resources\Images\`, `NetMonitor\NetMonitor.Service\Api\`, `RomMonitor\RomMonitor.UI\Converters\`
+- [x] **`MainWindow.xaml.txt`** dans `MediaMonitor.UI` : supprimé (fichier orphelin)
+- [x] **Fichiers template MAUI** : `dotnet_bot.png` et `AboutAssets.txt` supprimés
+- [x] **`LICENSE` vs `LICENSE.txt`** : `LICENSE.txt` supprimé, `LICENSE` conservé
+- [x] **`MCEMonitor.png`** à la racine : supprimé (doublon dans `WakeMonitor\Assets\`)
+- [x] **Ressources `MediaMonitor.Service\Resources\`** : auditées
+- [x] **DLL de `ffmpeg\`** : auditées via `dumpbin /dependents`, inutiles supprimées
+- [x] **5-6 MP3 variés** re-testés après fix vignettes (APIC JPEG / PNG / corrompu / folder.jpg / sans rien)
+
+**Bilan de la session** : les 4 services Android sont pleinement fonctionnels (consultation + navigation depuis notifications récentes et anciennes), la version GitVersion s'affiche dans l'UI, les tests réactifs sont validés, et le projet est nettoyé des fichiers orphelins.
 
 ### Session 2026-11-09 — Optimisations NetMonitor + validation ToCheck
 
