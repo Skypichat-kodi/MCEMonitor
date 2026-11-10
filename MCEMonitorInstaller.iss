@@ -17,11 +17,11 @@ OutputDir=Installer
 Compression=lzma
 SolidCompression=yes
 UsedUserAreasWarning=no
-WizardSmallImageFile=MCEMonitor.png
+WizardSmallImageFile=InnoMCEMonitor.png
 PrivilegesRequired=admin
 CloseApplications=no
 RestartApplications=no
-LicenseFile=LICENSE.txt
+LicenseFile=LICENSE_inno.txt
 
 ; Installeur 64 bits moderne
 ArchitecturesInstallIn64BitMode=x64compatible
@@ -60,7 +60,7 @@ Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MC
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\ffmpeg"
 
 [Files]
-Source: "LICENSE.txt"; DestDir: "{app}"; Flags: ignoreversion
+Source: "LICENSE_inno.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 ; --- PawnIO (pilote de lecture capteurs) ---
 Source: "redist\PawnIO_setup.exe"; DestDir: "{tmp}"; \
