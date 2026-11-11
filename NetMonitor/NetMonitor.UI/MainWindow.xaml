@@ -681,7 +681,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET INTRUSIONS (3 tableaux)                        -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Intrusions'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🛡" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Intrusions'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="0,0,5,0">
@@ -1301,7 +1307,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET INTERCEPTIONS (tentatives sur IP bloquée)      -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Interceptions'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🕵" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Interceptions'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- 0 : titre -->
@@ -1466,7 +1478,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET HISTORIQUE (intrusions + audit whitelist)      -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Historique'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🕘" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Historique'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="0,0,5,0">
@@ -1805,7 +1823,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET LISTE BLANCHE (gestion whitelist)              -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Liste blanche'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="✅" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Liste blanche'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1914,7 +1938,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET CONNEXIONS                                     -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Connexions'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔗" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Connexions'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <Grid Margin="0,10,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>
@@ -1958,7 +1988,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET RÉGLAGES (Web + Détecteurs)                    -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Réglages'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🔧" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Réglages'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="0,0,5,0">
@@ -2378,7 +2414,13 @@
             <!-- ====================================================== -->
             <!--  ONGLET STATISTIQUES (2 sous-onglets)                 -->
             <!-- ====================================================== -->
-            <TabItem Header="{loc:Tr 'Statistiques'}">
+            <TabItem>
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="📊" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Statistiques'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </TabItem.Header>
                 <TabControl x:Name="StatsSubTabControl"
                             Background="Transparent" BorderThickness="0"
                             Margin="0,10,0,0">
@@ -2413,7 +2455,13 @@
                     <!-- ══════════════════════════════════════════════════════ -->
                     <!--  SOUS-ONGLET 1 : ACTIVITÉ                            -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <TabItem Header="{loc:Tr 'Activité'}">
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="📈" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Activité'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer x:Name="StatsActiveScrollViewer" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,10,5,0"
@@ -2555,7 +2603,13 @@
                     <!-- ══════════════════════════════════════════════════════ -->
                     <!--  SOUS-ONGLET 2 : GLOBAL                              -->
                     <!-- ══════════════════════════════════════════════════════ -->
-                    <TabItem Header="{loc:Tr 'Global'}">
+                    <TabItem>
+                        <TabItem.Header>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌍" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Global'}" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </TabItem.Header>
                         <ScrollViewer x:Name="StatsGlobalScrollViewer" VerticalScrollBarVisibility="Auto"
                                       HorizontalScrollBarVisibility="Disabled"
                                       Padding="0,10,5,0"
@@ -2662,14 +2716,26 @@
                                                 </Style>
                                             </TabControl.Resources>
 
-                                            <TabItem Header="{loc:Tr 'Carte des IPs bloquées'}">
+                                            <TabItem>
+                                                <TabItem.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="🗺" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Tr 'Carte des IPs bloquées'}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </TabItem.Header>
                                                 <Border CornerRadius="6" ClipToBounds="True" Height="750"
                                                         BorderBrush="#2E5A1A" BorderThickness="1" Margin="0,10,0,0">
                                                     <controls:CountriesMapPanel x:Name="MapBlockedPanel" />
                                                 </Border>
                                             </TabItem>
 
-                                            <TabItem Header="{loc:Tr 'Graphiques'}">
+                                            <TabItem>
+                                                <TabItem.Header>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <TextBlock Text="📉" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                                        <TextBlock Text="{loc:Tr 'Graphiques'}" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                </TabItem.Header>
                                                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                                                               HorizontalScrollBarVisibility="Disabled"
                                                               Padding="0,10,5,0">
