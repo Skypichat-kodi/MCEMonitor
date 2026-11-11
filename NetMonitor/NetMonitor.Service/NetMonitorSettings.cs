@@ -41,6 +41,13 @@ namespace NetMonitor.Service
         public string WebPassword                   { get; set; } = "changeme";
 
         // ============================================================
+        //  OTP (One-Time Password) — vérification par email
+        // ============================================================
+        public bool OtpEnabled                      { get; set; } = false;
+        public int  OtpSessionMinutes               { get; set; } = 15;
+        public int  OtpCodeLength                   { get; set; } = 6;
+
+        // ============================================================
         //  Recherche d'IP (lien externe vers un service d'analyse)
         // ============================================================
         public string IpLookupUrl                   { get; set; } = "https://www.abuseipdb.com/check/{ip}";
@@ -55,61 +62,24 @@ namespace NetMonitor.Service
         // ============================================================
         //  Sévérité — patterns de classification (reverse DNS / ISP / Org)
         // ============================================================
-
-        /// <summary>
-        /// Domaines considérés comme vraiment malveillants (bulletproof hosting).
-        /// Match ? Severity.Critical (rouge).
-        /// </summary>
         public string[] CriticalPatterns            { get; set; } = new[]
         {
-            "infrawat.ch",         // Hydra Communications / Infrawatch
-            "bulsat.com",
-            "serverastra.com",
-            "axarnet.es"
+            "infrawat.ch", "bulsat.com", "serverastra.com", "axarnet.es"
         };
 
-        /// <summary>
-        /// Scanners de recherche connus.
-        /// Match ? Severity.Trusted (vert moyen) SI l'option IgnoreSearchScanners est activée.
-        /// </summary>
         public string[] ScannerPatterns { get; set; } = new[]
         {
-            "shadowserver.org",
-            "censys.io",
-            "shodan.io",
-            "onyphe.com",
-            "binaryedge.io",
-            "internet-measurement.com",   // RIPE Atlas
-            "rapid7.com",                 // Project Sonar
-            "stretchoid.com"
+            "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
+            "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
         };
 
-        /// <summary>
-        /// Domaines légitimes connus.
-        /// Match ? Severity.Safe (vert clair).
-        /// </summary>
         public string[] SafePatterns { get; set; } = new[]
         {
-            "microsoft.com",
-            "google.com",
-            "cloudflare.com",
-            "amazonaws.com",
-            "akamai.net",
-            "apple.com"
+            "microsoft.com", "google.com", "cloudflare.com",
+            "amazonaws.com", "akamai.net", "apple.com"
         };
 
-        /// <summary>
-        /// Whitelist utilisateur. Match ? Severity.Whitelisted (vert foncé).
-        /// Configurable manuellement pour ajouter vos propres exceptions.
-        /// </summary>
         public string[] WhitelistPatterns { get; set; } = Array.Empty<string>();
-
-        /// <summary>
-        /// Version de la logique de sévérité.
-        /// 0 = ancien système (toutes les IPs en "Critical")
-        /// 2 = nouveau système (SeverityScorer)
-        /// Sert à déclencher la migration one-shot au démarrage.
-        /// </summary>
         public int SeverityVersion { get; set; } = 0;
 
         // ============================================================
@@ -168,16 +138,13 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
-                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break; // NOUVEAU
-
-                            // Sévérité — compatibilité ascendante : "TrustedScannerPatterns" (ancien) ET "ScannerPatterns"
-                            case "TrustedScannerPatterns":                            
+                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break;
+                            case "TrustedScannerPatterns":
                             case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
+                            case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "ScannerPatterns":
                                 var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                 if (patterns.Length > 0) settings.ScannerPatterns = patterns;
-                                // sinon : on garde la valeur par défaut (la liste complète)
                                 break;
                             case "CriticalPatterns"             : settings.CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : settings.SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
@@ -188,7 +155,7 @@ namespace NetMonitor.Service
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) settings.AutoBlockWarning = abw; break;
                             case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire)) settings.MicrosoftIpRangeEnabled = mire; break;
-                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr)) settings.MicrosoftIpRangeRefreshHours = mirr; break;                                                     
+                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr)) settings.MicrosoftIpRangeRefreshHours = mirr; break;
                         }
                     }
                 }
@@ -206,10 +173,13 @@ namespace NetMonitor.Service
 
                         switch (key)
                         {
-                            case "WebEnabled": if (bool.TryParse(value, out bool we)) settings.WebEnabled = we; break;
-                            case "WebPort": if (int.TryParse(value, out int wp)) settings.WebPort = wp; break;
-                            case "WebUsername": settings.WebUsername = value; break;
-                            case "WebPassword": settings.WebPassword = value; break;
+                            case "WebEnabled"        : if (bool.TryParse(value, out bool we)) settings.WebEnabled = we; break;
+                            case "WebPort"           : if (int.TryParse(value, out int wp)) settings.WebPort = wp; break;
+                            case "WebUsername"       : settings.WebUsername = value; break;
+                            case "WebPassword"       : settings.WebPassword = value; break;
+                            case "OtpEnabled"        : if (bool.TryParse(value, out bool oe)) settings.OtpEnabled = oe; break;
+                            case "OtpSessionMinutes" : if (int.TryParse(value, out int osm)) settings.OtpSessionMinutes = osm; break;
+                            case "OtpCodeLength"     : if (int.TryParse(value, out int ocl)) settings.OtpCodeLength = ocl; break;
                         }
                     }
                 }
@@ -253,9 +223,6 @@ namespace NetMonitor.Service
                     "# --- Réseaux ignorés ---",
                     $"IgnoredNetworks={string.Join(",", IgnoredNetworks)}",
                     "",
-                    "# --- Blocage automatique ---",
-                    $"AutoBlock={AutoBlock.ToString().ToLower()}",
-                    "",
                     "# --- Mode Debug ---",
                     $"DisableFilters={DisableFilters.ToString().ToLower()}",
                     "",
@@ -276,9 +243,7 @@ namespace NetMonitor.Service
                     "",
                     "# ============================================================",
                     "#  Sévérité — patterns de classification (reverse DNS / ISP / Org)",
-                    "#  Format : séparés par virgule. Wildcard *.example.com supporté.",
                     "# ============================================================",
-                    "",
                     "# Vraiment malveillants (rouge)",
                     $"CriticalPatterns={string.Join(",", CriticalPatterns)}",
                     "",
@@ -307,7 +272,7 @@ namespace NetMonitor.Service
                     "",
                     "# --- Fichier Microsoft IP Ranges ---",
                     $"MicrosoftIpRangeEnabled={MicrosoftIpRangeEnabled.ToString().ToLower()}",
-                    $"MicrosoftIpRangeRefreshHours={MicrosoftIpRangeRefreshHours}",                                        
+                    $"MicrosoftIpRangeRefreshHours={MicrosoftIpRangeRefreshHours}",
                 };
                 File.WriteAllLines(ConfigPath, lines);
             }
@@ -329,7 +294,14 @@ namespace NetMonitor.Service
                     $"WebEnabled={WebEnabled.ToString().ToLower()}",
                     $"WebPort={WebPort}",
                     $"WebUsername={WebUsername}",
-                    $"WebPassword={WebPassword}"
+                    $"WebPassword={WebPassword}",
+                    "",
+                    "# ============================================================",
+                    "# OTP (One-Time Password) — vérification par email",
+                    "# ============================================================",
+                    $"OtpEnabled={OtpEnabled.ToString().ToLower()}",
+                    $"OtpSessionMinutes={OtpSessionMinutes}",
+                    $"OtpCodeLength={OtpCodeLength}"
                 };
                 File.WriteAllLines(WebConfigPath, lines);
             }
@@ -363,7 +335,7 @@ namespace NetMonitor.Service
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) AutoBlockWarning = abw; break;
                             case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire2)) MicrosoftIpRangeEnabled = mire2; break;
-                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr2)) MicrosoftIpRangeRefreshHours = mirr2; break;                                  
+                            case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr2)) MicrosoftIpRangeRefreshHours = mirr2; break;
                             case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
@@ -374,14 +346,14 @@ namespace NetMonitor.Service
                             case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
-                          case "ScannerPatterns":
-                              var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-                              if (patterns.Length > 0) ScannerPatterns = patterns;
-                              break;
+                            case "ScannerPatterns":
+                                var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                                if (patterns.Length > 0) ScannerPatterns = patterns;
+                                break;
                             case "TrustedScannerPatterns":
                             case "CriticalPatterns"             : CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
-                            case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                      
+                            case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                         }
                     }
                 }
@@ -398,41 +370,29 @@ namespace NetMonitor.Service
 
                         switch (key)
                         {
-                            case "WebEnabled": if (bool.TryParse(value, out bool we)) WebEnabled = we; break;
-                            case "WebPort": if (int.TryParse(value, out int wp)) WebPort = wp; break;
-                            case "WebUsername": WebUsername = value; break;
-                            case "WebPassword": WebPassword = value; break;
+                            case "WebEnabled"        : if (bool.TryParse(value, out bool we)) WebEnabled = we; break;
+                            case "WebPort"           : if (int.TryParse(value, out int wp)) WebPort = wp; break;
+                            case "WebUsername"       : WebUsername = value; break;
+                            case "WebPassword"       : WebPassword = value; break;
+                            case "OtpEnabled"        : if (bool.TryParse(value, out bool oe)) OtpEnabled = oe; break;
+                            case "OtpSessionMinutes" : if (int.TryParse(value, out int osm)) OtpSessionMinutes = osm; break;
+                            case "OtpCodeLength"     : if (int.TryParse(value, out int ocl)) OtpCodeLength = ocl; break;
                         }
                     }
                 }
-                
-                // Protéger le fichier *.web.config en lecture seule
+
                 EnsureWebConfigProtected();
-                                
                 CoreLog.Write("Config NetMonitor rechargée à chaud");
             }
             catch (Exception ex) { CoreLog.Write("Erreur Reload NetMonitorSettings : " + ex.Message); }
         }
 
-        /// <summary>
-        /// Protège le fichier *.web.config en lecture seule pour les utilisateurs
-        /// standards, tout en gardant l'écriture pour SYSTEM (le service) et
-        /// Administrators (dépannage manuel).
-        /// 
-        /// Utilise les SID universels (S-1-5-*) pour être indépendant de la
-        /// langue de Windows (FR, EN, DE, JP...).
-        /// 
-        /// Deux étapes obligatoires :
-        ///  1. takeown → prendre possession du fichier (sinon icacls = Accès refusé)
-        ///  2. icacls  → appliquer les ACL (avec SID universels)
-        /// </summary>
         private static void EnsureWebConfigProtected()
         {
             if (!File.Exists(WebConfigPath)) return;
 
             try
             {
-                // 1) Prendre possession du fichier (au groupe Administrateurs via /a)
                 var takeownPsi = new ProcessStartInfo("takeown",
                     $"/f \"{WebConfigPath}\" /a")
                 {
@@ -448,19 +408,10 @@ namespace NetMonitor.Service
                     {
                         var takeownOut = p.StandardOutput.ReadToEndAsync();
                         var takeownErr = p.StandardError.ReadToEndAsync();
-
-                        if (p.WaitForExit(3000))
-                        {
-                            _ = takeownOut.Result;
-                            _ = takeownErr.Result;
-                        }
+                        if (p.WaitForExit(3000)) { _ = takeownOut.Result; _ = takeownErr.Result; }
                     }
                 }
 
-                // 2) Appliquer les ACL avec les SID universels
-                //    *S-1-5-18     = SYSTEM
-                //    *S-1-5-32-544 = Administrateurs
-                //    *S-1-5-32-545 = Utilisateurs
                 var icaclsPsi = new ProcessStartInfo("icacls",
                     $"\"{WebConfigPath}\" /inheritance:r " +
                     $"/grant \"*S-1-5-18:(F)\" " +
@@ -476,7 +427,6 @@ namespace NetMonitor.Service
                 using var p2 = Process.Start(icaclsPsi);
                 if (p2 == null) return;
 
-                // Lire stdout/stderr AVANT WaitForExit pour éviter le deadlock
                 var outTask = p2.StandardOutput.ReadToEndAsync();
                 var errTask = p2.StandardError.ReadToEndAsync();
 
@@ -497,7 +447,7 @@ namespace NetMonitor.Service
                 CoreLog.Write($"[PROTECT] Erreur : {ex.Message}");
             }
         }
-        
+
         private static string JoinOrFallback(string[] values, string[] fallback)
             => string.Join(",", values.Length > 0 ? values : fallback);
 
@@ -505,6 +455,6 @@ namespace NetMonitor.Service
         {
             "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
             "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
-        };        
+        };
     }
 }

@@ -238,6 +238,15 @@ namespace NetMonitor.Service.Web
                 }
             }
 
+            // Bouton Déconnexion (invalide Basic Auth + OTP)
+            sb.Append(@"<a class=""peer-btn logout-btn"" href=""/logout"" 
+                          style=""background:#CC3300;color:#fff;border:1px solid #FF6347;
+                                 padding:4px 12px;border-radius:4px;text-decoration:none;
+                                 font-weight:bold;margin-left:auto;display:inline-flex;
+                                 align-items:center;gap:6px;""
+                          title=""Se déconnecter (invalide la session et l'OTP)"">
+                          🚪 Déconnexion</a>");
+
             return sb.ToString();
         }
     }

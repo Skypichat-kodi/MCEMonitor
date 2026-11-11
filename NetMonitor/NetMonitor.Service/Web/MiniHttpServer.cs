@@ -1,9 +1,11 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using MCEMonitor.Languages;
 using NetMonitor.Service.Models;
 
@@ -17,6 +19,7 @@ namespace NetMonitor.Service.Web
         private Thread?       _thread;    
         private bool _running;
         private int _currentPort;
+        private readonly List<string> _localIps = new();
 
         public MiniHttpServer(NetMonitorEngine engine, NetMonitorSettings settings)
         {
@@ -37,7 +40,23 @@ namespace NetMonitor.Service.Web
             try
             {
                 _currentPort = _settings.WebPort;
-
+                
+                try
+                {
+                    foreach (var ni in System.Net.NetworkInformation.NetworkInterface.GetAllNetworkInterfaces())
+                    {
+                        if (ni.OperationalStatus != System.Net.NetworkInformation.OperationalStatus.Up) continue;
+                        foreach (var ua in ni.GetIPProperties().UnicastAddresses)
+                        {
+                            string ip = ua.Address.ToString();
+                            if (!_localIps.Contains(ip)) _localIps.Add(ip);
+                        }
+                    }
+                    _localIps.Add("127.0.0.1");
+                    _localIps.Add("::1");
+                }
+                catch { }
+                
                 _listener = new HttpListener();
                 _listener.Prefixes.Add($"http://+:{_currentPort}/");
                 _listener.Start();
@@ -88,6 +107,81 @@ namespace NetMonitor.Service.Web
         {
             try
             {
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
+                string method = ctx.Request.HttpMethod;
+
+                // ============================================================
+                //  1. Routes OTP (avant Basic Auth, car elles sont publiques)
+                // ============================================================
+                if (path == "/otp/verify" && method == "POST")
+                {
+                    var form = ReadForm(ctx);
+                    form.TryGetValue("token", out var tok);
+                    form.TryGetValue("code", out var code);
+                    form.TryGetValue("original", out var original);
+
+                    var result = OtpService.Validate(tok, code);
+                    if (result == OtpService.Result.Ok)
+                    {
+                        string session = OtpSessionStore.Create(_settings.OtpSessionMinutes);
+                        SetCookie(ctx, "netmon_otp", session, _settings.OtpSessionMinutes * 60);
+                        RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
+                        return;
+                    }
+
+                    string msg = result switch
+                    {
+                        OtpService.Result.Expired         => "Le code a expiré. Rechargez la page pour en obtenir un nouveau.",
+                        OtpService.Result.TooManyAttempts => "Trop de tentatives. Rechargez la page pour recommencer.",
+                        OtpService.Result.Wrong           => "Code incorrect.",
+                        _                                 => "Code invalide ou expiré."
+                    };
+                    OtpPages.SendErrorPage(ctx, msg, original);
+                    return;
+                }
+
+                if (path == "/logout")
+                {
+                    string? otpCookie = GetCookie(ctx, "netmon_otp");
+                    OtpSessionStore.Invalidate(otpCookie);
+                    SetCookie(ctx, "netmon_otp", "deleted", 0);
+                    CoreLog.Write($"[OTP] Logout : session {otpCookie ?? "(vide)"} invalidée");
+
+                    string html = @"<!DOCTYPE html>
+                <html lang=""fr""><head><meta charset=""utf-8"">
+                <title>Déconnecté - NetMonitor</title>
+                <meta http-equiv=""refresh"" content=""2;url=/"">
+                <style>
+                  body { font-family: Segoe UI, Arial, sans-serif; background: #1E1E1E; color: #E5E5E5;
+                         display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+                  .card { background: #252526; border: 1px solid #3C3C3C; border-radius: 8px;
+                          padding: 30px; max-width: 400px; text-align: center; }
+                  h1 { color: #4CC2FF; margin-top: 0; font-size: 20px; }
+                  a { color: #4CC2FF; }
+                </style></head><body>
+                <div class=""card"">
+                  <h1>✅ Déconnecté</h1>
+                  <p>La session OTP a été invalidée.</p>
+                  <p>Redirection dans 2 secondes…</p>
+                  <p><a href=""/"">Cliquez ici si rien ne se passe</a></p>
+                </div>
+                </body></html>";
+                    SendHtml(ctx, html, 200);
+                    return;
+                }
+
+                if (path == "/otp" && method == "GET")
+                {
+                    string? token = ctx.Request.QueryString["token"];
+                    string? original = ctx.Request.QueryString["original"];
+                    var cfg = EmailConfig.Load();
+                    OtpPages.SendRequestPage(ctx, token ?? "", cfg.To, original ?? "/");
+                    return;
+                }
+
+                // ============================================================
+                //  2. Basic Auth
+                // ============================================================
                 if (!CheckAuth(ctx))
                 {
                     ctx.Response.StatusCode = 401;
@@ -96,8 +190,50 @@ namespace NetMonitor.Service.Web
                     return;
                 }
 
-                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
+                // Routes qui échappent à l'OTP : le mécanisme OTP lui-même + le logout
+                bool otpExempt = path == "/otp"
+                              || path == "/otp/verify"
+                              || path == "/logout"
+                              || path == "/ping"
+                              || path == "/api/summary"
+                              || path == "/api/detail"
+                              || path == "/api/stats"
+                              || path == "/peers"
+                              || path.StartsWith("/resources/")
+                              || path.StartsWith("/data/")
+                              || path == "/favicon.ico";
 
+                if (_settings.OtpEnabled && !otpExempt)
+                {
+                    string? otpCookie = GetCookie(ctx, "netmon_otp");
+                    if (!OtpSessionStore.IsValid(otpCookie))
+                    {
+                        string remoteIp = ctx.Request.RemoteEndPoint?.Address?.ToString() ?? "";
+
+                        // Fallback : requête locale (localhost ou IP de la machine) → bypass OTP
+                        if (!OtpService.IsLocalRequest(remoteIp, _localIps))
+                        {
+                            var cfg = EmailConfig.Load();
+                            if (string.IsNullOrWhiteSpace(cfg.Server) || string.IsNullOrWhiteSpace(cfg.To))
+                            {
+                                OtpPages.SendErrorPage(ctx, "Le serveur SMTP n'est pas configuré. Impossible d'envoyer un code OTP.", path);
+                                return;
+                            }
+
+                            var (token, sent) = await OtpService.GenerateAndSendAsync(_settings.OtpCodeLength, cfg);
+                            if (!sent)
+                            {
+                                OtpPages.SendErrorPage(ctx, "L'envoi du code OTP a échoué. Vérifiez la configuration email.", path);
+                                return;
+                            }
+
+                            string otpUrl = $"/otp?token={Uri.EscapeDataString(token)}&original={Uri.EscapeDataString(path)}";
+                            RedirectTo(ctx, otpUrl);
+                            return;
+                        }
+                    }
+                }
+                
                 if (path == "/" || path == "/net")
                 {
                     string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
@@ -754,5 +890,45 @@ namespace NetMonitor.Service.Web
                 catch { }
             }
         }
+        
+        // ============================================================
+        //  OTP helpers
+        // ============================================================
+        private static string? GetCookie(HttpListenerContext ctx, string name)
+        {
+            var cookie = ctx.Request.Cookies[name];
+            return cookie?.Value;
+        }
+
+        private static void SetCookie(HttpListenerContext ctx, string name, string value, int maxAgeSeconds)
+        {
+            string cookieStr;
+            if (maxAgeSeconds > 0)
+            {
+                cookieStr = $"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={maxAgeSeconds}";
+            }
+            else
+            {
+                // Suppression : pas de SameSite, valeur "deleted", Max-Age=0
+                cookieStr = $"{name}=deleted; Path=/; HttpOnly; Max-Age=0";
+            }
+
+            ctx.Response.Headers.Add("Set-Cookie", cookieStr);
+        }
+
+        private static Dictionary<string, string> ReadForm(HttpListenerContext ctx)
+        {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!ctx.Request.HasEntityBody) return dict;
+            using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            foreach (var pair in body.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = pair.Split('=', 2);
+                if (kv.Length == 2)
+                    dict[Uri.UnescapeDataString(kv[0])] = Uri.UnescapeDataString(kv[1].Replace('+', ' '));
+            }
+            return dict;
+        }        
     }
 }

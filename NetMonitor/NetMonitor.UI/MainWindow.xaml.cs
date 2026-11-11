@@ -23,14 +23,14 @@ namespace NetMonitor.UI
         // Limite d'affichage par défaut des tableaux
         private const int DisplayLimit = 12;
 
-        private readonly ObservableCollection<GroupedAlertRow>      _activeIntrusions       = new();
-        private readonly ObservableCollection<BlockedIpRow>         _blockedIps             = new();
-        private readonly ObservableCollection<AlertRow>             _alertsHistory          = new();
-        private readonly ObservableCollection<ConnectionRow>        _connections            = new();
-        private readonly ObservableCollection<AuditGroupedRow>      _auditGrouped           = new();
-        private readonly ObservableCollection<PendingProcessRow>    _pendingProcesses       = new();
-        private List<PendingProcessRow>                             _allPendingProcesses    = new();
-        private bool                                                _showAllPending         = false;        
+        private readonly ObservableCollection<GroupedAlertRow>      _activeIntrusions           = new();
+        private readonly ObservableCollection<BlockedIpRow>         _blockedIps                 = new();
+        private readonly ObservableCollection<AlertRow>             _alertsHistory              = new();
+        private readonly ObservableCollection<ConnectionRow>        _connections                = new();
+        private readonly ObservableCollection<AuditGroupedRow>      _auditGrouped               = new();
+        private readonly ObservableCollection<PendingProcessRow>    _pendingProcesses           = new();
+        private List<PendingProcessRow>                             _allPendingProcesses        = new();
+        private bool                                                _showAllPending             = false;        
         
         // --- Stats ---
         private readonly ObservableCollection<StatsCountryRow>      _statsActiveCountries      = new();
@@ -40,30 +40,31 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<BlockedIpRetryRow>    _blockedRetries            = new();
         private readonly ObservableCollection<WhitelistEntryRow>    _whitelistEntries          = new();
         private readonly ObservableCollection<StatsProcessRow>      _statsTopProcesses         = new();
-        private readonly ObservableCollection<StatsBucketRow>       _statsActivityBuckets       = new();
+        private readonly ObservableCollection<StatsBucketRow>       _statsActivityBuckets      = new();
         private GlobalStatsDto?                                     _lastStats;
-        private TimeGranularity                                     _currentGranularity         = TimeGranularity.Hour;        
+        private TimeGranularity                                     _currentGranularity        = TimeGranularity.Hour;        
         private readonly ObservableCollection<StatsSeverityRow>     _statsSeverityDistribution = new();
         private readonly ObservableCollection<StatsIspRow>          _statsActiveIsps           = new();
         private readonly ObservableCollection<StatsIspRow>          _statsBlockedIsps          = new();        
 
         // Données complètes (pour le dépliage Voir plus)
-        private List<GroupedAlertRow>   _allActiveGrouped   = new();
-        private List<BlockedIpRow>      _allBlockedIps      = new();
-        private List<AlertRow>          _allAlertsHistory   = new();
-        private List<AuditGroupedRow>   _allAuditGrouped    = new();
+        private List<GroupedAlertRow>       _allActiveGrouped       = new();
+        private List<BlockedIpRow>          _allBlockedIps          = new();
+        private List<AlertRow>              _allAlertsHistory       = new();
+        private List<AuditGroupedRow>       _allAuditGrouped        = new();
 
         // Flags "Voir plus" par tableau
-        private bool _showAllActive     = false;
-        private bool _showAllBlocked    = false;
-        private bool _showAllHistory    = false;
-        private bool _showAllAudit      = false;
+        private bool                        _showAllActive          = false;
+        private bool                        _showAllBlocked         = false;
+        private bool                        _showAllHistory         = false;
+        private bool                        _showAllAudit           = false;
 
-        private readonly DispatcherTimer    _refreshTimer = null!;
-        private bool                        _isRefreshing = false;
-        private DateTime                    _lastConfigWriteTime = DateTime.MinValue;
-        private long                        _lastConfigSize = -1;
-        private bool                        _loadingWebConfig = false;
+        private readonly DispatcherTimer    _refreshTimer           = null!;
+        private bool                        _isRefreshing           = false;
+        private DateTime                    _lastConfigWriteTime    = DateTime.MinValue;
+        private long                        _lastConfigSize         = -1;
+        private bool                        _loadingWebConfig       = false;
+        private bool                        _loadingOtpConfig       = false;
 
         // ⚠ hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
@@ -123,10 +124,10 @@ namespace NetMonitor.UI
             StatsActivityGrid.ItemsSource               = _statsActivityBuckets;           
 
             // Scroll global sur les onglets
-            ActiveIntrusionsGrid.PreviewMouseWheel      += DataGrid_PreviewMouseWheel;
-            BlockedIpsGrid.PreviewMouseWheel            += DataGrid_PreviewMouseWheel;
-            AlertsHistoryGrid.PreviewMouseWheel         += DataGrid_PreviewMouseWheel;
-            AuditGrid.PreviewMouseWheel                 += DataGrid_PreviewMouseWheel;
+            ActiveIntrusionsGrid.PreviewMouseWheel     += DataGrid_PreviewMouseWheel;
+            BlockedIpsGrid.PreviewMouseWheel           += DataGrid_PreviewMouseWheel;
+            AlertsHistoryGrid.PreviewMouseWheel        += DataGrid_PreviewMouseWheel;
+            AuditGrid.PreviewMouseWheel                += DataGrid_PreviewMouseWheel;
 
             // Interceptions
             BlockedRetriesGrid.ItemsSource              = _blockedRetries;
@@ -1379,6 +1380,30 @@ namespace NetMonitor.UI
                 txtWebLogin.Text = status.username;
                 txtWebPassword.Password = status.password ?? "";
                 txtWebPasswordVisible.Text = status.password ?? "";
+
+                // Charge l'état OTP depuis NetMonitor.web.config
+                _loadingOtpConfig = true;
+                try
+                {
+                    string configPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                        "MCEMonitor", "NetMonitor.web.config");
+
+                    bool otpEnabled = false;
+                    if (File.Exists(configPath))
+                    {
+                        foreach (var line in File.ReadAllLines(configPath))
+                        {
+                            if (line.TrimStart().StartsWith("OtpEnabled=", StringComparison.OrdinalIgnoreCase))
+                            {
+                                otpEnabled = line.Split('=', 2)[1].Trim().ToLower() == "true";
+                                break;
+                            }
+                        }
+                    }
+                    ToggleOtp.IsChecked = otpEnabled;
+                }
+                finally { _loadingOtpConfig = false; }
             }
             catch { }
             finally { _loadingWebConfig = false; }
@@ -2541,7 +2566,102 @@ namespace NetMonitor.UI
             }
 
             await RefreshSafe();
-        }        
+        }
+        
+        // ============================================================
+        //  OTP par email
+        // ============================================================
+        private async void ToggleOtp_Checked(object sender, RoutedEventArgs e)
+        {
+            if (_loadingOtpConfig) return;
+            await ApplyOtpConfig(true);
+        }
+
+        private async void ToggleOtp_Unchecked(object sender, RoutedEventArgs e)
+        {
+            if (_loadingOtpConfig) return;
+            await ApplyOtpConfig(false);
+        }
+
+        private async Task ApplyOtpConfig(bool enabled)
+        {
+            try
+            {
+                string configPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "NetMonitor.web.config");
+
+                if (!File.Exists(configPath))
+                {
+                    MessageBox.Show("NetMonitor.web.config introuvable.",
+                        "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    return;
+                }
+
+                // Déprotège temporairement (le fichier est en lecture seule pour Users)
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo("icacls",
+                        $"\"{configPath}\" /grant \"*S-1-5-32-544:(F)\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    using var p = System.Diagnostics.Process.Start(psi);
+                    p?.WaitForExit(3000);
+                }
+                catch { }
+
+                var lines = new List<string>(File.ReadAllLines(configPath));
+
+                bool found = false;
+                for (int i = 0; i < lines.Count; i++)
+                {
+                    if (lines[i].TrimStart().StartsWith("OtpEnabled=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        lines[i] = $"OtpEnabled={(enabled ? "true" : "false")}";
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                    lines.Add($"OtpEnabled={(enabled ? "true" : "false")}");
+
+                File.WriteAllLines(configPath, lines);
+
+                // Restaure la protection
+                try
+                {
+                    var psi = new System.Diagnostics.ProcessStartInfo("icacls",
+                        $"\"{configPath}\" /inheritance:r " +
+                        $"/grant \"*S-1-5-18:(F)\" " +
+                        $"/grant \"*S-1-5-32-544:(F)\" " +
+                        $"/grant \"*S-1-5-32-545:(R)\"")
+                    {
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    using var p = System.Diagnostics.Process.Start(psi);
+                    p?.WaitForExit(3000);
+                }
+                catch { }
+
+                MessageBox.Show(
+                    enabled
+                        ? "OTP activé. Un code sera demandé avant chaque action critique (bloquer, débloquer, marquer safe…).\n\n" +
+                          "Les pages en lecture seule (/stats, /api/*) restent accessibles sans OTP."
+                        : "OTP désactivé. Les actions critiques ne demanderont plus de code.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                // Recharge la config du service pour prise en compte immédiate
+                await NetMonitorIpcClient.ReloadConfigAsync();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Erreur : " + ex.Message,
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }                
     }
 
     // ============================================================

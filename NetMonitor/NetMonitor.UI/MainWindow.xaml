@@ -2076,10 +2076,49 @@
                                                 Padding="0" VerticalContentAlignment="Center"
                                                 Click="btnApplyWeb_Click"/>
 
-                                        <Button Content="{loc:Tr 'Ouvrir dans le navigateur'}"
-                                                Width="220" Height="28"
-                                                Padding="0" VerticalContentAlignment="Center"
-                                                Click="btnOpenWeb_Click"/>
+                                        <Grid Margin="0,8,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+
+                                            <TextBlock Grid.Column="0" Text="{loc:Tr 'OTP par email :'}"
+                                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <ToggleButton x:Name="ToggleOtp" Grid.Column="1"
+                                                          Width="40" Height="20"
+                                                          Checked="ToggleOtp_Checked"
+                                                          Unchecked="ToggleOtp_Unchecked">
+                                                <ToggleButton.Style>
+                                                    <Style TargetType="ToggleButton">
+                                                        <Setter Property="Template">
+                                                            <Setter.Value>
+                                                                <ControlTemplate TargetType="ToggleButton">
+                                                                    <Grid Width="40" Height="20">
+                                                                        <Border x:Name="SwitchBackground"
+                                                                                CornerRadius="10" Background="#3C3C3C"/>
+                                                                        <Ellipse x:Name="SwitchThumb"
+                                                                                 Width="16" Height="16"
+                                                                                 Margin="2" Fill="#E5E5E5"
+                                                                                 HorizontalAlignment="Left"/>
+                                                                    </Grid>
+                                                                    <ControlTemplate.Triggers>
+                                                                        <Trigger Property="IsChecked" Value="True">
+                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                        </Trigger>
+                                                                    </ControlTemplate.Triggers>
+                                                                </ControlTemplate>
+                                                            </Setter.Value>
+                                                        </Setter>
+                                                    </Style>
+                                                </ToggleButton.Style>
+                                            </ToggleButton>
+                                            <TextBlock Grid.Column="2" Margin="12,0,0,0"
+                                                       Text="Code à 6 chiffres par email avant chaque action critique."
+                                                       FontSize="11" Foreground="#888" TextWrapping="Wrap"
+                                                       VerticalAlignment="Center"/>
+                                        </Grid>
                                     </StackPanel>
                                 </Grid>
                             </StackPanel>
