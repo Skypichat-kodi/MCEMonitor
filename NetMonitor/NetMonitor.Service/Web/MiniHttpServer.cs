@@ -6,6 +6,7 @@ using System.Text;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using NetMonitor.Service.Web;
 using MCEMonitor.Languages;
 using NetMonitor.Service.Models;
 
@@ -109,131 +110,170 @@ namespace NetMonitor.Service.Web
             {
                 string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
                 string method = ctx.Request.HttpMethod;
+                string remoteIp = ctx.Request.RemoteEndPoint?.Address?.ToString() ?? "";
+                bool isLocal = IsLocalRequest(remoteIp, _localIps);
+                bool isApiRoute = path == "/ping"
+                               || path == "/api/summary"
+                               || path == "/api/detail"
+                               || path == "/api/stats"
+                               || path == "/peers";
 
                 // ============================================================
-                //  1. Routes OTP (avant Basic Auth, car elles sont publiques)
+                //  0. Routes techniques : ressources statiques (pas d'auth)
                 // ============================================================
-                if (path == "/otp/verify" && method == "POST")
+                if (path.StartsWith("/resources/") || path.StartsWith("/data/") || path == "/favicon.ico")
                 {
+                    if (path == "/favicon.ico") ServeFavicon(ctx);
+                    else ServeStaticFile(ctx, path);
+                    return;
+                }
+
+                // ============================================================
+                //  1. Routes API : Basic Auth seul (clients programmatiques)
+                // ============================================================
+                if (isApiRoute)
+                {
+                    if (!CheckAuth(ctx))
+                    {
+                        ctx.Response.StatusCode = 401;
+                        ctx.Response.AddHeader("WWW-Authenticate", "Basic realm=\"NetMonitor\"");
+                        ctx.Response.Close();
+                        return;
+                    }
+                    // Le routage continue en bas (les routes /api/* sont gérées plus loin)
+                }
+
+                // ============================================================
+                //  2. Routes publiques (login, logout) — pas de session requise
+                // ============================================================
+                else if (path == "/login" && method == "GET")
+                {
+                    string? original = ctx.Request.QueryString["original"];
+                    // Premier affichage : step 1, pas de champ OTP
+                    LoginPages.SendLoginPage(ctx, step: 1, error: null, original);
+                    return;
+                }
+                else if (path == "/login" && method == "POST")
+                {
+                    CoreLog.Write($"[LOGIN] POST /login reçu de {remoteIp} (isLocal={isLocal}, otpEnabled={_settings.OtpEnabled})");
+
                     var form = ReadForm(ctx);
-                    form.TryGetValue("token", out var tok);
-                    form.TryGetValue("code", out var code);
+                    form.TryGetValue("step", out var stepStr);
+                    form.TryGetValue("username", out var username);
+                    form.TryGetValue("password", out var password);
+                    form.TryGetValue("otp", out var otpCode);
                     form.TryGetValue("original", out var original);
 
-                    var result = OtpService.Validate(tok, code);
-                    if (result == OtpService.Result.Ok)
+                    int step = int.TryParse(stepStr, out var s) ? s : 1;
+                    CoreLog.Write($"[LOGIN] step={step}, otp={(otpCode == null ? "absent" : (otpCode == "" ? "vide" : "fourni"))}");
+
+                    // 2a. Vérifier user/password
+                    if (!LoginService.CheckCredentials(username, password, _settings))
                     {
-                        string session = OtpSessionStore.Create(_settings.OtpSessionMinutes);
-                        SetCookie(ctx, "netmon_otp", session, _settings.OtpSessionMinutes * 60);
+                        LoginPages.SendLoginPage(ctx, step: 1, "Identifiant ou mot de passe incorrect.", original);
+                        return;
+                    }
+
+                    // 2b. Si IP locale → session directe (bypass OTP)
+                    if (isLocal)
+                    {
+                        string session = SessionStore.Create(_settings.OtpSessionMinutes);
+                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        CoreLog.Write($"[LOGIN] Session créée (local) pour {remoteIp}");
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
                     }
 
-                    string msg = result switch
+                    // 2c. OTP désactivé → session directe
+                    if (!_settings.OtpEnabled)
                     {
-                        OtpService.Result.Expired         => "Le code a expiré. Rechargez la page pour en obtenir un nouveau.",
-                        OtpService.Result.TooManyAttempts => "Trop de tentatives. Rechargez la page pour recommencer.",
-                        OtpService.Result.Wrong           => "Code incorrect.",
-                        _                                 => "Code invalide ou expiré."
-                    };
-                    OtpPages.SendErrorPage(ctx, msg, original);
-                    return;
-                }
+                        string session = SessionStore.Create(_settings.OtpSessionMinutes);
+                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        CoreLog.Write($"[LOGIN] Session créée (OTP désactivé) pour {remoteIp}");
+                        RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
+                        return;
+                    }
 
-                if (path == "/logout")
-                {
-                    string? otpCookie = GetCookie(ctx, "netmon_otp");
-                    OtpSessionStore.Invalidate(otpCookie);
-                    SetCookie(ctx, "netmon_otp", "deleted", 0);
-                    CoreLog.Write($"[OTP] Logout : session {otpCookie ?? "(vide)"} invalidée");
-
-                    string html = @"<!DOCTYPE html>
-                <html lang=""fr""><head><meta charset=""utf-8"">
-                <title>Déconnecté - NetMonitor</title>
-                <meta http-equiv=""refresh"" content=""2;url=/"">
-                <style>
-                  body { font-family: Segoe UI, Arial, sans-serif; background: #1E1E1E; color: #E5E5E5;
-                         display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-                  .card { background: #252526; border: 1px solid #3C3C3C; border-radius: 8px;
-                          padding: 30px; max-width: 400px; text-align: center; }
-                  h1 { color: #4CC2FF; margin-top: 0; font-size: 20px; }
-                  a { color: #4CC2FF; }
-                </style></head><body>
-                <div class=""card"">
-                  <h1>✅ Déconnecté</h1>
-                  <p>La session OTP a été invalidée.</p>
-                  <p>Redirection dans 2 secondes…</p>
-                  <p><a href=""/"">Cliquez ici si rien ne se passe</a></p>
-                </div>
-                </body></html>";
-                    SendHtml(ctx, html, 200);
-                    return;
-                }
-
-                if (path == "/otp" && method == "GET")
-                {
-                    string? token = ctx.Request.QueryString["token"];
-                    string? original = ctx.Request.QueryString["original"];
-                    var cfg = EmailConfig.Load();
-                    OtpPages.SendRequestPage(ctx, token ?? "", cfg.To, original ?? "/");
-                    return;
-                }
-
-                // ============================================================
-                //  2. Basic Auth
-                // ============================================================
-                if (!CheckAuth(ctx))
-                {
-                    ctx.Response.StatusCode = 401;
-                    ctx.Response.AddHeader("WWW-Authenticate", "Basic realm=\"NetMonitor\"");
-                    ctx.Response.Close();
-                    return;
-                }
-
-                // Routes qui échappent à l'OTP : le mécanisme OTP lui-même + le logout
-                bool otpExempt = path == "/otp"
-                              || path == "/otp/verify"
-                              || path == "/logout"
-                              || path == "/ping"
-                              || path == "/api/summary"
-                              || path == "/api/detail"
-                              || path == "/api/stats"
-                              || path == "/peers"
-                              || path.StartsWith("/resources/")
-                              || path.StartsWith("/data/")
-                              || path == "/favicon.ico";
-
-                if (_settings.OtpEnabled && !otpExempt)
-                {
-                    string? otpCookie = GetCookie(ctx, "netmon_otp");
-                    if (!OtpSessionStore.IsValid(otpCookie))
+                    // 2d. OTP activé, étape 1 → envoyer l'OTP, réafficher en étape 2
+                    if (step == 1)
                     {
-                        string remoteIp = ctx.Request.RemoteEndPoint?.Address?.ToString() ?? "";
-
-                        // Fallback : requête locale (localhost ou IP de la machine) → bypass OTP
-                        if (!OtpService.IsLocalRequest(remoteIp, _localIps))
+                        var (result, sent) = await LoginService.SendOtpIfNeededAsync(remoteIp, _settings);
+                        if (result == LoginService.LoginResult.SmtpError)
                         {
-                            var cfg = EmailConfig.Load();
-                            if (string.IsNullOrWhiteSpace(cfg.Server) || string.IsNullOrWhiteSpace(cfg.To))
-                            {
-                                OtpPages.SendErrorPage(ctx, "Le serveur SMTP n'est pas configuré. Impossible d'envoyer un code OTP.", path);
-                                return;
-                            }
-
-                            var (token, sent) = await OtpService.GenerateAndSendAsync(_settings.OtpCodeLength, cfg);
-                            if (!sent)
-                            {
-                                OtpPages.SendErrorPage(ctx, "L'envoi du code OTP a échoué. Vérifiez la configuration email.", path);
-                                return;
-                            }
-
-                            string otpUrl = $"/otp?token={Uri.EscapeDataString(token)}&original={Uri.EscapeDataString(path)}";
-                            RedirectTo(ctx, otpUrl);
+                            LoginPages.SendLoginPage(ctx, step: 1,
+                                "Impossible d'envoyer le code OTP. Vérifiez la config SMTP.", original);
                             return;
                         }
+
+                        LoginPages.SendLoginPage(ctx, step: 2,
+                            "Un code OTP vous a été envoyé par email.", original);
+                        return;
+                    }
+
+                    // 2e. OTP activé, étape 2 → valider le code
+                    if (step == 2)
+                    {
+                        if (string.IsNullOrWhiteSpace(otpCode))
+                        {
+                            LoginPages.SendLoginPage(ctx, step: 2, "Veuillez saisir le code OTP reçu par email.", original);
+                            return;
+                        }
+
+                        var otpResult = LoginService.ValidateOtp(remoteIp, otpCode);
+                        if (otpResult != LoginService.LoginResult.Ok)
+                        {
+                            string msg = otpResult switch
+                            {
+                                LoginService.LoginResult.BadOtp          => "Code OTP incorrect.",
+                                LoginService.LoginResult.OtpExpired      => "Code OTP expiré. Reconnectez-vous.",
+                                LoginService.LoginResult.TooManyAttempts => "Trop de tentatives. Reconnectez-vous.",
+                                _                                        => "Erreur de validation OTP."
+                            };
+                            LoginPages.SendLoginPage(ctx, step: 2, msg, original);
+                            return;
+                        }
+
+                        // OTP validé → session
+                        string session = SessionStore.Create(_settings.OtpSessionMinutes);
+                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        CoreLog.Write($"[LOGIN] Session créée (OTP validé) pour {remoteIp}");
+                        RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
+                        return;
+                    }
+
+                    // Cas imprévu
+                    LoginPages.SendLoginPage(ctx, step: 1, "Erreur de formulaire. Réessayez.", original);
+                    return;
+                }
+                else if (path == "/logout")
+                {
+                    string? session = GetCookie(ctx, "netmon_session");
+                    SessionStore.Invalidate(session);
+                    SetCookie(ctx, "netmon_session", "deleted", 0);
+                    CoreLog.Write($"[LOGIN] Logout : session invalidée");
+
+                    // Redirection vers /login (pas de 401, plus de popup Basic Auth)
+                    RedirectTo(ctx, "/login");
+                    return;
+                }
+
+                // ============================================================
+                //  3. Routes protégées : session requise
+                // ============================================================
+                else
+                {
+                    string? session = GetCookie(ctx, "netmon_session");
+                    if (!SessionStore.IsValid(session))
+                    {
+                        string original = Uri.EscapeDataString(path);
+                        RedirectTo(ctx, $"/login?original={original}");
+                        return;
                     }
                 }
-                
+
+                // ============================================================
+                //  4. Routage normal (les routes /api/* et pages HTML)
+                // ============================================================              
                 if (path == "/" || path == "/net")
                 {
                     string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
@@ -929,6 +969,19 @@ namespace NetMonitor.Service.Web
                     dict[Uri.UnescapeDataString(kv[0])] = Uri.UnescapeDataString(kv[1].Replace('+', ' '));
             }
             return dict;
-        }        
+        }
+        
+        private static bool IsLocalRequest(string? remoteIp, System.Collections.Generic.List<string> localIps)
+        {
+            if (string.IsNullOrWhiteSpace(remoteIp)) return false;
+
+            if (remoteIp == "127.0.0.1" || remoteIp == "::1") return true;
+
+            foreach (var ip in localIps)
+                if (string.Equals(ip, remoteIp, StringComparison.OrdinalIgnoreCase))
+                    return true;
+
+            return false;
+        }                
     }
 }

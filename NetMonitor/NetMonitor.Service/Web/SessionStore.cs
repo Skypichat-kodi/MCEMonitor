@@ -4,10 +4,10 @@ using System.Collections.Concurrent;
 namespace NetMonitor.Service.Web
 {
     /// <summary>
-    /// Sessions OTP en mémoire. Une session est créée après validation
-    /// réussie d'un code OTP et expire après N minutes (défaut 15).
+    /// Sessions de login unifiées (auth + OTP).
+    /// Créées après un POST /login réussi, valables 15 min par défaut.
     /// </summary>
-    public static class OtpSessionStore
+    public static class SessionStore
     {
         private static readonly ConcurrentDictionary<string, DateTime> _sessions = new();
 
@@ -35,17 +35,6 @@ namespace NetMonitor.Service.Web
         {
             if (!string.IsNullOrWhiteSpace(token))
                 _sessions.TryRemove(token, out _);
-        }
-
-        /// <summary>Purge les sessions expirées (appelé périodiquement).</summary>
-        public static void PurgeExpired()
-        {
-            var now = DateTime.UtcNow;
-            foreach (var kv in _sessions)
-            {
-                if (kv.Value < now)
-                    _sessions.TryRemove(kv.Key, out _);
-            }
         }
     }
 }
