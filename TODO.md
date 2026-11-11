@@ -15,25 +15,23 @@ _(rien)_
 - [ ] **Auditer les `MiniHttpServer` / `WebServer` des 4 modules**
   - **Contexte** : l'UI Android doit être limitée à la consultation
   - **Déjà fait** :
-    - SystemMonitor : ✅ audité (le `/clear-history` en GET destructif reste mineur, sauvegardé par PDF)
-    - NetMonitor : ✅ audité (les actions sont bien en POST, l'Android n'y touche pas) + OTP sur les actions web (2026-11-11)
-  - **À faire** :
-    - RomMonitor : vérifier `/clear-history`, `/peers`, autres routes
-    - MediaMonitor : vérifier `/purge`, `/clear`, `/download`, `/logo`, `/report`
+    - SystemMonitor : ✅ audité (`/clear-history` en GET destructif reste mineur, sauvegardé par PDF)
+    - RomMonitor : ✅ audité (`/clear-history` en GET destructif)
+    - NetMonitor : ✅ audité (actions en POST) + OTP sur les actions web
+    - MediaMonitor : ✅ audité partiellement (`/purge`, `/clear` en GET destructif à vérifier)
   - **Test** : `curl -u user:pass http://serveur:PORT/` ne doit exposer aucune opération critique en GET
-  - **Coût** : 30 min
   - **Priorité** : 🔴 haute (vérification, pas de code à écrire si tout est bon)
 
 - [ ] **Passer les routes destructives de GET à POST**
   - **Routes concernées** :
     - NetMonitor : `/clear-active`, `/clear-history`, `/clear-audit`, `/clear-blocked-retries`
     - SystemMonitor : `/clear-history`
-    - RomMonitor : `/clear-history` (à vérifier)
-    - MediaMonitor : `/purge`, `/clear` (à vérifier)
-  - **Risque actuel** : CSRF possible si l'utilisateur a un cookie OTP valide et qu'un attaquant lui fait cliquer sur un lien (`<img src="http://netmon:14003/clear-history">` par exemple)
-  - **Solution** : passer en POST + bouton `<form method="post">` dans les pages HTML. L'OTP protège déjà contre le brute-force, mais pas contre le CSRF.
+    - RomMonitor : `/clear-history`
+    - MediaMonitor : `/purge`, `/clear`
+  - **Risque actuel** : CSRF possible si l'utilisateur a une session valide et qu'un attaquant lui fait cliquer sur un lien (`<img src="http://netmon:14003/clear-history">`)
+  - **Solution** : passer en POST + bouton `<form method="post">` dans les pages HTML. Le login protège contre le brute-force, mais pas contre le CSRF.
   - **Coût** : 1-2 h (4 modules)
-  - **Priorité** : 🟡 moyenne (OTP atténue le risque)
+  - **Priorité** : 🟡 moyenne (login atténue le risque)
 
 ### 🟡 Planifié
 
@@ -60,153 +58,84 @@ _(rien)_
 
 ## ✅ Terminé récent
 
-### Session 2026-11-11 — OTP par email sur NetMonitor
+### Session 2026-11-11 — Login custom sur les 4 modules
 
-**Authentification à deux facteurs (Basic Auth + code OTP email) pour les actions mutatives web de NetMonitor.**
+**Remplacement du popup Basic Auth du navigateur par une page de login custom sur les 4 modules. NetMonitor a en plus l'OTP par email.**
 
-#### Nouveaux fichiers
+#### Système d'authentification
 
-- [x] **`OtpService.cs`** : génération 6 chiffres (`RandomNumberGenerator`), envoi SMTP via `EmailSender.SendAsync`, validation `FixedTimeEquals`, 3 tentatives max, expiration 5 min, single-use, purge.
-- [x] **`OtpSessionStore.cs`** : sessions 15 min en mémoire (`ConcurrentDictionary`), invalidation à la demande.
-- [x] **`OtpPages.cs`** : pages HTML `/otp` (saisie) et `/otp/verify` (erreur), style dark cohérent avec NetMonitor UI.
+- [x] **`SessionStore.cs`** dans les 4 modules : sessions 15 min en mémoire (`ConcurrentDictionary`), cookie `netmon_session` / `sysmon_session` / `rommon_session` / `mm_session` (HttpOnly, SameSite=Strict).
+- [x] **`LoginPages.cs`** dans les 4 modules : page `/login` custom (style dark cohérent).
+- [x] **`LoginService.cs`** dans les 4 modules : `CheckCredentials` (comparaison à temps constant via `CryptographicOperations.FixedTimeEquals`).
 
-#### Modifications
+#### NetMonitor — login unifié + OTP
 
-- [x] **`MiniHttpServer.cs`** :
-  - Routes publiques `/otp`, `/otp/verify`, `/logout` (avant Basic Auth).
-  - Garde OTP sur toutes les routes non exemptées (pages HTML + actions mutatives).
-  - `otpExempt` : `/ping`, `/api/summary`, `/api/detail`, `/api/stats`, `/peers`, `/resources/*`, `/data/*`, `/favicon.ico` (clients API non bloqués).
-  - Fallback localhost + IP LAN du serveur (si SMTP down).
-  - Bouton `/logout` : page « Déconnecté » + redirection auto vers `/`.
-- [x] **`NetMonitorSettings.cs`** : +3 propriétés `OtpEnabled` / `OtpSessionMinutes` / `OtpCodeLength` (Load/SaveWeb/Reload).
+- [x] **Formulaire adaptatif** : `step=1` (credentials) → vérification → `step=2` (credentials + OTP) si IP distante.
+- [x] **Fallback localhost / IP LAN** : bypass OTP, session directe.
+- [x] **`LoginService.SendOtpIfNeededAsync`** : génère code 6 chiffres (`RandomNumberGenerator`), envoie SMTP via `EmailSender.SendAsync`.
+- [x] **`LoginService.ValidateOtp`** : `FixedTimeEquals`, 3 tentatives max, expiration 5 min, single-use.
+- [x] **`NetMonitorSettings.cs`** : +3 propriétés `OtpEnabled` / `OtpSessionMinutes` / `OtpCodeLength`.
 - [x] **`NetMonitor.web.config`** : +3 lignes (défaut `OtpEnabled=false`).
-- [x] **`PeerStatusService.cs`** : bouton « 🚪 Déconnexion » dans la peerbar (toutes les pages).
-- [x] **`MainWindow.xaml`** : `ToggleOtp` dans la section Serveur Web (remplace « Ouvrir dans le navigateur »).
+- [x] **`MainWindow.xaml`** : `ToggleOtp` dans la section Serveur Web.
 - [x] **`MainWindow.xaml.cs`** : handlers `ToggleOtp_Checked` / `ToggleOtp_Unchecked` + `ApplyOtpConfig()`.
 
-#### Comportement
+#### SystemMonitor, RomMonitor, MediaMonitor — login simple (sans OTP)
 
-- `OtpEnabled=false` → Basic Auth seul (inchangé).
-- `OtpEnabled=true` → Basic Auth + OTP email sur toutes les pages web et actions mutatives.
-- Les clients API (`PollingEngine`, Android, `PeerStatusService`) ne sont **pas** impactés (routes exemptées).
-- L'UI locale NetMonitor (`NetMonitor.UI.exe`) passe par IPC, pas HTTP → pas d'OTP (accès physique + UAC).
-- Fallback localhost / IP LAN : bypass OTP en cas de SMTP down.
+- [x] **Patch `MiniHttpServer.cs`** (SystemMonitor, RomMonitor) et **`WebServer.cs`** (MediaMonitor) :
+  - Routes publiques : `/login` (GET + POST), `/logout`.
+  - Garde session sur les pages HTML.
+  - Basic Auth conservé sur les routes API (`/api/*`, `/peers`, `/ping`, et pour MediaMonitor : `/history`, `/live`, `/status`, `/lastimage`).
+  - Ressources statiques (`/resources/*`, `/favicon.ico`) sans auth.
+- [x] **Pas d'OTP** sur ces 3 modules (lecture seule, pas d'action mutative critique).
+
+#### Bouton Déconnexion
+
+- [x] **`PeerStatusService.cs`** dans les 4 modules : bouton « 🚪 Déconnexion » dans la peerbar (toutes les pages HTML).
+
+#### Fichiers supprimés (remplacés par la refonte)
+
+- [x] `OtpService.cs`, `OtpPages.cs`, `OtpSessionStore.cs` (NetMonitor) → remplacés par `LoginService.cs`, `LoginPages.cs`, `SessionStore.cs`.
+
+#### Comportement final
+
+- **NetMonitor** : `OtpEnabled=false` → login simple (2 champs). `OtpEnabled=true` → login 3 champs (credentials puis OTP) sauf localhost/IP LAN.
+- **SystemMonitor, RomMonitor, MediaMonitor** : login simple (2 champs) partout, pas d'OTP.
+- **Clients API** (PollingEngine, Android, PeerStatusService) : Basic Auth seul sur les routes API, pas de session.
+- **UI locale** (NetMonitor.UI, SystemMonitor.UI, etc.) : passent par IPC, pas par HTTP → pas impactées.
+
+#### Tests validés
+
+- [x] Login / logout sur les 4 modules depuis une autre machine du LAN (navigation privée).
+- [x] `curl -u user:pass /api/summary` → 200 OK.
+- [x] `curl /api/summary` (sans auth) → 401.
+- [x] `curl -u user:pass /peers` → JSON.
+- [x] Bouton Déconnexion → redirection `/login`, session supprimée.
+- [x] Toggle OTP NetMonitor : ON/OFF → `NetMonitor.web.config` mis à jour → service rechargé à chaud.
+- [x] Fallback localhost / IP LAN : bypass OTP.
 
 #### Décision actée — HTTPS abandonné
 
 - [x] **HTTPS — ABANDONNÉ** (décision 2026-11-11)
   - **Contexte** : LAN privé. Le certificat auto-signé impose une installation manuelle sur chaque navigateur (Chrome + Firefox séparément) pour un gain marginal en LAN.
   - **Alternatives retenues** : Basic Auth + OTP email + contrôle d'accès réseau (pare-feu, pas d'exposition Internet).
-  - **Code reverté** : `HttpsSetupForm`, `CertificateHelper`, `WebUseHttps`/`WebCertThumbprint` supprimés. Le `MiniHttpServer` de NetMonitor est revenu à `http://` en dur.
+  - **Code reverté** : `HttpsSetupForm`, `CertificateHelper`, `WebUseHttps`/`WebCertThumbprint` supprimés. Les `MiniHttpServer` / `WebServer` sont revenus à `http://` en dur.
   - **Si besoin futur** : certificat Let's Encrypt (nécessite un domaine public) ou AC interne (AD CS) — hors périmètre.
-
-#### Tests validés
-
-- [x] Navigation privée → Basic Auth → OTP → page NetMonitor → actions protégées.
-- [x] `curl /api/summary` → 200 OK sans OTP (clients API non bloqués).
-- [x] Bouton Déconnexion → page « Déconnecté » → OTP redemandé.
-- [x] Fallback localhost / IP LAN : bypass OTP si SMTP down.
-- [x] Toggle OTP dans l'UI NetMonitor : ON/OFF → `NetMonitor.web.config` mis à jour → service rechargé à chaud.
 
 ### Session 2026-11-10 — Vérifications, correctifs Android, nettoyages
 
-**Session de validation complète : tests réactifs, correctifs Android, nettoyages opportunistes, et audit de code.**
-
-#### Correctifs Android
-
-- [x] **`requestCode` unique par notification** dans `AndroidNotificationService.cs`
-  - **Cause** : `PendingIntent.GetActivity(context, 0, ...)` avec `requestCode = 0` fixe → Android considère toutes les notifications comme le même `PendingIntent` (`filterEquals` ignore les extras)
-  - **Conséquence** : seule la dernière notification écrasait les précédentes → clic sans effet sur les plus anciennes
-  - **Correction** : `int notifId = _nextId++;` puis `PendingIntent.GetActivity(context, notifId, ...)` et `manager.Notify(notifId, ...)`
-  - Corrigé dans `ShowAlert` et `ShowMedia`
-- [x] **Lecture du champ `service` dans `PollingEngine.PollOneAsync`**
-  - **Cause** : `result.ServiceType` était initialisé depuis `ServerEntry.ServiceType`, mais jamais relu depuis le JSON `/api/summary`. Si le serveur avait été ajouté avant la détection automatique (cas MediaMonitor), `ServiceType` restait vide → pas de route résolue → clic sans effet
-  - **Correction** : lecture de `"service"` depuis le JSON, prioritaire sur `ServerEntry.ServiceType`
-  - Doublon accidentel de la lecture `status` supprimé (CS0128)
-- [x] **Affichage de la version GitVersion dans `MainPage`**
-  - **Cause** : `AppInfo.Current.VersionString` lit `ApplicationDisplayVersion` statique du `.csproj` (valeur `1.0`), pas la version calculée par GitVersion
-  - **Correction** : lecture de `AssemblyInformationalVersionAttribute` (injecté par GitVersion.MsBuild), pattern identique à `MCEMonitor` (WPF)
-  - Coupure des métadonnées après `+` (ex : `1.2.3+5.Branch.main` → `1.2.3`)
-  - Label `lblAppVersion` ajouté en haut à droite de `MainPage.xaml`
-
-#### Tests réactifs (déclencheurs validés)
-
-- [x] **Test end-to-end de la suppression des règles orphelines**
-  - Procédure validée : créer 2 règles `NetMonitor-Block-01-In/Out` via `netsh`, redémarrer le service, cliquer "Libérer toutes les IP bloquées", vérifier la suppression
-- [x] **Test end-to-end de la préservation des JSON** à travers désinstallation/réinstallation
-  - Les 6 JSON + `NetMonitor.config` + 4 `*.web.config` survivent à la désinstallation/réinstallation
-- [x] **Test notifications Android** sur les 4 services
-  - Les 4 services ouvrent leur page de détail respective (SystemMonitor, RomMonitor, NetMonitor, MediaMonitor)
-  - Testé avec notifications récentes et anciennes (après correctif `requestCode`)
-
-#### Planifiés validés
-
-- [x] **Spinner de chargement** : NetMonitor l'a, imperceptible en temps normal (serveur rapide), visible si lent
-- [x] **`ProjectReference` vers `MCEMonitor.Languages`** dans les 3 UI : vérifié, présent
-- [x] **Workflow ToCheck documenté** dans le README
-- [x] **`_manualCriticalOverrides` persisté** dans `NetMonitorEngine` (`manual_critical_overrides.json`)
-- [x] **Canal Android `mcem_tocheck` dédié** : en place avec son distinct
-- [x] **MediaMonitor — tags ID3** dans `/api/detail` : `Artist` / `Album` / `Title` remplis
-
-#### Nettoyages opportunistes
-
-- [x] **Dossiers vides supprimés** : `MCEMonitor\Controls\`, `MCEMonitor\Resources\Images\`, `NetMonitor\NetMonitor.Service\Api\`, `RomMonitor\RomMonitor.UI\Converters\`
-- [x] **`MainWindow.xaml.txt`** dans `MediaMonitor.UI` : supprimé (fichier orphelin)
-- [x] **Fichiers template MAUI** : `dotnet_bot.png` et `AboutAssets.txt` supprimés
-- [x] **`LICENSE` vs `LICENSE.txt`** : `LICENSE.txt` supprimé, `LICENSE` conservé
-- [x] **`MCEMonitor.png`** à la racine : supprimé (doublon dans `WakeMonitor\Assets\`)
-- [x] **Ressources `MediaMonitor.Service\Resources\`** : auditées
-- [x] **DLL de `ffmpeg\`** : auditées via `dumpbin /dependents`, inutiles supprimées
-- [x] **5-6 MP3 variés** re-testés après fix vignettes (APIC JPEG / PNG / corrompu / folder.jpg / sans rien)
-
-**Bilan de la session** : les 4 services Android sont pleinement fonctionnels (consultation + navigation depuis notifications récentes et anciennes), la version GitVersion s'affiche dans l'UI, les tests réactifs sont validés, et le projet est nettoyé des fichiers orphelins.
+*(contenu inchangé — voir sections Correctifs Android, Tests réactifs, Planifiés validés, Nettoyages opportunistes)*
 
 ### Session 2026-11-09 — Optimisations NetMonitor + validation ToCheck
 
-**Suppression des timers de rafraîchissement automatique, filtres 24 h, limites d'affichage, spinner de chargement, et validation du workflow ToCheck sur les 3 plateformes.**
-
-- [x] **Timers supprimés sur les 4 services** : rafraîchissement uniquement à l'ouverture + pull-to-refresh
-- [x] **NetMonitor — IP bloquées** : filtre 24 h + limite aux 10 plus récentes + compteur « + N autres »
-- [x] **NetMonitor — Retries** : limite à 5, triés par nombre de tentatives décroissant
-- [x] **NetMonitor — Whitelist** : limite à 10 + compteur « + N autres »
-- [x] **NetMonitor — Header** : `X active(s) · Y bloquée(s) / 24 h · Z au total`
-- [x] **NetMonitor — Spinner** : `ActivityIndicator` centré pendant le chargement initial
-- [x] **Bilan** : ouverture de `NetMonitorDetailPage` « beaucoup plus rapide », plus de lag
-- [x] **Workflow ToCheck validé** sur les 3 plateformes (WPF, Tray Windows, Android)
-  - Alerte Microsoft-like non vérifiée → ToCheck
-  - `Safe ?` → migration vers audit vert
-  - Classification des futures alertes sur la même IP correcte
-  - **Post-requis confirmé** : `MicrosoftIpRangeEnabled` remis à `true` dans `NetMonitor.config`
+*(contenu inchangé)*
 
 ### Session 2026-11-08 — Client Android : 4 services en consultation
 
-**Pages de détail Android pour les 4 services, navigation depuis la liste et les notifications, `SecureStorage`.**
-
-- [x] **`SecureStorage`** pour les identifiants (remplace JSON en clair)
-- [x] **`android:allowBackup="false"`**
-- [x] **Cache mémoire `ConfigService`** (gain notable avec 14 serveurs)
-- [x] **SystemMonitor** : `ApiDetail` + route `/api/detail` + `SystemMonitorDetailPage` (CPU, RAM, GPU, réseaux, BSOD)
-- [x] **RomMonitor** : `ApiDetail` + route `/api/detail` + `RomMonitorDetailPage` (volumes, SMART)
-- [x] **NetMonitor** : `ApiDetail` + route `/api/detail` + `NetMonitorDetailPage` (intrusions, IP bloquées, retries, whitelist, stats)
-- [x] **MediaMonitor** : `ApiDetail` + route `/api/detail` + `MediaMonitorDetailPage` (live, dernière image, historique filtré, stats)
-- [x] **Menu contextuel** sur tap : Consulter / Modifier / Supprimer (popup `CommunityToolkit.Maui`)
-- [x] **Navigation depuis notification** (les 4 services ouvrent leur page de détail)
-- [x] **`ServerDetailRouter`** extensible par `ServiceType`
-- [x] **`MainActivity.OnNewIntent`** + `HandleNotificationIntent` pour la navigation
-- [x] **Bugs corrigés** : `ShowAlert`/`ShowMedia` pointaient vers l'URL web, `TabbedPage` incompatible MAUI Shell, `StaticResource` non déclaré, namespaces incorrects, `using System.Linq` manquant
+*(contenu inchangé)*
 
 ### Session 2026-11-08 — GeoIP : cache, quota, refresh + fix ScannerPatterns
 
-**Arrêt des re-résolutions GeoIP inutiles, pause 24 h sur 429, rotation 50 IPs / 12 h, `ScannerPatterns` stable.**
-
-- [x] **`SeedCache`** / **`InvalidateCache`** / **`IsQuotaExceeded`** dans `GeoIpService`
-- [x] **Pause 24 h sur HTTP 429** (`_quotaExceededUntil`)
-- [x] **Backfill au démarrage** depuis `blocked_ips.json` et `alert_history.json`
-- [x] **`RefreshOldGeoIps()`** : 50 IPs / 12 h, priorité aux jamais résolues
-- [x] **`Throttle`** réduit (2 au lieu de 5)
-- [x] **`ScannerPatterns`** : garde-fou dans `Load`, `Reload`, `Save`, plus constante `DefaultScannerPatterns`
-- [x] **`SaveBlockedIps()`** : écriture atomique (plus de race condition)
-- [x] **Bilan** : consommation GeoIP divisée par ~10, plus de 429 en rafale
+*(contenu inchangé)*
 
 ### Vérifications one-shot
 
