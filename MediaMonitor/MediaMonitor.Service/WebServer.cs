@@ -4,6 +4,7 @@ using System.Net;
 using System.Text;
 using System.Linq;
 using System.Threading;
+using System.Collections.Generic;
 using MediaMonitor.Core.Services;
 using MCEMonitor.Languages;
 using MediaMonitor.Service.Web;
@@ -140,18 +141,99 @@ namespace MediaMonitor.Service
                 _lastRequestTime = DateTime.Now;
                 _lastRequestIp = ctx.Request.RemoteEndPoint?.ToString() ?? "N/A";
 
-                if (!CheckAuth(ctx))
+                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();
+                string method = ctx.Request.HttpMethod;
+                string remoteIp = ctx.Request.RemoteEndPoint?.Address?.ToString() ?? "";
+                bool isApiRoute = path == "/ping"
+                               || path == "/peers"
+                               || path == "/history"
+                               || path == "/live"
+                               || path == "/status"
+                               || path == "/lastimage"
+                               || path == "/api/summary"
+                               || path == "/api/detail";
+
+                // ============================================================
+                //  0. Ressources statiques (pas d'auth)
+                // ============================================================
+                if (path.StartsWith("/resources/") || path == "/favicon.ico")
                 {
-                    HttpWriter.Write401(ctx);
+                    var hctxRes = new HandlerContext(ctx, _engine, _settings, _port);
+                    _router.TryInvoke(hctxRes, path);
                     return;
                 }
 
-                // Langue
-                string? lang = ctx.Request.QueryString["lang"];   
+                // ============================================================
+                //  1. Routes API : Basic Auth seul (clients programmatiques)
+                // ============================================================
+                if (isApiRoute)
+                {
+                    if (!CheckAuth(ctx))
+                    {
+                        HttpWriter.Write401(ctx);
+                        return;
+                    }
+                    // continue vers le routage
+                }
+
+                // ============================================================
+                //  2. Routes publiques (login, logout) — pas de session requise
+                // ============================================================
+                else if (path == "/login" && method == "GET")
+                {
+                    string? original = ctx.Request.QueryString["original"];
+                    LoginPages.SendLoginPage(ctx, error: null, original);
+                    return;
+                }
+                else if (path == "/login" && method == "POST")
+                {
+                    var form = ReadForm(ctx);
+                    form.TryGetValue("username", out var username);
+                    form.TryGetValue("password", out var password);
+                    form.TryGetValue("original", out var original);
+
+                    if (!LoginService.CheckCredentials(username, password, _settings))
+                    {
+                        LoginPages.SendLoginPage(ctx, "Identifiant ou mot de passe incorrect.", original);
+                        return;
+                    }
+
+                    string session = SessionStore.Create(15);
+                    SetCookie(ctx, "mm_session", session, 15 * 60);
+                    CoreLog.Write($"[LOGIN] Session créée pour {remoteIp}");
+                    RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
+                    return;
+                }
+                else if (path == "/logout")
+                {
+                    string? session = GetCookie(ctx, "mm_session");
+                    SessionStore.Invalidate(session);
+                    SetCookie(ctx, "mm_session", "deleted", 0);
+                    CoreLog.Write($"[LOGIN] Logout : session invalidée");
+                    RedirectTo(ctx, "/login");
+                    return;
+                }
+
+                // ============================================================
+                //  3. Routes protégées : session requise
+                // ============================================================
+                else
+                {
+                    string? session = GetCookie(ctx, "mm_session");
+                    if (!SessionStore.IsValid(session))
+                    {
+                        string original = Uri.EscapeDataString(path);
+                        RedirectTo(ctx, $"/login?original={original}");
+                        return;
+                    }
+                }
+
+                // ============================================================
+                //  4. Routage normal
+                // ============================================================
+                string? lang = ctx.Request.QueryString["lang"];
                 if (!string.IsNullOrEmpty(lang))
                     LanguageManager.Load(lang);
-
-                string path = (ctx.Request.Url?.AbsolutePath ?? "/").ToLowerInvariant();   
 
                 var hctx = new HandlerContext(ctx, _engine, _settings, _port);
 
@@ -316,6 +398,48 @@ namespace MediaMonitor.Service
                 artist       = item.Artist ?? "",
                 album        = item.Album ?? ""
             };
-        }        
+        }
+        
+        // ============================================================
+        //  Helpers login
+        // ============================================================
+        private static void RedirectTo(HttpListenerContext ctx, string location)
+        {
+            ctx.Response.StatusCode = 302;
+            ctx.Response.Headers["Location"] = location;
+            ctx.Response.Close();
+        }
+
+        private static string? GetCookie(HttpListenerContext ctx, string name)
+        {
+            var cookie = ctx.Request.Cookies[name];
+            return cookie?.Value;
+        }
+
+        private static void SetCookie(HttpListenerContext ctx, string name, string value, int maxAgeSeconds)
+        {
+            string cookieStr;
+            if (maxAgeSeconds > 0)
+                cookieStr = $"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={maxAgeSeconds}";
+            else
+                cookieStr = $"{name}=deleted; Path=/; HttpOnly; Max-Age=0";
+
+            ctx.Response.Headers.Add("Set-Cookie", cookieStr);
+        }
+
+        private static Dictionary<string, string> ReadForm(HttpListenerContext ctx)
+        {
+            var dict = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            if (!ctx.Request.HasEntityBody) return dict;
+            using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+            string body = reader.ReadToEnd();
+            foreach (var pair in body.Split('&', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var kv = pair.Split('=', 2);
+                if (kv.Length == 2)
+                    dict[Uri.UnescapeDataString(kv[0])] = Uri.UnescapeDataString(kv[1].Replace('+', ' '));
+            }
+            return dict;
+        }                
     }
 }
