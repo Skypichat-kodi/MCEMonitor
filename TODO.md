@@ -12,26 +12,28 @@ _(rien)_
 
 ### 🔴 Sécurité — Audit et durcissement
 
-- [ ] **Forcer HTTPS sur tous les endpoints API**
-  - **État actuel** : `http://` + Basic Auth = identifiants en clair sur le réseau
-  - **Risque** : interception LAN / WiFi public / VLAN compromis
-  - **Solution** : TLS sur les 4 serveurs (certificat auto-signé + pinning côté Android, ou certificat Let's Encrypt si domaine)
-  - **Impact multi-modules** : SystemMonitor, RomMonitor, NetMonitor, MediaMonitor
-  - **Post-requis** : repasser `android:usesCleartextTraffic` à `false` dans `AndroidManifest.xml`
-  - **Coût** : 4-6 h (chantier transverse)
-  - **Priorité** : 🔴 haute (avant diffusion publique)
-
 - [ ] **Auditer les `MiniHttpServer` / `WebServer` des 4 modules**
   - **Contexte** : l'UI Android doit être limitée à la consultation
   - **Déjà fait** :
     - SystemMonitor : ✅ audité (le `/clear-history` en GET destructif reste mineur, sauvegardé par PDF)
-    - NetMonitor : ✅ audité (les actions sont bien en POST, l'Android n'y touche pas)
+    - NetMonitor : ✅ audité (les actions sont bien en POST, l'Android n'y touche pas) + OTP sur les actions web (2026-11-11)
   - **À faire** :
     - RomMonitor : vérifier `/clear-history`, `/peers`, autres routes
     - MediaMonitor : vérifier `/purge`, `/clear`, `/download`, `/logo`, `/report`
   - **Test** : `curl -u user:pass http://serveur:PORT/` ne doit exposer aucune opération critique en GET
   - **Coût** : 30 min
   - **Priorité** : 🔴 haute (vérification, pas de code à écrire si tout est bon)
+
+- [ ] **Passer les routes destructives de GET à POST**
+  - **Routes concernées** :
+    - NetMonitor : `/clear-active`, `/clear-history`, `/clear-audit`, `/clear-blocked-retries`
+    - SystemMonitor : `/clear-history`
+    - RomMonitor : `/clear-history` (à vérifier)
+    - MediaMonitor : `/purge`, `/clear` (à vérifier)
+  - **Risque actuel** : CSRF possible si l'utilisateur a un cookie OTP valide et qu'un attaquant lui fait cliquer sur un lien (`<img src="http://netmon:14003/clear-history">` par exemple)
+  - **Solution** : passer en POST + bouton `<form method="post">` dans les pages HTML. L'OTP protège déjà contre le brute-force, mais pas contre le CSRF.
+  - **Coût** : 1-2 h (4 modules)
+  - **Priorité** : 🟡 moyenne (OTP atténue le risque)
 
 ### 🟡 Planifié
 
@@ -57,6 +59,54 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-11 — OTP par email sur NetMonitor
+
+**Authentification à deux facteurs (Basic Auth + code OTP email) pour les actions mutatives web de NetMonitor.**
+
+#### Nouveaux fichiers
+
+- [x] **`OtpService.cs`** : génération 6 chiffres (`RandomNumberGenerator`), envoi SMTP via `EmailSender.SendAsync`, validation `FixedTimeEquals`, 3 tentatives max, expiration 5 min, single-use, purge.
+- [x] **`OtpSessionStore.cs`** : sessions 15 min en mémoire (`ConcurrentDictionary`), invalidation à la demande.
+- [x] **`OtpPages.cs`** : pages HTML `/otp` (saisie) et `/otp/verify` (erreur), style dark cohérent avec NetMonitor UI.
+
+#### Modifications
+
+- [x] **`MiniHttpServer.cs`** :
+  - Routes publiques `/otp`, `/otp/verify`, `/logout` (avant Basic Auth).
+  - Garde OTP sur toutes les routes non exemptées (pages HTML + actions mutatives).
+  - `otpExempt` : `/ping`, `/api/summary`, `/api/detail`, `/api/stats`, `/peers`, `/resources/*`, `/data/*`, `/favicon.ico` (clients API non bloqués).
+  - Fallback localhost + IP LAN du serveur (si SMTP down).
+  - Bouton `/logout` : page « Déconnecté » + redirection auto vers `/`.
+- [x] **`NetMonitorSettings.cs`** : +3 propriétés `OtpEnabled` / `OtpSessionMinutes` / `OtpCodeLength` (Load/SaveWeb/Reload).
+- [x] **`NetMonitor.web.config`** : +3 lignes (défaut `OtpEnabled=false`).
+- [x] **`PeerStatusService.cs`** : bouton « 🚪 Déconnexion » dans la peerbar (toutes les pages).
+- [x] **`MainWindow.xaml`** : `ToggleOtp` dans la section Serveur Web (remplace « Ouvrir dans le navigateur »).
+- [x] **`MainWindow.xaml.cs`** : handlers `ToggleOtp_Checked` / `ToggleOtp_Unchecked` + `ApplyOtpConfig()`.
+
+#### Comportement
+
+- `OtpEnabled=false` → Basic Auth seul (inchangé).
+- `OtpEnabled=true` → Basic Auth + OTP email sur toutes les pages web et actions mutatives.
+- Les clients API (`PollingEngine`, Android, `PeerStatusService`) ne sont **pas** impactés (routes exemptées).
+- L'UI locale NetMonitor (`NetMonitor.UI.exe`) passe par IPC, pas HTTP → pas d'OTP (accès physique + UAC).
+- Fallback localhost / IP LAN : bypass OTP en cas de SMTP down.
+
+#### Décision actée — HTTPS abandonné
+
+- [x] **HTTPS — ABANDONNÉ** (décision 2026-11-11)
+  - **Contexte** : LAN privé. Le certificat auto-signé impose une installation manuelle sur chaque navigateur (Chrome + Firefox séparément) pour un gain marginal en LAN.
+  - **Alternatives retenues** : Basic Auth + OTP email + contrôle d'accès réseau (pare-feu, pas d'exposition Internet).
+  - **Code reverté** : `HttpsSetupForm`, `CertificateHelper`, `WebUseHttps`/`WebCertThumbprint` supprimés. Le `MiniHttpServer` de NetMonitor est revenu à `http://` en dur.
+  - **Si besoin futur** : certificat Let's Encrypt (nécessite un domaine public) ou AC interne (AD CS) — hors périmètre.
+
+#### Tests validés
+
+- [x] Navigation privée → Basic Auth → OTP → page NetMonitor → actions protégées.
+- [x] `curl /api/summary` → 200 OK sans OTP (clients API non bloqués).
+- [x] Bouton Déconnexion → page « Déconnecté » → OTP redemandé.
+- [x] Fallback localhost / IP LAN : bypass OTP si SMTP down.
+- [x] Toggle OTP dans l'UI NetMonitor : ON/OFF → `NetMonitor.web.config` mis à jour → service rechargé à chaud.
 
 ### Session 2026-11-10 — Vérifications, correctifs Android, nettoyages
 
