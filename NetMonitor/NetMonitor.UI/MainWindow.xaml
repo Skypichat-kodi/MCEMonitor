@@ -1243,7 +1243,7 @@
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                                 <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="*" MinWidth="110">
+                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="200" MinWidth="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1277,7 +1277,7 @@
                                 </DataGridTemplateColumn>                                
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1399,8 +1399,8 @@
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
-                            <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                            <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                            
+                            <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
+                            <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>                         
                             <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                             
                             <!-- NOUVELLE COLONNE SÉVÉRITÉ -->
@@ -1548,8 +1548,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                                
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>                              
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
