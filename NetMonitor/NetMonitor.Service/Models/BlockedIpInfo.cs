@@ -12,7 +12,8 @@ namespace NetMonitor.Service.Models
         public string? Details      { get; set; }
         public string Severity      { get; set; } = "-";
         public bool IsProcess       { get; set; }
-        public string? ProcessPath  { get; set; }      
+        public string? ProcessPath  { get; set; }
+        public bool IsOutbound      { get; set; }      
 
         // ============================================================
         //  Informations GeoIP — résolues au moment du blocage

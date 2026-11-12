@@ -682,13 +682,14 @@ namespace NetMonitor.Service
                 {
                     _blockedIps.Add(new BlockedIpInfo
                     {
-                        Ip = ip,
-                        BlockedAt = DateTime.UtcNow,
-                        Source = source ?? "",
-                        Message = message ?? "",
-                        Details = details,
-                        Severity = severity ?? "-",
-                        IsKnownScanner = isKnownScanner
+                        Ip              = ip,
+                        BlockedAt       = DateTime.UtcNow,
+                        Source          = source ?? "",
+                        Message         = message ?? "",
+                        Details         = details,
+                        Severity        = severity ?? "-",
+                        IsKnownScanner  = isKnownScanner,
+                        IsOutbound      = false
                     });
                 }
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
@@ -1573,17 +1574,17 @@ namespace NetMonitor.Service
             {
                 _auditHistory.Add(new IntrusionEvent
                 {
-                    Timestamp = DateTime.UtcNow,
-                    Source = "UntrustedProcess",
-                    Severity = Severity.Info,
-                    Message = $"[WHITELIST MANUELLE] {pending.ProcessName} ajouté à la liste blanche",
-                    RemoteIp = pending.RemoteIp,
-                    RemotePort = pending.RemotePort,
-                    Pid = pending.Pid,
+                    Timestamp   = DateTime.UtcNow,
+                    Source      = "UntrustedProcess",
+                    Severity    = Severity.Info,
+                    Message     = $"[WHITELIST MANUELLE] {pending.ProcessName} ajouté à la liste blanche",
+                    RemoteIp    = pending.RemoteIp,
+                    RemotePort  = pending.RemotePort,
+                    Pid         = pending.Pid,
                     ProcessName = pending.ProcessName,
                     ProcessPath = pending.ProcessPath,
                     TrustReason = "Ajouté à la liste blanche manuellement",
-                    Details = processPath
+                    Details     = processPath
                 });
                 if (_auditHistory.Count > 500) _auditHistory.RemoveAt(0);
             }
@@ -1618,14 +1619,14 @@ namespace NetMonitor.Service
                 {
                     _blockedIps.Add(new BlockedIpInfo
                     {
-                        Ip = pending.ProcessName,         // nom court pour l'affichage
-                        ProcessPath = pending.ProcessPath,
-                        IsProcess = true,
-                        BlockedAt = DateTime.UtcNow,
-                        Source = "UntrustedProcess",
-                        Message = pending.TrustReason ?? "Processus bloqué",
-                        Details = pending.ProcessPath,
-                        Severity = pending.Severity.ToString(),   // ← restauré (comme avant)
+                        Ip              = pending.ProcessName,         // nom court pour l'affichage
+                        ProcessPath     = pending.ProcessPath,
+                        IsProcess       = true,
+                        BlockedAt       = DateTime.UtcNow,
+                        Source          = "UntrustedProcess",
+                        Message         = pending.TrustReason ?? "Processus bloqué",
+                        Details         = pending.ProcessPath,
+                        Severity        = pending.Severity.ToString(),   // ← restauré (comme avant)
                     });
                 }
 

@@ -514,7 +514,19 @@
     /* Centre les cellules qui contiennent un badge */
     td:has(.badge) {
         text-align: center;
-    }                          
+    }
+    
+    .traffic-cell { text-align: center; font-weight: bold; font-size: 14px; }
+    .traffic-out { color: #FFB900; }  /* ambre */
+    .traffic-in  { color: #4CC2FF; }  /* bleu */ 
+    .traffic-cell {
+        width: 50px;
+        min-width: 50px;
+        max-width: 50px;
+        text-align: center;
+        font-weight: bold;
+        font-size: 14px;
+}                                 
 </style>
 
 </head>
@@ -568,6 +580,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:30px"></th>
                 <th>{{tr:Date}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>
@@ -605,6 +618,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:30px"></th>
                 <th>{{tr:Dernière}}</th>
                 <th>{{tr:Sévérité}}</th>
@@ -638,6 +652,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:30px"></th>
                 <th>{{tr:Date}}</th>
                 <th>{{tr:Type}}</th>
@@ -669,6 +684,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:100px">{{tr:Tentatives}}</th>
                 <th style="width:150px">{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>
@@ -700,6 +716,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:9%">{{tr:Date}}</th>
                 <th style="width:6%">{{tr:Sévérité}}</th>
                 <th style="width:7%">{{tr:Détecteur}}</th>
@@ -732,6 +749,7 @@
     <table>
         <thead>
             <tr>
+                <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:130px">{{tr:Première}}</th>
                 <th style="width:130px">{{tr:Dernière}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>

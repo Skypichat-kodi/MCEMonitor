@@ -53,7 +53,8 @@ namespace NetMonitor.Service.Web
                             Country         = mostRecent.Country,
                             CountryCode     = mostRecent.CountryCode,
                             Isp             = mostRecent.Isp,
-                            IsKnownScanner  = g.Any(x => x.IsKnownScanner)
+                            IsKnownScanner  = g.Any(x => x.IsKnownScanner),
+                            IsOutbound      = mostRecent.IsOutbound
                         };
                     })
                         .OrderByDescending(x => (int)x.Severity)
@@ -83,6 +84,7 @@ namespace NetMonitor.Service.Web
                         }
 
                         activeRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'active-sel')"">
+                            {BuildTrafficCell(item.IsOutbound)}
                             <td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>
                             <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
@@ -135,6 +137,7 @@ namespace NetMonitor.Service.Web
                         string remote = $"{p.RemoteIp}:{p.RemotePort}";
 
                         pendingRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'pending-sel')"">
+                            {BuildTrafficCell(false)}
                             <td style='width:30px;text-align:center'><input type='radio' name='pending-sel' value='{pathEnc}'></td>
                             <td>{p.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{p.Severity}</span></td>
@@ -184,6 +187,7 @@ namespace NetMonitor.Service.Web
 
                         // ⚠ 2. Append APRÈS les déclarations
                         blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
+                            {BuildTrafficCell(b.IsOutbound)}
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{typeLabel}</td>
@@ -214,6 +218,7 @@ namespace NetMonitor.Service.Web
                         string detailsTitle = WebUtility.HtmlEncode(h.Details ?? "");
 
                         historyRows.Append($@"<tr>
+                            {BuildTrafficCell(h.IsOutbound)}
                             <td>{h.Timestamp:dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{h.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
@@ -256,6 +261,7 @@ namespace NetMonitor.Service.Web
                         string detailsTitle = WebUtility.HtmlEncode(a.Details ?? "");
 
                         auditRows.Append($@"<tr>
+                            {BuildTrafficCell(a.IsOutbound)}
                             <td>{a.FirstSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{a.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
@@ -308,6 +314,7 @@ namespace NetMonitor.Service.Web
                                            $"title='Changer la sévérité'>⚙&#xFE0E;</button>";
 
                         blockedRetriesRows.Append($@"<tr>
+                            {BuildTrafficCell(info?.IsOutbound ?? false)}
                             <td class='count-cell'><span class='count-badge blue {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                             <td><b>{ipEnc}</b></td>
                             <td>{WebUtility.HtmlEncode(country)}</td>
@@ -725,6 +732,17 @@ namespace NetMonitor.Service.Web
             "Trusted"     => "trusted",
             "Whitelisted" => "whitelisted",
             _             => "unknown"
-        };                       
+        }; 
+        
+        /// <summary>
+        /// Retourne une cellule &lt;td&gt; avec une flèche ▲ (sortant) ou ▼ (entrant).
+        /// </summary>
+        private static string BuildTrafficCell(bool isOutbound)
+        {
+            string icon  = isOutbound ? "▲" : "▼";
+            string css   = isOutbound ? "traffic-out" : "traffic-in";
+            string title = isOutbound ? "Trafic sortant" : "Trafic entrant";
+            return $"<td class='traffic-cell {css}' title='{title}'>{icon}</td>";
+        }                             
     }
 }
