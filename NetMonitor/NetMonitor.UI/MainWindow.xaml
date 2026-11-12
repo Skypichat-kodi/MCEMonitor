@@ -261,50 +261,56 @@
         </Style>
 
         <DataTemplate x:Key="SeverityBadgeTemplate">
-            <Border CornerRadius="8"
-                    Padding="7,2"
-                    MinWidth="58"
-                    HorizontalAlignment="Center"
-                    VerticalAlignment="Center"
+            <Border CornerRadius="8" Padding="7,2" MinWidth="58"
+                    HorizontalAlignment="Center" VerticalAlignment="Center"
                     ToolTip="{Binding ManualSeverityTooltip}">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="#444"/>
+                        <Setter Property="Background" Value="#555"/>
                         <Style.Triggers>
-                            <DataTrigger Binding="{Binding Severity}" Value="Critical">
-                                <Setter Property="Background" Value="#FF6347"/>
+                            <!-- 9 catégories -->
+                            <DataTrigger Binding="{Binding Severity}" Value="Whitelist">
+                                <Setter Property="Background" Value="#FFFFFF"/>
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding Severity}" Value="High">
-                                <Setter Property="Background" Value="#FF6347"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Severity}" Value="Warning">
-                                <Setter Property="Background" Value="#FFB900"/>
-                            </DataTrigger>
-                            <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
-                                <Setter Property="Background" Value="#A855F7"/>
-                            </DataTrigger>                            
-                            <DataTrigger Binding="{Binding Severity}" Value="Info">
-                                <Setter Property="Background" Value="#4CC2FF"/>
+                            <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
+                                <Setter Property="Background" Value="#FFFFFF"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Safe">
                                 <Setter Property="Background" Value="#6CCB5F"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Bot">
+                                <Setter Property="Background" Value="#5BC0EB"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Crawler">
+                                <Setter Property="Background" Value="#1E88E5"/>
+                            </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Trusted">
-                                <Setter Property="Background" Value="#4CAF50"/>
+                                <Setter Property="Background" Value="#FDD835"/>
                             </DataTrigger>
-                            <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
-                                <Setter Property="Background" Value="#2E7D32"/>
+                            <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
+                                <Setter Property="Background" Value="#E91E63"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Warning">
+                                <Setter Property="Background" Value="#FFB900"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Info">
+                                <Setter Property="Background" Value="#FFB900"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="High">
+                                <Setter Property="Background" Value="#B71C1C"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Severity}" Value="Critical">
+                                <Setter Property="Background" Value="#B71C1C"/>
+                            </DataTrigger>
+                            <!-- Subnet override -->
                             <DataTrigger Binding="{Binding IsKnownScanner}" Value="True">
-                                <Setter Property="Background" Value="#6CCB5F"/>
-                            </DataTrigger>                            
+                                <Setter Property="Background" Value="#A855F7"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <!-- 🔒 Cadenas si sévérité manuelle -->
-                    <TextBlock Text="🔒" FontSize="10" Margin="0,0,3,0"
-                               VerticalAlignment="Center">
+                    <TextBlock Text="🔒" FontSize="10" Margin="0,0,3,0" VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Visibility" Value="Collapsed"/>
@@ -316,13 +322,8 @@
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
-
-                    <!-- Texte du badge : "Subnet" si scanner connu, sinon la sévérité -->
-                    <TextBlock Text="{Binding BadgeText}"
-                               FontWeight="Bold"
-                               FontSize="11"
-                               TextAlignment="Center"
-                               VerticalAlignment="Center">
+                    <TextBlock Text="{Binding BadgeText}" FontWeight="Bold" FontSize="11"
+                               TextAlignment="Center" VerticalAlignment="Center">
                         <TextBlock.Style>
                             <Style TargetType="TextBlock">
                                 <Setter Property="Foreground" Value="Black"/>
@@ -334,6 +335,18 @@
                                         <Setter Property="Foreground" Value="White"/>
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Severity}" Value="Whitelisted">
+                                        <Setter Property="Foreground" Value="Black"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Severity}" Value="Whitelist">
+                                        <Setter Property="Foreground" Value="Black"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Severity}" Value="Crawler">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
+                                        <Setter Property="Foreground" Value="White"/>
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding IsKnownScanner}" Value="True">
                                         <Setter Property="Foreground" Value="White"/>
                                     </DataTrigger>
                                 </Style.Triggers>
@@ -863,7 +876,8 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SeverityBadgeTemplate}"/>
-                                                <Button Content="Safe ?" Margin="6,0,0,0" Padding="6,1" FontSize="10"
+                                                <Button Content="Safe ?" Margin="6,0,0,0" Padding="8,3" FontSize="11"
+                                                        MinWidth="52" MinHeight="22"
                                                         Click="MarkSafe_Click" Tag="{Binding RemoteIp}"
                                                         ToolTip="Marquer comme Safe (liste Microsoft vérifiée)">
                                                     <Button.Style>
@@ -2313,6 +2327,29 @@
                                           Style="{StaticResource ColoredCheckBox}"
                                           Tag="{StaticResource DotSubnet}"
                                           Content="Bloquer les scanners de recherche"/>
+                                          
+                                <CheckBox x:Name="chkBlockBots"
+                                          Style="{StaticResource ColoredCheckBox}"
+                                          Tag="#5BC0EB"
+                                          Content="Bloquer les robots officiels (Googlebot, Bingbot...)"
+                                          Margin="0,0,0,8"/>
+
+                                <CheckBox x:Name="chkBlockCrawlers"
+                                          Style="{StaticResource ColoredCheckBox}"
+                                          Tag="#1E88E5"
+                                          Content="Bloquer les robots génériques (Yandex, Baidu...)"
+                                          Margin="0,0,0,8"/>
+
+                                <CheckBox x:Name="chkGoogleIpRange"
+                                          Content="Utiliser la liste officielle Google (crawlers vérifiés)"
+                                          Foreground="#E5E5E5" Margin="0,0,0,5"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Rafraîchir la liste Google toutes les (h) :"
+                                               Width="280" VerticalAlignment="Center"/>
+                                    <TextBox x:Name="txtGoogleIpRangeRefreshHours" Width="80"
+                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                </StackPanel>                                          
                                           
                                 <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
                                            FontSize="11"

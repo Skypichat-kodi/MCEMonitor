@@ -107,16 +107,18 @@
     }
     
     /* ============================================================ */
-    /*  Badges de sévérité — 5 niveaux + compat legacy              */
+    /*  Badges de sévérité — 9 niveaux (cohérent avec WPF)          */
     /* ============================================================ */
-    .badge.critical     { background: #FF6347; color: white; }    /* Rouge - vraiment malveillant */
-    .badge.warning      { background: #FFB900; color: black; }    /* Orange - à vérifier */
-    .badge.info         { background: #4CC2FF; color: black; }    /* Bleu - information */
-    .badge.safe         { background: #6CCB5F; color: black; }    /* Vert clair - légitime */
-    .badge.trusted      { background: #4CAF50; color: black; }    /* Vert moyen - scanner */
-    .badge.whitelisted  { background: #2E7D32; color: white; }    /* Vert foncé - whitelist user */
-    .badge.unknown      { background: #555; color: #ccc; }        /* Gris foncé - inconnu */
-    .badge.tocheck      { background: #A855F7; color: white; }
+    .badge.whitelist { background: #FFFFFF; color: black; }
+    .badge.safe      { background: #6CCB5F; color: black; }
+    .badge.bot       { background: #5BC0EB; color: black; }
+    .badge.crawler   { background: #1E88E5; color: white; }
+    .badge.trusted   { background: #FDD835; color: black; }
+    .badge.subnet    { background: #A855F7; color: white; }
+    .badge.tocheck   { background: #E91E63; color: white; }
+    .badge.warning   { background: #FFB900; color: black; }
+    .badge.critical  { background: #B71C1C; color: white; }
+    .badge.unknown   { background: #555; color: #ccc; }
 
     /* Compat : anciens noms de classes */
     .badge.ok     { background: #6CCB5F; color: black; }

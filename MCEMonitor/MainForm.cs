@@ -306,7 +306,7 @@ namespace MCEMonitor
                 msg.Body = new TextPart("plain") { Text = "Ceci est un test SMTP." };
 
                 await client.SendAsync(msg);
-                logForm.Log(LanguageManager.Get("Email envoyé avec succčs !") ?? "Email envoyé avec succčs !");
+                logForm.Log(LanguageManager.Get("Email envoyé avec succès !") ?? "Email envoyé avec succès !");
 
                 await client.DisconnectAsync(true);
                 logForm.Log(LanguageManager.Get("Déconnexion du serveur.") ?? "Déconnexion du serveur.");
@@ -2481,13 +2481,13 @@ namespace MCEMonitor
             {
                 color      = Color.FromArgb(46, 184, 46);    // Vert principal
                 colorLight = Color.FromArgb(102, 220, 102);  // Vert clair (reflet)
-                colorDark  = Color.FromArgb(20, 110, 20);    // Vert trčs foncé
+                colorDark  = Color.FromArgb(20, 110, 20);    // Vert très foncé
             }
             else
             {
                 color      = Color.FromArgb(220, 40, 40);    // Rouge principal
                 colorLight = Color.FromArgb(255, 110, 110);  // Rouge clair (reflet)
-                colorDark  = Color.FromArgb(140, 15, 15);    // Rouge trčs foncé
+                colorDark  = Color.FromArgb(140, 15, 15);    // Rouge très foncé
             }
 
             Color borderColor = Color.FromArgb(200, 200, 200);  // Gris métallique
@@ -2559,7 +2559,7 @@ namespace MCEMonitor
         }
 
         /// <summary>
-        /// Recharge le cache des tâches planifiées en arričre-plan (7 requêtes parallčles).
+        /// Recharge le cache des tâches planifiées en arrière-plan (7 requêtes parallèles).
         /// </summary>
         private async Task RefreshTaskCacheAsync()
         {
@@ -2752,8 +2752,8 @@ namespace MCEMonitor
                 {
                     SmtpStatus.Ready         => LanguageManager.Get("Connexion SMTP opérationnelle.")
                                                 ?? "Connexion SMTP opérationnelle.",
-                    SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplčte.")
-                                                ?? "Configuration email incomplčte.",
+                    SmtpStatus.NotConfigured => LanguageManager.Get("Configuration email incomplète.")
+                                                ?? "Configuration email incomplète.",
                     SmtpStatus.Unreachable   => LanguageManager.Get("Le serveur SMTP ne répond pas.")
                                                 ?? "Le serveur SMTP ne répond pas.",
                     SmtpStatus.AuthFailed    => LanguageManager.Get("Identifiants SMTP refusés.")
@@ -2961,7 +2961,7 @@ namespace MCEMonitor
         }
 
         // ============================================================
-        // SÉLECTEUR DE THČME
+        // SÉLECTEUR DE THEME
         // ============================================================
 
         private void BtnChooseTheme_Click(object sender, EventArgs e)

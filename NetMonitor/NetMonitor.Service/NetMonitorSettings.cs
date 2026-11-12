@@ -31,6 +31,22 @@ namespace NetMonitor.Service
         public bool AutoBlockSubnet                 { get; set; } = false;
         public bool MicrosoftIpRangeEnabled         { get; set; } = true;
         public bool IgnoreSearchScanners            { get; set; } = false;
+        
+        // ============================================================
+        //  Robots d'exploration (Google, Bing...)
+        // ============================================================
+        public bool   GoogleIpRangeEnabled          { get; set; } = true;
+        public int    GoogleIpRangeRefreshHours     { get; set; } = 24;
+        public bool   BlockBots                     { get; set; } = false;   // Robots officiels
+        public bool   BlockCrawlers                 { get; set; } = true;    // Robots génériques
+
+        // Patterns des robots génériques (Yandex, Baidu...)
+        public string[] CrawlerPatterns             { get; set; } = new[]
+        {
+            "yandex.com", "yandex.ru", "baidu.com", "bytespider",
+            "semrush.com", "ahrefs.com", "mj12bot", "dotbot",
+            "petalbot", "gptbot", "oai-searchbot", "ccbot"
+        };
 
         // ============================================================
         //  Serveur Web
@@ -156,6 +172,11 @@ namespace NetMonitor.Service
                             case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire)) settings.MicrosoftIpRangeEnabled = mire; break;
                             case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr)) settings.MicrosoftIpRangeRefreshHours = mirr; break;
+                            case "GoogleIpRangeEnabled"         : if (bool.TryParse(value, out bool gire)) settings.GoogleIpRangeEnabled = gire; break;
+                            case "GoogleIpRangeRefreshHours"    : if (int.TryParse(value, out int girr)) settings.GoogleIpRangeRefreshHours = girr; break;
+                            case "BlockBots"                    : if (bool.TryParse(value, out bool bb)) settings.BlockBots = bb; break;
+                            case "BlockCrawlers"                : if (bool.TryParse(value, out bool bc)) settings.BlockCrawlers = bc; break;
+                            case "CrawlerPatterns"              : settings.CrawlerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
                         }
                     }
                 }
@@ -270,6 +291,13 @@ namespace NetMonitor.Service
                     $"AutoBlockWarning={AutoBlockWarning.ToString().ToLower()}",
                     $"AutoBlockSubnet={AutoBlockSubnet.ToString().ToLower()}",
                     "",
+                    "# --- Robots d'exploration (Google, Bing...) ---",
+                    $"GoogleIpRangeEnabled={GoogleIpRangeEnabled.ToString().ToLower()}",
+                    $"GoogleIpRangeRefreshHours={GoogleIpRangeRefreshHours}",
+                    $"BlockBots={BlockBots.ToString().ToLower()}",
+                    $"BlockCrawlers={BlockCrawlers.ToString().ToLower()}",
+                    $"CrawlerPatterns={string.Join(",", CrawlerPatterns)}",
+                    "",
                     "# --- Fichier Microsoft IP Ranges ---",
                     $"MicrosoftIpRangeEnabled={MicrosoftIpRangeEnabled.ToString().ToLower()}",
                     $"MicrosoftIpRangeRefreshHours={MicrosoftIpRangeRefreshHours}",
@@ -336,6 +364,11 @@ namespace NetMonitor.Service
                             case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire2)) MicrosoftIpRangeEnabled = mire2; break;
                             case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr2)) MicrosoftIpRangeRefreshHours = mirr2; break;
+                            case "GoogleIpRangeEnabled"         : if (bool.TryParse(value, out bool gire3)) GoogleIpRangeEnabled = gire3; break;
+                            case "GoogleIpRangeRefreshHours"    : if (int.TryParse(value, out int girr3)) GoogleIpRangeRefreshHours = girr3; break;
+                            case "BlockBots"                    : if (bool.TryParse(value, out bool bb3)) BlockBots = bb3; break;
+                            case "BlockCrawlers"                : if (bool.TryParse(value, out bool bc3)) BlockCrawlers = bc3; break;
+                            case "CrawlerPatterns"              : CrawlerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
                             case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;

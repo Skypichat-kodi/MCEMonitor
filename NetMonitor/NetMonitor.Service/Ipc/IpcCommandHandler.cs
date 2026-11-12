@@ -282,6 +282,13 @@ namespace NetMonitor.Service.Ipc
                 blacklistLevel           = _settings.BlacklistLevel,
                 blacklistLastUpdate      = _settings.BlacklistLastUpdate,
 
+                // Robots d'exploration
+                googleIpRangeEnabled      = _settings.GoogleIpRangeEnabled,
+                googleIpRangeRefreshHours = _settings.GoogleIpRangeRefreshHours,
+                blockBots                 = _settings.BlockBots,
+                blockCrawlers             = _settings.BlockCrawlers,
+                crawlerPatterns           = _settings.CrawlerPatterns,
+
                 // Scanners de recherche (Trusted) ---
                 ignoreSearchScanners     = _settings.IgnoreSearchScanners,
                 scannerPatterns          = _settings.ScannerPatterns,
@@ -507,7 +514,8 @@ namespace NetMonitor.Service.Ipc
                         severity            = info?.Severity ?? "-",
                         country             = info?.Country,
                         countryCode         = info?.CountryCode,
-                        isp                 = info?.Isp
+                        isp                 = info?.Isp,
+                        isOutbound          = info?.IsOutbound ?? false,
                     };
                 }).ToList();
 

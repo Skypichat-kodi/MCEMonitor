@@ -1,5 +1,6 @@
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
+using NetMonitor.Service.Capture;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Services;
@@ -64,7 +65,13 @@ public sealed class EtwConnectionWatcher : IDisposable
                 if (IsNoise(remoteIp, data.dport)) return;
 
                 CoreLog.Debug($"[ETW] {data.saddr}:{data.sport} -> {remoteIp}:{data.dport} PID={data.ProcessID}");
-                
+
+                // Une connexion TCP est initiée par le processus local
+                // ? sortante si remote n'est pas local
+                bool isOutbound = true;
+                if (System.Net.IPAddress.TryParse(remoteIp, out var remoteAddr))
+                    isOutbound = !LocalIps.IsLocal(remoteAddr);
+
                 ConnectionOpened?.Invoke(this, new ConnectionInfo
                 {
                     Pid         = data.ProcessID,
@@ -73,7 +80,8 @@ public sealed class EtwConnectionWatcher : IDisposable
                     RemoteIp    = remoteIp,
                     RemotePort  = data.dport,
                     Timestamp   = DateTime.UtcNow,
-                    Protocol    = TransportProtocol.Tcp
+                    Protocol    = TransportProtocol.Tcp,
+                    IsOutbound  = isOutbound
                 });
             };
 
@@ -83,6 +91,11 @@ public sealed class EtwConnectionWatcher : IDisposable
                 var remoteIp = data.daddr?.ToString() ?? "";
                 if (IsNoise(remoteIp, data.dport)) return;
 
+                // Un paquet UDP émis est sortant si remote n'est pas local
+                bool isOutbound = true;
+                if (System.Net.IPAddress.TryParse(remoteIp, out var remoteAddr))
+                    isOutbound = !LocalIps.IsLocal(remoteAddr);
+
                 ConnectionOpened?.Invoke(this, new ConnectionInfo
                 {
                     Pid         = data.ProcessID,
@@ -91,7 +104,8 @@ public sealed class EtwConnectionWatcher : IDisposable
                     RemoteIp    = remoteIp,
                     RemotePort  = data.dport,
                     Timestamp   = DateTime.UtcNow,
-                    Protocol    = TransportProtocol.Udp
+                    Protocol    = TransportProtocol.Udp,
+                    IsOutbound  = isOutbound
                 });
             };
 

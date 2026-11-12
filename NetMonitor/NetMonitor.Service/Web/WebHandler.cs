@@ -723,16 +723,19 @@ namespace NetMonitor.Service.Web
         /// </summary>
         private static string SeverityToCssClass(string? severity) => severity switch
         {
-            "Critical"    => "critical",
-            "High"        => "critical",
-            "Warning"     => "warning",
-            "ToCheck"     => "tocheck",
-            "Info"        => "info",
+            "Whitelist"   => "whitelist",
+            "Whitelisted" => "whitelist",
             "Safe"        => "safe",
+            "Bot"         => "bot",
+            "Crawler"     => "crawler",
             "Trusted"     => "trusted",
-            "Whitelisted" => "whitelisted",
+            "ToCheck"     => "tocheck",
+            "Warning"     => "warning",
+            "Info"        => "warning",
+            "High"        => "critical",
+            "Critical"    => "critical",
             _             => "unknown"
-        }; 
+        };
         
         /// <summary>
         /// Retourne une cellule &lt;td&gt; avec une flèche ▲ (sortant) ou ▼ (entrant).

@@ -640,12 +640,18 @@ namespace NetMonitor.UI
 
         private static int SeverityRank(string? severity) => severity switch
         {
-            "Critical" => 5,
-            "High"     => 4,
-            "Warning"  => 3,
-            "ToCheck"  => 2,
-            "Safe"     => 1,
-            _          => 0
+            "Critical" => 10,
+            "High"     => 9,
+            "Warning"  => 8,
+            "Info"     => 7,
+            "ToCheck"  => 6,
+            "Crawler"  => 5,
+            "Bot"      => 4,
+            "Safe"     => 3,
+            "Trusted"  => 2,
+            "Whitelist"=> 1,
+            "Whitelisted" => 1,
+            _ => 0
         };
 
         // ------------------------------------------------------------
@@ -1144,19 +1150,23 @@ namespace NetMonitor.UI
                 var cfg = await NetMonitorIpcClient.GetConfig();
                 if (cfg == null)
                 {
-                    txtPortScanWindow.Text = "10";
-                    txtPortScanThreshold.Text = "20";
-                    txtBeaconWindow.Text = "300";
-                    txtBeaconHits.Text = "6";
-                    txtBeaconJitter.Text = "5";
-                    chkAutoBlock.IsChecked = false;
-                    chkAutoBlockCritical.IsChecked = true;
-                    chkAutoBlockWarning.IsChecked = true;
-                    chkAutoBlockSubnet.IsChecked = false;
-                    txtIgnoredNetworks.Text = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
-                    chkDisableFilters.IsChecked = false;
-                    txtBlacklistLevel.Text = "3";
-                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
+                    txtPortScanWindow.Text              = "10";
+                    txtPortScanThreshold.Text           = "20";
+                    txtBeaconWindow.Text                = "300";
+                    txtBeaconHits.Text                  = "6";
+                    txtBeaconJitter.Text                = "5";
+                    chkAutoBlock.IsChecked              = false;
+                    chkAutoBlockCritical.IsChecked      = true;
+                    chkAutoBlockWarning.IsChecked       = true;
+                    chkAutoBlockSubnet.IsChecked        = false;
+                    txtIgnoredNetworks.Text             = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
+                    chkDisableFilters.IsChecked         = false;
+                    txtBlacklistLevel.Text              = "3";
+                    lblBlacklistLastUpdate.Text         = "Dernière MAJ : inconnue";
+                    chkBlockBots.IsChecked              = false;
+                    chkBlockCrawlers.IsChecked          = true;
+                    chkGoogleIpRange.IsChecked          = true;
+                    txtGoogleIpRangeRefreshHours.Text   = "24";               
                     
                     // Valeurs par défaut pour les nouveaux champs
                     // IgnoreSearchScanners est false par défaut (philosophie "tout bot est maudit"),
@@ -1167,15 +1177,19 @@ namespace NetMonitor.UI
                     return;
                 }
 
-                txtPortScanWindow.Text = cfg.portScanWindowSeconds.ToString();
-                txtPortScanThreshold.Text = cfg.portScanThreshold.ToString();
-                txtBeaconWindow.Text = cfg.beaconWindowSeconds.ToString();
-                txtBeaconHits.Text = cfg.beaconMinHits.ToString();
-                txtBeaconJitter.Text = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
-                chkAutoBlock.IsChecked = cfg.autoBlock;
-                chkAutoBlockCritical.IsChecked = cfg.autoBlockCritical;
-                chkAutoBlockWarning.IsChecked = cfg.autoBlockWarning;
-                chkAutoBlockSubnet.IsChecked = cfg.autoBlockSubnet;
+                txtPortScanWindow.Text              = cfg.portScanWindowSeconds.ToString();
+                txtPortScanThreshold.Text           = cfg.portScanThreshold.ToString();
+                txtBeaconWindow.Text                = cfg.beaconWindowSeconds.ToString();
+                txtBeaconHits.Text                  = cfg.beaconMinHits.ToString();
+                txtBeaconJitter.Text                = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
+                chkAutoBlock.IsChecked              = cfg.autoBlock;
+                chkAutoBlockCritical.IsChecked      = cfg.autoBlockCritical;
+                chkAutoBlockWarning.IsChecked       = cfg.autoBlockWarning;
+                chkAutoBlockSubnet.IsChecked        = cfg.autoBlockSubnet;
+                chkBlockBots.IsChecked              = cfg.blockBots;
+                chkBlockCrawlers.IsChecked          = cfg.blockCrawlers;
+                chkGoogleIpRange.IsChecked          = cfg.googleIpRangeEnabled;
+                txtGoogleIpRangeRefreshHours.Text   = cfg.googleIpRangeRefreshHours.ToString();                
 
                 if (cfg.ignoredNetworks != null && cfg.ignoredNetworks.Length > 0)
                     txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
@@ -1275,6 +1289,14 @@ namespace NetMonitor.UI
                     $"AutoBlockCritical={(chkAutoBlockCritical.IsChecked == true).ToString().ToLower()}",
                     $"AutoBlockWarning={(chkAutoBlockWarning.IsChecked == true).ToString().ToLower()}",
                     $"AutoBlockSubnet={(chkAutoBlockSubnet.IsChecked == true).ToString().ToLower()}",
+                    
+                    "# --- Robots d'exploration (Google, Bing...) ---",
+                    $"GoogleIpRangeEnabled={(chkGoogleIpRange.IsChecked == true).ToString().ToLower()}",
+                    $"GoogleIpRangeRefreshHours={txtGoogleIpRangeRefreshHours.Text.Trim()}",
+                    $"BlockBots={(chkBlockBots.IsChecked == true).ToString().ToLower()}",
+                    $"BlockCrawlers={(chkBlockCrawlers.IsChecked == true).ToString().ToLower()}",
+                    $"CrawlerPatterns=yandex.com,yandex.ru,baidu.com,bytespider,semrush.com,ahrefs.com,mj12bot,dotbot,petalbot,gptbot,oai-searchbot,ccbot",
+                    "",                    
                     
                     "# --- Filtres et Whitelists ---",
                     $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
@@ -2736,7 +2758,11 @@ namespace NetMonitor.UI
         
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";        
+
+        public string ManualSeverityTooltip =>
+            IsKnownScanner
+                ? "Scanner de recherche légitime"
+                : $"Sévérité : {Severity}";
     }
 
     public class BlockedIpRow
@@ -2819,6 +2845,7 @@ namespace NetMonitor.UI
 
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
+        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
         public string PidDisplay                => Pid > 0 ? Pid.ToString() : "-";
         public string ProcessNameDisplay        => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
         public string ProcessPathDisplay        => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
@@ -2832,16 +2859,30 @@ namespace NetMonitor.UI
         {
             get
             {
-                if (string.IsNullOrWhiteSpace(Details)) return "-";
-                return Details.Length <= 120
-                    ? Details
-                    : Details.Substring(0, 117) + "…";
+                // Priorité au Message (plus informatif), puis Details en complément
+                string combined;
+                if (!string.IsNullOrWhiteSpace(Message) && !string.IsNullOrWhiteSpace(Details))
+                    combined = $"{Message} — {Details}";
+                else if (!string.IsNullOrWhiteSpace(Message))
+                    combined = Message;
+                else if (!string.IsNullOrWhiteSpace(Details))
+                    combined = Details;
+                else
+                    return "-";
+
+                return combined.Length <= 120
+                    ? combined
+                    : combined.Substring(0, 117) + "…";
             }
         }
         
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";        
+
+        public string ManualSeverityTooltip =>
+            IsKnownScanner
+                ? "Scanner de recherche légitime"
+                : $"Sévérité : {Severity}";        
     }
 
     public class StatsIpRow

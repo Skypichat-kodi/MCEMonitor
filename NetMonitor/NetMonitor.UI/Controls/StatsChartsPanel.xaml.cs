@@ -224,14 +224,17 @@ namespace NetMonitor.UI.Controls
 
             var sevColors = new Dictionary<string, SKColor>(StringComparer.OrdinalIgnoreCase)
             {
-                { "Critical",    Red },
-                { "High",        SKColor.Parse("#FF8A72") },
-                { "Warning",     Orange },
-                { "ToCheck",     Purple },
-                { "Info",        Blue },
-                { "Safe",        Green },
-                { "Trusted",     SKColor.Parse("#4CAF50") },
-                { "Whitelisted", SKColor.Parse("#2E7D32") }
+                { "Whitelist",   SKColor.Parse("#FFFFFF") },   // Blanc
+                { "Whitelisted", SKColor.Parse("#FFFFFF") },   // Blanc (legacy)
+                { "Safe",        SKColor.Parse("#6CCB5F") },   // Vert
+                { "Bot",         SKColor.Parse("#5BC0EB") },   // Bleu clair
+                { "Crawler",     SKColor.Parse("#1E88E5") },   // Bleu foncé
+                { "Trusted",     SKColor.Parse("#FDD835") },   // Jaune
+                { "ToCheck",     SKColor.Parse("#E91E63") },   // Magenta
+                { "Warning",     SKColor.Parse("#FFB900") },   // Orange
+                { "Info",        SKColor.Parse("#FFB900") },   // Orange (legacy = Warning)
+                { "High",        SKColor.Parse("#B71C1C") },   // Rouge foncé (legacy = Critical)
+                { "Critical",    SKColor.Parse("#B71C1C") }    // Rouge foncé
             };
 
             var series = data

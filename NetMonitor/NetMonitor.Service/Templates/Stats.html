@@ -636,10 +636,18 @@
     // ============================================================
     if (severityDistribution && severityDistribution.length > 0) {
         const sevColors = {
-            'Critical': COLORS.red,
-            'High':     '#FF8A72',
-            'Warning':  COLORS.orange,
-            'Info':     COLORS.green
+            'Whitelist':   '#FFFFFF',
+            'Whitelisted': '#FFFFFF',
+            'Safe':        '#6CCB5F',
+            'Bot':         '#5BC0EB',
+            'Crawler':     '#1E88E5',
+            'Trusted':     '#FDD835',
+            'Subnet':      '#A855F7',
+            'ToCheck':     '#E91E63',
+            'Warning':     '#FFB900',
+            'Info':        '#FFB900',
+            'High':        '#B71C1C',
+            'Critical':    '#B71C1C'
         };
         new Chart(document.getElementById('chartSeverity'), {
             type: 'doughnut',

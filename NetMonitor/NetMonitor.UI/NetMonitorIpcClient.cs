@@ -80,8 +80,13 @@ namespace NetMonitor.UI
         public DateTime blacklistLastUpdate     { get; set; }  
 
         // Scanners de recherche (Trusted) ---
-        public bool ignoreSearchScanners    { get; set; }
-        public string[] scannerPatterns     { get; set; } = Array.Empty<string>();
+        public bool ignoreSearchScanners        { get; set; }
+        public string[] scannerPatterns         { get; set; } = Array.Empty<string>();
+        public bool blockBots                   { get; set; }
+        public bool blockCrawlers               { get; set; }
+        public bool googleIpRangeEnabled        { get; set; }
+        public int  googleIpRangeRefreshHours   { get; set; }
+        public string[] crawlerPatterns         { get; set; } = Array.Empty<string>();
     }
 
     public class NetWebStatus

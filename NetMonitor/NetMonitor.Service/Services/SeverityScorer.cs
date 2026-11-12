@@ -28,8 +28,9 @@ namespace NetMonitor.Service.Services
             string? isp,
             string? org,
             string? detector,
-            Severity detectorSeverity, // <-- La sévérité initiale du détecteur (ex: Critical pour Blacklist)
-            NetMonitorSettings settings)
+            Severity detectorSeverity,
+            NetMonitorSettings settings,
+            GoogleIpRangeService? googleRanges = null)   // ← NOUVEAU
         {
             if (settings == null) return detectorSeverity;
 
@@ -46,29 +47,33 @@ namespace NetMonitor.Service.Services
             if (MatchesAnyPattern(candidates, settings.WhitelistPatterns))
                 return Severity.Whitelisted;
 
-            // 1bis. Si un détecteur a explicitement demandé une vérification manuelle,
-            //       on préserve son choix (utile pour de futurs détecteurs ToCheck)
-            if (detectorSeverity == Severity.ToCheck)
-                return Severity.ToCheck;
+            // 2. NOUVEAU : robots officiels (Google/Bing) → Bot
+            if (googleRanges?.IsEnabled == true
+                && !string.IsNullOrWhiteSpace(ip)
+                && googleRanges.IsGoogleIp(ip))
+                return Severity.Bot;
 
-            // 2. Services légitimes connus (Microsoft, Google...)
+            // 3. NOUVEAU : robots génériques (Yandex, Baidu...) → Crawler
+            if (MatchesAnyPattern(candidates, settings.CrawlerPatterns))
+                return Severity.Crawler;
+
+            // 4. Safe (Microsoft, Google pattern...)
             if (MatchesAnyPattern(candidates, settings.SafePatterns))
                 return Severity.Safe;
 
-            // 3. Domaines malveillants connus (Bulletproof hosting)
+            // 5. Critical (domaines malveillants)
             if (MatchesAnyPattern(candidates, settings.CriticalPatterns))
                 return Severity.Critical;
 
-            // 4. Si le détecteur a dit "Critical" (ex: Blacklist IPsum ou Scan de port agressif)
+            // 6. Détecteur critique → Critical
             if (detectorSeverity == Severity.Critical || detectorSeverity == Severity.High)
                 return detectorSeverity;
 
-            // 5. Scanners / Crawlers (Shodan, Xpanse...) -> On les laisse en Warning (Orange)
-            // et c'est le moteur qui leur ajoutera le badge "Subnet"
+            // 7. Scanners (Shodan, Censys...) → Warning (seront taggés "Subnet" par le moteur)
             if (MatchesAnyPattern(candidates, settings.ScannerPatterns))
                 return Severity.Warning;
 
-            // 6. Défaut : à vérifier (orange)
+            // 8. Défaut
             return Severity.Warning;
         }
 

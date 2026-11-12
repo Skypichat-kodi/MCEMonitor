@@ -29,6 +29,9 @@ namespace NetMonitor.Service
         // Microsoft IP ranges + overrides manuels "Safe ?"
         private MicrosoftIpRangeService? _msRanges;
         private readonly ConcurrentDictionary<string, DateTime> _manualSafeIps = new();
+        
+        // Google IP ranges (crawlers officiels)
+        private GoogleIpRangeService? _googleRanges;        
 
         private static readonly string ManualSafeFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
@@ -76,6 +79,12 @@ namespace NetMonitor.Service
         private static readonly string HistoryFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "alert_history.json"); 
+
+        private static readonly string DataVersionFile = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "data_version.txt");
+
+        private const int CurrentDataVersion = 3;
 
         // Dernier blocage réussi (exposé via /api/summary et les pushs)
         public LastBlockInfo? LastBlock { get; private set; }
@@ -199,6 +208,17 @@ namespace NetMonitor.Service
 
             _msRanges = new MicrosoftIpRangeService(_settings.MicrosoftIpRangeEnabled,
                                                      _settings.MicrosoftIpRangeRefreshHours);
+                                                     
+            _googleRanges = new GoogleIpRangeService(_settings.GoogleIpRangeEnabled,
+                                                     _settings.GoogleIpRangeRefreshHours);
+            _googleRanges.Start();
+
+            // Migration des données au démarrage ═══
+            MigrateDataIfNeeded();
+
+            _emailScheduler = new EmailDigestScheduler(_settings);
+            _emailScheduler.Start();
+                                 
             _msRanges.Start();
             LoadManualSafeIps();
 
@@ -458,6 +478,10 @@ namespace NetMonitor.Service
         {
             _threatIntel?.Stop();
             _msRanges?.Stop();
+            
+            _googleRanges?.Stop();
+            _googleRanges?.Dispose();
+            _googleRanges = null;            
 
             _emailScheduler?.Stop();
             _emailScheduler?.Dispose();
@@ -1467,7 +1491,7 @@ namespace NetMonitor.Service
                 ProcessPath = r.ProcessPath,
                 TrustReason = r.TrustReason,               
                 Details     = r.Details,
-                IsOutbound  = ci.IsOutbound,
+                IsOutbound  = ci.IsOutbound, 
             };
 
             AddIntrusion(evt);
@@ -1761,7 +1785,8 @@ namespace NetMonitor.Service
                 giForSeverity?.Org,
                 evt.Source,
                 evt.Severity,
-                _settings);
+                _settings,
+                _googleRanges);
 
             // Marquer les scanners connus (sans les ignorer)
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
@@ -1781,25 +1806,34 @@ namespace NetMonitor.Service
             // --- 1. Détection des scanners de recherche légitimes ---
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))
             {
-                var known = _trustedScanners.TryGetCached(evt.RemoteIp);
-
-                if (known != true && giForSeverity != null)
+                // ⚠ NE PAS écraser Bot/Crawler
+                if (evt.Severity == Severity.Bot || evt.Severity == Severity.Crawler)
                 {
-                    bool isOrgMatch = MatchesScannerPatterns(giForSeverity.Org, _settings.ScannerPatterns) ||
-                                      MatchesScannerPatterns(giForSeverity.Isp, _settings.ScannerPatterns);
-                    if (isOrgMatch) known = true;
+                    // On laisse la sévérité telle quelle (déjà décidée par SeverityScorer)
+                    CoreLog.Debug($"[CRAWLER] {evt.RemoteIp} → {evt.Severity} (ignoré pour le check scanner)");
                 }
+                else
+                {
+                    var known = _trustedScanners.TryGetCached(evt.RemoteIp);
 
-                if (known == true)
-                {
-                    evt.IsKnownScanner = true;
-                    evt.Severity = Severity.Warning;
-                    evt.Message = $"[SCANNER CONNU] {evt.Message}";
-                    evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
-                }
-                else if (!known.HasValue)
-                {
-                    _trustedScanners.CheckInBackground(evt.RemoteIp);
+                    if (known != true && giForSeverity != null)
+                    {
+                        bool isOrgMatch = MatchesScannerPatterns(giForSeverity.Org, _settings.ScannerPatterns) ||
+                                          MatchesScannerPatterns(giForSeverity.Isp, _settings.ScannerPatterns);
+                        if (isOrgMatch) known = true;
+                    }
+
+                    if (known == true)
+                    {
+                        evt.IsKnownScanner = true;
+                        evt.Severity = Severity.Warning;
+                        evt.Message = $"[SCANNER CONNU] {evt.Message}";
+                        evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
+                    }
+                    else if (!known.HasValue)
+                    {
+                        _trustedScanners.CheckInBackground(evt.RemoteIp);
+                    }
                 }
             }
 
@@ -1886,15 +1920,23 @@ namespace NetMonitor.Service
                 {
                     shouldBlock = _settings.AutoBlockSubnet;
                 }
-                else if (evt.Severity == Severity.Critical)
+                else if (evt.Severity == Severity.Critical || evt.Severity == Severity.High)
                 {
                     shouldBlock = _settings.AutoBlockCritical;
                 }
-                else if (evt.Severity == Severity.Warning)
+                else if (evt.Severity == Severity.Warning || evt.Severity == Severity.Info)
                 {
                     shouldBlock = _settings.AutoBlockWarning;
                 }
-                // On ne bloque jamais Safe, Whitelisted, Info, ni ToCheck.
+                else if (evt.Severity == Severity.Bot)
+                {
+                    shouldBlock = _settings.BlockBots;        
+                }
+                else if (evt.Severity == Severity.Crawler)
+                {
+                    shouldBlock = _settings.BlockCrawlers;    
+                }
+                // On ne bloque jamais Safe, Whitelisted, ToCheck.
 
                 if (shouldBlock)
                 {
@@ -2199,7 +2241,205 @@ namespace NetMonitor.Service
                 File.WriteAllText(ManualSafeFile, json);
             }
             catch (Exception ex) { CoreLog.Warn($"SaveManualSafeIps : {ex.Message}"); }
-        }                              
+        }
+        // ═══════════════════════════════════════════════════════════════════════
+        //  Migration des données persistées
+        //  Objectif : mettre à jour les anciens enregistrements avec les nouveaux
+        //  champs (IsOutbound, Severity Bot/Crawler/Safe/ToCheck...) sans perdre
+        //  les données existantes.
+        // ═══════════════════════════════════════════════════════════════════════
+        private void MigrateDataIfNeeded()
+        {
+            int currentVersion = 0;
+            try
+            {
+                if (File.Exists(DataVersionFile))
+                    currentVersion = int.Parse(File.ReadAllText(DataVersionFile).Trim());
+            }
+            catch { }
+
+            if (currentVersion >= CurrentDataVersion)
+                return;
+
+            CoreLog.Info($"[MIGRATION] Données v{currentVersion} → v{CurrentDataVersion} — début");
+
+            try
+            {
+                MigrateIntrusionEvents(_alerts, "alert_history");
+                MigrateIntrusionEvents(_activeIntrusions, "active_intrusions");
+                MigrateIntrusionEvents(_auditHistory, "audit_history");
+                MigrateBlockedIps(_blockedIps);
+
+                SaveHistory();
+                SaveAudit();
+                SaveBlockedIps();
+
+                Directory.CreateDirectory(Path.GetDirectoryName(DataVersionFile)!);
+                File.WriteAllText(DataVersionFile, CurrentDataVersion.ToString());
+
+                CoreLog.Info($"[MIGRATION] Terminée avec succès");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"[MIGRATION] Échec : {ex.Message}");
+            }
+        }
+
+        private void MigrateIntrusionEvents(List<IntrusionEvent> events, string label)
+        {
+            int mOutbound = 0, mSeverity = 0;
+
+            foreach (var evt in events)
+            {
+                // ─── IsOutbound ───
+                if (!evt.IsOutbound && IsLikelyOutboundSource(evt.Source))
+                {
+                    evt.IsOutbound = true;
+                    mOutbound++;
+                }
+
+                // ─── Severity : re-classification complète ───
+                var newSev = ReclassifySeverity(
+                    evt.RemoteIp,
+                    evt.Severity,
+                    evt.Source,
+                    evt.IsKnownScanner);
+
+                if (newSev != evt.Severity)
+                {
+                    evt.Severity = newSev;
+                    mSeverity++;
+                }
+            }
+
+            if (mOutbound > 0 || mSeverity > 0)
+            {
+                CoreLog.Info($"[MIGRATION] {label} : {mOutbound} IsOutbound, " +
+                             $"{mSeverity} Severity réparée ({events.Count} événements)");
+            }
+        }
+
+        private void MigrateBlockedIps(List<BlockedIpInfo> blockedList)
+        {
+            int mOutbound = 0, mSeverity = 0;
+
+            foreach (var b in blockedList)
+            {
+                // IsOutbound
+                if (!b.IsOutbound && IsLikelyOutboundSource(b.Source))
+                {
+                    b.IsOutbound = true;
+                    mOutbound++;
+                }
+
+                // Severity : ne pas toucher si override manuel
+                if (b.ManualSeverity.HasValue) continue;
+
+                var newSev = ReclassifySeverity(
+                    b.Ip,
+                    Enum.TryParse<Severity>(b.Severity, out var sev) ? sev : Severity.Warning,
+                    b.Source,
+                    b.IsKnownScanner);
+
+                string newSevStr = newSev.ToString();
+                if (b.Severity != newSevStr)
+                {
+                    b.Severity = newSevStr;
+                    mSeverity++;
+                }
+            }
+
+            if (mOutbound > 0 || mSeverity > 0)
+            {
+                CoreLog.Info($"[MIGRATION] blocked_ips : {mOutbound} IsOutbound, " +
+                             $"{mSeverity} Severity réparée ({blockedList.Count} IPs)");
+            }
+        }
+
+        /// <summary>
+        /// Re-classifie une sévérité en ré-appliquant la logique de AddIntrusion
+        /// (Safe/ToCheck/Bot/Crawler), mais sans créer d'alerte.
+        /// Utilisé uniquement par la migration.
+        /// </summary>
+        private Severity ReclassifySeverity(
+            string? remoteIp,
+            Severity currentSeverity,
+            string? source,
+            bool isKnownScanner)
+        {
+            if (string.IsNullOrWhiteSpace(remoteIp))
+                return currentSeverity;
+
+            // 1. Override manuel "Safe ?" → Safe
+            if (_manualSafeIps.ContainsKey(remoteIp))
+                return Severity.Safe;
+
+            // 2. Microsoft-like
+            if (FirewallHelper.IsMicrosoftLike(remoteIp))
+            {
+                if (_msRanges?.IsMicrosoftIp(remoteIp) == true)
+                    return Severity.Safe;
+                return Severity.ToCheck;
+            }
+
+            // 3. Autres IP critiques (Google / Cloudflare / privé) → Safe
+            if (FirewallHelper.IsCriticalIp(remoteIp))
+                return Severity.Safe;
+
+            // 4. Google officiel → Bot
+            if (_googleRanges?.IsGoogleIp(remoteIp) == true)
+                return Severity.Bot;
+
+            // 5. Crawler générique (Yandex, Baidu...) → Crawler
+            var gi = _geoIp?.TryGetCached(remoteIp);
+            if (MatchesCrawlerPatterns(gi?.Isp) || MatchesCrawlerPatterns(gi?.Org))
+                return Severity.Crawler;
+
+            // 6. Scanner connu → Warning (Subnet géré via IsKnownScanner)
+            if (isKnownScanner)
+                return Severity.Warning;
+
+            // 7. Détecteur critique → conserver
+            if (currentSeverity == Severity.Critical || currentSeverity == Severity.High)
+                return currentSeverity;
+
+            // 8. Scanner via patterns → Warning
+            if (MatchesScannerPatterns(gi?.Isp, _settings.ScannerPatterns)
+                || MatchesScannerPatterns(gi?.Org, _settings.ScannerPatterns))
+                return Severity.Warning;
+
+            // 9. Domaine malveillant → Critical
+            if (MatchesScannerPatterns(gi?.Isp, _settings.CriticalPatterns)
+                || MatchesScannerPatterns(gi?.Org, _settings.CriticalPatterns))
+                return Severity.Critical;
+
+            // 10. Safe patterns → Safe
+            if (MatchesScannerPatterns(gi?.Isp, _settings.SafePatterns)
+                || MatchesScannerPatterns(gi?.Org, _settings.SafePatterns))
+                return Severity.Safe;
+
+            // 11. Défaut
+            return Severity.Warning;
+        }
+
+        private bool MatchesCrawlerPatterns(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            if (_settings.CrawlerPatterns == null) return false;
+
+            string normalized = value.ToLowerInvariant();
+            return _settings.CrawlerPatterns.Any(p =>
+                !string.IsNullOrWhiteSpace(p)
+                && normalized.Contains(p.ToLowerInvariant()));
+        }
+
+        private static bool IsLikelyOutboundSource(string? source)
+        {
+            if (string.IsNullOrWhiteSpace(source)) return false;
+            return source.Contains("UntrustedProcess", StringComparison.OrdinalIgnoreCase)
+                || source.Contains("Beaconing", StringComparison.OrdinalIgnoreCase)
+                || source.Contains("SuspiciousOutbound", StringComparison.OrdinalIgnoreCase);
+        }
     }
     
     public class ProblemItem
