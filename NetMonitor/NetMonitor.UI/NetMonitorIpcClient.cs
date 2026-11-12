@@ -39,7 +39,8 @@ namespace NetMonitor.UI
         public bool isKnownScanner  { get; set; }
         public string? country      { get; set; }
         public string? countryCode  { get; set; }
-        public string? isp          { get; set; }        
+        public string? isp          { get; set; }
+        public bool isOutbound      { get; set; }        
     }
 
     public class NetConnection
@@ -107,6 +108,7 @@ namespace NetMonitor.UI
         public string? Country                  { get; set; }
         public string? CountryCode              { get; set; }
         public string? Isp                      { get; set; }
+        public bool IsOutbound                  { get; set; }
     }
 
     public class BlockedIpRetryDto
@@ -120,7 +122,8 @@ namespace NetMonitor.UI
         public string Severity          { get; set; } = "-";
         public string? Country          { get; set; }
         public string? CountryCode      { get; set; }
-        public string? Isp              { get; set; }        
+        public string? Isp              { get; set; }
+        public bool IsOutbound          { get; set; }        
     }
 
     // ============================================================
@@ -241,7 +244,8 @@ namespace NetMonitor.UI
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
-        public string GroupKey      { get; set; } = "";        
+        public string GroupKey      { get; set; } = "";
+        public bool IsOutbound      { get; set; }        
     }    
 
     public class PersistentProblemDto

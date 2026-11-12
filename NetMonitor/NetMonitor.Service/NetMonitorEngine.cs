@@ -1454,18 +1454,19 @@ namespace NetMonitor.Service
 
             var evt = new IntrusionEvent
             {
-                Timestamp = ci.Timestamp,
-                Source = source,
-                Severity = r.Severity,
-                Message = r.Message,
-                RemoteIp = ci.RemoteIp,
-                RemotePort = ci.RemotePort,
-                LocalPort = ci.LocalPort,
-                Pid = ci.Pid,
+                Timestamp   = ci.Timestamp,
+                Source      = source,
+                Severity    = r.Severity,
+                Message     = r.Message,
+                RemoteIp    = ci.RemoteIp,
+                RemotePort  = ci.RemotePort,
+                LocalPort   = ci.LocalPort,
+                Pid         = ci.Pid,
                 ProcessName = ci.ProcessName,
                 ProcessPath = r.ProcessPath,
                 TrustReason = r.TrustReason,               
-                Details = r.Details
+                Details     = r.Details,
+                IsOutbound  = ci.IsOutbound,
             };
 
             AddIntrusion(evt);
@@ -1734,7 +1735,8 @@ namespace NetMonitor.Service
                 LocalPort = localPort,
                 Pid = 0,
                 ProcessName = "Network Packet",
-                Details = r.Details
+                Details = r.Details,
+                IsOutbound = evt.IsOutbound
             };
 
             AddIntrusion(intrusion);
@@ -2055,23 +2057,24 @@ namespace NetMonitor.Service
 
                         return new AuditGroupedEntry
                         {
-                            FirstSeen   = first.Timestamp,
-                            LastSeen    = last.Timestamp,
-                            Count       = g.Count(),
-                            Severity    = mostSevere.Severity,
-                            Source      = last.Source,
-                            RemoteIp    = last.RemoteIp,
-                            RemotePort  = last.RemotePort,
-                            LocalPort   = last.LocalPort,
-                            Pid         = last.Pid,
-                            ProcessName = last.ProcessName,
-                            ProcessPath = last.ProcessPath,
-                            TrustReason = mostSevere.TrustReason,
-                            Details     = mostSevere.Details,
-                            IsKnownScanner = g.Any(x => x.IsKnownScanner),
-                            Country     = country,
-                            CountryCode = countryCode,
-                            Isp         = isp
+                            FirstSeen       = first.Timestamp,
+                            LastSeen        = last.Timestamp,
+                            Count           = g.Count(),
+                            Severity        = mostSevere.Severity,
+                            Source          = last.Source,
+                            RemoteIp        = last.RemoteIp,
+                            RemotePort      = last.RemotePort,
+                            LocalPort       = last.LocalPort,
+                            Pid             = last.Pid,
+                            ProcessName     = last.ProcessName,
+                            ProcessPath     = last.ProcessPath,
+                            TrustReason     = mostSevere.TrustReason,
+                            Details         = mostSevere.Details,
+                            IsKnownScanner  = g.Any(x => x.IsKnownScanner),
+                            Country         = country,
+                            CountryCode     = countryCode,
+                            Isp             = isp,
+                            IsOutbound      = last.IsOutbound
                         };
                     })
                     .OrderByDescending(x => x.LastSeen)

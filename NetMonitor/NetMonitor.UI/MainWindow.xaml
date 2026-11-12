@@ -631,6 +631,27 @@
             </Style.Triggers>
         </Style>
 
+        <DataTemplate x:Key="TrafficDirectionTemplate">
+            <TextBlock FontSize="16" FontWeight="Bold"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       ToolTip="{Binding TrafficDirectionTooltip}">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <!-- Par défaut : entrant (▼, bleu) -->
+                        <Setter Property="Text" Value="▼"/>
+                        <Setter Property="Foreground" Value="#4CC2FF"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsOutbound}" Value="True">
+                                <!-- Sortant (▲, ambre) -->
+                                <Setter Property="Text" Value="▲"/>
+                                <Setter Property="Foreground" Value="#FFB900"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+        </DataTemplate>
+
     </Window.Resources>
 
     <Grid>
@@ -806,6 +827,7 @@
                             </DataGrid.RowStyle>
                             
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
@@ -1034,6 +1056,7 @@
                             </DataGrid.RowStyle>
                             
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
@@ -1241,6 +1264,7 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                                 <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="200" MinWidth="110">
@@ -1397,6 +1421,7 @@
                         </DataGrid.RowStyle>
 
                         <DataGrid.Columns>
+                            <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                             <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
@@ -1544,6 +1569,7 @@
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
@@ -1672,6 +1698,7 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130"/>
                                 

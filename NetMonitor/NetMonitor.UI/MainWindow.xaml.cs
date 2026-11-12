@@ -225,26 +225,27 @@ namespace NetMonitor.UI
 
                                 return new GroupedAlertRow
                                 {
-                                    RemoteIp  = g.Key,
-                                    FirstSeen = g.Min(x => x.timestamp),
-                                    LastSeen  = g.Max(x => x.timestamp),
-                                    Severity  = mostSevere.severity ?? "Info",
-                                    Detectors = string.Join(", ", g.Select(x => x.source).Distinct().OrderBy(x => x)),
-                                    Message   = mostRecent.message ?? "",
-                                    Count     = g.Count(),
-                                    RemotePortsDisplay = string.Join(", ",
+                                    IsOutbound          = mostRecent.isOutbound,                                
+                                    RemoteIp            = g.Key,
+                                    FirstSeen           = g.Min(x => x.timestamp),
+                                    LastSeen            = g.Max(x => x.timestamp),
+                                    Severity            = mostSevere.severity ?? "Info",
+                                    Detectors           = string.Join(", ", g.Select(x => x.source).Distinct().OrderBy(x => x)),
+                                    Message             = mostRecent.message ?? "",
+                                    Count               = g.Count(),
+                                    RemotePortsDisplay  = string.Join(", ",
                                         g.Select(x => x.remotePort)
                                          .Where(p => p > 0)
                                          .Distinct()
                                          .OrderBy(p => p)
                                          .Take(5))
                                         is { Length: > 0 } s ? s : "-",
-                                    Pid         = mostRecent.pid,
-                                    ProcessName = mostRecent.processName,
-                                    ProcessPath = mostRecent.processPath,
-                                    TrustReason = mostRecent.trustReason,
-                                    Details     = mostRecent.details,
-                                    IsKnownScanner = mostRecent.isKnownScanner
+                                    Pid                 = mostRecent.pid,
+                                    ProcessName         = mostRecent.processName,
+                                    ProcessPath         = mostRecent.processPath,
+                                    TrustReason         = mostRecent.trustReason,
+                                    Details             = mostRecent.details,
+                                    IsKnownScanner      = mostRecent.isKnownScanner
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -311,6 +312,7 @@ namespace NetMonitor.UI
                                 .ThenByDescending(x => x.lastSeen)
                                 .Select(p => new PendingProcessRow
                                 {
+                                    IsOutbound  = false,
                                     ProcessPath = p.processPath,
                                     ProcessName = p.processName,
                                     TrustReason = p.trustReason,
@@ -341,6 +343,7 @@ namespace NetMonitor.UI
                         .OrderByDescending(x => x.BlockedAt)
                         .Select(b => new BlockedIpRow
                         {
+                            IsOutbound          = b.IsOutbound,
                             Ip                  = b.Ip,
                             BlockedAt           = b.BlockedAt.ToLocalTime(),
                             Source              = b.Source,
@@ -375,6 +378,7 @@ namespace NetMonitor.UI
                         .Take(500)
                         .Select(a => new AlertRow
                         {
+                            IsOutbound      = a.isOutbound,
                             Timestamp       = a.timestamp.ToLocalTime(),
                             Severity        = a.severity ?? "",
                             Source          = a.source ?? "",
@@ -412,6 +416,7 @@ namespace NetMonitor.UI
                     _allAuditGrouped = audit
                         .Select(a => new AuditGroupedRow
                         {
+                            IsOutbound      = a.IsOutbound,
                             FirstSeen       = a.FirstSeen.ToLocalTime(),
                             LastSeen        = a.LastSeen.ToLocalTime(),
                             Count           = a.Count,
@@ -464,16 +469,17 @@ namespace NetMonitor.UI
                     {
                         _blockedRetries.Add(new BlockedIpRetryRow
                         {
-                            Ip = r.Ip,
-                            OriginalDetector = r.OriginalDetector,
-                            BlockedAt = r.BlockedAt.ToLocalTime(),
-                            FirstRetryAt = r.FirstRetryAt.ToLocalTime(),
-                            LastRetryAt = r.LastRetryAt.ToLocalTime(),
-                            RetryCount = r.RetryCount,
-                            Severity = r.Severity,
-                            Country = r.Country,           
-                            CountryCode = r.CountryCode,   
-                            Isp = r.Isp                    
+                            IsOutbound          = r.IsOutbound,
+                            Ip                  = r.Ip,
+                            OriginalDetector    = r.OriginalDetector,
+                            BlockedAt           = r.BlockedAt.ToLocalTime(),
+                            FirstRetryAt        = r.FirstRetryAt.ToLocalTime(),
+                            LastRetryAt         = r.LastRetryAt.ToLocalTime(),
+                            RetryCount          = r.RetryCount,
+                            Severity            = r.Severity,
+                            Country             = r.Country,           
+                            CountryCode         = r.CountryCode,   
+                            Isp                 = r.Isp                    
                         });
                     }
 
@@ -2687,15 +2693,16 @@ namespace NetMonitor.UI
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
+        public bool IsOutbound      { get; set; }        
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
 
-        public string CountryDisplay =>
-            string.IsNullOrWhiteSpace(Country)     ? "-" :
+        public string CountryDisplay            => string.IsNullOrWhiteSpace(Country)     ? "-" :
             string.IsNullOrWhiteSpace(CountryCode) ? Country :
             $"{Country} ({CountryCode})";
 
-        public string IspDisplay => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
-        
-        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
+        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;                
+        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
 
         public string ProcessDisplay
         {
@@ -2707,17 +2714,14 @@ namespace NetMonitor.UI
             }
         }
 
-        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
+        public string PidDisplay            => Pid > 0 ? Pid.ToString() : "-";
 
-        public string ProcessNameDisplay =>
-            string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessNameDisplay    => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
 
-        public string ProcessPathDisplay =>
-            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
-            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string ProcessPathDisplay    => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length             <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
 
-        public string TrustReasonDisplay =>
-            string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string TrustReasonDisplay    => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
 
         public string DetailsDisplay
         {
@@ -2737,31 +2741,28 @@ namespace NetMonitor.UI
 
     public class BlockedIpRow
     {
-        public string Ip            { get; set; } = "";
-        public DateTime BlockedAt   { get; set; }
-        public string BlockedAtText => BlockedAt.ToString("dd/MM/yyyy HH:mm:ss");
-        public string Source        { get; set; } = "";
-        public string Message       { get; set; } = "";
-        public string? Details      { get; set; }
-        public string Severity      { get; set; } = "-";
-
-        public bool IsProcess       { get; set; }
-        public string? ProcessPath  { get; set; }
-
-        public string TypeDisplay => IsProcess ? "Processus" : "IP";
-        public string IpDisplay => IsProcess ? (ProcessPath ?? Ip) : Ip;
-
-        public string? ManualSeverity { get; set; }
-        public DateTime? ManualSeveritySetAt { get; set; }
-        public bool HasManualSeverity => !string.IsNullOrEmpty(ManualSeverity);
-
-        public bool IsKnownScanner { get; set; }
-        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
-
-        // NOUVEAU : Pays / FAI
-        public string? Country      { get; set; }
-        public string? CountryCode  { get; set; }
-        public string? Isp          { get; set; }
+        public string Ip                        { get; set; } = "";
+        public DateTime BlockedAt               { get; set; }
+        public string BlockedAtText             => BlockedAt.ToString("dd/MM/yyyy HH:mm:ss");        
+        public string Source                    { get; set; } = "";
+        public string Message                   { get; set; } = "";
+        public string? Details                  { get; set; }
+        public string Severity                  { get; set; } = "-";
+        public bool IsProcess                   { get; set; }
+        public string? ProcessPath              { get; set; }
+        public string TypeDisplay               => IsProcess ? "Processus" : "IP";
+        public string IpDisplay                 => IsProcess ? (ProcessPath ?? Ip) : Ip;
+        public string? ManualSeverity           { get; set; }
+        public DateTime? ManualSeveritySetAt    { get; set; }
+        public bool HasManualSeverity           => !string.IsNullOrEmpty(ManualSeverity);
+        public bool IsKnownScanner              { get; set; }
+        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
+        public string? Country                  { get; set; }
+        public string? CountryCode              { get; set; }
+        public string? Isp                      { get; set; }
+        public bool IsOutbound                  { get; set; }
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";        
 
         public string CountryDisplay
         {
@@ -2788,7 +2789,7 @@ namespace NetMonitor.UI
     public class ConnectionRow
     {
         public DateTime Timestamp       { get; set; }
-        public string TimestampText => Timestamp.ToString("HH:mm:ss");
+        public string TimestampText     => Timestamp.ToString("HH:mm:ss");
         public string Protocol          { get; set; } = "";
         public string LocalEndpoint     { get; set; } = "";
         public string RemoteEndpoint    { get; set; } = "";
@@ -2798,40 +2799,34 @@ namespace NetMonitor.UI
 
     public class GroupedAlertRow
     {
-        public DateTime FirstSeen           { get; set; }
-        public DateTime LastSeen            { get; set; }
-        public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
-        public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
-        public string Severity              { get; set; } = "";
-        public string Detectors             { get; set; } = "";
-        public string? RemoteIp             { get; set; }
-        public string Message               { get; set; } = "";
-        public int Count                    { get; set; }
-        public string RemotePortsDisplay    { get; set; } = "-";
-        public string? Details              { get; set; }
-        public int Pid                      { get; set; }
-        public string? ProcessName          { get; set; }
-        public string? ProcessPath          { get; set; }
-        public string? TrustReason          { get; set; }
-        public bool IsKnownScanner          { get; set; }
-        
-        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;
+        public DateTime FirstSeen               { get; set; }
+        public DateTime LastSeen                { get; set; }
+        public string LastSeenText              => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string FirstSeenText             => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string Severity                  { get; set; } = "";
+        public string Detectors                 { get; set; } = "";
+        public string? RemoteIp                 { get; set; }
+        public string Message                   { get; set; } = "";
+        public int Count                        { get; set; }
+        public string RemotePortsDisplay        { get; set; } = "-";
+        public string? Details                  { get; set; }
+        public int Pid                          { get; set; }
+        public string? ProcessName              { get; set; }
+        public string? ProcessPath              { get; set; }
+        public string? TrustReason              { get; set; }
+        public bool IsKnownScanner              { get; set; }
+        public bool IsOutbound                  { get; set; }
 
-        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
-
-        public string ProcessNameDisplay =>
-            string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
-
-        public string ProcessPathDisplay =>
-            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
-            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
-
-        public string TrustReasonDisplay =>
-            string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
-
-        public string CountClass => Count >= 10 ? "c10" :
-                                     Count >= 5  ? "c5"  :
-                                     Count >= 2  ? "c2"  : "c1";
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
+        public string PidDisplay                => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay        => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay        => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length                 <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay        => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string CountClass                =>  Count     >= 10 ? "c10" :
+                                                    Count     >= 5  ? "c5"  :
+                                                    Count     >= 2  ? "c2"  : "c1";
 
         public string DetailsDisplay
         {
@@ -2883,75 +2878,75 @@ namespace NetMonitor.UI
     
     public class PendingProcessRow
     {
-        public string ProcessPath   { get; set; } = "";
-        public string ProcessName   { get; set; } = "";
-        public string? TrustReason  { get; set; }
-        public string? RemoteIp     { get; set; }
-        public int RemotePort       { get; set; }
-        public int Pid              { get; set; }
-        public DateTime FirstSeen   { get; set; }
-        public DateTime LastSeen    { get; set; }
-        public int Count            { get; set; }
-        public string Severity      { get; set; } = "";
-        public string? Detector     { get; set; }
-
-        public string LastSeenText => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
-        public string FirstSeenText => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
-        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
-        public string ProcessNameDisplay => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
-        public string ProcessPathDisplay =>
-            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
-            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
-        public string TrustReasonDisplay => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
-        public string RemoteEndPoint => $"{RemoteIp}:{RemotePort}";
-        public string ProcessLookupUrl =>
-        string.IsNullOrWhiteSpace(ProcessName) ? "" :
-        $"https://www.google.com/search?q={Uri.EscapeDataString(ProcessName)}+exe+windows+process";
-
-        public string CountClass => Count >= 10 ? "c10" :
-                                     Count >= 5  ? "c5"  :
-                                     Count >= 2  ? "c2"  : "c1";
+        public string ProcessPath               { get; set; } = "";
+        public string ProcessName               { get; set; } = "";
+        public string? TrustReason              { get; set; }
+        public string? RemoteIp                 { get; set; }
+        public int RemotePort                   { get; set; }
+        public int Pid                          { get; set; }
+        public DateTime FirstSeen               { get; set; }
+        public DateTime LastSeen                { get; set; }
+        public int Count                        { get; set; }
+        public string Severity                  { get; set; } = "";
+        public string? Detector                 { get; set; }
+        public bool IsOutbound                  { get; set; }
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";        
+        public string LastSeenText              => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string FirstSeenText             => FirstSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
+        public string PidDisplay                => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay        => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay        => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length                 <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay        => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string RemoteEndPoint            => $"{RemoteIp}:{RemotePort}";
+        public string ProcessLookupUrl          => string.IsNullOrWhiteSpace(ProcessName) ? "" : $"https://www.google.com/search?q={Uri.EscapeDataString(ProcessName)}+exe+windows+process";
+        public string CountClass                =>  Count >= 10 ? "c10" :
+                                                    Count >= 5  ? "c5"  :
+                                                    Count >= 2  ? "c2"  : "c1";
                                      
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
-        public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";
-        public bool IsKnownScanner => false;
-        public string BadgeText => Severity;                                             
+        public bool HasManualSeverity           => false;
+        public string ManualSeverityTooltip     => "";
+        public bool IsKnownScanner              => false;
+        public string BadgeText                 => Severity;                                             
     }
     
     public class BlockedIpRetryRow
     {
-        public string Ip                { get; set; } = "";
-        public string OriginalDetector  { get; set; } = "-";
-        public DateTime BlockedAt       { get; set; }
-        public DateTime FirstRetryAt    { get; set; }
-        public DateTime LastRetryAt     { get; set; }
-        public int RetryCount           { get; set; }
-        public string Severity          { get; set; } = "-";
-        public string? Country          { get; set; }
-        public string? CountryCode      { get; set; }
-        public string? Isp              { get; set; }
+        public string Ip                        { get; set; } = "";
+        public string OriginalDetector          { get; set; } = "-";
+        public DateTime BlockedAt               { get; set; }
+        public DateTime FirstRetryAt            { get; set; }
+        public DateTime LastRetryAt             { get; set; }
+        public int RetryCount                   { get; set; }
+        public string Severity                  { get; set; } = "-";
+        public string? Country                  { get; set; }
+        public string? CountryCode              { get; set; }
+        public string? Isp                      { get; set; }
+        public bool IsOutbound                  { get; set; }
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
 
-        public string CountryDisplay =>
+        public string CountryDisplay    =>
             string.IsNullOrWhiteSpace(Country)     ? "-" :
             string.IsNullOrWhiteSpace(CountryCode) ? Country :
             $"{Country} ({CountryCode})";
 
-        public string IspDisplay => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
+        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
+        public string BlockedAtText             => BlockedAt.ToString("dd/MM HH:mm:ss");
+        public string FirstRetryAtText          => FirstRetryAt.ToString("dd/MM HH:mm:ss");
+        public string LastRetryAtText           => LastRetryAt.ToString("dd/MM HH:mm:ss");
 
-        public string BlockedAtText => BlockedAt.ToString("dd/MM HH:mm:ss");
-        public string FirstRetryAtText => FirstRetryAt.ToString("dd/MM HH:mm:ss");
-        public string LastRetryAtText => LastRetryAt.ToString("dd/MM HH:mm:ss");
-
-        public string CountClass => RetryCount >= 10 ? "c10" :
-                                     RetryCount >= 5  ? "c5"  :
-                                     RetryCount >= 2  ? "c2"  : "c1";
+        public string CountClass                =>  RetryCount >= 10 ? "c10" :
+                                                    RetryCount >= 5  ? "c5"  :
+                                                    RetryCount >= 2  ? "c2"  : "c1";
 
         // Stubs pour le SeverityBadgeTemplate
-        public bool IsKnownScanner => false;
-        public string BadgeText => Severity;
-        public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";
+        public bool IsKnownScanner              => false;
+        public string BadgeText                 => Severity;
+        public bool HasManualSeverity           => false;
+        public string ManualSeverityTooltip     => "";
     }
     
     public class WhitelistEntryRow
@@ -2977,23 +2972,27 @@ namespace NetMonitor.UI
     
     public class AuditGroupedRow
     {
-        public DateTime FirstSeen   { get; set; }
-        public DateTime LastSeen    { get; set; }
-        public int Count            { get; set; }
-        public string Severity      { get; set; } = "";
-        public string Source        { get; set; } = "";
-        public string? RemoteIp     { get; set; }
-        public int RemotePort       { get; set; }
-        public int LocalPort        { get; set; }
-        public int Pid              { get; set; }
-        public string? ProcessName  { get; set; }
-        public string? ProcessPath  { get; set; }
-        public string? TrustReason  { get; set; }
-        public string? Details      { get; set; }
-        public bool IsKnownScanner  { get; set; }
-        public string? Country      { get; set; }
-        public string? CountryCode  { get; set; }
-        public string? Isp          { get; set; }
+        public DateTime FirstSeen               { get; set; }
+        public DateTime LastSeen                { get; set; }
+        public int Count                        { get; set; }
+        public string Severity                  { get; set; } = "";
+        public string Source                    { get; set; } = "";
+        public string? RemoteIp                 { get; set; }
+        public int RemotePort                   { get; set; }
+        public int LocalPort                    { get; set; }
+        public int Pid                          { get; set; }
+        public string? ProcessName              { get; set; }
+        public string? ProcessPath              { get; set; }
+        public string? TrustReason              { get; set; }
+        public string? Details                  { get; set; }
+        public bool IsKnownScanner              { get; set; }
+        public string? Country                  { get; set; }
+        public string? CountryCode              { get; set; }
+        public string? Isp                      { get; set; }
+        public bool IsOutbound                  { get; set; }
+        public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
+
 
         public string CountryDisplay =>
             string.IsNullOrWhiteSpace(Country)     ? "-" :
@@ -3005,19 +3004,18 @@ namespace NetMonitor.UI
         public string FirstSeenText => FirstSeen.ToString("dd/MM HH:mm:ss");
         public string LastSeenText => LastSeen.ToString("dd/MM HH:mm:ss");
 
-        public string PidDisplay => Pid > 0 ? Pid.ToString() : "-";
-        public string ProcessNameDisplay => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
-        public string ProcessPathDisplay =>
-            string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
-            ProcessPath.Length <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
-        public string TrustReasonDisplay => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string PidDisplay            => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay    => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay    => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length             <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay    => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
         public string DetailsDisplay =>
             string.IsNullOrWhiteSpace(Details) ? "-" :
             Details.Length <= 120 ? Details : Details.Substring(0, 117) + "…";
 
-        public string CountClass => Count >= 10 ? "c10" :
-                                     Count >= 5  ? "c5"  :
-                                     Count >= 2  ? "c2"  : "c1";
+        public string CountClass            =>  Count >= 10 ? "c10" :
+                                                Count >= 5  ? "c5"  :
+                                                Count >= 2  ? "c2"  : "c1";
 
         // Clé stable pour restaurer la sélection après refresh
         public string GroupKey =>

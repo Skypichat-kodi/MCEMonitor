@@ -17,8 +17,6 @@ public sealed class IntrusionEvent
     public string? Country      { get; set; }
     public string? CountryCode  { get; set; }
     public string? Isp          { get; set; }    
-
-    // Marque les scanners de recherche connus (Shodan, Censys, Xpanse...) ---
-    // Permet un affichage "Subnet" (badge vert) sans changer la sévérité réelle (Warning).
-    public bool IsKnownScanner { get; set; }
+    public bool IsKnownScanner  { get; set; }
+    public bool IsOutbound      { get; set; }  
 }

@@ -226,7 +226,8 @@ namespace NetMonitor.Service.Ipc
                     isKnownScanner = a.IsKnownScanner,
                     country        = a.Country,
                     countryCode    = a.CountryCode,
-                    isp            = a.Isp           
+                    isp            = a.Isp,
+                    isOutbound     = a.IsOutbound,           
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -453,7 +454,8 @@ namespace NetMonitor.Service.Ipc
                     isKnownScanner  = a.IsKnownScanner,
                     country         = a.Country,
                     countryCode     = a.CountryCode,
-                    isp             = a.Isp
+                    isp             = a.Isp,
+                    isOutbound      = a.IsOutbound,
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -581,7 +583,8 @@ namespace NetMonitor.Service.Ipc
                     processPath     = a.ProcessPath,
                     trustReason     = a.TrustReason,                     
                     details         = a.Details,
-                    isKnownScanner  = a.IsKnownScanner
+                    isKnownScanner  = a.IsKnownScanner,
+                    isOutbound      = a.IsOutbound,
                 }).ToList();
                 IpcResponse.Json(server, projected);
             }
@@ -616,7 +619,8 @@ namespace NetMonitor.Service.Ipc
                     country        = a.Country,          
                     countryCode    = a.CountryCode,      
                     isp            = a.Isp,              
-                    groupKey       = a.GroupKey          
+                    groupKey       = a.GroupKey,
+                    isOutbound     = a.IsOutbound,          
                 }).ToList();
 
                 IpcResponse.Json(server, projected);

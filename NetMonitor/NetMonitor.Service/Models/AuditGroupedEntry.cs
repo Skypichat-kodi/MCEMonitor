@@ -22,6 +22,7 @@ namespace NetMonitor.Service.Models
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
+        public bool IsOutbound      { get; set; }
         
         public string GroupKey =>
             $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";                
