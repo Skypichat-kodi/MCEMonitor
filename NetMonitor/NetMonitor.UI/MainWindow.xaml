@@ -179,6 +179,8 @@
         <SolidColorBrush x:Key="DotCritical" Color="#FF6347"/>
         <SolidColorBrush x:Key="DotWarning"  Color="#FFB900"/>
         <SolidColorBrush x:Key="DotSubnet"   Color="#6CCB5F"/>
+        <SolidColorBrush x:Key="DotBot"      Color="#5BC0EB"/>
+        <SolidColorBrush x:Key="DotCrawler"  Color="#1E88E5"/>
 
         <!-- Style de CheckBox avec une pastille colorée -->
         <Style x:Key="ColoredCheckBox" TargetType="CheckBox">
@@ -2330,13 +2332,13 @@
                                           
                                 <CheckBox x:Name="chkBlockBots"
                                           Style="{StaticResource ColoredCheckBox}"
-                                          Tag="#5BC0EB"
+                                          Tag="{StaticResource DotBot}"
                                           Content="Bloquer les robots officiels (Googlebot, Bingbot...)"
                                           Margin="0,0,0,8"/>
 
                                 <CheckBox x:Name="chkBlockCrawlers"
                                           Style="{StaticResource ColoredCheckBox}"
-                                          Tag="#1E88E5"
+                                          Tag="{StaticResource DotCrawler}"
                                           Content="Bloquer les robots génériques (Yandex, Baidu...)"
                                           Margin="0,0,0,8"/>
 
