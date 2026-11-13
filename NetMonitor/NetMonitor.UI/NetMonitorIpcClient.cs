@@ -470,7 +470,18 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand("restart-computer"));
             
         public static async Task<bool> ClearAllBlockedIpsAsync()
-            => IsOk(await SendCommand("clear-all-blocked"));
+        {
+            // Opération lente (PowerShell + firewall) → timeout 60s
+            await _ipcLock.WaitAsync();
+            try
+            {
+                using var cts = new CancellationTokenSource(60000);
+                string? json = await SendCommandInternal("clear-all-blocked", cts.Token);
+                return IsOk(json);
+            }
+            catch { return false; }
+            finally { _ipcLock.Release(); }
+        }
             
         public static async Task<bool> MarkSafeAsync(string ip)
             => IsOk(await SendCommand($"mark-safe {ip}"));

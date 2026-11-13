@@ -173,15 +173,19 @@ namespace NetMonitor.Service.Ipc
 
         private void HandleClearAllBlocked(NamedPipeServerStream server)
         {
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 bool ok = _engine.ClearAllBlockedIps();
-                IpcResponse.Json(server, new { status = ok ? "ok" : "error", cleared = ok });
+                sw.Stop();
+                CoreLog.Info($"[CLEAR-ALL] Terminé en {sw.ElapsedMilliseconds} ms");
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", cleared = ok, elapsedMs = sw.ElapsedMilliseconds });
             }
             catch (Exception ex)
             {
-                CoreLog.Error("HandleClearAllBlocked : " + ex.Message);
-                IpcResponse.Error(server, ex.Message);
+                sw.Stop();
+                CoreLog.Error($"HandleClearAllBlocked ({sw.ElapsedMilliseconds} ms) : " + ex.Message);
+                try { IpcResponse.Error(server, ex.Message); } catch { }
             }
         }
         

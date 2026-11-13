@@ -1098,7 +1098,6 @@ namespace NetMonitor.Service
             int removedCount;
             lock (_alertsLock)
             {
-                // On retire uniquement les IPs (pas les processus)
                 removedCount = _blockedIps.RemoveAll(b => !b.IsProcess);
                 _autoBlockedTempIps.Clear();
             }
@@ -1109,25 +1108,25 @@ namespace NetMonitor.Service
                 return true;
             }
 
-            // Resynchronisation du pare-feu avec les IPs restantes (généralement vide)
+            CoreLog.Info($"[CLEAR-ALL] {removedCount} IP(s) retirée(s) de la liste interne — nettoyage du pare-feu…");
+
+            // ⚠ On garde la synchro pour être sûr que le pare-feu est propre avant de répondre.
+            //   Mais on évite le double appel DeleteAllBlockRules + SyncFirewallRules.
             var remainingIps = GetBlockedIps()
                 .Where(b => !b.IsProcess)
                 .Select(b => b.Ip)
                 .ToList();
 
-            // Force la suppression de TOUTES les règles NetMonitor-Block-*, même orphelines
+            // DeleteAllBlockRules supprime TOUTES les règles NetMonitor-Block-*
+            // SyncFirewallRules reconstruit seulement ce qui reste (normalement vide)
             FirewallHelper.DeleteAllBlockRules();
-            
             bool syncOk = FirewallHelper.SyncFirewallRules(remainingIps);
 
-            // Purge des compteurs de tentatives (ils n'ont plus de sens)
             _blockedIpRetries.Clear();
             SaveBlockedIpRetries();
-
             SaveBlockedIps();
 
-            CoreLog.Info($"[CLEAR-ALL] {removedCount} IP(s) libérée(s) du pare-feu " +
-                         $"(sync: {(syncOk ? "OK" : "ÉCHEC")})");
+            CoreLog.Info($"[CLEAR-ALL] {removedCount} IP(s) libérée(s) du pare-feu (sync: {(syncOk ? "OK" : "ÉCHEC")})");
 
             return syncOk;
         }
