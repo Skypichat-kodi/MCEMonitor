@@ -473,6 +473,8 @@ namespace NetMonitor.Service
 
         public void Stop()
         {
+            CoreLog.Write("NetMonitorEngine.Stop() : démarrage de l'arrêt propre");     
+        
             _threatIntel?.Stop();
             _msRanges?.Stop();
             

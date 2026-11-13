@@ -78,12 +78,11 @@ namespace NetMonitor.UI.Controls
             UpdateSeverityChart(ChartSeverity, stats.SeverityDistribution);
             UpdateDetectorsChart(ChartDetectors, stats.TopDetectors);
 
-            // ⚠ L'activité par heure/jour est maintenant gérée par UpdateActivitySeries()
-            // appelée depuis MainWindow.ApplyGranularity(). On garde un fallback :
-            if (stats.ActivityByGranularity.TryGetValue(TimeGranularity.Hour, out var hourBuckets))
-                UpdateActivitySeries(hourBuckets, TimeGranularity.Hour);
-            else
-                UpdateHoursChart(ChartHours, stats.ActivityByHour);   // rétrocompat
+            // ⚠ Le graphique "Activité par période" (ChartHours) est géré EXCLUSIVEMENT
+            // par MainWindow.ApplyGranularity() → UpdateActivitySeries(), en fonction
+            // de la granularité choisie par l'utilisateur (Heure/Jour/Semaine/Mois/Année).
+            // Ne PAS l'écraser ici avec Hour, sinon la sélection utilisateur est perdue
+            // à chaque refresh.
 
             UpdateDaysChart(ChartDays, stats.ActivityByDay);          // répartition hebdo conservée
         }

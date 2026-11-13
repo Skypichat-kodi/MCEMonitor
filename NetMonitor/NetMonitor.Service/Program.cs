@@ -98,9 +98,25 @@ namespace NetMonitor.Service
 
             if (!createdNew)
             {
-                CoreLog.Write("NetMonitor.Service déjà en cours. Sortie.");
+                CoreLog.Write("NetMonitor.Service déja en cours. Sortie.");
                 return;
             }
+
+            // --------------------------------------------------------
+            //  Cleanup à l'arrêt du process (Environment.Exit, sc stop,
+            //  Ctrl+C, arrêt normal du wrapper…).
+            //  ? ProcessExit a un timeout court (~2s) : ne pas y faire
+            //    d'opération longue. Chaque Stop() doit être rapide.
+            // --------------------------------------------------------
+            AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+            {
+                CoreLog.Write("=== Arrêt du service : cleanup en cours ===");
+                try { _engine?.Stop(); } catch (Exception ex) { CoreLog.Error($"Stop engine : {ex.Message}"); }
+                try { _ipc?.Stop(); } catch (Exception ex) { CoreLog.Error($"Stop IPC : {ex.Message}"); }
+                try { _webServer?.Stop(); } catch (Exception ex) { CoreLog.Error($"Stop web : {ex.Message}"); }
+                try { _otpPurgeTimer?.Dispose(); } catch { }
+                CoreLog.Write("=== Nettoyage terminé ===");
+            };
 
             NetMonitor.Service.Web.PeerStatusService.StartBackgroundRefresh("NetMonitor");
             

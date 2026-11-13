@@ -2,7 +2,7 @@
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Changer la sévérité"
-        Width="420" Height="480"
+        Width="420" Height="680"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
         Background="#1E1E1E"
@@ -40,6 +40,42 @@
                             CornerRadius="3" Margin="0,0,10,0"/>
                     <TextBlock Text="Warning" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text=" — À vérifier" FontSize="11" Opacity="0.7"
+                               Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </RadioButton>
+
+            <!-- ToCheck (magenta) -->
+            <RadioButton x:Name="RbToCheck" GroupName="Sev" Tag="ToCheck"
+                         Margin="0,4" Foreground="#E5E5E5">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="16" Height="16" Background="#E91E63"
+                            CornerRadius="3" Margin="0,0,10,0"/>
+                    <TextBlock Text="ToCheck" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text=" — En attente de vérification" FontSize="11" Opacity="0.7"
+                               Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </RadioButton>
+
+            <!-- Crawler (bleu foncé) -->
+            <RadioButton x:Name="RbCrawler" GroupName="Sev" Tag="Crawler"
+                         Margin="0,4" Foreground="#E5E5E5">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="16" Height="16" Background="#1E88E5"
+                            CornerRadius="3" Margin="0,0,10,0"/>
+                    <TextBlock Text="Crawler" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text=" — Robot d'exploration générique" FontSize="11" Opacity="0.7"
+                               Margin="6,0,0,0" VerticalAlignment="Center"/>
+                </StackPanel>
+            </RadioButton>
+
+            <!-- Bot (bleu clair) -->
+            <RadioButton x:Name="RbBot" GroupName="Sev" Tag="Bot"
+                         Margin="0,4" Foreground="#E5E5E5">
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="16" Height="16" Background="#5BC0EB"
+                            CornerRadius="3" Margin="0,0,10,0"/>
+                    <TextBlock Text="Bot" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text=" — Robot officiel (Googlebot...)" FontSize="11" Opacity="0.7"
                                Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>
             </RadioButton>

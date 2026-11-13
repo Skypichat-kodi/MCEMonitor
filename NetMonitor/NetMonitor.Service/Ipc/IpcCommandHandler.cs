@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO.Pipes;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Ipc
@@ -18,7 +20,42 @@ namespace NetMonitor.Service.Ipc
 
         public void Handle(string command, NamedPipeServerStream server)
         {
-            // NOUVEAU : Interception de la commande Web
+            // ═══════════════════════════════════════════════════════════
+            //  Commandes *-b64 (payload JSON encodé en base64)
+            //  Résout les injections via | et & dans les valeurs libres
+            //  (messages, mots de passe, patterns…).
+            //  ⚠ Doivent être testées AVANT les commandes legacy.
+            // ═══════════════════════════════════════════════════════════
+            if (command.StartsWith("block-ip-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleBlockIpB64(command, server);
+                return;
+            }
+
+            if (command.StartsWith("set-web-config-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetWebConfigB64(command, server);
+                return;
+            }
+
+            if (command.StartsWith("add-pattern-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleAddPatternB64(command, server);
+                return;
+            }
+
+            if (command.StartsWith("set-manual-severity-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetManualSeverityB64(command, server);
+                return;
+            }
+
+            if (command.StartsWith("toggle-whitelist-entry-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleToggleWhitelistEntryB64(command, server);
+                return;
+            }
+
             if (command.StartsWith("set-web-config ", StringComparison.OrdinalIgnoreCase))
             {
                 HandleSetWebConfig(command, server);
@@ -171,6 +208,52 @@ namespace NetMonitor.Service.Ipc
             }
         }
 
+        /// <summary>
+        /// Décode un payload base64 → JSON, et retourne un JsonDocument prêt à l'emploi.
+        /// Retourne null en cas d'erreur (base64 invalide ou JSON mal formé).
+        /// </summary>
+        private static JsonDocument? TryDecodeB64Json(string base64Payload)
+        {
+            try
+            {
+                string json = Encoding.UTF8.GetString(Convert.FromBase64String(base64Payload));
+                return JsonDocument.Parse(json);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[IPC-B64] Décodage échoué : {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Extrait une string d'un JsonElement (null si absent ou null JSON).
+        /// </summary>
+        private static string? GetJsonString(JsonElement root, string prop)
+        {
+            if (!root.TryGetProperty(prop, out var el)) return null;
+            if (el.ValueKind == JsonValueKind.Null) return null;
+            return el.GetString();
+        }
+
+        /// <summary>
+        /// Extrait un bool d'un JsonElement (défaut = false si absent).
+        /// </summary>
+        private static bool GetJsonBool(JsonElement root, string prop)
+        {
+            if (!root.TryGetProperty(prop, out var el)) return false;
+            return el.ValueKind == JsonValueKind.True;
+        }
+
+        /// <summary>
+        /// Extrait un int d'un JsonElement (0 si absent ou invalide).
+        /// </summary>
+        private static int GetJsonInt(JsonElement root, string prop)
+        {
+            if (!root.TryGetProperty(prop, out var el)) return 0;
+            return el.TryGetInt32(out var val) ? val : 0;
+        }
+
         private void HandleClearAllBlocked(NamedPipeServerStream server)
         {
             var sw = System.Diagnostics.Stopwatch.StartNew();
@@ -301,9 +384,14 @@ namespace NetMonitor.Service.Ipc
                 blockCrawlers                   = _settings.BlockCrawlers,
                 crawlerPatterns                 = _settings.CrawlerPatterns,
 
-                // Scanners de recherche (Trusted) ---
+                // Scanners de recherche (Trusted)
                 ignoreSearchScanners     = _settings.IgnoreSearchScanners,
                 scannerPatterns          = _settings.ScannerPatterns,
+
+                // Patterns de classification (manquants avant → data loss au Save)
+                safePatterns             = _settings.SafePatterns,
+                criticalPatterns         = _settings.CriticalPatterns,
+                whitelistPatterns        = _settings.WhitelistPatterns,
             });
         }
 
@@ -569,6 +657,157 @@ namespace NetMonitor.Service.Ipc
                     IpcResponse.Json(server, new { status = "ok", blocked = true, ip });
                 else
                     IpcResponse.Json(server, new { status = "error", blocked = false, ip, message = error });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        //  Handlers *-b64 — payload JSON base64
+        //  Chaque méthode décode le payload et délègue à la même logique que
+        //  la version legacy, garantissant un comportement identique.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        private void HandleBlockIpB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("block-ip-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string ip        = GetJsonString(root, "ip") ?? "";
+                string? source   = GetJsonString(root, "source");
+                string? message  = GetJsonString(root, "message");
+                string? details  = GetJsonString(root, "details");
+                string? severity = GetJsonString(root, "severity");
+
+                // IPC = toujours action humaine → forceManual=true (comme la version legacy)
+                bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
+                                          isAutomatic: false,
+                                          forceManual: true);
+
+                if (ok)
+                    IpcResponse.Json(server, new { status = "ok", blocked = true, ip });
+                else
+                    IpcResponse.Json(server, new { status = "error", blocked = false, ip, message = error });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleSetWebConfigB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("set-web-config-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                bool enabled      = GetJsonBool(root, "enabled");
+                int port          = GetJsonInt(root, "port");
+                string username   = GetJsonString(root, "username") ?? "";
+                string password   = GetJsonString(root, "password") ?? "";
+
+                _settings.WebEnabled  = enabled;
+                _settings.WebPort     = port;
+                _settings.WebUsername = username;
+                _settings.WebPassword = password;
+
+                _settings.SaveWeb();
+                Program.RestartWebServer();
+
+                CoreLog.Write($"IPC : config WebServer mise à jour via b64 (enabled={enabled}, port={port})");
+                IpcResponse.Ok(server);
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleAddPatternB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("add-pattern-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string list  = GetJsonString(root, "list") ?? "";
+                string value = GetJsonString(root, "value") ?? "";
+
+                bool ok = _settings.AddPattern(list, value);
+
+                if (!ok)
+                {
+                    IpcResponse.Json(server, new { status = "error", list, value, message = "liste inconnue ou valeur vide" });
+                    return;
+                }
+
+                _engine.ReloadConfig();
+                int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
+
+                IpcResponse.Json(server, new
+                {
+                    status = "ok",
+                    list,
+                    value,
+                    reclassified,
+                    message = reclassified > 0
+                        ? $"{reclassified} IP(s) bloquée(s) mise(s) à jour"
+                        : "pattern ajouté (aucune IP existante affectée)"
+                });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleSetManualSeverityB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("set-manual-severity-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string ip = GetJsonString(root, "ip") ?? "";
+                string? sevStr = GetJsonString(root, "severity");
+
+                if (string.IsNullOrWhiteSpace(ip)) { IpcResponse.Error(server, "ip manquante"); return; }
+
+                // "auto" ou null → effacer l'override
+                if (string.IsNullOrWhiteSpace(sevStr) || sevStr.Equals("auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    bool ok = _engine.SetManualSeverity(ip, null);
+                    IpcResponse.Json(server, new { status = ok ? "ok" : "error", ip, manualSeverity = (string?)null });
+                    return;
+                }
+
+                if (!Enum.TryParse<Severity>(sevStr, ignoreCase: true, out var sev))
+                {
+                    IpcResponse.Error(server, "sévérité invalide");
+                    return;
+                }
+
+                bool ok2 = _engine.SetManualSeverity(ip, sev);
+                IpcResponse.Json(server, new { status = ok2 ? "ok" : "error", ip, manualSeverity = sev.ToString() });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
+        private void HandleToggleWhitelistEntryB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("toggle-whitelist-entry-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string path      = GetJsonString(root, "path") ?? "";
+                bool enabled     = GetJsonBool(root, "enabled");
+
+                bool ok = _engine.SetWhitelistEntryEnabled(path, enabled);
+                IpcResponse.Json(server, new { status = ok ? "ok" : "error", toggled = ok, path, enabled });
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }

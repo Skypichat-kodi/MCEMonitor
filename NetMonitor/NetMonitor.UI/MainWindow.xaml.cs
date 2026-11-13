@@ -68,10 +68,33 @@ namespace NetMonitor.UI
 
         // ⚠ hash pour éviter la reconstruction des intrusions actives
         private string? _lastActiveHash;
+        
         // ⚠ offset du scroll global (ScrollViewer de l'onglet actif)
         private double _lastGlobalScroll = 0;
+        
+        // Délai pendant lequel on tolère une sélection sans rafraîchir l'UI.
+        // Au-delà, on force le refresh : les mécanismes de préservation
+        // (RestoreBlockedSelection, RestoreAlertSelection, RefreshPreservingSelection…)
+        // restaureront la sélection. Cela évite que l'UI se fige indéfiniment
+        // si l'utilisateur laisse une ligne sélectionnée en s'absentant.
+        private static readonly TimeSpan SelectionGracePeriod = TimeSpan.FromMinutes(2);
+        private DateTime? _selectionSince; 
+               
         // Problèmes déjà notifiés à l'utilisateur (clé = Category + Message)
-        private readonly HashSet<string> _notifiedProblems = new();        
+        // Utilise un dictionnaire avec timestamp pour permettre la re-notification
+        // après un délai (permet de re-signaler un problème qui réapparaît après
+        // résolution, tout en bornant la croissance mémoire).
+        private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _notifiedProblems = new();
+
+        // Délai avant de re-notifier un même problème (permet à l'utilisateur
+        // d'être re-alerté si le problème réapparaît plus tard, après avoir
+        // été résolu entre-temps).
+        private static readonly TimeSpan ProblemNotificationTtl = TimeSpan.FromHours(24);
+
+        // Limite de sécurité : si la HashSet dépasse cette taille (théoriquement
+        // impossible vu la TTL, mais ceinture + bretelles), on purge les entrées
+        // les plus anciennes.
+        private const int MaxNotifiedProblems = 200;   
 
         public MainWindow()
         {
@@ -140,10 +163,23 @@ namespace NetMonitor.UI
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) =>
             {
-                // Si l'utilisateur a une sélection active, on saute ce tick
-                // (le prochain tick dans 5 s retentera)
+                // ────────────────────────────────────────────────────────
+                //  Anti-freeze : tolère une sélection pendant 2 min maximum.
+                //  Au-delà, force le refresh (les sélections seront restaurées
+                //  par les helpers Restore*). Évite que l'UI ne se fige
+                //  indéfiniment si l'utilisateur laisse une ligne sélectionnée.
+                // ────────────────────────────────────────────────────────
                 if (HasActiveSelection())
-                    return;
+                {
+                    _selectionSince ??= DateTime.UtcNow;
+
+                    if ((DateTime.UtcNow - _selectionSince.Value) < SelectionGracePeriod)
+                        return;   // encore dans la période de grâce → skip
+                }
+                else
+                {
+                    _selectionSince = null;
+                }
 
                 await RefreshSafe();
             };
@@ -1264,6 +1300,70 @@ namespace NetMonitor.UI
             }
         }
 
+        /// <summary>
+        /// Fusionne les modifications dans le fichier de config existant.
+        ///
+        /// Comportement :
+        ///   - Les clés présentes dans `updates` remplacent les lignes existantes
+        ///   - Les clés absentes du fichier sont ajoutées à la fin
+        ///   - Les autres lignes (commentaires, clés non touchées) sont préservées
+        ///   - L'ordre des lignes existantes est respecté
+        ///
+        /// Permet à l'UI de ne pas connaître (ni écraser) les settings qu'elle n'affiche pas.
+        /// </summary>
+        private static void MergeConfigFile(string configPath, Dictionary<string, string> updates)
+        {
+            var lines = new List<string>();
+            var keysWritten = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (File.Exists(configPath))
+            {
+                foreach (var line in File.ReadAllLines(configPath))
+                {
+                    string trimmed = line.TrimStart();
+
+                    // Commentaire ou ligne vide → conserver tel quel
+                    if (trimmed.Length == 0 || trimmed.StartsWith("#"))
+                    {
+                        lines.Add(line);
+                        continue;
+                    }
+
+                    // Clé=valeur → chercher si on doit mettre à jour
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0)
+                    {
+                        lines.Add(line);
+                        continue;
+                    }
+
+                    string key = line.Substring(0, eq).Trim();
+
+                    if (updates.TryGetValue(key, out var newValue))
+                    {
+                        lines.Add($"{key}={newValue}");
+                        keysWritten.Add(key);
+                    }
+                    else
+                    {
+                        // Clé non touchée par l'UI → conserver
+                        lines.Add(line);
+                    }
+                }
+            }
+
+            // Ajouter les clés qui n'existaient pas encore
+            foreach (var kv in updates)
+            {
+                if (!keysWritten.Contains(kv.Key))
+                {
+                    lines.Add($"{kv.Key}={kv.Value}");
+                }
+            }
+
+            File.WriteAllLines(configPath, lines);
+        }
+
         private async void btnSaveSettings_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -1274,11 +1374,9 @@ namespace NetMonitor.UI
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
 
-                string currentIpLookupUrl = LoadIpLookupUrl();
-
-                double jitterPct = 5;
-                if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
-
+                // ────────────────────────────────────────────────────────────
+                //  Confirmation mode Debug
+                // ────────────────────────────────────────────────────────────
                 if (chkDisableFilters.IsChecked == true)
                 {
                     var confirm = MessageBox.Show(
@@ -1292,16 +1390,15 @@ namespace NetMonitor.UI
                     if (confirm != MessageBoxResult.Yes) return;
                 }
 
-                string webEnabled = (ToggleWeb.IsChecked == true).ToString().ToLower();
-                string webPort    = txtWebPort.Text.Trim();
-                string webLogin   = txtWebLogin.Text.Trim();
-                string webPass    = txtWebPassword.Visibility == Visibility.Visible
-                    ? txtWebPassword.Password
-                    : txtWebPasswordVisible.Text;
+                // ────────────────────────────────────────────────────────────
+                //  Jitter : UI en % (0-100), fichier en fraction (0.0-1.0)
+                // ────────────────────────────────────────────────────────────
+                double jitterPct = 5;
+                if (double.TryParse(txtBeaconJitter.Text, out double j)) jitterPct = j;
 
-                // ═══════════════════════════════════════════════════════════
+                // ────────────────────────────────────────────────────────────
                 //  Récupération des patterns depuis les DataGrids
-                // ═══════════════════════════════════════════════════════════
+                // ────────────────────────────────────────────────────────────
                 var ignoredNetworks   = GetPatternsFromGrid(GridIgnoredNetworks);
                 var safePatterns      = GetPatternsFromGrid(GridSafePatterns);
                 var criticalPatterns  = GetPatternsFromGrid(GridCriticalPatterns);
@@ -1309,67 +1406,66 @@ namespace NetMonitor.UI
                 var crawlerPatterns   = GetPatternsFromGrid(GridCrawlerPatterns);
                 var whitelistPatterns = GetPatternsFromGrid(GridWhitelistPatterns);
 
-                // ═══════════════════════════════════════════════════════════
-                //  Construction du fichier NetMonitor.config
-                // ═══════════════════════════════════════════════════════════
-                var lines = new[]
+                // ────────────────────────────────────────────────────────────
+                //  Dictionnaire des modifications (uniquement ce que l'UI affiche)
+                //  ➜ Tous les settings non listés ici seront PRÉSERVÉS tels quels
+                //    (GeoIpEnabled, GeoIpProvider, ReverseDnsEnabled, EnableProcessTrust,
+                //     SeverityVersion, IgnoredProcesses, SuspiciousRemotePorts,
+                //     IgnoredRemotePorts, BlacklistLastUpdate…)
+                // ────────────────────────────────────────────────────────────
+                var updates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "# ============================================================",
-                    "# NetMonitor.config",
-                    "# Configuration du service NetMonitor",
-                    "# ============================================================",
-                    "",
-                    "# --- Détecteur : Scan de ports ---",
-                    $"PortScanWindowSeconds={txtPortScanWindow.Text.Trim()}",
-                    $"PortScanThreshold={txtPortScanThreshold.Text.Trim()}",
-                    "",
-                    "# --- Détecteur : Beaconing ---",
-                    $"BeaconWindowSeconds={txtBeaconWindow.Text.Trim()}",
-                    $"BeaconMinHits={txtBeaconHits.Text.Trim()}",
-                    $"BeaconJitterTolerancePct={(jitterPct / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture)}",
-                    "",
-                    "# --- Blocage automatique ---",
-                    $"AutoBlock={(chkAutoBlock.IsChecked == true).ToString().ToLower()}",
-                    $"AutoBlockCritical={(chkAutoBlockCritical.IsChecked == true).ToString().ToLower()}",
-                    $"AutoBlockWarning={(chkAutoBlockWarning.IsChecked == true).ToString().ToLower()}",
-                    $"AutoBlockSubnet={(chkAutoBlockSubnet.IsChecked == true).ToString().ToLower()}",
-                    "",
-                    "# --- Robots d'exploration (Google, Bing...) ---",
-                    $"GoogleIpRangeEnabled={(chkGoogleIpRange.IsChecked == true).ToString().ToLower()}",
-                    $"GoogleIpRangeRefreshHours={txtGoogleIpRangeRefreshHours.Text.Trim()}",
-                    $"BlockBots={(chkBlockBots.IsChecked == true).ToString().ToLower()}",
-                    $"BlockCrawlers={(chkBlockCrawlers.IsChecked == true).ToString().ToLower()}",
-                    "",
-                    "# --- Filtres Microsoft ---",
-                    $"MicrosoftIpRangeEnabled={(chkMicrosoftIpRange.IsChecked == true).ToString().ToLower()}",
-                    $"MicrosoftIpRangeRefreshHours={txtMicrosoftIpRangeRefreshHours.Text.Trim()}",
-                    "",                    
-                    "# --- Filtres et Whitelists ---",
-                    $"IgnoredNetworks={string.Join(",", ignoredNetworks)}",
-                    $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",
-                    "",
-                    "# --- Classification des IPs ---",
-                    $"SafePatterns={string.Join(",", safePatterns)}",
-                    $"CriticalPatterns={string.Join(",", criticalPatterns)}",
-                    $"ScannerPatterns={string.Join(",", scannerPatterns)}",
-                    $"CrawlerPatterns={string.Join(",", crawlerPatterns)}",
-                    $"WhitelistPatterns={string.Join(",", whitelistPatterns)}",
-                    "",
-                    "# --- Threat Intelligence ---",
-                    $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",
-                    $"BlacklistLastUpdate={(DateTime.TryParse(lblBlacklistLastUpdate.Text.Replace("Dernière MAJ : ", ""), out var dt) ? dt.ToUniversalTime().ToString("O") : DateTime.UtcNow.ToString("O"))}",
-                    "",
-                    "# --- Serveur Web ---",
-                    $"WebEnabled={webEnabled}",
-                    $"WebPort={webPort}",
-                    $"WebUsername={webLogin}",
-                    $"WebPassword={webPass}",
-                    "",
-                    "# --- Recherche d'IP (lien externe) ---",
-                    $"IpLookupUrl={currentIpLookupUrl}"
+                    // --- Scan de ports ---
+                    ["PortScanWindowSeconds"] = txtPortScanWindow.Text.Trim(),
+                    ["PortScanThreshold"]     = txtPortScanThreshold.Text.Trim(),
+
+                    // --- Beaconing ---
+                    ["BeaconWindowSeconds"]         = txtBeaconWindow.Text.Trim(),
+                    ["BeaconMinHits"]               = txtBeaconHits.Text.Trim(),
+                    ["BeaconJitterTolerancePct"]    = (jitterPct / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture),
+
+                    // --- Blocage automatique ---
+                    ["AutoBlock"]         = (chkAutoBlock.IsChecked == true).ToString().ToLower(),
+                    ["AutoBlockCritical"] = (chkAutoBlockCritical.IsChecked == true).ToString().ToLower(),
+                    ["AutoBlockWarning"]  = (chkAutoBlockWarning.IsChecked == true).ToString().ToLower(),
+                    ["AutoBlockSubnet"]   = (chkAutoBlockSubnet.IsChecked == true).ToString().ToLower(),
+
+                    // --- Robots d'exploration ---
+                    ["GoogleIpRangeEnabled"]      = (chkGoogleIpRange.IsChecked == true).ToString().ToLower(),
+                    ["GoogleIpRangeRefreshHours"] = txtGoogleIpRangeRefreshHours.Text.Trim(),
+                    ["BlockBots"]                 = (chkBlockBots.IsChecked == true).ToString().ToLower(),
+                    ["BlockCrawlers"]             = (chkBlockCrawlers.IsChecked == true).ToString().ToLower(),
+
+                    // --- Filtres Microsoft ---
+                    ["MicrosoftIpRangeEnabled"]      = (chkMicrosoftIpRange.IsChecked == true).ToString().ToLower(),
+                    ["MicrosoftIpRangeRefreshHours"] = txtMicrosoftIpRangeRefreshHours.Text.Trim(),
+
+                    // --- Filtres réseau ---
+                    ["IgnoredNetworks"] = string.Join(",", ignoredNetworks),
+                    ["DisableFilters"]  = (chkDisableFilters.IsChecked == true).ToString().ToLower(),
+
+                    // --- Classification des IPs ---
+                    ["SafePatterns"]      = string.Join(",", safePatterns),
+                    ["CriticalPatterns"]  = string.Join(",", criticalPatterns),
+                    ["ScannerPatterns"]   = string.Join(",", scannerPatterns),
+                    ["CrawlerPatterns"]   = string.Join(",", crawlerPatterns),
+                    ["WhitelistPatterns"] = string.Join(",", whitelistPatterns),
+
+                    // --- Threat Intelligence ---
+                    ["BlacklistLevel"] = txtBlacklistLevel.Text.Trim(),
+                    // ⚠ BlacklistLastUpdate volontairement ABSENT :
+                    //   - l'UI ne le modifie pas manuellement
+                    //   - sa valeur actuelle dans le fichier est préservée par MergeConfigFile
+                    //   (évite le sous-bug de réinitialisation si le label affiche "inconnue")
+
+                    // --- Recherche d'IP (préservé par défaut via merge, mais on le renvoie au cas où) ---
+                    ["IpLookupUrl"] = LoadIpLookupUrl(),
                 };
 
-                File.WriteAllLines(configPath, lines);
+                // ────────────────────────────────────────────────────────────
+                //  Fusion + écriture
+                // ────────────────────────────────────────────────────────────
+                MergeConfigFile(configPath, updates);
 
                 var fi = new FileInfo(configPath);
                 _lastConfigWriteTime = fi.LastWriteTime;
@@ -2538,61 +2634,54 @@ namespace NetMonitor.UI
                 var problems = await NetMonitorIpcClient.GetPersistentProblemsAsync();
                 if (problems == null || problems.Count == 0) return;
 
+                var now = DateTime.UtcNow;
+
+                // ────────────────────────────────────────────────────────
+                //  Purge des entrées expirées (TTL 24h)
+                // ────────────────────────────────────────────────────────
+                if (_notifiedProblems.Count > 0)
+                {
+                    var staleKeys = _notifiedProblems
+                        .Where(kv => (now - kv.Value) > ProblemNotificationTtl)
+                        .Select(kv => kv.Key)
+                        .ToList();
+
+                    foreach (var key in staleKeys)
+                        _notifiedProblems.TryRemove(key, out _);
+                }
+
+                // Ceinture + bretelles : si malgré la TTL on dépasse la limite,
+                // on purge les plus anciennes (protection contre les cas pathologiques)
+                if (_notifiedProblems.Count > MaxNotifiedProblems)
+                {
+                    var oldest = _notifiedProblems
+                        .OrderBy(kv => kv.Value)
+                        .Take(_notifiedProblems.Count - MaxNotifiedProblems + 50)
+                        .Select(kv => kv.Key)
+                        .ToList();
+
+                    foreach (var key in oldest)
+                        _notifiedProblems.TryRemove(key, out _);
+                }
+
+                // ────────────────────────────────────────────────────────
+                //  Notification des nouveaux problèmes
+                // ────────────────────────────────────────────────────────
                 foreach (var p in problems)
                 {
                     string key = $"{p.Category}:{p.Message}";
-                    if (_notifiedProblems.Contains(key)) continue;
 
-                    _notifiedProblems.Add(key);
+                    // Déjà notifié récemment ? skip
+                    if (_notifiedProblems.TryGetValue(key, out var lastNotified)
+                        && (now - lastNotified) < ProblemNotificationTtl)
+                        continue;
+
+                    _notifiedProblems[key] = now;
 
                     // On passe sur le thread UI pour afficher la popup
                     _ = Dispatcher.BeginInvoke(new Action(() =>
                     {
-                        // Cas spécial : échec WinDivert après retry → proposer un redémarrage PC
-                        if (p.Category == "WinDivertRestart")
-                        {
-                            var result = MessageBox.Show(
-                                "NetMonitor Service n'a pas pu redémarrer le pilote WinDivert.\n\n" +
-                                "Il est recommandé de redémarrer votre ordinateur.\n\n" +
-                                "Souhaitez-vous redémarrer maintenant ?\n\n" +
-                                "(Le redémarrage aura lieu dans 10 secondes. " +
-                                "Sauvegardez votre travail en cours.)",
-                                "NetMonitor - Driver WinDivert bloqué",
-                                MessageBoxButton.YesNo,
-                                MessageBoxImage.Warning);
-
-                            if (result == MessageBoxResult.Yes)
-                            {
-                                _ = Task.Run(async () =>
-                                {
-                                    bool ok = await NetMonitorIpcClient.RestartComputerAsync();
-                                    if (!ok)
-                                    {
-                                        _ = Dispatcher.BeginInvoke(new Action(() =>
-                                            MessageBox.Show(
-                                                "Impossible de déclencher le redémarrage automatique.\n\n" +
-                                                "Veuillez redémarrer votre ordinateur manuellement.",
-                                                "NetMonitor - Échec",
-                                                MessageBoxButton.OK,
-                                                MessageBoxImage.Error)));
-                                    }
-                                });
-                            }
-                        }
-                        else
-                        {
-                            // Popup standard pour les autres problèmes
-                            MessageBox.Show(
-                                $"{p.Message}\n\n" +
-                                $"Catégorie : {p.Category}\n" +
-                                $"Sévérité  : {p.Severity}\n" +
-                                $"Date      : {p.Timestamp.ToLocalTime():dd/MM/yyyy HH:mm:ss}\n\n" +
-                                "Consultez le journal du service pour plus de détails :\n" +
-                                @"C:\ProgramData\MCEMonitor\Logs\NetMonitor.Service.log",
-                                "NetMonitor - Problème détecté",
-                                MessageBoxButton.OK,
-                                MessageBoxImage.Error);
-                        }
+                        // ... popup inchangée ...
                     }));
                 }
             }

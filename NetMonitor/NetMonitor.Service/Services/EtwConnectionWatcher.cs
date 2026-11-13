@@ -138,7 +138,8 @@ public sealed class EtwConnectionWatcher : IDisposable
         try { _session?.Stop(); }
         catch (Exception ex) { CoreLog.Warn($"ETW stop : {ex.Message}"); }
 
-        _processingThread?.Join(TimeSpan.FromSeconds(5));
+        // Timeout réduit pour rester dans la fenêtre ProcessExit
+        _processingThread?.Join(TimeSpan.FromSeconds(1));
     }
 
     public void Dispose()

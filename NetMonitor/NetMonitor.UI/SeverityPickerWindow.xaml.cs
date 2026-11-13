@@ -42,6 +42,9 @@ namespace NetMonitor.UI
         {
             yield return RbCritical;
             yield return RbWarning;
+            yield return RbToCheck;     
+            yield return RbCrawler;     
+            yield return RbBot;        
             yield return RbSafe;
             yield return RbTrusted;
             yield return RbWhitelisted;

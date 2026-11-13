@@ -461,13 +461,27 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand($"unwhitelist-process {path}"));
 
         public static async Task<bool> ToggleWhitelistEntryAsync(string path, bool enabled)
-            => IsOk(await SendCommand($"toggle-whitelist-entry {path}|{(enabled ? "true" : "false")}"));            
+        {
+            string payload = EncodeB64Payload(new { path, enabled });
+            return IsOk(await SendCommand($"toggle-whitelist-entry-b64 {payload}"));
+        }         
 
         public static async Task<bool> ClearPersistentProblemsAsync()
             => IsOk(await SendCommand("clear-persistent-problems"));
             
         public static async Task<bool> RestartComputerAsync()
             => IsOk(await SendCommand("restart-computer"));
+
+        /// <summary>
+        /// Encode un objet en JSON puis base64. Le résultat ne contient que
+        /// [A-Za-z0-9+/=], donc aucun conflit possible avec les séparateurs
+        /// IPC (|, &, =, espaces, retours ligne…).
+        /// </summary>
+        private static string EncodeB64Payload(object payload)
+        {
+            string json = JsonSerializer.Serialize(payload);
+            return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
+        }
             
         public static async Task<bool> ClearAllBlockedIpsAsync()
         {
@@ -489,17 +503,14 @@ namespace NetMonitor.UI
         public static async Task<bool> SetManualSeverityAsync(string ip, string? severityOrAuto)
         {
             string sev = string.IsNullOrWhiteSpace(severityOrAuto) ? "auto" : severityOrAuto;
-            return IsOk(await SendCommand($"set-manual-severity {ip}|{sev}"));
-        }                        
+            string payload = EncodeB64Payload(new { ip, severity = sev });
+            return IsOk(await SendCommand($"set-manual-severity-b64 {payload}"));
+        }              
         
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {
-            string cmd = $"set-web-config enabled={enabled.ToString().ToLower()}" +
-                         $"&port={port}" +
-                         $"&username={username}" +
-                         $"&password={password}";
-
-            return IsOk(await SendCommand(cmd));
+            string payload = EncodeB64Payload(new { enabled, port, username, password });
+            return IsOk(await SendCommand($"set-web-config-b64 {payload}"));
         }
 
         public static async Task<bool> AddPatternAsync(string list, string value)
@@ -507,7 +518,8 @@ namespace NetMonitor.UI
             if (string.IsNullOrWhiteSpace(list) || string.IsNullOrWhiteSpace(value))
                 return false;
 
-            var result = await SendCommand($"add-pattern {list}|{value}");
+            string payload = EncodeB64Payload(new { list, value });
+            var result = await SendCommand($"add-pattern-b64 {payload}");
             return IsOk(result);
         }
 
@@ -524,7 +536,8 @@ namespace NetMonitor.UI
             string ip, string? source = null, string? message = null,
             string? details = null, string? severity = null)
         {
-            string cmd = $"block-ip {ip}|{source ?? ""}|{message ?? ""}|{details ?? ""}|{severity ?? ""}";
+            string payload = EncodeB64Payload(new { ip, source, message, details, severity });
+            string cmd = $"block-ip-b64 {payload}";
             string? json = await SendCommand(cmd);
 
             if (string.IsNullOrWhiteSpace(json))
