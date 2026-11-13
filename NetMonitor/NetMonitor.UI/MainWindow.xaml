@@ -1316,6 +1316,26 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>                                
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <!-- Bouton "Tag" pour ajouter à une liste -->
+                                <DataGridTemplateColumn Width="45" CanUserResize="False">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button Click="AddPatternFromBlockedIp_Click"
+                                                    Tag="{Binding}"
+                                                    Width="22" Height="22"
+                                                    ToolTip="Ajouter cette IP / ISP / Org à une liste de classification"
+                                                    Content="🏷️">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                        <Setter Property="Background" Value="Transparent"/>
+                                                        <Setter Property="BorderThickness" Value="0"/>
+                                                        <Setter Property="FontSize" Value="13"/>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>                                
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
@@ -2041,439 +2061,581 @@
                 <ScrollViewer VerticalScrollBarVisibility="Auto"
                               HorizontalScrollBarVisibility="Disabled"
                               Padding="0,0,5,0">
-                    <StackPanel Margin="0,10,0,0">
+                    <Grid Margin="0,10,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="20"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
 
-                        <Border Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1" 
-                                CornerRadius="6" Padding="12" Margin="0,0,0,15">
-                        <TextBlock Style="{StaticResource DescriptionText}" Margin="0">
-                            ℹ  Ces réglages contrôlent le comportement du service de surveillance réseau. 
-                            Ils sont enregistrés dans <Run FontFamily="Consolas" Foreground="#4CC2FF">NetMonitor.config</Run> 
-                            et appliqués à chaud après avoir cliqué sur le bouton <Bold>« Enregistrer les réglages »</Bold> en bas de page.
-                        </TextBlock>
-                        </Border>
-                        
-                        <GroupBox Margin="0,0,0,15"
-                                  Padding="10"
-                                  Header="{loc:Tr 'Serveur Web'}"
-                                  Background="{StaticResource PanelBackground}"
-                                  BorderBrush="{StaticResource Win11Border}"
-                                  Foreground="{StaticResource Win11Text}">
-                            <StackPanel>
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Permet de consulter les alertes depuis un navigateur Web (localhost ou réseau local). Désactivez-le si vous n'utilisez pas cette interface."/>
-                                
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="Auto"/>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="Auto"/>
-                                    </Grid.ColumnDefinitions>
+                        <!-- ═══════════════════════════════════════════════════════ -->
+                        <!--  COLONNE GAUCHE : Configuration système               -->
+                        <!-- ═══════════════════════════════════════════════════════ -->
+                        <StackPanel Grid.Column="0">
 
-                                    <Grid Grid.Column="0" Margin="0,0,20,0">
+                            <!-- Bandeau info -->
+                            <Border Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1"
+                                    CornerRadius="6" Padding="12" Margin="0,0,0,15">
+                                <TextBlock Style="{StaticResource DescriptionText}" Margin="0">
+                                    ℹ  Ces réglages contrôlent le comportement du service de surveillance réseau.
+                                    Ils sont enregistrés dans <Run FontFamily="Consolas" Foreground="#4CC2FF">NetMonitor.config</Run>
+                                    et appliqués à chaud après avoir cliqué sur le bouton <Bold>« Enregistrer les réglages »</Bold> en bas de page.
+                                </TextBlock>
+                            </Border>
+
+                            <!-- Serveur Web -->
+                            <GroupBox Margin="0,0,0,15"
+                                      Padding="10"
+                                      Header="{loc:Tr 'Serveur Web'}"
+                                      Background="{StaticResource PanelBackground}"
+                                      BorderBrush="{StaticResource Win11Border}"
+                                      Foreground="{StaticResource Win11Text}">
+                                <StackPanel>
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Permet de consulter les alertes depuis un navigateur Web (localhost ou réseau local). Désactivez-le si vous n'utilisez pas cette interface."/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <Grid Grid.Column="0" Margin="0,0,20,0">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                                <RowDefinition Height="Auto"/>
+                                            </Grid.RowDefinitions>
+
+                                            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                                <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
+                                                           VerticalAlignment="Center"
+                                                           Margin="0,0,8,0"/>
+                                                <ToggleButton x:Name="ToggleWeb"
+                                                              Width="40" Height="20"
+                                                              Checked="ToggleWeb_Checked"
+                                                              Unchecked="ToggleWeb_Unchecked">
+                                                    <ToggleButton.Style>
+                                                        <Style TargetType="ToggleButton">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="ToggleButton">
+                                                                        <Grid Width="40" Height="20">
+                                                                            <Border x:Name="SwitchBackground"
+                                                                                    CornerRadius="10" Background="#3C3C3C"/>
+                                                                            <Ellipse x:Name="SwitchThumb"
+                                                                                     Width="16" Height="16"
+                                                                                     Margin="2" Fill="#E5E5E5"
+                                                                                     HorizontalAlignment="Left"/>
+                                                                        </Grid>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsChecked" Value="True">
+                                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                                <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </ToggleButton.Style>
+                                                </ToggleButton>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="txtWebPort" Width="200"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                            </StackPanel>
+
+                                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
+                                                <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="txtWebLogin" Width="200"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                            </StackPanel>
+
+                                            <Grid Grid.Row="3">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="120"/>
+                                                    <ColumnDefinition Width="177"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
+
+                                                <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
+                                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Visible"/>
+
+                                                <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+
+                                                <Button x:Name="btnShowWebPassword" Grid.Column="2"
+                                                        Width="22" Height="22" Margin="6,0,0,0" Padding="0"
+                                                        Click="btnShowWebPassword_Click"
+                                                        Background="#2D2D30" BorderBrush="#3C3C3C" BorderThickness="1"
+                                                        Cursor="Hand">
+                                                    <TextBlock x:Name="imgWebEye" Text="👁" FontSize="12"/>
+                                                </Button>
+                                            </Grid>
+                                        </Grid>
+
+                                        <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+                                            <Button Content="{loc:Tr 'Appliquer'}"
+                                                    Width="150" Height="28" Margin="0,0,0,8"
+                                                    Padding="0" VerticalContentAlignment="Center"
+                                                    Click="btnApplyWeb_Click"/>
+
+                                            <Grid Margin="0,8,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="Auto"/>
+                                                    <ColumnDefinition Width="*"/>
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock Grid.Column="0" Text="{loc:Tr 'OTP par email :'}"
+                                                           VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                                <ToggleButton x:Name="ToggleOtp" Grid.Column="1"
+                                                              Width="40" Height="20"
+                                                              Checked="ToggleOtp_Checked"
+                                                              Unchecked="ToggleOtp_Unchecked">
+                                                    <ToggleButton.Style>
+                                                        <Style TargetType="ToggleButton">
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="ToggleButton">
+                                                                        <Grid Width="40" Height="20">
+                                                                            <Border x:Name="SwitchBackground"
+                                                                                    CornerRadius="10" Background="#3C3C3C"/>
+                                                                            <Ellipse x:Name="SwitchThumb"
+                                                                                     Width="16" Height="16"
+                                                                                     Margin="2" Fill="#E5E5E5"
+                                                                                     HorizontalAlignment="Left"/>
+                                                                        </Grid>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsChecked" Value="True">
+                                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                                <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                        </Style>
+                                                    </ToggleButton.Style>
+                                                </ToggleButton>
+                                                <TextBlock Grid.Column="2" Margin="12,0,0,0"
+                                                           Text="Code envoyé par email."
+                                                           FontSize="11" Foreground="#888" TextWrapping="Wrap"
+                                                           VerticalAlignment="Center"/>
+                                            </Grid>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </GroupBox>
+
+                            <!-- Scan de ports -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock Text="🔍" FontSize="16" Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="Scan de ports" FontSize="14"
+                                                   FontWeight="Bold" Foreground="#4CC2FF"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Détecte les scans de ports (comme nmap). Un pirate ou un bot teste plusieurs ports en peu de temps pour trouver des services ouverts. Ajustez le seuil selon votre tolérance."/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="Fenêtre d'analyse (s) :"
+                                                       Width="220" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtPortScanWindow"
+                                                     Width="100"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                                     VerticalContentAlignment="Center"/>
+                                        </StackPanel>
+
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="Seuil de ports distincts :"
+                                                       Width="220" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtPortScanThreshold"
+                                                     Width="100"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                                     VerticalContentAlignment="Center"/>
+                                        </StackPanel>
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Beaconing -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock Text="📡" FontSize="16" Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="Beaconing (C2)" FontSize="14"
+                                                   FontWeight="Bold" Foreground="#4CC2FF"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Détecte les communications régulières d'un malware vers un serveur de commande (C2). Un logiciel espion envoie souvent une requête toutes les X secondes. Plus le jitter est élevé, plus la détection est stricte."/>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="*"/>
+                                        </Grid.ColumnDefinitions>
                                         <Grid.RowDefinitions>
-                                            <RowDefinition Height="Auto"/>
-                                            <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                             <RowDefinition Height="Auto"/>
                                         </Grid.RowDefinitions>
 
-                                        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="{loc:Tr 'Activer le serveur Web'}"
-                                                       VerticalAlignment="Center"
-                                                       Margin="0,0,8,0"/>
-                                            <ToggleButton x:Name="ToggleWeb"
-                                                          Width="40" Height="20"
-                                                          Checked="ToggleWeb_Checked"
-                                                          Unchecked="ToggleWeb_Unchecked">
-                                                <ToggleButton.Style>
-                                                    <Style TargetType="ToggleButton">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="ToggleButton">
-                                                                    <Grid Width="40" Height="20">
-                                                                        <Border x:Name="SwitchBackground"
-                                                                                CornerRadius="10" Background="#3C3C3C"/>
-                                                                        <Ellipse x:Name="SwitchThumb"
-                                                                                 Width="16" Height="16"
-                                                                                 Margin="2" Fill="#E5E5E5"
-                                                                                 HorizontalAlignment="Left"/>
-                                                                    </Grid>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsChecked" Value="True">
-                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
-                                                                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </ToggleButton.Style>
-                                            </ToggleButton>
+                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="Fenêtre d'analyse (s) :"
+                                                       Width="220" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtBeaconWindow"
+                                                     Width="100"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                                     VerticalContentAlignment="Center"/>
                                         </StackPanel>
 
-                                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="txtWebPort" Width="200"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                        <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
+                                            <TextBlock Text="Hits minimum :"
+                                                       Width="220" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtBeaconHits"
+                                                     Width="100"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                                     VerticalContentAlignment="Center"/>
                                         </StackPanel>
 
-                                        <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
-                                            <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
-                                            <TextBox x:Name="txtWebLogin" Width="200"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                                            <TextBlock Text="Jitter max (%) :"
+                                                       Width="220" VerticalAlignment="Center"/>
+                                            <TextBox x:Name="txtBeaconJitter"
+                                                     Width="100"
+                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                                     VerticalContentAlignment="Center"/>
                                         </StackPanel>
-
-                                        <Grid Grid.Row="3">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="120"/>
-                                                <ColumnDefinition Width="177"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
-
-                                            <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
-                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Visible"/>
-
-                                            <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Collapsed"/>
-
-                                            <Button x:Name="btnShowWebPassword" Grid.Column="2"
-                                                    Width="22" Height="22" Margin="6,0,0,0" Padding="0"
-                                                    Click="btnShowWebPassword_Click"
-                                                    Background="#2D2D30" BorderBrush="#3C3C3C" BorderThickness="1"
-                                                    Cursor="Hand">
-                                                <TextBlock x:Name="imgWebEye" Text="👁" FontSize="12"/>
-                                            </Button>
-                                        </Grid>
                                     </Grid>
-
-                                    <StackPanel Grid.Column="2" HorizontalAlignment="Right" VerticalAlignment="Bottom">
-                                        <Button Content="{loc:Tr 'Appliquer'}"
-                                                Width="150" Height="28" Margin="0,0,0,8"
-                                                Padding="0" VerticalContentAlignment="Center"
-                                                Click="btnApplyWeb_Click"/>
-
-                                        <Grid Margin="0,8,0,0">
-                                            <Grid.ColumnDefinitions>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="Auto"/>
-                                                <ColumnDefinition Width="*"/>
-                                            </Grid.ColumnDefinitions>
-
-                                            <TextBlock Grid.Column="0" Text="{loc:Tr 'OTP par email :'}"
-                                                       VerticalAlignment="Center" Margin="0,0,10,0"/>
-                                            <ToggleButton x:Name="ToggleOtp" Grid.Column="1"
-                                                          Width="40" Height="20"
-                                                          Checked="ToggleOtp_Checked"
-                                                          Unchecked="ToggleOtp_Unchecked">
-                                                <ToggleButton.Style>
-                                                    <Style TargetType="ToggleButton">
-                                                        <Setter Property="Template">
-                                                            <Setter.Value>
-                                                                <ControlTemplate TargetType="ToggleButton">
-                                                                    <Grid Width="40" Height="20">
-                                                                        <Border x:Name="SwitchBackground"
-                                                                                CornerRadius="10" Background="#3C3C3C"/>
-                                                                        <Ellipse x:Name="SwitchThumb"
-                                                                                 Width="16" Height="16"
-                                                                                 Margin="2" Fill="#E5E5E5"
-                                                                                 HorizontalAlignment="Left"/>
-                                                                    </Grid>
-                                                                    <ControlTemplate.Triggers>
-                                                                        <Trigger Property="IsChecked" Value="True">
-                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
-                                                                            <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
-                                                                        </Trigger>
-                                                                    </ControlTemplate.Triggers>
-                                                                </ControlTemplate>
-                                                            </Setter.Value>
-                                                        </Setter>
-                                                    </Style>
-                                                </ToggleButton.Style>
-                                            </ToggleButton>
-                                            <TextBlock Grid.Column="2" Margin="12,0,0,0"
-                                                       Text="Code à 6 chiffres par email avant chaque action critique."
-                                                       FontSize="11" Foreground="#888" TextWrapping="Wrap"
-                                                       VerticalAlignment="Center"/>
-                                        </Grid>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </GroupBox>
-
-                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="🔍" FontSize="16" Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="Scan de ports" FontSize="14"
-                                               FontWeight="Bold" Foreground="#4CC2FF"
-                                               VerticalAlignment="Center"/>
                                 </StackPanel>
+                            </Border>
 
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Détecte les scans de ports (comme nmap). Un pirate ou un bot teste plusieurs ports en peu de temps pour trouver des services ouverts. Ajustez le seuil selon votre tolérance."/>
-
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-
-                                    <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Fenêtre d'analyse (s) :"
-                                                   Width="220" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="txtPortScanWindow"
-                                                 Width="100"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                                 VerticalContentAlignment="Center"/>
+                            <!-- Blocage automatique -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="Blocage automatique" FontSize="14"
+                                                   FontWeight="Bold" Foreground="#4CC2FF"
+                                                   VerticalAlignment="Center"/>
                                     </StackPanel>
 
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Seuil de ports distincts :"
-                                                   Width="220" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="txtPortScanThreshold"
-                                                 Width="100"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                                 VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Choisissez ce que le pare-feu doit bloquer automatiquement. Pour un serveur privé, cochez les 3 cases. Les services de confiance (Microsoft, Google, Windows) sont toujours exclus, pour ne pas casser votre système."/>
 
-                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="📡" FontSize="16" Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="Beaconing (C2)" FontSize="14"
-                                               FontWeight="Bold" Foreground="#4CC2FF"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Détecte les communications régulières d'un malware vers un serveur de commande (C2). Un logiciel espion envoie souvent une requête toutes les X secondes. Plus le jitter est élevé, plus la détection est stricte."/>
-
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="*"/>
-                                        <ColumnDefinition Width="*"/>
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto"/>
-                                        <RowDefinition Height="Auto"/>
-                                    </Grid.RowDefinitions>
-
-                                    <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Fenêtre d'analyse (s) :"
-                                                   Width="220" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="txtBeaconWindow"
-                                                 Width="100"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                                 VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Hits minimum :"
-                                                   Width="220" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="txtBeaconHits"
-                                                 Width="100"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                                 VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-
-                                    <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                                        <TextBlock Text="Jitter max (%) :"
-                                                   Width="220" VerticalAlignment="Center"/>
-                                        <TextBox x:Name="txtBeaconJitter"
-                                                 Width="100"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                                 VerticalContentAlignment="Center"/>
-                                    </StackPanel>
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="Blocage automatique" FontSize="14"
-                                               FontWeight="Bold" Foreground="#4CC2FF"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Choisissez ce que le pare-feu doit bloquer automatiquement. Pour un serveur privé, cochez les 3 cases. Les services de confiance (Microsoft, Google, Windows) sont toujours exclus, pour ne pas casser votre système."/>
-
-                                <CheckBox x:Name="chkAutoBlock"
-                                          Content="Activer le blocage automatique (interrupteur principal)"
-                                          Foreground="#E5E5E5"
-                                          FontWeight="Bold"
-                                          Margin="0,0,0,15"/>
-
-                                <CheckBox x:Name="chkAutoBlockCritical"
-                                          Style="{StaticResource ColoredCheckBox}"
-                                          Tag="{StaticResource DotCritical}"
-                                          Content="Bloquer les menaces critiques"/>
-
-                                <CheckBox x:Name="chkAutoBlockWarning"
-                                          Style="{StaticResource ColoredCheckBox}"
-                                          Tag="{StaticResource DotWarning}"
-                                          Content="Bloquer les menaces inconnues"/>
-
-                                <CheckBox x:Name="chkAutoBlockSubnet"
-                                          Style="{StaticResource ColoredCheckBox}"
-                                          Tag="{StaticResource DotSubnet}"
-                                          Content="Bloquer les scanners de recherche"/>
-                                          
-                                <CheckBox x:Name="chkBlockBots"
-                                          Style="{StaticResource ColoredCheckBox}"
-                                          Tag="{StaticResource DotBot}"
-                                          Content="Bloquer les robots officiels (Googlebot, Bingbot...)"
-                                          Margin="0,0,0,8"/>
-
-                                <CheckBox x:Name="chkBlockCrawlers"
-                                          Style="{StaticResource ColoredCheckBox}"
-                                          Tag="{StaticResource DotCrawler}"
-                                          Content="Bloquer les robots génériques (Yandex, Baidu...)"
-                                          Margin="0,0,0,8"/>
-
-                                <CheckBox x:Name="chkGoogleIpRange"
-                                          Content="Utiliser la liste officielle Google (crawlers vérifiés)"
-                                          Foreground="#E5E5E5" Margin="0,0,0,5"/>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <TextBlock Text="Rafraîchir la liste Google toutes les (h) :"
-                                               Width="280" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="txtGoogleIpRangeRefreshHours" Width="80"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
-                                </StackPanel>                                          
-                                          
-                                <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
-                                           FontSize="11"
-                                           Foreground="#888"
-                                           TextWrapping="Wrap"/>
-                            </StackPanel>
-                        </Border>
-
-                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="⚙" FontSize="16" Margin="0,0,8,0"
-                                               VerticalAlignment="Center"/>
-                                    <TextBlock Text="Filtres et Whitelists" FontSize="14"
-                                               FontWeight="Bold" Foreground="#4CC2FF"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Personnalisez ce que le moteur doit ignorer ou considérer comme dangereux. Les listes sont séparées par des virgules. Le mode Debug est réservé aux tests : il désactive toutes les protections."/>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                    <TextBlock Text="Réseaux ignorés (CIDR) :"
-                                               Width="280" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="txtIgnoredNetworks"
-                                             Width="300"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
-                                             VerticalContentAlignment="Center"/>
-                                </StackPanel>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,10,0,5">
-                                    <CheckBox x:Name="chkBlockSearchScanners"
-                                              Content="Bloquer les scanners de recherche (Shodan, Censys...)"
+                                    <CheckBox x:Name="chkAutoBlock"
+                                              Content="Activer le blocage automatique (interrupteur principal)"
                                               Foreground="#E5E5E5"
-                                              Margin="0,0,0,5"/>
+                                              FontWeight="Bold"
+                                              Margin="0,0,0,15"/>
+
+                                    <CheckBox x:Name="chkAutoBlockCritical"
+                                              Style="{StaticResource ColoredCheckBox}"
+                                              Tag="{StaticResource DotCritical}"
+                                              Content="Bloquer les menaces critiques"/>
+
+                                    <CheckBox x:Name="chkAutoBlockWarning"
+                                              Style="{StaticResource ColoredCheckBox}"
+                                              Tag="{StaticResource DotWarning}"
+                                              Content="Bloquer les menaces inconnues"/>
+
+                                    <CheckBox x:Name="chkAutoBlockSubnet"
+                                              Style="{StaticResource ColoredCheckBox}"
+                                              Tag="{StaticResource DotSubnet}"
+                                              Content="Bloquer les scanners de recherche"/>
+
+                                    <CheckBox x:Name="chkBlockBots"
+                                              Style="{StaticResource ColoredCheckBox}"
+                                              Tag="{StaticResource DotBot}"
+                                              Content="Bloquer les robots officiels (Googlebot, Bingbot...)"
+                                              Margin="0,0,0,8"/>
+
+                                    <CheckBox x:Name="chkBlockCrawlers"
+                                              Style="{StaticResource ColoredCheckBox}"
+                                              Tag="{StaticResource DotCrawler}"
+                                              Content="Bloquer les robots génériques (Yandex, Baidu...)"
+                                              Margin="0,0,0,8"/>
+
+                                    <!-- Listes officielles (Microsoft + Google) -->
+                                    <Border Background="#1A1A1A" BorderBrush="#3C3C3C" BorderThickness="1"
+                                            CornerRadius="4" Padding="12" Margin="0,10,0,10">
+                                        <StackPanel>
+                                            <TextBlock Text="Listes officielles" FontSize="12"
+                                                       FontWeight="SemiBold" Foreground="#4CC2FF"
+                                                       Margin="0,0,0,8"/>
+
+                                            <!-- Microsoft -->
+                                            <CheckBox x:Name="chkMicrosoftIpRange"
+                                                      Content="Utiliser la liste officielle Microsoft (services vérifiés)"
+                                                      Foreground="#E5E5E5" Margin="0,0,0,5"/>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                                                <TextBlock Text="Rafraîchir la liste Microsoft toutes les (h) :"
+                                                           Width="280" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="txtMicrosoftIpRangeRefreshHours" Width="80"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                            </StackPanel>
+
+                                            <!-- Google -->
+                                            <CheckBox x:Name="chkGoogleIpRange"
+                                                      Content="Utiliser la liste officielle Google (crawlers vérifiés)"
+                                                      Foreground="#E5E5E5" Margin="0,0,0,5"/>
+
+                                            <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
+                                                <TextBlock Text="Rafraîchir la liste Google toutes les (h) :"
+                                                           Width="280" VerticalAlignment="Center"/>
+                                                <TextBox x:Name="txtGoogleIpRangeRefreshHours" Width="80"
+                                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                            </StackPanel>
+                                        </StackPanel>
+                                    </Border>
+
+                                    <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
+                                               FontSize="11"
+                                               Foreground="#888"
+                                               TextWrapping="Wrap"/>
                                 </StackPanel>
+                            </Border>
 
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Liste des scanners de recherche connus (un domaine par ligne). Ces robots indexent Internet et peuvent être bloqués si vous ne souhaitez pas être référencé."/>
+                        </StackPanel>
 
-                                <TextBox x:Name="txtScannerPatterns"
-                                         AcceptsReturn="True" TextWrapping="Wrap" Height="80"
-                                         VerticalScrollBarVisibility="Auto"
-                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" 
-                                         Margin="0,0,0,15"/>
+                        <!-- ═══════════════════════════════════════════════════════ -->
+                        <!--  COLONNE DROITE : Filtres et classification            -->
+                        <!-- ═══════════════════════════════════════════════════════ -->
+                        <StackPanel Grid.Column="2">
 
-                                <CheckBox x:Name="chkDisableFilters"
-                                          Content="Mode Debug : Désactiver les filtres et whitelists"
-                                          Foreground="#FF6347"
-                                          FontWeight="Bold"
-                                          Margin="0,10,0,5"
-                                          Checked="ChkDisableFilters_Checked"
-                                          Unchecked="ChkDisableFilters_Unchecked"/>
-
-                                <TextBlock x:Name="lblDisableFiltersWarning"
-                                           Text="⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs."
-                                           Foreground="#FF6347"
-                                           FontSize="11"
-                                           TextWrapping="Wrap"
-                                           Visibility="Collapsed"
-                                           Margin="20,0,0,0"/>
-
-                                <StackPanel Orientation="Horizontal" Margin="0,15,0,10">
-                                    <TextBlock Text="Niveau Blacklist IPsum (1-6) :" Width="250" VerticalAlignment="Center"/>
-                                    <TextBox x:Name="txtBlacklistLevel" Width="80"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
-                                </StackPanel>
-
-                                <TextBlock x:Name="lblBlacklistLastUpdate"
-                                           Foreground="#888" FontSize="11" Text="Dernière MAJ : inconnue" Margin="0,0,0,5"/>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <!--  ZONE DE DANGER                                       -->
-                        <!-- ══════════════════════════════════════════════════════ -->
-                        <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15"
-                                BorderBrush="#FF6347" BorderThickness="1">
-                            <StackPanel>
-                                <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
-                                    <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
-                                               Foreground="#FF6347" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Zone de danger" FontSize="14"
-                                               FontWeight="Bold" Foreground="#FF6347"
-                                               VerticalAlignment="Center"/>
-                                </StackPanel>
-
-                                <TextBlock Style="{StaticResource DescriptionText}"
-                                           Text="Actions irréversibles. À utiliser uniquement en cas de problème majeur ou avant un redémarrage complet de votre configuration réseau."/>
-
-                                <Button x:Name="btnClearAllBlockedIps"
-                                        Width="320" Height="34"
-                                        HorizontalAlignment="Left"
-                                        Margin="0,5,0,0"
-                                        Click="btnClearAllBlockedIps_Click">
-                                    <Button.Style>
-                                        <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                            <Setter Property="Background" Value="#CC3300"/>
-                                            <Setter Property="BorderBrush" Value="#FF6347"/>
-                                            <Style.Triggers>
-                                                <Trigger Property="IsMouseOver" Value="True">
-                                                    <Setter Property="Background" Value="#E64D1A"/>
-                                                </Trigger>
-                                            </Style.Triggers>
-                                        </Style>
-                                    </Button.Style>
-                                    <StackPanel Orientation="Horizontal">
-                                        <TextBlock Text="🔓" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Libérer toutes les IP bloquées" VerticalAlignment="Center"/>
+                            <!-- Filtres réseau -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🌐" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Filtres réseau" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
                                     </StackPanel>
-                                </Button>
-                            </StackPanel>
-                        </Border>
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Réseaux ignorés (CIDR) : ces adresses ne déclencheront jamais d'alerte. Utile pour le loopback et les réseaux locaux."/>
+                                    <DataGrid x:Name="GridIgnoredNetworks" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                              HeadersVisibility="Column" MinHeight="80" MaxHeight="150" Margin="0,0,0,10">
+                                        <DataGrid.Columns>
+                                            <DataGridTextColumn Header="Réseau (CIDR)" Binding="{Binding Value}" Width="*"/>
+                                        </DataGrid.Columns>
+                                    </DataGrid>
+                                    <Button Content="➕ Ajouter un réseau" Width="180" HorizontalAlignment="Left" Click="AddIgnoredNetwork_Click"/>
+                                </StackPanel>
+                            </Border>
 
-                        <Button Content="{loc:Tr 'Enregistrer les réglages'}"
-                                Width="220"
-                                Height="35"
-                                Margin="0,10,0,0"
-                                HorizontalAlignment="Left"
-                                Click="btnSaveSettings_Click"
-                                ToolTip="Enregistrer les réglages dans NetMonitor.config"/>
-                    </StackPanel>
+                            <!-- Classification des IPs -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🏷️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Classification des IPs" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Définissez ici les patterns qui déterminent l'étiquette (Safe, Critical, Scanner, Crawler) attribuée à une IP. Ces listes sont comparées à l'ISP, l'Org ou le reverse DNS."/>
+
+                                    <TabControl Background="Transparent" BorderThickness="0">
+                                        <TabControl.Resources>
+                                            <Style TargetType="TabItem" BasedOn="{StaticResource {x:Type TabItem}}">
+                                                <Setter Property="Template">
+                                                    <Setter.Value>
+                                                        <ControlTemplate TargetType="TabItem">
+                                                            <Border x:Name="border" Background="#252526" BorderBrush="#3C3C3C" BorderThickness="0,0,0,2" Padding="15,6">
+                                                                <ContentPresenter ContentSource="Header" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                                            </Border>
+                                                            <ControlTemplate.Triggers>
+                                                                <Trigger Property="IsSelected" Value="True">
+                                                                    <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
+                                                                    <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                                                                </Trigger>
+                                                                <Trigger Property="IsMouseOver" Value="True">
+                                                                    <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                                                </Trigger>
+                                                            </ControlTemplate.Triggers>
+                                                        </ControlTemplate>
+                                                    </Setter.Value>
+                                                </Setter>
+                                            </Style>
+                                        </TabControl.Resources>
+
+                                        <TabItem Header="✅ Safe">
+                                            <StackPanel Margin="0,10,0,0">
+                                                <TextBlock Style="{StaticResource DescriptionText}"
+                                                           Text="Domaines et ISP légitimes (Microsoft, Google, Cloudflare...). Les IPs correspondantes seront marquées Safe (vert)."/>
+                                                <DataGrid x:Name="GridSafePatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                                          HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Pattern (ex: microsoft.com)" Binding="{Binding Value}" Width="*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                                <Button Content="➕ Ajouter un pattern Safe" Width="200" HorizontalAlignment="Left" Click="AddSafePattern_Click"/>
+                                            </StackPanel>
+                                        </TabItem>
+
+                                        <TabItem Header="🚨 Critical">
+                                            <StackPanel Margin="0,10,0,0">
+                                                <TextBlock Style="{StaticResource DescriptionText}"
+                                                           Text="Domaines et ISP connus pour être malveillants (bulletproof hosting, etc.). Les IPs correspondantes seront marquées Critical (rouge)."/>
+                                                <DataGrid x:Name="GridCriticalPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                                          HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Pattern (ex: infrawat.ch)" Binding="{Binding Value}" Width="*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                                <Button Content="➕ Ajouter un pattern Critical" Width="200" HorizontalAlignment="Left" Click="AddCriticalPattern_Click"/>
+                                            </StackPanel>
+                                        </TabItem>
+
+                                        <TabItem Header="🔍 Scanner">
+                                            <StackPanel Margin="0,10,0,0">
+                                                <TextBlock Style="{StaticResource DescriptionText}"
+                                                           Text="Scanners de recherche légitimes (Shodan, Censys, Palo Alto...). Les IPs correspondantes seront marquées Trusted (jaune) et bloquées si l'option est activée."/>
+                                                <DataGrid x:Name="GridScannerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                                          HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Pattern (ex: shodan.io)" Binding="{Binding Value}" Width="*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                                <Button Content="➕ Ajouter un pattern Scanner" Width="200" HorizontalAlignment="Left" Click="AddScannerPattern_Click"/>
+                                            </StackPanel>
+                                        </TabItem>
+
+                                        <TabItem Header="🤖 Crawler">
+                                            <StackPanel Margin="0,10,0,0">
+                                                <TextBlock Style="{StaticResource DescriptionText}"
+                                                           Text="Robots d'exploration génériques (Yandex, Baidu, Infrawatch...). Les IPs correspondantes seront marquées Crawler (bleu foncé) et bloquées si l'option est activée."/>
+                                                <DataGrid x:Name="GridCrawlerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                                          HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Pattern (ex: yandex.com)" Binding="{Binding Value}" Width="*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                                <Button Content="➕ Ajouter un pattern Crawler" Width="200" HorizontalAlignment="Left" Click="AddCrawlerPattern_Click"/>
+                                            </StackPanel>
+                                        </TabItem>
+
+                                        <TabItem Header="⭐ Whitelist">
+                                            <StackPanel Margin="0,10,0,0">
+                                                <TextBlock Style="{StaticResource DescriptionText}"
+                                                           Text="Patterns personnels. Les IPs correspondantes seront marquées Whitelisted (blanc) et ignorées."/>
+                                                <DataGrid x:Name="GridWhitelistPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
+                                                          HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
+                                                    <DataGrid.Columns>
+                                                        <DataGridTextColumn Header="Pattern" Binding="{Binding Value}" Width="*"/>
+                                                    </DataGrid.Columns>
+                                                </DataGrid>
+                                                <Button Content="➕ Ajouter un pattern Whitelist" Width="200" HorizontalAlignment="Left" Click="AddWhitelistPattern_Click"/>
+                                            </StackPanel>
+                                        </TabItem>
+                                    </TabControl>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Threat Intelligence -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="🛡️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Threat Intelligence" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                    </StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <TextBlock Text="Niveau Blacklist IPsum (1-6) :" Width="250" VerticalAlignment="Center"/>
+                                        <TextBox x:Name="txtBlacklistLevel" Width="80" Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                    </StackPanel>
+                                    <TextBlock x:Name="lblBlacklistLastUpdate" Foreground="#888" FontSize="11" Text="Dernière MAJ : inconnue" Margin="0,0,0,5"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Mode Debug -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15" BorderBrush="#FF6347">
+                                <StackPanel>
+                                    <CheckBox x:Name="chkDisableFilters"
+                                              Content="Mode Debug : Désactiver les filtres et whitelists"
+                                              Foreground="#FF6347"
+                                              FontWeight="Bold"
+                                              Margin="0,0,0,5"
+                                              Checked="ChkDisableFilters_Checked"
+                                              Unchecked="ChkDisableFilters_Unchecked"/>
+                                    <TextBlock x:Name="lblDisableFiltersWarning"
+                                               Text="⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs."
+                                               Foreground="#FF6347"
+                                               FontSize="11"
+                                               TextWrapping="Wrap"
+                                               Visibility="Collapsed"
+                                               Margin="20,0,0,0"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Zone de danger -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15"
+                                    BorderBrush="#FF6347" BorderThickness="1">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
+                                                   Foreground="#FF6347" VerticalAlignment="Center"/>
+                                        <TextBlock Text="Zone de danger" FontSize="14"
+                                                   FontWeight="Bold" Foreground="#FF6347"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="Actions irréversibles. À utiliser uniquement en cas de problème majeur ou avant un redémarrage complet de votre configuration réseau."/>
+
+                                    <Button x:Name="btnClearAllBlockedIps"
+                                            Width="320" Height="34"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,5,0,0"
+                                            Click="btnClearAllBlockedIps_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Background" Value="#CC3300"/>
+                                                <Setter Property="BorderBrush" Value="#FF6347"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E64D1A"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="🔓" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Libérer toutes les IP bloquées" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Bouton Enregistrer -->
+                            <Button Content="{loc:Tr 'Enregistrer les réglages'}"
+                                    Width="220"
+                                    Height="35"
+                                    Margin="0,10,0,0"
+                                    HorizontalAlignment="Left"
+                                    Click="btnSaveSettings_Click"
+                                    ToolTip="Enregistrer les réglages dans NetMonitor.config"/>
+
+                        </StackPanel>
+                    </Grid>
                 </ScrollViewer>
             </TabItem>
 

@@ -420,6 +420,46 @@ namespace NetMonitor.Service
             catch (Exception ex) { CoreLog.Write("Erreur Reload NetMonitorSettings : " + ex.Message); }
         }
 
+        /// <summary>
+        /// Ajoute un pattern à une des listes de classification, puis sauvegarde.
+        /// Liste = "safe", "critical", "scanner", "crawler" ou "whitelist".
+        /// </summary>
+        public bool AddPattern(string list, string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            value = value.Trim();
+
+            switch (list.Trim().ToLowerInvariant())
+            {
+                case "safe":
+                    if (!SafePatterns.Any(p => string.Equals(p, value, StringComparison.OrdinalIgnoreCase)))
+                        SafePatterns = SafePatterns.Append(value).ToArray();
+                    break;
+                case "critical":
+                    if (!CriticalPatterns.Any(p => string.Equals(p, value, StringComparison.OrdinalIgnoreCase)))
+                        CriticalPatterns = CriticalPatterns.Append(value).ToArray();
+                    break;
+                case "scanner":
+                    if (!ScannerPatterns.Any(p => string.Equals(p, value, StringComparison.OrdinalIgnoreCase)))
+                        ScannerPatterns = ScannerPatterns.Append(value).ToArray();
+                    break;
+                case "crawler":
+                    if (!CrawlerPatterns.Any(p => string.Equals(p, value, StringComparison.OrdinalIgnoreCase)))
+                        CrawlerPatterns = CrawlerPatterns.Append(value).ToArray();
+                    break;
+                case "whitelist":
+                    if (!WhitelistPatterns.Any(p => string.Equals(p, value, StringComparison.OrdinalIgnoreCase)))
+                        WhitelistPatterns = WhitelistPatterns.Append(value).ToArray();
+                    break;
+                default:
+                    return false;
+            }
+
+            Save();
+            CoreLog.Info($"[PATTERN] '{value}' ajouté à la liste '{list}'");
+            return true;
+        }
+
         private static void EnsureWebConfigProtected()
         {
             if (!File.Exists(WebConfigPath)) return;

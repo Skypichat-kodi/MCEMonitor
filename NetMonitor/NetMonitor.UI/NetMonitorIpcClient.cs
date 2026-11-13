@@ -80,13 +80,22 @@ namespace NetMonitor.UI
         public DateTime blacklistLastUpdate     { get; set; }  
 
         // Scanners de recherche (Trusted) ---
-        public bool ignoreSearchScanners        { get; set; }
-        public string[] scannerPatterns         { get; set; } = Array.Empty<string>();
-        public bool blockBots                   { get; set; }
-        public bool blockCrawlers               { get; set; }
-        public bool googleIpRangeEnabled        { get; set; }
-        public int  googleIpRangeRefreshHours   { get; set; }
+        public bool ignoreSearchScanners            { get; set; }
+        public string[] scannerPatterns             { get; set; } = Array.Empty<string>();
+        public bool blockBots                       { get; set; }
+        public bool blockCrawlers                   { get; set; }
+        public bool googleIpRangeEnabled            { get; set; }
+        public int  googleIpRangeRefreshHours       { get; set; }
+        public bool microsoftIpRangeEnabled         { get; set; }
+        public int  microsoftIpRangeRefreshHours    { get; set; }        
+
+        // ═══════════════════════════════════════════════════════════
+        //  Patterns de classification (une seule définition chacun)
+        // ═══════════════════════════════════════════════════════════
+        public string[] safePatterns            { get; set; } = Array.Empty<string>();
+        public string[] criticalPatterns        { get; set; } = Array.Empty<string>();
         public string[] crawlerPatterns         { get; set; } = Array.Empty<string>();
+        public string[] whitelistPatterns       { get; set; } = Array.Empty<string>();
     }
 
     public class NetWebStatus
@@ -114,6 +123,8 @@ namespace NetMonitor.UI
         public string? CountryCode              { get; set; }
         public string? Isp                      { get; set; }
         public bool IsOutbound                  { get; set; }
+        public string? Org                      { get; set; }
+        public string? ReverseDns               { get; set; }        
     }
 
     public class BlockedIpRetryDto
@@ -478,6 +489,15 @@ namespace NetMonitor.UI
                          $"&password={password}";
 
             return IsOk(await SendCommand(cmd));
+        }
+
+        public static async Task<bool> AddPatternAsync(string list, string value)
+        {
+            if (string.IsNullOrWhiteSpace(list) || string.IsNullOrWhiteSpace(value))
+                return false;
+
+            var result = await SendCommand($"add-pattern {list}|{value}");
+            return IsOk(result);
         }
 
         // ---------- Commandes avec résultat détaillé ----------

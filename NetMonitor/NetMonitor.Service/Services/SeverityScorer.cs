@@ -30,7 +30,7 @@ namespace NetMonitor.Service.Services
             string? detector,
             Severity detectorSeverity,
             NetMonitorSettings settings,
-            GoogleIpRangeService? googleRanges = null)   // ← NOUVEAU
+            GoogleIpRangeService? googleRanges = null)
         {
             if (settings == null) return detectorSeverity;
 
@@ -47,13 +47,17 @@ namespace NetMonitor.Service.Services
             if (MatchesAnyPattern(candidates, settings.WhitelistPatterns))
                 return Severity.Whitelisted;
 
-            // 2. NOUVEAU : robots officiels (Google/Bing) → Bot
+            // 1bis. Si un détecteur a explicitement demandé une vérification manuelle
+            if (detectorSeverity == Severity.ToCheck)
+                return Severity.ToCheck;
+
+            // 2. Robots officiels (Google/Bing) → Bot
             if (googleRanges?.IsEnabled == true
                 && !string.IsNullOrWhiteSpace(ip)
                 && googleRanges.IsGoogleIp(ip))
                 return Severity.Bot;
 
-            // 3. NOUVEAU : robots génériques (Yandex, Baidu...) → Crawler
+            // 3. Robots génériques (Yandex, Baidu...) → Crawler
             if (MatchesAnyPattern(candidates, settings.CrawlerPatterns))
                 return Severity.Crawler;
 
@@ -61,17 +65,20 @@ namespace NetMonitor.Service.Services
             if (MatchesAnyPattern(candidates, settings.SafePatterns))
                 return Severity.Safe;
 
-            // 5. Critical (domaines malveillants)
+            // ═══════════════════════════════════════════════════════════════
+            // 5. NOUVEAU : Scanners (Palo Alto, Shodan, Censys...) → Trusted
+            //    Doit passer AVANT le Critical du détecteur Blacklist
+            // ═══════════════════════════════════════════════════════════════
+            if (MatchesAnyPattern(candidates, settings.ScannerPatterns))
+                return Severity.Trusted;
+
+            // 6. Domaines malveillants connus → Critical
             if (MatchesAnyPattern(candidates, settings.CriticalPatterns))
                 return Severity.Critical;
 
-            // 6. Détecteur critique → Critical
+            // 7. Détecteur critique → conserver (seulement si pas scanner/bot)
             if (detectorSeverity == Severity.Critical || detectorSeverity == Severity.High)
                 return detectorSeverity;
-
-            // 7. Scanners (Shodan, Censys...) → Warning (seront taggés "Subnet" par le moteur)
-            if (MatchesAnyPattern(candidates, settings.ScannerPatterns))
-                return Severity.Warning;
 
             // 8. Défaut
             return Severity.Warning;

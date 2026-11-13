@@ -133,6 +133,12 @@ namespace NetMonitor.Service.Ipc
                 IpcResponse.Json(server, new { status = ok ? "ok" : "error", ip, marked = ok });
                 return;
             }
+ 
+            if (command.StartsWith("add-pattern ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleAddPattern(command, server);
+                return;
+            } 
                               
             switch (command.ToLowerInvariant())
             {
@@ -283,11 +289,13 @@ namespace NetMonitor.Service.Ipc
                 blacklistLastUpdate      = _settings.BlacklistLastUpdate,
 
                 // Robots d'exploration
-                googleIpRangeEnabled      = _settings.GoogleIpRangeEnabled,
-                googleIpRangeRefreshHours = _settings.GoogleIpRangeRefreshHours,
-                blockBots                 = _settings.BlockBots,
-                blockCrawlers             = _settings.BlockCrawlers,
-                crawlerPatterns           = _settings.CrawlerPatterns,
+                googleIpRangeEnabled            = _settings.GoogleIpRangeEnabled,
+                googleIpRangeRefreshHours       = _settings.GoogleIpRangeRefreshHours,
+                microsoftIpRangeEnabled         = _settings.MicrosoftIpRangeEnabled,
+                microsoftIpRangeRefreshHours    = _settings.MicrosoftIpRangeRefreshHours,                
+                blockBots                       = _settings.BlockBots,
+                blockCrawlers                   = _settings.BlockCrawlers,
+                crawlerPatterns                 = _settings.CrawlerPatterns,
 
                 // Scanners de recherche (Trusted) ---
                 ignoreSearchScanners     = _settings.IgnoreSearchScanners,
@@ -761,6 +769,64 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Error("Erreur HandleSetManualSeverity : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                                                                      
+        }
+        
+        private void HandleAddPattern(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string payload = command.Substring("add-pattern ".Length).Trim();
+                int sep = payload.IndexOf('|');
+                if (sep <= 0)
+                {
+                    IpcResponse.Error(server, "format invalide (attendu: liste|valeur)");
+                    return;
+                }
+
+                string list = payload.Substring(0, sep).Trim();
+                string value = payload.Substring(sep + 1).Trim();
+
+                bool ok = _settings.AddPattern(list, value);
+
+                if (ok)
+                {
+                    // Recharge la config dans le moteur (recalcul des caches côté NetMonitorEngine)
+                    _engine.ReloadConfig();
+                }
+
+                bool patternAdded = _settings.AddPattern(list, value);
+
+                if (patternAdded)
+                {
+                    _engine.ReloadConfig();
+                    int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
+
+                    IpcResponse.Json(server, new
+                    {
+                        status = "ok",
+                        list,
+                        value,
+                        reclassified,
+                        message = reclassified > 0
+                            ? $"{reclassified} IP(s) bloquée(s) mise(s) à jour"
+                            : "pattern ajouté (aucune IP existante affectée)"
+                    });
+                    return;
+                }
+
+                IpcResponse.Json(server, new
+                {
+                    status = ok ? "ok" : "error",
+                    list,
+                    value,
+                    message = ok ? "pattern ajouté" : "liste inconnue ou valeur vide"
+                });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleAddPattern : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                                                              
     }
 }

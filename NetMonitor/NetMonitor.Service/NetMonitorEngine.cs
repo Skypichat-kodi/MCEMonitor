@@ -84,7 +84,7 @@ namespace NetMonitor.Service
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "data_version.txt");
 
-        private const int CurrentDataVersion = 3;
+        private const int CurrentDataVersion = 4;
 
         // Dernier blocage réussi (exposé via /api/summary et les pushs)
         public LastBlockInfo? LastBlock { get; private set; }
@@ -1826,7 +1826,7 @@ namespace NetMonitor.Service
                     if (known == true)
                     {
                         evt.IsKnownScanner = true;
-                        evt.Severity = Severity.Warning;
+                        evt.Severity = Severity.Trusted;   // ← Modifié
                         evt.Message = $"[SCANNER CONNU] {evt.Message}";
                         evt.TrustReason = "Scanner de recherche légitime (bloqué en mode strict)";
                     }
@@ -2395,30 +2395,30 @@ namespace NetMonitor.Service
             if (MatchesCrawlerPatterns(gi?.Isp) || MatchesCrawlerPatterns(gi?.Org))
                 return Severity.Crawler;
 
-            // 6. Scanner connu → Warning (Subnet géré via IsKnownScanner)
-            if (isKnownScanner)
-                return Severity.Warning;
+            // ═══════════════════════════════════════════════════════════════
+            // 6. NOUVEAU : Scanners (Palo Alto, Shodan, Censys...) → Trusted
+            //    Doit passer AVANT le Critical du détecteur Blacklist
+            // ═══════════════════════════════════════════════════════════════
+            if (isKnownScanner ||
+                MatchesScannerPatterns(gi?.Isp, _settings.ScannerPatterns) ||
+                MatchesScannerPatterns(gi?.Org, _settings.ScannerPatterns))
+                return Severity.Trusted;
 
             // 7. Détecteur critique → conserver
             if (currentSeverity == Severity.Critical || currentSeverity == Severity.High)
                 return currentSeverity;
 
-            // 8. Scanner via patterns → Warning
-            if (MatchesScannerPatterns(gi?.Isp, _settings.ScannerPatterns)
-                || MatchesScannerPatterns(gi?.Org, _settings.ScannerPatterns))
-                return Severity.Warning;
-
-            // 9. Domaine malveillant → Critical
+            // 8. Domaine malveillant → Critical
             if (MatchesScannerPatterns(gi?.Isp, _settings.CriticalPatterns)
                 || MatchesScannerPatterns(gi?.Org, _settings.CriticalPatterns))
                 return Severity.Critical;
 
-            // 10. Safe patterns → Safe
+            // 9. Safe patterns → Safe
             if (MatchesScannerPatterns(gi?.Isp, _settings.SafePatterns)
                 || MatchesScannerPatterns(gi?.Org, _settings.SafePatterns))
                 return Severity.Safe;
 
-            // 11. Défaut
+            // 10. Défaut
             return Severity.Warning;
         }
 
@@ -2440,6 +2440,57 @@ namespace NetMonitor.Service
                 || source.Contains("Beaconing", StringComparison.OrdinalIgnoreCase)
                 || source.Contains("SuspiciousOutbound", StringComparison.OrdinalIgnoreCase);
         }
+        
+        /// <summary>
+        /// Re-classifie toutes les IPs bloquées qui matchent un pattern récemment ajouté.
+        /// Appelé après AddPattern() pour mettre à jour les badges existants.
+        /// </summary>
+        public int ReclassifyBlockedIpsByPattern(string pattern)
+        {
+            if (string.IsNullOrWhiteSpace(pattern)) return 0;
+
+            string normalized = pattern.Trim().ToLowerInvariant();
+            int updated = 0;
+
+            lock (_alertsLock)
+            {
+                foreach (var b in _blockedIps)
+                {
+                    if (b.IsProcess) continue;
+                    if (b.ManualSeverity.HasValue) continue;   // ne pas toucher aux overrides manuels
+
+                    // Vérifie si l'IP matche le pattern (via ISP, Org ou ReverseDns)
+                    bool matches =
+                        (!string.IsNullOrWhiteSpace(b.Isp)        && b.Isp.Contains(normalized, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(b.Org)        && b.Org.Contains(normalized, StringComparison.OrdinalIgnoreCase)) ||
+                        (!string.IsNullOrWhiteSpace(b.ReverseDns) && b.ReverseDns.Contains(normalized, StringComparison.OrdinalIgnoreCase)) ||
+                        string.Equals(b.Ip, pattern, StringComparison.OrdinalIgnoreCase);
+
+                    if (!matches) continue;
+
+                    var newSev = ReclassifySeverity(
+                        b.Ip,
+                        Enum.TryParse<Severity>(b.Severity, out var sev) ? sev : Severity.Warning,
+                        b.Source,
+                        b.IsKnownScanner);
+
+                    string newSevStr = newSev.ToString();
+                    if (b.Severity != newSevStr)
+                    {
+                        b.Severity = newSevStr;
+                        updated++;
+                    }
+                }
+            }
+
+            if (updated > 0)
+            {
+                SaveBlockedIps();
+                CoreLog.Info($"[PATTERN] {updated} IP(s) bloquée(s) re-classifiée(s) après ajout du pattern '{pattern}'");
+            }
+
+            return updated;
+        }        
     }
     
     public class ProblemItem

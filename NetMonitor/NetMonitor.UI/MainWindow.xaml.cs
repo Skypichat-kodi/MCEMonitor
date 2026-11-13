@@ -357,7 +357,9 @@ namespace NetMonitor.UI
                             IsKnownScanner      = b.IsKnownScanner,
                             Country             = b.Country,        
                             CountryCode         = b.CountryCode,    
-                            Isp                 = b.Isp             
+                            Isp                 = b.Isp,
+                            Org                 = b.Org,  
+                            ReverseDns          = b.ReverseDns                                          
                         })
                         .ToList();
 
@@ -1140,9 +1142,6 @@ namespace NetMonitor.UI
             await RefreshWhitelistAsync();
         }
 
-        // ------------------------------------------------------------
-        //  Réglages
-        // ------------------------------------------------------------
         private async void LoadSettings()
         {
             try
@@ -1150,76 +1149,122 @@ namespace NetMonitor.UI
                 var cfg = await NetMonitorIpcClient.GetConfig();
                 if (cfg == null)
                 {
-                    txtPortScanWindow.Text              = "10";
-                    txtPortScanThreshold.Text           = "20";
-                    txtBeaconWindow.Text                = "300";
-                    txtBeaconHits.Text                  = "6";
-                    txtBeaconJitter.Text                = "5";
-                    chkAutoBlock.IsChecked              = false;
-                    chkAutoBlockCritical.IsChecked      = true;
-                    chkAutoBlockWarning.IsChecked       = true;
-                    chkAutoBlockSubnet.IsChecked        = false;
-                    txtIgnoredNetworks.Text             = "127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16";
-                    chkDisableFilters.IsChecked         = false;
-                    txtBlacklistLevel.Text              = "3";
-                    lblBlacklistLastUpdate.Text         = "Dernière MAJ : inconnue";
-                    chkBlockBots.IsChecked              = false;
-                    chkBlockCrawlers.IsChecked          = true;
-                    chkGoogleIpRange.IsChecked          = true;
-                    txtGoogleIpRangeRefreshHours.Text   = "24";               
-                    
-                    // Valeurs par défaut pour les nouveaux champs
-                    // IgnoreSearchScanners est false par défaut (philosophie "tout bot est maudit"),
-                    // donc la case "Bloquer" doit être cochée par défaut.
-                    chkBlockSearchScanners.IsChecked = true; 
-                    txtScannerPatterns.Text = "";
-                    
+                    // ═══════════════════════════════════════════════════════
+                    //  Valeurs par défaut (cfg == null → pas de plantage)
+                    // ═══════════════════════════════════════════════════════
+                    GridIgnoredNetworks.ItemsSource = new List<PatternRow>
+                    {
+                        new() { Value = "127.0.0.0/8" },
+                        new() { Value = "10.0.0.0/8" },
+                        new() { Value = "172.16.0.0/12" },
+                        new() { Value = "192.168.0.0/16" }
+                    };
+
+                    GridSafePatterns.ItemsSource = new List<PatternRow>
+                    {
+                        new() { Value = "microsoft.com" },
+                        new() { Value = "google.com" },
+                        new() { Value = "cloudflare.com" }
+                    };
+
+                    GridCriticalPatterns.ItemsSource  = new List<PatternRow>();
+                    GridCrawlerPatterns.ItemsSource   = new List<PatternRow>();
+                    GridWhitelistPatterns.ItemsSource = new List<PatternRow>();
+
+                    GridScannerPatterns.ItemsSource = new List<PatternRow>
+                    {
+                        new() { Value = "shadowserver.org" },
+                        new() { Value = "censys.io" },
+                        new() { Value = "shodan.io" },
+                        new() { Value = "onyphe.com" },
+                        new() { Value = "binaryedge.io" },
+                        new() { Value = "internet-measurement.com" },
+                        new() { Value = "rapid7.com" },
+                        new() { Value = "stretchoid.com" }
+                    };
+
+                    txtPortScanWindow.Text                  = "10";
+                    txtPortScanThreshold.Text               = "20";
+                    txtBeaconWindow.Text                    = "300";
+                    txtBeaconHits.Text                      = "6";
+                    txtBeaconJitter.Text                    = "5";
+                    chkAutoBlock.IsChecked                  = false;
+                    chkAutoBlockCritical.IsChecked          = true;
+                    chkAutoBlockWarning.IsChecked           = true;
+                    chkAutoBlockSubnet.IsChecked            = false;
+                    chkDisableFilters.IsChecked             = false;
+                    txtBlacklistLevel.Text                  = "3";
+                    lblBlacklistLastUpdate.Text             = "Dernière MAJ : inconnue";
+                    chkBlockBots.IsChecked                  = false;
+                    chkBlockCrawlers.IsChecked              = true;
+                    chkGoogleIpRange.IsChecked              = true;
+                    txtGoogleIpRangeRefreshHours.Text       = "24";
+                    chkMicrosoftIpRange.IsChecked           = true;
+                    txtMicrosoftIpRangeRefreshHours.Text    = "24";                                     
+
                     return;
                 }
 
-                txtPortScanWindow.Text              = cfg.portScanWindowSeconds.ToString();
-                txtPortScanThreshold.Text           = cfg.portScanThreshold.ToString();
-                txtBeaconWindow.Text                = cfg.beaconWindowSeconds.ToString();
-                txtBeaconHits.Text                  = cfg.beaconMinHits.ToString();
-                txtBeaconJitter.Text                = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
-                chkAutoBlock.IsChecked              = cfg.autoBlock;
-                chkAutoBlockCritical.IsChecked      = cfg.autoBlockCritical;
-                chkAutoBlockWarning.IsChecked       = cfg.autoBlockWarning;
-                chkAutoBlockSubnet.IsChecked        = cfg.autoBlockSubnet;
-                chkBlockBots.IsChecked              = cfg.blockBots;
-                chkBlockCrawlers.IsChecked          = cfg.blockCrawlers;
-                chkGoogleIpRange.IsChecked          = cfg.googleIpRangeEnabled;
-                txtGoogleIpRangeRefreshHours.Text   = cfg.googleIpRangeRefreshHours.ToString();                
+                // ═══════════════════════════════════════════════════════════
+                //  Chargement depuis cfg
+                // ═══════════════════════════════════════════════════════════
 
-                if (cfg.ignoredNetworks != null && cfg.ignoredNetworks.Length > 0)
-                    txtIgnoredNetworks.Text = string.Join(",", cfg.ignoredNetworks);
-
-                chkDisableFilters.IsChecked = cfg.disableFilters;
-                txtBlacklistLevel.Text = cfg.blacklistLevel.ToString();
+                // Champs numériques / booléens
+                txtPortScanWindow.Text                  = cfg.portScanWindowSeconds.ToString();
+                txtPortScanThreshold.Text               = cfg.portScanThreshold.ToString();
+                txtBeaconWindow.Text                    = cfg.beaconWindowSeconds.ToString();
+                txtBeaconHits.Text                      = cfg.beaconMinHits.ToString();
+                txtBeaconJitter.Text                    = Math.Round(cfg.beaconJitterTolerancePct * 100).ToString();
+                chkAutoBlock.IsChecked                  = cfg.autoBlock;
+                chkAutoBlockCritical.IsChecked          = cfg.autoBlockCritical;
+                chkAutoBlockWarning.IsChecked           = cfg.autoBlockWarning;
+                chkAutoBlockSubnet.IsChecked            = cfg.autoBlockSubnet;
+                chkBlockBots.IsChecked                  = cfg.blockBots;
+                chkBlockCrawlers.IsChecked              = cfg.blockCrawlers;
+                chkGoogleIpRange.IsChecked              = cfg.googleIpRangeEnabled;
+                txtGoogleIpRangeRefreshHours.Text       = cfg.googleIpRangeRefreshHours.ToString();
+                chkMicrosoftIpRange.IsChecked           = cfg.microsoftIpRangeEnabled;
+                txtMicrosoftIpRangeRefreshHours.Text    = cfg.microsoftIpRangeRefreshHours.ToString();                
+                chkDisableFilters.IsChecked             = cfg.disableFilters;
+                txtBlacklistLevel.Text                  = cfg.blacklistLevel.ToString();
 
                 if (cfg.blacklistLastUpdate != DateTime.MinValue)
                     lblBlacklistLastUpdate.Text = $"Dernière MAJ : {cfg.blacklistLastUpdate.ToLocalTime():dd/MM/yyyy HH:mm}";
                 else
                     lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
 
-                // Chargement des scanners de recherche ---
-                chkBlockSearchScanners.IsChecked = !cfg.ignoreSearchScanners;
-                
-                if (cfg.scannerPatterns != null && cfg.scannerPatterns.Length > 0)
-                {
-                    txtScannerPatterns.Text = string.Join(Environment.NewLine, cfg.scannerPatterns);
-                }
-                else
-                {
-                    // Valeur par défaut visible dans l'UI (au lieu de vide)
-                    txtScannerPatterns.Text = string.Join(Environment.NewLine, new[]
-                    {
-                        "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
-                        "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
-                    });
-                }
+                // ═══════════════════════════════════════════════════════════
+                //  Chargement des patterns dans les DataGrids
+                // ═══════════════════════════════════════════════════════════
+
+                GridIgnoredNetworks.ItemsSource = (cfg.ignoredNetworks ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
+
+                GridSafePatterns.ItemsSource = (cfg.safePatterns ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
+
+                GridCriticalPatterns.ItemsSource = (cfg.criticalPatterns ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
+
+                GridScannerPatterns.ItemsSource = (cfg.scannerPatterns ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
+
+                GridCrawlerPatterns.ItemsSource = (cfg.crawlerPatterns ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
+
+                GridWhitelistPatterns.ItemsSource = (cfg.whitelistPatterns ?? Array.Empty<string>())
+                    .Select(x => new PatternRow { Value = x })
+                    .ToList();
             }
-            catch { }
+            catch (Exception ex)
+            {
+                CoreLog.Error($"LoadSettings : {ex.Message}");
+            }
         }
 
         private async void btnSaveSettings_Click(object sender, RoutedEventArgs e)
@@ -1251,23 +1296,25 @@ namespace NetMonitor.UI
                 }
 
                 string webEnabled = (ToggleWeb.IsChecked == true).ToString().ToLower();
-                string webPort = txtWebPort.Text.Trim();
-                string webLogin = txtWebLogin.Text.Trim();
-                string webPass = txtWebPassword.Visibility == Visibility.Visible
+                string webPort    = txtWebPort.Text.Trim();
+                string webLogin   = txtWebLogin.Text.Trim();
+                string webPass    = txtWebPassword.Visibility == Visibility.Visible
                     ? txtWebPassword.Password
                     : txtWebPasswordVisible.Text;
 
-                var scannerPatterns = txtScannerPatterns.Text
-                    .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
-                    .Select(s => s.Trim())
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .ToArray();
+                // ═══════════════════════════════════════════════════════════
+                //  Récupération des patterns depuis les DataGrids
+                // ═══════════════════════════════════════════════════════════
+                var ignoredNetworks   = GetPatternsFromGrid(GridIgnoredNetworks);
+                var safePatterns      = GetPatternsFromGrid(GridSafePatterns);
+                var criticalPatterns  = GetPatternsFromGrid(GridCriticalPatterns);
+                var scannerPatterns   = GetPatternsFromGrid(GridScannerPatterns);
+                var crawlerPatterns   = GetPatternsFromGrid(GridCrawlerPatterns);
+                var whitelistPatterns = GetPatternsFromGrid(GridWhitelistPatterns);
 
-                // ✅ Garde-fou : si l'utilisateur n'a rien mis, conserver la valeur par défaut
-                string scannerPatternsValue = scannerPatterns.Length > 0
-                    ? string.Join(",", scannerPatterns)
-                    : "shadowserver.org,censys.io,shodan.io,onyphe.com,binaryedge.io,internet-measurement.com,rapid7.com,stretchoid.com";
-
+                // ═══════════════════════════════════════════════════════════
+                //  Construction du fichier NetMonitor.config
+                // ═══════════════════════════════════════════════════════════
                 var lines = new[]
                 {
                     "# ============================================================",
@@ -1289,27 +1336,31 @@ namespace NetMonitor.UI
                     $"AutoBlockCritical={(chkAutoBlockCritical.IsChecked == true).ToString().ToLower()}",
                     $"AutoBlockWarning={(chkAutoBlockWarning.IsChecked == true).ToString().ToLower()}",
                     $"AutoBlockSubnet={(chkAutoBlockSubnet.IsChecked == true).ToString().ToLower()}",
-                    
+                    "",
                     "# --- Robots d'exploration (Google, Bing...) ---",
                     $"GoogleIpRangeEnabled={(chkGoogleIpRange.IsChecked == true).ToString().ToLower()}",
                     $"GoogleIpRangeRefreshHours={txtGoogleIpRangeRefreshHours.Text.Trim()}",
                     $"BlockBots={(chkBlockBots.IsChecked == true).ToString().ToLower()}",
                     $"BlockCrawlers={(chkBlockCrawlers.IsChecked == true).ToString().ToLower()}",
-                    $"CrawlerPatterns=yandex.com,yandex.ru,baidu.com,bytespider,semrush.com,ahrefs.com,mj12bot,dotbot,petalbot,gptbot,oai-searchbot,ccbot",
+                    "",
+                    "# --- Filtres Microsoft ---",
+                    $"MicrosoftIpRangeEnabled={(chkMicrosoftIpRange.IsChecked == true).ToString().ToLower()}",
+                    $"MicrosoftIpRangeRefreshHours={txtMicrosoftIpRangeRefreshHours.Text.Trim()}",
                     "",                    
-                    
                     "# --- Filtres et Whitelists ---",
-                    $"IgnoredNetworks={txtIgnoredNetworks.Text.Trim()}",
+                    $"IgnoredNetworks={string.Join(",", ignoredNetworks)}",
                     $"DisableFilters={(chkDisableFilters.IsChecked == true).ToString().ToLower()}",
-                    $"ScannerPatterns={scannerPatternsValue}",
+                    "",
+                    "# --- Classification des IPs ---",
+                    $"SafePatterns={string.Join(",", safePatterns)}",
+                    $"CriticalPatterns={string.Join(",", criticalPatterns)}",
+                    $"ScannerPatterns={string.Join(",", scannerPatterns)}",
+                    $"CrawlerPatterns={string.Join(",", crawlerPatterns)}",
+                    $"WhitelistPatterns={string.Join(",", whitelistPatterns)}",
                     "",
                     "# --- Threat Intelligence ---",
                     $"BlacklistLevel={txtBlacklistLevel.Text.Trim()}",
                     $"BlacklistLastUpdate={(DateTime.TryParse(lblBlacklistLastUpdate.Text.Replace("Dernière MAJ : ", ""), out var dt) ? dt.ToUniversalTime().ToString("O") : DateTime.UtcNow.ToString("O"))}",
-                    "",
-                    "# --- Scanners de recherche (Trusted) ---",
-                    $"IgnoreSearchScanners={(chkBlockSearchScanners.IsChecked != true).ToString().ToLower()}",
-                    $"ScannerPatterns={string.Join(",", scannerPatterns)}",
                     "",
                     "# --- Serveur Web ---",
                     $"WebEnabled={webEnabled}",
@@ -1325,7 +1376,7 @@ namespace NetMonitor.UI
 
                 var fi = new FileInfo(configPath);
                 _lastConfigWriteTime = fi.LastWriteTime;
-                _lastConfigSize = fi.Length;
+                _lastConfigSize      = fi.Length;
 
                 bool reloaded = await NetMonitorIpcClient.ReloadConfigAsync();
 
@@ -2192,6 +2243,31 @@ namespace NetMonitor.UI
                 : $"{visible} / {total}";
         }
 
+        private void AddIgnoredNetwork_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridIgnoredNetworks);
+        private void AddSafePattern_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridSafePatterns);
+        private void AddCriticalPattern_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridCriticalPatterns);
+        private void AddScannerPattern_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridScannerPatterns);
+        private void AddCrawlerPattern_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridCrawlerPatterns);
+        private void AddWhitelistPattern_Click(object sender, RoutedEventArgs e) => AddPatternToGrid(GridWhitelistPatterns);
+
+        private void AddPatternToGrid(DataGrid grid)
+        {
+            var list = grid.ItemsSource as List<PatternRow> ?? new List<PatternRow>();
+            var newRow = new PatternRow { Value = "" };
+            list.Add(newRow);
+            grid.ItemsSource = null;
+            grid.ItemsSource = list;
+
+            // Scroll vers la nouvelle ligne et active l'édition
+            grid.ScrollIntoView(newRow);
+            grid.SelectedItem = newRow;
+            if (grid.Columns.Count > 0)
+            {
+                grid.CurrentCell = new DataGridCellInfo(newRow, grid.Columns[0]);
+                grid.BeginEdit();
+            }
+        }
+
         // ------------------------------------------------------------
         //  Initialisation des filtres au démarrage
         // ------------------------------------------------------------
@@ -2595,6 +2671,30 @@ namespace NetMonitor.UI
 
             await RefreshSafe();
         }
+
+        private async void AddPatternFromBlockedIp_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not BlockedIpRow row) return;
+
+            var picker = new PatternPickerWindow(row) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Ajout du pattern '{picker.SelectedValue}' à la liste '{picker.SelectedList}'…");
+
+            bool ok = await NetMonitorIpcClient.AddPatternAsync(picker.SelectedList, picker.SelectedValue);
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            // Recharge les données depuis le service pour voir l'étiquette mise à jour
+            await RefreshSafe();
+        }
         
         // ============================================================
         //  OTP par email
@@ -2689,7 +2789,21 @@ namespace NetMonitor.UI
                 MessageBox.Show("Erreur : " + ex.Message,
                     "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
-        }                
+        }
+        
+        /// <summary>
+        /// Récupère la liste des valeurs non vides d'un DataGrid de patterns.
+        /// </summary>
+        private static List<string> GetPatternsFromGrid(DataGrid grid)
+        {
+            if (grid.ItemsSource is not IEnumerable<PatternRow> rows)
+                return new List<string>();
+
+            return rows
+                .Select(r => r.Value?.Trim())
+                .Where(v => !string.IsNullOrWhiteSpace(v))
+                .ToList()!;
+        }                        
     }
 
     // ============================================================
@@ -2788,7 +2902,9 @@ namespace NetMonitor.UI
         public string? Isp                      { get; set; }
         public bool IsOutbound                  { get; set; }
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
-        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";        
+        public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
+        public string? Org                      { get; set; }
+        public string? ReverseDns               { get; set; }                
 
         public string CountryDisplay
         {
@@ -3086,5 +3202,10 @@ namespace NetMonitor.UI
     {
         public string Severity          { get; set; } = "";
         public int Count                { get; set; }
-    }                    
+    }
+    
+    public class PatternRow
+    {
+        public string Value             { get; set; } = "";
+    }                        
 }
