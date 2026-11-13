@@ -6,8 +6,6 @@ public sealed class PortScanDetector : IConnectionAwareDetector
 {
     public string Name => "PortScan";
 
-    public DetectorResult? Inspect(NetworkEvent evt, DetectorContext ctx) => null;
-
     public DetectorResult? InspectConnection(ConnectionInfo ci, DetectorContext ctx)
     {
         if (ci.Protocol != TransportProtocol.Tcp) return null;

@@ -105,10 +105,13 @@ namespace NetMonitor.Service.Web
 
                         activeRows.Append($@"<tr>
                             <td></td>
+                            <td></td>
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge c1'>-</span></td>
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
+                            <td></td>
+                            <td></td>
                             <td></td>
                             <td></td>
                             <td>[PID {a.Pid}] {WebUtility.HtmlEncode(a.Message)}</td>

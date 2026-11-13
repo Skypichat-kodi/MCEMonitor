@@ -155,9 +155,9 @@ namespace NetMonitor.Service
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
                             case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break;
-                            case "TrustedScannerPatterns":
                             case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
+                            case "TrustedScannerPatterns":
                             case "ScannerPatterns":
                                 var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                 if (patterns.Length > 0) settings.ScannerPatterns = patterns;
@@ -379,11 +379,11 @@ namespace NetMonitor.Service
                             case "GeoIpEnabled"                 : if (bool.TryParse(value, out bool gi)) GeoIpEnabled = gi; break;
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) ReverseDnsEnabled = rd; break;
+                            case "TrustedScannerPatterns":
                             case "ScannerPatterns":
                                 var patterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
                                 if (patterns.Length > 0) ScannerPatterns = patterns;
                                 break;
-                            case "TrustedScannerPatterns":
                             case "CriticalPatterns"             : CriticalPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "SafePatterns"                 : SafePatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "WhitelistPatterns"            : WhitelistPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;

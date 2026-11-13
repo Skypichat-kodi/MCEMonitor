@@ -11,8 +11,6 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
 {
     public string Name => "Beaconing";
 
-    public DetectorResult? Inspect(NetworkEvent evt, DetectorContext ctx) => null;
-
     public DetectorResult? InspectConnection(ConnectionInfo ci, DetectorContext ctx)
     {
         if (ci.Pid <= 0) return null;

@@ -25,6 +25,4 @@ public sealed class SuspiciousOutboundDetector : IConnectionAwareDetector
 
         return null;
     }
-
-    public DetectorResult? Inspect(NetworkEvent evt, DetectorContext ctx) => null;
 }

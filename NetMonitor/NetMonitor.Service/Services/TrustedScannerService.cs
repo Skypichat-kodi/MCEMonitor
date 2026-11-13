@@ -17,7 +17,7 @@ public sealed class TrustedScannerService
     private readonly SemaphoreSlim _throttle = new(4, 4);
     private static readonly TimeSpan CacheTtl  = TimeSpan.FromHours(24);
     private static readonly TimeSpan DnsTimeout = TimeSpan.FromSeconds(2);
-    private readonly string[] _patterns;
+    private string[] _patterns;
 
     public TrustedScannerService(string[] patterns)
     {
@@ -88,5 +88,15 @@ public sealed class TrustedScannerService
         }
     }
 
+    /// <summary>
+    /// Remplace les patterns à chaud (sans reconstruire le service).
+    /// Appelé par NetMonitorEngine.ReloadConfig() après un changement de config.
+    /// </summary>
+    public void UpdatePatterns(string[] patterns)
+    {
+        _patterns = patterns ?? Array.Empty<string>();
+        CoreLog.Info($"[SCANNER] {_patterns.Length} pattern(s) rechargé(s) à chaud");
+    }
+    
     public void Clear() => _cache.Clear();
 }

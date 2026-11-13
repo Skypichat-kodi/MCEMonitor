@@ -31,7 +31,17 @@ namespace NetMonitor.Service
         private static readonly TimeSpan ManualDebounceDelay = TimeSpan.FromMinutes(10);
         private static readonly TimeSpan TickInterval        = TimeSpan.FromMinutes(1);
         private static readonly TimeSpan FirstTickDelay      = TimeSpan.FromSeconds(30);
-
+        /// <summary>
+        /// Fenêtre de déduplication dans la file d'attente.
+        /// Une même paire (RemoteIp, Source) n'est ignorée que si l'alerte en file
+        /// date de moins de DedupWindow. Au-delà, elle est considérée comme une
+        /// nouvelle vague d'attaque (comportement informatif voulu).
+        ///
+        /// Valeur choisie : 5 min → compromis entre anti-spam et visibilité
+        /// de la récurrence (une attaque qui revient toutes les 10 min apparaîtra
+        /// plusieurs fois dans le digest auto de 2h, ce qui est l'information utile).
+        /// </summary>
+        private static readonly TimeSpan DedupWindow = TimeSpan.FromMinutes(5);
         private static readonly string StateFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "email_digest_state.txt");
@@ -40,6 +50,14 @@ namespace NetMonitor.Service
         private readonly ConcurrentQueue<IntrusionEvent> _pending = new();
         private readonly SemaphoreSlim _sendLock = new(1, 1);
         private readonly object _manualLock = new();
+
+        /// <summary>
+        /// Dédup O(1) pour Enqueue : clé "RemoteIp|Source" → date du dernier enqueue.
+        /// Purge automatique dans Tick() via la fenêtre DedupWindow.
+        /// Indépendant de _pending : le flush ne le vide PAS (fenêtre glissante
+        /// plus correcte que la dédup basée sur la file).
+        /// </summary>
+        private readonly ConcurrentDictionary<string, DateTime> _recentEnqueues = new();
 
         private Timer? _tickTimer;
         private DateTime? _manualCycleDeadline;   // null si pas de cycle manuel en cours
@@ -87,6 +105,7 @@ namespace NetMonitor.Service
                 CoreLog.Warn($"[EMAIL-DIGEST] Arrêt avec {leftover} alerte(s) non envoyée(s) - drop");
 
             while (_pending.TryDequeue(out _)) { }
+            _recentEnqueues.Clear();
         }
 
         // ============================================================
@@ -96,16 +115,20 @@ namespace NetMonitor.Service
         {
             if (_disposed) return;
 
-            // Fix Bug F : snapshot avant Any() pour éviter "Collection was modified"
-            var snapshot = _pending.ToArray();
-            if (snapshot.Any(p =>
-                    p.RemoteIp == evt.RemoteIp &&
-                    p.Source == evt.Source))
+            string key = $"{evt.RemoteIp ?? ""}|{evt.Source}";
+            var now = DateTime.UtcNow;
+
+            // Dédup O(1) via fenêtre glissante (remplace le ToArray() + Any() en O(n))
+            if (_recentEnqueues.TryGetValue(key, out var last)
+                && (now - last) < DedupWindow)
             {
-                CoreLog.Debug($"[EMAIL-DIGEST] Doublon ignoré : {evt.Source} / {evt.RemoteIp}");
+                CoreLog.Debug($"[EMAIL-DIGEST] Doublon ignoré " +
+                              $"(fenêtre {DedupWindow.TotalMinutes:F0} min) : " +
+                              $"{evt.Source} / {evt.RemoteIp}");
                 return;
             }
 
+            _recentEnqueues[key] = now;
             _pending.Enqueue(evt);
             CoreLog.Debug($"[EMAIL-DIGEST] Alerte en attente ({_pending.Count} en file) : {evt.Source} / {evt.RemoteIp}");
 
@@ -162,6 +185,16 @@ namespace NetMonitor.Service
 
             try
             {
+                // ────────────────────────────────────────────────────────
+                //  Purge des entrées de dédup expirées (fenêtre glissante)
+                // ────────────────────────────────────────────────────────
+                var cutoff = DateTime.UtcNow - DedupWindow;
+                foreach (var kv in _recentEnqueues)
+                {
+                    if (kv.Value < cutoff)
+                        _recentEnqueues.TryRemove(kv.Key, out _);
+                }
+
                 if (_settings.AutoBlock)
                 {
                     // Mode AUTO : flush si intervalle écoulé et file non vide
@@ -193,7 +226,7 @@ namespace NetMonitor.Service
                 CoreLog.Error($"[EMAIL-DIGEST] Erreur Tick : {ex.Message}");
             }
         }
-
+        
         // ============================================================
         //  Flush effectif
         // ============================================================

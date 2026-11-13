@@ -30,6 +30,8 @@ namespace NetMonitor.Service.Web
         // Clé = IP source (pour éviter qu'un attaquant génère 1000 codes)
         private static readonly ConcurrentDictionary<string, PendingOtp> _pendingOtps = new();
 
+        private static readonly object _otpLock = new();
+
         public enum LoginResult
         {
             Ok,
@@ -118,31 +120,34 @@ namespace NetMonitor.Service.Web
             if (string.IsNullOrWhiteSpace(userCode))
                 return LoginResult.BadOtp;
 
-            if (!_pendingOtps.TryGetValue(remoteIp, out var pending))
-                return LoginResult.OtpExpired;
-
-            if (pending.ExpiresAt < DateTime.UtcNow)
+            lock (_otpLock)
             {
+                if (!_pendingOtps.TryGetValue(remoteIp, out var pending))
+                    return LoginResult.OtpExpired;
+
+                if (pending.ExpiresAt < DateTime.UtcNow)
+                {
+                    _pendingOtps.TryRemove(remoteIp, out _);
+                    return LoginResult.OtpExpired;
+                }
+
+                pending.Attempts++;
+                if (pending.Attempts > OtpMaxAttempts)
+                {
+                    _pendingOtps.TryRemove(remoteIp, out _);
+                    return LoginResult.TooManyAttempts;
+                }
+
+                byte[] a = Encoding.UTF8.GetBytes(pending.Code);
+                byte[] b = Encoding.UTF8.GetBytes(userCode.Trim());
+
+                bool ok = a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
+
+                if (!ok) return LoginResult.BadOtp;
+
                 _pendingOtps.TryRemove(remoteIp, out _);
-                return LoginResult.OtpExpired;
+                return LoginResult.Ok;
             }
-
-            pending.Attempts++;
-            if (pending.Attempts > OtpMaxAttempts)
-            {
-                _pendingOtps.TryRemove(remoteIp, out _);
-                return LoginResult.TooManyAttempts;
-            }
-
-            byte[] a = Encoding.UTF8.GetBytes(pending.Code);
-            byte[] b = Encoding.UTF8.GetBytes(userCode.Trim());
-
-            bool ok = a.Length == b.Length && CryptographicOperations.FixedTimeEquals(a, b);
-
-            if (!ok) return LoginResult.BadOtp;
-
-            _pendingOtps.TryRemove(remoteIp, out _);
-            return LoginResult.Ok;
         }
 
         // ============================================================

@@ -215,9 +215,6 @@ namespace NetMonitor.Service
 
             // Migration des données au démarrage ═══
             MigrateDataIfNeeded();
-
-            _emailScheduler = new EmailDigestScheduler(_settings);
-            _emailScheduler.Start();
                                  
             _msRanges.Start();
             LoadManualSafeIps();
@@ -493,14 +490,19 @@ namespace NetMonitor.Service
             _capture?.Dispose();
 
             _evictTimer?.Dispose();
-            _evictTimer?.Dispose();
             _evictTimer = null;
 
             _autoBlockCleanupTimer?.Dispose();
-            _autoBlockCleanupTimer = null;            
-            _evictTimer = null;
+            _autoBlockCleanupTimer = null;
             
             _etw.Stop();
+
+            // Dispose _geoIp en dernier : les appels ResolveAsync() en vol (depuis
+            // AddIntrusion ou FinalizeBlockedIpGeoAsync) sont alors terminés ou verront
+            // le flag _disposed et abandonneront immédiatement.
+            _geoIp?.Dispose();
+            _geoIp = null;
+
             CoreLog.Write("NetMonitorEngine arrêté.");
         }
 
@@ -1158,7 +1160,7 @@ namespace NetMonitor.Service
                 // Mise à jour des anciennes IP bloquées
                 if (_trustedScanners != null)
                 {
-                    foreach (var b in _blockedIps)
+                    foreach (var b in list)
                     {
                         if (!b.IsProcess && !b.IsKnownScanner)
                         {
@@ -1397,16 +1399,63 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         //  Rechargement config / force scan
         // ------------------------------------------------------------
+        // ⚠️ EnableProcessTrust n'est PAS rechargé à chaud (nécessite un redémarrage)
+        // Raison : UntrustedProcessDetector capture _processTrust au constructeur.
         public void ReloadConfig()
         {
-            bool oldAutoBlock = _settings.AutoBlock;
+            bool oldAutoBlock        = _settings.AutoBlock;
+            bool oldMsEnabled        = _settings.MicrosoftIpRangeEnabled;
+            int  oldMsRefreshHours   = _settings.MicrosoftIpRangeRefreshHours;
+            bool oldGoogleEnabled    = _settings.GoogleIpRangeEnabled;
+            int  oldGoogleRefreshHrs = _settings.GoogleIpRangeRefreshHours;
 
             _settings.Reload();
             _processTrust?.Reload();
 
+            // ============================================================
+            //  1. Patterns scanners (toujours propagés, pas cher)
+            // ============================================================
+            _trustedScanners?.UpdatePatterns(_settings.ScannerPatterns);
+
+            // ============================================================
+            //  2. Ranges Microsoft — reconstruire si toggle ou refreshHours changé
+            // ============================================================
+            if (oldMsEnabled != _settings.MicrosoftIpRangeEnabled
+                || oldMsRefreshHours != _settings.MicrosoftIpRangeRefreshHours)
+            {
+                CoreLog.Info($"[CONFIG] MicrosoftIpRange : ({oldMsEnabled}, {oldMsRefreshHours}h) → " +
+                             $"({_settings.MicrosoftIpRangeEnabled}, {_settings.MicrosoftIpRangeRefreshHours}h)");
+
+                _msRanges?.Stop();
+                _msRanges = new MicrosoftIpRangeService(
+                    _settings.MicrosoftIpRangeEnabled,
+                    _settings.MicrosoftIpRangeRefreshHours);
+                _msRanges.Start();
+            }
+
+            // ============================================================
+            //  3. Ranges Google — idem
+            // ============================================================
+            if (oldGoogleEnabled != _settings.GoogleIpRangeEnabled
+                || oldGoogleRefreshHrs != _settings.GoogleIpRangeRefreshHours)
+            {
+                CoreLog.Info($"[CONFIG] GoogleIpRange : ({oldGoogleEnabled}, {oldGoogleRefreshHrs}h) → " +
+                             $"({_settings.GoogleIpRangeEnabled}, {_settings.GoogleIpRangeRefreshHours}h)");
+
+                _googleRanges?.Stop();
+                _googleRanges?.Dispose();
+                _googleRanges = new GoogleIpRangeService(
+                    _settings.GoogleIpRangeEnabled,
+                    _settings.GoogleIpRangeRefreshHours);
+                _googleRanges.Start();
+            }
+
+            // ============================================================
+            //  4. Mode AutoBlock — notifier le scheduler email
+            // ============================================================
             if (oldAutoBlock != _settings.AutoBlock)
             {
-                CoreLog.Info($"[CONFIG] Changement de mode AutoBlock : {oldAutoBlock} -> {_settings.AutoBlock}");
+                CoreLog.Info($"[CONFIG] Changement de mode AutoBlock : {oldAutoBlock} → {_settings.AutoBlock}");
                 _emailScheduler?.OnModeChanged(oldAutoBlock, _settings.AutoBlock);
             }
         }
@@ -2133,9 +2182,9 @@ namespace NetMonitor.Service
         
         public async Task<GlobalStats> GetStatsAsync(int topIps = 30, int topCountries = 15)
         {
-            if (_geoIp == null)
-                _geoIp = new GeoIpService(_settings.GeoIpProvider, _settings.GeoIpEnabled, _settings.ReverseDnsEnabled);
-            return await StatsBuilder.BuildAsync(this, _geoIp, topIps, topCountries,
+            // _geoIp est initialisé dans le constructeur — jamais null en pratique.
+            // Le check défensif précédent créait une 2ᵉ instance non disposée (fuite HttpClient).
+            return await StatsBuilder.BuildAsync(this, _geoIp!, topIps, topCountries,
                 autoBlockMode: _settings.AutoBlock);
         }
         

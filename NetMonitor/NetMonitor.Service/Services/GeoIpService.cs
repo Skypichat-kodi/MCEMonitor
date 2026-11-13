@@ -6,7 +6,7 @@ using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Services;
 
-public sealed class GeoIpService
+public sealed class GeoIpService : IDisposable
 {
     private readonly ConcurrentDictionary<string, GeoInfo> _cache = new();
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
@@ -15,6 +15,7 @@ public sealed class GeoIpService
     private readonly bool _enabled;
     private readonly bool _reverseDnsEnabled;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(7);
+    private volatile bool _disposed;
 
     public bool IsEnabled => _enabled;
     
@@ -64,6 +65,7 @@ public sealed class GeoIpService
     
     public void ResolveInBackground(string ip)
     {
+        if (_disposed) return;
         if (!_enabled) return;
         if (string.IsNullOrWhiteSpace(ip)) return;
 
@@ -78,6 +80,8 @@ public sealed class GeoIpService
 
     public async Task<GeoInfo> ResolveAsync(string ip, bool includeReverseDns = true)
     {
+        if (_disposed)
+            return new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.MinValue };    
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
@@ -264,4 +268,21 @@ public sealed class GeoIpService
     }
 
     public void Clear() => _cache.Clear();
+    
+    // ============================================================
+    //  IDisposable — libère le pool HTTP et le sémaphore
+    // ============================================================
+    public void Dispose()
+    {
+        if (_disposed) return;
+        _disposed = true;
+
+        try { _http.Dispose(); }
+        catch (Exception ex) { CoreLog.Warn($"GeoIpService.Dispose (http) : {ex.Message}"); }
+
+        try { _throttle.Dispose(); }
+        catch (Exception ex) { CoreLog.Warn($"GeoIpService.Dispose (throttle) : {ex.Message}"); }
+
+        CoreLog.Info("GeoIpService disposé");
+    }    
 }

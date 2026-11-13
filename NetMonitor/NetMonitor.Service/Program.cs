@@ -13,7 +13,8 @@ namespace NetMonitor.Service
         private static Mutex?              _mutex;                       
         private static NetMonitorEngine    _engine        = null!;       
         private static ServiceIpcServer?   _ipc;                         
-        private static MiniHttpServer?     _webServer;                  
+        private static MiniHttpServer?     _webServer;
+        private static Timer?              _otpPurgeTimer;                  
 
         /// <summary>
         /// Nettoie un éventuel service WinDivert orphelin avant le démarrage du moteur.
@@ -170,7 +171,16 @@ namespace NetMonitor.Service
             _ipc.Start();
             _webServer = new Web.MiniHttpServer(_engine, settings);
             _webServer.Start();
-            
+
+            // Purge périodique des OTP expirés (évite la fuite mémoire sur _pendingOtps)
+            // Fréquence : toutes les 5 min = même durée que OtpExpiryMinutes
+            _otpPurgeTimer = new Timer(
+                _ => LoginService.PurgeExpired(),
+                null,
+                TimeSpan.FromMinutes(5),
+                TimeSpan.FromMinutes(5));
+
+            CoreLog.Write("Purge OTP : timer démarré (toutes les 5 min)");
             CoreLog.Write("Service en attente (Thread.Sleep Infinite).");
             Thread.Sleep(Timeout.Infinite);
         }
@@ -186,16 +196,18 @@ namespace NetMonitor.Service
 
                 if (settings.WebEnabled)
                     FirewallHelper.UpdateFirewallRule(settings.WebPort);
+                else
+                    FirewallHelper.RemoveRule();                            // ? AJOUT
 
                 _webServer = new Web.MiniHttpServer(_engine, settings);
                 _webServer.Start();
 
-                CoreLog.Write("WebServer redémarré");
+                CoreLog.Write($"WebServer redémarré (enabled={settings.WebEnabled}, port={settings.WebPort})");
             }
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur RestartWebServer : " + ex.Message);
             }
-        }        
+        }
     }
 }

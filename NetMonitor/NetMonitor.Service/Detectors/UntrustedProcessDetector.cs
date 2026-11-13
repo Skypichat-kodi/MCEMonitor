@@ -41,8 +41,6 @@ public sealed class UntrustedProcessDetector : IConnectionAwareDetector
         _trust = trust;
     }
 
-    public DetectorResult? Inspect(NetworkEvent evt, DetectorContext ctx) => null;
-
     public DetectorResult? InspectConnection(ConnectionInfo ci, DetectorContext ctx)
     {
         // Ignore le trafic local

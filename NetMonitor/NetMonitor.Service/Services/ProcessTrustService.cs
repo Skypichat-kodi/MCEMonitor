@@ -660,7 +660,7 @@ public sealed class ProcessTrustService
     /// Vérifie la signature Authenticode et retourne le SUBJECT du certificat signataire
     /// (ex. "CN=Microsoft Corporation, O=Microsoft Corporation, ...").
     /// </summary>
-    private static string? TryGetAuthenticodePublisher(string filePath)
+    internal static string? TryGetAuthenticodePublisher(string filePath)
     {
         try
         {
@@ -732,23 +732,27 @@ public sealed class ProcessTrustService
     }
 
     /// <summary>
-    /// Vérifie que le fichier est signé Authenticode ET que le subject du certificat
+    /// Vérifie que le fichier est signé Authenticode (validation complète : chaîne
+    /// de certification, révocation, expiration, EKU) ET que le subject du certificat
     /// contient la sous-chaîne attendue (ex. "Microsoft").
+    ///
+    /// Contrairement à X509Certificate.CreateFromSignedFile, cette implémentation :
+    ///   - valide la signature cryptographique du binaire
+    ///   - valide la chaîne de certification jusqu'à une racine de confiance
+    ///   - vérifie la révocation
+    ///   - vérifie la date d'expiration
+    ///   - vérifie l'usage de la clé (Code Signing)
     /// </summary>
     public static bool IsSignedBy(string filePath, string publisherSubstring)
     {
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return false;
 
-        try
-        {
-            using var cert = X509Certificate.CreateFromSignedFile(filePath);
-            return cert.Subject.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
-        }
-        catch
-        {
+        string? publisher = TryGetAuthenticodePublisher(filePath);
+        if (string.IsNullOrEmpty(publisher))
             return false;
-        }
+
+        return publisher.Contains(publisherSubstring, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

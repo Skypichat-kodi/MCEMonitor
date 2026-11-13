@@ -792,38 +792,31 @@ namespace NetMonitor.Service.Ipc
 
                 bool ok = _settings.AddPattern(list, value);
 
-                if (ok)
+                if (!ok)
                 {
-                    // Recharge la config dans le moteur (recalcul des caches côté NetMonitorEngine)
-                    _engine.ReloadConfig();
-                }
-
-                bool patternAdded = _settings.AddPattern(list, value);
-
-                if (patternAdded)
-                {
-                    _engine.ReloadConfig();
-                    int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
-
                     IpcResponse.Json(server, new
                     {
-                        status = "ok",
+                        status = "error",
                         list,
                         value,
-                        reclassified,
-                        message = reclassified > 0
-                            ? $"{reclassified} IP(s) bloquée(s) mise(s) à jour"
-                            : "pattern ajouté (aucune IP existante affectée)"
+                        message = "liste inconnue ou valeur vide"
                     });
                     return;
                 }
 
+                // 1 seul reload + 1 seule reclassification
+                _engine.ReloadConfig();
+                int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
+
                 IpcResponse.Json(server, new
                 {
-                    status = ok ? "ok" : "error",
+                    status = "ok",
                     list,
                     value,
-                    message = ok ? "pattern ajouté" : "liste inconnue ou valeur vide"
+                    reclassified,
+                    message = reclassified > 0
+                        ? $"{reclassified} IP(s) bloquée(s) mise(s) à jour"
+                        : "pattern ajouté (aucune IP existante affectée)"
                 });
             }
             catch (Exception ex)
@@ -831,6 +824,6 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Error("Erreur HandleAddPattern : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                                                                              
+        }                       
     }
 }
