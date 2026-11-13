@@ -149,10 +149,7 @@ namespace NetMonitor.UI
             };
             _refreshTimer.Start();
 
-            _ = RefreshSafe();
-            LoadSettings();
-            _ = LoadWebConfig();
-            _ = RefreshStatsAsync();
+            _ = InitializeAsync();
             
             // Écoute le changement de granularité depuis le panneau des graphiques
             ChartsPanel.GranularityChanged += (g) =>
@@ -1447,45 +1444,58 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         private async Task LoadWebConfig()
         {
-            try
+            for (int attempt = 1; attempt <= 3; attempt++)
             {
-                _loadingWebConfig = true;
-
-                var status = await NetMonitorIpcClient.GetWebStatus();
-                if (status == null) return;
-
-                ToggleWeb.IsChecked = status.enabled;
-                txtWebPort.Text = status.port.ToString();
-                txtWebLogin.Text = status.username;
-                txtWebPassword.Password = status.password ?? "";
-                txtWebPasswordVisible.Text = status.password ?? "";
-
-                // Charge l'état OTP depuis NetMonitor.web.config
-                _loadingOtpConfig = true;
                 try
                 {
-                    string configPath = Path.Combine(
-                        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                        "MCEMonitor", "NetMonitor.web.config");
+                    _loadingWebConfig = true;
 
-                    bool otpEnabled = false;
-                    if (File.Exists(configPath))
+                    var status = await NetMonitorIpcClient.GetWebStatus();
+                    if (status == null)
                     {
-                        foreach (var line in File.ReadAllLines(configPath))
+                        if (attempt < 3)
                         {
-                            if (line.TrimStart().StartsWith("OtpEnabled=", StringComparison.OrdinalIgnoreCase))
+                            await Task.Delay(500);
+                            continue;
+                        }
+                        return;
+                    }
+
+                    ToggleWeb.IsChecked = status.enabled;
+                    txtWebPort.Text = status.port.ToString();
+                    txtWebLogin.Text = status.username;
+                    txtWebPassword.Password = status.password ?? "";
+                    txtWebPasswordVisible.Text = status.password ?? "";
+
+                    // Charge l'état OTP depuis NetMonitor.web.config
+                    _loadingOtpConfig = true;
+                    try
+                    {
+                        string configPath = Path.Combine(
+                            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                            "MCEMonitor", "NetMonitor.web.config");
+
+                        bool otpEnabled = false;
+                        if (File.Exists(configPath))
+                        {
+                            foreach (var line in File.ReadAllLines(configPath))
                             {
-                                otpEnabled = line.Split('=', 2)[1].Trim().ToLower() == "true";
-                                break;
+                                if (line.TrimStart().StartsWith("OtpEnabled=", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    otpEnabled = line.Split('=', 2)[1].Trim().ToLower() == "true";
+                                    break;
+                                }
                             }
                         }
+                        ToggleOtp.IsChecked = otpEnabled;
                     }
-                    ToggleOtp.IsChecked = otpEnabled;
+                    finally { _loadingOtpConfig = false; }
+
+                    return;   // ✅ Succès → on sort
                 }
-                finally { _loadingOtpConfig = false; }
+                catch { }
+                finally { _loadingWebConfig = false; }
             }
-            catch { }
-            finally { _loadingWebConfig = false; }
         }
 
         private async void ToggleWeb_Checked(object sender, RoutedEventArgs e)
@@ -2693,6 +2703,23 @@ namespace NetMonitor.UI
             }
 
             // Recharge les données depuis le service pour voir l'étiquette mise à jour
+            await RefreshSafe();
+        }
+
+        private async Task InitializeAsync()
+        {
+            // Attend que le service soit joignable (max 15s)
+            for (int i = 0; i < 30; i++)
+            {
+                var status = await NetMonitorIpcClient.GetStatus();
+                if (status != null) break;
+                await Task.Delay(500);
+            }
+
+            // Charge les réglages et la config Web (le service est prêt)
+            LoadSettings();
+            await LoadWebConfig();
+            await RefreshStatsAsync();
             await RefreshSafe();
         }
         
