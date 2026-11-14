@@ -254,9 +254,9 @@ namespace NetMonitor.Tray
             if (msg.Length > 55)
                 msg = msg.Substring(0, 52) + "...";
                 
-            string countPrefix = p.Count > 1 ? $"[x{p.Count}] " : "";    
+            string countPrefix = p.Count > 1 ? $"[x{p.Count}] " : "";
 
-            return $"{category}  —  {msg}";
+            return $"{countPrefix}{category}  —  {msg}";
         }
 
         // ------------------------------------------------------------

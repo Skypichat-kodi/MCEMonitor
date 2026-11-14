@@ -30,6 +30,7 @@ namespace NetMonitor.Tray
         private string _currentSeverity = "";
         private int _startupCheckCount = 0;
         private int _watchdogMisses = 0;
+        private readonly HashSet<int> _spawnedUiPids = new();
 
         private const string PIPE_NAME = "MCEMonitor_NetMonitorPipe";
 
@@ -237,20 +238,26 @@ namespace NetMonitor.Tray
                 if (alerts == null) return new List<ProblemInfo>();
 
                 return alerts
-                    .GroupBy(a => a.remoteIp ?? a.source) // ? On groupe par IP (ou par détecteur si pas d'IP)
+                    // ────────────────────────────────────────────────────────
+                    //  Filtre : ignore les catégories informatives qui ne sont
+                    //  PAS des menaces pour l'utilisateur (scanners de recherche
+                    //  légitimes, robots officiels, IP whitelistées…).
+                    //  Elles restent visibles dans l'UI WPF et la page Web, mais
+                    //  ne polluent plus le popup du tray.
+                    // ────────────────────────────────────────────────────────
+                    .Where(a => !IsInformativeSeverity(a.severity))
+                    .GroupBy(a => a.remoteIp ?? a.source)
                     .Select(g =>
                     {
-                        var mostSevere = g.OrderByDescending(x => 
-                            x.severity == "Critical" ? 3 : 
-                            x.severity == "High" ? 2 : 1).First();
+                        var mostSevere = g.OrderByDescending(x => SeverityRank(x.severity)).First();
 
                         return new ProblemInfo
                         {
                             Timestamp = mostSevere.timestamp,
-                            Severity = (mostSevere.severity == "Critical" || mostSevere.severity == "High") ? "critical" : "warning",
-                            Category = mostSevere.source ?? "",
-                            Message = mostSevere.message ?? "",
-                            Count = g.Count() // ? On compte les occurrences
+                            Severity  = SeverityToTrayLevel(mostSevere.severity),
+                            Category  = mostSevere.source ?? "",
+                            Message   = mostSevere.message ?? "",
+                            Count     = g.Count()
                         };
                     })
                     .OrderByDescending(p => p.Timestamp)
@@ -263,6 +270,56 @@ namespace NetMonitor.Tray
                 return new List<ProblemInfo>();
             }
         }
+
+        // ═══════════════════════════════════════════════════════════════
+        //  Helpers de classification des sévérités
+        // ═══════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Catégories qui ne représentent PAS une menace utilisateur :
+        ///   - Trusted    : scanner de recherche légitime (Shodan, Censys…)
+        ///   - Safe       : IP Microsoft/Google vérifiée
+        ///   - Bot        : robot officiel (Googlebot, Bingbot…)
+        ///   - Crawler    : robot générique (Yandex, Baidu…)
+        ///   - Whitelist  : IP marquée Safe manuellement par l'utilisateur
+        /// Ces alertes sont visibles dans l'UI mais ne doivent pas faire
+        /// passer le tray en orange ni apparaître dans le popup.
+        /// </summary>
+        private static bool IsInformativeSeverity(string? sev) => sev switch
+        {
+            "Trusted"     => true,
+            "Safe"        => true,
+            "Bot"         => true,
+            "Crawler"     => true,
+            "Whitelist"   => true,
+            "Whitelisted" => true,
+            _             => false
+        };
+
+        /// <summary>
+        /// Ranking pour trouver la sévérité la plus grave d'un groupe.
+        /// Seules les catégories non-informatives arrivent ici (cf. filtre en amont).
+        /// </summary>
+        private static int SeverityRank(string? sev) => sev switch
+        {
+            "Critical"  => 5,
+            "High"      => 4,   // legacy → affiché comme Critical
+            "ToCheck"   => 3,
+            "Warning"   => 2,
+            "Info"      => 2,   // legacy → affiché comme Warning
+            _           => 0
+        };
+
+        /// <summary>
+        /// Convertit une sévérité Service en niveau Tray (2 valeurs seulement) :
+        ///   - "critical" : Critical + High (legacy)
+        ///   - "warning"  : tout le reste (Warning, ToCheck, Info)
+        /// </summary>
+        private static string SeverityToTrayLevel(string? sev) => sev switch
+        {
+            "Critical" or "High" => "critical",
+            _                    => "warning"
+        };
 
         private string? GetWorstSeverity()
         {
@@ -317,12 +374,16 @@ namespace NetMonitor.Tray
                     return;
                 }
 
-                Process.Start(new ProcessStartInfo
+                var proc = Process.Start(new ProcessStartInfo
                 {
                     FileName = exePath,
                     Arguments = "--from-mcem",
                     UseShellExecute = true
                 });
+
+                // Tracke le PID pour ne tuer QUE cette instance à l'arrêt
+                if (proc != null)
+                    _spawnedUiPids.Add(proc.Id);
             }
             catch (Exception ex)
             {
@@ -395,6 +456,7 @@ namespace NetMonitor.Tray
         {
             CoreLog.Info("Exit : demande d'arrêt");
 
+            // 1. Envoie shutdown
             try
             {
                 using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.Out);
@@ -402,27 +464,60 @@ namespace NetMonitor.Tray
                 using var writer = new StreamWriter(client);
                 writer.WriteLine("shutdown");
                 writer.Flush();
-                Thread.Sleep(800);
             }
-            catch { }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"Exit : shutdown IPC échoué ({ex.Message}) — kill forcé");
+            }
 
-            for (int i = 0; i < 20; i++)
+            // 2. Attend 5s la fin du cleanup du Service
+            var sw = Stopwatch.StartNew();
+            bool exitedCleanly = false;
+            for (int i = 0; i < 50; i++)
             {
                 if (Process.GetProcessesByName("NetMonitor.Service").Length == 0)
+                {
+                    exitedCleanly = true;
                     break;
+                }
                 Thread.Sleep(100);
             }
 
+            sw.Stop();
+            if (exitedCleanly)
+                CoreLog.Info($"Exit : Service arrêté proprement en {sw.ElapsedMilliseconds} ms");
+            else
+                CoreLog.Warn($"Exit : Service toujours vivant après {sw.ElapsedMilliseconds} ms — kill forcé");
+
+            // 3. Kill brutal si nécessaire
             foreach (var p in Process.GetProcessesByName("NetMonitor.Service"))
             {
                 try { p.Kill(); } catch { }
             }
 
-            foreach (var p in Process.GetProcessesByName("NetMonitor.UI"))
+            // 4. Kill uniquement les UI spawnés par ce Tray
+            foreach (var pid in _spawnedUiPids)
             {
-                try { p.Kill(); } catch { }
+                try
+                {
+                    using var p = Process.GetProcessById(pid);
+                    if (string.Equals(p.ProcessName, "NetMonitor.UI", StringComparison.OrdinalIgnoreCase))
+                        p.Kill();
+                }
+                catch (ArgumentException) { /* processus déjà terminé */ }
+                catch { }
             }
+            _spawnedUiPids.Clear();
 
+            // 5. Dispose des timers
+            watchdog?.Stop();
+            watchdog?.Dispose();
+            severityTimer?.Stop();
+            severityTimer?.Dispose();
+            startupTimer?.Stop();
+            startupTimer?.Dispose();
+
+            // 6. Dispose trayIcon
             trayIcon.Visible = false;
             trayIcon.Dispose();
             Application.Exit();

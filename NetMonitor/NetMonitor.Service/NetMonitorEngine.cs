@@ -125,8 +125,24 @@ namespace NetMonitor.Service
                 lock (_alertsLock)
                 {
                     if (_activeIntrusions.Count == 0) return "ok";
-                    if (_activeIntrusions.Any(a => a.Severity == Severity.Critical)) return "critical";
-                    return "warning";
+
+                    if (_activeIntrusions.Any(a => a.Severity == Severity.Critical))
+                        return "critical";
+
+                    // ────────────────────────────────────────────────────────
+                    //  Ignorer les catégories informatives (Bot, Crawler, Trusted,
+                    //  Safe, Whitelist) : ce ne sont PAS des menaces pour l'utilisateur.
+                    //  Sans ce filtre, un simple scan de Shodan faisait passer le
+                    //  tray en orange pendant 24h.
+                    // ────────────────────────────────────────────────────────
+                    bool hasRealThreat = _activeIntrusions.Any(a =>
+                        a.Severity != Severity.Bot &&
+                        a.Severity != Severity.Crawler &&
+                        a.Severity != Severity.Trusted &&
+                        a.Severity != Severity.Safe &&
+                        a.Severity != Severity.Whitelisted);
+
+                    return hasRealThreat ? "warning" : "ok";
                 }
             }
         }
