@@ -2972,7 +2972,9 @@ namespace NetMonitor.UI
             string.IsNullOrWhiteSpace(CountryCode) ? Country :
             $"{Country} ({CountryCode})";
 
-        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;                
+        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;
+        public string OrgDisplay                => string.IsNullOrWhiteSpace(Org)        ? "-" : Org;
+        public string ReverseDnsDisplay         => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;
         public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
 
         public string ProcessDisplay
@@ -3051,7 +3053,9 @@ namespace NetMonitor.UI
             }
         }
 
-        public string IspDisplay => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;
+        public string IspDisplay        => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;
+        public string OrgDisplay        => string.IsNullOrWhiteSpace(Org)        ? "-" : Org;
+        public string ReverseDnsDisplay => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;
 
         public string ManualSeverityTooltip =>
             HasManualSeverity
