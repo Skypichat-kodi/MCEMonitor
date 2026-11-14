@@ -578,6 +578,8 @@ namespace NetMonitor.Service.Web
                             country        = a.Country,
                             countryCode    = a.CountryCode,
                             isp            = a.Isp,
+                            org            = a.Org,             
+                            reverseDns     = a.ReverseDns,      
                             isKnownScanner = a.IsKnownScanner
                         });
                     }
@@ -598,6 +600,8 @@ namespace NetMonitor.Service.Web
                             countryCode    = b.CountryCode,
                             city           = b.City,
                             isp            = b.Isp,
+                            org            = b.Org,              
+                            reverseDns     = b.ReverseDns,       
                             isPrivate      = b.IsPrivate,
                             isKnownScanner = b.IsKnownScanner
                         });
@@ -606,6 +610,10 @@ namespace NetMonitor.Service.Web
                     // ---- Retries ----
                     foreach (var r in retries)
                     {
+                        // Jointure avec BlockedIpInfo pour récupérer Org et ReverseDns
+                        var retryInfo = blocked.FirstOrDefault(b =>
+                            string.Equals(b.Ip, r.Ip, StringComparison.OrdinalIgnoreCase));
+
                         detail.retries.Add(new NetMonitor.Service.Api.BlockedRetryDetailDto
                         {
                             ip               = r.Ip,
@@ -613,7 +621,9 @@ namespace NetMonitor.Service.Web
                             blockedAt        = r.BlockedAt,
                             firstRetryAt     = r.FirstRetryAt,
                             lastRetryAt      = r.LastRetryAt,
-                            retryCount       = r.RetryCount
+                            retryCount       = r.RetryCount,
+                            org              = retryInfo?.Org,
+                            reverseDns       = retryInfo?.ReverseDns
                         });
                     }
 

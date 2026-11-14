@@ -579,6 +579,8 @@ namespace NetMonitor.Service
                             a.Country     = geo.Country;
                             a.CountryCode = geo.CountryCode;
                             a.Isp         = geo.Isp;
+                            a.Org         = geo.Org;        
+                            a.ReverseDns  = geo.ReverseDns; 
                         }
                         else
                         {
@@ -617,6 +619,8 @@ namespace NetMonitor.Service
                             a.Country     = geo.Country;
                             a.CountryCode = geo.CountryCode;
                             a.Isp         = geo.Isp;
+                            a.Org         = geo.Org;        
+                            a.ReverseDns  = geo.ReverseDns; 
                         }
                         else
                         {
@@ -679,7 +683,7 @@ namespace NetMonitor.Service
                     return existing;
                 });
 
-            _retriesDirty = true;   // ← ajout
+            _retriesDirty = true;   
         }
 
         public bool BlockIp(string ip, out string errorMessage,
@@ -815,7 +819,7 @@ namespace NetMonitor.Service
                 }                       
                 try
                 {
-                    var result = await _geoIp.ResolveAsync(ip, includeReverseDns: false);
+                    var result = await _geoIp.ResolveAsync(ip, includeReverseDns: true);
 
                     // Succès = CountryCode non vide ET ResolvedAt valide
                     if (result != null &&
@@ -2148,7 +2152,7 @@ namespace NetMonitor.Service
                         var mostSevere = g.OrderByDescending(x => (int)x.Severity).First();
 
                         // GeoIP sur l'IP distante du groupe
-                        string? country = null, countryCode = null, isp = null;
+                        string? country = null, countryCode = null, isp = null, org = null, reverseDns = null;
                         if (_geoIp != null && _geoIp.IsEnabled && !string.IsNullOrWhiteSpace(last.RemoteIp))
                         {
                             var geo = _geoIp.TryGetCached(last.RemoteIp);
@@ -2157,6 +2161,8 @@ namespace NetMonitor.Service
                                 country     = geo.Country;
                                 countryCode = geo.CountryCode;
                                 isp         = geo.Isp;
+                                org         = geo.Org;       
+                                reverseDns  = geo.ReverseDns;
                             }
                             else
                             {
@@ -2183,6 +2189,8 @@ namespace NetMonitor.Service
                             Country         = country,
                             CountryCode     = countryCode,
                             Isp             = isp,
+                            Org             = org,          
+                            ReverseDns      = reverseDns,                        
                             IsOutbound      = last.IsOutbound
                         };
                     })

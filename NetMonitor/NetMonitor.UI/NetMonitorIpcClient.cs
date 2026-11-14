@@ -40,6 +40,8 @@ namespace NetMonitor.UI
         public string? country      { get; set; }
         public string? countryCode  { get; set; }
         public string? isp          { get; set; }
+        public string? org          { get; set; }       
+        public string? reverseDns   { get; set; }              
         public bool isOutbound      { get; set; }        
     }
 
@@ -139,6 +141,8 @@ namespace NetMonitor.UI
         public string? Country          { get; set; }
         public string? CountryCode      { get; set; }
         public string? Isp              { get; set; }
+        public string? Org              { get; set; }   
+        public string? ReverseDns       { get; set; }      
         public bool IsOutbound          { get; set; }        
     }
 
@@ -260,6 +264,8 @@ namespace NetMonitor.UI
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
+        public string? Org          { get; set; }      
+        public string? ReverseDns   { get; set; }    
         public string GroupKey      { get; set; } = "";
         public bool IsOutbound      { get; set; }        
     }    

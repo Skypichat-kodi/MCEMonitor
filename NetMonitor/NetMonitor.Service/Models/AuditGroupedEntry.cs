@@ -22,6 +22,8 @@ namespace NetMonitor.Service.Models
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
+        public string? Org          { get; set; }        
+        public string? ReverseDns   { get; set; }            
         public bool IsOutbound      { get; set; }
         
         public string GroupKey =>

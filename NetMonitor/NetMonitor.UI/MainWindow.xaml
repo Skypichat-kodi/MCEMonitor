@@ -904,7 +904,17 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="{Binding ReverseDnsDisplay}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="180"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="180"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1293,7 +1303,17 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="170"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"   Binding="{Binding IspDisplay}"     SortMemberPath="Isp"     Width="230"/>                        
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="200"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="200"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="240">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="{Binding ReverseDns}"/>
+                                            <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>                     
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1458,10 +1478,27 @@
 
                         <DataGrid.Columns>
                             <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                            <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding Ip}" Width="150">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="ToolTip" Value="{Binding ReverseDns}"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>
                             <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
                             <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
-                            <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>                         
+                            <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="*" MinWidth="200">
+                                <DataGridTextColumn.ElementStyle>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="VerticalAlignment" Value="Center"/>
+                                        <Setter Property="ToolTip" Value="{Binding ReverseDns}"/>
+                                        <Setter Property="TextTrimming" Value="CharacterEllipsis"/>
+                                    </Style>
+                                </DataGridTextColumn.ElementStyle>
+                            </DataGridTextColumn>                      
                             <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                             
                             <!-- NOUVELLE COLONNE SÉVÉRITÉ -->
@@ -1609,9 +1646,17 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="{Binding ReverseDns}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>                              
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150"/>                             
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1769,9 +1814,17 @@
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120">
+                                    <DataGridTextColumn.ElementStyle>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="VerticalAlignment" Value="Center"/>
+                                            <Setter Property="ToolTip" Value="{Binding ReverseDns}"/>
+                                        </Style>
+                                    </DataGridTextColumn.ElementStyle>
+                                </DataGridTextColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI'}"  Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>                                
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150"/>                               
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>

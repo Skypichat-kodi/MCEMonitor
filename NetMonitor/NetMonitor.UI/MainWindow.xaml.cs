@@ -278,7 +278,12 @@ namespace NetMonitor.UI
                                     ProcessPath         = mostRecent.processPath,
                                     TrustReason         = mostRecent.trustReason,
                                     Details             = mostRecent.details,
-                                    IsKnownScanner      = mostRecent.isKnownScanner
+                                    IsKnownScanner      = mostRecent.isKnownScanner,
+                                    Country             = mostRecent.country,        
+                                    CountryCode         = mostRecent.countryCode,    
+                                    Isp                 = mostRecent.isp,            
+                                    Org                 = mostRecent.org,            
+                                    ReverseDns          = mostRecent.reverseDns                                          
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -305,7 +310,12 @@ namespace NetMonitor.UI
                                 ProcessPath         = a.processPath,
                                 TrustReason         = a.trustReason,
                                 Details             = a.details,
-                                IsKnownScanner      = a.isKnownScanner
+                                IsKnownScanner      = a.isKnownScanner,
+                                Country             = a.country,        
+                                CountryCode         = a.countryCode,    
+                                Isp                 = a.isp,            
+                                Org                 = a.org,            
+                                ReverseDns          = a.reverseDns                                      
                             });
                         }
 
@@ -429,7 +439,9 @@ namespace NetMonitor.UI
                             IsKnownScanner  = a.isKnownScanner,
                             Country         = a.country,        
                             CountryCode     = a.countryCode,    
-                            Isp             = a.isp                                         
+                            Isp             = a.isp,
+                            Org             = a.org,            
+                            ReverseDns      = a.reverseDns                                                                          
                         })
                         .ToList();
 
@@ -468,7 +480,9 @@ namespace NetMonitor.UI
                             IsKnownScanner  = a.isKnownScanner,
                             Country         = a.Country,        
                             CountryCode     = a.CountryCode,    
-                            Isp             = a.Isp                                         
+                            Isp             = a.Isp,
+                            Org             = a.Org,            
+                            ReverseDns      = a.ReverseDns                                        
                         })
                         .OrderByDescending(x => x.Count)
                         .ThenByDescending(x => x.LastSeen)
@@ -514,7 +528,9 @@ namespace NetMonitor.UI
                             Severity            = r.Severity,
                             Country             = r.Country,           
                             CountryCode         = r.CountryCode,   
-                            Isp                 = r.Isp                    
+                            Isp                 = r.Isp,
+                            Org                 = r.Org,              
+                            ReverseDns          = r.ReverseDns                       
                         });
                     }
 
@@ -2945,7 +2961,10 @@ namespace NetMonitor.UI
         public string? Country      { get; set; }
         public string? CountryCode  { get; set; }
         public string? Isp          { get; set; }
-        public bool IsOutbound      { get; set; }        
+        public string? Org          { get; set; }       
+        public string? ReverseDns   { get; set; }            
+        public bool IsOutbound      { get; set; }
+                
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
 
@@ -3074,7 +3093,12 @@ namespace NetMonitor.UI
         public string? TrustReason              { get; set; }
         public bool IsKnownScanner              { get; set; }
         public bool IsOutbound                  { get; set; }
-
+        public string? Country                  { get; set; }    
+        public string? CountryCode              { get; set; }    
+        public string? Isp                      { get; set; }    
+        public string? Org                      { get; set; }    
+        public string? ReverseDns               { get; set; }
+            
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
         public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
@@ -3114,7 +3138,16 @@ namespace NetMonitor.UI
         public string ManualSeverityTooltip =>
             IsKnownScanner
                 ? "Scanner de recherche légitime"
-                : $"Sévérité : {Severity}";        
+                : $"Sévérité : {Severity}";
+                
+        public string CountryDisplay =>
+            string.IsNullOrWhiteSpace(Country)     ? "-" :
+            string.IsNullOrWhiteSpace(CountryCode) ? Country :
+            $"{Country} ({CountryCode})";
+
+        public string IspDisplay   => string.IsNullOrWhiteSpace(Isp)         ? "-" : Isp;
+        public string OrgDisplay   => string.IsNullOrWhiteSpace(Org)         ? "-" : Org;
+        public string ReverseDnsDisplay => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;                        
     }
 
     public class StatsIpRow
@@ -3197,7 +3230,10 @@ namespace NetMonitor.UI
         public string? Country                  { get; set; }
         public string? CountryCode              { get; set; }
         public string? Isp                      { get; set; }
+        public string? Org                      { get; set; }   
+        public string? ReverseDns               { get; set; }        
         public bool IsOutbound                  { get; set; }
+        
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
 
@@ -3206,7 +3242,9 @@ namespace NetMonitor.UI
             string.IsNullOrWhiteSpace(CountryCode) ? Country :
             $"{Country} ({CountryCode})";
 
-        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
+        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;
+        public string OrgDisplay                => string.IsNullOrWhiteSpace(Org)        ? "-" : Org;
+        public string ReverseDnsDisplay         => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;                
         public string BlockedAtText             => BlockedAt.ToString("dd/MM HH:mm:ss");
         public string FirstRetryAtText          => FirstRetryAt.ToString("dd/MM HH:mm:ss");
         public string LastRetryAtText           => LastRetryAt.ToString("dd/MM HH:mm:ss");
@@ -3262,7 +3300,10 @@ namespace NetMonitor.UI
         public string? Country                  { get; set; }
         public string? CountryCode              { get; set; }
         public string? Isp                      { get; set; }
+        public string? Org                      { get; set; }    
+        public string? ReverseDns               { get; set; }         
         public bool IsOutbound                  { get; set; }
+        
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
 
@@ -3272,23 +3313,23 @@ namespace NetMonitor.UI
             string.IsNullOrWhiteSpace(CountryCode) ? Country :
             $"{Country} ({CountryCode})";
 
-        public string IspDisplay => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
-
-        public string FirstSeenText => FirstSeen.ToString("dd/MM HH:mm:ss");
-        public string LastSeenText => LastSeen.ToString("dd/MM HH:mm:ss");
-
-        public string PidDisplay            => Pid > 0 ? Pid.ToString() : "-";
-        public string ProcessNameDisplay    => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
-        public string ProcessPathDisplay    => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
-            ProcessPath.Length             <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
-        public string TrustReasonDisplay    => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
+        public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;        
+        public string OrgDisplay                => string.IsNullOrWhiteSpace(Org)        ? "-" : Org;
+        public string ReverseDnsDisplay         => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;
+        public string FirstSeenText             => FirstSeen.ToString("dd/MM HH:mm:ss");
+        public string LastSeenText              => LastSeen.ToString("dd/MM HH:mm:ss");
+        public string PidDisplay                => Pid > 0 ? Pid.ToString() : "-";
+        public string ProcessNameDisplay        => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
+        public string ProcessPathDisplay        => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
+            ProcessPath.Length                 <= 60 ? ProcessPath : "…" + ProcessPath.Substring(ProcessPath.Length - 57);
+        public string TrustReasonDisplay        => string.IsNullOrWhiteSpace(TrustReason) ? "-" : TrustReason;
         public string DetailsDisplay =>
             string.IsNullOrWhiteSpace(Details) ? "-" :
             Details.Length <= 120 ? Details : Details.Substring(0, 117) + "…";
 
-        public string CountClass            =>  Count >= 10 ? "c10" :
-                                                Count >= 5  ? "c5"  :
-                                                Count >= 2  ? "c2"  : "c1";
+        public string CountClass                =>  Count >= 10 ? "c10" :
+                                                    Count >= 5  ? "c5"  :
+                                                    Count >= 2  ? "c2"  : "c1";
 
         // Clé stable pour restaurer la sélection après refresh
         public string GroupKey =>

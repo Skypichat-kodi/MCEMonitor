@@ -320,6 +320,8 @@ namespace NetMonitor.Service.Ipc
                     country        = a.Country,
                     countryCode    = a.CountryCode,
                     isp            = a.Isp,
+                    org            = a.Org,           
+                    reverseDns     = a.ReverseDns,                     
                     isOutbound     = a.IsOutbound,           
                 }).ToList();
 
@@ -562,6 +564,8 @@ namespace NetMonitor.Service.Ipc
                     country         = a.Country,
                     countryCode     = a.CountryCode,
                     isp             = a.Isp,
+                    org             = a.Org,        
+                    reverseDns      = a.ReverseDns,                    
                     isOutbound      = a.IsOutbound,
                 }).ToList();
 
@@ -615,6 +619,8 @@ namespace NetMonitor.Service.Ipc
                         country             = info?.Country,
                         countryCode         = info?.CountryCode,
                         isp                 = info?.Isp,
+                        org                 = info?.Org,              
+                        reverseDns          = info?.ReverseDns,                           
                         isOutbound          = info?.IsOutbound ?? false,
                     };
                 }).ToList();
@@ -843,6 +849,8 @@ namespace NetMonitor.Service.Ipc
                     trustReason     = a.TrustReason,                     
                     details         = a.Details,
                     isKnownScanner  = a.IsKnownScanner,
+                    org             = a.Org,         
+                    reverseDns      = a.ReverseDns,               
                     isOutbound      = a.IsOutbound,
                 }).ToList();
                 IpcResponse.Json(server, projected);
@@ -877,7 +885,9 @@ namespace NetMonitor.Service.Ipc
                     isKnownScanner = a.IsKnownScanner,
                     country        = a.Country,          
                     countryCode    = a.CountryCode,      
-                    isp            = a.Isp,              
+                    isp            = a.Isp,
+                    org            = a.Org,            
+                    reverseDns     = a.ReverseDns,                                 
                     groupKey       = a.GroupKey,
                     isOutbound     = a.IsOutbound,          
                 }).ToList();

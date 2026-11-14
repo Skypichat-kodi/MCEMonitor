@@ -17,6 +17,8 @@ public sealed class IntrusionEvent
     public string? Country      { get; set; }
     public string? CountryCode  { get; set; }
     public string? Isp          { get; set; }    
+    public string? Org          { get; set; }   
+    public string? ReverseDns   { get; set; }   
     public bool IsKnownScanner  { get; set; }
     public bool IsOutbound      { get; set; }  
 }
