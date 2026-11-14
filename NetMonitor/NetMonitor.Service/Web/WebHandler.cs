@@ -53,6 +53,8 @@ namespace NetMonitor.Service.Web
                             Country         = mostRecent.Country,
                             CountryCode     = mostRecent.CountryCode,
                             Isp             = mostRecent.Isp,
+                            Org             = mostRecent.Org,            
+                            ReverseDns      = mostRecent.ReverseDns,                              
                             IsKnownScanner  = g.Any(x => x.IsKnownScanner),
                             IsOutbound      = mostRecent.IsOutbound
                         };
@@ -90,10 +92,11 @@ namespace NetMonitor.Service.Web
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td><span class='badge {sevClass}'>{item.Severity}</span>{safeBtn}</td>
                             <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
-                            <td>{ipEnc}</td>
+                            <td title='{WebUtility.HtmlEncode(item.ReverseDns ?? "")}'>{ipEnc}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(item.Country, item.CountryCode))}</td>
-                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(item.Isp) ? "-" : item.Isp)}</td>                            
-                            <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(item.Isp) ? "-" : item.Isp)}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(item.Org) ? "-" : item.Org)}</td>
+                            <td class='info-cell'>{BuildIpInfoLink(item.Ip, lookupUrl)}</td>                           
                             <td>{WebUtility.HtmlEncode(item.Message)}</td>
                         </tr>");
                     }
@@ -114,13 +117,14 @@ namespace NetMonitor.Service.Web
                             <td></td>
                             <td></td>
                             <td></td>
+                            <td></td>
                             <td>[PID {a.Pid}] {WebUtility.HtmlEncode(a.Message)}</td>
                         </tr>");
                     }
                 }
                 else
                 {
-                    activeRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                    activeRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
                 }
 
                 // --- Tableau 1bis : Processus en attente d'examen ---
@@ -197,6 +201,8 @@ namespace NetMonitor.Service.Web
                             <td title='{displayEnc}'><b>{WebUtility.HtmlEncode(Truncate(display, 60))}</b></td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(b.Country, b.CountryCode))}</td>
                             <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(b.Isp) ? "-" : b.Isp)}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(b.Org) ? "-" : b.Org)}</td>
+                            <td title='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(b.ReverseDns, 40))}</td>
                             <td class='info-cell'>{infoCell}</td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span>{manualLock}</td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
@@ -204,7 +210,7 @@ namespace NetMonitor.Service.Web
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
+                else blockedRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
                 // --- Tableau 3 : Historique (enrichi) ---
                 var historyRows = new System.Text.StringBuilder();
@@ -225,9 +231,10 @@ namespace NetMonitor.Service.Web
                             <td>{h.Timestamp:dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{h.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
-                            <td>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
+                            <td title='{WebUtility.HtmlEncode(h.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(h.Country, h.CountryCode))}</td>  
-                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(h.Isp) ? "-" : h.Isp)}</td>                         
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(h.Isp) ? "-" : h.Isp)}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(h.Org) ? "-" : h.Org)}</td>                         
                             <td class='info-cell'>{BuildIpInfoLink(h.RemoteIp, lookupUrl)}</td>
                             <td>{h.RemotePort}</td>
                             <td>{h.LocalPort}</td>
@@ -238,7 +245,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='11' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit (groupé) ---
@@ -270,9 +277,10 @@ namespace NetMonitor.Service.Web
                             <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
                             <td><span class='badge {sevClass}'>{a.Severity}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
-                            <td>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
+                            <td title='{WebUtility.HtmlEncode(a.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(a.Country, a.CountryCode))}</td>
-                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Isp) ? "-" : a.Isp)}</td>                          
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Isp) ? "-" : a.Isp)}</td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.Org) ? "-" : a.Org)}</td>                         
                             <td class='info-cell'>{BuildIpInfoLink(a.RemoteIp, lookupUrl)}</td>
                             <td>{a.RemotePort}</td>
                             <td>{a.LocalPort}</td>
@@ -286,7 +294,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='16' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='18' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                  // --- Tableau 5 : tentatives sur IP bloquée ---
@@ -309,6 +317,8 @@ namespace NetMonitor.Service.Web
                         string sev     = info?.Severity ?? "-";
                         string country = FormatCountry(info?.Country, info?.CountryCode);
                         string isp     = string.IsNullOrWhiteSpace(info?.Isp) ? "-" : info.Isp!;
+                        string org     = string.IsNullOrWhiteSpace(info?.Org) ? "-" : info.Org!;           
+                        string rDns    = string.IsNullOrWhiteSpace(info?.ReverseDns) ? "-" : info.ReverseDns!;                     
 
                         string sevClass  = SeverityToCssClass(sev);
                         string sevButton = $"<button type='button' class='severity-btn' " +
@@ -322,6 +332,8 @@ namespace NetMonitor.Service.Web
                             <td><b>{ipEnc}</b></td>
                             <td>{WebUtility.HtmlEncode(country)}</td>
                             <td>{WebUtility.HtmlEncode(isp)}</td>
+                            <td>{WebUtility.HtmlEncode(org)}</td>
+                            <td title='{WebUtility.HtmlEncode(info?.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(rDns, 40))}</td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
                             <td class='text-center'><span class='badge {sevClass}'>{sev}</span>{sevButton}</td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
@@ -333,7 +345,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    blockedRetriesRows.Append("<tr><td colspan='10' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
+                    blockedRetriesRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 
                 // --- Modèle ---
