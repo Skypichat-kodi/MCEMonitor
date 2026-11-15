@@ -620,7 +620,9 @@ namespace NetMonitor.Service.Ipc
                         countryCode         = info?.CountryCode,
                         isp                 = info?.Isp,
                         org                 = info?.Org,              
-                        reverseDns          = info?.ReverseDns,                           
+                        reverseDns          = info?.ReverseDns,
+                        manualSeverity      = info?.ManualSeverity?.ToString(),
+                        manualSeveritySetAt = info?.ManualSeveritySetAt,        
                         isOutbound          = info?.IsOutbound ?? false,
                     };
                 }).ToList();

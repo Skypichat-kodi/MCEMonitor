@@ -529,8 +529,10 @@ namespace NetMonitor.UI
                             Country             = r.Country,           
                             CountryCode         = r.CountryCode,   
                             Isp                 = r.Isp,
-                            Org                 = r.Org,              
-                            ReverseDns          = r.ReverseDns                       
+                            Org                 = r.Org,
+                            ReverseDns          = r.ReverseDns,
+                            ManualSeverity      = r.ManualSeverity,
+                            ManualSeveritySetAt = r.ManualSeveritySetAt                     
                         });
                     }
 
@@ -799,17 +801,19 @@ namespace NetMonitor.UI
 
         private async void ChangeRetrySeverity_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button btn || btn.Tag is not string ip) return;
-            if (string.IsNullOrWhiteSpace(ip)) return;
+            if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
-            var row = _blockedRetries.FirstOrDefault(r => r.Ip == ip);
-            if (row == null) return;
-
-            var picker = new SeverityPickerWindow(ip, row.Severity, false) { Owner = this };
+            var picker = new SeverityPickerWindow(row.Ip, row.Severity, row.HasManualSeverity) { Owner = this };
             if (picker.ShowDialog() != true) return;
 
-            SetBusy($"Changement de sévérité de {ip}…");
-            bool ok = await NetMonitorIpcClient.SetManualSeverityAsync(ip, picker.SelectedSeverity);
+            SetBusy($"Changement de sévérité de {row.Ip}…");
+            bool ok = await NetMonitorIpcClient.SetManualSeverityAsync(row.Ip, picker.SelectedSeverity);
             ClearBusy();
 
             if (!ok)
@@ -817,6 +821,44 @@ namespace NetMonitor.UI
                 MessageBox.Show("Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
+            await RefreshSafe();
+        }
+
+        private async void AddPatternFromRetry_Click(object sender, RoutedEventArgs e)
+        {
+            if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow retryRow)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            // On crée un faux BlockedIpRow pour réutiliser la même popup
+            var tempRow = new BlockedIpRow
+            {
+                Ip = retryRow.Ip,
+                Isp = retryRow.Isp,
+                Org = retryRow.Org,
+                ReverseDns = retryRow.ReverseDns
+            };
+
+            var picker = new PatternPickerWindow(tempRow) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Ajout du pattern '{picker.SelectedValue}' à la liste '{picker.SelectedList}'…");
+
+            bool ok = await NetMonitorIpcClient.AddPatternAsync(picker.SelectedList, picker.SelectedValue);
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
             await RefreshSafe();
         }
 
@@ -2975,7 +3017,7 @@ namespace NetMonitor.UI
         public string IspDisplay                => string.IsNullOrWhiteSpace(Isp) ? "-" : Isp;
         public string OrgDisplay                => string.IsNullOrWhiteSpace(Org)        ? "-" : Org;
         public string ReverseDnsDisplay         => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;
-        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
+        public string BadgeText                 => IsKnownScanner ? "Scanner" : Severity;
 
         public string ProcessDisplay
         {
@@ -3033,7 +3075,7 @@ namespace NetMonitor.UI
         public DateTime? ManualSeveritySetAt    { get; set; }
         public bool HasManualSeverity           => !string.IsNullOrEmpty(ManualSeverity);
         public bool IsKnownScanner              { get; set; }
-        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
+        public string BadgeText                 => IsKnownScanner ? "Scanner" : Severity;
         public string? Country                  { get; set; }
         public string? CountryCode              { get; set; }
         public string? Isp                      { get; set; }
@@ -3058,13 +3100,15 @@ namespace NetMonitor.UI
         public string ReverseDnsDisplay => string.IsNullOrWhiteSpace(ReverseDns) ? "-" : ReverseDns;
 
         public string ManualSeverityTooltip =>
-            HasManualSeverity
-                ? $"Sévérité forcée manuellement" +
-                  (ManualSeveritySetAt.HasValue
-                      ? $" le {ManualSeveritySetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
-                      : "") +
-                  ". Cliquez sur « Changer sévérité » pour modifier."
-                : "";
+            IsKnownScanner
+                ? "Scanner de recherche légitime (identifié via reverse DNS ou liste de scanners connus)"
+                : HasManualSeverity
+                    ? $"Sévérité forcée manuellement" +
+                      (ManualSeveritySetAt.HasValue
+                          ? $" le {ManualSeveritySetAt.Value.ToLocalTime():dd/MM/yyyy HH:mm}"
+                          : "") +
+                      ". Cliquez sur « Changer sévérité » pour modifier."
+                    : $"Sévérité : {Severity}";
     }
 
     public class ConnectionRow
@@ -3105,7 +3149,7 @@ namespace NetMonitor.UI
             
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
-        public string BadgeText                 => IsKnownScanner ? "Subnet" : Severity;
+        public string BadgeText                 => IsKnownScanner ? "Scanner" : Severity;
         public string PidDisplay                => Pid > 0 ? Pid.ToString() : "-";
         public string ProcessNameDisplay        => string.IsNullOrWhiteSpace(ProcessName) ? "-" : ProcessName;
         public string ProcessPathDisplay        => string.IsNullOrWhiteSpace(ProcessPath) ? "-" :
@@ -3217,7 +3261,7 @@ namespace NetMonitor.UI
                                      
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity           => false;
-        public string ManualSeverityTooltip     => "";
+        public string ManualSeverityTooltip     => $"Sévérité : {Severity} — processus non approuvé en attente d'examen";
         public bool IsKnownScanner              => false;
         public string BadgeText                 => Severity;                                             
     }
@@ -3260,8 +3304,10 @@ namespace NetMonitor.UI
         // Stubs pour le SeverityBadgeTemplate
         public bool IsKnownScanner              => false;
         public string BadgeText                 => Severity;
-        public bool HasManualSeverity           => false;
-        public string ManualSeverityTooltip     => "";
+        public string? ManualSeverity           { get; set; }
+        public DateTime? ManualSeveritySetAt    { get; set; }
+        public bool HasManualSeverity           => !string.IsNullOrEmpty(ManualSeverity);
+        public string ManualSeverityTooltip     => $"Sévérité : {Severity} — tentatives répétées sur IP déjà bloquée";
     }
     
     public class WhitelistEntryRow
@@ -3341,8 +3387,11 @@ namespace NetMonitor.UI
             
         // Stub pour le SeverityBadgeTemplate (ne s'applique qu'aux IP bloquées)
         public bool HasManualSeverity => false;
-        public string ManualSeverityTooltip => "";
-        public string BadgeText => IsKnownScanner ? "Subnet" : Severity;                    
+        public string ManualSeverityTooltip =>
+            IsKnownScanner
+                ? "Scanner de recherche légitime (alerte ignorée)"
+                : $"Sévérité : {Severity} (alerte ignorée)";
+        public string BadgeText => IsKnownScanner ? "Scanner" : Severity;                    
     }
     
     public class StatsProcessRow

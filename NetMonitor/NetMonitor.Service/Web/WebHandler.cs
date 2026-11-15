@@ -67,8 +67,8 @@ namespace NetMonitor.Service.Web
 
                     foreach (var item in grouped)
                     {
-                        string sevClass  = item.IsKnownScanner ? "subnet" : SeverityToCssClass(item.Severity.ToString());
-                        string badgeText = item.IsKnownScanner ? "Subnet" : item.Severity.ToString();
+                        string sevClass  = item.IsKnownScanner ? "Scanner" : SeverityToCssClass(item.Severity.ToString());
+                        string badgeText = item.IsKnownScanner ? "Scanner" : item.Severity.ToString();
 
                         string ipEnc = WebUtility.HtmlEncode(item.Ip);
 

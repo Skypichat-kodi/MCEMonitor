@@ -131,19 +131,21 @@ namespace NetMonitor.UI
 
     public class BlockedIpRetryDto
     {
-        public string Ip                { get; set; } = "";
-        public string OriginalDetector  { get; set; } = "-";
-        public DateTime BlockedAt       { get; set; }
-        public DateTime FirstRetryAt    { get; set; }
-        public DateTime LastRetryAt     { get; set; }
-        public int RetryCount           { get; set; }
-        public string Severity          { get; set; } = "-";
-        public string? Country          { get; set; }
-        public string? CountryCode      { get; set; }
-        public string? Isp              { get; set; }
-        public string? Org              { get; set; }   
-        public string? ReverseDns       { get; set; }      
-        public bool IsOutbound          { get; set; }        
+        public string Ip                        { get; set; } = "";
+        public string OriginalDetector          { get; set; } = "-";
+        public DateTime BlockedAt               { get; set; }
+        public DateTime FirstRetryAt            { get; set; }
+        public DateTime LastRetryAt             { get; set; }
+        public int RetryCount                   { get; set; }
+        public string Severity                  { get; set; } = "-";
+        public string? Country                  { get; set; }
+        public string? CountryCode              { get; set; }
+        public string? Isp                      { get; set; }
+        public string? Org                      { get; set; }   
+        public string? ReverseDns               { get; set; }
+        public string? ManualSeverity           { get; set; }
+        public DateTime? ManualSeveritySetAt    { get; set; }
+        public bool IsOutbound                  { get; set; }    
     }
 
     // ============================================================

@@ -643,7 +643,26 @@ namespace NetMonitor.Service
         // ------------------------------------------------------------
         public List<BlockedIpInfo> GetBlockedIps()
         {
-            lock (_alertsLock) return _blockedIps.ToList();
+            lock (_alertsLock)
+            {
+                // Garantie de cohérence : si un override manuel existe, Severity DOIT
+                // refléter cet override. Évite toute incohérence entre la donnée
+                // persistée et ce qui est affiché.
+                foreach (var b in _blockedIps)
+                {
+                    if (b.ManualSeverity.HasValue)
+                    {
+                        string expected = b.ManualSeverity.Value.ToString();
+                        if (b.Severity != expected)
+                        {
+                            CoreLog.Warn($"[SEVERITY] Incohérence {b.Ip} : " +
+                                         $"Severity='{b.Severity}' vs Manual='{expected}' → correction");
+                            b.Severity = expected;
+                        }
+                    }
+                }
+                return _blockedIps.ToList();
+            }
         }
 
         public List<BlockedIpRetryInfo> GetBlockedIpRetries()
@@ -947,7 +966,16 @@ namespace NetMonitor.Service
             }
 
             SaveBlockedIps();
-            CoreLog.Info($"[SEVERITY] IP {ip} → {(newSeverity?.ToString() ?? "auto")}");
+
+            // Trace les 3 valeurs pour diagnostiquer immédiatement toute incohérence
+            var entryAfter = _blockedIps.FirstOrDefault(b =>
+                !b.IsProcess && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+
+            CoreLog.Info(
+                $"[SEVERITY] IP {ip} → demandé='{(newSeverity?.ToString() ?? "auto")}', " +
+                $"Severity='{entryAfter?.Severity}', " +
+                $"ManualSeverity='{entryAfter?.ManualSeverity?.ToString() ?? "null"}'");
+
             return true;
         }
 
