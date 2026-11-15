@@ -460,6 +460,43 @@ namespace NetMonitor.Service
             return true;
         }
 
+        /// <summary>
+        /// Restaure toutes les listes de patterns à leurs valeurs par défaut.
+        /// </summary>
+        public void RestoreDefaultPatterns()
+        {
+            SafePatterns = new[]
+            {
+                "microsoft.com", "google.com", "cloudflare.com",
+                "amazonaws.com", "akamai.net", "apple.com"
+            };
+
+            CriticalPatterns = new[]
+            {
+                "infrawat.ch", "bulsat.com", "serverastra.com", "axarnet.es"
+            };
+
+            ScannerPatterns = new[]
+            {
+                "shadowserver.org", "censys.io", "shodan.io", "onyphe.com",
+                "binaryedge.io", "internet-measurement.com", "rapid7.com", "stretchoid.com"
+            };
+
+            CrawlerPatterns = new[]
+            {
+                "yandex.com", "yandex.ru", "baidu.com", "bytespider",
+                "semrush.com", "ahrefs.com", "mj12bot", "dotbot",
+                "petalbot", "gptbot", "oai-searchbot", "ccbot"
+            };
+
+            WhitelistPatterns = Array.Empty<string>();
+
+            IgnoredNetworks = new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
+
+            Save();
+            CoreLog.Info("[RESTORE] Listes de patterns restaurées aux valeurs par défaut");
+        }
+
         private static void EnsureWebConfigProtected()
         {
             if (!File.Exists(WebConfigPath)) return;

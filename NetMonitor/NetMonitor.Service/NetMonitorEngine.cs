@@ -1060,15 +1060,20 @@ namespace NetMonitor.Service
                 }
                 else
                 {
-                    // Retour à l'auto → ré-évalue avec les données persistées
+                    // Retour à l'auto → ré-évalue avec la VRAIE sévérité du détecteur
+                    // (Blacklist = Critical, PortScan = High, etc.) au lieu de tomber
+                    // sur Warning par défaut.
+                    var baseSeverity = GetBaseSeverityForDetector(entry.Source, entry.Ip);
+
                     var autoSev = SeverityScorer.Evaluate(
                         entry.Ip,
                         entry.ReverseDns,
                         entry.Isp,
                         entry.Org,
                         entry.Source,
-                        Severity.Warning,
-                        _settings);
+                        baseSeverity,
+                        _settings,
+                        _googleRanges);
                     entry.Severity = autoSev.ToString();
                 }
             }

@@ -203,7 +203,8 @@ namespace NetMonitor.Service.Ipc
                 case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
                 case "get-persistent-problems": HandleGetPersistentProblems(server); break;
                 case "restart-computer":        HandleRestartComputer(server); break;
-                case "clear-all-blocked":       HandleClearAllBlocked(server); break;                                                                                           
+                case "clear-all-blocked":       HandleClearAllBlocked(server); break;
+                case "restore-default-patterns": HandleRestoreDefaultPatterns(server); break;                                                                                           
                 default:                        IpcResponse.Error(server, "unknown command"); break;
             }
         }
@@ -293,6 +294,29 @@ namespace NetMonitor.Service.Ipc
             }
             catch (Exception ex)
             {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleRestoreDefaultPatterns(NamedPipeServerStream server)
+        {
+            try
+            {
+                _settings.RestoreDefaultPatterns();
+                _engine.ReloadConfig();
+
+                // ⚠ Réévalue toutes les IPs bloquées : les patterns qui les
+                // classaient (ex: "Tamatiya EOOD" en Crawler) ont disparu, donc
+                // elles doivent revenir à leur sévérité de détecteur (Critical
+                // pour Blacklist) au lieu de rester sur l'ancien classement.
+                int reevaluated = _engine.ReevaluateAllBlockedIps();
+
+                CoreLog.Info($"IPC : patterns restaurés aux valeurs par défaut ({reevaluated} IP(s) réévaluée(s))");
+                IpcResponse.Json(server, new { status = "ok", restored = true, reevaluated });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleRestoreDefaultPatterns : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
         }

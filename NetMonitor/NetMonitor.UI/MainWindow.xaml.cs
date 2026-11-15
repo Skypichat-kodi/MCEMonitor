@@ -863,6 +863,47 @@ namespace NetMonitor.UI
             await RefreshSafe();
         }
 
+        private async void btnRestoreDefaultPatterns_Click(object sender, RoutedEventArgs e)
+        {
+            var confirm = MessageBox.Show(
+                "Restaurer TOUTES les listes de patterns à leurs valeurs d'origine ?\n\n" +
+                "Cela va écraser :\n" +
+                "  • SafePatterns\n" +
+                "  • CriticalPatterns\n" +
+                "  • ScannerPatterns\n" +
+                "  • CrawlerPatterns\n" +
+                "  • WhitelistPatterns\n" +
+                "  • IgnoredNetworks\n\n" +
+                "⚠ Vos personnalisations seront PERDUES.\n" +
+                "Les autres réglages (AutoBlock, Web, etc.) ne sont pas touchés.",
+                "Confirmation - Zone de danger",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            SetBusy("Restauration des patterns par défaut…");
+            bool ok = await NetMonitorIpcClient.RestoreDefaultPatternsAsync();
+            ClearBusy();
+
+            if (ok)
+            {
+                MessageBox.Show(
+                    "Les listes de patterns ont été restaurées aux valeurs par défaut.\n" +
+                    "Le service a rechargé la configuration à chaud.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                // Recharge l'UI pour voir les nouveaux patterns
+                LoadSettings();
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Échec de la restauration.\nVérifiez le journal du service.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+
         private async void btnClearAllBlockedIps_Click(object sender, RoutedEventArgs e)
         {
             var confirm = MessageBox.Show(

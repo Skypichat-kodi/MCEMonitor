@@ -490,6 +490,9 @@ namespace NetMonitor.UI
             string json = JsonSerializer.Serialize(payload);
             return Convert.ToBase64String(Encoding.UTF8.GetBytes(json));
         }
+
+        public static async Task<bool> RestoreDefaultPatternsAsync()
+            => IsOk(await SendCommand("restore-default-patterns"));
             
         public static async Task<bool> ClearAllBlockedIpsAsync()
         {

@@ -2655,6 +2655,28 @@
                                             <TextBlock Text="Libérer toutes les IP bloquées" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
+                                    
+                                    <Button x:Name="btnRestoreDefaultPatterns"
+                                            Width="320" Height="34"
+                                            HorizontalAlignment="Left"
+                                            Margin="0,8,0,0"
+                                            Click="btnRestoreDefaultPatterns_Click">
+                                        <Button.Style>
+                                            <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                                                <Setter Property="Background" Value="#CC3300"/>
+                                                <Setter Property="BorderBrush" Value="#FF6347"/>
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsMouseOver" Value="True">
+                                                        <Setter Property="Background" Value="#E64D1A"/>
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Button.Style>
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="↺" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="Restaurer les règles à l'origine" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                    </Button>                                    
                                 </StackPanel>
                             </Border>
 
