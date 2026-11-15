@@ -67,7 +67,7 @@ namespace NetMonitor.Service.Web
 
                     foreach (var item in grouped)
                     {
-                        string sevClass  = item.IsKnownScanner ? "Scanner" : SeverityToCssClass(item.Severity.ToString());
+                        string sevClass  = item.IsKnownScanner ? "scanner" : SeverityToCssClass(item.Severity.ToString());
                         string badgeText = item.IsKnownScanner ? "Scanner" : item.Severity.ToString();
 
                         string ipEnc = WebUtility.HtmlEncode(item.Ip);
@@ -90,7 +90,7 @@ namespace NetMonitor.Service.Web
                             <td style='width:30px;text-align:center'><input type='radio' name='active-sel' value='{ipEnc}'></td>
                             <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
-                            <td><span class='badge {sevClass}'>{item.Severity}</span>{safeBtn}</td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span>{safeBtn}</td>
                             <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
                             <td title='{WebUtility.HtmlEncode(item.ReverseDns ?? "")}'>{ipEnc}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(item.Country, item.CountryCode))}</td>
@@ -104,14 +104,15 @@ namespace NetMonitor.Service.Web
                     foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.RemoteIp))
                                             .OrderByDescending(x => x.Timestamp).Take(20))
                     {
-                        string sevClass = SeverityToCssClass(a.Severity.ToString());
+                        string sevClass  = a.IsKnownScanner ? "scanner" : SeverityToCssClass(a.Severity.ToString());
+                        string badgeText = a.IsKnownScanner ? "Scanner" : a.Severity.ToString();
 
                         activeRows.Append($@"<tr>
                             <td></td>
                             <td></td>
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge c1'>-</span></td>
-                            <td><span class='badge {sevClass}'>{a.Severity}</span></td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td></td>
                             <td></td>
@@ -174,9 +175,10 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var b in blocked.OrderByDescending(x => x.BlockedAt).Take(200))
                     {
-                        string ipEnc = WebUtility.HtmlEncode(b.Ip);
+                        string sevClass  = b.IsKnownScanner ? "scanner" : SeverityToCssClass(b.Severity);
+                        string badgeText = b.IsKnownScanner ? "Scanner" : (b.Severity ?? "-");
 
-                        string sevClass = SeverityToCssClass(b.Severity);
+                        string typeLabel = b.IsProcess ? "Processus" : "IP";
 
                         string typeLabel = b.IsProcess ? "Processus" : "IP";
                         string display = b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip;
@@ -204,7 +206,7 @@ namespace NetMonitor.Service.Web
                             <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(b.Org) ? "-" : b.Org)}</td>
                             <td title='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(b.ReverseDns, 40))}</td>
                             <td class='info-cell'>{infoCell}</td>
-                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(b.Severity ?? "-")}</span>{manualLock}</td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span>{manualLock}</td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
@@ -218,7 +220,8 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var h in history.OrderByDescending(x => x.Timestamp).Take(100))
                     {
-                        string sevClass = SeverityToCssClass(h.Severity.ToString());
+                        string sevClass  = h.IsKnownScanner ? "scanner" : SeverityToCssClass(h.Severity.ToString());
+                        string badgeText = h.IsKnownScanner ? "Scanner" : h.Severity.ToString();
 
                         string detailsText = string.IsNullOrWhiteSpace(h.Details)
                             ? "-"
@@ -229,7 +232,7 @@ namespace NetMonitor.Service.Web
                         historyRows.Append($@"<tr>
                             {BuildTrafficCell(h.IsOutbound)}
                             <td>{h.Timestamp:dd/MM HH:mm:ss}</td>
-                            <td><span class='badge {sevClass}'>{h.Severity}</span></td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
                             <td title='{WebUtility.HtmlEncode(h.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(h.Country, h.CountryCode))}</td>  
@@ -320,7 +323,8 @@ namespace NetMonitor.Service.Web
                         string org     = string.IsNullOrWhiteSpace(info?.Org) ? "-" : info.Org!;           
                         string rDns    = string.IsNullOrWhiteSpace(info?.ReverseDns) ? "-" : info.ReverseDns!;                     
 
-                        string sevClass  = SeverityToCssClass(sev);
+                        string sevClass  = (info?.IsKnownScanner ?? false) ? "scanner" : SeverityToCssClass(sev);
+                        string badgeText = (info?.IsKnownScanner ?? false) ? "Scanner" : sev;
 
                         blockedRetriesRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'retry-sel')"" data-isp='{WebUtility.HtmlEncode(isp)}' data-org='{WebUtility.HtmlEncode(org)}' data-rdns='{WebUtility.HtmlEncode(rDns)}'>
                             {BuildTrafficCell(info?.IsOutbound ?? false)}
@@ -332,7 +336,7 @@ namespace NetMonitor.Service.Web
                             <td>{WebUtility.HtmlEncode(org)}</td>
                             <td title='{WebUtility.HtmlEncode(info?.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(rDns, 40))}</td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
-                            <td class='text-center'><span class='badge {sevClass}'>{sev}</span></td>
+                            <td class='text-center'><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
