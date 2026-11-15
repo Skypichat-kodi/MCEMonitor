@@ -22,4 +22,12 @@
     <ProjectReference Include="..\MCEMonitorClient.Tray\MCEMonitorClient.Tray.csproj" />
   </ItemGroup>
 
+  <!-- Ressources propres au produit : copiées dans bin\...\Resources\Icons\MCEMonitorClient\ -->
+  <ItemGroup>
+    <None Update="Resources\Icons\MCEMonitorClient\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>
