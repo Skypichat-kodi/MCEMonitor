@@ -35,6 +35,13 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **Vague C — Restaurer les règles par défaut sur la page Web**
+  - Le bouton existe en WPF (Zone de danger), mais pas sur la page Web
+  - Route `/restore-default-patterns` à ajouter dans `MiniHttpServer.cs`
+  - Bouton + confirmation à ajouter dans `NetPage.html` (section Paramètres Web)
+  - **Priorité** : 🟡 moyenne
+  - **Note** : la route existe déjà en IPC (`restore-default-patterns`)
+
 - [ ] **MediaMonitor — affichage "Depuis quand"**
   - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
   - Pourrait afficher "en cours depuis X min" sur les items live
@@ -54,9 +61,170 @@ _(rien)_
   - `Add-MpPreference -ExclusionExtension ".sys"`
   - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
 
+- [ ] **Nettoyer les fichiers `.old`**
+  - `NetMonitor.Service/Alert.cs.old`
+  - `NetMonitor.Service/AlertHistory.cs.old`
+  - `NetMonitor.Service/AlertManager.cs.old`
+  - `NetMonitor.Tray/Models/Alert.cs.old`
+  - `NetMonitor.UI/Models/UiModels.cs.old`
+  - `NetMonitor.UI/Converters/SeverityToBrushConverter.cs.old`
+  - **Quand** : après validation en production (1-2 semaines)
+  - **Priorité** : 🟢 opportuniste
+
+- [ ] **ThreatIntelService : IDisposable**
+  - Contient `HttpClient`, `Timer`, `FileSystemWatcher` non disposés
+  - Même pattern que `GeoIpService` (déjà corrigé)
+  - **Priorité** : 🟢 opportuniste
+
+- [ ] **TrustedScannerService : IDisposable**
+  - Contient `SemaphoreSlim` non disposé
+  - **Priorité** : 🟢 opportuniste
+
+- [ ] **MicrosoftIpRangeService : IDisposable**
+  - Contient `SemaphoreSlim` non disposé
+  - **Priorité** : 🟢 opportuniste
+
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-15 — Corrections massives Service + UI + Tray + Web
+
+**Session marathon : ~50 corrections, 2 refontes UX, 1 feature (Org + Reverse DNS).**
+
+#### Service — 14 bugs critiques corrigés
+
+- [x] **`NetMonitorEngine.Start()`** : double `EmailDigestScheduler` (fuite Timer + double email) → un seul scheduler
+- [x] **`NetMonitorEngine.Stop()`** : double `Dispose` sur `_evictTimer` → nettoyé
+- [x] **`NetMonitorEngine.LoadBlockedIps()`** : enrichissement `IsKnownScanner` sur liste vide → corrigé (utilise `list` au lieu de `_blockedIps`)
+- [x] **`NetMonitorEngine.GetStatsAsync()`** : lazy init `_geoIp` en doublon → supprimé (le constructeur garantit non-null)
+- [x] **`NetMonitorSettings.Load()` + `Reload()`** : `TrustedScannerPatterns` mal mappé (sur `IgnoredProcesses` et `CriticalPatterns`) → mappé sur `ScannerPatterns`
+- [x] **`IpcCommandHandler.HandleAddPattern()`** : double `AddPattern` + double `ReloadConfig` → appel unique
+- [x] **`NetMonitorEngine.ReloadConfig()`** : ne propageait pas les changements à `_trustedScanners`, `_msRanges`, `_googleRanges` → hot-swap ajouté
+- [x] **`TrustedScannerService`** : capture le tableau `ScannerPatterns` au constructeur → `UpdatePatterns()` ajoutée
+- [x] **`ProcessTrustService.IsSignedBy()`** : ne valide pas la chaîne de certification (faille sécurité) → validation `WinVerifyTrust` via `TryGetAuthenticodePublisher`
+- [x] **`WebHandler.BuildNetPage()`** : colonnes désalignées dans tableau 1 (alertes sans RemoteIp) → corrigé
+- [x] **`LoginService.ValidateOtp()`** : `Attempts++` non atomique (race brute-force) → `lock` global
+- [x] **`LoginService.PurgeExpired()`** : jamais appelé → timer 5 min dans `Program.cs`
+- [x] **`EmailDigestScheduler.Enqueue()`** : déduplication sans fenêtre temporelle + O(n²) → `ConcurrentDictionary` avec fenêtre glissante 5 min
+- [x] **`FirewallHelper.RemoveRule()`** : jamais appelé quand `WebEnabled=false` → `else` ajouté dans `RestartWebServer`
+
+#### Service — 2 améliorations
+
+- [x] **`GeoIpService : IDisposable`** : libère `HttpClient` + `SemaphoreSlim` (fuite sockets fermée)
+- [x] **Arrêt propre du service** : `AppDomain.ProcessExit` + timeouts réduits `EtwConnectionWatcher` (7s → 2s)
+
+#### Service — Feature Org + Reverse DNS
+
+- [x] **`IntrusionEvent`** : + `Org` + `ReverseDns`
+- [x] **`AuditGroupedEntry`** : + `Org` + `ReverseDns`
+- [x] **`NetMonitorEngine`** : `GetAlerts`, `GetActiveIntrusions`, `GetAuditHistoryGrouped` enrichissent `Org` et `ReverseDns`
+- [x] **`IpcCommandHandler`** : 5 handlers projettent `Org` + `ReverseDns`
+- [x] **`ApiDetail`** : 3 DTOs avec `Org` + `ReverseDns`
+- [x] **`MiniHttpServer /api/detail`** : 3 blocs enrichis (jointure `BlockedIpInfo` pour les retries)
+- [x] **`NetMonitorEngine.FinalizeBlockedIpGeoAsync`** : `includeReverseDns: true` → les PTR sont maintenant résolus
+
+#### Service — Sécurité IPC base64
+
+- [x] **IPC `*-b64`** : 5 nouvelles commandes avec payload JSON base64
+  - `block-ip-b64`, `set-web-config-b64`, `add-pattern-b64`, `set-manual-severity-b64`, `toggle-whitelist-entry-b64`
+  - Résout l'injection via `|` et `&` dans les valeurs libres (messages, mots de passe)
+  - Commandes legacy conservées pour rétrocompatibilité
+
+#### UI WPF — 9 bugs corrigés
+
+- [x] **`HandleGetConfig`** (Service) : 3 tableaux manquants (`safePatterns`, `criticalPatterns`, `whitelistPatterns`) → patterns effacés au Save
+- [x] **`MergeConfigFile()`** (nouvelle méthode) : préserve les settings non modifiés par l'UI (GeoIp*, IgnoredProcesses, EnableProcessTrust, SuspiciousRemotePorts…)
+- [x] **`BlacklistLastUpdate`** : parsing robuste (plus de réinitialisation à UtcNow)
+- [x] **`StatsChartsPanel.Update()`** : granularité réinitialisée à chaque refresh → fallback supprimé
+- [x] **`_refreshTimer.Tick`** : refresh bloqué si sélection active → période de grâce 2 min
+- [x] **Web settings** dans `NetMonitor.config` au lieu de `web.config` → retirées
+- [x] **`SeverityPickerWindow`** : + Bot/Crawler/ToCheck (cohérence enum)
+- [x] **`_notifiedProblems`** : TTL 24h + borne 200 entrées
+- [x] **`UiModels.cs` + `SeverityToBrushConverter.cs`** : dead code → renommés `.old`
+
+#### UI WPF — Vague B (Org + Reverse DNS)
+
+- [x] **`NetMonitorIpcClient`** : `NetAlert`, `BlockedIpRetryDto`, `AuditGroupedDto` exposent `org` et `reverseDns`
+- [x] **`MainWindow.xaml.cs`** : 5 classes Row enrichies (`AlertRow`, `BlockedIpRow`, `GroupedAlertRow`, `AuditGroupedRow`, `BlockedIpRetryRow`) avec `Org` + `ReverseDns` + propriétés calculées
+- [x] **`MainWindow.xaml`** : 5 grilles mises à jour :
+  - `ActiveIntrusionsGrid` : + Pays + FAI (ASN) + Organisation + ToolTip PTR
+  - `BlockedIpsGrid` : FAI → FAI (ASN), + Organisation + colonne Reverse DNS
+  - `AlertsHistoryGrid` : FAI → FAI (ASN), + Organisation + ToolTip PTR
+  - `AuditGrid` : FAI → FAI (ASN), + Organisation + ToolTip PTR
+  - `BlockedRetriesGrid` : FAI → FAI (ASN), + Organisation + colonne Reverse DNS
+- [x] **`MainWindow.xaml.cs`** : désélection par clic sur zone vide + touche Échap (toutes les grilles)
+- [x] **`MainWindow.xaml.cs`** : alerte manquante sur `AddPatternFromBlockedIp_Click` sans sélection
+
+#### UI WPF — Refonte boutons (aligné sur WPF)
+
+- [x] **Retiré les boutons inline** ⚙ et 🏷️ des DataGrids
+- [x] **Ajouté les boutons globaux** dans les barres d'action :
+  - `BlockedIpsGrid` : ⚙ Forcer la sévérité / 🏷️ Créer une règle (futur)
+  - `BlockedRetriesGrid` : idem + suppression des colonnes inline
+- [x] **`PatternPickerWindow`** : titre "Créer une règle de classification (futur)" + bandeau d'avertissement + bouton rouge "Créer la règle" + "✖ Annuler"
+- [x] **`SeverityPickerWindow`** : titre "Forcer la sévérité (cette IP uniquement)" + texte explicatif + correction du chevauchement Grid
+- [x] **Nouveau bouton "↺ Restaurer les règles à l'origine"** dans la Zone de danger
+- [x] **Route `restore-default-patterns`** (IPC) + `RestoreDefaultPatterns()` dans `NetMonitorSettings` + `ReevaluateAllBlockedIps()` appelé après
+
+#### Tray — 10 bugs corrigés
+
+- [x] **`countPrefix`** calculé mais jamais affiché → `[xN]` visible dans le popup
+- [x] **Ranking severities** : Bot/Crawler/Trusted/Safe ne sont plus des menaces (ni côté Tray ni côté Service)
+- [x] **Icon handle leak** : `DestroyIcon` ajouté après `Bitmap.GetHicon`
+- [x] **Timers non disposés** à l'arrêt → `Stop + Dispose` pour les 3 timers
+- [x] **`Exit()`** tuait toutes les UI (même celles lancées manuellement) → `_spawnedUiPids`
+- [x] **`Exit()`** tuait le Service après 2.8s (cleanup prend ~4.5s) → attente portée à 5s + logs
+- [x] **Commentaire watchdog** trompeur (60s affiché, 20s réel)
+- [x] **`Models/Alert.cs`** : dead code → renommé `.old`
+- [x] **`LoadSound`** : fuite `MemoryStream` documentée (volontaire)
+- [x] **`GetProblems`/`GetWorstSeverity`** : TODO pour timeout IPC
+
+#### Web — Refonte UX modales
+
+- [x] **`WebHandler.cs`** : 5 tableaux enrichis (Org, FAI (ASN), Reverse DNS) + correction colspan
+- [x] **`WebHandler.cs`** : retiré les boutons inline ⚙ et 🏷️ des lignes
+- [x] **`WebHandler.cs`** : ajouté le radio de sélection au tableau 5 (Interceptions)
+- [x] **`WebHandler.cs`** : data-attributes `data-isp/org/rdns` sur les `<tr>` (pour alimenter les modales)
+- [x] **`NetPage.html`** : boutons globaux dans les barres d'action
+- [x] **`NetPage.html`** : modale "Forcer la sévérité" (grille de 8 cartes colorées + Auto)
+- [x] **`NetPage.html`** : modale "Créer une règle" (formulaire complet + aperçu + bandeau)
+- [x] **`NetPage.html`** : CSS dédié (backdrop-filter, animation)
+- [x] **`NetPage.html`** : fermeture ESC + clic sur fond assombri
+
+#### Langues — 3 nouvelles clés × 4 fichiers
+
+- [x] **`fr-FR.json`** : FAI (ASN), Organisation, Reverse DNS
+- [x] **`en-GB.json`** : ISP (ASN), Organization, Reverse DNS
+- [x] **`de-DE.json`** : ISP (ASN), Organisation, Reverse DNS
+- [x] **`es-ES.json`** : ISP (ASN), Organización, Reverse DNS
+
+#### Bugs de sévérité (Session 2026-11-15)
+
+- [x] **`SetManualSeverity`** : retour `auto` utilise `GetBaseSeverityForDetector()` au lieu de `Severity.Warning` hardcodé → Blacklist revient en Critical
+- [x] **`WorstSeverity`** : ignore Bot/Crawler/Trusted/Safe/Whitelisted → un scan Shodan ne fait plus passer le tray en orange
+- [x] **SafePatterns** : retiré `amazonaws.com`, `akamai.net`, `apple.com` (faux "Safe" sur IPs blacklistées hébergées chez AWS/Akamai/Apple)
+- [x] **CrawlerPatterns** : ajouté `infrawat.ch` + `hydra` (scanners agressifs, pas du malware avéré)
+- [x] **CriticalPatterns** : retiré `infrawat.ch` (déplacé vers Crawler)
+- [x] **`RestoreDefaultPatterns()`** : aligné sur le constructeur
+- [x] **`HandleRestoreDefaultPatterns()`** : appelle `ReevaluateAllBlockedIps()` après restauration
+
+#### Code mort supprimé
+
+- [x] **Service** : `Alert.cs`, `AlertHistory.cs`, `AlertManager.cs` renommés `.old`
+- [x] **Service** : 6 méthodes publiques mortes supprimées (`FirewallHelper.IsAlreadyBlocked`, `ServiceIpcServer.Stop`, `TrustedScannerService.Clear`, `GeoIpService.Clear`, `ProcessResolver.ClearCache`, `SeverityScorer.ExtractRootDomain`, `GoogleIpRangeService.IsCommonCrawlerIp`, `ViewRenderer.ClearCache`)
+- [x] **UI** : `Models/UiModels.cs` + `Converters/SeverityToBrushConverter.cs` renommés `.old`
+- [x] **Tray** : `Models/Alert.cs` renommé `.old`
+- [x] **4 méthodes `Inspect()`** mortes supprimées dans `PortScanDetector`, `SuspiciousOutboundDetector`, `BeaconingDetector`, `UntrustedProcessDetector`
+
+#### Résultats mesurés en production
+
+- ✅ Les 3 IPs AWS blacklistées passent de "Safe" à "Critical"
+- ✅ Les 11 IPs Hydra/Infrawat passent de "Critical" à "Crawler"
+- ✅ 14 IPs réévaluées correctement à la restauration
+- ✅ Le tray reste vert sur un scan Shodan (vague 4 corrigée)
+- ✅ Les badges "Scanner" remplacent "Subnet"
+- ✅ Les tooltips des badges ne sont plus vides
 
 ### Session 2026-11-11 — Login custom sur les 4 modules
 
