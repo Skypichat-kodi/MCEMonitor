@@ -175,10 +175,10 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var b in blocked.OrderByDescending(x => x.BlockedAt).Take(200))
                     {
+                        string ipEnc = WebUtility.HtmlEncode(b.Ip);
+
                         string sevClass  = b.IsKnownScanner ? "scanner" : SeverityToCssClass(b.Severity);
                         string badgeText = b.IsKnownScanner ? "Scanner" : (b.Severity ?? "-");
-
-                        string typeLabel = b.IsProcess ? "Processus" : "IP";
 
                         string typeLabel = b.IsProcess ? "Processus" : "IP";
                         string display = b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip;
