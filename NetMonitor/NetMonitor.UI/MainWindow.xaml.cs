@@ -2712,23 +2712,25 @@ namespace NetMonitor.UI
                 grid.PreviewKeyDown             += DataGrid_PreviewKeyDown;
             }
         }
-        
+
         private void DataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not DataGrid grid) return;
 
-            // Si le clic est sur une ligne → ne rien faire
+            // Remonte la chaîne visuelle pour voir si on est sur une DataGridRow
             var hit = e.OriginalSource as DependencyObject;
-            while (hit != null && hit != grid)
+            while (hit != null && hit is not DataGridRow)
             {
-                if (hit is DataGridRow) return;   // ← clic sur une ligne → on sort
                 hit = VisualTreeHelper.GetParent(hit);
             }
 
-            // Clic n'importe où ailleurs (header, fond, scrollviewer) → désélection
-            grid.SelectedItem = null;
-            grid.CurrentCell = default;
-            grid.UnselectAll();
+            // Si pas de DataGridRow dans la chaîne → clic sur zone vide
+            // (en-tête, fond du DataGrid, ScrollViewer vide…)
+            if (hit == null)
+            {
+                grid.SelectedItem = null;
+                grid.CurrentCell  = default;   // évite un focus fantôme sur la dernière cellule
+            }
         }
 
         private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)

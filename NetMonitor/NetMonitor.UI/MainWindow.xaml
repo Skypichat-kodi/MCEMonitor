@@ -244,7 +244,7 @@
                                 Background="#252526"
                                 BorderBrush="#3C3C3C"
                                 BorderThickness="0,0,0,2"
-                                Padding="15,8">
+                                Padding="18,10">
                             <ContentPresenter ContentSource="Header"
                                               HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
@@ -719,7 +719,8 @@
         </Grid>
 
         <TabControl x:Name="MainTabControl" Grid.Row="1"
-                    Margin="15,0,15,0" Background="Transparent" BorderThickness="0">
+                    Margin="15,8,15,0" Background="Transparent" BorderThickness="0"
+                    Padding="0,6,0,0">
 
             <!-- ====================================================== -->
             <!--  ONGLET INTRUSIONS (3 tableaux)                        -->
