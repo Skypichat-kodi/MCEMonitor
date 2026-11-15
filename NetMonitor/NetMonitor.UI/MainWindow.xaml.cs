@@ -2717,19 +2717,24 @@ namespace NetMonitor.UI
         {
             if (sender is not DataGrid grid) return;
 
-            // Remonte la chaîne visuelle pour voir si on est sur une DataGridRow
+            // Remonte la chaîne visuelle pour voir si on est sur une ligne OU une cellule
+            bool isOnRowOrCell = false;
             var hit = e.OriginalSource as DependencyObject;
-            while (hit != null && hit is not DataGridRow)
+            while (hit != null && hit != grid)
             {
+                if (hit is DataGridRow || hit is DataGridCell)
+                {
+                    isOnRowOrCell = true;
+                    break;
+                }
                 hit = VisualTreeHelper.GetParent(hit);
             }
 
-            // Si pas de DataGridRow dans la chaîne → clic sur zone vide
-            // (en-tête, fond du DataGrid, ScrollViewer vide…)
-            if (hit == null)
+            // Si le clic n'est ni sur une ligne ni sur une cellule → zone vide
+            if (!isOnRowOrCell)
             {
                 grid.SelectedItem = null;
-                grid.CurrentCell  = default;   // évite un focus fantôme sur la dernière cellule
+                grid.CurrentCell  = default;
             }
         }
 
