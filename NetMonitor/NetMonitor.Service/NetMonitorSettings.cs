@@ -41,11 +41,12 @@ namespace NetMonitor.Service
         public bool   BlockCrawlers                 { get; set; } = true;    // Robots génériques
 
         // Patterns des robots génériques (Yandex, Baidu...)
-        public string[] CrawlerPatterns             { get; set; } = new[]
+        public string[] CrawlerPatterns { get; set; } = new[]
         {
             "yandex.com", "yandex.ru", "baidu.com", "bytespider",
             "semrush.com", "ahrefs.com", "mj12bot", "dotbot",
-            "petalbot", "gptbot", "oai-searchbot", "ccbot"
+            "petalbot", "gptbot", "oai-searchbot", "ccbot",
+            "infrawat.ch", "hydra"   // ← AJOUT
         };
 
         // ============================================================
@@ -80,7 +81,7 @@ namespace NetMonitor.Service
         // ============================================================
         public string[] CriticalPatterns            { get; set; } = new[]
         {
-            "infrawat.ch", "bulsat.com", "serverastra.com", "axarnet.es"
+            "bulsat.com", "serverastra.com", "axarnet.es"
         };
 
         public string[] ScannerPatterns { get; set; } = new[]
@@ -91,8 +92,10 @@ namespace NetMonitor.Service
 
         public string[] SafePatterns { get; set; } = new[]
         {
-            "microsoft.com", "google.com", "cloudflare.com",
-            "amazonaws.com", "akamai.net", "apple.com"
+            "microsoft.com", "google.com", "cloudflare.com"
+            // ⚠ amazonaws.com / akamai.net / apple.com retirés :
+            // n'importe qui peut créer une VM sur ces clouds, leur reverse DNS
+            // matchait donc pour des attaquants → faux "Safe" sur IPs blacklistées.
         };
 
         public string[] WhitelistPatterns { get; set; } = Array.Empty<string>();
@@ -467,13 +470,12 @@ namespace NetMonitor.Service
         {
             SafePatterns = new[]
             {
-                "microsoft.com", "google.com", "cloudflare.com",
-                "amazonaws.com", "akamai.net", "apple.com"
+                "microsoft.com", "google.com", "cloudflare.com"
             };
 
             CriticalPatterns = new[]
             {
-                "infrawat.ch", "bulsat.com", "serverastra.com", "axarnet.es"
+                "bulsat.com", "serverastra.com", "axarnet.es"
             };
 
             ScannerPatterns = new[]
@@ -486,7 +488,8 @@ namespace NetMonitor.Service
             {
                 "yandex.com", "yandex.ru", "baidu.com", "bytespider",
                 "semrush.com", "ahrefs.com", "mj12bot", "dotbot",
-                "petalbot", "gptbot", "oai-searchbot", "ccbot"
+                "petalbot", "gptbot", "oai-searchbot", "ccbot",
+                "infrawat.ch", "hydra"
             };
 
             WhitelistPatterns = Array.Empty<string>();
