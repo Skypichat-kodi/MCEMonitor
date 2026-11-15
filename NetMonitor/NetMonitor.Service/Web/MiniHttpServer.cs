@@ -752,7 +752,8 @@ namespace NetMonitor.Service.Web
                     {
                         severity = a.Severity.ToString().ToLower(),
                         category = a.Source,
-                        message = a.Message
+                        target   = a.RemoteIp ?? "-",    
+                        message  = a.Message
                     }).ToList();
 
                     var lastBlock = _engine.LastBlock;
