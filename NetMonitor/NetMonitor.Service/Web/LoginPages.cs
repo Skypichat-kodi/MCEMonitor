@@ -62,7 +62,11 @@ namespace NetMonitor.Service.Web
             <label>Mot de passe</label>
             <input type=""password"" name=""password"" required />
             {otpField}
-            <input type=""submit"" value=""Se connecter"" />
+            <label style=""display:flex;align-items:center;gap:8px;margin-top:15px;font-size:12px;color:#B4B4B4;cursor:pointer"">
+                <input type=""checkbox"" name=""remember"" value=""1"" style=""accent-color:#4CC2FF;cursor:pointer"" />
+                Se souvenir de cet appareil pendant 30 jours
+            </label>
+            <input type=""submit"" value=""Se connecter"" style=""margin-top:15px"" />
           </form>
           <p class=""hint"">{(
               needsOtp

@@ -39,6 +39,7 @@ namespace NetMonitor.UI
         private readonly ObservableCollection<StatsDetectorRow>     _statsBlockedDetectors     = new();
         private readonly ObservableCollection<BlockedIpRetryRow>    _blockedRetries            = new();
         private readonly ObservableCollection<WhitelistEntryRow>    _whitelistEntries          = new();
+        private readonly ObservableCollection<TrustedDeviceRow>     _trustedDevices            = new();        
         private readonly ObservableCollection<StatsProcessRow>      _statsTopProcesses         = new();
         private readonly ObservableCollection<StatsBucketRow>       _statsActivityBuckets      = new();
         private GlobalStatsDto?                                     _lastStats;
@@ -160,6 +161,7 @@ namespace NetMonitor.UI
             WireAllGridDeselect();
             InitializeAllFilters();
             WhitelistGrid.ItemsSource                   = _whitelistEntries;
+            TrustedDevicesGrid.ItemsSource              = _trustedDevices;            
             
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) =>
@@ -937,6 +939,96 @@ namespace NetMonitor.UI
             }
 
             await RefreshSafe();
+        }
+
+        // ============================================================
+        //  Appareils de confiance
+        // ============================================================
+        private async void RefreshTrustedDevices_Click(object sender, RoutedEventArgs e)
+            => await RefreshTrustedDevicesAsync();
+
+        private async Task RefreshTrustedDevicesAsync()
+        {
+            var devices = await NetMonitorIpcClient.GetTrustedDevicesAsync();
+
+            _trustedDevices.Clear();
+            if (devices != null)
+            {
+                foreach (var d in devices)
+                {
+                    _trustedDevices.Add(new TrustedDeviceRow
+                    {
+                        Fingerprint = d.Fingerprint,
+                        UserAgent   = d.UserAgent,
+                        CreatedAt   = d.CreatedAt,
+                        ExpiresAt   = d.ExpiresAt
+                    });
+                }
+            }
+
+            txtTrustedDevicesSummary.Text = _trustedDevices.Count == 0
+                ? "Aucun appareil de confiance"
+                : $"{_trustedDevices.Count} appareil(s) mémorisé(s)";
+        }
+
+        private async void RevokeTrustedDevice_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is not Button btn || btn.Tag is not string fingerprint) return;
+
+            var confirm = MessageBox.Show(
+                "Révoquer cet appareil ?\n\n" +
+                "Il devra repasser l'OTP à sa prochaine connexion.",
+                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            SetBusy("Révocation en cours…");
+            bool ok = await NetMonitorIpcClient.RevokeTrustedDeviceAsync(fingerprint);
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show("Échec de la révocation.", "NetMonitor",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshTrustedDevicesAsync();
+        }
+
+        private async void RevokeAllTrustedDevices_Click(object sender, RoutedEventArgs e)
+        {
+            if (_trustedDevices.Count == 0)
+            {
+                MessageBox.Show("Aucun appareil à révoquer.", "NetMonitor",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var confirm = MessageBox.Show(
+                $"Révoquer TOUS les {_trustedDevices.Count} appareils de confiance ?\n\n" +
+                "Tous les appareils devront repasser l'OTP à leur prochaine connexion.\n" +
+                "⚠ Cette action est irréversible.",
+                "Confirmation - Tout révoquer",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (confirm != MessageBoxResult.Yes) return;
+
+            SetBusy("Révocation totale en cours…");
+            bool ok = await NetMonitorIpcClient.RevokeTrustedDevicesAsync();
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show("Échec de la révocation totale.", "NetMonitor",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            MessageBox.Show("Tous les appareils de confiance ont été révoqués.",
+                "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            await RefreshTrustedDevicesAsync();
         }
                 
         // ------------------------------------------------------------
@@ -2967,6 +3059,7 @@ namespace NetMonitor.UI
             await LoadWebConfig();
             await RefreshStatsAsync();
             await RefreshSafe();
+            await RefreshTrustedDevicesAsync();            
         }
         
         // ============================================================
@@ -3516,5 +3609,47 @@ namespace NetMonitor.UI
     public class PatternRow
     {
         public string Value             { get; set; } = "";
-    }                        
+    }
+    
+    public class TrustedDeviceRow
+    {
+        public string Fingerprint       { get; set; } = "";
+        public string UserAgent         { get; set; } = "";
+        public DateTime CreatedAt       { get; set; }
+        public DateTime ExpiresAt       { get; set; }
+
+        public string UserAgentDisplay
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(UserAgent)) return "(inconnu)";
+
+                // Simplifie le User-Agent pour l'affichage
+                string ua = UserAgent;
+
+                // Extrait navigateur + OS
+                if (ua.Contains("Edg/"))         return "Edge — " + ExtractOS(ua);
+                if (ua.Contains("Chrome/"))      return "Chrome — " + ExtractOS(ua);
+                if (ua.Contains("Firefox/"))     return "Firefox — " + ExtractOS(ua);
+                if (ua.Contains("Safari/") && !ua.Contains("Chrome")) return "Safari — " + ExtractOS(ua);
+                if (ua.Contains("curl/"))        return "curl";
+
+                return ua.Length <= 80 ? ua : ua.Substring(0, 77) + "…";
+            }
+        }
+
+        private static string ExtractOS(string ua)
+        {
+            if (ua.Contains("Windows"))         return "Windows";
+            if (ua.Contains("iPhone"))          return "iPhone";
+            if (ua.Contains("iPad"))            return "iPad";
+            if (ua.Contains("Android"))         return "Android";
+            if (ua.Contains("Macintosh"))       return "macOS";
+            if (ua.Contains("Linux"))           return "Linux";
+            return "?";
+        }
+
+        public string CreatedAtDisplay => CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+        public string ExpiresAtDisplay => ExpiresAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+    }                            
 }

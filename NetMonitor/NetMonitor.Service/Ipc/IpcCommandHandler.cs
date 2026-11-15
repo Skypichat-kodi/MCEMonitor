@@ -3,6 +3,7 @@ using System.IO.Pipes;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using NetMonitor.Service.Web;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Ipc
@@ -20,6 +21,22 @@ namespace NetMonitor.Service.Ipc
 
         public void Handle(string command, NamedPipeServerStream server)
         {
+        
+            // ═══════════════════════════════════════════════════════════
+            //  Commandes avec argument (doivent être en StartsWith)
+            // ═══════════════════════════════════════════════════════════
+            if (command.StartsWith("revoke-trusted-device ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleRevokeTrustedDevice(server, command);
+                return;
+            }
+
+            if (command.StartsWith("revoke-trusted-devices", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleRevokeTrustedDevices(server);
+                return;
+            }
+                    
             // ═══════════════════════════════════════════════════════════
             //  Commandes *-b64 (payload JSON encodé en base64)
             //  Résout les injections via | et & dans les valeurs libres
@@ -179,33 +196,34 @@ namespace NetMonitor.Service.Ipc
                               
             switch (command.ToLowerInvariant())
             {
-                case "get-status":              HandleGetStatus(server); break;
-                case "get-problems":            HandleGetProblems(server); break;
-                case "get-alerts":              HandleGetAlerts(server); break;
-                case "get-connections":         HandleGetConnections(server); break;
-                case "get-config":              HandleGetConfig(server); break;
-                case "clear-alerts":            HandleClearAlerts(server); break;
-                case "reload-config":           HandleReloadConfig(server); break;
-                case "force-scan":              HandleForceScan(server); break;
-                case "shutdown":                HandleShutdown(server); break;
-                case "get-web-status":          HandleGetWebStatus(server); break;
-                case "get-active":              HandleGetActiveIntrusions(server); break;
-                case "clear-active":            HandleClearActiveIntrusions(server); break;
-                case "get-blocked":             HandleGetBlockedIps(server); break;
-                case "get-audit":               HandleGetAudit(server); break;
-                case "clear-audit":             HandleClearAudit(server); break;
-                case "export-pdf":              HandleExportPdf(server); break;
-                case "get-stats":               HandleGetStats(server); break;
-                case "get-pending-processes":   HandleGetPendingProcesses(server); break;
-                case "get-blocked-retries":     HandleGetBlockedIpRetries(server); break;
-                case "clear-blocked-retries":   HandleClearBlockedIpRetries(server); break;
-                case "get-whitelist":           HandleGetWhitelist(server); break;
-                case "get-audit-grouped":       HandleGetAuditGrouped(server); break;
-                case "get-persistent-problems": HandleGetPersistentProblems(server); break;
-                case "restart-computer":        HandleRestartComputer(server); break;
-                case "clear-all-blocked":       HandleClearAllBlocked(server); break;
-                case "restore-default-patterns": HandleRestoreDefaultPatterns(server); break;                                                                                           
-                default:                        IpcResponse.Error(server, "unknown command"); break;
+                case "get-status":                  HandleGetStatus(server); break;
+                case "get-problems":                HandleGetProblems(server); break;
+                case "get-alerts":                  HandleGetAlerts(server); break;
+                case "get-connections":             HandleGetConnections(server); break;
+                case "get-config":                  HandleGetConfig(server); break;
+                case "clear-alerts":                HandleClearAlerts(server); break;
+                case "reload-config":               HandleReloadConfig(server); break;
+                case "force-scan":                  HandleForceScan(server); break;
+                case "shutdown":                    HandleShutdown(server); break;
+                case "get-web-status":              HandleGetWebStatus(server); break;
+                case "get-active":                  HandleGetActiveIntrusions(server); break;
+                case "clear-active":                HandleClearActiveIntrusions(server); break;
+                case "get-blocked":                 HandleGetBlockedIps(server); break;
+                case "get-audit":                   HandleGetAudit(server); break;
+                case "clear-audit":                 HandleClearAudit(server); break;
+                case "export-pdf":                  HandleExportPdf(server); break;
+                case "get-stats":                   HandleGetStats(server); break;
+                case "get-pending-processes":       HandleGetPendingProcesses(server); break;
+                case "get-blocked-retries":         HandleGetBlockedIpRetries(server); break;
+                case "clear-blocked-retries":       HandleClearBlockedIpRetries(server); break;
+                case "get-whitelist":               HandleGetWhitelist(server); break;
+                case "get-audit-grouped":           HandleGetAuditGrouped(server); break;
+                case "get-persistent-problems":     HandleGetPersistentProblems(server); break;
+                case "restart-computer":            HandleRestartComputer(server); break;
+                case "clear-all-blocked":           HandleClearAllBlocked(server); break;
+                case "restore-default-patterns":    HandleRestoreDefaultPatterns(server); break;
+                case "get-trusted-devices":         HandleGetTrustedDevices(server); break;                                                                                                          
+                default:                            IpcResponse.Error(server, "unknown command"); break;
             }
         }
 
@@ -1099,6 +1117,52 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Error("Erreur HandleAddPattern : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
-        }                       
+        }
+        
+        private void HandleRevokeTrustedDevices(NamedPipeServerStream server)
+        {
+            try
+            {
+                SessionStore.RevokeAllTrustedDevices();
+                IpcResponse.Json(server, new { status = "ok", revoked = true });
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+        
+        private void HandleGetTrustedDevices(NamedPipeServerStream server)
+        {
+            try
+            {
+                IpcResponse.Raw(server, SessionStore.GetTrustedDevicesJson());
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleRevokeTrustedDevice(NamedPipeServerStream server, string command)
+        {
+            try
+            {
+                string fingerprint = command.Substring("revoke-trusted-device ".Length).Trim();
+
+                if (string.IsNullOrWhiteSpace(fingerprint))
+                {
+                    IpcResponse.Error(server, "fingerprint manquant");
+                    return;
+                }
+
+                SessionStore.RevokeTrustedDevice(fingerprint);
+                IpcResponse.Json(server, new { status = "ok", revoked = true, fingerprint });
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }                                       
     }
 }

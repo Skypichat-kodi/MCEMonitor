@@ -1,4 +1,7 @@
 ﻿using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
 using System.Collections.Concurrent;
 
 namespace NetMonitor.Service.Web
@@ -10,6 +13,110 @@ namespace NetMonitor.Service.Web
     public static class SessionStore
     {
         private static readonly ConcurrentDictionary<string, DateTime> _sessions = new();
+
+        // ═══════════════════════════════════════════════════════════
+        //  Appareils de confiance (cookie "Se souvenir de moi")
+        // ═══════════════════════════════════════════════════════════
+        public class TrustedDevice
+        {
+            public string Fingerprint { get; set; } = "";
+            public string UserAgent { get; set; } = "";
+            public DateTime CreatedAt { get; set; }
+            public DateTime ExpiresAt { get; set; }
+        }
+
+        private static readonly ConcurrentDictionary<string, TrustedDevice> _trustedDevices = new();
+        private const int TrustedDeviceDays = 30;
+        private static readonly string _hmacSecret = LoadOrCreateHmacSecret();
+
+        public static string CreateTrustedDevice(string userAgent)
+        {
+            string fingerprint = ComputeDeviceFingerprint(userAgent);
+            var now = DateTime.UtcNow;
+
+            _trustedDevices[fingerprint] = new TrustedDevice
+            {
+                Fingerprint = fingerprint,
+                UserAgent   = userAgent ?? "",
+                CreatedAt   = now,
+                ExpiresAt   = now.AddDays(TrustedDeviceDays)
+            };
+
+            CoreLog.Info($"[TRUSTED] Nouvel appareil de confiance enregistré (expire dans {TrustedDeviceDays}j)");
+            return fingerprint;
+        }
+
+        public static bool IsTrustedDevice(string? fingerprint)
+        {
+            if (string.IsNullOrWhiteSpace(fingerprint)) return false;
+
+            if (!_trustedDevices.TryGetValue(fingerprint, out var device)) return false;
+
+            if (device.ExpiresAt < DateTime.UtcNow)
+            {
+                _trustedDevices.TryRemove(fingerprint, out _);
+                return false;
+            }
+            return true;
+        }
+
+        public static void RevokeTrustedDevice(string? fingerprint)
+        {
+            if (string.IsNullOrWhiteSpace(fingerprint)) return;
+
+            if (_trustedDevices.TryRemove(fingerprint, out var removed))
+                CoreLog.Info($"[TRUSTED] Appareil révoqué : {TruncateUA(removed.UserAgent)}");
+        }
+
+        public static void RevokeAllTrustedDevices()
+        {
+            int count = _trustedDevices.Count;
+            _trustedDevices.Clear();
+            CoreLog.Info($"[TRUSTED] {count} appareil(s) de confiance révoqué(s)");
+        }
+
+        public static int TrustedDeviceCount => _trustedDevices.Count;
+
+        public static List<TrustedDevice> GetAllTrustedDevices()
+        {
+            // Purge les expirés avant de renvoyer
+            var now = DateTime.UtcNow;
+            var expired = _trustedDevices.Where(kv => kv.Value.ExpiresAt < now)
+                                         .Select(kv => kv.Key)
+                                         .ToList();
+            foreach (var key in expired)
+                _trustedDevices.TryRemove(key, out _);
+
+            return _trustedDevices.Values
+                .OrderByDescending(d => d.CreatedAt)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Sérialise la liste des appareils de confiance en JSON (pour IPC).
+        /// </summary>
+        public static string GetTrustedDevicesJson()
+        {
+            var devices = GetAllTrustedDevices().Select(d => new
+            {
+                fingerprint = d.Fingerprint,
+                userAgent   = d.UserAgent,
+                createdAt   = d.CreatedAt,
+                expiresAt   = d.ExpiresAt
+            }).ToList();
+
+            return System.Text.Json.JsonSerializer.Serialize(devices,
+                new System.Text.Json.JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                });
+        }
+
+        private static string TruncateUA(string? ua)
+        {
+            if (string.IsNullOrEmpty(ua)) return "(unknown)";
+            return ua.Length <= 60 ? ua : ua.Substring(0, 57) + "…";
+        }
 
         public static string Create(int minutes)
         {
@@ -35,6 +142,48 @@ namespace NetMonitor.Service.Web
         {
             if (!string.IsNullOrWhiteSpace(token))
                 _sessions.TryRemove(token, out _);
+        }
+
+        // ═══════════════════════════════════════════════════════════
+        //  Helpers HMAC (signature des empreintes d'appareil)
+        // ═══════════════════════════════════════════════════════════
+
+        private static string ComputeDeviceFingerprint(string userAgent)
+        {
+            string raw = (userAgent ?? "") + "|" + _hmacSecret;
+            byte[] hash = System.Security.Cryptography.SHA256.HashData(
+                System.Text.Encoding.UTF8.GetBytes(raw));
+            return Convert.ToHexString(hash).ToLowerInvariant().Substring(0, 32);
+        }
+
+        /// <summary>
+        /// Charge (ou crée) le sel HMAC utilisé pour signer les empreintes.
+        /// Persisté dans %CommonAppData%\MCEMonitor\NetMonitor\hmac_secret.key
+        /// </summary>
+        private static string LoadOrCreateHmacSecret()
+        {
+            try
+            {
+                string folder = System.IO.Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "NetMonitor");
+                string path = System.IO.Path.Combine(folder, "hmac_secret.key");
+
+                if (System.IO.File.Exists(path))
+                    return System.IO.File.ReadAllText(path).Trim();
+
+                System.IO.Directory.CreateDirectory(folder);
+                string secret = Convert.ToHexString(
+                    System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+                System.IO.File.WriteAllText(path, secret);
+                return secret;
+            }
+            catch
+            {
+                // Fallback : secret éphémère (les cookies ne survivront pas au redémarrage)
+                return Convert.ToHexString(
+                    System.Security.Cryptography.RandomNumberGenerator.GetBytes(32));
+            }
         }
     }
 }

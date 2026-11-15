@@ -479,6 +479,33 @@ namespace NetMonitor.UI
             
         public static async Task<bool> RestartComputerAsync()
             => IsOk(await SendCommand("restart-computer"));
+            
+        public static async Task<bool> RevokeTrustedDevicesAsync()
+            => IsOk(await SendCommand("revoke-trusted-devices"));            
+
+        public class TrustedDeviceDto
+        {
+            public string Fingerprint { get; set; } = "";
+            public string UserAgent   { get; set; } = "";
+            public DateTime CreatedAt { get; set; }
+            public DateTime ExpiresAt { get; set; }
+        }
+
+        public static async Task<List<TrustedDeviceDto>?> GetTrustedDevicesAsync()
+        {
+            string? json = await SendCommand("get-trusted-devices");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<TrustedDeviceDto>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+
+        public static async Task<bool> RevokeTrustedDeviceAsync(string fingerprint)
+            => IsOk(await SendCommand($"revoke-trusted-device {fingerprint}"));
 
         /// <summary>
         /// Encode un objet en JSON puis base64. Le résultat ne contient que

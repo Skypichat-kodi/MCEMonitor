@@ -163,6 +163,12 @@ namespace NetMonitor.Service.Web
                     form.TryGetValue("password", out var password);
                     form.TryGetValue("otp", out var otpCode);
                     form.TryGetValue("original", out var original);
+                    form.TryGetValue("remember", out var rememberStr);
+                    bool rememberDevice = rememberStr == "1";
+
+                    // Vérifie si l'appareil est déjà de confiance (cookie signé)
+                    string? trustedFingerprint = GetCookie(ctx, "netmon_trusted_device");
+                    bool isTrustedDevice = SessionStore.IsTrustedDevice(trustedFingerprint);                    
 
                     int step = int.TryParse(stepStr, out var s) ? s : 1;
                     CoreLog.Write($"[LOGIN] step={step}, otp={(otpCode == null ? "absent" : (otpCode == "" ? "vide" : "fourni"))}");
@@ -190,6 +196,16 @@ namespace NetMonitor.Service.Web
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
                         SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (OTP désactivé) pour {remoteIp}");
+                        RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
+                        return;
+                    }
+
+                    // 2c-bis. Appareil de confiance → bypass OTP
+                    if (isTrustedDevice)
+                    {
+                        string session = SessionStore.Create(_settings.OtpSessionMinutes);
+                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        CoreLog.Write($"[LOGIN] Session créée (appareil de confiance) pour {remoteIp}");
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
                     }
@@ -237,6 +253,16 @@ namespace NetMonitor.Service.Web
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
                         SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (OTP validé) pour {remoteIp}");
+
+                        // Si "Se souvenir de cet appareil" coché → pose le cookie de confiance
+                        if (rememberDevice)
+                        {
+                            string userAgent = ctx.Request.UserAgent ?? "";
+                            string fingerprint = SessionStore.CreateTrustedDevice(userAgent);
+                            SetCookie(ctx, "netmon_trusted_device", fingerprint, 30 * 24 * 3600);
+                            CoreLog.Info($"[LOGIN] Appareil mémorisé 30 jours pour {remoteIp}");
+                        }
+
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
                     }
