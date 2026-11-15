@@ -39,6 +39,7 @@ namespace MCEMonitorClient.Config
         private Label _lblStatus = null!;
         private PictureBox _icoService = null!;
         private PictureBox _icoTray = null!;
+        private Label _lblVersion = null!;
 
         // Icônes d'état
         private Image? _imgOk;
@@ -113,7 +114,17 @@ namespace MCEMonitorClient.Config
         // ---------------------------------------------
         private void InitializeUI()
         {
-            Text = LanguageManager.Get("MCEMonitorClient - Configuration") ?? "MCEMonitorClient - Configuration";
+            string versionForTitle = System.Reflection.Assembly
+                .GetExecutingAssembly()
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion ?? "";
+            int plusIdxTitle = versionForTitle.IndexOf('+');
+            string shortVersion = plusIdxTitle >= 0
+                ? versionForTitle.Substring(0, plusIdxTitle)
+                : versionForTitle;
+
+            Text = (LanguageManager.Get("MCEMonitorClient - Configuration") ?? "MCEMonitorClient - Configuration")
+                   + (string.IsNullOrEmpty(shortVersion) ? "" : $"  (v{shortVersion})");
             Size = new Size(900, 680);
             StartPosition = FormStartPosition.CenterScreen;
 
@@ -372,6 +383,33 @@ namespace MCEMonitorClient.Config
                 Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right
             };
             Controls.Add(_lblStatus);
+
+            // --- Version Git (haut droite) ---
+            string version = System.Reflection.Assembly
+                .GetExecutingAssembly()
+                .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()
+                ?.InformationalVersion ?? "";
+
+            // Affichage court : on retire le "+sha"
+            int plusIdx = version.IndexOf('+');
+            string displayVersion = plusIdx >= 0 ? version.Substring(0, plusIdx) : version;
+
+            _lblVersion = new Label
+            {
+                Text = $"v{displayVersion}",
+                Location = new Point(ClientSize.Width - 220, 15),
+                Width = 200,
+                Height = 22,
+                TextAlign = ContentAlignment.MiddleRight,
+                ForeColor = Theme.TextGray,
+                Font = new Font(Theme.FontFamily, 8F, FontStyle.Regular),
+                Anchor = AnchorStyles.Top | AnchorStyles.Right
+            };
+
+            var tipVersion = new ToolTip();
+            tipVersion.SetToolTip(_lblVersion, version);
+
+            Controls.Add(_lblVersion);
             
             // --- Bandeau d'avertissement batterie (masqué par défaut) ---
             _powerBanner = new Panel
