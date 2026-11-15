@@ -125,7 +125,7 @@ namespace MCEMonitorClient.Config
                 : versionForTitle;
 
             Text = (LanguageManager.Get("MCEMonitorClient - Configuration") ?? "MCEMonitorClient - Configuration")
-                   + (string.IsNullOrEmpty(shortVersion) ? "" : $"  (v{shortVersion})");
+                   + (string.IsNullOrEmpty(shortVersion) ? "" : $"  {shortVersion}");
             Size = new Size(900, 680);
             StartPosition = FormStartPosition.CenterScreen;
 
