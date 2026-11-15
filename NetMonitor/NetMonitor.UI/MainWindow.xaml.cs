@@ -2710,41 +2710,63 @@ namespace NetMonitor.UI
             {
                 grid.PreviewMouseLeftButtonDown += DataGrid_PreviewMouseLeftButtonDown;
                 grid.PreviewKeyDown             += DataGrid_PreviewKeyDown;
+
+                // ⚠ Ajoute un handler sur le ScrollViewer interne (fond du DataGrid)
+                grid.Loaded += (s, e) =>
+                {
+                    var scrollViewer = FindVisualChild<ScrollViewer>(grid);
+                    if (scrollViewer != null)
+                    {
+                        // Handler sur le fond du ScrollViewer (zone vide)
+                        scrollViewer.PreviewMouseLeftButtonDown += (sender, args) =>
+                        {
+                            var hit = args.OriginalSource as DependencyObject;
+                            bool isOnRow = false;
+                            while (hit != null && hit != scrollViewer)
+                            {
+                                if (hit is DataGridRow)
+                                {
+                                    isOnRow = true;
+                                    break;
+                                }
+                                hit = VisualTreeHelper.GetParent(hit);
+                            }
+
+                            if (!isOnRow)
+                            {
+                                grid.SelectedItem = null;
+                                grid.CurrentCell = default;
+                                grid.UnselectAll();
+                            }
+                        };
+                    }
+                };
             }
         }
-
         private void DataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not DataGrid grid) return;
 
-            // Position du clic relative au DataGrid
+            // Si le clic est sur une ligne OU une cellule → ne rien faire
             var hit = e.OriginalSource as DependencyObject;
-            bool isOnRow = false;
+            bool isOnRowOrCell = false;
 
             while (hit != null && hit != grid)
             {
-                if (hit is DataGridRow)
+                if (hit is DataGridRow || hit is DataGridCell)
                 {
-                    isOnRow = true;
+                    isOnRowOrCell = true;
                     break;
                 }
-                // Si on remonte et qu'on n'a jamais trouvé de DataGridRow → clic hors ligne
                 hit = VisualTreeHelper.GetParent(hit);
             }
 
-            if (!isOnRow)
+            if (!isOnRowOrCell)
             {
-                // Désélection complète
+                // Clic sur fond (zone vide, header, scrollviewer)
                 grid.SelectedItem = null;
                 grid.CurrentCell = default;
                 grid.UnselectAll();
-
-                // Retire le focus pour éviter que WPF ne re-sélectionne
-                if (grid.IsKeyboardFocusWithin)
-                {
-                    var parent = VisualTreeHelper.GetParent(grid) as UIElement;
-                    parent?.Focus();
-                }
             }
         }
 
