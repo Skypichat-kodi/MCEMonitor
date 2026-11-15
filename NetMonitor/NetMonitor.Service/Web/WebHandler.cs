@@ -262,7 +262,8 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var a in auditGrouped.Take(200))
                     {
-                        string sevClass = SeverityToCssClass(a.Severity.ToString());
+                        string sevClass  = a.IsKnownScanner ? "scanner" : SeverityToCssClass(a.Severity.ToString());
+                        string badgeText = a.IsKnownScanner ? "Scanner" : a.Severity.ToString();
 
                         string countClass = a.Count >= 10 ? "c10" :
                                             a.Count >= 5  ? "c5"  :
@@ -278,7 +279,7 @@ namespace NetMonitor.Service.Web
                             <td>{a.FirstSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{a.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
-                            <td><span class='badge {sevClass}'>{a.Severity}</span></td>
+                            <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td title='{WebUtility.HtmlEncode(a.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(a.Country, a.CountryCode))}</td>
