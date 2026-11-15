@@ -157,6 +157,7 @@ namespace NetMonitor.UI
 
             WireAllGridSorting();
             WireAllGridDoubleClick();
+            WireAllGridDeselect();
             InitializeAllFilters();
             WhitelistGrid.ItemsSource                   = _whitelistEntries;
             
@@ -2560,6 +2561,58 @@ namespace NetMonitor.UI
             // ConnectionsGrid : volontairement pas de double-clic
         }
 
+        // ------------------------------------------------------------
+        //  Désélection : clic sur zone vide + touche Échap
+        // ------------------------------------------------------------
+        private void WireAllGridDeselect()
+        {
+            var grids = new DataGrid[]
+            {
+                ActiveIntrusionsGrid, PendingProcessesGrid, BlockedIpsGrid,
+                AlertsHistoryGrid, AuditGrid, BlockedRetriesGrid,
+                ConnectionsGrid, WhitelistGrid
+            };
+
+            foreach (var grid in grids)
+            {
+                grid.PreviewMouseLeftButtonDown += DataGrid_PreviewMouseLeftButtonDown;
+                grid.PreviewKeyDown             += DataGrid_PreviewKeyDown;
+            }
+        }
+
+        private void DataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not DataGrid grid) return;
+
+            // Remonte la chaîne visuelle pour voir si on est sur une DataGridRow
+            var hit = e.OriginalSource as DependencyObject;
+            while (hit != null && hit is not DataGridRow)
+            {
+                hit = VisualTreeHelper.GetParent(hit);
+            }
+
+            // Si pas de DataGridRow dans la chaîne → clic sur zone vide
+            // (en-tête, fond du DataGrid, ScrollViewer vide…)
+            if (hit == null)
+            {
+                grid.SelectedItem = null;
+                grid.CurrentCell  = default;   // évite un focus fantôme sur la dernière cellule
+            }
+        }
+
+        private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Escape && sender is DataGrid grid)
+            {
+                if (grid.SelectedItem != null)
+                {
+                    grid.SelectedItem = null;
+                    grid.CurrentCell  = default;
+                    e.Handled = true;
+                }
+            }
+        }
+
         private void GridDoubleClick(object sender, MouseButtonEventArgs e)
         {
             if (sender is not DataGrid grid) return;
@@ -2831,7 +2884,13 @@ namespace NetMonitor.UI
 
         private async void AddPatternFromBlockedIp_Click(object sender, RoutedEventArgs e)
         {
-            if (sender is not Button btn || btn.Tag is not BlockedIpRow row) return;
+            if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
 
             var picker = new PatternPickerWindow(row) { Owner = this };
             if (picker.ShowDialog() != true) return;
@@ -2849,7 +2908,6 @@ namespace NetMonitor.UI
                 return;
             }
 
-            // Recharge les données depuis le service pour voir l'étiquette mise à jour
             await RefreshSafe();
         }
 
