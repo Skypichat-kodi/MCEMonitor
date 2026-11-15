@@ -2710,64 +2710,25 @@ namespace NetMonitor.UI
             {
                 grid.PreviewMouseLeftButtonDown += DataGrid_PreviewMouseLeftButtonDown;
                 grid.PreviewKeyDown             += DataGrid_PreviewKeyDown;
-
-                // ⚠ Ajoute un handler sur le ScrollViewer interne (fond du DataGrid)
-                grid.Loaded += (s, e) =>
-                {
-                    var scrollViewer = FindVisualChild<ScrollViewer>(grid);
-                    if (scrollViewer != null)
-                    {
-                        // Handler sur le fond du ScrollViewer (zone vide)
-                        scrollViewer.PreviewMouseLeftButtonDown += (sender, args) =>
-                        {
-                            var hit = args.OriginalSource as DependencyObject;
-                            bool isOnRow = false;
-                            while (hit != null && hit != scrollViewer)
-                            {
-                                if (hit is DataGridRow)
-                                {
-                                    isOnRow = true;
-                                    break;
-                                }
-                                hit = VisualTreeHelper.GetParent(hit);
-                            }
-
-                            if (!isOnRow)
-                            {
-                                grid.SelectedItem = null;
-                                grid.CurrentCell = default;
-                                grid.UnselectAll();
-                            }
-                        };
-                    }
-                };
             }
         }
+        
         private void DataGrid_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (sender is not DataGrid grid) return;
 
-            // Si le clic est sur une ligne OU une cellule → ne rien faire
+            // Si le clic est sur une ligne → ne rien faire
             var hit = e.OriginalSource as DependencyObject;
-            bool isOnRowOrCell = false;
-
             while (hit != null && hit != grid)
             {
-                if (hit is DataGridRow || hit is DataGridCell)
-                {
-                    isOnRowOrCell = true;
-                    break;
-                }
+                if (hit is DataGridRow) return;   // ← clic sur une ligne → on sort
                 hit = VisualTreeHelper.GetParent(hit);
             }
 
-            if (!isOnRowOrCell)
-            {
-                // Clic sur fond (zone vide, header, scrollviewer)
-                grid.SelectedItem = null;
-                grid.CurrentCell = default;
-                grid.UnselectAll();
-            }
+            // Clic n'importe où ailleurs (header, fond, scrollviewer) → désélection
+            grid.SelectedItem = null;
+            grid.CurrentCell = default;
+            grid.UnselectAll();
         }
 
         private void DataGrid_PreviewKeyDown(object sender, KeyEventArgs e)
