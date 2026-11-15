@@ -57,7 +57,7 @@ namespace MCEMonitorClient.Config
 
             // Charge les icônes d'état (une seule fois)
             _imgOk = LoadStateIcon("check.png");
-            _imgKo = LoadStateIcon("none.png");
+            _imgKo = LoadStateIcon("false.png");
 
             _config = ServerConfigStore.Load();
 
