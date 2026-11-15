@@ -528,7 +528,214 @@
         text-align: center;
         font-weight: bold;
         font-size: 14px;
-}                                 
+    }
+    
+    /* ============================================================ */
+    /*  MODALES (Forcer sévérité + Créer règle)                     */
+    /* ============================================================ */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        backdrop-filter: blur(2px);
+    }
+    .modal-overlay.active {
+        display: flex;
+    }
+    .modal-window {
+        background: #1E1E1E;
+        border: 1px solid #3C3C3C;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        width: 460px;
+        max-width: 90vw;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.15s ease-out;
+    }
+    @keyframes modalSlideIn {
+        from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+        to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .modal-header {
+        padding: 16px 20px;
+        border-bottom: 1px solid #3C3C3C;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #4CC2FF;
+        margin: 0;
+    }
+    .modal-close {
+        background: transparent;
+        border: none;
+        color: #888;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0 4px;
+        line-height: 1;
+    }
+    .modal-close:hover { color: #FF6347; }
+    .modal-body {
+        padding: 20px;
+    }
+    .modal-body p.modal-subtitle {
+        font-size: 12px;
+        color: #888;
+        margin: 0 0 15px 0;
+        line-height: 1.4;
+    }
+    .modal-body p.modal-ip {
+        font-size: 14px;
+        font-weight: bold;
+        color: #4CC2FF;
+        margin: 0 0 12px 0;
+    }
+    .modal-footer {
+        padding: 14px 20px;
+        border-top: 1px solid #3C3C3C;
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+    }
+    .modal-btn {
+        padding: 8px 18px;
+        font-size: 13px;
+        border-radius: 4px;
+        border: 1px solid #3C3C3C;
+        cursor: pointer;
+        font-family: inherit;
+        transition: background 0.15s ease;
+    }
+    .modal-btn.cancel {
+        background: #2D2D30;
+        color: #E5E5E5;
+    }
+    .modal-btn.cancel:hover { background: #3A3A3D; }
+    .modal-btn.danger {
+        background: #CC3300;
+        color: white;
+        border-color: #FF6347;
+    }
+    .modal-btn.danger:hover { background: #E64D1A; }
+
+    /* ---- Grille de cartes de sévérité ---- */
+    .severity-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .severity-card {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 14px;
+        background: #252526;
+        border: 1px solid #3C3C3C;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+    .severity-card:hover {
+        background: #2D2D30;
+        border-color: #4CC2FF;
+        transform: translateX(2px);
+    }
+    .severity-card .color-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 4px;
+        flex-shrink: 0;
+    }
+    .severity-card .sev-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: #E5E5E5;
+        min-width: 100px;
+    }
+    .severity-card .sev-desc {
+        font-size: 11px;
+        color: #888;
+        opacity: 0.9;
+    }
+    .severity-card.auto {
+        border-color: #4CC2FF;
+        background: rgba(76, 194, 255, 0.08);
+        margin-top: 8px;
+    }
+    .severity-card.auto:hover { background: rgba(76, 194, 255, 0.15); }
+
+    /* ---- Formulaire de règle ---- */
+    .form-group {
+        margin-bottom: 16px;
+    }
+    .form-label {
+        display: block;
+        font-size: 12px;
+        color: #B4B4B4;
+        margin-bottom: 6px;
+        font-weight: 500;
+    }
+    .form-radio-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+    .form-radio {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        background: #252526;
+        border: 1px solid #3C3C3C;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        color: #E5E5E5;
+    }
+    .form-radio:hover { background: #2D2D30; border-color: #4CC2FF; }
+    .form-radio input[type="radio"] { accent-color: #4CC2FF; cursor: pointer; }
+    .form-radio:has(input:checked) {
+        background: rgba(76, 194, 255, 0.1);
+        border-color: #4CC2FF;
+    }
+    .form-preview {
+        background: #1A1A1A;
+        border: 1px solid #3C3C3C;
+        border-radius: 5px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+    }
+    .form-preview .preview-label {
+        font-size: 11px;
+        color: #888;
+        margin-bottom: 4px;
+    }
+    .form-preview .preview-value {
+        font-size: 13px;
+        font-weight: bold;
+        color: #E5E5E5;
+        word-break: break-all;
+    }
+    .form-warning {
+        background: #3A1A1A;
+        border: 1px solid #FF6347;
+        border-radius: 5px;
+        padding: 10px 14px;
+        margin-bottom: 16px;
+        font-size: 12px;
+        color: #E5E5E5;
+        line-height: 1.4;
+    }
+    .form-warning strong { color: #FF6347; }                                     
 </style>
 
 </head>
@@ -650,6 +857,12 @@
     <button type="button" id="btnUnblockIp" class="action-btn secondary">
         🔓 {{tr:Débloquer l'IP sélectionnée}}
     </button>
+    <button type="button" id="btnChangeSeverityBlocked" class="action-btn" style="background:#007ACC">
+        ⚙ {{tr:Forcer la sévérité}}
+    </button>
+    <button type="button" id="btnAddPatternBlocked" class="action-btn" style="background:#CC3300">
+        🏷️ {{tr:Créer une règle (futur)}}
+    </button>
 </div>
 <div class="table-wrapper theme-danger">
     <table>
@@ -684,6 +897,12 @@
     <a href="#" id="btnClearRetries" class="action-btn danger">
         🗑 {{tr:Vider la liste}}
     </a>
+    <button type="button" id="btnChangeSeverityRetries" class="action-btn" style="background:#007ACC">
+        ⚙ {{tr:Forcer la sévérité}}
+    </button>
+    <button type="button" id="btnAddPatternRetries" class="action-btn" style="background:#CC3300">
+        🏷️ {{tr:Créer une règle (futur)}}
+    </button>
 </div>
 <div class="table-wrapper theme-info">
     <table>
@@ -1022,6 +1241,30 @@ document.getElementById('btnWhitelistProcess').addEventListener('click', whiteli
 document.getElementById('btnBlockIp').addEventListener('click', blockSelectedIp);
 document.getElementById('btnUnblockIp').addEventListener('click', unblockSelectedIp);
 document.getElementById('btnDismissProcess').addEventListener('click', dismissSelectedProcess);
+// ── Nouveaux boutons globaux ──
+document.getElementById('btnChangeSeverityBlocked').addEventListener('click', function() {
+    var r = document.querySelector('input[name="blocked-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    openSeverityPicker(r.value);
+});
+
+document.getElementById('btnAddPatternBlocked').addEventListener('click', function() {
+    var r = document.querySelector('input[name="blocked-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    openPatternPicker(r.value);
+});
+
+document.getElementById('btnChangeSeverityRetries').addEventListener('click', function() {
+    var r = document.querySelector('input[name="retry-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    openSeverityPicker(r.value);
+});
+
+document.getElementById('btnAddPatternRetries').addEventListener('click', function() {
+    var r = document.querySelector('input[name="retry-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    openPatternPicker(r.value);
+});
 </script>
 
 <script>
@@ -1234,5 +1477,319 @@ document.getElementById('btnDismissProcess').addEventListener('click', dismissSe
     });
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MODALE : Forcer la sévérité                                 -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalSeverity">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3 class="modal-title">⚙ Forcer la sévérité (cette IP uniquement)</h3>
+            <button type="button" class="modal-close" onclick="closeModal('modalSeverity')">✖</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-ip" id="severityModalIp">IP : ...</p>
+            <p class="modal-subtitle">
+                Cette action modifie uniquement cette IP (override manuel).
+                Pour créer une règle globale, utilisez le bouton 🏷️.
+            </p>
+            <div class="severity-grid" id="severityGrid">
+                <!-- Rempli dynamiquement en JS -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalSeverity')">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!--  MODALE : Créer une règle de classification                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modalPattern">
+    <div class="modal-window" style="width: 500px;">
+        <div class="modal-header">
+            <h3 class="modal-title">🏷️ Créer une règle de classification (futur)</h3>
+            <button type="button" class="modal-close" onclick="closeModal('modalPattern')">✖</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-ip" id="patternModalIp">IP : ...</p>
+
+            <div class="form-group">
+                <label class="form-label">Sur quelle valeur doit se baser la règle ?</label>
+                <div class="form-radio-group" id="patternValueGroup">
+                    <label class="form-radio"><input type="radio" name="patVal" value="isp"> ISP (Fournisseur d'accès) <span class="sev-desc" id="patValIsp"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="org"> Organisation <span class="sev-desc" id="patValOrg"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="reversedns"> Reverse DNS <span class="sev-desc" id="patValRdns"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="ip"> IP complète (exacte) <span class="sev-desc" id="patValIp"></span></label>
+                </div>
+            </div>
+
+            <div class="form-preview">
+                <div class="preview-label">Valeur qui sera ajoutée :</div>
+                <div class="preview-value" id="patternPreviewValue">—</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">À quelle liste doit appartenir cette FUTURE règle ?</label>
+                <div class="form-radio-group">
+                    <label class="form-radio"><input type="radio" name="patList" value="safe" checked>
+                        <span style="width:14px;height:14px;background:#6CCB5F;border-radius:3px;display:inline-block"></span>
+                        Créer une règle Safe
+                        <span class="sev-desc">— Légitime connu</span>
+                    </label>
+                    <label class="form-radio"><input type="radio" name="patList" value="critical">
+                        <span style="width:14px;height:14px;background:#B71C1C;border-radius:3px;display:inline-block"></span>
+                        Créer une règle Critical
+                        <span class="sev-desc">— Malveillant avéré</span>
+                    </label>
+                    <label class="form-radio"><input type="radio" name="patList" value="scanner">
+                        <span style="width:14px;height:14px;background:#FDD835;border-radius:3px;display:inline-block"></span>
+                        Créer une règle Scanner
+                        <span class="sev-desc">— Scanner de recherche</span>
+                    </label>
+                    <label class="form-radio"><input type="radio" name="patList" value="crawler">
+                        <span style="width:14px;height:14px;background:#1E88E5;border-radius:3px;display:inline-block"></span>
+                        Créer une règle Crawler
+                        <span class="sev-desc">— Robot d'exploration</span>
+                    </label>
+                    <label class="form-radio"><input type="radio" name="patList" value="whitelist">
+                        <span style="width:14px;height:14px;background:#FFFFFF;border:1px solid #999;border-radius:3px;display:inline-block"></span>
+                        Créer une règle Whitelist
+                        <span class="sev-desc">— Ma whitelist</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-warning">
+                <strong>⚠️ Attention : action sur le FUTUR</strong><br>
+                Ceci ne modifie <b>pas</b> la sévérité actuelle de cette IP.
+                Cela ajoute une règle globale pour les futures détections.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalPattern')">✖ Annuler</button>
+            <button type="button" class="modal-btn danger" onclick="submitPattern()">Créer la règle</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+//  Gestion générique des modales
+// ============================================================
+function openModal(id) {
+    document.getElementById(id).classList.add('active');
+}
+function closeModal(id) {
+    document.getElementById(id).classList.remove('active');
+}
+// Fermer avec ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
+            m.classList.remove('active');
+        });
+    }
+});
+// Fermer en cliquant sur le fond
+document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) overlay.classList.remove('active');
+    });
+});
+
+// ============================================================
+//  Données des IPs (chargées depuis le HTML au démarrage)
+//  Pour éviter un appel API supplémentaire, on lit les infos
+//  directement depuis la ligne du tableau (data-attributes)
+// ============================================================
+function getIpData(ip) {
+    // On cherche la ligne du tableau qui contient cette IP
+    var rows = document.querySelectorAll('tbody tr');
+    for (var i = 0; i < rows.length; i++) {
+        var radio = rows[i].querySelector('input[type=radio]');
+        if (radio && radio.value === ip) {
+            // Récupère les infos depuis la ligne (colonnes)
+            // La structure varie selon le tableau, mais on peut extraire
+            // les valeurs via les cellules
+            return {
+                ip: ip,
+                isp: rows[i].dataset.isp || '',
+                org: rows[i].dataset.org || '',
+                rdn: rows[i].dataset.rdns || ''
+            };
+        }
+    }
+    return { ip: ip, isp: '', org: '', rdn: '' };
+}
+
+// ============================================================
+//  POPUP SÉVÉRITÉ
+// ============================================================
+var SEVERITY_OPTIONS = [
+    { name: 'Critical',    color: '#FF6347', desc: 'Danger immédiat' },
+    { name: 'Warning',     color: '#FFB900', desc: 'À vérifier' },
+    { name: 'ToCheck',     color: '#E91E63', desc: 'En attente de vérification' },
+    { name: 'Crawler',     color: '#1E88E5', desc: "Robot d'exploration" },
+    { name: 'Bot',         color: '#5BC0EB', desc: 'Robot officiel (Googlebot...)' },
+    { name: 'Safe',        color: '#6CCB5F', desc: 'Légitime connu' },
+    { name: 'Trusted',     color: '#FDD835', desc: 'Scanner de recherche' },
+    { name: 'Whitelisted', color: '#2E7D32', desc: 'Ma whitelist' }
+];
+
+function openSeverityPicker(ip) {
+    var data = getIpData(ip);
+    document.getElementById('severityModalIp').textContent = 'IP : ' + ip;
+
+    var grid = document.getElementById('severityGrid');
+    grid.innerHTML = '';
+
+    SEVERITY_OPTIONS.forEach(function(opt) {
+        var card = document.createElement('div');
+        card.className = 'severity-card';
+        card.innerHTML = '<div class="color-dot" style="background:' + opt.color + '"></div>' +
+                         '<div class="sev-name">' + opt.name + '</div>' +
+                         '<div class="sev-desc">— ' + opt.desc + '</div>';
+        card.onclick = function() {
+            applySeverity(ip, opt.name);
+        };
+        grid.appendChild(card);
+    });
+
+    // Carte "Auto" en bas
+    var auto = document.createElement('div');
+    auto.className = 'severity-card auto';
+    auto.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 Revenir à l\'évaluation automatique</div>';
+    auto.onclick = function() {
+        applySeverity(ip, 'auto');
+    };
+    grid.appendChild(auto);
+
+    openModal('modalSeverity');
+}
+
+async function applySeverity(ip, severity) {
+    try {
+        var res = await fetch('/set-severity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'ip=' + encodeURIComponent(ip) + '&severity=' + encodeURIComponent(severity)
+        });
+
+        if (res.ok) {
+            closeModal('modalSeverity');
+            sessionStorage.removeItem('sel-blocked-sel');
+            sessionStorage.removeItem('sel-retry-sel');
+            location.reload();
+        } else {
+            alert('Erreur : le service a refusé la modification.');
+        }
+    } catch (e) {
+        alert('Erreur de communication avec le service : ' + e.message);
+    }
+}
+
+// ============================================================
+//  POPUP RÈGLE
+// ============================================================
+var _currentPatternIp = null;
+
+function openPatternPicker(ip) {
+    _currentPatternIp = ip;
+    var data = getIpData(ip);
+
+    document.getElementById('patternModalIp').textContent = 'IP : ' + ip;
+    document.getElementById('patValIsp').textContent = data.isp ? '(' + data.isp + ')' : '(vide)';
+    document.getElementById('patValOrg').textContent = data.org ? '(' + data.org + ')' : '(vide)';
+    document.getElementById('patValRdns').textContent = data.rdn ? '(' + data.rdn + ')' : '(vide)';
+    document.getElementById('patValIp').textContent = '(' + ip + ')';
+
+    // Reset des radios
+    var valRadio = document.querySelector('input[name="patVal"][value="isp"]');
+    if (data.isp) valRadio.checked = true;
+    else if (data.org) document.querySelector('input[name="patVal"][value="org"]').checked = true;
+    else if (data.rdn) document.querySelector('input[name="patVal"][value="reversedns"]').checked = true;
+    else document.querySelector('input[name="patVal"][value="ip"]').checked = true;
+
+    document.querySelector('input[name="patList"][value="safe"]').checked = true;
+
+    updatePatternPreview();
+    openModal('modalPattern');
+}
+
+function updatePatternPreview() {
+    var valRadio = document.querySelector('input[name="patVal"]:checked');
+    if (!valRadio) return;
+
+    var data = getIpData(_currentPatternIp);
+    var value = '';
+    switch (valRadio.value) {
+        case 'isp':         value = data.isp; break;
+        case 'org':         value = data.org; break;
+        case 'reversedns':  value = data.rdn; break;
+        case 'ip':          value = _currentPatternIp; break;
+    }
+
+    var preview = document.getElementById('patternPreviewValue');
+    if (value) {
+        preview.textContent = value;
+        preview.style.color = '#E5E5E5';
+    } else {
+        preview.textContent = '— (valeur vide pour cette IP)';
+        preview.style.color = '#FF6347';
+    }
+}
+
+// Écouter les changements de radio pour mettre à jour l'aperçu
+document.addEventListener('change', function(e) {
+    if (e.target.name === 'patVal') updatePatternPreview();
+});
+
+async function submitPattern() {
+    var valRadio = document.querySelector('input[name="patVal"]:checked');
+    var listRadio = document.querySelector('input[name="patList"]:checked');
+    if (!valRadio || !listRadio) {
+        alert('Sélectionnez une valeur et une liste.');
+        return;
+    }
+
+    var data = getIpData(_currentPatternIp);
+    var value = '';
+    switch (valRadio.value) {
+        case 'isp':         value = data.isp; break;
+        case 'org':         value = data.org; break;
+        case 'reversedns':  value = data.rdn; break;
+        case 'ip':          value = _currentPatternIp; break;
+    }
+
+    if (!value) {
+        alert('La valeur sélectionnée est vide pour cette IP.');
+        return;
+    }
+
+    try {
+        // On utilise l'API existante /add-pattern
+        var res = await fetch('/add-pattern', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'list=' + encodeURIComponent(listRadio.value) +
+                  '&value=' + encodeURIComponent(value)
+        });
+
+        if (res.ok) {
+            closeModal('modalPattern');
+            sessionStorage.removeItem('sel-blocked-sel');
+            sessionStorage.removeItem('sel-retry-sel');
+            location.reload();
+        } else {
+            alert('Erreur : le service a refusé la création de la règle.');
+        }
+    } catch (e) {
+        alert('Erreur de communication avec le service : ' + e.message);
+    }
+}
+</script>
+
 </body>
 </html>

@@ -193,7 +193,7 @@ namespace NetMonitor.Service.Web
                             : "";
 
                         // ⚠ 2. Append APRÈS les déclarations
-                        blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"">
+                            blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"" data-isp='{WebUtility.HtmlEncode(b.Isp ?? "")}' data-org='{WebUtility.HtmlEncode(b.Org ?? "")}' data-rdns='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}'>
                             {BuildTrafficCell(b.IsOutbound)}
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
@@ -321,13 +321,10 @@ namespace NetMonitor.Service.Web
                         string rDns    = string.IsNullOrWhiteSpace(info?.ReverseDns) ? "-" : info.ReverseDns!;                     
 
                         string sevClass  = SeverityToCssClass(sev);
-                        string sevButton = $"<button type='button' class='severity-btn' " +
-                                           $"onclick=\"event.stopPropagation(); changeSeverity('{ipEnc}', " +
-                                           $"'{WebUtility.HtmlEncode(sev)}', false)\" " +
-                                           $"title='Changer la sévérité'>⚙&#xFE0E;</button>";
 
-                        blockedRetriesRows.Append($@"<tr>
+                        blockedRetriesRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'retry-sel')"" data-isp='{WebUtility.HtmlEncode(isp)}' data-org='{WebUtility.HtmlEncode(org)}' data-rdns='{WebUtility.HtmlEncode(rDns)}'>
                             {BuildTrafficCell(info?.IsOutbound ?? false)}
+                            <td style='width:30px;text-align:center'><input type='radio' name='retry-sel' value='{ipEnc}'></td>
                             <td class='count-cell'><span class='count-badge blue {countClass}' title='{r.RetryCount} tentatives'>{r.RetryCount}</span></td>
                             <td><b>{ipEnc}</b></td>
                             <td>{WebUtility.HtmlEncode(country)}</td>
@@ -335,7 +332,7 @@ namespace NetMonitor.Service.Web
                             <td>{WebUtility.HtmlEncode(org)}</td>
                             <td title='{WebUtility.HtmlEncode(info?.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(rDns, 40))}</td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
-                            <td class='text-center'><span class='badge {sevClass}'>{sev}</span>{sevButton}</td>
+                            <td class='text-center'><span class='badge {sevClass}'>{sev}</span></td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
@@ -345,7 +342,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    blockedRetriesRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
+                    blockedRetriesRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 
                 // --- Modèle ---
