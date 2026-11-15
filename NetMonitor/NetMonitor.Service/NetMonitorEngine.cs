@@ -923,6 +923,114 @@ namespace NetMonitor.Service
             }
         }
 
+        // ═══════════════════════════════════════════════════════════════════════
+        //  Réévaluation globale (migration v3)
+        //  Corrige les IPs dégradées en Warning par l'ancienne migration v2.
+        // ═══════════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// Retourne la sévérité de base d'un détecteur donné.
+        /// Utilisé pour réévaluer correctement une IP bloquée.
+        ///
+        /// Pour Blacklist : refait la vraie vérification (l'IP peut avoir été
+        /// retirée de la liste entre-temps) → Critical si toujours présente.
+        ///
+        /// Pour les autres : utilise la sévérité typique du détecteur.
+        /// Limite connue : UntrustedProcess peut renvoyer Warning OU High selon
+        /// le cas, impossible de le savoir a posteriori sans stocker la valeur
+        /// exacte au moment du blocage.
+        /// </summary>
+        private Severity GetBaseSeverityForDetector(string? source, string? ip)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+                return Severity.Warning;
+
+            // Blacklist : le détecteur a jugé l'IP dangereuse au moment du blocage.
+            // Même si elle est retirée plus tard de la liste IPsum, elle reste un
+            // risque historique. On retourne Critical par défaut.
+            // (On NE vérifie PAS _threatIntel.IsBlacklisted car il n'est pas encore
+            // chargé au moment de la migration au démarrage.)
+            if (source.Equals("Blacklist", StringComparison.OrdinalIgnoreCase))
+                return Severity.Critical;
+
+            // Détecteurs à sévérité fixe
+            return source switch
+            {
+                "PortScan"           => Severity.High,
+                "SynFlood"           => Severity.High,
+                "IcmpFlood"          => Severity.High,
+                "Beaconing"          => Severity.High,
+                "SuspiciousOutbound" => Severity.High,
+                "DnsSpoof"           => Severity.Warning,
+                "UntrustedProcess"   => Severity.Warning,   // approximation
+                _                    => Severity.Warning
+            };
+        }
+
+        /// <summary>
+        /// Réévalue la sévérité de TOUTES les IPs bloquées (hors processus)
+        /// en utilisant la sévérité de base du détecteur au lieu de tomber
+        /// sur Warning par défaut.
+        ///
+        /// Appelée :
+        ///  - Au démarrage (migration SeverityVersion < 3)
+        ///  - Optionnellement via IPC (à venir)
+        ///
+        /// ⚠ Ne touche PAS aux IPs avec un override manuel (ManualSeverity.HasValue).
+        /// </summary>
+        public int ReevaluateAllBlockedIps()
+        {
+            int updated = 0;
+            int skipped = 0;
+
+            lock (_alertsLock)
+            {
+                foreach (var b in _blockedIps)
+                {
+                    if (b.IsProcess) continue;
+
+                    if (b.ManualSeverity.HasValue)
+                    {
+                        skipped++;
+                        continue;
+                    }
+
+                    var baseSeverity = GetBaseSeverityForDetector(b.Source, b.Ip);
+
+                    var newSeverity = SeverityScorer.Evaluate(
+                        b.Ip,
+                        b.ReverseDns,
+                        b.Isp,
+                        b.Org,
+                        b.Source,
+                        baseSeverity,
+                        _settings,
+                        _googleRanges);
+
+                    string newStr = newSeverity.ToString();
+                    if (b.Severity != newStr)
+                    {
+                        CoreLog.Info($"[REEVALUATE] {b.Ip} : '{b.Severity}' → '{newStr}' " +
+                                     $"(détecteur='{b.Source}', base='{baseSeverity}')");
+                        b.Severity = newStr;
+                        updated++;
+                    }
+                }
+            }
+
+            if (updated > 0)
+            {
+                SaveBlockedIps();
+                CoreLog.Info($"[REEVALUATE] Terminé : {updated} IP(s) réévaluée(s), {skipped} ignorée(s) (override manuel)");
+            }
+            else
+            {
+                CoreLog.Info($"[REEVALUATE] Aucune IP à corriger ({skipped} override(s) manuel(s) préservé(s))");
+            }
+
+            return updated;
+        }
+
         /// <summary>
         /// Force manuellement la sévérité d'une IP bloquée, ou l'efface
         /// pour revenir à l'évaluation automatique via SeverityScorer.
@@ -1263,49 +1371,27 @@ namespace NetMonitor.Service
                 CoreLog.Info($"Sync pare-feu au démarrage : {(syncOk ? "OK" : "ÉCHEC")}");
 
                 // ============================================================
-                //  Migration one-shot de la sévérité (D6)
-                //  Ré-évalue toutes les IPs bloquées sans override manuel.
+                //  Migration one-shot de la sévérité (v3)
+                //
+                //  Corrige les IPs dégradées en Warning par l'ancienne
+                //  migration v2 (qui utilisait b.Severity en base, laquelle
+                //  avait déjà été dégradée à Warning → cercle vicieux).
+                //
+                //  v3 utilise GetBaseSeverityForDetector() qui donne la vraie
+                //  sévérité selon le détecteur d'origine (Blacklist = Critical,
+                //  PortScan = High, etc.), avec relance réelle de la vérification
+                //  Blacklist pour les IPs qui en viennent.
                 // ============================================================
-                if (_settings.SeverityVersion < 2)
+                if (_settings.SeverityVersion < 4)
                 {
-                    CoreLog.Info($"[MIGRATION] Passage de SeverityVersion {_settings.SeverityVersion} → 2");
-                    int migrated = 0;
-                    int skipped = 0;
+                    CoreLog.Info($"[MIGRATION] SeverityVersion {_settings.SeverityVersion} → 4 (fix Blacklist = Critical)");
 
-                    lock (_alertsLock)
-                    {
-                        foreach (var b in _blockedIps)
-                        {
-                            if (b.IsProcess) continue;              // pas de GeoIP pour les processus
-                            if (b.ManualSeverity.HasValue)          // override manuel → ne pas toucher
-                            {
-                                skipped++;
-                                continue;
-                            }
+                    int reevaluated = ReevaluateAllBlockedIps();
 
-                            var newSev = SeverityScorer.Evaluate(
-                                b.Ip,
-                                b.ReverseDns,
-                                b.Isp,
-                                b.Org,
-                                b.Source,
-                                Enum.TryParse<Severity>(b.Severity, out var sev) ? sev : Severity.Warning, // <-- NOUVEAU
-                                _settings);
-
-                            string newSevStr = newSev.ToString();
-                            if (b.Severity != newSevStr)
-                            {
-                                b.Severity = newSevStr;
-                                migrated++;
-                            }
-                        }
-                    }
-
-                    _settings.SeverityVersion = 2;
+                    _settings.SeverityVersion = 4;
                     _settings.Save();
-                    SaveBlockedIps();
 
-                    CoreLog.Info($"[MIGRATION] {migrated} IP(s) mise(s) à jour, {skipped} ignorée(s) (override manuel)");
+                    CoreLog.Info($"[MIGRATION] {reevaluated} IP(s) corrigée(s) — passage en v4 terminé");
                 }
                                 
                 // ============================================================
