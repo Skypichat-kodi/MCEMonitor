@@ -912,6 +912,15 @@ namespace NetMonitor.Service
                 if (isKnownScanner && !entry.IsKnownScanner)
                     entry.IsKnownScanner = true;
 
+                // ✅ AJOUT : calcul de l'origine dès qu'on a le GeoIP
+                var _ = SeverityScorer.Evaluate(
+                    ip, geo.ReverseDns, geo.Isp, geo.Org,
+                    entry.Source,
+                    Enum.TryParse<Severity>(entry.Severity, out var curSev) ? curSev : Severity.Warning,
+                    _settings, _googleRanges, _msRanges, _threatIntel,
+                    out var computedOrigin);
+                entry.Origin = computedOrigin;
+
                 updated = true;
             }
 
@@ -1005,14 +1014,20 @@ namespace NetMonitor.Service
                         b.Source,
                         baseSeverity,
                         _settings,
-                        _googleRanges);
+                        _googleRanges,
+                        _msRanges,          
+                        _threatIntel,       
+                        out var newOrigin); 
 
                     string newStr = newSeverity.ToString();
-                    if (b.Severity != newStr)
+                    bool originChanged = b.Origin != newOrigin;
+                    if (b.Severity != newStr || originChanged)
                     {
-                        CoreLog.Info($"[REEVALUATE] {b.Ip} : '{b.Severity}' → '{newStr}' " +
+                        CoreLog.Info($"[REEVALUATE] {b.Ip} : '{b.Severity}' → '{newStr}', " +
+                                     $"origin '{b.Origin}' → '{newOrigin}' " +
                                      $"(détecteur='{b.Source}', base='{baseSeverity}')");
                         b.Severity = newStr;
+                        b.Origin = newOrigin;   
                         updated++;
                     }
                 }
@@ -1060,9 +1075,6 @@ namespace NetMonitor.Service
                 }
                 else
                 {
-                    // Retour à l'auto → ré-évalue avec la VRAIE sévérité du détecteur
-                    // (Blacklist = Critical, PortScan = High, etc.) au lieu de tomber
-                    // sur Warning par défaut.
                     var baseSeverity = GetBaseSeverityForDetector(entry.Source, entry.Ip);
 
                     var autoSev = SeverityScorer.Evaluate(
@@ -1073,8 +1085,12 @@ namespace NetMonitor.Service
                         entry.Source,
                         baseSeverity,
                         _settings,
-                        _googleRanges);
+                        _googleRanges,
+                        _msRanges,          
+                        _threatIntel,       
+                        out var autoOrigin); 
                     entry.Severity = autoSev.ToString();
+                    entry.Origin = autoOrigin;  
                 }
             }
 
@@ -1089,6 +1105,58 @@ namespace NetMonitor.Service
                 $"Severity='{entryAfter?.Severity}', " +
                 $"ManualSeverity='{entryAfter?.ManualSeverity?.ToString() ?? "null"}'");
 
+            return true;
+        }
+
+        /// <summary>
+        /// Force manuellement l'origine d'une IP bloquée, ou la recalcule automatiquement.
+        ///
+        /// ⚠ L'origine manuelle est PERDUE si l'IP est débloquée puis re-bloquée
+        /// (attribut du blocage, pas de l'IP).
+        /// </summary>
+        public bool SetBlockedIpOrigin(string ip, string origin)
+        {
+            if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(origin))
+                return false;
+
+            BlockedIpInfo? entry;
+            lock (_alertsLock)
+            {
+                entry = _blockedIps.FirstOrDefault(b =>
+                    !b.IsProcess && string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+
+                if (entry == null) return false;
+
+                if (string.Equals(origin, "auto", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Recalcul auto via SeverityScorer
+                    var geo = _geoIp?.TryGetCached(ip);
+                    SeverityScorer.Evaluate(
+                        ip,
+                        geo?.ReverseDns,
+                        geo?.Isp,
+                        geo?.Org,
+                        entry.Source,
+                        Enum.TryParse<Severity>(entry.Severity, out var s) ? s : Severity.Warning,
+                        _settings,
+                        _googleRanges,
+                        _msRanges,
+                        _threatIntel,
+                        out var computed);
+                    entry.Origin = computed;
+                }
+                else if (Enum.TryParse<IpOrigin>(origin, true, out var parsed))
+                {
+                    entry.Origin = parsed;
+                }
+                else
+                {
+                    return false;   // origine invalide
+                }
+            }
+
+            SaveBlockedIps();
+            CoreLog.Info($"[ORIGIN] IP {ip} → '{entry.Origin}' (demandé: {origin})");
             return true;
         }
 
@@ -1975,7 +2043,11 @@ namespace NetMonitor.Service
                 evt.Source,
                 evt.Severity,
                 _settings,
-                _googleRanges);
+                _googleRanges,
+                _msRanges,         
+                _threatIntel,    
+                out var origin);  
+            evt.Origin = origin;  
 
             // Marquer les scanners connus (sans les ignorer)
             if (_trustedScanners != null && !string.IsNullOrWhiteSpace(evt.RemoteIp))

@@ -20,5 +20,8 @@ public sealed class IntrusionEvent
     public string? Org          { get; set; }   
     public string? ReverseDns   { get; set; }   
     public bool IsKnownScanner  { get; set; }
-    public bool IsOutbound      { get; set; }  
+    public bool IsOutbound      { get; set; }
+
+    /// <summary>Origine de l'IP (Scanner / Crawler / Bot / Microsoft / Blacklist / Whitelist).</summary>
+    public IpOrigin Origin      { get; set; } = IpOrigin.Unknown;
 }

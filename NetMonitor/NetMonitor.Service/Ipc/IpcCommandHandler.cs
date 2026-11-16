@@ -67,6 +67,12 @@ namespace NetMonitor.Service.Ipc
                 return;
             }
 
+            if (command.StartsWith("set-blocked-ip-origin-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetBlockedIpOriginB64(command, server);
+                return;
+            }
+
             if (command.StartsWith("toggle-whitelist-entry-b64 ", StringComparison.OrdinalIgnoreCase))
             {
                 HandleToggleWhitelistEntryB64(command, server);
@@ -609,6 +615,7 @@ namespace NetMonitor.Service.Ipc
                     org             = a.Org,        
                     reverseDns      = a.ReverseDns,                    
                     isOutbound      = a.IsOutbound,
+                    origin          = a.Origin.ToString(),
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -631,7 +638,33 @@ namespace NetMonitor.Service.Ipc
             try
             {
                 var list = _engine.GetBlockedIps();
-                IpcResponse.Json(server, list);
+
+                // ⚠ Projection obligatoire : BlockedIpInfo.Origin est un enum.
+                // Sans projection, System.Text.Json le sérialise en entier,
+                // ce qui casse la désérialisation côté UI (attendu : string).
+                var projected = list.Select(b => new
+                {
+                    Ip                  = b.Ip,
+                    BlockedAt           = b.BlockedAt,
+                    Source              = b.Source,
+                    Message             = b.Message,
+                    Details             = b.Details,
+                    Severity            = b.Severity,
+                    IsProcess           = b.IsProcess,
+                    ProcessPath         = b.ProcessPath,
+                    ManualSeverity      = b.ManualSeverity?.ToString(),
+                    ManualSeveritySetAt = b.ManualSeveritySetAt,
+                    IsKnownScanner      = b.IsKnownScanner,
+                    Country             = b.Country,
+                    CountryCode         = b.CountryCode,
+                    Isp                 = b.Isp,
+                    Org                 = b.Org,
+                    ReverseDns          = b.ReverseDns,
+                    IsOutbound          = b.IsOutbound,
+                    Origin              = b.Origin.ToString(),   // ← AJOUT
+                }).ToList();
+
+                IpcResponse.Json(server, projected);
             }
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }
@@ -666,6 +699,7 @@ namespace NetMonitor.Service.Ipc
                         manualSeverity      = info?.ManualSeverity?.ToString(),
                         manualSeveritySetAt = info?.ManualSeveritySetAt,        
                         isOutbound          = info?.IsOutbound ?? false,
+                        origin              = info?.Origin.ToString() ?? "Unknown",
                     };
                 }).ToList();
 
@@ -844,6 +878,39 @@ namespace NetMonitor.Service.Ipc
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }
 
+        private void HandleSetBlockedIpOriginB64(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string base64 = command.Substring("set-blocked-ip-origin-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string ip     = GetJsonString(root, "ip") ?? "";
+                string origin = GetJsonString(root, "origin") ?? "auto";
+
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    IpcResponse.Error(server, "ip manquante");
+                    return;
+                }
+
+                bool ok = _engine.SetBlockedIpOrigin(ip, origin);
+                IpcResponse.Json(server, new
+                {
+                    status = ok ? "ok" : "error",
+                    ip,
+                    origin
+                });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleSetBlockedIpOriginB64 : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
         private void HandleToggleWhitelistEntryB64(string command, NamedPipeServerStream server)
         {
             try
@@ -896,6 +963,7 @@ namespace NetMonitor.Service.Ipc
                     org             = a.Org,         
                     reverseDns      = a.ReverseDns,               
                     isOutbound      = a.IsOutbound,
+                    origin          = a.Origin.ToString(),
                 }).ToList();
                 IpcResponse.Json(server, projected);
             }
@@ -933,7 +1001,8 @@ namespace NetMonitor.Service.Ipc
                     org            = a.Org,            
                     reverseDns     = a.ReverseDns,                                 
                     groupKey       = a.GroupKey,
-                    isOutbound     = a.IsOutbound,          
+                    isOutbound     = a.IsOutbound,
+                    origin         = a.Origin.ToString(),          
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -1000,7 +1069,8 @@ namespace NetMonitor.Service.Ipc
                     lastSeen    = p.LastSeen,
                     count       = p.Count,
                     severity    = p.Severity.ToString(),
-                    detector    = p.Detector
+                    detector    = p.Detector,
+                    origin      = p.Origin.ToString(),
                 }).ToList();
                 IpcResponse.Json(server, projected);
             }

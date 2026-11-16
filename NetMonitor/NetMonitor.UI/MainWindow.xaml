@@ -308,10 +308,6 @@
                             <DataTrigger Binding="{Binding Severity}" Value="Critical">
                                 <Setter Property="Background" Value="#B71C1C"/>
                             </DataTrigger>
-                            <!-- Subnet override -->
-                            <DataTrigger Binding="{Binding IsKnownScanner}" Value="True">
-                                <Setter Property="Background" Value="#A855F7"/>
-                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -352,14 +348,85 @@
                                     <DataTrigger Binding="{Binding Severity}" Value="ToCheck">
                                         <Setter Property="Foreground" Value="White"/>
                                     </DataTrigger>
-                                    <DataTrigger Binding="{Binding IsKnownScanner}" Value="True">
-                                        <Setter Property="Foreground" Value="White"/>
-                                    </DataTrigger>
                                 </Style.Triggers>
                             </Style>
                         </TextBlock.Style>
                     </TextBlock>
                 </StackPanel>
+            </Border>
+        </DataTemplate>
+
+        <DataTemplate x:Key="OriginBadgeTemplate">
+            <Border CornerRadius="8" Padding="7,2" MinWidth="68"
+                    HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                        <Setter Property="BorderThickness" Value="1"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Origin}" Value="Scanner">
+                                <Setter Property="Background" Value="#A855F7"/>
+                                <Setter Property="BorderBrush" Value="#A855F7"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Crawler">
+                                <Setter Property="Background" Value="#1E88E5"/>
+                                <Setter Property="BorderBrush" Value="#1E88E5"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Bot">
+                                <Setter Property="Background" Value="#5BC0EB"/>
+                                <Setter Property="BorderBrush" Value="#5BC0EB"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Microsoft">
+                                <Setter Property="Background" Value="#0078D4"/>
+                                <Setter Property="BorderBrush" Value="#0078D4"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Blacklist">
+                                <Setter Property="Background" Value="#8B0000"/>
+                                <Setter Property="BorderBrush" Value="#8B0000"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Whitelist">
+                                <Setter Property="Background" Value="#FFFFFF"/>
+                                <Setter Property="BorderBrush" Value="#FFFFFF"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+                <TextBlock FontWeight="Bold" FontSize="11"
+                           TextAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text" Value="—"/>
+                            <Setter Property="Foreground" Value="#555"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Origin}" Value="Scanner">
+                                    <Setter Property="Text" Value="Scanner"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Crawler">
+                                    <Setter Property="Text" Value="Crawler"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Bot">
+                                    <Setter Property="Text" Value="Bot"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Microsoft">
+                                    <Setter Property="Text" Value="Microsoft"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Blacklist">
+                                    <Setter Property="Text" Value="Blacklist"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Whitelist">
+                                    <Setter Property="Text" Value="Whitelist"/>
+                                    <Setter Property="Foreground" Value="Black"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
             </Border>
         </DataTemplate>
 
@@ -881,7 +948,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="180">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="180">                                
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -911,6 +978,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
                                     <DataGridTextColumn.ElementStyle>
@@ -1122,6 +1190,7 @@
                                 </DataGridTemplateColumn>
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
                                 <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="180">
@@ -1250,7 +1319,13 @@
                                     <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
                                 </StackPanel>
-                            </Button>                            
+                            </Button>
+                            <Button Width="180" Click="ChangeOrigin_Click" Margin="10,0,0,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>                                                        
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -1350,7 +1425,8 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>                                
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>                             
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>                             
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
@@ -1433,7 +1509,13 @@
                                 <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
                             </StackPanel>
-                        </Button>                        
+                        </Button>
+                        <Button Width="180" Click="ChangeRetryOrigin_Click" Margin="10,0,0,0">
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                            </StackPanel>
+                        </Button>                                                
                     </StackPanel>
 
                     <!-- Filtres -->
@@ -1510,6 +1592,7 @@
                             
                             <!-- NOUVELLE COLONNE SÉVÉRITÉ -->
                             <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                            <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                             
                             <!-- COLONNE TENTATIVES -->
                             <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="100">
@@ -1586,10 +1669,31 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Width="200" Click="ClearHistory_Click">
+                            <Button Width="200" Click="ClearHistory_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Effacer l'historique" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="180" Click="HistoryChangeSeverity_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="200" Click="HistoryAddPattern_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -1633,6 +1737,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
                                     <DataGridTextColumn.ElementStyle>
@@ -1711,10 +1816,31 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                            <Button Width="200" Click="ClearAudit_Click">
+                            <Button Width="200" Click="ClearAudit_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="Vider l'audit" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="180" Click="HistoryChangeSeverity_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="200" Click="HistoryAddPattern_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                </StackPanel>
+                            </Button>
+
+                            <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -1801,6 +1927,7 @@
                                 </DataGridTemplateColumn>
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120">
                                     <DataGridTextColumn.ElementStyle>

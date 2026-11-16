@@ -286,7 +286,8 @@ namespace NetMonitor.UI
                                     CountryCode         = mostRecent.countryCode,    
                                     Isp                 = mostRecent.isp,            
                                     Org                 = mostRecent.org,            
-                                    ReverseDns          = mostRecent.reverseDns                                          
+                                    ReverseDns          = mostRecent.reverseDns,
+                                    Origin              = mostRecent.origin ?? "Unknown"                                          
                                 };
                             })
                             .OrderByDescending(x => SeverityRank(x.Severity))
@@ -318,7 +319,8 @@ namespace NetMonitor.UI
                                 CountryCode         = a.countryCode,    
                                 Isp                 = a.isp,            
                                 Org                 = a.org,            
-                                ReverseDns          = a.reverseDns                                      
+                                ReverseDns          = a.reverseDns,
+                                Origin              = a.origin ?? "Unknown"                                      
                             });
                         }
 
@@ -369,7 +371,8 @@ namespace NetMonitor.UI
                                     LastSeen    = p.lastSeen,
                                     Count       = p.count,
                                     Severity    = p.severity,
-                                    Detector    = p.detector
+                                    Detector    = p.detector,
+                                    Origin      = p.origin ?? "Unknown"
                                 })
                                 .ToList();
 
@@ -405,7 +408,8 @@ namespace NetMonitor.UI
                             CountryCode         = b.CountryCode,    
                             Isp                 = b.Isp,
                             Org                 = b.Org,  
-                            ReverseDns          = b.ReverseDns                                          
+                            ReverseDns          = b.ReverseDns,
+                            Origin              = b.Origin ?? "Unknown"                                       
                         })
                         .ToList();
 
@@ -444,7 +448,8 @@ namespace NetMonitor.UI
                             CountryCode     = a.countryCode,    
                             Isp             = a.isp,
                             Org             = a.org,            
-                            ReverseDns      = a.reverseDns                                                                          
+                            ReverseDns      = a.reverseDns,
+                            Origin          = a.origin ?? "Unknown"                                                                        
                         })
                         .ToList();
 
@@ -485,7 +490,8 @@ namespace NetMonitor.UI
                             CountryCode     = a.CountryCode,    
                             Isp             = a.Isp,
                             Org             = a.Org,            
-                            ReverseDns      = a.ReverseDns                                        
+                            ReverseDns      = a.ReverseDns,
+                            Origin          = a.Origin ?? "Unknown"                                     
                         })
                         .OrderByDescending(x => x.Count)
                         .ThenByDescending(x => x.LastSeen)
@@ -535,7 +541,8 @@ namespace NetMonitor.UI
                             Org                 = r.Org,
                             ReverseDns          = r.ReverseDns,
                             ManualSeverity      = r.ManualSeverity,
-                            ManualSeveritySetAt = r.ManualSeveritySetAt                     
+                            ManualSeveritySetAt = r.ManualSeveritySetAt,
+                            Origin              = r.Origin ?? "Unknown"                     
                         });
                     }
 
@@ -2984,6 +2991,166 @@ namespace NetMonitor.UI
             await RefreshSafe();
         }
 
+        private async void ChangeOrigin_Click(object sender, RoutedEventArgs e)
+        {
+            if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (row.IsProcess)
+            {
+                MessageBox.Show(
+                    "L'origine des processus n'est pas modifiable manuellement.\n" +
+                    "Elle dépend du détecteur qui a signalé le processus.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var picker = new OriginPickerWindow(row.Ip, row.Origin, false)
+            {
+                Owner = this
+            };
+
+            if (picker.ShowDialog() != true) return;
+
+            string selected = picker.SelectedOrigin;
+
+            SetBusy($"Changement d'origine de {row.Ip}…");
+
+            bool ok = await NetMonitorIpcClient.SetBlockedIpOriginAsync(row.Ip, selected);
+
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec du changement d'origine.\n" +
+                    "L'IP a peut-être été débloquée entre-temps.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshSafe();
+        }
+
+        private async void ChangeRetryOrigin_Click(object sender, RoutedEventArgs e)
+        {
+            if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow row)
+            {
+                MessageBox.Show(
+                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var picker = new OriginPickerWindow(row.Ip, row.Origin, false)
+            {
+                Owner = this
+            };
+
+            if (picker.ShowDialog() != true) return;
+
+            string selected = picker.SelectedOrigin;
+
+            SetBusy($"Changement d'origine de {row.Ip}…");
+
+            bool ok = await NetMonitorIpcClient.SetBlockedIpOriginAsync(row.Ip, selected);
+
+            ClearBusy();
+
+            if (!ok)
+            {
+                MessageBox.Show(
+                    "Échec du changement d'origine.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
+
+            await RefreshSafe();
+        }
+
+        // ============================================================
+        //  Handlers pour les boutons de l'onglet "Historique"
+        //  (acceptent AlertRow ET AuditGroupedRow)
+        // ============================================================
+        private async void HistoryChangeSeverity_Click(object sender, RoutedEventArgs e)
+        {
+            var (ip, severity, _, _, _, _) = GetSelectedHistoryInfo();
+            if (string.IsNullOrWhiteSpace(ip)) { /* message */ return; }
+
+            var picker = new SeverityPickerWindow(ip, severity ?? "Info", false) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Changement de sévérité de {ip}…");
+            bool ok = await NetMonitorIpcClient.SetManualSeverityAsync(ip, picker.SelectedSeverity);
+            ClearBusy();
+
+            if (!ok) { /* message d'erreur */ return; }
+            await RefreshSafe();
+        }
+
+        private async void HistoryAddPattern_Click(object sender, RoutedEventArgs e)
+        {
+            var (ip, _, isp, org, reverseDns, _) = GetSelectedHistoryInfo();
+            if (string.IsNullOrWhiteSpace(ip)) { /* message */ return; }
+
+            var tempRow = new BlockedIpRow { Ip = ip, Isp = isp, Org = org, ReverseDns = reverseDns };
+            var picker = new PatternPickerWindow(tempRow) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Ajout du pattern '{picker.SelectedValue}' à la liste '{picker.SelectedList}'…");
+            bool ok = await NetMonitorIpcClient.AddPatternAsync(picker.SelectedList, picker.SelectedValue);
+            ClearBusy();
+
+            if (!ok) { /* message */ return; }
+            await RefreshSafe();
+        }
+
+        private async void HistoryChangeOrigin_Click(object sender, RoutedEventArgs e)
+        {
+            var (ip, _, _, _, _, origin) = GetSelectedHistoryInfo();
+            if (string.IsNullOrWhiteSpace(ip)) { /* message */ return; }
+
+            var picker = new OriginPickerWindow(ip, origin, false) { Owner = this };
+            if (picker.ShowDialog() != true) return;
+
+            SetBusy($"Changement d'origine de {ip}…");
+            bool ok = await NetMonitorIpcClient.SetBlockedIpOriginAsync(ip, picker.SelectedOrigin);
+            ClearBusy();
+
+            if (!ok) { /* message d'erreur */ return; }
+            await RefreshSafe();
+        }
+
+        /// <summary>
+        /// Extrait (ip, severity, isp, org, reverseDns, origin) de la ligne sélectionnée
+        /// dans l'onglet Historique (fonctionne pour AlertRow ET AuditGroupedRow).
+        /// Retourne (null, null, null, null, null, "Unknown") si rien n'est sélectionné.
+        /// </summary>
+        private (string? Ip, string? Severity, string? Isp, string? Org, string? ReverseDns, string Origin) GetSelectedHistoryInfo()
+        {
+            // Priorité à la grille qui a le focus clavier
+            object? selected = null;
+
+            if (AuditGrid.IsKeyboardFocusWithin && AuditGrid.SelectedItem != null)
+                selected = AuditGrid.SelectedItem;
+            else if (AlertsHistoryGrid.IsKeyboardFocusWithin && AlertsHistoryGrid.SelectedItem != null)
+                selected = AlertsHistoryGrid.SelectedItem;
+            else
+                selected = AuditGrid.SelectedItem ?? AlertsHistoryGrid.SelectedItem;
+
+            return selected switch
+            {
+                AlertRow a        => (a.RemoteIp, a.Severity, a.Isp, a.Org, a.ReverseDns, a.Origin ?? "Unknown"),
+                AuditGroupedRow a => (a.RemoteIp, a.Severity, a.Isp, a.Org, a.ReverseDns, a.Origin ?? "Unknown"),
+                _                 => (null, null, null, null, null, "Unknown")
+            };
+        }
+
         private async void MarkSafe_Click(object sender, RoutedEventArgs e)
         {
             if (sender is not Button btn || btn.Tag is not string ip) return;
@@ -3198,6 +3365,7 @@ namespace NetMonitor.UI
         public string? Org          { get; set; }       
         public string? ReverseDns   { get; set; }            
         public bool IsOutbound      { get; set; }
+        public string Origin        { get; set; } = "Unknown";
                 
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
@@ -3275,7 +3443,8 @@ namespace NetMonitor.UI
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
         public string? Org                      { get; set; }
-        public string? ReverseDns               { get; set; }                
+        public string? ReverseDns               { get; set; }
+        public string Origin                    { get; set; } = "Unknown";                
 
         public string CountryDisplay
         {
@@ -3338,6 +3507,7 @@ namespace NetMonitor.UI
         public string? Isp                      { get; set; }    
         public string? Org                      { get; set; }    
         public string? ReverseDns               { get; set; }
+        public string Origin                    { get; set; } = "Unknown";
             
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
@@ -3436,6 +3606,8 @@ namespace NetMonitor.UI
         public string Severity                  { get; set; } = "";
         public string? Detector                 { get; set; }
         public bool IsOutbound                  { get; set; }
+        public string Origin                    { get; set; } = "Unknown";
+        
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";        
         public string LastSeenText              => LastSeen.ToLocalTime().ToString("dd/MM HH:mm:ss");
@@ -3473,6 +3645,7 @@ namespace NetMonitor.UI
         public string? Org                      { get; set; }   
         public string? ReverseDns               { get; set; }        
         public bool IsOutbound                  { get; set; }
+        public string Origin                    { get; set; } = "Unknown";
         
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";
@@ -3545,6 +3718,7 @@ namespace NetMonitor.UI
         public string? Org                      { get; set; }    
         public string? ReverseDns               { get; set; }         
         public bool IsOutbound                  { get; set; }
+        public string Origin                    { get; set; } = "Unknown";
         
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";

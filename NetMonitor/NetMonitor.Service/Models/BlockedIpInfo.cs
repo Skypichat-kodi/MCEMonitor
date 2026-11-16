@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Models
@@ -15,9 +15,6 @@ namespace NetMonitor.Service.Models
         public string? ProcessPath  { get; set; }
         public bool IsOutbound      { get; set; }      
 
-        // ============================================================
-        //  Informations GeoIP — résolues au moment du blocage
-        // ============================================================
         public string? Country          { get; set; }
         public string? CountryCode      { get; set; }
         public string? City             { get; set; }
@@ -27,14 +24,11 @@ namespace NetMonitor.Service.Models
         public string? ReverseDns       { get; set; }
         public DateTime? GeoResolvedAt  { get; set; }
 
-        // ============================================================
-        //  Override manuel de la sévérité
-        //  Si défini, écrase toute évaluation automatique (SeverityScorer).
-        //  ⚠ Perdu au déblocage : si l'IP revient et est re-bloquée, elle
-        //  sera ré-évaluée automatiquement.
-        // ============================================================
         public Severity? ManualSeverity         { get; set; }
         public DateTime? ManualSeveritySetAt    { get; set; }
         public bool IsKnownScanner              { get; set; }
+
+        /// <summary>Origine de l'IP (Scanner / Crawler / Bot / Microsoft / Blacklist / Whitelist).</summary>
+        public IpOrigin Origin                  { get; set; } = IpOrigin.Unknown;
     }
 }

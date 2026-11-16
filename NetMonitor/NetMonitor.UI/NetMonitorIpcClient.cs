@@ -42,7 +42,8 @@ namespace NetMonitor.UI
         public string? isp          { get; set; }
         public string? org          { get; set; }       
         public string? reverseDns   { get; set; }              
-        public bool isOutbound      { get; set; }        
+        public bool isOutbound      { get; set; }
+        public string? origin       { get; set; }           
     }
 
     public class NetConnection
@@ -126,7 +127,8 @@ namespace NetMonitor.UI
         public string? Isp                      { get; set; }
         public bool IsOutbound                  { get; set; }
         public string? Org                      { get; set; }
-        public string? ReverseDns               { get; set; }        
+        public string? ReverseDns               { get; set; }
+        public string? Origin                   { get; set; }        
     }
 
     public class BlockedIpRetryDto
@@ -145,7 +147,8 @@ namespace NetMonitor.UI
         public string? ReverseDns               { get; set; }
         public string? ManualSeverity           { get; set; }
         public DateTime? ManualSeveritySetAt    { get; set; }
-        public bool IsOutbound                  { get; set; }    
+        public bool IsOutbound                  { get; set; }
+        public string? Origin                   { get; set; }     
     }
 
     // ============================================================
@@ -245,6 +248,7 @@ namespace NetMonitor.UI
         public int count            { get; set; }
         public string severity      { get; set; } = "";
         public string? detector     { get; set; }
+        public string? origin       { get; set; }
     }
     
     public class AuditGroupedDto
@@ -269,7 +273,8 @@ namespace NetMonitor.UI
         public string? Org          { get; set; }      
         public string? ReverseDns   { get; set; }    
         public string GroupKey      { get; set; } = "";
-        public bool IsOutbound      { get; set; }        
+        public bool IsOutbound      { get; set; }
+        public string? Origin       { get; set; }        
     }    
 
     public class PersistentProblemDto
@@ -544,6 +549,13 @@ namespace NetMonitor.UI
             string payload = EncodeB64Payload(new { ip, severity = sev });
             return IsOk(await SendCommand($"set-manual-severity-b64 {payload}"));
         }              
+
+        public static async Task<bool> SetBlockedIpOriginAsync(string ip, string? originOrAuto)
+        {
+            string org = string.IsNullOrWhiteSpace(originOrAuto) ? "auto" : originOrAuto;
+            string payload = EncodeB64Payload(new { ip, origin = org });
+            return IsOk(await SendCommand($"set-blocked-ip-origin-b64 {payload}"));
+        }
         
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {

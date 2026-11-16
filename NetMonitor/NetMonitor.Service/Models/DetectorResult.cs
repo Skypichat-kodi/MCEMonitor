@@ -14,6 +14,22 @@ public enum Severity
     Critical    = 9    // Malveillant avéré            (rouge foncé)
 }
 
+/// <summary>
+/// Origine d'une IP : QUI est-ce ? (axe orthogonal à la Severity)
+/// - Severity  = quel risque ?     → décide du blocage
+/// - IpOrigin  = quelle identité ? → explique la sévérité
+/// </summary>
+public enum IpOrigin
+{
+    Unknown    = 0,   // Aucune info connue
+    Scanner    = 1,   // Match ScannerPatterns            (violet)
+    Crawler    = 2,   // Match CrawlerPatterns            (bleu foncé)
+    Bot        = 3,   // Liste Google officielle          (bleu clair)
+    Microsoft  = 4,   // Liste Microsoft officielle       (bleu MS)
+    Blacklist  = 5,   // IPsum blacklist                  (rouge sombre)
+    Whitelist  = 6    // Match WhitelistPatterns          (blanc)
+}
+
 public sealed class DetectorResult
 {
     public bool IsThreat            { get; init; }

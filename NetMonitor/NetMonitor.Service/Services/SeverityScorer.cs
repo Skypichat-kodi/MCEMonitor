@@ -22,6 +22,20 @@ namespace NetMonitor.Service.Services
     /// </summary>
     public static class SeverityScorer
     {
+        /// <summary>
+        /// Évalue la sévérité ET l'origine d'une IP en un seul passage.
+        /// Ordre de priorité identique pour les deux axes :
+        ///   1. ManualSeverity (géré en amont, dans BlockedIpInfo)
+        ///   2. WhitelistPatterns → Whitelisted / Whitelist
+        ///   3. ToCheck demandé explicitement par un détecteur
+        ///   4. Google officiel  → Bot / Bot
+        ///   5. CrawlerPatterns  → Crawler / Crawler
+        ///   6. SafePatterns     → Safe / Unknown (ou Microsoft si range)
+        ///   7. ScannerPatterns  → Trusted / Scanner
+        ///   8. CriticalPatterns → Critical / Blacklist (ou Unknown)
+        ///   9. Détecteur critique → conserve
+        ///  10. Défaut            → Warning / Unknown
+        /// </summary>
         public static Severity Evaluate(
             string? ip,
             string? reverseDns,
@@ -30,8 +44,13 @@ namespace NetMonitor.Service.Services
             string? detector,
             Severity detectorSeverity,
             NetMonitorSettings settings,
-            GoogleIpRangeService? googleRanges = null)
+            GoogleIpRangeService? googleRanges,
+            MicrosoftIpRangeService? microsoftRanges,
+            ThreatIntelService? threatIntel,
+            out IpOrigin origin)
         {
+            origin = IpOrigin.Unknown;
+
             if (settings == null) return detectorSeverity;
 
             string[] candidates = new[]
@@ -45,42 +64,72 @@ namespace NetMonitor.Service.Services
 
             // 1. Whitelist utilisateur (priorité absolue)
             if (MatchesAnyPattern(candidates, settings.WhitelistPatterns))
+            {
+                origin = IpOrigin.Whitelist;
                 return Severity.Whitelisted;
+            }
 
-            // 1bis. Si un détecteur a explicitement demandé une vérification manuelle
+            // 2. ToCheck explicite
             if (detectorSeverity == Severity.ToCheck)
-                return Severity.ToCheck;
+                return Severity.ToCheck;   // origin reste Unknown (ToCheck n'est pas une origine)
 
-            // 2. Robots officiels (Google/Bing) → Bot
+            // 3. Microsoft officiel (liste) → Safe + Origin Microsoft
+            if (microsoftRanges?.IsEnabled == true
+                && !string.IsNullOrWhiteSpace(ip)
+                && microsoftRanges.IsMicrosoftIp(ip))
+            {
+                origin = IpOrigin.Microsoft;
+                return Severity.Safe;
+            }
+
+            // 4. Google officiel (liste) → Bot + Origin Bot
             if (googleRanges?.IsEnabled == true
                 && !string.IsNullOrWhiteSpace(ip)
                 && googleRanges.IsGoogleIp(ip))
+            {
+                origin = IpOrigin.Bot;
                 return Severity.Bot;
+            }
 
-            // 3. Robots génériques (Yandex, Baidu...) → Crawler
+            // 5. Crawler (patterns reverse DNS / ISP / Org)
             if (MatchesAnyPattern(candidates, settings.CrawlerPatterns))
+            {
+                origin = IpOrigin.Crawler;
                 return Severity.Crawler;
+            }
 
-            // 4. Safe (Microsoft, Google pattern...)
+            // 6. Safe (patterns)
             if (MatchesAnyPattern(candidates, settings.SafePatterns))
+            {
+                origin = IpOrigin.Unknown;   // safe mais pas d'origine identifiable
                 return Severity.Safe;
+            }
 
-            // ═══════════════════════════════════════════════════════════════
-            // 5. NOUVEAU : Scanners (Palo Alto, Shodan, Censys...) → Trusted
-            //    Doit passer AVANT le Critical du détecteur Blacklist
-            // ═══════════════════════════════════════════════════════════════
+            // 7. Scanner (patterns) → Trusted + Origin Scanner
             if (MatchesAnyPattern(candidates, settings.ScannerPatterns))
+            {
+                origin = IpOrigin.Scanner;
                 return Severity.Trusted;
+            }
 
-            // 6. Domaines malveillants connus → Critical
+            // 8. Blacklist IPsum → Critical + Origin Blacklist
+            if (threatIntel != null
+                && !string.IsNullOrWhiteSpace(ip)
+                && threatIntel.IsBlacklisted(ip))
+            {
+                origin = IpOrigin.Blacklist;
+                return Severity.Critical;
+            }
+
+            // 9. CriticalPatterns → Critical + Origin Unknown (patterns ≠ blacklist)
             if (MatchesAnyPattern(candidates, settings.CriticalPatterns))
                 return Severity.Critical;
 
-            // 7. Détecteur critique → conserver (seulement si pas scanner/bot)
+            // 10. Détecteur critique
             if (detectorSeverity == Severity.Critical || detectorSeverity == Severity.High)
                 return detectorSeverity;
 
-            // 8. Défaut
+            // 11. Défaut
             return Severity.Warning;
         }
 

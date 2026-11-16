@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 
 namespace NetMonitor.Service.Models
 {
@@ -25,6 +25,9 @@ namespace NetMonitor.Service.Models
         public string? Org          { get; set; }        
         public string? ReverseDns   { get; set; }            
         public bool IsOutbound      { get; set; }
+
+        /// <summary>Origine de l'IP (Scanner / Crawler / Bot / Microsoft / Blacklist / Whitelist).</summary>
+        public IpOrigin Origin      { get; set; } = IpOrigin.Unknown;
         
         public string GroupKey =>
             $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";                
