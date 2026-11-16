@@ -56,7 +56,8 @@ namespace NetMonitor.Service.Web
                             Org             = mostRecent.Org,            
                             ReverseDns      = mostRecent.ReverseDns,                              
                             IsKnownScanner  = g.Any(x => x.IsKnownScanner),
-                            IsOutbound      = mostRecent.IsOutbound
+                            IsOutbound      = mostRecent.IsOutbound,
+                            Origin          = mostRecent.Origin
                         };
                     })
                         .OrderByDescending(x => (int)x.Severity)
@@ -67,8 +68,10 @@ namespace NetMonitor.Service.Web
 
                     foreach (var item in grouped)
                     {
-                        string sevClass  = item.IsKnownScanner ? "scanner" : SeverityToCssClass(item.Severity.ToString());
-                        string badgeText = item.IsKnownScanner ? "Scanner" : item.Severity.ToString();
+                        string sevClass    = SeverityToCssClass(item.Severity.ToString());
+                        string badgeText   = item.Severity.ToString();
+                        string originClass = "origin-" + OriginToCssClass(item.Origin.ToString());
+                        string originText  = OriginToDisplay(item.Origin.ToString());
 
                         string ipEnc = WebUtility.HtmlEncode(item.Ip);
 
@@ -91,6 +94,7 @@ namespace NetMonitor.Service.Web
                             <td title='Premiere : {item.FirstSeen:dd/MM HH:mm:ss} | Derniere : {item.LastSeen:dd/MM HH:mm:ss}'>{item.LastSeen:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge {countClass}' title='{item.Count} alertes'>{item.Count}</span></td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span>{safeBtn}</td>
+                            <td><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
                             <td>{WebUtility.HtmlEncode(item.Detectors)}</td>
                             <td title='{WebUtility.HtmlEncode(item.ReverseDns ?? "")}'>{ipEnc}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(item.Country, item.CountryCode))}</td>
@@ -104,8 +108,8 @@ namespace NetMonitor.Service.Web
                     foreach (var a in active.Where(x => string.IsNullOrWhiteSpace(x.RemoteIp))
                                             .OrderByDescending(x => x.Timestamp).Take(20))
                     {
-                        string sevClass  = a.IsKnownScanner ? "scanner" : SeverityToCssClass(a.Severity.ToString());
-                        string badgeText = a.IsKnownScanner ? "Scanner" : a.Severity.ToString();
+                        string sevClass  = SeverityToCssClass(a.Severity.ToString());
+                        string badgeText = a.Severity.ToString();
 
                         activeRows.Append($@"<tr>
                             <td></td>
@@ -113,6 +117,7 @@ namespace NetMonitor.Service.Web
                             <td>{a.Timestamp:dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge c1'>-</span></td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
+                            <td><span class='badge origin-unknown'>—</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td></td>
                             <td></td>
@@ -125,7 +130,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    activeRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
+                    activeRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Aucune intrusion active</td></tr>");
                 }
 
                 // --- Tableau 1bis : Processus en attente d'examen ---
@@ -157,6 +162,7 @@ namespace NetMonitor.Service.Web
                             <td title='{WebUtility.HtmlEncode(p.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(p.TrustReason, 40))}</td>
                             <td>{WebUtility.HtmlEncode(remote)}</td>
                             <td class='count-cell'><span class='count-badge {(p.Count >= 10 ? "c10" : p.Count >= 5 ? "c5" : p.Count >= 2 ? "c2" : "c1")}'>{p.Count}</span></td>
+                            <td><span class='badge {OriginToCssClass(p.Origin.ToString())}'>{WebUtility.HtmlEncode(OriginToDisplay(p.Origin.ToString()))}</span></td>
                             <td style='text-align:center'>
                                 <button type='button' class='action-btn danger' style='padding:2px 8px;font-size:11px'
                                         onclick=""event.stopPropagation(); dismissPending('{pathJs}')"">✖</button>
@@ -166,7 +172,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    pendingRows.Append("<tr><td colspan='12' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
+                    pendingRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
                 }
 
                 // --- Tableau 2 : IP Bloquées ---
@@ -177,8 +183,11 @@ namespace NetMonitor.Service.Web
                     {
                         string ipEnc = WebUtility.HtmlEncode(b.Ip);
 
-                        string sevClass  = b.IsKnownScanner ? "scanner" : SeverityToCssClass(b.Severity);
-                        string badgeText = b.IsKnownScanner ? "Scanner" : (b.Severity ?? "-");
+                        string sevClass  = SeverityToCssClass(b.Severity);
+                        string badgeText = b.Severity ?? "-";
+
+                        string originClass = "origin-" + OriginToCssClass(b.Origin.ToString());
+                        string originText  = OriginToDisplay(b.Origin.ToString());
 
                         string typeLabel = b.IsProcess ? "Processus" : "IP";
                         string display = b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip;
@@ -207,12 +216,13 @@ namespace NetMonitor.Service.Web
                             <td title='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(b.ReverseDns, 40))}</td>
                             <td class='info-cell'>{infoCell}</td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span>{manualLock}</td>
+                            <td><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
                             <td>{WebUtility.HtmlEncode(b.Source)}</td>
                             <td>{WebUtility.HtmlEncode(b.Message)}</td>
                         </tr>");
                     }
                 }
-                else blockedRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
+                else blockedRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Aucune IP bloquée</td></tr>");
 
                 // --- Tableau 3 : Historique (enrichi) ---
                 var historyRows = new System.Text.StringBuilder();
@@ -220,8 +230,11 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var h in history.OrderByDescending(x => x.Timestamp).Take(100))
                     {
-                        string sevClass  = h.IsKnownScanner ? "scanner" : SeverityToCssClass(h.Severity.ToString());
-                        string badgeText = h.IsKnownScanner ? "Scanner" : h.Severity.ToString();
+                        string sevClass  = SeverityToCssClass(h.Severity.ToString());
+                        string badgeText = h.Severity.ToString();
+
+                        string originClass = "origin-" + OriginToCssClass(h.Origin.ToString());
+                        string originText  = OriginToDisplay(h.Origin.ToString());
 
                         string detailsText = string.IsNullOrWhiteSpace(h.Details)
                             ? "-"
@@ -233,6 +246,7 @@ namespace NetMonitor.Service.Web
                             {BuildTrafficCell(h.IsOutbound)}
                             <td>{h.Timestamp:dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
+                            <td><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
                             <td>{WebUtility.HtmlEncode(h.Source)}</td>
                             <td title='{WebUtility.HtmlEncode(h.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(h.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(h.Country, h.CountryCode))}</td>  
@@ -248,7 +262,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    historyRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
+                    historyRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Historique vide</td></tr>");
                 }
 
                 // --- Tableau 4 : Audit (groupé) ---
@@ -262,8 +276,10 @@ namespace NetMonitor.Service.Web
                 {
                     foreach (var a in auditGrouped.Take(200))
                     {
-                        string sevClass  = a.IsKnownScanner ? "scanner" : SeverityToCssClass(a.Severity.ToString());
-                        string badgeText = a.IsKnownScanner ? "Scanner" : a.Severity.ToString();
+                        string sevClass    = SeverityToCssClass(a.Severity.ToString());
+                        string badgeText   = a.Severity.ToString();
+                        string originClass = "origin-" + OriginToCssClass(a.Origin.ToString());
+                        string originText  = OriginToDisplay(a.Origin.ToString());
 
                         string countClass = a.Count >= 10 ? "c10" :
                                             a.Count >= 5  ? "c5"  :
@@ -280,6 +296,7 @@ namespace NetMonitor.Service.Web
                             <td>{a.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
+                            <td><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td title='{WebUtility.HtmlEncode(a.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(a.Country, a.CountryCode))}</td>
@@ -298,7 +315,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='18' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='19' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                  // --- Tableau 5 : tentatives sur IP bloquée ---
@@ -324,8 +341,12 @@ namespace NetMonitor.Service.Web
                         string org     = string.IsNullOrWhiteSpace(info?.Org) ? "-" : info.Org!;           
                         string rDns    = string.IsNullOrWhiteSpace(info?.ReverseDns) ? "-" : info.ReverseDns!;                     
 
-                        string sevClass  = (info?.IsKnownScanner ?? false) ? "scanner" : SeverityToCssClass(sev);
-                        string badgeText = (info?.IsKnownScanner ?? false) ? "Scanner" : sev;
+                        string sevClass    = SeverityToCssClass(sev);
+                        string badgeText   = sev;
+                        
+                        var originEnum = info?.Origin ?? IpOrigin.Unknown;
+                        string originClass = "origin-" + OriginToCssClass(originEnum.ToString());
+                        string originText  = OriginToDisplay(originEnum.ToString());
 
                         blockedRetriesRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'retry-sel')"" data-isp='{WebUtility.HtmlEncode(isp)}' data-org='{WebUtility.HtmlEncode(org)}' data-rdns='{WebUtility.HtmlEncode(rDns)}'>
                             {BuildTrafficCell(info?.IsOutbound ?? false)}
@@ -338,6 +359,7 @@ namespace NetMonitor.Service.Web
                             <td title='{WebUtility.HtmlEncode(info?.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(Truncate(rDns, 40))}</td>
                             <td class='info-cell'>{BuildIpInfoLink(r.Ip, lookupUrl)}</td>
                             <td class='text-center'><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
+                            <td class='text-center'><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
                             <td>{WebUtility.HtmlEncode(r.OriginalDetector ?? "-")}</td>
                             <td>{r.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td>{r.FirstRetryAt.ToLocalTime():dd/MM HH:mm:ss}</td>
@@ -347,7 +369,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    blockedRetriesRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
+                    blockedRetriesRows.Append("<tr><td colspan='15' style='text-align:center;color:#888;padding:20px'>" + "Aucune tentative détectée sur les IP bloquées</td></tr>");
                 }
 
                 // --- Modèle ---
@@ -752,6 +774,34 @@ namespace NetMonitor.Service.Web
             "High"        => "critical",
             "Critical"    => "critical",
             _             => "unknown"
+        };
+
+        /// <summary>
+        /// Mappe une origine (enum stringifiée) vers sa classe CSS.
+        /// </summary>
+        private static string OriginToCssClass(string? origin) => origin switch
+        {
+            "Scanner"    => "scanner",     // violet
+            "Crawler"    => "crawler",     // bleu foncé
+            "Bot"        => "bot",         // bleu clair
+            "Microsoft"  => "microsoft",   // bleu MS
+            "Blacklist"  => "blacklist",   // rouge sombre
+            "Whitelist"  => "whitelist",   // blanc
+            _            => "unknown"      // gris
+        };
+
+        /// <summary>
+        /// Mappe une origine vers son libellé d'affichage.
+        /// </summary>
+        private static string OriginToDisplay(string? origin) => origin switch
+        {
+            "Scanner"    => "Scanner",
+            "Crawler"    => "Crawler",
+            "Bot"        => "Bot",
+            "Microsoft"  => "Microsoft",
+            "Blacklist"  => "Blacklist",
+            "Whitelist"  => "Whitelist",
+            _            => "—"
         };
         
         /// <summary>

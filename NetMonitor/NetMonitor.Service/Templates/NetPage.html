@@ -735,7 +735,18 @@
         color: #E5E5E5;
         line-height: 1.4;
     }
-    .form-warning strong { color: #FF6347; }                                     
+    .form-warning strong { color: #FF6347; }
+    
+    /* ============================================================ */
+    /*  Badges d'ORIGINE (axe orthogonal à la sévérité)             */
+    /* ============================================================ */
+    .badge.origin-scanner   { background: #A855F7; color: white; }
+    .badge.origin-crawler   { background: #1E88E5; color: white; }
+    .badge.origin-bot       { background: #5BC0EB; color: black; }
+    .badge.origin-microsoft { background: #0078D4; color: white; }
+    .badge.origin-blacklist { background: #8B0000; color: white; }
+    .badge.origin-whitelist { background: #FFFFFF; color: black; }
+    .badge.origin-unknown   { background: transparent; color: #555; border: 1px solid #3C3C3C; }                                         
 </style>
 
 </head>
@@ -794,6 +805,7 @@
                 <th>{{tr:Date}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>
@@ -832,6 +844,7 @@
                 <th style="width:30px"></th>
                 <th>{{tr:Dernière}}</th>
                 <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:PID}}</th>
                 <th>{{tr:Processus}}</th>
@@ -879,6 +892,7 @@
                 <th>{{tr:Reverse DNS}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
                 <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:Raison}}</th>
             </tr>
@@ -917,6 +931,7 @@
                 <th>{{tr:Reverse DNS}}</th>
                 <th style="width:32px">{{tr:Info}}</th>
                 <th class="text-center">{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th style="width:150px">{{tr:Détecteur initial}}</th>
                 <th style="width:150px">{{tr:Bloquée le}}</th>
                 <th style="width:150px">{{tr:1ʳᵉ tentative}}</th>
@@ -945,6 +960,7 @@
                 <th style="width: 50px;">{{tr:Sens}}</th>
                 <th style="width:9%">{{tr:Date}}</th>
                 <th style="width:6%">{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th style="width:7%">{{tr:Détecteur}}</th>
                 <th style="width:10%">{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>    
@@ -981,6 +997,7 @@
                 <th style="width:130px">{{tr:Dernière}}</th>
                 <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Sévérité}}</th>
+                <th>{{tr:Origine}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>    

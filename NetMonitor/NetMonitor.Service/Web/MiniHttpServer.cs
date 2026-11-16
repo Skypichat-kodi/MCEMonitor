@@ -606,7 +606,8 @@ namespace NetMonitor.Service.Web
                             isp            = a.Isp,
                             org            = a.Org,             
                             reverseDns     = a.ReverseDns,      
-                            isKnownScanner = a.IsKnownScanner
+                            isKnownScanner = a.IsKnownScanner,
+                            origin         = a.Origin.ToString()
                         });
                     }
 
@@ -629,7 +630,8 @@ namespace NetMonitor.Service.Web
                             org            = b.Org,              
                             reverseDns     = b.ReverseDns,       
                             isPrivate      = b.IsPrivate,
-                            isKnownScanner = b.IsKnownScanner
+                            isKnownScanner = b.IsKnownScanner,
+                            origin         = b.Origin.ToString()
                         });
                     }
 
@@ -649,7 +651,8 @@ namespace NetMonitor.Service.Web
                             lastRetryAt      = r.LastRetryAt,
                             retryCount       = r.RetryCount,
                             org              = retryInfo?.Org,
-                            reverseDns       = retryInfo?.ReverseDns
+                            reverseDns       = retryInfo?.ReverseDns,
+                            origin           = retryInfo?.Origin.ToString()
                         });
                     }
 
@@ -668,7 +671,8 @@ namespace NetMonitor.Service.Web
                             lastSeen    = p.LastSeen,
                             count       = p.Count,
                             severity    = p.Severity.ToString(),
-                            detector    = p.Detector
+                            detector    = p.Detector,
+                            origin      = p.Origin.ToString()
                         });
                     }
 

@@ -38,6 +38,7 @@ namespace NetMonitor.Service.Api
         public string? countryCode  { get; set; }
         public string? isp          { get; set; }
         public bool isKnownScanner  { get; set; }
+        public string? origin       { get; set; }
     }
 
     public class BlockedIpDetailDto
@@ -57,6 +58,7 @@ namespace NetMonitor.Service.Api
         public string? reverseDns   { get; set; }          
         public bool isPrivate       { get; set; }
         public bool isKnownScanner  { get; set; }
+        public string? origin       { get; set; }
     }
 
     public class BlockedRetryDetailDto
@@ -68,7 +70,8 @@ namespace NetMonitor.Service.Api
         public DateTime lastRetryAt     { get; set; }
         public int retryCount           { get; set; }
         public string? org              { get; set; }             
-        public string? reverseDns       { get; set; }           
+        public string? reverseDns       { get; set; }
+        public string? origin           { get; set; }           
     }
 
     public class PendingProcessDetailDto
@@ -84,6 +87,7 @@ namespace NetMonitor.Service.Api
         public int count            { get; set; }
         public string severity      { get; set; } = "Info";
         public string? detector     { get; set; }
+        public string? origin       { get; set; }
     }
 
     public class ProblemDetailDto
