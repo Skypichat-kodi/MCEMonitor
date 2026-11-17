@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text;
+using MCEMonitor.Languages;
 
 namespace SystemMonitor.Service.Web
 {
@@ -16,9 +17,15 @@ namespace SystemMonitor.Service.Web
 
             string original = WebUtility.HtmlEncode(originalUrl ?? "/");
 
+            // Textes traduits (page construite en C#, hors TemplateEngine)
+            string txtTitle    = LanguageManager.Get("Connexion - SystemMonitor") ?? "Connexion - SystemMonitor";
+            string txtMachine  = LanguageManager.Get("Machine :") ?? "Machine :";
+            string txtUser     = LanguageManager.Get("Nom d'utilisateur") ?? "Nom d'utilisateur";
+            string txtPassword = LanguageManager.Get("Mot de passe") ?? "Mot de passe";
+            string txtSubmit   = LanguageManager.Get("Se connecter") ?? "Se connecter";
             string html = $@"<!DOCTYPE html>
 <html lang=""fr""><head><meta charset=""utf-8"">
-<title>Connexion - SystemMonitor</title>
+<title>{txtTitle}</title>
 <style>
   body {{ font-family: Segoe UI, Arial, sans-serif; background: #1E1E1E; color: #E5E5E5;
          display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
@@ -43,15 +50,15 @@ namespace SystemMonitor.Service.Web
 </style></head><body>
 <div class=""card"">
   <h1>🔐 SystemMonitor</h1>
-  <p class=""subtitle"">Machine : {WebUtility.HtmlEncode(System.Environment.MachineName)}</p>
+  <p class=""subtitle"">{txtMachine} {WebUtility.HtmlEncode(System.Environment.MachineName)}</p>
   {errorHtml}
   <form method=""post"" action=""/login"">
     <input type=""hidden"" name=""original"" value=""{original}"" />
-    <label>Nom d'utilisateur</label>
+    <label>{txtUser}</label>
     <input type=""text"" name=""username"" autofocus required />
-    <label>Mot de passe</label>
+    <label>{txtPassword}</label>
     <input type=""password"" name=""password"" required />
-    <input type=""submit"" value=""Se connecter"" />
+    <input type=""submit"" value=""{txtSubmit}"" />
   </form>
 </div>
 </body></html>";

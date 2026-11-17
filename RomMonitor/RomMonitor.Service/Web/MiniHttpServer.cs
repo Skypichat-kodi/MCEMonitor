@@ -150,7 +150,7 @@ namespace RomMonitor.Service.Web
 
                     if (!LoginService.CheckCredentials(username, password, _settings))
                     {
-                        LoginPages.SendLoginPage(ctx, "Identifiant ou mot de passe incorrect.", original);
+                        LoginPages.SendLoginPage(ctx, LanguageManager.Get("Identifiant ou mot de passe incorrect.") ?? "Identifiant ou mot de passe incorrect.", original);
                         return;
                     }
 

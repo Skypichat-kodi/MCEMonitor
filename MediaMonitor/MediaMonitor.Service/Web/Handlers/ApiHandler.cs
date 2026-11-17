@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using MCEMonitor.Languages;
 using MediaMonitor.Service.Web;
 using MediaMonitor.Service.Web.Reports;
 
@@ -32,7 +33,7 @@ namespace MediaMonitor.Service.Web.Handlers
         {
             ctx.Engine.ClearHistory();
             HttpWriter.WriteHtml(ctx.Http,
-                "<html><body><h2>Historique effac�.</h2></body></html>");
+                HTMLTranslator.Translate("<html><body><h2>{{tr:Historique effacé.}}</h2></body></html>"));
         }
         
         public void Peers(HandlerContext ctx)

@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using MCEMonitor.Languages;
 using MediaMonitor.Service.Web;
@@ -33,7 +33,7 @@ namespace MediaMonitor.Service.Web.Handlers
             </head>
             <body>
                 <div class='container'>
-                    <h2>{{tr:Toutes les sauvegardes ont été supprimées}}</h2>
+                    <h2>{{tr:Toutes les sauvegardes ont Ã©tÃ© supprimÃ©es}}</h2>
                     <a href='/backup' class='btn'>{{tr:Retour}}</a>
                 </div>
             </body>

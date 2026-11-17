@@ -187,7 +187,7 @@ namespace NetMonitor.Service.Web
                     // 2a. Vérifier user/password
                     if (!LoginService.CheckCredentials(username, password, _settings))
                     {
-                        LoginPages.SendLoginPage(ctx, step: 1, "Identifiant ou mot de passe incorrect.", original);
+                        LoginPages.SendLoginPage(ctx, step: 1, LanguageManager.Get("Identifiant ou mot de passe incorrect.") ?? "Identifiant ou mot de passe incorrect.", original);
                         return;
                     }
 
@@ -228,12 +228,12 @@ namespace NetMonitor.Service.Web
                         if (result == LoginService.LoginResult.SmtpError)
                         {
                             LoginPages.SendLoginPage(ctx, step: 1,
-                                "Impossible d'envoyer le code OTP. Vérifiez la config SMTP.", original);
+                                LanguageManager.Get("Impossible d'envoyer le code OTP. Vérifiez la config SMTP.") ?? "Impossible d'envoyer le code OTP. Vérifiez la config SMTP.", original);
                             return;
                         }
 
                         LoginPages.SendLoginPage(ctx, step: 2,
-                            "Un code OTP vous a été envoyé par email.", original);
+                            LanguageManager.Get("Un code OTP vous a été envoyé par email.") ?? "Un code OTP vous a été envoyé par email.", original);
                         return;
                     }
 
@@ -242,7 +242,7 @@ namespace NetMonitor.Service.Web
                     {
                         if (string.IsNullOrWhiteSpace(otpCode))
                         {
-                            LoginPages.SendLoginPage(ctx, step: 2, "Veuillez saisir le code OTP reçu par email.", original);
+                            LoginPages.SendLoginPage(ctx, step: 2, LanguageManager.Get("Veuillez saisir le code OTP reçu par email.") ?? "Veuillez saisir le code OTP reçu par email.", original);
                             return;
                         }
 
@@ -251,10 +251,10 @@ namespace NetMonitor.Service.Web
                         {
                             string msg = otpResult switch
                             {
-                                LoginService.LoginResult.BadOtp          => "Code OTP incorrect.",
-                                LoginService.LoginResult.OtpExpired      => "Code OTP expiré. Reconnectez-vous.",
-                                LoginService.LoginResult.TooManyAttempts => "Trop de tentatives. Reconnectez-vous.",
-                                _                                        => "Erreur de validation OTP."
+                                LoginService.LoginResult.BadOtp          => LanguageManager.Get("Code OTP incorrect.") ?? "Code OTP incorrect.",
+                                LoginService.LoginResult.OtpExpired      => LanguageManager.Get("Code OTP expiré. Reconnectez-vous.") ?? "Code OTP expiré. Reconnectez-vous.",
+                                LoginService.LoginResult.TooManyAttempts => LanguageManager.Get("Trop de tentatives. Reconnectez-vous.") ?? "Trop de tentatives. Reconnectez-vous.",
+                                _                                        => LanguageManager.Get("Erreur de validation OTP.") ?? "Erreur de validation OTP."
                             };
                             LoginPages.SendLoginPage(ctx, step: 2, msg, original);
                             return;
@@ -279,7 +279,7 @@ namespace NetMonitor.Service.Web
                     }
 
                     // Cas imprévu
-                    LoginPages.SendLoginPage(ctx, step: 1, "Erreur de formulaire. Réessayez.", original);
+                    LoginPages.SendLoginPage(ctx, step: 1, LanguageManager.Get("Erreur de formulaire. Réessayez.") ?? "Erreur de formulaire. Réessayez.", original);
                     return;
                 }
                 else if (path == "/logout")

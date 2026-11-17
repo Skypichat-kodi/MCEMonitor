@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text;
+using MCEMonitor.Languages;
 
 namespace NetMonitor.Service.Web
 {
@@ -13,20 +14,32 @@ namespace NetMonitor.Service.Web
             // step 1 = credentials seuls, step 2 = credentials + OTP
             bool needsOtp = step >= 2;
 
+            // Textes traduits (ces pages sont construites en C#, hors TemplateEngine :
+            // on utilise donc LanguageManager.Get directement)
+            string txtTitle     = LanguageManager.Get("Connexion - NetMonitor") ?? "Connexion - NetMonitor";
+            string txtMachine   = LanguageManager.Get("Machine :") ?? "Machine :";
+            string txtUser      = LanguageManager.Get("Nom d'utilisateur") ?? "Nom d'utilisateur";
+            string txtPassword  = LanguageManager.Get("Mot de passe") ?? "Mot de passe";
+            string txtOtpLabel  = LanguageManager.Get("Code OTP (6 chiffres)") ?? "Code OTP (6 chiffres)";
+            string txtRemember  = LanguageManager.Get("Se souvenir de cet appareil pendant 30 jours") ?? "Se souvenir de cet appareil pendant 30 jours";
+            string txtSubmit    = LanguageManager.Get("Se connecter") ?? "Se connecter";
+            string txtHintOtp   = LanguageManager.Get("Un code OTP vous a été envoyé par email.") ?? "Un code OTP vous a été envoyé par email.";
+            string txtHintNoOtp = LanguageManager.Get("Accès sécurisé — un code vous sera envoyé après validation.") ?? "Accès sécurisé — un code vous sera envoyé après validation.";
+
             string errorHtml = string.IsNullOrEmpty(error)
                 ? ""
                 : $"<div class='error'>{WebUtility.HtmlEncode(error)}</div>";
 
             string otpField = needsOtp
-                ? @"<label>Code OTP (6 chiffres)</label>
+                ? $@"<label>{txtOtpLabel}</label>
                    <input type='text' name='otp' maxlength='6' inputmode='numeric' pattern='[0-9]*' required />"
                 : "";
 
             // Case "Se souvenir" : visible UNIQUEMENT à l'étape OTP
             string rememberCheckbox = needsOtp
-                ? @"<label style='display:flex;align-items:center;gap:8px;margin-top:15px;font-size:12px;color:#B4B4B4;cursor:pointer'>
+                ? $@"<label style='display:flex;align-items:center;gap:8px;margin-top:15px;font-size:12px;color:#B4B4B4;cursor:pointer'>
                        <input type='checkbox' name='remember' value='1' style='accent-color:#4CC2FF;cursor:pointer' />
-                       Se souvenir de cet appareil pendant 30 jours
+                       {txtRemember}
                    </label>"
                 : "";
 
@@ -34,7 +47,7 @@ namespace NetMonitor.Service.Web
 
             string html = $@"<!DOCTYPE html>
         <html lang=""fr""><head><meta charset=""utf-8"">
-        <title>Connexion - NetMonitor</title>
+        <title>{txtTitle}</title>
         <style>
           body {{ font-family: Segoe UI, Arial, sans-serif; background: #1E1E1E; color: #E5E5E5;
                  display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }}
@@ -60,23 +73,23 @@ namespace NetMonitor.Service.Web
         </style></head><body>
         <div class=""card"">
           <h1>🔐 NetMonitor</h1>
-          <p class=""subtitle"">Machine : {WebUtility.HtmlEncode(System.Environment.MachineName)}</p>
+          <p class=""subtitle"">{txtMachine} {WebUtility.HtmlEncode(System.Environment.MachineName)}</p>
           {errorHtml}
           <form method=""post"" action=""/login"">
             <input type=""hidden"" name=""step"" value=""{step}"" />
             <input type=""hidden"" name=""original"" value=""{original}"" />
-            <label>Nom d'utilisateur</label>
+            <label>{txtUser}</label>
             <input type=""text"" name=""username"" autofocus required />
-            <label>Mot de passe</label>
+            <label>{txtPassword}</label>
             <input type=""password"" name=""password"" required />
             {otpField}
             {rememberCheckbox}
-            <input type=""submit"" value=""Se connecter"" style=""margin-top:15px"" />
+            <input type=""submit"" value=""{txtSubmit}"" style=""margin-top:15px"" />
           </form>
           <p class=""hint"">{(
               needsOtp
-                  ? "Un code OTP vous a été envoyé par email."
-                  : "Accès sécurisé — un code vous sera envoyé après validation."
+                  ? txtHintOtp
+                  : txtHintNoOtp
           )}</p>
         </div>
         </body></html>";
