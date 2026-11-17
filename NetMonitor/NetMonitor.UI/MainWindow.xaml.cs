@@ -223,7 +223,7 @@ namespace NetMonitor.UI
 
                 if (status == null)
                 {
-                    StatusText.Text = "Service NetMonitor non joignable";
+                    StatusText.Text = LanguageManager.Get("Service NetMonitor non joignable") ?? "Service NetMonitor non joignable";
                     StatusDot.Fill = new SolidColorBrush(Colors.OrangeRed);
                 }
                 else
@@ -596,7 +596,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "Erreur : " + ex.Message;
+                StatusText.Text = (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message;
             }
             finally
             {
@@ -828,7 +828,7 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show("Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(LanguageManager.Get("Échec du changement de sévérité.") ?? "Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             await RefreshSafe();
@@ -995,7 +995,7 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show("Échec de la révocation.", "NetMonitor",
+                MessageBox.Show(LanguageManager.Get("Échec de la révocation.") ?? "Échec de la révocation.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1007,7 +1007,7 @@ namespace NetMonitor.UI
         {
             if (_trustedDevices.Count == 0)
             {
-                MessageBox.Show("Aucun appareil à révoquer.", "NetMonitor",
+                MessageBox.Show(LanguageManager.Get("Aucun appareil à révoquer.") ?? "Aucun appareil à révoquer.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
@@ -1027,12 +1027,12 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show("Échec de la révocation totale.", "NetMonitor",
+                MessageBox.Show(LanguageManager.Get("Échec de la révocation totale.") ?? "Échec de la révocation totale.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            MessageBox.Show("Tous les appareils de confiance ont été révoqués.",
+            MessageBox.Show(LanguageManager.Get("Tous les appareils de confiance ont été révoqués.") ?? "Tous les appareils de confiance ont été révoqués.",
                 "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
 
             await RefreshTrustedDevicesAsync();
@@ -1344,7 +1344,7 @@ namespace NetMonitor.UI
             bool ok = await NetMonitorIpcClient.RemoveWhitelistEntryAsync(row.Path);
             if (!ok)
             {
-                MessageBox.Show("Échec du retrait.", "NetMonitor",
+                MessageBox.Show(LanguageManager.Get("Échec du retrait.") ?? "Échec du retrait.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1426,7 +1426,7 @@ namespace NetMonitor.UI
                     chkAutoBlockSubnet.IsChecked            = false;
                     chkDisableFilters.IsChecked             = false;
                     txtBlacklistLevel.Text                  = "3";
-                    lblBlacklistLastUpdate.Text             = "Dernière MAJ : inconnue";
+                    lblBlacklistLastUpdate.Text             = LanguageManager.Get("Dernière MAJ : inconnue") ?? "Dernière MAJ : inconnue";
                     chkBlockBots.IsChecked                  = false;
                     chkBlockCrawlers.IsChecked              = true;
                     chkGoogleIpRange.IsChecked              = true;
@@ -1463,7 +1463,7 @@ namespace NetMonitor.UI
                 if (cfg.blacklistLastUpdate != DateTime.MinValue)
                     lblBlacklistLastUpdate.Text = $"Dernière MAJ : {cfg.blacklistLastUpdate.ToLocalTime():dd/MM/yyyy HH:mm}";
                 else
-                    lblBlacklistLastUpdate.Text = "Dernière MAJ : inconnue";
+                    lblBlacklistLastUpdate.Text = LanguageManager.Get("Dernière MAJ : inconnue") ?? "Dernière MAJ : inconnue";
 
                 // ═══════════════════════════════════════════════════════════
                 //  Chargement des patterns dans les DataGrids
@@ -1681,7 +1681,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1827,7 +1827,7 @@ namespace NetMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show("Port invalide.", "Erreur",
+                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
@@ -1843,7 +1843,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -1880,7 +1880,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -1895,7 +1895,7 @@ namespace NetMonitor.UI
                 if (!Directory.Exists(logFolder)) Directory.CreateDirectory(logFolder);
                 Process.Start("explorer.exe", logFolder);
             }
-            catch (Exception ex) { MessageBox.Show("Impossible d'ouvrir le dossier Logs.\n" + ex.Message); }
+            catch (Exception ex) { MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message); }
         }
 
         private async void ExportPdf_Click(object sender, RoutedEventArgs e)
@@ -1905,7 +1905,7 @@ namespace NetMonitor.UI
                 string? base64 = await NetMonitorIpcClient.ExportPdfAsync();
                 if (string.IsNullOrEmpty(base64))
                 {
-                    MessageBox.Show("Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LanguageManager.Get("Erreur lors de la génération du PDF.") ?? "Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -1921,12 +1921,12 @@ namespace NetMonitor.UI
                 if (sfd.ShowDialog() == true)
                 {
                     File.WriteAllBytes(sfd.FileName, pdfBytes);
-                    MessageBox.Show("Rapport PDF enregistré avec succès.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                    MessageBox.Show(LanguageManager.Get("Rapport PDF enregistré avec succès.") ?? "Rapport PDF enregistré avec succès.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1952,7 +1952,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
                     "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -1973,7 +1973,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
                     "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -2014,14 +2014,14 @@ namespace NetMonitor.UI
         {
             try
             {
-                txtStatsLastUpdateActivity.Text = "Chargement...";
-                txtStatsLastUpdateGlobal.Text   = "Chargement...";
+                txtStatsLastUpdateActivity.Text = LanguageManager.Get("Chargement...") ?? "Chargement...";
+                txtStatsLastUpdateGlobal.Text   = LanguageManager.Get("Chargement...") ?? "Chargement...";
 
                 var stats = await NetMonitorIpcClient.GetStatsAsync();
                 if (stats == null)
                 {
-                    txtStatsLastUpdateActivity.Text = "Service non joignable";
-                    txtStatsLastUpdateGlobal.Text   = "Service non joignable";
+                    txtStatsLastUpdateActivity.Text = LanguageManager.Get("Service non joignable") ?? "Service non joignable";
+                    txtStatsLastUpdateGlobal.Text   = LanguageManager.Get("Service non joignable") ?? "Service non joignable";
                     return;
                 }
 
@@ -2030,27 +2030,27 @@ namespace NetMonitor.UI
                 // ═══════════════════════════════════════════════════════════════
                 if (stats.AutoBlockMode)
                 {
-                    txtStatsActiveSectionTitle.Text         = "IPs bloquées (24h)";
-                    txtStatsActiveTotalLabel.Text           = "IPs bloquées 24h";
-                    txtStatsActiveIpsLabel.Text             = "IPs distinctes";
-                    txtStatsActiveCountriesLabel.Text       = "Pays distincts";
-                    txtStatsActiveMapTitle.Text             = "Carte des IPs bloquées (24h)";
-                    txtStatsActiveTopIspsTitle.Text         = "Top FAI par pays (24h)";        
-                    txtStatsActiveIspsCountHeader.Header    = "IPs bloquées";                 
-                    txtStatsActiveCountriesTitle.Text       = "Répartition par pays (24h)";
-                    txtStatsActiveDetectorsTitle.Text       = "Répartition par détecteur (24h)";
+                    txtStatsActiveSectionTitle.Text         = LanguageManager.Get("IPs bloquées (24h)") ?? "IPs bloquées (24h)";
+                    txtStatsActiveTotalLabel.Text           = LanguageManager.Get("IPs bloquées 24h") ?? "IPs bloquées 24h";
+                    txtStatsActiveIpsLabel.Text             = LanguageManager.Get("IPs distinctes") ?? "IPs distinctes";
+                    txtStatsActiveCountriesLabel.Text       = LanguageManager.Get("Pays distincts") ?? "Pays distincts";
+                    txtStatsActiveMapTitle.Text             = LanguageManager.Get("Carte des IPs bloquées (24h)") ?? "Carte des IPs bloquées (24h)";
+                    txtStatsActiveTopIspsTitle.Text         = LanguageManager.Get("Top FAI par pays (24h)") ?? "Top FAI par pays (24h)";        
+                    txtStatsActiveIspsCountHeader.Header    = LanguageManager.Get("IPs bloquées") ?? "IPs bloquées";                 
+                    txtStatsActiveCountriesTitle.Text       = LanguageManager.Get("Répartition par pays (24h)") ?? "Répartition par pays (24h)";
+                    txtStatsActiveDetectorsTitle.Text       = LanguageManager.Get("Répartition par détecteur (24h)") ?? "Répartition par détecteur (24h)";
                 }
                 else
                 {
-                    txtStatsActiveSectionTitle.Text         = "En attente de traitement";
-                    txtStatsActiveTotalLabel.Text           = "Alertes actives";
-                    txtStatsActiveIpsLabel.Text             = "IPs actives";
-                    txtStatsActiveCountriesLabel.Text       = "Pays actives";
-                    txtStatsActiveMapTitle.Text             = "Carte des IPs actives";
-                    txtStatsActiveTopIspsTitle.Text         = "Top FAI par pays";              
-                    txtStatsActiveIspsCountHeader.Header    = "Alertes";                       
-                    txtStatsActiveCountriesTitle.Text       = "Répartition par pays (actives)";
-                    txtStatsActiveDetectorsTitle.Text       = "Répartition par détecteur (actives)";
+                    txtStatsActiveSectionTitle.Text         = LanguageManager.Get("En attente de traitement") ?? "En attente de traitement";
+                    txtStatsActiveTotalLabel.Text           = LanguageManager.Get("Alertes actives") ?? "Alertes actives";
+                    txtStatsActiveIpsLabel.Text             = LanguageManager.Get("IPs actives") ?? "IPs actives";
+                    txtStatsActiveCountriesLabel.Text       = LanguageManager.Get("Pays actives") ?? "Pays actives";
+                    txtStatsActiveMapTitle.Text             = LanguageManager.Get("Carte des IPs actives") ?? "Carte des IPs actives";
+                    txtStatsActiveTopIspsTitle.Text         = LanguageManager.Get("Top FAI par pays") ?? "Top FAI par pays";              
+                    txtStatsActiveIspsCountHeader.Header    = LanguageManager.Get("Alertes") ?? "Alertes";                       
+                    txtStatsActiveCountriesTitle.Text       = LanguageManager.Get("Répartition par pays (actives)") ?? "Répartition par pays (actives)";
+                    txtStatsActiveDetectorsTitle.Text       = LanguageManager.Get("Répartition par détecteur (actives)") ?? "Répartition par détecteur (actives)";
                 }
 
                 // ═══════════════════════════════════════════════════════
@@ -2183,7 +2183,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                string errText = "Erreur : " + ex.Message;
+                string errText = (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message;
                 txtStatsLastUpdateActivity.Text = errText;
                 txtStatsLastUpdateGlobal.Text   = errText;
             }
@@ -2823,7 +2823,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message,
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
                     "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
@@ -3254,7 +3254,7 @@ namespace NetMonitor.UI
 
                 if (!File.Exists(configPath))
                 {
-                    MessageBox.Show("NetMonitor.web.config introuvable.",
+                    MessageBox.Show(LanguageManager.Get("NetMonitor.web.config introuvable.") ?? "NetMonitor.web.config introuvable.",
                         "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
@@ -3319,7 +3319,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message,
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
                     "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

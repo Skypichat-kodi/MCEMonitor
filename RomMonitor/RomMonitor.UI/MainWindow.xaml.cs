@@ -206,7 +206,7 @@ namespace RomMonitor.UI
 
                 if (status == null)
                 {
-                    StatusText.Text = "Service RomMonitor non joignable";
+                    StatusText.Text = LanguageManager.Get("Service RomMonitor non joignable") ?? "Service RomMonitor non joignable";
                     SetStatusIcon("/Resources/Icons/warning.png");
                     return;
                 }
@@ -370,7 +370,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "Erreur IPC : " + ex.Message;
+                StatusText.Text = (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message;
                 SetStatusIcon("/Resources/Icons/warning.png");
             }
         }
@@ -401,14 +401,14 @@ namespace RomMonitor.UI
             try
             {
                 // 1) Demande au service de refaire un scan immédiatement
-                StatusText.Text = "Scan forcé en cours…";
+                StatusText.Text = LanguageManager.Get("Scan forcé en cours…") ?? "Scan forcé en cours…";
                 SetStatusIcon("/Resources/Icons/warning.png");
 
                 bool ok = await RomMonitorIpcClient.ForceScanAsync();
 
                 if (!ok)
                 {
-                    StatusText.Text = "Impossible de contacter le service RomMonitor.";
+                    StatusText.Text = LanguageManager.Get("Impossible de contacter le service RomMonitor.") ?? "Impossible de contacter le service RomMonitor.";
                     SetStatusIcon("/Resources/Icons/critical.png");
                     return;
                 }
@@ -426,7 +426,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "Erreur lors du scan forcé : " + ex.Message;
+                StatusText.Text = (LanguageManager.Get("Erreur lors du scan forcé :") ?? "Erreur lors du scan forcé :") + " " + ex.Message;
                 SetStatusIcon("/Resources/Icons/warning.png");
             }
         }
@@ -448,7 +448,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le dossier Logs.\n" + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
             }
         }
 
@@ -482,7 +482,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir l'historique.\n" + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
             }
         }
 
@@ -505,7 +505,7 @@ namespace RomMonitor.UI
                 if (ok)
                 {
                     _alerts.Clear();
-                    StatusText.Text = "Historique des alertes vidé.";
+                    StatusText.Text = LanguageManager.Get("Historique des alertes vidé.") ?? "Historique des alertes vidé.";
                 }
                 else
                 {
@@ -518,7 +518,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
         
@@ -605,7 +605,7 @@ namespace RomMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
@@ -621,7 +621,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -665,7 +665,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -768,28 +768,28 @@ namespace RomMonitor.UI
                 // 1) Validation numérique
                 if (!int.TryParse(txtInterval.Text.Trim(), out int interval) || interval < 15 || interval > 1440)
                 {
-                    MessageBox.Show("Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
+                    MessageBox.Show(LanguageManager.Get("Fréquence de contrôle : entier entre 15 et 1440 (minutes).") ?? "Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtWarnPct.Text.Trim(), out int warnPct) || warnPct < 5 || warnPct > 100)
                 {
-                    MessageBox.Show("Seuil warning : entier entre 5 et 100 (%).",
+                    MessageBox.Show(LanguageManager.Get("Seuil warning : entier entre 5 et 100 (%).") ?? "Seuil warning : entier entre 5 et 100 (%).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtCritPct.Text.Trim(), out int critPct) || critPct < 1 || critPct > 100)
                 {
-                    MessageBox.Show("Seuil critique : entier entre 1 et 100 (%).",
+                    MessageBox.Show(LanguageManager.Get("Seuil critique : entier entre 1 et 100 (%).") ?? "Seuil critique : entier entre 1 et 100 (%).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtCooldown.Text.Trim(), out int cooldown) || cooldown < 1 || cooldown > 168)
                 {
-                    MessageBox.Show("Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).",
+                    MessageBox.Show(LanguageManager.Get("Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).") ?? "Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -908,7 +908,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message,
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
                     "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

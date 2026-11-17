@@ -99,7 +99,7 @@ namespace SystemMonitor.UI
 
                 if (snap == null)
                 {
-                    StatusText.Text = "Service SystemMonitor non joignable";
+                    StatusText.Text = LanguageManager.Get("Service SystemMonitor non joignable") ?? "Service SystemMonitor non joignable";
                     return;
                 }
 
@@ -122,7 +122,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                StatusText.Text = "Erreur IPC : " + ex.Message;
+                StatusText.Text = (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message;
             }
             finally
             {
@@ -399,7 +399,7 @@ namespace SystemMonitor.UI
         // ------------------------------------------------------------
         private async void Refresh_Click(object sender, RoutedEventArgs e)
         {
-            StatusText.Text = "Rafraîchissement forcé...";
+            StatusText.Text = LanguageManager.Get("Rafraîchissement forcé...") ?? "Rafraîchissement forcé...";
 
             await SystemMonitorIpcClient.ForceScanAsync();
             await Task.Delay(500);
@@ -423,7 +423,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le dossier Logs.\n" + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
             }
         }
 
@@ -527,7 +527,7 @@ namespace SystemMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show("Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
@@ -543,7 +543,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -581,7 +581,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le navigateur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -617,7 +617,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir l'historique.\n" + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
             }
         }
 
@@ -641,7 +641,7 @@ namespace SystemMonitor.UI
                 {
                     _alerts.Clear();
                     _alertsHistory.Clear();
-                    StatusText.Text = "Historique des alertes vidé.";
+                    StatusText.Text = LanguageManager.Get("Historique des alertes vidé.") ?? "Historique des alertes vidé.";
                 }
                 else
                 {
@@ -654,7 +654,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -814,7 +814,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -845,8 +845,8 @@ namespace SystemMonitor.UI
             {
                 polyCpu.Points.Clear();
                 polyRam.Points.Clear();
-                txtCpuHistoMax.Text = "Max : 0 %";
-                txtRamHistoMax.Text = "Max : 0 %";
+                txtCpuHistoMax.Text = LanguageManager.Get("Max : 0 %") ?? "Max : 0 %";
+                txtRamHistoMax.Text = LanguageManager.Get("Max : 0 %") ?? "Max : 0 %";
                 return;
             }
 
@@ -928,7 +928,7 @@ namespace SystemMonitor.UI
                 {
                     _history.Clear();
                     DrawCharts();
-                    StatusText.Text = "Historique du graphique vidé.";
+                    StatusText.Text = LanguageManager.Get("Historique du graphique vidé.") ?? "Historique du graphique vidé.";
                 }
                 else
                 {
@@ -941,7 +941,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -994,7 +994,7 @@ namespace SystemMonitor.UI
                 if (ok)
                 {
                     _bsods.Clear();
-                    StatusText.Text = "Historique BSOD vidé.";
+                    StatusText.Text = LanguageManager.Get("Historique BSOD vidé.") ?? "Historique BSOD vidé.";
                 }
                 else
                 {
@@ -1007,7 +1007,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1031,7 +1031,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir le dossier.\n" + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier.") ?? "Impossible d'ouvrir le dossier.") + "\n" + ex.Message);
             }
         }
     }
