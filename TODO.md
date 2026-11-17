@@ -26,6 +26,13 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **Retour explicite quand le service refuse un forçage sévérité/origine**
+  - `/set-severity` et `/set-origin` répondent `302 → 200` même si `_engine.SetManualSeverity` / `SetBlockedIpOrigin` renvoient `false` (IP absente de `_blockedIps`, ou ligne de type « processus »)
+  - Conséquence côté page : rechargement, aucune modification visible, aucune explication
+  - Le journal est désormais véridique (`WebServer : échec changement sévérité de X`), mais l'utilisateur web ne le voit pas
+  - **Piste** : renvoyer un code 409 avec un message, et l'afficher dans la modale au lieu de recharger
+  - **Priorité** : 🟢 opportuniste
+
 - [x] **Vague C — Restaurer les règles par défaut sur la page Web** *(livré le 2026-11-17)*
   - Route `/restore-default-patterns` (POST) ajoutée dans `MiniHttpServer.cs`
   - Section « Zone de danger » + bouton `↺ Restaurer les règles à l'origine` + confirmation nommant les 5 listes dans `NetPage.html`
