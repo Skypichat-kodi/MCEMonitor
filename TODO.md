@@ -19,9 +19,10 @@ _(rien)_
   - **Restent en GET, volontairement** : `/download`, `/export-pdf` (génération, aucune destruction), `/logout`, et toutes les routes de lecture/API
   - **Nuance importante** : le CSRF inter-site est déjà bloqué par le cookie `SameSite=Strict` ; la correction est de la défense en profondeur (préchargement navigateur, F5 sur une URL mémorisée, futur assouplissement de `SameSite`)
 
-- [ ] **Vérifier les routes d'export/rapport** *(reste à faire)*
-  - `/export-pdf` (NetMonitor) et `/report` (MediaMonitor) restent en GET : read-only, mais ils coûtent du CPU et écrivent un fichier temporaire
-  - **Priorité** : 🟢 opportuniste
+- [x] **Vérifier les routes d'export/rapport** *(analysé le 2026-11-17 — aucune modification nécessaire)*
+  - `/export-pdf` (NetMonitor) : génère le PDF **en mémoire** (`MemoryStream` + `document.Save`), aucune écriture disque, puis le renvoie en `attachment`. Route authentifiée. Le `GET` est **le bon choix** : c'est un téléchargement déclenché par un simple lien `<a href="/export-pdf">`, qu'un `POST` casserait (il faudrait du JavaScript et un blob).
+  - `/report` (MediaMonitor) : construit un rapport HTML à partir de l'historique, en lecture seule. Route protégée par session (elle n'est pas dans la liste `isApiRoute`, donc elle passe par le contrôle de session). Aucun appelant dans le dépôt — route conservée pour un usage manuel.
+  - **Correction d'une affirmation précédente** : cet item indiquait qu'ils « écrivaient un fichier temporaire ». C'est faux : tout se fait en mémoire.
 
 ### 🟡 Planifié
 
@@ -41,14 +42,6 @@ _(rien)_
   - Vérifier qu'aucun `Password` n'apparaît en clair dans les logs Android (`adb logcat | Select-String "Password"`)
   - Vérifier que `ServerConfigStore.Save` ne persiste plus que des champs non sensibles
   - **Coût** : 30 min
-
-### 🟢 Opportuniste
-
-- [ ] **Ajouter les exclusions Defender** sur la machine W10 Q9550
-  - `Add-MpPreference -ExclusionPath "C:\ProgramData\MCEMonitor"`
-  - `Add-MpPreference -ExclusionProcess "NetMonitor.Service.exe"`
-  - `Add-MpPreference -ExclusionExtension ".sys"`
-  - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
 
 ---
 
@@ -113,6 +106,7 @@ _(rien)_
 #### Nettoyage / vérifications
 
 - [x] **Fichiers `.old`** : vérifié le 2026-11-17, aucun ne subsiste dans l'arborescence → item retiré de la liste des tâches
+- [x] **Item « exclusions Defender » retiré** : le blocage de `WinDivert64.sys` a été résolu dans l'installeur (déploiement contrôlé du pilote, plus d'écrasement d'un fichier chargé). Les exclusions ne sont plus nécessaires.
 
 #### Décision — bruit Mapsui (volontairement non corrigé)
 
