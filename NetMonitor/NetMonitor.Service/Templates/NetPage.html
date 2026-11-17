@@ -1026,6 +1026,16 @@
     </table>
 </div>
 
+<h2 class="h2-danger">
+    <span style="font-size:20px">⚠</span>
+    {{tr:Zone de danger}}
+</h2>
+<div class="action-bar" style="margin-bottom:10px">
+    <button type="button" id="btnRestorePatterns" class="action-btn danger">
+        ↺ {{tr:Restaurer les règles à l'origine}}
+    </button>
+</div>
+
 <div class="footer">
     {{tr:NetMonitor - Généré à}} {{LastUpdate}}
 </div>
@@ -1037,28 +1047,35 @@
 document.getElementById('btnClearActive').addEventListener('click', function(e) {
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider la liste des intrusions actives ?}}")) {
-        window.location.href = '/clear-active';
+        postAndReload('/clear-active');
     }
 });
 document.getElementById('btnClearHistory').addEventListener('click', function(e) {
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des intrusions ? Cette action est irréversible.}}")) {
-        window.location.href = '/clear-history';
+        postAndReload('/clear-history');
     }
 });
 document.getElementById('btnClearRetries').addEventListener('click', function(e) {
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider la liste des tentatives ?}}")) {
-        window.location.href = '/clear-blocked-retries';
+        postAndReload('/clear-blocked-retries');
     }
 });
 
 document.getElementById('btnClearAudit').addEventListener('click', function(e) {
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider l'historique d'audit ?}}")) {
-        window.location.href = '/clear-audit';
+        postAndReload('/clear-audit');
     }
 });
+
+// Les actions destructives passent en POST (le GET n'est plus accepté par le serveur)
+function postAndReload(url) {
+    fetch(url, { method: 'POST' })
+        .then(function () { location.reload(); })
+        .catch(function (err) { alert('Erreur de communication avec le service : ' + err.message); });
+}
 
 // ============================================================
 //  Sélection de ligne (équivalent du SelectedItem WPF)
@@ -1300,6 +1317,16 @@ document.getElementById('btnChangeOriginRetries').addEventListener('click', func
     var r = document.querySelector('input[name="retry-sel"]:checked');
     if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
     openOriginPicker(r.value);
+});
+
+document.getElementById('btnRestorePatterns').addEventListener('click', function() {
+    if (!confirm("{{tr:Restaurer les listes de règles à leurs valeurs d'origine ?}}" + "\n\n" +
+                 "{{tr:Les règles ajoutées manuellement (safe, critical, scanner, crawler, whitelist) seront supprimées et les IP bloquées seront réévaluées.}}"))
+        return;
+
+    fetch('/restore-default-patterns', { method: 'POST' })
+        .then(function () { location.reload(); })
+        .catch(function (e) { alert('Erreur de communication avec le service : ' + e.message); });
 });
 </script>
 

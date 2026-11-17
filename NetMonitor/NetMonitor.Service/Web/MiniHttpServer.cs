@@ -349,25 +349,26 @@ namespace NetMonitor.Service.Web
                         new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase });
                     SendJson(ctx, json);
                 }
-                else if (path == "/clear-active")
+                // ─── Routes destructives : POST obligatoire (pas de GET) ───
+                else if (path == "/clear-active" && ctx.Request.HttpMethod == "POST")
                 {
                     _engine.ClearActiveIntrusions();
                     CoreLog.Write("WebServer : intrusions actives purgées");
                     Redirect(ctx);
                 }
-                else if (path == "/clear-history")
+                else if (path == "/clear-history" && ctx.Request.HttpMethod == "POST")
                 {
                     _engine.ClearAlerts();
                     CoreLog.Write("WebServer : historique purgé");
                     Redirect(ctx);
                 }
-                else if (path == "/clear-audit")
+                else if (path == "/clear-audit" && ctx.Request.HttpMethod == "POST")
                 {
                     _engine.ClearAudit();
                     CoreLog.Write("WebServer : historique d'audit purgé");
                     Redirect(ctx);
                 }
-                else if (path == "/clear-blocked-retries")
+                else if (path == "/clear-blocked-retries" && ctx.Request.HttpMethod == "POST")
                 {
                     _engine.ClearBlockedIpRetries();
                     CoreLog.Write("WebServer : compteurs de tentatives purgés");
@@ -511,6 +512,18 @@ namespace NetMonitor.Service.Web
                     int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
 
                     CoreLog.Write($"WebServer : pattern '{value}' ajouté à '{list}' ({reclassified} IP(s) reclassée(s))");
+                    Redirect(ctx);
+                }
+                else if (path == "/restore-default-patterns" && ctx.Request.HttpMethod == "POST")
+                {
+                    // Même séquence que la commande IPC restore-default-patterns :
+                    // les patterns qui classaient certaines IP ont disparu, elles doivent
+                    // donc revenir à la sévérité de leur détecteur.
+                    _settings.RestoreDefaultPatterns();
+                    _engine.ReloadConfig();
+                    int reevaluated = _engine.ReevaluateAllBlockedIps();
+
+                    CoreLog.Write($"WebServer : patterns restaurés aux valeurs par défaut ({reevaluated} IP(s) réévaluée(s))");
                     Redirect(ctx);
                 }
                 else if (path == "/mark-safe" && ctx.Request.HttpMethod == "POST")
