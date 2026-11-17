@@ -393,7 +393,7 @@ namespace RomMonitor.Service.Web
 
                     SendJson(ctx, jsonDetail);
                 }
-                else if (path == "/clear-history")
+                else if (path == "/clear-history" && ctx.Request.HttpMethod == "POST")
                 {
                     try
                     {

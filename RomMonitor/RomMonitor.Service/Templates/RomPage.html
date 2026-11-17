@@ -300,7 +300,9 @@
 document.getElementById('btnClearHistory').addEventListener('click', function(e) {
     e.preventDefault();
     if (confirm("{{tr:Voulez-vous vraiment vider tout l'historique des alertes ? Cette action est irréversible.}}")) {
-        window.location.href = '/clear-history';
+        fetch('/clear-history', { method: 'POST' })
+            .then(function () { location.reload(); })
+            .catch(function (err) { alert('Erreur de communication avec le service : ' + err.message); });
     }
 });
 </script>

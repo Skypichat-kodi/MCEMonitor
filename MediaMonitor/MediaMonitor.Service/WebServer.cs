@@ -68,7 +68,7 @@ namespace MediaMonitor.Service
 
             // Actions
             _router.Map("/download", ctx => _downloadHandler.Download(ctx));
-            _router.Map("/purge",    ctx => _purgeHandler.Purge(ctx));
+            _router.Map("/purge",    ctx => RequirePost(ctx, () => _purgeHandler.Purge(ctx)));
             _router.Map("/logo",     ctx => _logoHandler.ServeAsync(ctx).GetAwaiter().GetResult());
             _router.Map("/ping",     ctx => HttpWriter.WriteHtml(ctx.Http, "pong"));
             _router.Map("/peers",    ctx => _apiHandler.Peers(ctx));
@@ -79,7 +79,7 @@ namespace MediaMonitor.Service
             _router.Map("/status",      ctx => _apiHandler.Status(ctx));
             _router.Map("/lastimage",   ctx => _apiHandler.LastImage(ctx));
             _router.Map("/report",      ctx => _apiHandler.Report(ctx));
-            _router.Map("/clear",       ctx => _apiHandler.Clear(ctx));
+            _router.Map("/clear",       ctx => RequirePost(ctx, () => _apiHandler.Clear(ctx)));
             _router.Map("/api/summary", ctx =>  ApiSummary(ctx));
             _router.Map("/api/detail",  ctx => ApiDetailHandler(ctx));
 
@@ -87,6 +87,23 @@ namespace MediaMonitor.Service
             _router.Map("/favicon.ico",               ctx => _resourceHandler.Favicon(ctx));
             _router.MapPrefix("/resources/icons/",    ctx => _resourceHandler.Icon(ctx));
             _router.MapPrefix("/resources/images/",   ctx => _resourceHandler.Image(ctx));
+        }
+
+        /// <summary>
+        /// Les actions destructives n'acceptent que POST : un GET (lien, préchargement,
+        /// historique du navigateur) ne doit jamais pouvoir purger des données.
+        /// Le routeur ne filtre pas les méthodes, le contrôle se fait donc ici.
+        /// </summary>
+        private static void RequirePost(HandlerContext ctx, Action action)
+        {
+            if (!string.Equals(ctx.Http.Request.HttpMethod, "POST", StringComparison.OrdinalIgnoreCase))
+            {
+                HttpWriter.WriteHtml(ctx.Http,
+                    "<html><body><h2>405 - Méthode non autorisée</h2></body></html>", 405);
+                return;
+            }
+
+            action();
         }
 
         public void ReloadSettings()

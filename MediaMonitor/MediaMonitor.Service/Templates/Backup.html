@@ -188,11 +188,13 @@
     <a href="/download" style="padding:6px 12px; background:#007acc; color:white; text-decoration:none; border-radius:4px;">
         {{tr:Télécharger}}
     </a>
-    <a href="/purge"
-       onclick="return confirm('{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?');"
-       style="padding:6px 12px; background:#cc3300; color:white; text-decoration:none; border-radius:4px;">
-       {{tr:Purger}}
-    </a>
+    <form method="post" action="/purge" style="margin:0"
+          onsubmit="return confirm('{{tr:Voulez-vous vraiment supprimer TOUTES les sauvegardes}} ?');">
+        <button type="submit"
+                style="padding:6px 12px; background:#cc3300; color:white; border:none; border-radius:4px; font-size:inherit; cursor:pointer;">
+            {{tr:Purger}}
+        </button>
+    </form>
     <a href="/" style="padding:6px 12px; background:#444; color:white; text-decoration:none; border-radius:4px;">
         {{tr:Retour}}
     </a>
