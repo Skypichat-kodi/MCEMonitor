@@ -83,7 +83,7 @@
 
 <div class="grid">
     <div class="card active">
-        <div class="title active"><span>🔥</span><span>Intrusions actives</span></div>
+        <div class="title active"><span>🔥</span><span>{{tr:Intrusions actives}}</span></div>
         <div id="map-active" class="map"></div>
         <div class="legend">
             <div class="li"><div class="lc" style="background:#ffffb2"></div>1</div>
@@ -94,7 +94,7 @@
     </div>
 
     <div class="card blocked">
-        <div class="title blocked"><span>🛡</span><span>IP bloquées</span></div>
+        <div class="title blocked"><span>🛡</span><span>{{tr:IP bloquées}}</span></div>
         <div id="map-blocked" class="map"></div>
         <div class="legend">
             <div class="li"><div class="lc" style="background:#e5f5e0"></div>1</div>
@@ -195,9 +195,9 @@
     // ⚠ PATCH : n'initialise QUE la carte visible (l'autre div est en display:none,
     // et Leaflet échouerait sur un conteneur de taille 0).
     if (mode === 'active') {
-        initMap('map-active', dataActive, paletteActive, 'Alertes actives', colorForActive);
+        initMap('map-active', dataActive, paletteActive, '{{tr:Alertes actives}}', colorForActive);
     } else {
-        initMap('map-blocked', dataBlocked, paletteBlocked, 'IP bloquées', colorForBlocked);
+        initMap('map-blocked', dataBlocked, paletteBlocked, '{{tr:IP bloquées}}', colorForBlocked);
     }
 })();
 </script>

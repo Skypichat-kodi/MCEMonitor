@@ -1172,7 +1172,7 @@ function changeSeverity(ip, currentSeverity, hasManual) {
         "3 → Safe        (vert clair - légitime connu)\n" +
         "4 → Trusted     (vert moyen - scanner connu)\n" +
         "5 → Whitelisted (vert foncé - ma whitelist)\n\n" +
-        "a → Auto (revenir à l'évaluation automatique)\n\n" +
+        "a → Auto ({{tr:revenir à l'évaluation automatique}})\n\n" +
         "Votre choix :";
 
     var choice = prompt(msg, "");
@@ -1187,7 +1187,7 @@ function changeSeverity(ip, currentSeverity, hasManual) {
         case "5": sev = "Whitelisted"; break;
         case "a": sev = "auto";        break;
         default:
-            alert("Choix invalide.");
+            alert("{{tr:Choix invalide.}}");
             return;
     }
 
@@ -1202,8 +1202,8 @@ function changeSeverity(ip, currentSeverity, hasManual) {
 }
 
 function markSafe(ip) {
-    if (!confirm("Marquer " + ip + " comme Safe (liste Microsoft vérifiée) ?\n\n" +
-                 "Cette alerte sera déplacée dans le tableau vert 'Alertes ignorées'."))
+    if (!confirm("{{tr:Marquer}} " + ip + " {{tr:comme Safe (liste Microsoft vérifiée) ?}}\n\n" +
+                 "{{tr:Cette alerte sera déplacée dans le tableau vert 'Alertes ignorées'.}}"))
         return;
 
     fetch('/mark-safe', {
@@ -1285,37 +1285,37 @@ document.getElementById('btnDismissProcess').addEventListener('click', dismissSe
 // ── Nouveaux boutons globaux ──
 document.getElementById('btnChangeSeverityBlocked').addEventListener('click', function() {
     var r = document.querySelector('input[name="blocked-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP bloquée.}}"); return; }
     openSeverityPicker(r.value);
 });
 
 document.getElementById('btnAddPatternBlocked').addEventListener('click', function() {
     var r = document.querySelector('input[name="blocked-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP bloquée.}}"); return; }
     openPatternPicker(r.value);
 });
 
 document.getElementById('btnChangeSeverityRetries').addEventListener('click', function() {
     var r = document.querySelector('input[name="retry-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP dans le tableau des interceptions.}}"); return; }
     openSeverityPicker(r.value);
 });
 
 document.getElementById('btnAddPatternRetries').addEventListener('click', function() {
     var r = document.querySelector('input[name="retry-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP dans le tableau des interceptions.}}"); return; }
     openPatternPicker(r.value);
 });
 
 document.getElementById('btnChangeOriginBlocked').addEventListener('click', function() {
     var r = document.querySelector('input[name="blocked-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP bloquée.}}"); return; }
     openOriginPicker(r.value);
 });
 
 document.getElementById('btnChangeOriginRetries').addEventListener('click', function() {
     var r = document.querySelector('input[name="retry-sel"]:checked');
-    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    if (!r) { alert("{{tr:Sélectionnez d'abord une IP dans le tableau des interceptions.}}"); return; }
     openOriginPicker(r.value);
 });
 
@@ -1547,21 +1547,21 @@ document.getElementById('btnRestorePatterns').addEventListener('click', function
 <div class="modal-overlay" id="modalSeverity">
     <div class="modal-window">
         <div class="modal-header">
-            <h3 class="modal-title">⚙ Forcer la sévérité (cette IP uniquement)</h3>
+            <h3 class="modal-title">⚙ {{tr:Forcer la sévérité (cette IP uniquement)}}</h3>
             <button type="button" class="modal-close" onclick="closeModal('modalSeverity')">✖</button>
         </div>
         <div class="modal-body">
             <p class="modal-ip" id="severityModalIp">IP : ...</p>
             <p class="modal-subtitle">
-                Cette action modifie uniquement cette IP (override manuel).
-                Pour créer une règle globale, utilisez le bouton 🏷️.
+                {{tr:Cette action modifie uniquement cette IP (override manuel). Pour créer une règle globale, utilisez le bouton 🏷️.}}
+
             </p>
             <div class="severity-grid" id="severityGrid">
                 <!-- Rempli dynamiquement en JS -->
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="modal-btn cancel" onclick="closeModal('modalSeverity')">Annuler</button>
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalSeverity')">{{tr:Annuler}}</button>
         </div>
     </div>
 </div>
@@ -1570,21 +1570,21 @@ document.getElementById('btnRestorePatterns').addEventListener('click', function
 <div class="modal-overlay" id="modalOrigin">
     <div class="modal-window">
         <div class="modal-header">
-            <h3 class="modal-title">🎯 Forcer l'origine (cette IP uniquement)</h3>
+            <h3 class="modal-title">🎯 {{tr:Forcer l'origine (cette IP uniquement)}}</h3>
             <button type="button" class="modal-close" onclick="closeModal('modalOrigin')">✖</button>
         </div>
         <div class="modal-body">
             <p class="modal-ip" id="originModalIp">IP : ...</p>
             <p class="modal-subtitle">
-                L'origine décrit QUI est cette IP — axe distinct de la sévérité, qui décrit le risque.
-                Cette action modifie uniquement cette IP.
+                {{tr:L'origine décrit QUI est cette IP — axe distinct de la sévérité, qui décrit le risque. Cette action modifie uniquement cette IP.}}
+
             </p>
             <div class="severity-grid" id="originGrid">
                 <!-- Rempli dynamiquement en JS -->
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="modal-btn cancel" onclick="closeModal('modalOrigin')">Annuler</button>
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalOrigin')">{{tr:Annuler}}</button>
         </div>
     </div>
 </div>
@@ -1595,67 +1595,67 @@ document.getElementById('btnRestorePatterns').addEventListener('click', function
 <div class="modal-overlay" id="modalPattern">
     <div class="modal-window" style="width: 500px;">
         <div class="modal-header">
-            <h3 class="modal-title">🏷️ Créer une règle de classification</h3>
+            <h3 class="modal-title">🏷️ {{tr:Créer une règle de classification}}</h3>
             <button type="button" class="modal-close" onclick="closeModal('modalPattern')">✖</button>
         </div>
         <div class="modal-body">
             <p class="modal-ip" id="patternModalIp">IP : ...</p>
 
             <div class="form-group">
-                <label class="form-label">Sur quelle valeur doit se baser la règle ?</label>
+                <label class="form-label">{{tr:Sur quelle valeur doit se baser la règle ?}}</label>
                 <div class="form-radio-group" id="patternValueGroup">
-                    <label class="form-radio"><input type="radio" name="patVal" value="isp"> ISP (Fournisseur d'accès) <span class="sev-desc" id="patValIsp"></span></label>
-                    <label class="form-radio"><input type="radio" name="patVal" value="org"> Organisation <span class="sev-desc" id="patValOrg"></span></label>
-                    <label class="form-radio"><input type="radio" name="patVal" value="reversedns"> Reverse DNS <span class="sev-desc" id="patValRdns"></span></label>
-                    <label class="form-radio"><input type="radio" name="patVal" value="ip"> IP complète (exacte) <span class="sev-desc" id="patValIp"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="isp"> {{tr:ISP (Fournisseur d'accès)}} <span class="sev-desc" id="patValIsp"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="org"> {{tr:Organisation}} <span class="sev-desc" id="patValOrg"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="reversedns"> {{tr:Reverse DNS}} <span class="sev-desc" id="patValRdns"></span></label>
+                    <label class="form-radio"><input type="radio" name="patVal" value="ip"> {{tr:IP complète (exacte)}} <span class="sev-desc" id="patValIp"></span></label>
                 </div>
             </div>
 
             <div class="form-preview">
-                <div class="preview-label">Valeur qui sera ajoutée :</div>
+                <div class="preview-label">{{tr:Valeur qui sera ajoutée :}}</div>
                 <div class="preview-value" id="patternPreviewValue">—</div>
             </div>
 
             <div class="form-group">
-                <label class="form-label">À quelle liste doit appartenir cette FUTURE règle ?</label>
+                <label class="form-label">{{tr:À quelle liste doit appartenir cette FUTURE règle ?}}</label>
                 <div class="form-radio-group">
                     <label class="form-radio"><input type="radio" name="patList" value="safe" checked>
                         <span style="width:14px;height:14px;background:#6CCB5F;border-radius:3px;display:inline-block"></span>
-                        Créer une règle Safe
-                        <span class="sev-desc">— Légitime connu</span>
+                        {{tr:Créer une règle Safe}}
+                        <span class="sev-desc">{{tr:— Légitime connu}}</span>
                     </label>
                     <label class="form-radio"><input type="radio" name="patList" value="critical">
                         <span style="width:14px;height:14px;background:#B71C1C;border-radius:3px;display:inline-block"></span>
-                        Créer une règle Critical
-                        <span class="sev-desc">— Malveillant avéré</span>
+                        {{tr:Créer une règle Critical}}
+                        <span class="sev-desc">{{tr:— Malveillant avéré}}</span>
                     </label>
                     <label class="form-radio"><input type="radio" name="patList" value="scanner">
                         <span style="width:14px;height:14px;background:#FDD835;border-radius:3px;display:inline-block"></span>
-                        Créer une règle Scanner
-                        <span class="sev-desc">— Scanner de recherche</span>
+                        {{tr:Créer une règle Scanner}}
+                        <span class="sev-desc">{{tr:— Scanner de recherche}}</span>
                     </label>
                     <label class="form-radio"><input type="radio" name="patList" value="crawler">
                         <span style="width:14px;height:14px;background:#1E88E5;border-radius:3px;display:inline-block"></span>
-                        Créer une règle Crawler
-                        <span class="sev-desc">— Robot d'exploration</span>
+                        {{tr:Créer une règle Crawler}}
+                        <span class="sev-desc">{{tr:— Robot d'exploration}}</span>
                     </label>
                     <label class="form-radio"><input type="radio" name="patList" value="whitelist">
                         <span style="width:14px;height:14px;background:#FFFFFF;border:1px solid #999;border-radius:3px;display:inline-block"></span>
-                        Créer une règle Whitelist
-                        <span class="sev-desc">— Ma whitelist</span>
+                        {{tr:Créer une règle Whitelist}}
+                        <span class="sev-desc">{{tr:— Ma whitelist}}</span>
                     </label>
                 </div>
             </div>
 
             <div class="form-warning">
-                <strong>⚠️ Attention : action sur le FUTUR</strong><br>
-                Ceci ne modifie <b>pas</b> la sévérité actuelle de cette IP.
-                Cela ajoute une règle globale pour les futures détections.
+                <strong>⚠️ {{tr:Attention : action sur le FUTUR}}</strong><br>
+                {{tr:Ceci ne modifie pas la sévérité actuelle de cette IP.}}
+                {{tr:Cela ajoute une règle globale pour les futures détections.}}
             </div>
         </div>
         <div class="modal-footer">
-            <button type="button" class="modal-btn cancel" onclick="closeModal('modalPattern')">✖ Annuler</button>
-            <button type="button" class="modal-btn danger" onclick="submitPattern()">Créer la règle</button>
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalPattern')">✖ {{tr:Annuler}}</button>
+            <button type="button" class="modal-btn danger" onclick="submitPattern()">{{tr:Créer la règle}}</button>
         </div>
     </div>
 </div>
@@ -1714,14 +1714,14 @@ function getIpData(ip) {
 //  POPUP SÉVÉRITÉ
 // ============================================================
 var SEVERITY_OPTIONS = [
-    { name: 'Critical',    color: '#FF6347', desc: 'Danger immédiat' },
-    { name: 'Warning',     color: '#FFB900', desc: 'À vérifier' },
-    { name: 'ToCheck',     color: '#E91E63', desc: 'En attente de vérification' },
-    { name: 'Crawler',     color: '#1E88E5', desc: "Robot d'exploration" },
-    { name: 'Bot',         color: '#5BC0EB', desc: 'Robot officiel (Googlebot...)' },
-    { name: 'Safe',        color: '#6CCB5F', desc: 'Légitime connu' },
-    { name: 'Trusted',     color: '#FDD835', desc: 'Scanner de recherche' },
-    { name: 'Whitelisted', color: '#2E7D32', desc: 'Ma whitelist' }
+    { name: 'Critical',    color: '#FF6347', desc: '{{tr:Danger immédiat}}' },
+    { name: 'Warning',     color: '#FFB900', desc: '{{tr:À vérifier}}' },
+    { name: 'ToCheck',     color: '#E91E63', desc: '{{tr:En attente de vérification}}' },
+    { name: 'Crawler',     color: '#1E88E5', desc: "{{tr:Robot d'exploration}}" },
+    { name: 'Bot',         color: '#5BC0EB', desc: '{{tr:Robot officiel (Googlebot...)}}' },
+    { name: 'Safe',        color: '#6CCB5F', desc: '{{tr:Légitime connu}}' },
+    { name: 'Trusted',     color: '#FDD835', desc: '{{tr:Scanner de recherche}}' },
+    { name: 'Whitelisted', color: '#2E7D32', desc: '{{tr:Ma whitelist}}' }
 ];
 
 function openSeverityPicker(ip) {
@@ -1746,7 +1746,7 @@ function openSeverityPicker(ip) {
     // Carte "Auto" en bas
     var auto = document.createElement('div');
     auto.className = 'severity-card auto';
-    auto.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 Revenir à l\'évaluation automatique</div>';
+    auto.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 {{tr:Revenir à l’évaluation automatique}}</div>';
     auto.onclick = function() {
         applySeverity(ip, 'auto');
     };
@@ -1783,12 +1783,12 @@ async function applySeverity(ip, severity) {
 //  MODALE ORIGINE
 // ============================================================
 var ORIGIN_OPTIONS = [
-    { name: 'Scanner',   color: '#A855F7', desc: 'Scanner de recherche' },
-    { name: 'Crawler',   color: '#1E88E5', desc: "Robot d'exploration" },
-    { name: 'Bot',       color: '#5BC0EB', desc: 'Robot officiel (Googlebot...)' },
-    { name: 'Microsoft', color: '#0078D4', desc: 'Plage Microsoft officielle' },
-    { name: 'Blacklist', color: '#8B0000', desc: 'Liste noire IPsum' },
-    { name: 'Whitelist', color: '#E0E0E0', desc: 'Ma whitelist' }
+    { name: 'Scanner',   color: '#A855F7', desc: '{{tr:Scanner de recherche}}' },
+    { name: 'Crawler',   color: '#1E88E5', desc: "{{tr:Robot d'exploration}}" },
+    { name: 'Bot',       color: '#5BC0EB', desc: '{{tr:Robot officiel (Googlebot...)}}' },
+    { name: 'Microsoft', color: '#0078D4', desc: '{{tr:Plage Microsoft officielle}}' },
+    { name: 'Blacklist', color: '#8B0000', desc: '{{tr:Liste noire IPsum}}' },
+    { name: 'Whitelist', color: '#E0E0E0', desc: '{{tr:Ma whitelist}}' }
 ];
 
 function openOriginPicker(ip) {
@@ -1812,7 +1812,7 @@ function openOriginPicker(ip) {
     // Carte "Auto" en bas
     var autoCard = document.createElement('div');
     autoCard.className = 'severity-card auto';
-    autoCard.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 Revenir à l\'évaluation automatique</div>';
+    autoCard.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 {{tr:Revenir à l’évaluation automatique}}</div>';
     autoCard.onclick = function() {
         applyOrigin(ip, 'auto');
     };
@@ -1835,7 +1835,7 @@ async function applyOrigin(ip, origin) {
             sessionStorage.removeItem('sel-retry-sel');
             location.reload();
         } else {
-            alert("Erreur : le service a refusé la modification de l'origine.");
+            alert("{{tr:Erreur : le service a refusé la modification de l'origine.}}");
         }
     } catch (e) {
         alert('Erreur de communication avec le service : ' + e.message);
