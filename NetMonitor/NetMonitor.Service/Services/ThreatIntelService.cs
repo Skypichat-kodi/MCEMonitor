@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net.Http;
@@ -32,7 +32,7 @@ namespace NetMonitor.Service.Services
             // 1. Charge la blacklist (manuelle + cache auto)
             LoadBlacklist();
 
-            // 2. Surveille le fichier manuel pour recharger ‡ chaud
+            // 2. Surveille le fichier manuel pour recharger √† chaud
             try
             {
                 var dir = Path.GetDirectoryName(_manualBlacklistFile);
@@ -42,7 +42,7 @@ namespace NetMonitor.Service.Services
                     _watcher = new FileSystemWatcher(dir, "blacklist.txt");
                     _watcher.NotifyFilter = NotifyFilters.LastWrite;
                     _watcher.Changed += (s, e) => {
-                        System.Threading.Thread.Sleep(500); // Laisse le temps au fichier d'Ítre Ècrit
+                        System.Threading.Thread.Sleep(500); // Laisse le temps au fichier d'√™tre √©crit
                         LoadBlacklist();
                     };
                     _watcher.EnableRaisingEvents = true;
@@ -53,17 +53,17 @@ namespace NetMonitor.Service.Services
                 CoreLog.Warn($"ThreatIntel Watcher : {ex.Message}");
             }
 
-            // 3. TÈlÈcharge la liste auto en arriËre-plan
+            // 3. T√©l√©charge la liste auto en arri√®re-plan
             _ = RefreshAutoBlacklistAsync();
 
-            // 4. RafraÓchit toutes les 24h
+            // 4. Rafra√Æchit toutes les 24h
             _refreshTimer = new Timer(async _ => await RefreshAutoBlacklistAsync(), null,
                 TimeSpan.FromHours(24), TimeSpan.FromHours(24));
         }
 
         /// <summary>
-        /// Charge la blacklist globale (manuel + auto) en mÈmoire.
-        /// AppelÈ au dÈmarrage et ‡ chaque modification de blacklist.txt.
+        /// Charge la blacklist globale (manuel + auto) en m√©moire.
+        /// Appel√© au d√©marrage et √† chaque modification de blacklist.txt.
         /// </summary>
         private void LoadBlacklist()
         {
@@ -76,7 +76,7 @@ namespace NetMonitor.Service.Services
                 {
                     File.WriteAllText(_manualBlacklistFile, 
                         "# Liste noire manuelle (une IP par ligne)\n" +
-                        "# Les IPs ajoutÈes ici sont bloquÈes par le dÈtecteur BlacklistIpDetector.\n");
+                        "# Les IPs ajout√©es ici sont bloqu√©es par le d√©tecteur BlacklistIpDetector.\n");
                 }
                 else
                 {
@@ -99,13 +99,13 @@ namespace NetMonitor.Service.Services
                     }
                 }
 
-                // --- 3. Met ‡ jour la liste globale ---
+                // --- 3. Met √† jour la liste globale ---
                 lock (_lock)
                 {
                     _blacklist = tempList;
                 }
 
-                CoreLog.Info($"ThreatIntel : {_blacklist.Count} IP chargÈes au total.");
+                CoreLog.Info($"ThreatIntel : {_blacklist.Count} IP charg√©es au total.");
             }
             catch (Exception ex)
             {
@@ -117,7 +117,7 @@ namespace NetMonitor.Service.Services
         {
             try
             {
-                CoreLog.Info("ThreatIntel : tÈlÈchargement de la liste IPsum (niveau 3)...");
+                CoreLog.Info("ThreatIntel : t√©l√©chargement de la liste IPsum (niveau 3)...");
                 string content = await _httpClient.GetStringAsync("https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt");
                 
                 var newIps = new HashSet<string>();
@@ -128,17 +128,17 @@ namespace NetMonitor.Service.Services
                         newIps.Add(ip);
                 }
 
-                // Sauvegarde locale pour les redÈmarrages hors-ligne
+                // Sauvegarde locale pour les red√©marrages hors-ligne
                 await File.WriteAllTextAsync(_autoBlacklistFile, string.Join("\n", newIps));
                 
                 // Recharge la blacklist globale (qui va fusionner manuel + auto)
                 LoadBlacklist();
                 
-                CoreLog.Info($"ThreatIntel : mise ‡ jour rÈussie. {newIps.Count} IP dans la liste auto.");
+                CoreLog.Info($"ThreatIntel : mise √† jour r√©ussie. {newIps.Count} IP dans la liste auto.");
             }
             catch (Exception ex)
             {
-                CoreLog.Warn($"ThreatIntel download ÈchouÈ : {ex.Message}. Utilisation du cache.");
+                CoreLog.Warn($"ThreatIntel download √©chou√© : {ex.Message}. Utilisation du cache.");
             }
         }
 
@@ -155,9 +155,9 @@ namespace NetMonitor.Service.Services
         }
 
         /// <summary>
-        /// LibËre le timer, le FileSystemWatcher et surtout le HttpClient.
-        /// Stop() ne libÈrait que le timer et le watcher : le client HTTP et son pool
-        /// de sockets restaient vivants jusqu‡ la fin du processus.
+        /// Lib√®re le timer, le FileSystemWatcher et surtout le HttpClient.
+        /// Stop() ne lib√©rait que le timer et le watcher : le client HTTP et son pool
+        /// de sockets restaient vivants jusqu√† la fin du processus.
         /// </summary>
         public void Dispose()
         {
