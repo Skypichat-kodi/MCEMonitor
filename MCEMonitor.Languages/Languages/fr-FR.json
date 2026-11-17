@@ -624,5 +624,21 @@
   "Net.PatternTagWhitelist": " — Sera étiqueté 'Ma whitelist'",
   "Net.PatternExplanation": "Ceci ne modifie PAS la sévérité de l'IP affichée ci-dessus. Cela ajoute une règle globale dans NetMonitor.config. Les futures alertes correspondant à ce pattern seront classées dans la liste choisie.",
   "Net.RevertToAuto": "Revenir à l'évaluation automatique",
-  "Net.RobotExplorationGeneric": " — Robot d'exploration générique"
+  "Net.RobotExplorationGeneric": " — Robot d'exploration générique",
+  "Net.AnalysisWindowSeconds": "Fenêtre d'analyse (s) :",
+  "Net.BeaconingHelp": "Détecte les communications régulières d'un malware vers un serveur de commande (C2). Un logiciel espion envoie souvent une requête toutes les X secondes. Plus le jitter est élevé, plus la détection est stricte.",
+  "Net.BlockIp": "Bloquer l'IP",
+  "Net.ClearAudit": "Vider l'audit",
+  "Net.ClearHistory": "Effacer l'historique",
+  "Net.CrawlerHelp": "Robots d'exploration génériques (Yandex, Baidu, Infrawatch...). Les IPs correspondantes seront marquées Crawler (bleu foncé) et bloquées si l'option est activée.",
+  "Net.ForceOrigin": "Forcer l'origine",
+  "Net.IgnoredNetworksHelp": "Réseaux ignorés (CIDR) : ces adresses ne déclencheront jamais d'alerte. Utile pour le loopback et les réseaux locaux.",
+  "Net.OpenFileLocation": "Ouvrir l'emplacement du fichier",
+  "Net.PatternsHelp": "Définissez ici les patterns qui déterminent l'étiquette (Safe, Critical, Scanner, Crawler) attribuée à une IP. Ces listes sont comparées à l'ISP, l'Org ou le reverse DNS.",
+  "Net.PendingProcesses": "Processus en attente d'examen",
+  "Net.RestorePatterns": "Restaurer les règles à l'origine",
+  "Net.ScannerHelp": "Scanners de recherche légitimes (Shodan, Censys, Palo Alto...). Les IPs correspondantes seront marquées Trusted (jaune) et bloquées si l'option est activée.",
+  "Net.TrustedDevicesHelp": "Ces appareils peuvent se connecter au Web sans OTP. Ils sont mémorisés pendant 30 jours. Révoquer un appareil le force à repasser l'OTP à sa prochaine connexion.",
+  "Net.WebHelp": "Permet de consulter les alertes depuis un navigateur Web (localhost ou réseau local). Désactivez-le si vous n'utilisez pas cette interface.",
+  "Net.WhitelistHelp": "Retirer un processus le fera réapparaître dans le tableau « Processus en attente » au prochain événement réseau. Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée."
 }

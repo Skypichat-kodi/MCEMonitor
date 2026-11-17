@@ -808,7 +808,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#FFB900" VerticalAlignment="Center"/>
-                            <TextBlock Text="Intrusions détectées" FontSize="14"
+                            <TextBlock Text="{loc:Tr 'Intrusions détectées'}" FontSize="14"
                                        FontWeight="SemiBold" Foreground="#4CC2FF"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -828,7 +828,7 @@
                                 </Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🚫" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Bloquer l'IP" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.BlockIp'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
@@ -842,20 +842,20 @@
                             <Button Width="160" Click="ClearActive_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Vider la liste" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Vider la liste'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="160" Click="OpenLogs_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📂" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Ouvrir les logs" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Ouvrir les logs'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Width="160" Click="ExportPdf_Click">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="📄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Exporter PDF" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Exporter PDF'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -953,10 +953,10 @@
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <ContentControl Content="{Binding}" ContentTemplate="{StaticResource SeverityBadgeTemplate}"/>
-                                                <Button Content="Safe ?" Margin="6,0,0,0" Padding="8,3" FontSize="11"
+                                                <Button Content="{loc:Tr 'Safe ?'}" Margin="6,0,0,0" Padding="8,3" FontSize="11"
                                                         MinWidth="52" MinHeight="22"
                                                         Click="MarkSafe_Click" Tag="{Binding RemoteIp}"
-                                                        ToolTip="Marquer comme Safe (liste Microsoft vérifiée)">
+                                                        ToolTip="{loc:Tr 'Marquer comme Safe (liste Microsoft vérifiée)'}">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                             <Setter Property="Background" Value="#3A7A33"/>
@@ -996,7 +996,7 @@
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
                                                     Width="22" Height="22"
-                                                    ToolTip="Voir les informations sur cette IP"
+                                                    ToolTip="{loc:Tr 'Voir les informations sur cette IP'}"
                                                     Content="i">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
@@ -1032,7 +1032,7 @@
                             <Button Click="ToggleActiveMore_Click"
                                     Background="Transparent" BorderThickness="0"
                                     Padding="8,2" Cursor="Hand"
-                                    ToolTip="Afficher toutes les lignes">
+                                    ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtActiveMoreLabel" Text="▼ 12 / 0"
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
@@ -1042,7 +1042,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🔍" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#4CC2FF" VerticalAlignment="Center"/>
-                            <TextBlock Text="Processus en attente d'examen" FontSize="14"
+                            <TextBlock Text="{loc:Tr 'Net.PendingProcesses'}" FontSize="14"
                                        FontWeight="SemiBold" Foreground="#4CC2FF"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -1062,7 +1062,7 @@
                                 </Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🚫" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Bloquer le processus" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Bloquer le processus'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Width="240" Click="WhitelistSelectedProcess_Click">
@@ -1079,7 +1079,7 @@
                                 </Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="✅" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Ajouter à la liste blanche" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Ajouter à la liste blanche'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Width="160" Click="DismissPendingProcess_Click" Margin="10,0,0,0">
@@ -1096,7 +1096,7 @@
                                 </Button.Style>
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="✖" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="#E5E5E5"/>
-                                    <TextBlock Text="Retirer de la liste" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Retirer de la liste'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>                            
                         </StackPanel>
@@ -1206,7 +1206,7 @@
                                         <DataTemplate>
                                             <Button Click="LookupProcess_Click" Tag="{Binding ProcessLookupUrl}"
                                                     Width="22" Height="22"
-                                                    ToolTip="Rechercher ce processus sur le web"
+                                                    ToolTip="{loc:Tr 'Rechercher ce processus sur le web'}"
                                                     Content="i">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
@@ -1224,7 +1224,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Chemin'}" SortMemberPath="ProcessPath" Width="*" MinWidth="250">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -1242,7 +1242,7 @@
                                                            MouseLeftButtonUp="OpenFileLocation_TextClick"/>
                                                 <Button Grid.Column="1" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
                                                         Cursor="Hand" Focusable="False"
-                                                        ToolTip="Ouvrir l'emplacement du fichier"
+                                                        ToolTip="{loc:Tr 'Net.OpenFileLocation'}"
                                                         Tag="{Binding ProcessPath}"
                                                         Click="OpenFileLocation_Click">
                                                     <Button.Style>
@@ -1266,7 +1266,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1274,7 +1274,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="IP distante" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="160"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP distante'}" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="160"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -1284,7 +1284,7 @@
                             <Button Click="TogglePendingMore_Click"
                                     Background="Transparent" BorderThickness="0"
                                     Padding="8,2" Cursor="Hand"
-                                    ToolTip="Afficher toutes les lignes">
+                                    ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtPendingMoreLabel" Text="▼ 12 / 0"
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
@@ -1294,7 +1294,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#FF6347" VerticalAlignment="Center"/>
-                            <TextBlock Text="IP et Processus bloqués" FontSize="14"
+                            <TextBlock Text="{loc:Tr 'IP et Processus bloqués'}" FontSize="14"
                                        FontWeight="SemiBold" Foreground="#FF6347"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -1303,27 +1303,27 @@
                             <Button Width="200" Click="UnblockSelected_Click">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🔓" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Débloquer" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Débloquer'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="180" Click="ChangeSeverity_Click" Margin="10,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Forcer la sévérité'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             
                             <Button Width="200" Click="AddPatternFromBlockedIp_Click" Margin="10,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                             <Button Width="180" Click="ChangeOrigin_Click" Margin="10,0,0,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>                                                        
                         </StackPanel>
@@ -1382,7 +1382,7 @@
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
-                                <DataGridTextColumn Header="Type" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="200" MinWidth="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1409,7 +1409,7 @@
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding Ip}"
                                                     Width="22" Height="22"
-                                                    ToolTip="Voir les informations sur cette IP (AbuseIPDB)"
+                                                    ToolTip="{loc:Tr 'Voir les informations sur cette IP (AbuseIPDB)'}"
                                                     Content="i">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
@@ -1445,7 +1445,7 @@
                             <Button Click="ToggleBlockedMore_Click"
                                     Background="Transparent" BorderThickness="0"
                                     Padding="8,2" Cursor="Hand"
-                                    ToolTip="Afficher toutes les lignes">
+                                    ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtBlockedMoreLabel" Text="▼ 12 / 0"
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
@@ -1495,25 +1495,25 @@
                         <Button Width="200" Click="ClearBlockedRetries_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Vider la liste" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Vider la liste'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>                        
                         <Button Width="180" Click="ChangeRetrySeverity_Click" Margin="10,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Forcer la sévérité'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Width="200" Click="AddPatternFromRetry_Click" Margin="10,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <Button Width="180" Click="ChangeRetryOrigin_Click" Margin="10,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>                                                
                     </StackPanel>
@@ -1634,7 +1634,7 @@
                                                 Tag="{Binding Ip}"
                                                 Width="22" Height="22"
                                                 Style="{StaticResource InfoButtonStyle}"
-                                                ToolTip="Voir les informations sur cette IP"
+                                                ToolTip="{loc:Tr 'Voir les informations sur cette IP'}"
                                                 Content="i"/>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
@@ -1663,7 +1663,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
                             <TextBlock Text="📜" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#4CC2FF" VerticalAlignment="Center"/>
-                            <TextBlock Text="Historique des intrusions" FontSize="14"
+                            <TextBlock Text="{loc:Tr 'Historique des intrusions'}" FontSize="14"
                                        FontWeight="SemiBold" Foreground="#4CC2FF"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -1672,28 +1672,28 @@
                             <Button Width="200" Click="ClearHistory_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Effacer l'historique" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.ClearHistory'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="180" Click="HistoryChangeSeverity_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Forcer la sévérité'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="200" Click="HistoryAddPattern_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -1755,7 +1755,7 @@
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
                                                     Width="22" Height="22"
-                                                    ToolTip="Voir les informations sur cette IP"
+                                                    ToolTip="{loc:Tr 'Voir les informations sur cette IP'}"
                                                     Content="i">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
@@ -1800,7 +1800,7 @@
                             <Button Click="ToggleHistoryMore_Click"
                                     Background="Transparent" BorderThickness="0"
                                     Padding="8,2" Cursor="Hand"
-                                    ToolTip="Afficher toutes les lignes">
+                                    ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtHistoryMoreLabel" Text="▼ 12 / 0"
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
@@ -1810,7 +1810,7 @@
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
                                        Foreground="#6CCB5F" VerticalAlignment="Center"/>
-                            <TextBlock Text="Alertes ignorées (IP de confiance)" FontSize="14"
+                            <TextBlock Text="{loc:Tr 'Alertes ignorées (IP de confiance)'}" FontSize="14"
                                        FontWeight="SemiBold" Foreground="#6CCB5F"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
@@ -1819,28 +1819,28 @@
                             <Button Width="200" Click="ClearAudit_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Vider l'audit" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.ClearAudit'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="180" Click="HistoryChangeSeverity_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙&#xFE0E;" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer la sévérité" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Forcer la sévérité'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="200" Click="HistoryAddPattern_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Créer une règle (futur)" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
 
                             <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="Forcer l'origine" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
@@ -1945,7 +1945,7 @@
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
                                                     Width="22" Height="22"
-                                                    ToolTip="Voir les informations sur cette IP"
+                                                    ToolTip="{loc:Tr 'Voir les informations sur cette IP'}"
                                                     Content="i">
                                                 <Button.Style>
                                                     <Style TargetType="Button" BasedOn="{StaticResource InfoButtonStyle}">
@@ -1974,7 +1974,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTemplateColumn Header="Chemin" SortMemberPath="ProcessPath" Width="*" MinWidth="200">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Chemin'}" SortMemberPath="ProcessPath" Width="*" MinWidth="200">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Grid>
@@ -1992,7 +1992,7 @@
                                                            MouseLeftButtonUp="OpenFileLocation_TextClick"/>
                                                 <Button Grid.Column="1" Width="22" Height="22" Padding="0" Margin="4,0,0,0"
                                                         Cursor="Hand" Focusable="False"
-                                                        ToolTip="Ouvrir l'emplacement du fichier"
+                                                        ToolTip="{loc:Tr 'Net.OpenFileLocation'}"
                                                         Tag="{Binding ProcessPath}"
                                                         Click="OpenFileLocation_Click">
                                                     <Button.Style>
@@ -2016,7 +2016,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="Raison" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="180" MinWidth="150">
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="180" MinWidth="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -2041,7 +2041,7 @@
                             <Button Click="ToggleAuditMore_Click"
                                     Background="Transparent" BorderThickness="0"
                                     Padding="8,2" Cursor="Hand"
-                                    ToolTip="Afficher toutes les lignes">
+                                    ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtAuditMoreLabel" Text="▼ 12 / 0"
                                            Foreground="#4CC2FF" FontSize="11"/>
                             </Button>
@@ -2100,7 +2100,7 @@
                             </Button.Style>
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🗑" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Retirer de la liste blanche" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Retirer de la liste blanche'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -2108,7 +2108,7 @@
                     <Border Grid.Row="2" Background="#252526" BorderBrush="#3C3C3C" BorderThickness="1"
                             CornerRadius="6" Padding="12,8" Margin="0,0,0,10">
                         <TextBlock TextWrapping="Wrap" FontSize="11" Foreground="#B4B4B4"
-                                   Text="ℹ  Retirer un processus le fera réapparaître dans le tableau « Processus en attente » au prochain événement réseau. Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée."/>
+                                   Text="ℹ  {loc:Tr 'Net.WhitelistHelp'}"/>
                     </Border>
 
                     <DataGrid x:Name="WhitelistGrid" Grid.Row="3"
@@ -2186,7 +2186,7 @@
                         <Button Width="160" Click="Refresh_Click">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="🔄" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                <TextBlock Text="Rafraîchir" VerticalAlignment="Center"/>
+                                <TextBlock Text="{loc:Tr 'Rafraîchir'}" VerticalAlignment="Center"/>
                             </StackPanel>
                         </Button>
                         <TextBlock x:Name="txtConnectionCount"
@@ -2260,7 +2260,7 @@
                                       Foreground="{StaticResource Win11Text}">
                                 <StackPanel>
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Permet de consulter les alertes depuis un navigateur Web (localhost ou réseau local). Désactivez-le si vous n'utilisez pas cette interface."/>
+                                               Text="{loc:Tr 'Net.WebHelp'}"/>
 
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -2394,7 +2394,7 @@
                                                     </ToggleButton.Style>
                                                 </ToggleButton>
                                                 <TextBlock Grid.Column="2" Margin="12,0,0,0"
-                                                           Text="Code envoyé par email."
+                                                           Text="{loc:Tr 'Code envoyé par email.'}"
                                                            FontSize="11" Foreground="#888" TextWrapping="Wrap"
                                                            VerticalAlignment="Center"/>
                                             </Grid>
@@ -2409,13 +2409,13 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="🔍" FontSize="16" Margin="0,0,8,0"
                                                    VerticalAlignment="Center"/>
-                                        <TextBlock Text="Scan de ports" FontSize="14"
+                                        <TextBlock Text="{loc:Tr 'Scan de ports'}" FontSize="14"
                                                    FontWeight="Bold" Foreground="#4CC2FF"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Détecte les scans de ports (comme nmap). Un pirate ou un bot teste plusieurs ports en peu de temps pour trouver des services ouverts. Ajustez le seuil selon votre tolérance."/>
+                                               Text="{loc:Tr 'Détecte les scans de ports (comme nmap). Un pirate ou un bot teste plusieurs ports en peu de temps pour trouver des services ouverts. Ajustez le seuil selon votre tolérance.'}"/>
 
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -2424,7 +2424,7 @@
                                         </Grid.ColumnDefinitions>
 
                                         <StackPanel Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="Fenêtre d'analyse (s) :"
+                                            <TextBlock Text="{loc:Tr 'Net.AnalysisWindowSeconds'}"
                                                        Width="220" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtPortScanWindow"
                                                      Width="100"
@@ -2433,7 +2433,7 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="Seuil de ports distincts :"
+                                            <TextBlock Text="{loc:Tr 'Seuil de ports distincts :'}"
                                                        Width="220" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtPortScanThreshold"
                                                      Width="100"
@@ -2450,13 +2450,13 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="📡" FontSize="16" Margin="0,0,8,0"
                                                    VerticalAlignment="Center"/>
-                                        <TextBlock Text="Beaconing (C2)" FontSize="14"
+                                        <TextBlock Text="{loc:Tr 'Beaconing (C2)'}" FontSize="14"
                                                    FontWeight="Bold" Foreground="#4CC2FF"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Détecte les communications régulières d'un malware vers un serveur de commande (C2). Un logiciel espion envoie souvent une requête toutes les X secondes. Plus le jitter est élevé, plus la détection est stricte."/>
+                                               Text="{loc:Tr 'Net.BeaconingHelp'}"/>
 
                                     <Grid>
                                         <Grid.ColumnDefinitions>
@@ -2469,7 +2469,7 @@
                                         </Grid.RowDefinitions>
 
                                         <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="Fenêtre d'analyse (s) :"
+                                            <TextBlock Text="{loc:Tr 'Net.AnalysisWindowSeconds'}"
                                                        Width="220" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtBeaconWindow"
                                                      Width="100"
@@ -2478,7 +2478,7 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,0,0,10">
-                                            <TextBlock Text="Hits minimum :"
+                                            <TextBlock Text="{loc:Tr 'Hits minimum :'}"
                                                        Width="220" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtBeaconHits"
                                                      Width="100"
@@ -2487,7 +2487,7 @@
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
-                                            <TextBlock Text="Jitter max (%) :"
+                                            <TextBlock Text="{loc:Tr 'Jitter max (%) :'}"
                                                        Width="220" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtBeaconJitter"
                                                      Width="100"
@@ -2504,16 +2504,16 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
                                                    VerticalAlignment="Center"/>
-                                        <TextBlock Text="Blocage automatique" FontSize="14"
+                                        <TextBlock Text="{loc:Tr 'Blocage automatique'}" FontSize="14"
                                                    FontWeight="Bold" Foreground="#4CC2FF"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Choisissez ce que le pare-feu doit bloquer automatiquement. Pour un serveur privé, cochez les 3 cases. Les services de confiance (Microsoft, Google, Windows) sont toujours exclus, pour ne pas casser votre système."/>
+                                               Text="{loc:Tr 'Choisissez ce que le pare-feu doit bloquer automatiquement. Pour un serveur privé, cochez les 3 cases. Les services de confiance (Microsoft, Google, Windows) sont toujours exclus, pour ne pas casser votre système.'}"/>
 
                                     <CheckBox x:Name="chkAutoBlock"
-                                              Content="Activer le blocage automatique (interrupteur principal)"
+                                              Content="{loc:Tr 'Activer le blocage automatique (interrupteur principal)'}"
                                               Foreground="#E5E5E5"
                                               FontWeight="Bold"
                                               Margin="0,0,0,15"/>
@@ -2521,45 +2521,45 @@
                                     <CheckBox x:Name="chkAutoBlockCritical"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource DotCritical}"
-                                              Content="Bloquer les menaces critiques"/>
+                                              Content="{loc:Tr 'Bloquer les menaces critiques'}"/>
 
                                     <CheckBox x:Name="chkAutoBlockWarning"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource DotWarning}"
-                                              Content="Bloquer les menaces inconnues"/>
+                                              Content="{loc:Tr 'Bloquer les menaces inconnues'}"/>
 
                                     <CheckBox x:Name="chkAutoBlockSubnet"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource DotSubnet}"
-                                              Content="Bloquer les scanners de recherche"/>
+                                              Content="{loc:Tr 'Bloquer les scanners de recherche'}"/>
 
                                     <CheckBox x:Name="chkBlockBots"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource DotBot}"
-                                              Content="Bloquer les robots officiels (Googlebot, Bingbot...)"
+                                              Content="{loc:Tr 'Bloquer les robots officiels (Googlebot, Bingbot...)'}"
                                               Margin="0,0,0,8"/>
 
                                     <CheckBox x:Name="chkBlockCrawlers"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource DotCrawler}"
-                                              Content="Bloquer les robots génériques (Yandex, Baidu...)"
+                                              Content="{loc:Tr 'Bloquer les robots génériques (Yandex, Baidu...)'}"
                                               Margin="0,0,0,8"/>
 
                                     <!-- Listes officielles (Microsoft + Google) -->
                                     <Border Background="#1A1A1A" BorderBrush="#3C3C3C" BorderThickness="1"
                                             CornerRadius="4" Padding="12" Margin="0,10,0,10">
                                         <StackPanel>
-                                            <TextBlock Text="Listes officielles" FontSize="12"
+                                            <TextBlock Text="{loc:Tr 'Listes officielles'}" FontSize="12"
                                                        FontWeight="SemiBold" Foreground="#4CC2FF"
                                                        Margin="0,0,0,8"/>
 
                                             <!-- Microsoft -->
                                             <CheckBox x:Name="chkMicrosoftIpRange"
-                                                      Content="Utiliser la liste officielle Microsoft (services vérifiés)"
+                                                      Content="{loc:Tr 'Utiliser la liste officielle Microsoft (services vérifiés)'}"
                                                       Foreground="#E5E5E5" Margin="0,0,0,5"/>
 
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
-                                                <TextBlock Text="Rafraîchir la liste Microsoft toutes les (h) :"
+                                                <TextBlock Text="{loc:Tr 'Rafraîchir la liste Microsoft toutes les (h) :'}"
                                                            Width="280" VerticalAlignment="Center"/>
                                                 <TextBox x:Name="txtMicrosoftIpRangeRefreshHours" Width="80"
                                                          Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
@@ -2567,11 +2567,11 @@
 
                                             <!-- Google -->
                                             <CheckBox x:Name="chkGoogleIpRange"
-                                                      Content="Utiliser la liste officielle Google (crawlers vérifiés)"
+                                                      Content="{loc:Tr 'Utiliser la liste officielle Google (crawlers vérifiés)'}"
                                                       Foreground="#E5E5E5" Margin="0,0,0,5"/>
 
                                             <StackPanel Orientation="Horizontal" Margin="0,0,0,0">
-                                                <TextBlock Text="Rafraîchir la liste Google toutes les (h) :"
+                                                <TextBlock Text="{loc:Tr 'Rafraîchir la liste Google toutes les (h) :'}"
                                                            Width="280" VerticalAlignment="Center"/>
                                                 <TextBox x:Name="txtGoogleIpRangeRefreshHours" Width="80"
                                                          Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
@@ -2579,7 +2579,7 @@
                                         </StackPanel>
                                     </Border>
 
-                                    <TextBlock Text="Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows."
+                                    <TextBlock Text="{loc:Tr 'Les IPs des services de confiance (Microsoft, Google, etc.) ne sont jamais bloquées automatiquement, pour garantir le bon fonctionnement de Windows.'}"
                                                FontSize="11"
                                                Foreground="#888"
                                                TextWrapping="Wrap"/>
@@ -2598,17 +2598,17 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="🌐" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Filtres réseau" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Filtres réseau'}" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Réseaux ignorés (CIDR) : ces adresses ne déclencheront jamais d'alerte. Utile pour le loopback et les réseaux locaux."/>
+                                               Text="{loc:Tr 'Net.IgnoredNetworksHelp'}"/>
                                     <DataGrid x:Name="GridIgnoredNetworks" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                               HeadersVisibility="Column" MinHeight="80" MaxHeight="150" Margin="0,0,0,10">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="Réseau (CIDR)" Binding="{Binding Value}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Réseau (CIDR)'}" Binding="{Binding Value}" Width="*"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
-                                    <Button Content="➕ Ajouter un réseau" Width="180" HorizontalAlignment="Left" Click="AddIgnoredNetwork_Click"/>
+                                    <Button Content="{loc:Tr '➕ Ajouter un réseau'}" Width="180" HorizontalAlignment="Left" Click="AddIgnoredNetwork_Click"/>
                                 </StackPanel>
                             </Border>
 
@@ -2617,10 +2617,10 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="⚖" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Classification des IPs" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Classification des IPs'}" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Définissez ici les patterns qui déterminent l'étiquette (Safe, Critical, Scanner, Crawler) attribuée à une IP. Ces listes sont comparées à l'ISP, l'Org ou le reverse DNS."/>
+                                               Text="{loc:Tr 'Net.PatternsHelp'}"/>
 
                                     <TabControl Background="Transparent" BorderThickness="0">
                                         <TabControl.Resources>
@@ -2646,73 +2646,73 @@
                                             </Style>
                                         </TabControl.Resources>
 
-                                        <TabItem Header="✅ Safe">
+                                        <TabItem Header="{loc:Tr '✅ Safe'}">
                                             <StackPanel Margin="0,10,0,0">
                                                 <TextBlock Style="{StaticResource DescriptionText}"
-                                                           Text="Domaines et ISP légitimes (Microsoft, Google, Cloudflare...). Les IPs correspondantes seront marquées Safe (vert)."/>
+                                                           Text="{loc:Tr 'Domaines et ISP légitimes (Microsoft, Google, Cloudflare...). Les IPs correspondantes seront marquées Safe (vert).'}"/>
                                                 <DataGrid x:Name="GridSafePatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Pattern (ex: microsoft.com)" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: microsoft.com)'}" Binding="{Binding Value}" Width="*"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
-                                                <Button Content="➕ Ajouter un pattern Safe" Width="200" HorizontalAlignment="Left" Click="AddSafePattern_Click"/>
+                                                <Button Content="{loc:Tr '➕ Ajouter un pattern Safe'}" Width="200" HorizontalAlignment="Left" Click="AddSafePattern_Click"/>
                                             </StackPanel>
                                         </TabItem>
 
-                                        <TabItem Header="🚨 Critical">
+                                        <TabItem Header="{loc:Tr '🚨 Critical'}">
                                             <StackPanel Margin="0,10,0,0">
                                                 <TextBlock Style="{StaticResource DescriptionText}"
-                                                           Text="Domaines et ISP connus pour être malveillants (bulletproof hosting, etc.). Les IPs correspondantes seront marquées Critical (rouge)."/>
+                                                           Text="{loc:Tr 'Domaines et ISP connus pour être malveillants (bulletproof hosting, etc.). Les IPs correspondantes seront marquées Critical (rouge).'}"/>
                                                 <DataGrid x:Name="GridCriticalPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Pattern (ex: infrawat.ch)" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: infrawat.ch)'}" Binding="{Binding Value}" Width="*"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
-                                                <Button Content="➕ Ajouter un pattern Critical" Width="200" HorizontalAlignment="Left" Click="AddCriticalPattern_Click"/>
+                                                <Button Content="{loc:Tr '➕ Ajouter un pattern Critical'}" Width="200" HorizontalAlignment="Left" Click="AddCriticalPattern_Click"/>
                                             </StackPanel>
                                         </TabItem>
 
-                                        <TabItem Header="🔍 Scanner">
+                                        <TabItem Header="{loc:Tr '🔍 Scanner'}">
                                             <StackPanel Margin="0,10,0,0">
                                                 <TextBlock Style="{StaticResource DescriptionText}"
-                                                           Text="Scanners de recherche légitimes (Shodan, Censys, Palo Alto...). Les IPs correspondantes seront marquées Trusted (jaune) et bloquées si l'option est activée."/>
+                                                           Text="{loc:Tr 'Net.ScannerHelp'}"/>
                                                 <DataGrid x:Name="GridScannerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Pattern (ex: shodan.io)" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: shodan.io)'}" Binding="{Binding Value}" Width="*"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
-                                                <Button Content="➕ Ajouter un pattern Scanner" Width="200" HorizontalAlignment="Left" Click="AddScannerPattern_Click"/>
+                                                <Button Content="{loc:Tr '➕ Ajouter un pattern Scanner'}" Width="200" HorizontalAlignment="Left" Click="AddScannerPattern_Click"/>
                                             </StackPanel>
                                         </TabItem>
 
-                                        <TabItem Header="🤖 Crawler">
+                                        <TabItem Header="{loc:Tr '🤖 Crawler'}">
                                             <StackPanel Margin="0,10,0,0">
                                                 <TextBlock Style="{StaticResource DescriptionText}"
-                                                           Text="Robots d'exploration génériques (Yandex, Baidu, Infrawatch...). Les IPs correspondantes seront marquées Crawler (bleu foncé) et bloquées si l'option est activée."/>
+                                                           Text="{loc:Tr 'Net.CrawlerHelp'}"/>
                                                 <DataGrid x:Name="GridCrawlerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Pattern (ex: yandex.com)" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: yandex.com)'}" Binding="{Binding Value}" Width="*"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
-                                                <Button Content="➕ Ajouter un pattern Crawler" Width="200" HorizontalAlignment="Left" Click="AddCrawlerPattern_Click"/>
+                                                <Button Content="{loc:Tr '➕ Ajouter un pattern Crawler'}" Width="200" HorizontalAlignment="Left" Click="AddCrawlerPattern_Click"/>
                                             </StackPanel>
                                         </TabItem>
 
-                                        <TabItem Header="⭐ Whitelist">
+                                        <TabItem Header="{loc:Tr '⭐ Whitelist'}">
                                             <StackPanel Margin="0,10,0,0">
                                                 <TextBlock Style="{StaticResource DescriptionText}"
-                                                           Text="Patterns personnels. Les IPs correspondantes seront marquées Whitelisted (blanc) et ignorées."/>
+                                                           Text="{loc:Tr 'Patterns personnels. Les IPs correspondantes seront marquées Whitelisted (blanc) et ignorées.'}"/>
                                                 <DataGrid x:Name="GridWhitelistPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
                                                         <DataGridTextColumn Header="Pattern" Binding="{Binding Value}" Width="*"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
-                                                <Button Content="➕ Ajouter un pattern Whitelist" Width="200" HorizontalAlignment="Left" Click="AddWhitelistPattern_Click"/>
+                                                <Button Content="{loc:Tr '➕ Ajouter un pattern Whitelist'}" Width="200" HorizontalAlignment="Left" Click="AddWhitelistPattern_Click"/>
                                             </StackPanel>
                                         </TabItem>
                                     </TabControl>
@@ -2724,13 +2724,13 @@
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
                                         <TextBlock Text="🛡️" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Threat Intelligence" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Threat Intelligence'}" FontSize="14" FontWeight="Bold" Foreground="#4CC2FF" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <TextBlock Text="Niveau Blacklist IPsum (1-6) :" Width="250" VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Niveau Blacklist IPsum (1-6) :'}" Width="250" VerticalAlignment="Center"/>
                                         <TextBox x:Name="txtBlacklistLevel" Width="80" Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
                                     </StackPanel>
-                                    <TextBlock x:Name="lblBlacklistLastUpdate" Foreground="#888" FontSize="11" Text="Dernière MAJ : inconnue" Margin="0,0,0,5"/>
+                                    <TextBlock x:Name="lblBlacklistLastUpdate" Foreground="#888" FontSize="11" Text="{loc:Tr 'Dernière MAJ : inconnue'}" Margin="0,0,0,5"/>
                                 </StackPanel>
                             </Border>
 
@@ -2738,14 +2738,14 @@
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15" BorderBrush="#FF6347">
                                 <StackPanel>
                                     <CheckBox x:Name="chkDisableFilters"
-                                              Content="Mode Debug : Désactiver les filtres et whitelists"
+                                              Content="{loc:Tr 'Mode Debug : Désactiver les filtres et whitelists'}"
                                               Foreground="#FF6347"
                                               FontWeight="Bold"
                                               Margin="0,0,0,5"
                                               Checked="ChkDisableFilters_Checked"
                                               Unchecked="ChkDisableFilters_Unchecked"/>
                                     <TextBlock x:Name="lblDisableFiltersWarning"
-                                               Text="⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs."
+                                               Text="{loc:Tr '⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs.'}"
                                                Foreground="#FF6347"
                                                FontSize="11"
                                                TextWrapping="Wrap"
@@ -2761,13 +2761,13 @@
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
                                                    Foreground="#FF6347" VerticalAlignment="Center"/>
-                                        <TextBlock Text="Zone de danger" FontSize="14"
+                                        <TextBlock Text="{loc:Tr 'Zone de danger'}" FontSize="14"
                                                    FontWeight="Bold" Foreground="#FF6347"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
                                     <TextBlock Style="{StaticResource DescriptionText}"
-                                               Text="Actions irréversibles. À utiliser uniquement en cas de problème majeur ou avant un redémarrage complet de votre configuration réseau."/>
+                                               Text="{loc:Tr 'Actions irréversibles. À utiliser uniquement en cas de problème majeur ou avant un redémarrage complet de votre configuration réseau.'}"/>
 
                                     <Button x:Name="btnClearAllBlockedIps"
                                             Width="320" Height="34"
@@ -2787,7 +2787,7 @@
                                         </Button.Style>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="🔓" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Libérer toutes les IP bloquées" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Tr 'Libérer toutes les IP bloquées'}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>
                                     
@@ -2809,7 +2809,7 @@
                                         </Button.Style>
                                         <StackPanel Orientation="Horizontal">
                                             <TextBlock Text="↺" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
-                                            <TextBlock Text="Restaurer les règles à l'origine" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{loc:Tr 'Net.RestorePatterns'}" VerticalAlignment="Center"/>
                                         </StackPanel>
                                     </Button>                                    
                                 </StackPanel>
@@ -2822,7 +2822,7 @@
                                     Margin="0,10,0,0"
                                     HorizontalAlignment="Left"
                                     Click="btnSaveSettings_Click"
-                                    ToolTip="Enregistrer les réglages dans NetMonitor.config"/>
+                                    ToolTip="{loc:Tr 'Enregistrer les réglages dans NetMonitor.config'}"/>
 
                         </StackPanel>
                     </Grid>
@@ -2849,7 +2849,7 @@
                     <Border Grid.Row="0" Background="#252526" BorderBrush="#3C3C3C"
                             BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12">
                         <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="#B4B4B4"
-                                   Text="ℹ  Ces appareils peuvent se connecter au Web sans OTP. Ils sont mémorisés pendant 30 jours. Révoquer un appareil le force à repasser l'OTP à sa prochaine connexion."/>
+                                   Text="ℹ  {loc:Tr 'Net.TrustedDevicesHelp'}"/>
                     </Border>
 
                     <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,12">
@@ -2907,7 +2907,7 @@
                                     <DataTemplate>
                                         <Button Click="RevokeTrustedDevice_Click" Tag="{Binding Fingerprint}"
                                                 Width="80" Height="24"
-                                                ToolTip="Révoquer cet appareil">
+                                                ToolTip="{loc:Tr 'Révoquer cet appareil'}">
                                             <Button.Style>
                                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
                                                     <Setter Property="Background" Value="#CC3300"/>
@@ -2922,7 +2922,7 @@
                                             </Button.Style>
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="🗑" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
-                                                <TextBlock Text="Révoquer" FontSize="11" VerticalAlignment="Center"/>
+                                                <TextBlock Text="{loc:Tr 'Révoquer'}" FontSize="11" VerticalAlignment="Center"/>
                                             </StackPanel>
                                         </Button>
                                     </DataTemplate>
@@ -3077,7 +3077,7 @@
 
                                         <!-- Top FAI par pays -->
                                         <TextBlock x:Name="txtStatsActiveTopIspsTitle"
-                                                   Text="Top FAI par pays" FontSize="12"
+                                                   Text="{loc:Tr 'Top FAI par pays'}" FontSize="12"
                                                    FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsActiveIspsGrid" MinHeight="120" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
@@ -3085,7 +3085,7 @@
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
-                                                <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="Alertes" Binding="{Binding Count}" Width="100"/>
+                                                <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="100"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3268,7 +3268,7 @@
                                         </TabControl>
 
                                         <!-- Top FAI par pays (depuis le début) -->
-                                        <TextBlock Text="Top FAI par pays (depuis le début)" FontSize="12"
+                                        <TextBlock Text="{loc:Tr 'Top FAI par pays (depuis le début)'}" FontSize="12"
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsBlockedIspsGrid" MinHeight="120" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"

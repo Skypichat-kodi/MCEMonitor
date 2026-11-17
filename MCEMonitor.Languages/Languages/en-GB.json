@@ -579,5 +579,21 @@
   "Net.PatternTagWhitelist": " — Will be tagged 'My whitelist'",
   "Net.PatternExplanation": "This does NOT change the severity of the IP shown above. It adds a global rule in NetMonitor.config. Future alerts matching this pattern will be classified in the chosen list.",
   "Net.RevertToAuto": "Back to automatic evaluation",
-  "Net.RobotExplorationGeneric": " — Generic crawler"
+  "Net.RobotExplorationGeneric": " — Generic crawler",
+  "Net.AnalysisWindowSeconds": "Analysis window (s):",
+  "Net.BeaconingHelp": "Detects regular malware communications to a command-and-control server (C2). Spyware often sends a request every X seconds. The higher the jitter, the stricter the detection.",
+  "Net.BlockIp": "Block the IP",
+  "Net.ClearAudit": "Clear audit",
+  "Net.ClearHistory": "Clear history",
+  "Net.CrawlerHelp": "Generic crawlers (Yandex, Baidu, Infrawatch...). Matching IPs will be marked Crawler (dark blue) and blocked if the option is enabled.",
+  "Net.ForceOrigin": "Force origin",
+  "Net.IgnoredNetworksHelp": "Ignored networks (CIDR): these addresses will never trigger an alert. Useful for loopback and local networks.",
+  "Net.OpenFileLocation": "Open file location",
+  "Net.PatternsHelp": "Define here the patterns that determine the label (Safe, Critical, Scanner, Crawler) assigned to an IP. These lists are compared against the ISP, Org or reverse DNS.",
+  "Net.PendingProcesses": "Processes awaiting review",
+  "Net.RestorePatterns": "Restore rules to default",
+  "Net.ScannerHelp": "Legitimate research scanners (Shodan, Censys, Palo Alto...). Matching IPs will be marked Trusted (yellow) and blocked if the option is enabled.",
+  "Net.TrustedDevicesHelp": "These devices can connect to the Web without OTP. They are remembered for 30 days. Revoking a device forces it to go through OTP again on its next connection.",
+  "Net.WebHelp": "Allows viewing alerts from a web browser (localhost or local network). Disable it if you do not use this interface.",
+  "Net.WhitelistHelp": "Removing a process makes it reappear in the 'Pending processes' table at the next network event. Unchecking 'Active' temporarily disables trust without deleting the entry."
 }
