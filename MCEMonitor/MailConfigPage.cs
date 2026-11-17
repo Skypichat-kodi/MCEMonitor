@@ -1,4 +1,4 @@
-using System;
+Ôªøusing System;
 using System.Drawing;
 using System.IO;
 using System.Net.Sockets;
@@ -39,7 +39,7 @@ namespace MCEMonitor
         {
             this.Dock = DockStyle.Fill;
 
-            lblFrom = new KryptonLabel { Text = "Email expÈditeur :", AutoSize = true, Location = new Point(20, 20) };
+            lblFrom = new KryptonLabel { Text = "Email exp√©diteur :", AutoSize = true, Location = new Point(20, 20) };
             txtFrom = new KryptonTextBox { Location = new Point(160, 18), Width = 280 };
 
             lblPassword = new KryptonLabel { Text = "Mot de passe :", AutoSize = true, Location = new Point(20, 55) };
@@ -61,7 +61,7 @@ namespace MCEMonitor
                 Value = 465
             };
 
-            lblSecurity = new KryptonLabel { Text = "SÈcuritÈ :", AutoSize = true, Location = new Point(20, 195) };
+            lblSecurity = new KryptonLabel { Text = "S√©curit√© :", AutoSize = true, Location = new Point(20, 195) };
             cboSecurity = new KryptonComboBox
             {
                 Location = new Point(160, 193),
@@ -138,7 +138,7 @@ namespace MCEMonitor
 
             cfg.Save();
 
-            KryptonMessageBox.Show("Configuration enregistrÈe.", "SuccËs",
+            KryptonMessageBox.Show(LanguageManager.Get("Configuration enregistr√©e.") ?? "Configuration enregistr√©e.", LanguageManager.Get("Succ√®s") ?? "Succ√®s",
                 KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Information);
         }
 
@@ -170,7 +170,7 @@ namespace MCEMonitor
                     SecurityMode = (cboSecurity.SelectedItem?.ToString() ?? "SSL").ToUpper()
                 };
 
-                Log($"ParamËtres : Server={cfg.Server}, Port={cfg.Port}, Mode={cfg.SecurityMode}");
+                Log($"Param√®tres : Server={cfg.Server}, Port={cfg.Port}, Mode={cfg.SecurityMode}");
 
                 Log("Test du port...");
                 await TestPortAsync(cfg.Server, cfg.Port);
@@ -178,11 +178,11 @@ namespace MCEMonitor
 
                 Log("Envoi email via MailKit...");
                 await SendMailKitAsync(cfg);
-                Log("Email envoyÈ avec succËs");
+                Log("Email envoy√© avec succ√®s");
 
                 picStatus.BackColor = Color.LimeGreen;
 
-                KryptonMessageBox.Show("Test SMTP rÈussi.", "SuccËs",
+                KryptonMessageBox.Show(LanguageManager.Get("Test SMTP r√©ussi.") ?? "Test SMTP r√©ussi.", LanguageManager.Get("Succ√®s") ?? "Succ√®s",
                     KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Information);
             }
             catch (Exception ex)
@@ -190,8 +190,8 @@ namespace MCEMonitor
                 picStatus.BackColor = Color.Red;
                 Log("ERREUR : " + ex.Message);
 
-                KryptonMessageBox.Show("Erreur SMTP : " + ex.Message,
-                    "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
+                KryptonMessageBox.Show((LanguageManager.Get("Erreur SMTP :") ?? "Erreur SMTP :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
             }
         }
 
@@ -201,7 +201,7 @@ namespace MCEMonitor
             var connectTask = client.ConnectAsync(host, port);
 
             if (await Task.WhenAny(connectTask, Task.Delay(3000)) != connectTask)
-                throw new Exception("Timeout : le port ne rÈpond pas.");
+                throw new Exception("Timeout : le port ne r√©pond pas.");
 
             if (!client.Connected)
                 throw new Exception("Impossible de se connecter au port.");
@@ -215,7 +215,7 @@ namespace MCEMonitor
             message.Subject = "Test SMTP - MCEMonitor";
             message.Body = new TextPart("plain")
             {
-                Text = LanguageManager.Get("Ceci est un email de test envoyÈ depuis MCEMonitor.") ?? "Ceci est un email de test envoyÈ depuis MCEMonitor."
+                Text = LanguageManager.Get("Ceci est un email de test envoy√© depuis MCEMonitor.") ?? "Ceci est un email de test envoy√© depuis MCEMonitor."
             };
 
             SecureSocketOptions options = SecureSocketOptions.Auto;

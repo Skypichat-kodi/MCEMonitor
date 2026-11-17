@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Media;
@@ -7,6 +7,7 @@ using System.Windows.Media.Imaging;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
+using MCEMonitor.Languages;
 
 namespace MediaMonitor.UI
 {
@@ -19,7 +20,7 @@ namespace MediaMonitor.UI
             InitializeComponent();
             _info = info;
 
-            // On attend le rendu complet pour éviter les NaN / crash
+            // On attend le rendu complet pour Ã©viter les NaN / crash
             Loaded += InfoPopupWindow_Loaded;
         }
 
@@ -62,10 +63,10 @@ namespace MediaMonitor.UI
             }
             catch
             {
-                SizeText.Text = "—";
+                SizeText.Text = "â€”";
             }
 
-            // Icône
+            // IcÃ´ne
             try
             {
                 IconType.Source = new BitmapImage(new Uri(_info.IconPath));
@@ -75,7 +76,7 @@ namespace MediaMonitor.UI
                 IconType.Source = null;
             }
 
-            // Durée
+            // DurÃ©e
             if (_info.Duration > 0)
             {
                 DurationLabel.Visibility = Visibility.Visible;
@@ -97,26 +98,26 @@ namespace MediaMonitor.UI
                 AlbumArtBorder.BorderThickness = new Thickness(0);
                 AlbumArtImage.Stretch = Stretch.Uniform;
 
-                // Chaîne
+                // ChaÃ®ne
                 SeriesLabel.Visibility = Visibility.Visible;
                 SeriesText.Visibility = Visibility.Visible;
-                SeriesLabel.Text = "Chaîne :";
-                SeriesText.Text = string.IsNullOrEmpty(_info.Channel) ? "—" : _info.Channel;
+                SeriesLabel.Text = LanguageManager.Get("ChaÃ®ne :") ?? "ChaÃ®ne :";
+                SeriesText.Text = string.IsNullOrEmpty(_info.Channel) ? "â€”" : _info.Channel;
 
-                // Durée REC ? masquée (tu ne veux plus l'afficher)
+                // DurÃ©e REC ? masquÃ©e (tu ne veux plus l'afficher)
                 DurationLabel.Visibility = Visibility.Collapsed;
                 DurationText.Visibility = Visibility.Collapsed;
 
-                // Série
+                // SÃ©rie
                 if (!string.IsNullOrEmpty(_info.SeriesName))
                 {
                     EpisodeLabel.Visibility = Visibility.Visible;
                     EpisodeText.Visibility = Visibility.Visible;
-                    EpisodeLabel.Text = "Série :";
+                    EpisodeLabel.Text = LanguageManager.Get("SÃ©rie :") ?? "SÃ©rie :";
                     EpisodeText.Text = _info.SeriesName;
                 }
 
-                // Saison / Épisode
+                // Saison / Ã‰pisode
                 if (_info.Saison > 0 || _info.Episode > 0)
                 {
                     SeasonEpisodeLabel.Visibility = Visibility.Visible;
@@ -124,12 +125,12 @@ namespace MediaMonitor.UI
                     SeasonEpisodeText.Text = $"{_info.Saison:00}x{_info.Episode:00}";
                 }
 
-                // Nom d’épisode
+                // Nom dâ€™Ã©pisode
                 if (!string.IsNullOrEmpty(_info.EpisodeName))
                 {
                     VideoCodecLabel.Visibility = Visibility.Visible;
                     VideoCodecText.Visibility = Visibility.Visible;
-                    VideoCodecLabel.Text = "Épisode :";
+                    VideoCodecLabel.Text = "Ã‰pisode :";
                     VideoCodecText.Text = _info.EpisodeName;
                 }
 
@@ -175,7 +176,7 @@ namespace MediaMonitor.UI
             // --- IMAGE ---
             if (_info.MediaType.Equals("Image", StringComparison.OrdinalIgnoreCase))
             {
-                // Cadre adapté à l’aperçu
+                // Cadre adaptÃ© Ã  lâ€™aperÃ§u
                 AlbumArtBorder.Width = 400;
                 AlbumArtBorder.Height = 260;
                 AlbumArtBorder.BorderThickness = new Thickness(2);
@@ -185,7 +186,7 @@ namespace MediaMonitor.UI
                 AlbumArtImage.VerticalAlignment = VerticalAlignment.Center;
                 VideoOverlay.Visibility = Visibility.Collapsed;
 
-                // Chargement direct depuis le disque (AlbumArt n’est pas rempli pour les images)
+                // Chargement direct depuis le disque (AlbumArt nâ€™est pas rempli pour les images)
                 try
                 {
                     if (File.Exists(_info.Path))
@@ -193,7 +194,7 @@ namespace MediaMonitor.UI
                         var bitmap = new BitmapImage();
                         bitmap.BeginInit();
                         bitmap.UriSource = new Uri(_info.Path, UriKind.Absolute);
-                        bitmap.CacheOption = BitmapCacheOption.OnLoad;   // libère le fichier
+                        bitmap.CacheOption = BitmapCacheOption.OnLoad;   // libÃ¨re le fichier
                         bitmap.CreateOptions = BitmapCreateOptions.IgnoreImageCache;
                         bitmap.EndInit();
                         bitmap.Freeze();
@@ -209,7 +210,7 @@ namespace MediaMonitor.UI
                     AlbumArtImage.Source = DefaultCover;
                 }
 
-                // Masquer toutes les infos audio/vidéo non pertinentes
+                // Masquer toutes les infos audio/vidÃ©o non pertinentes
                 Id3TitleLabel.Visibility = Visibility.Collapsed;  Id3Title.Visibility  = Visibility.Collapsed;
                 Id3ArtistLabel.Visibility = Visibility.Collapsed; Id3Artist.Visibility = Visibility.Collapsed;
                 Id3AlbumLabel.Visibility = Visibility.Collapsed;  Id3Album.Visibility  = Visibility.Collapsed;
@@ -223,18 +224,18 @@ namespace MediaMonitor.UI
                 VideoCodecLabel.Visibility = Visibility.Collapsed; VideoCodecText.Visibility = Visibility.Collapsed;
                 AudioCodecLabel.Visibility = Visibility.Collapsed; AudioCodecText.Visibility = Visibility.Collapsed;
 
-                // Durée non pertinente pour une image
+                // DurÃ©e non pertinente pour une image
                 DurationLabel.Visibility = Visibility.Collapsed;
                 DurationText.Visibility = Visibility.Collapsed;
 
-                // Chemin / Type / Taille : on garde (déjà remplis plus haut)
+                // Chemin / Type / Taille : on garde (dÃ©jÃ  remplis plus haut)
                 PathText.Text = _info.Path;
                 TypeText.Text = _info.MediaType;
 
                 return;
             }
 
-            // --- VIDÉO ---
+            // --- VIDÃ‰O ---
             if (_info.MediaType == "Video")
             {
                 if (!string.IsNullOrEmpty(_info.SeriesName))
@@ -286,7 +287,7 @@ namespace MediaMonitor.UI
                 Id3GenreLabel.Visibility = Visibility.Collapsed;
                 Id3Genre.Visibility = Visibility.Collapsed;
 
-                // Miniature vidéo 16:9 bord-à-bord
+                // Miniature vidÃ©o 16:9 bord-Ã -bord
                 AlbumArtBorder.Width = 260;
                 AlbumArtBorder.Height = 146;
                 AlbumArtImage.Stretch = Stretch.UniformToFill;
@@ -308,12 +309,12 @@ namespace MediaMonitor.UI
                 Id3GenreLabel.Visibility = Visibility.Visible;
                 Id3Genre.Visibility = Visibility.Visible;
 
-                Id3Title.Text = string.IsNullOrEmpty(_info.Title) ? "—" : _info.Title;
-                Id3Artist.Text = string.IsNullOrEmpty(_info.Artist) ? "—" : _info.Artist;
-                Id3Album.Text = string.IsNullOrEmpty(_info.Album) ? "—" : _info.Album;
-                Id3Year.Text = _info.Year > 0 ? _info.Year.ToString() : "—";
-                Id3Track.Text = _info.Track > 0 ? _info.Track.ToString() : "—";
-                Id3Genre.Text = string.IsNullOrEmpty(_info.Genre) ? "—" : _info.Genre;
+                Id3Title.Text = string.IsNullOrEmpty(_info.Title) ? "â€”" : _info.Title;
+                Id3Artist.Text = string.IsNullOrEmpty(_info.Artist) ? "â€”" : _info.Artist;
+                Id3Album.Text = string.IsNullOrEmpty(_info.Album) ? "â€”" : _info.Album;
+                Id3Year.Text = _info.Year > 0 ? _info.Year.ToString() : "â€”";
+                Id3Track.Text = _info.Track > 0 ? _info.Track.ToString() : "â€”";
+                Id3Genre.Text = string.IsNullOrEmpty(_info.Genre) ? "â€”" : _info.Genre;
 
                 // Miniature audio
                 AlbumArtBorder.Width = 120;
@@ -354,7 +355,7 @@ namespace MediaMonitor.UI
             catch { }
         }
 
-        // Défilement intelligent du titre (100% stable)
+        // DÃ©filement intelligent du titre (100% stable)
         private void SafeStartTitleScroll()
         {
             if (TitleText == null || TitleScrollContainer == null)
@@ -366,7 +367,7 @@ namespace MediaMonitor.UI
             double textWidth = TitleText.ActualWidth;
             double containerWidth = TitleScrollContainer.ActualWidth;
 
-            // Sécurité anti-NaN
+            // SÃ©curitÃ© anti-NaN
             if (double.IsNaN(textWidth) || double.IsNaN(containerWidth))
                 return;
 
@@ -379,7 +380,7 @@ namespace MediaMonitor.UI
 
             double overflow = textWidth - containerWidth;
 
-            // Sécurité anti-valeurs négatives
+            // SÃ©curitÃ© anti-valeurs nÃ©gatives
             if (overflow <= 0)
                 return;
 

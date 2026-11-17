@@ -1,4 +1,4 @@
-using Krypton.Toolkit;
+ï»¿using Krypton.Toolkit;
 
 namespace MCEMonitor
 {
@@ -33,7 +33,7 @@ namespace MCEMonitor
             this.SuspendLayout();
 
             // labelTitle
-            this.labelTitle.Text = LanguageManager.Get("Adresses MAC autorisées (Whitelist WOL)") ?? "Adresses MAC autorisées (Whitelist WOL)";
+            this.labelTitle.Text = LanguageManager.Get("Adresses MAC autorisÃ©es (Whitelist WOL)") ?? "Adresses MAC autorisÃ©es (Whitelist WOL)";
             this.labelTitle.Font = new System.Drawing.Font("Segoe UI", 10F, System.Drawing.FontStyle.Bold);
             this.labelTitle.Location = new System.Drawing.Point(12, 9);
             this.labelTitle.Size = new System.Drawing.Size(350, 23);
@@ -87,7 +87,7 @@ namespace MCEMonitor
             this.MaximizeBox = false;
             this.MinimizeBox = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
-            this.Text = "Whitelist Wake-on-LAN";
+            this.Text = LanguageManager.Get("Whitelist Wake-on-LAN") ?? "Whitelist Wake-on-LAN";
             this.ResumeLayout(false);
             this.PerformLayout();
         }

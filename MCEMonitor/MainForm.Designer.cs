@@ -961,8 +961,8 @@ namespace MCEMonitor
                 }
                 catch (Exception ex)
                 {
-                    KryptonMessageBox.Show("Impossible d'ouvrir le dossier Logs.\n\n" + ex.Message,
-                        "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
+                    KryptonMessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n\n" + ex.Message,
+                        LanguageManager.Get("Erreur") ?? "Erreur", KryptonMessageBoxButtons.OK, KryptonMessageBoxIcon.Error);
                 }
             };
 

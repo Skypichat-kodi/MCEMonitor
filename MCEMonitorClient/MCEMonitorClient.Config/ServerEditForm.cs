@@ -1,10 +1,11 @@
-using System;
+ï»¿using System;
 using System.Drawing;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using MCEMonitorClient.Config.Models;
+using MCEMonitor.Languages;
 
 namespace MCEMonitorClient.Config
 {
@@ -13,7 +14,7 @@ namespace MCEMonitorClient.Config
         private readonly ServerEntry _entry;
         private readonly bool _isNew;
 
-        // Contrôles
+        // ContrÃ´les
         private TextBox         _txtName                = null!;
         private Label           _lblDetectedService     = null!;
         private string          _detectedServiceType    = "";
@@ -65,14 +66,14 @@ namespace MCEMonitorClient.Config
             _txtName = AddTextBox(fieldX, y, fieldW);
             y += step;
 
-            // --- Type (lecture seule, rempli par détection) ---
+            // --- Type (lecture seule, rempli par dÃ©tection) ---
             AddLabel("Type :", labelX, y);
             _lblDetectedService = new Label
             {
                 Location = new Point(fieldX, y + 3),
                 Width = fieldW,
                 Height = 22,
-                Text = "— Non détecté —",
+                Text = "â€” Non dÃ©tectÃ© â€”",
                 ForeColor = Theme.TextDim,
                 BackColor = Color.FromArgb(50, 50, 50),
                 Font = new Font(Theme.FontFamily, 9F),
@@ -89,7 +90,7 @@ namespace MCEMonitorClient.Config
             _txtUrl = new TextBox
             {
                 Location = new Point(fieldX, y),
-                Width = fieldW - 100,       // ? réduit pour le port
+                Width = fieldW - 100,       // ? rÃ©duit pour le port
                 BackColor = Theme.Panel,
                 ForeColor = Theme.Text,
                 BorderStyle = BorderStyle.FixedSingle
@@ -128,13 +129,13 @@ namespace MCEMonitorClient.Config
             _txtUsername = AddTextBox(fieldX, y, fieldW);
             y += step;
 
-            // --- Mot de passe + bouton œil ---
+            // --- Mot de passe + bouton Å“il ---
             AddLabel("Mot de passe :", labelX, y);
 
             _txtPassword = new TextBox
             {
                 Location = new Point(fieldX, y),
-                Width = fieldW - 40,          // ? réduit pour laisser la place au bouton
+                Width = fieldW - 40,          // ? rÃ©duit pour laisser la place au bouton
                 BackColor = Theme.Panel,
                 ForeColor = Theme.Text,
                 BorderStyle = BorderStyle.FixedSingle,
@@ -142,15 +143,15 @@ namespace MCEMonitorClient.Config
             };
             Controls.Add(_txtPassword);
 
-            // Charge les deux icônes
+            // Charge les deux icÃ´nes
             var imgEye    = LoadIcon("eye.png");
             var imgEyeOff = LoadIcon("eye-off.png");
 
-            // PictureBox cliquable : œil ouvert = cliquer pour voir,
-            //                       œil barré = cliquer pour masquer
+            // PictureBox cliquable : Å“il ouvert = cliquer pour voir,
+            //                       Å“il barrÃ© = cliquer pour masquer
             var btnEye = new PictureBox
             {
-                Image    = imgEye,              // au départ le mot de passe est masqué ? on montre "eye" (voir)
+                Image    = imgEye,              // au dÃ©part le mot de passe est masquÃ© ? on montre "eye" (voir)
                 Location = new Point(fieldX + fieldW - 26, y),
                 Size     = new Size(22, 22),
                 SizeMode = PictureBoxSizeMode.Zoom,
@@ -169,7 +170,7 @@ namespace MCEMonitorClient.Config
             // --- Bouton Tester ---
             _btnTest = new Button
             {
-                Text = "Détecter le service",
+                Text = "DÃ©tecter le service",
                 Location = new Point(fieldX, y),
                 Width = 160,
                 Height = 28,
@@ -183,7 +184,7 @@ namespace MCEMonitorClient.Config
             Controls.Add(_btnTest);
             y += 40;
 
-            // --- Résultat du test ---
+            // --- RÃ©sultat du test ---
             _lblTestResult = new Label
             {
                 Location = new Point(fieldX, y),
@@ -278,14 +279,14 @@ namespace MCEMonitorClient.Config
             // Validation
             if (string.IsNullOrWhiteSpace(_txtName.Text))
             {
-                MessageBox.Show("Le nom est obligatoire.", "Erreur",
+                MessageBox.Show(LanguageManager.Get("Le nom est obligatoire.") ?? "Le nom est obligatoire.", LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(_txtUrl.Text))
             {
-                MessageBox.Show("L'URL est obligatoire.", "Erreur",
+                MessageBox.Show(LanguageManager.Get("L'URL est obligatoire.") ?? "L'URL est obligatoire.", LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
@@ -304,16 +305,16 @@ namespace MCEMonitorClient.Config
         }
 
         // ---------------------------------------------
-        //  Test de connexion HTTP + Détection du service
+        //  Test de connexion HTTP + DÃ©tection du service
         // ---------------------------------------------
         private async Task TestConnectionAsync(bool autoMode = false)
         {
             if (!_btnTest.Enabled)
-                return;   // test déjà en cours
+                return;   // test dÃ©jÃ  en cours
 
             _btnTest.Enabled = false;
             _lblTestResult.ForeColor = Theme.TextDim;
-            _lblTestResult.Text = autoMode ? "Détection..." : "Test en cours...";
+            _lblTestResult.Text = autoMode ? "DÃ©tection..." : "Test en cours...";
 
             try
             {
@@ -353,7 +354,7 @@ namespace MCEMonitorClient.Config
                 }
                 catch { /* JSON invalide */ }
 
-                // 1) Mise à jour du service détecté (Label)
+                // 1) Mise Ã  jour du service dÃ©tectÃ© (Label)
                 SetDetectedService(detectedService);
 
                 // --- Machine (fallback sur le host de l'URL) ---
@@ -366,7 +367,7 @@ namespace MCEMonitorClient.Config
 
                 string proposedName = $"Service {detectedService} sur {machine}";
 
-                // --- Mise à jour du nom (uniquement si vide ou auto-généré) ---
+                // --- Mise Ã  jour du nom (uniquement si vide ou auto-gÃ©nÃ©rÃ©) ---
                 bool shouldUpdateName =
                     string.IsNullOrWhiteSpace(_txtName.Text)
                     || _txtName.Text == "http://"
@@ -380,7 +381,7 @@ namespace MCEMonitorClient.Config
                 if (shouldUpdateName)
                     _txtName.Text = proposedName;
 
-                // --- Résultat visuel (plus de popup de confirmation) ---
+                // --- RÃ©sultat visuel (plus de popup de confirmation) ---
                 _lblTestResult.ForeColor = Theme.Ok;
                 _lblTestResult.Text = $"[OK] Service {detectedService} sur {machine}";
             }
@@ -415,13 +416,13 @@ namespace MCEMonitorClient.Config
         }
         
         // ============================================================
-        //  Auto-détection : lancer le test quand URL + Port sont saisis
+        //  Auto-dÃ©tection : lancer le test quand URL + Port sont saisis
         // ============================================================
         private int _autoDetectVersion = 0;
 
         private async Task AutoDetectAsync()
         {
-            // Si un test est déjà en cours, on ne fait rien
+            // Si un test est dÃ©jÃ  en cours, on ne fait rien
             if (!_btnTest.Enabled)
                 return;
 
@@ -433,11 +434,11 @@ namespace MCEMonitorClient.Config
             int myVersion = ++_autoDetectVersion;
             await Task.Delay(400);
 
-            // Si l'utilisateur a modifié entre-temps, on abandonne cette requête
+            // Si l'utilisateur a modifiÃ© entre-temps, on abandonne cette requÃªte
             if (myVersion != _autoDetectVersion)
                 return;
 
-            // Re-vérifier après le délai
+            // Re-vÃ©rifier aprÃ¨s le dÃ©lai
             url = _txtUrl.Text.Trim();
             if (string.IsNullOrWhiteSpace(url) || url == "http://" || url == "https://")
                 return;
@@ -449,19 +450,19 @@ namespace MCEMonitorClient.Config
         }
         
         // ============================================================
-        //  Service détecté : lecture / écriture via helpers
+        //  Service dÃ©tectÃ© : lecture / Ã©criture via helpers
         // ============================================================
         private void SetDetectedService(string? serviceType)
         {
             _detectedServiceType = serviceType ?? "";
 
             _lblDetectedService.Text = string.IsNullOrWhiteSpace(serviceType)
-                ? "— Non détecté —"
+                ? "â€” Non dÃ©tectÃ© â€”"
                 : serviceType!;
 
             _lblDetectedService.ForeColor = string.IsNullOrWhiteSpace(serviceType)
                 ? Theme.TextDim
-                : Theme.Ok;   // vert clair quand un service est détecté
+                : Theme.Ok;   // vert clair quand un service est dÃ©tectÃ©
         }
 
         private string GetDetectedService()

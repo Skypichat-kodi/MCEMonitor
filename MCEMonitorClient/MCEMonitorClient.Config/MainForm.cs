@@ -841,7 +841,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
         

@@ -11,6 +11,7 @@ using MCEMonitorClient.Tray.Logs;
 using MCEMonitorClient.Tray.Models;
 using MCEMonitorClient.Tray.Services;
 using System.Runtime.InteropServices;
+using MCEMonitor.Languages;
 
 namespace MCEMonitorClient.Tray
 {
@@ -826,13 +827,13 @@ namespace MCEMonitorClient.Tray
                 }
                 else
                 {
-                    MessageBox.Show("MCEMonitorClient.Config.exe est introuvable.",
-                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(LanguageManager.Get("MCEMonitorClient.Config.exe est introuvable.") ?? "MCEMonitorClient.Config.exe est introuvable.",
+                        LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir la configuration : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir la configuration :") ?? "Impossible d'ouvrir la configuration :") + " " + ex.Message);
             }
         }
 
@@ -845,7 +846,7 @@ namespace MCEMonitorClient.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Erreur : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
