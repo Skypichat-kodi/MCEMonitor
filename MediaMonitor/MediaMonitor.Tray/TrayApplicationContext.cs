@@ -3,6 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using System.Drawing;
 using System.IO.Pipes;
 using Timer = System.Windows.Forms.Timer;
@@ -47,10 +48,10 @@ namespace MediaMonitor.Tray
             // Menu contextuel
             // ------------------------------------------------------------
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Ouvrir MediaMonitor", null, (s, e) => OpenMediaMonitorUI());
-            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
+            menu.Items.Add(LanguageManager.Get("Ouvrir MediaMonitor") ?? "Ouvrir MediaMonitor", null, (s, e) => OpenMediaMonitorUI());
+            menu.Items.Add(LanguageManager.Get("Ouvrir MCEMonitor") ?? "Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Quitter", null, (s, e) => Exit());
+            menu.Items.Add(LanguageManager.Get("Quitter") ?? "Quitter", null, (s, e) => Exit());
 
             trayIcon.ContextMenuStrip = menu;
 
@@ -83,7 +84,7 @@ namespace MediaMonitor.Tray
                 {
                     MessageBox.Show(
                         "MediaMonitor.UI.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -99,7 +100,7 @@ namespace MediaMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir MediaMonitor.UI : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir MediaMonitor.UI :") ?? "Impossible d'ouvrir MediaMonitor.UI :") + " " + ex.Message);
             }
         }
 
@@ -123,7 +124,7 @@ namespace MediaMonitor.Tray
                 {
                     MessageBox.Show(
                         "MCEMonitor.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -138,7 +139,7 @@ namespace MediaMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir MCEMonitor :") ?? "Impossible d'ouvrir MCEMonitor :") + " " + ex.Message);
             }
         }
 

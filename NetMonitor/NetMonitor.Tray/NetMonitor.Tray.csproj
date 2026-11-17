@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -19,7 +19,7 @@
     <PackageReference Include="System.Windows.Extensions" Version="8.0.0" />
   </ItemGroup>
 
-  <!-- On emp�che le SDK d'inclure implicitement les ressources -->
+  <!-- On empêche le SDK d'inclure implicitement les ressources -->
   <ItemGroup>
     <None Remove="*.ico" />
     <None Remove="*.png" />
@@ -34,6 +34,10 @@
     <EmbeddedResource Include="shield.png"     LogicalName="shield.png" />
     <EmbeddedResource Include="alarm.wav"      LogicalName="alarm.wav" />
     <EmbeddedResource Include="warning.wav"    LogicalName="warning.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 
 </Project>

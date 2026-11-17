@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 
 namespace RomMonitor.Tray
 {
@@ -142,19 +143,19 @@ namespace RomMonitor.Tray
             y += 5;
 
             // Boutons
-            y = AddActionButton("Ouvrir RomMonitor", y, () =>
+            y = AddActionButton(LanguageManager.Get("Ouvrir RomMonitor") ?? "Ouvrir RomMonitor", y, () =>
             {
                 OnOpenRomMonitor?.Invoke();
                 Close();
             });
 
-            y = AddActionButton("Ouvrir MCEMonitor", y, () =>
+            y = AddActionButton(LanguageManager.Get("Ouvrir MCEMonitor") ?? "Ouvrir MCEMonitor", y, () =>
             {
                 OnOpenMCEMonitor?.Invoke();
                 Close();
             });
 
-            y = AddActionButton("Quitter", y, () =>
+            y = AddActionButton(LanguageManager.Get("Quitter") ?? "Quitter", y, () =>
             {
                 OnQuit?.Invoke();
                 Close();

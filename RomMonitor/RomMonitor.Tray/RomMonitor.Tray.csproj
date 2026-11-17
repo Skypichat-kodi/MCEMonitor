@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -24,6 +24,10 @@
     <EmbeddedResource Include="RomMonitor.ico" LogicalName="RomMonitor.ico" />
     <EmbeddedResource Include="warning.png"    LogicalName="warning.png" />
     <EmbeddedResource Include="critical.png"   LogicalName="critical.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
   </ItemGroup>
 
 </Project>

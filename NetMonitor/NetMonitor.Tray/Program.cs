@@ -1,8 +1,9 @@
-using System;
+﻿using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 
 namespace NetMonitor.Tray
 {
@@ -18,6 +19,18 @@ namespace NetMonitor.Tray
 
             if (!createdNew)
                 return;
+
+            // Langue : fichier partage avec les services (C:\ProgramData\MCEMonitor\language.config)
+            try
+            {
+                string cfgLang = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "language.config");
+                string lang = File.Exists(cfgLang) ? File.ReadAllText(cfgLang).Trim() : "fr-FR";
+                if (string.IsNullOrWhiteSpace(lang)) lang = "fr-FR";
+                LanguageManager.Load(lang);
+            }
+            catch { /* repli : les textes restent en francais */ }
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -47,8 +60,8 @@ namespace NetMonitor.Tray
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "Erreur dans NetMonitor.Tray : " + ex.Message,
-                    "Erreur",
+                    (LanguageManager.Get("Erreur dans NetMonitor.Tray :") ?? "Erreur dans NetMonitor.Tray :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );

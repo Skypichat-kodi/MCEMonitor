@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using System.Collections.Generic;
 using Timer = System.Windows.Forms.Timer;
 
@@ -80,10 +81,10 @@ namespace SystemMonitor.Tray
 
             // Menu contextuel
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Ouvrir SystemMonitor", null, (s, e) => OpenSystemMonitorUI());
-            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
+            menu.Items.Add(LanguageManager.Get("Ouvrir SystemMonitor") ?? "Ouvrir SystemMonitor", null, (s, e) => OpenSystemMonitorUI());
+            menu.Items.Add(LanguageManager.Get("Ouvrir MCEMonitor") ?? "Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Quitter", null, (s, e) => Exit());
+            menu.Items.Add(LanguageManager.Get("Quitter") ?? "Quitter", null, (s, e) => Exit());
             trayIcon.ContextMenuStrip = menu;
 
             // Watchdog (5s)
@@ -279,7 +280,7 @@ namespace SystemMonitor.Tray
                 {
                     MessageBox.Show(
                         "MCEMonitor.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -294,7 +295,7 @@ namespace SystemMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir MCEMonitor :") ?? "Impossible d'ouvrir MCEMonitor :") + " " + ex.Message);
             }
         }
 
@@ -318,7 +319,7 @@ namespace SystemMonitor.Tray
                 {
                     MessageBox.Show(
                         "SystemMonitor.UI.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -334,7 +335,7 @@ namespace SystemMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir SystemMonitor.UI : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir SystemMonitor.UI :") ?? "Impossible d'ouvrir SystemMonitor.UI :") + " " + ex.Message);
             }
         }
 
@@ -421,7 +422,7 @@ namespace SystemMonitor.Tray
             {
                 MessageBox.Show(
                     "Erreur lors de l'ouverture du popup : " + ex.Message,
-                    "Erreur",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );

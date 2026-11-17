@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using System.Collections.Generic;
 using Timer = System.Windows.Forms.Timer;
 
@@ -69,10 +70,10 @@ namespace RomMonitor.Tray
 
             // Menu contextuel
             var menu = new ContextMenuStrip();
-            menu.Items.Add("Ouvrir RomMonitor", null, (s, e) => OpenRomMonitorUI());
-            menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
+            menu.Items.Add(LanguageManager.Get("Ouvrir RomMonitor") ?? "Ouvrir RomMonitor", null, (s, e) => OpenRomMonitorUI());
+            menu.Items.Add(LanguageManager.Get("Ouvrir MCEMonitor") ?? "Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
             menu.Items.Add(new ToolStripSeparator());
-            menu.Items.Add("Quitter", null, (s, e) => Exit());
+            menu.Items.Add(LanguageManager.Get("Quitter") ?? "Quitter", null, (s, e) => Exit());
             
             trayIcon.ContextMenuStrip = menu;
 
@@ -233,7 +234,7 @@ namespace RomMonitor.Tray
                 {
                     MessageBox.Show(
                         "MCEMonitor.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -248,7 +249,7 @@ namespace RomMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir MCEMonitor :") ?? "Impossible d'ouvrir MCEMonitor :") + " " + ex.Message);
             }
         }
 
@@ -272,7 +273,7 @@ namespace RomMonitor.Tray
                 {
                     MessageBox.Show(
                         "RomMonitor.UI.exe est introuvable dans Program Files.",
-                        "Erreur",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Error
                     );
@@ -290,7 +291,7 @@ namespace RomMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir RomMonitor.UI : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir RomMonitor.UI :") ?? "Impossible d'ouvrir RomMonitor.UI :") + " " + ex.Message);
             }
         }
         
@@ -521,7 +522,7 @@ namespace RomMonitor.Tray
             {
                 MessageBox.Show(
                     "Erreur lors de l'ouverture du popup : " + ex.Message,
-                    "Erreur",
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );

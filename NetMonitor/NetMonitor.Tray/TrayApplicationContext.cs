@@ -9,6 +9,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 using NetMonitor.Tray.Logs;
 using Timer = System.Windows.Forms.Timer;
 
@@ -120,10 +121,10 @@ namespace NetMonitor.Tray
                 };
 
                 var menu = new ContextMenuStrip();
-                menu.Items.Add("Ouvrir NetMonitor", null, (s, e) => OpenNetMonitorUI());
-                menu.Items.Add("Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
+                menu.Items.Add(LanguageManager.Get("Ouvrir NetMonitor") ?? "Ouvrir NetMonitor", null, (s, e) => OpenNetMonitorUI());
+                menu.Items.Add(LanguageManager.Get("Ouvrir MCEMonitor") ?? "Ouvrir MCEMonitor", null, (s, e) => OpenMCEMonitor());
                 menu.Items.Add(new ToolStripSeparator());
-                menu.Items.Add("Quitter", null, (s, e) => Exit());
+                menu.Items.Add(LanguageManager.Get("Quitter") ?? "Quitter", null, (s, e) => Exit());
                 trayIcon.ContextMenuStrip = menu;
 
                 watchdog = new Timer { Interval = 5000 };
@@ -368,8 +369,8 @@ namespace NetMonitor.Tray
 
                 if (!File.Exists(exePath))
                 {
-                    MessageBox.Show("NetMonitor.UI.exe est introuvable dans Program Files.",
-                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(LanguageManager.Get("NetMonitor.UI.exe est introuvable dans Program Files.") ?? "NetMonitor.UI.exe est introuvable dans Program Files.",
+                        LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -382,7 +383,7 @@ namespace NetMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir NetMonitor.UI : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir NetMonitor.UI :") ?? "Impossible d'ouvrir NetMonitor.UI :") + " " + ex.Message);
             }
         }
 
@@ -401,8 +402,8 @@ namespace NetMonitor.Tray
 
                 if (!File.Exists(exePath))
                 {
-                    MessageBox.Show("MCEMonitor.exe est introuvable dans Program Files.",
-                        "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show(LanguageManager.Get("MCEMonitor.exe est introuvable dans Program Files.") ?? "MCEMonitor.exe est introuvable dans Program Files.",
+                        LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
 
@@ -410,7 +411,7 @@ namespace NetMonitor.Tray
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Impossible d'ouvrir MCEMonitor : " + ex.Message);
+                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir MCEMonitor :") ?? "Impossible d'ouvrir MCEMonitor :") + " " + ex.Message);
             }
         }
 
@@ -530,8 +531,8 @@ namespace NetMonitor.Tray
             catch (Exception ex)
             {
                 CoreLog.Error($"ShowProblemsPopup : {ex.Message}");
-                MessageBox.Show("Erreur lors de l'ouverture du popup : " + ex.Message,
-                    "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show((LanguageManager.Get("Erreur lors de l'ouverture du popup :") ?? "Erreur lors de l'ouverture du popup :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 

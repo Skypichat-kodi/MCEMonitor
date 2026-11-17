@@ -1,8 +1,9 @@
-using System;
+ï»¿using System;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Windows.Forms;
+using MCEMonitor.Languages;
 
 namespace SystemMonitor.Tray
 {
@@ -15,7 +16,7 @@ namespace SystemMonitor.Tray
         {
             bool createdNew;
 
-            // Mutex global pour empêcher plusieurs instances du Tray
+            // Mutex global pour empÃªcher plusieurs instances du Tray
             _mutex = new Mutex(true, "Global\\SystemMonitor_Tray", out createdNew);
 
             if (!createdNew)
@@ -23,17 +24,29 @@ namespace SystemMonitor.Tray
                 return;
             }
 
+            // Langue : fichier partage avec les services (C:\ProgramData\MCEMonitor\language.config)
+            try
+            {
+                string cfgLang = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "language.config");
+                string lang = File.Exists(cfgLang) ? File.ReadAllText(cfgLang).Trim() : "fr-FR";
+                if (string.IsNullOrWhiteSpace(lang)) lang = "fr-FR";
+                LanguageManager.Load(lang);
+            }
+            catch { /* repli : les textes restent en francais */ }
+
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
             try
             {
-                // Vérifier si le service tourne AVANT de créer le Tray
+                // VÃ©rifier si le service tourne AVANT de crÃ©er le Tray
                 bool serviceRunning = Process.GetProcessesByName("SystemMonitor.Service").Any();
 
                 if (!serviceRunning)
                 {
-                    // Le service peut être en train de démarrer : on retente 5 fois sur ~6 secondes
+                    // Le service peut Ãªtre en train de dÃ©marrer : on retente 5 fois sur ~6 secondes
                     for (int i = 0; i < 5; i++)
                     {
                         Thread.Sleep(1200);
@@ -48,7 +61,7 @@ namespace SystemMonitor.Tray
 
                 if (!serviceRunning)
                 {
-                    // Ne pas créer de NotifyIcon — évite les icônes fantômes Windows 11
+                    // Ne pas crÃ©er de NotifyIcon â€” Ã©vite les icÃ´nes fantÃ´mes Windows 11
                     return;
                 }
 
@@ -58,8 +71,8 @@ namespace SystemMonitor.Tray
             catch (Exception ex)
             {
                 MessageBox.Show(
-                    "Erreur dans SystemMonitor.Tray : " + ex.Message,
-                    "Erreur",
+                    (LanguageManager.Get("Erreur dans SystemMonitor.Tray :") ?? "Erreur dans SystemMonitor.Tray :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButtons.OK,
                     MessageBoxIcon.Error
                 );
