@@ -12,36 +12,24 @@ _(rien)_
 
 ### 🔴 Sécurité — Audit et durcissement
 
-- [ ] **Auditer les `MiniHttpServer` / `WebServer` des 4 modules**
+- [x] **Auditer les `MiniHttpServer` / `WebServer` des 4 modules** *(fait le 2026-11-17)*
   - **Contexte** : l'UI Android doit être limitée à la consultation
-  - **Déjà fait** :
-    - SystemMonitor : ✅ audité (`/clear-history` en GET destructif reste mineur, sauvegardé par PDF)
-    - RomMonitor : ✅ audité (`/clear-history` en GET destructif)
-    - NetMonitor : ⚠ partiellement audité — actions métier en POST + OTP sur les actions web, **mais les 4 routes `/clear-*` restent accessibles en GET** (voir l'item suivant)
-    - MediaMonitor : ✅ audité partiellement (`/purge`, `/clear` en GET destructif à vérifier)
-  - **Test** : `curl -u user:pass http://serveur:PORT/` ne doit exposer aucune opération critique en GET
-  - **Priorité** : 🔴 haute (vérification, pas de code à écrire si tout est bon)
+  - **Résultat** : les 8 routes destructives des 4 modules sont désormais en POST (voir la session du 2026-11-17)
+  - **Test runtime** : NetMonitor ✅, SystemMonitor ✅, RomMonitor ✅, MediaMonitor ⚠ non testé (aucune sauvegarde disponible au moment du test ; contrôle par revue de code uniquement)
+  - **Restent en GET, volontairement** : `/download`, `/export-pdf` (génération, aucune destruction), `/logout`, et toutes les routes de lecture/API
+  - **Nuance importante** : le CSRF inter-site est déjà bloqué par le cookie `SameSite=Strict` ; la correction est de la défense en profondeur (préchargement navigateur, F5 sur une URL mémorisée, futur assouplissement de `SameSite`)
 
-- [ ] **Passer les routes destructives de GET à POST**
-  - **Routes concernées** :
-    - NetMonitor : `/clear-active`, `/clear-history`, `/clear-audit`, `/clear-blocked-retries`
-    - SystemMonitor : `/clear-history`
-    - RomMonitor : `/clear-history`
-    - MediaMonitor : `/purge`, `/clear`
-  - **Risque actuel** : CSRF possible si l'utilisateur a une session valide et qu'un attaquant lui fait cliquer sur un lien (`<img src="http://netmon:14003/clear-history">`)
-  - **Solution** : passer en POST + bouton `<form method="post">` dans les pages HTML. Le login protège contre le brute-force, mais pas contre le CSRF.
-  - **Coût** : 1-2 h (4 modules)
-  - **Priorité** : 🟡 moyenne (login atténue le risque)
+- [ ] **Vérifier les routes d'export/rapport** *(reste à faire)*
+  - `/export-pdf` (NetMonitor) et `/report` (MediaMonitor) restent en GET : read-only, mais ils coûtent du CPU et écrivent un fichier temporaire
+  - **Priorité** : 🟢 opportuniste
 
 ### 🟡 Planifié
 
-- [ ] **Vague C — Restaurer les règles par défaut sur la page Web**
-  - Le bouton existe en WPF (Zone de danger), mais pas sur la page Web
-  - Route `/restore-default-patterns` à ajouter dans `MiniHttpServer.cs`
-  - Bouton + confirmation à ajouter dans `NetPage.html` (section Paramètres Web)
-  - **Priorité** : 🟡 moyenne
-  - **Note** : la route existe déjà en IPC (`restore-default-patterns`)
-  - **Mise à jour 2026-11-17** : `/add-pattern` et `/set-origin` ont été ajoutées à `MiniHttpServer.cs` ; `/restore-default-patterns` est désormais la **dernière** route web manquante pour atteindre la parité avec l'IPC
+- [x] **Vague C — Restaurer les règles par défaut sur la page Web** *(livré le 2026-11-17)*
+  - Route `/restore-default-patterns` (POST) ajoutée dans `MiniHttpServer.cs`
+  - Section « Zone de danger » + bouton `↺ Restaurer les règles à l'origine` + confirmation nommant les 5 listes dans `NetPage.html`
+  - Séquence alignée sur l'IPC : `RestoreDefaultPatterns` → `ReloadConfig` → `ReevaluateAllBlockedIps`
+  - **Reste à valider** : clic réel sur le bouton en web (compilé et déployé, mais pas encore exercé)
 
 - [ ] **MediaMonitor — affichage "Depuis quand"**
   - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
@@ -81,7 +69,7 @@ _(rien)_
 
 ### Session 2026-11-17 — NetMonitor : page web, Tray, installeur
 
-**8 corrections, dont un bug de fond dans la couche HTTP qui rendait muettes les routes à deux champs.**
+**Corrections de la session — page web, Tray, installeur.**
 
 #### Page web — cause racine : lecture des formulaires
 
@@ -118,6 +106,16 @@ _(rien)_
 
 - [x] **Pilote WinDivert** : `WinDivert.dll` + `WinDivert64.sys` exclus de la copie récursive `ProgramData` et déployés par `DeployWinDivert()` (`[Code]`). Comparaison taille/version, test de verrou par renommage (un pilote chargé — état `STOP_PENDING` — ne peut pas être renommé), remplacement des deux fichiers ensemble, restauration en cas d'échec. Plus d'invite « Réessayer / Ignorer / Annuler ».
   - **Reste non testé** : le chemin de remplacement réel (pilote de version différente **et** verrouillé) — à valider lors d'une future montée de version de WinDivert.
+
+#### Sécurité — routes destructives en POST
+
+- [x] **NetMonitor** : `/clear-active`, `/clear-history`, `/clear-audit`, `/clear-blocked-retries` exigent désormais POST ; la page utilise `postAndReload()` au lieu de `window.location.href`. Un GET direct renvoie 404.
+- [x] **SystemMonitor** : `/clear-history` en POST ; bouton converti en `fetch POST`. Un GET direct renvoie 404.
+- [x] **RomMonitor** : `/clear-history` en POST ; bouton converti en `fetch POST`. Un GET direct renvoie 404.
+- [x] **MediaMonitor** : `/purge` et `/clear` passent par un garde-fou `RequirePost()` (son `Router.Map` ne filtre pas les méthodes) ; le lien `<a href="/purge">` devient un `<form method="post">`. Un GET direct renvoie **405**.
+  - ⚠ `/clear` n'a aucun appelant connu dans le dépôt : si un outil externe l'appelait en GET, il recevra un 405.
+  - **Non testé en runtime** (aucune sauvegarde disponible) — validé par revue de code uniquement.
+- **Note d'analyse** : le CSRF inter-site est déjà neutralisé par `SameSite=Strict` sur le cookie de session. Cette correction est de la défense en profondeur (préchargement navigateur, F5 sur URL mémorisée, futur assouplissement de `SameSite`).
 
 #### Nettoyage / vérifications
 
