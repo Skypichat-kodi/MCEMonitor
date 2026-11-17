@@ -17,7 +17,7 @@ _(rien)_
   - **Déjà fait** :
     - SystemMonitor : ✅ audité (`/clear-history` en GET destructif reste mineur, sauvegardé par PDF)
     - RomMonitor : ✅ audité (`/clear-history` en GET destructif)
-    - NetMonitor : ✅ audité (actions en POST) + OTP sur les actions web
+    - NetMonitor : ⚠ partiellement audité — actions métier en POST + OTP sur les actions web, **mais les 4 routes `/clear-*` restent accessibles en GET** (voir l'item suivant)
     - MediaMonitor : ✅ audité partiellement (`/purge`, `/clear` en GET destructif à vérifier)
   - **Test** : `curl -u user:pass http://serveur:PORT/` ne doit exposer aucune opération critique en GET
   - **Priorité** : 🔴 haute (vérification, pas de code à écrire si tout est bon)
@@ -41,6 +41,7 @@ _(rien)_
   - Bouton + confirmation à ajouter dans `NetPage.html` (section Paramètres Web)
   - **Priorité** : 🟡 moyenne
   - **Note** : la route existe déjà en IPC (`restore-default-patterns`)
+  - **Mise à jour 2026-11-17** : `/add-pattern` et `/set-origin` ont été ajoutées à `MiniHttpServer.cs` ; `/restore-default-patterns` est désormais la **dernière** route web manquante pour atteindre la parité avec l'IPC
 
 - [ ] **MediaMonitor — affichage "Depuis quand"**
   - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
@@ -61,16 +62,6 @@ _(rien)_
   - `Add-MpPreference -ExclusionExtension ".sys"`
   - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
 
-- [ ] **Nettoyer les fichiers `.old`**
-  - `NetMonitor.Service/Alert.cs.old`
-  - `NetMonitor.Service/AlertHistory.cs.old`
-  - `NetMonitor.Service/AlertManager.cs.old`
-  - `NetMonitor.Tray/Models/Alert.cs.old`
-  - `NetMonitor.UI/Models/UiModels.cs.old`
-  - `NetMonitor.UI/Converters/SeverityToBrushConverter.cs.old`
-  - **Quand** : après validation en production (1-2 semaines)
-  - **Priorité** : 🟢 opportuniste
-
 - [ ] **ThreatIntelService : IDisposable**
   - Contient `HttpClient`, `Timer`, `FileSystemWatcher` non disposés
   - Même pattern que `GeoIpService` (déjà corrigé)
@@ -87,6 +78,55 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-17 — NetMonitor : page web, Tray, installeur
+
+**8 corrections, dont un bug de fond dans la couche HTTP qui rendait muettes les routes à deux champs.**
+
+#### Page web — cause racine : lecture des formulaires
+
+- [x] **`MiniHttpServer.ReadFormValue()`** : consommait `Request.InputStream` à chaque appel → toute route lisant **deux** champs recevait une chaîne vide pour le second. Symptôme : « Forcer la sévérité » répondait « le service a refusé la modification », avec un journal vide. Le corps est désormais lu une fois et mis en cache par requête (`ConditionalWeakTable`), libéré avec la requête. Corrige aussi `/toggle-whitelist-entry`.
+
+#### Page web — alignements
+
+- [x] **« Tentatives sur IP bloquée »** : `<th>` de la colonne radio manquant (14 en-têtes pour 15 cellules) → tout était décalé d'un cran à partir de la 2ᵉ colonne
+- [x] **« Processus en attente d'examen »** : badge Origine déplacé après Sévérité (cohérence avec les 5 autres tableaux) + `colspan` 13 → 14 sur la ligne vide
+
+#### Page web — fonctions manquantes
+
+- [x] **Route `/add-pattern`** : n'existait pas (le JS postait vers une 404, le bouton portait « (futur) »). Alignée sur l'IPC `add-pattern-b64` : `AddPattern` → `ReloadConfig` → `ReclassifyBlockedIpsByPattern`
+- [x] **Route `/set-origin`** + bouton **🎯 Forcer l'origine** sur les tableaux « IP bloquées » et « Tentatives », avec modale (6 origines + Auto)
+- [x] Mentions « (futur) » retirées des libellés de boutons et du titre de la modale règle
+
+#### Page web — cache navigateur
+
+- [x] **`SendHtml` / `LoginPages.WriteHtml`** : aucun en-tête de cache → le navigateur servait du JavaScript périmé après chaque compilation. Ajout de `Cache-Control: no-store, no-cache, must-revalidate`, `Pragma`, `Expires`
+
+#### Page web — diagnostic
+
+- [x] Trace `[WEB] {méthode} {chemin} de {IP}` pour toute requête non-GET dans le journal du service (conservée)
+
+#### Tray
+
+- [x] **« Quitter » ne fermait pas l'UI** : `Exit()` ne tuait que les UI lancées depuis le Tray (`_spawnedUiPids`). Une UI ouverte par le menu Démarrer, par `MCEMonitor.exe` ou par une session précédente du Tray survivait. Aligné sur RomMonitor / SystemMonitor / MediaMonitor : `Kill` de toutes les instances par nom. Champ `_spawnedUiPids` supprimé.
+
+#### Appareils de confiance (cookie 30 jours)
+
+- [x] **`SessionStore`** : la liste des appareils de confiance était en mémoire → un arrêt du service obligeait à refaire login + OTP. Persistée dans `%ProgramData%\MCEMonitor\NetMonitor\trusted_devices.json`, chargée une fois au premier accès, écrite de façon atomique (`.tmp` + `File.Move`) après chaque mutation. Les sessions de 15 min et les codes OTP de 5 min restent en mémoire (choix assumé).
+
+#### Installeur
+
+- [x] **Pilote WinDivert** : `WinDivert.dll` + `WinDivert64.sys` exclus de la copie récursive `ProgramData` et déployés par `DeployWinDivert()` (`[Code]`). Comparaison taille/version, test de verrou par renommage (un pilote chargé — état `STOP_PENDING` — ne peut pas être renommé), remplacement des deux fichiers ensemble, restauration en cas d'échec. Plus d'invite « Réessayer / Ignorer / Annuler ».
+  - **Reste non testé** : le chemin de remplacement réel (pilote de version différente **et** verrouillé) — à valider lors d'une future montée de version de WinDivert.
+
+#### Nettoyage / vérifications
+
+- [x] **Fichiers `.old`** : vérifié le 2026-11-17, aucun ne subsiste dans l'arborescence → item retiré de la liste des tâches
+
+#### Décision — bruit Mapsui (volontairement non corrigé)
+
+- **`NetMonitor.UI.crash.log`** : `System.ObjectDisposedException: The CancellationTokenSource has been disposed.` levée par `Mapsui.Fetcher.DataFetcher` → bug connu de Mapsui 5.1.0 (issue amont #3373), inoffensif : `App.xaml.cs` appelle déjà `SetObserved()`. Le correctif amont n'existe que dans Mapsui 5.2+, qui ne cible plus que .NET 9 pour WPF.
+  - **Décision 2026-11-17 : on ne touche à rien** tant que le projet reste en .NET 8. À reconsidérer lors d'une migration .NET 9.
 
 ### Session 2026-11-15 — Corrections massives Service + UI + Tray + Web
 
