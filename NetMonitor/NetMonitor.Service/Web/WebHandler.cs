@@ -154,6 +154,7 @@ namespace NetMonitor.Service.Web
                             <td style='width:30px;text-align:center'><input type='radio' name='pending-sel' value='{pathEnc}'></td>
                             <td>{p.LastSeen.ToLocalTime():dd/MM HH:mm:ss}</td>
                             <td><span class='badge {sevClass}'>{p.Severity}</span></td>
+                            <td><span class='badge {OriginToCssClass(p.Origin.ToString())}'>{WebUtility.HtmlEncode(OriginToDisplay(p.Origin.ToString()))}</span></td>
                             <td>{WebUtility.HtmlEncode(p.Detector ?? "-")}</td>
                             <td>{p.Pid}</td>
                             <td>{WebUtility.HtmlEncode(p.ProcessName)}</td>
@@ -162,7 +163,6 @@ namespace NetMonitor.Service.Web
                             <td title='{WebUtility.HtmlEncode(p.TrustReason ?? "")}'>{WebUtility.HtmlEncode(Truncate(p.TrustReason, 40))}</td>
                             <td>{WebUtility.HtmlEncode(remote)}</td>
                             <td class='count-cell'><span class='count-badge {(p.Count >= 10 ? "c10" : p.Count >= 5 ? "c5" : p.Count >= 2 ? "c2" : "c1")}'>{p.Count}</span></td>
-                            <td><span class='badge {OriginToCssClass(p.Origin.ToString())}'>{WebUtility.HtmlEncode(OriginToDisplay(p.Origin.ToString()))}</span></td>
                             <td style='text-align:center'>
                                 <button type='button' class='action-btn danger' style='padding:2px 8px;font-size:11px'
                                         onclick=""event.stopPropagation(); dismissPending('{pathJs}')"">✖</button>
@@ -172,7 +172,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    pendingRows.Append("<tr><td colspan='13' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
+                    pendingRows.Append("<tr><td colspan='14' style='text-align:center;color:#888;padding:20px'>Aucun processus en attente</td></tr>");
                 }
 
                 // --- Tableau 2 : IP Bloquées ---
