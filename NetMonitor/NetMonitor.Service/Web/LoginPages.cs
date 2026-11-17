@@ -89,6 +89,12 @@ namespace NetMonitor.Service.Web
             byte[] buffer = Encoding.UTF8.GetBytes(html);
             ctx.Response.StatusCode = status;
             ctx.Response.ContentType = "text/html; charset=utf-8";
+
+            // Pas de cache navigateur (cf. MiniHttpServer.SendHtml)
+            ctx.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            ctx.Response.Headers["Pragma"] = "no-cache";
+            ctx.Response.Headers["Expires"] = "0";
+
             ctx.Response.ContentLength64 = buffer.Length;
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();

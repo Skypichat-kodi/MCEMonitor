@@ -874,7 +874,10 @@
         ⚙ {{tr:Forcer la sévérité}}
     </button>
     <button type="button" id="btnAddPatternBlocked" class="action-btn" style="background:#CC3300">
-        🏷️ {{tr:Créer une règle (futur)}}
+        🏷️ {{tr:Créer une règle}}
+    </button>
+    <button type="button" id="btnChangeOriginBlocked" class="action-btn" style="background:#8B5CF6">
+        🎯 {{tr:Forcer l'origine}}
     </button>
 </div>
 <div class="table-wrapper theme-danger">
@@ -915,7 +918,10 @@
         ⚙ {{tr:Forcer la sévérité}}
     </button>
     <button type="button" id="btnAddPatternRetries" class="action-btn" style="background:#CC3300">
-        🏷️ {{tr:Créer une règle (futur)}}
+        🏷️ {{tr:Créer une règle}}
+    </button>
+    <button type="button" id="btnChangeOriginRetries" class="action-btn" style="background:#8B5CF6">
+        🎯 {{tr:Forcer l'origine}}
     </button>
 </div>
 <div class="table-wrapper theme-info">
@@ -1283,6 +1289,18 @@ document.getElementById('btnAddPatternRetries').addEventListener('click', functi
     if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
     openPatternPicker(r.value);
 });
+
+document.getElementById('btnChangeOriginBlocked').addEventListener('click', function() {
+    var r = document.querySelector('input[name="blocked-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP bloquée."); return; }
+    openOriginPicker(r.value);
+});
+
+document.getElementById('btnChangeOriginRetries').addEventListener('click', function() {
+    var r = document.querySelector('input[name="retry-sel"]:checked');
+    if (!r) { alert("Sélectionnez d'abord une IP dans le tableau des interceptions."); return; }
+    openOriginPicker(r.value);
+});
 </script>
 
 <script>
@@ -1521,13 +1539,36 @@ document.getElementById('btnAddPatternRetries').addEventListener('click', functi
     </div>
 </div>
 
+<!-- MODALE : Forcer l'origine -->
+<div class="modal-overlay" id="modalOrigin">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3 class="modal-title">🎯 Forcer l'origine (cette IP uniquement)</h3>
+            <button type="button" class="modal-close" onclick="closeModal('modalOrigin')">✖</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-ip" id="originModalIp">IP : ...</p>
+            <p class="modal-subtitle">
+                L'origine décrit QUI est cette IP — axe distinct de la sévérité, qui décrit le risque.
+                Cette action modifie uniquement cette IP.
+            </p>
+            <div class="severity-grid" id="originGrid">
+                <!-- Rempli dynamiquement en JS -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalOrigin')">Annuler</button>
+        </div>
+    </div>
+</div>
+
 <!-- ═══════════════════════════════════════════════════════════ -->
 <!--  MODALE : Créer une règle de classification                  -->
 <!-- ═══════════════════════════════════════════════════════════ -->
 <div class="modal-overlay" id="modalPattern">
     <div class="modal-window" style="width: 500px;">
         <div class="modal-header">
-            <h3 class="modal-title">🏷️ Créer une règle de classification (futur)</h3>
+            <h3 class="modal-title">🏷️ Créer une règle de classification</h3>
             <button type="button" class="modal-close" onclick="closeModal('modalPattern')">✖</button>
         </div>
         <div class="modal-body">
@@ -1711,6 +1752,69 @@ async function applySeverity(ip, severity) {
 // ============================================================
 //  POPUP RÈGLE
 // ============================================================
+// ============================================================
+//  MODALE ORIGINE
+// ============================================================
+var ORIGIN_OPTIONS = [
+    { name: 'Scanner',   color: '#A855F7', desc: 'Scanner de recherche' },
+    { name: 'Crawler',   color: '#1E88E5', desc: "Robot d'exploration" },
+    { name: 'Bot',       color: '#5BC0EB', desc: 'Robot officiel (Googlebot...)' },
+    { name: 'Microsoft', color: '#0078D4', desc: 'Plage Microsoft officielle' },
+    { name: 'Blacklist', color: '#8B0000', desc: 'Liste noire IPsum' },
+    { name: 'Whitelist', color: '#E0E0E0', desc: 'Ma whitelist' }
+];
+
+function openOriginPicker(ip) {
+    document.getElementById('originModalIp').textContent = 'IP : ' + ip;
+
+    var grid = document.getElementById('originGrid');
+    grid.innerHTML = '';
+
+    ORIGIN_OPTIONS.forEach(function(opt) {
+        var card = document.createElement('div');
+        card.className = 'severity-card';
+        card.innerHTML = '<div class="color-dot" style="background:' + opt.color + '"></div>' +
+                         '<div class="sev-name">' + opt.name + '</div>' +
+                         '<div class="sev-desc">— ' + opt.desc + '</div>';
+        card.onclick = function() {
+            applyOrigin(ip, opt.name);
+        };
+        grid.appendChild(card);
+    });
+
+    // Carte "Auto" en bas
+    var autoCard = document.createElement('div');
+    autoCard.className = 'severity-card auto';
+    autoCard.innerHTML = '<div class="sev-name" style="color:#4CC2FF">🤖 Revenir à l\'évaluation automatique</div>';
+    autoCard.onclick = function() {
+        applyOrigin(ip, 'auto');
+    };
+    grid.appendChild(autoCard);
+
+    openModal('modalOrigin');
+}
+
+async function applyOrigin(ip, origin) {
+    try {
+        var res = await fetch('/set-origin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'ip=' + encodeURIComponent(ip) + '&origin=' + encodeURIComponent(origin)
+        });
+
+        if (res.ok) {
+            closeModal('modalOrigin');
+            sessionStorage.removeItem('sel-blocked-sel');
+            sessionStorage.removeItem('sel-retry-sel');
+            location.reload();
+        } else {
+            alert("Erreur : le service a refusé la modification de l'origine.");
+        }
+    } catch (e) {
+        alert('Erreur de communication avec le service : ' + e.message);
+    }
+}
+
 var _currentPatternIp = null;
 
 function openPatternPicker(ip) {

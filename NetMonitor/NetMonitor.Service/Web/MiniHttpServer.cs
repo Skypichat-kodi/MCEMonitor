@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using NetMonitor.Service.Web;
@@ -21,6 +22,10 @@ namespace NetMonitor.Service.Web
         private bool _running;
         private int _currentPort;
         private readonly List<string> _localIps = new();
+
+        // Cache du corps de formulaire par requête : permet de lire plusieurs champs
+        // sans consommer deux fois l'InputStream. Libéré avec la requête.
+        private static readonly ConditionalWeakTable<HttpListenerRequest, Dictionary<string, string>> _formCache = new();
 
         public MiniHttpServer(NetMonitorEngine engine, NetMonitorSettings settings)
         {
@@ -112,6 +117,12 @@ namespace NetMonitor.Service.Web
                 string method = ctx.Request.HttpMethod;
                 string remoteIp = ctx.Request.RemoteEndPoint?.Address?.ToString() ?? "";
                 bool isLocal = IsLocalRequest(remoteIp, _localIps);
+
+                // Diagnostic : trace toute requête mutante (les GET de pages ne sont pas tracés)
+                if (!string.Equals(method, "GET", StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(method, "HEAD", StringComparison.OrdinalIgnoreCase))
+                    CoreLog.Write($"[WEB] {method} {path} de {remoteIp}");
+
                 bool isApiRoute = path == "/ping"
                                || path == "/api/summary"
                                || path == "/api/detail"
@@ -449,6 +460,57 @@ namespace NetMonitor.Service.Web
                         ? $"WebServer : sévérité de {ip} → {severityStr}"
                         : $"WebServer : échec changement sévérité de {ip}");
 
+                    Redirect(ctx);
+                }
+                else if (path == "/set-origin" && ctx.Request.HttpMethod == "POST")
+                {
+                    string ip     = ReadFormValue(ctx, "ip");
+                    string origin = ReadFormValue(ctx, "origin");
+
+                    if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(origin))
+                    {
+                        CoreLog.Warn($"[WEB] /set-origin : champ manquant (ip='{ip}', origin='{origin}')");
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    bool ok = _engine.SetBlockedIpOrigin(ip, origin);
+
+                    CoreLog.Write(ok
+                        ? $"WebServer : origine de {ip} → {origin}"
+                        : $"WebServer : échec changement origine de {ip} (IP absente des IP bloquées ou origine inconnue)");
+
+                    Redirect(ctx);
+                }
+                else if (path == "/add-pattern" && ctx.Request.HttpMethod == "POST")
+                {
+                    string list  = ReadFormValue(ctx, "list");
+                    string value = ReadFormValue(ctx, "value");
+
+                    if (string.IsNullOrWhiteSpace(list) || string.IsNullOrWhiteSpace(value))
+                    {
+                        CoreLog.Warn($"[WEB] /add-pattern : champ manquant (list='{list}', value='{value}')");
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    if (!_settings.AddPattern(list, value))
+                    {
+                        CoreLog.Warn($"[WEB] /add-pattern : liste inconnue '{list}'");
+                        ctx.Response.StatusCode = 400;
+                        ctx.Response.Close();
+                        return;
+                    }
+
+                    // Même séquence que la commande IPC add-pattern-b64 :
+                    // AddPattern a déjà persisté la config, ReloadConfig la relit,
+                    // puis on réévalue les IP bloquées concernées par la nouvelle règle.
+                    _engine.ReloadConfig();
+                    int reclassified = _engine.ReclassifyBlockedIpsByPattern(value);
+
+                    CoreLog.Write($"WebServer : pattern '{value}' ajouté à '{list}' ({reclassified} IP(s) reclassée(s))");
                     Redirect(ctx);
                 }
                 else if (path == "/mark-safe" && ctx.Request.HttpMethod == "POST")
@@ -865,19 +927,41 @@ namespace NetMonitor.Service.Web
             ctx.Response.Close();
         }
 
+        /// <summary>
+        /// Retourne la valeur d'un champ de formulaire POST.
+        /// Le corps de la requête est lu UNE SEULE FOIS puis mis en cache : un second
+        /// appel pour un autre champ (ex. /set-severity lit 'ip' puis 'severity')
+        /// relisait sinon un flux déjà consommé et renvoyait une chaîne vide.
+        /// </summary>
         private static string ReadFormValue(HttpListenerContext ctx, string name)
         {
-            if (!ctx.Request.HasEntityBody) return "";
-            using var reader = new StreamReader(ctx.Request.InputStream, ctx.Request.ContentEncoding);
+            var form = _formCache.GetValue(ctx.Request, ParseFormBody);
+            return form.TryGetValue(name, out var value) ? value : "";
+        }
+
+        /// <summary>Lit et analyse le corps de la requête (application/x-www-form-urlencoded).</summary>
+        private static Dictionary<string, string> ParseFormBody(HttpListenerRequest request)
+        {
+            var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+            if (!request.HasEntityBody) return result;
+
+            using var reader = new StreamReader(request.InputStream, request.ContentEncoding);
             string body = reader.ReadToEnd();
 
             foreach (var pair in body.Split('&'))
             {
+                if (pair.Length == 0) continue;
+
                 var kv = pair.Split('=', 2);
-                if (kv.Length == 2 && kv[0] == name)
-                    return Uri.UnescapeDataString(kv[1].Replace('+', ' '));
+                if (kv.Length != 2) continue;
+
+                string key = Uri.UnescapeDataString(kv[0].Replace('+', ' '));
+                if (!result.ContainsKey(key))
+                    result[key] = Uri.UnescapeDataString(kv[1].Replace('+', ' '));
             }
-            return "";
+
+            return result;
         }
 
         private static void SendHtml(HttpListenerContext ctx, string html, int status = 200)
@@ -885,6 +969,14 @@ namespace NetMonitor.Service.Web
             byte[] buffer = Encoding.UTF8.GetBytes(html);
             ctx.Response.StatusCode = status;
             ctx.Response.ContentType = "text/html; charset=utf-8";
+
+            // Pas de cache navigateur : les pages sont regenerees a chaque requete
+            // et dependent des templates de <dossier du service>\Templates, qui changent
+            // a chaque compilation.
+            ctx.Response.Headers["Cache-Control"] = "no-store, no-cache, must-revalidate";
+            ctx.Response.Headers["Pragma"] = "no-cache";
+            ctx.Response.Headers["Expires"] = "0";
+
             ctx.Response.ContentLength64 = buffer.Length;
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
