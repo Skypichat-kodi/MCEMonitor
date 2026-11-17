@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using System.Collections.Concurrent;
+using System.Text.Json;
 
 namespace NetMonitor.Service.Web
 {
@@ -29,8 +30,20 @@ namespace NetMonitor.Service.Web
         private const int TrustedDeviceDays = 30;
         private static readonly string _hmacSecret = LoadOrCreateHmacSecret();
 
+        // ═══════════════════════════════════════════════════════════
+        //  Persistance des appareils de confiance
+        //  Fichier : %CommonAppData%\MCEMonitor\NetMonitor\trusted_devices.json
+        //  Objectif : survivre à un arrêt / redémarrage du service
+        // ═══════════════════════════════════════════════════════════
+        private static readonly string _trustedStorePath = BuildTrustedStorePath();
+        private static readonly object _trustedFileLock = new();
+        private static bool _trustedLoaded;
+        private static readonly JsonSerializerOptions _trustedJsonOptions = new() { WriteIndented = true };
+
         public static string CreateTrustedDevice(string userAgent)
         {
+            EnsureTrustedLoaded();
+
             string fingerprint = ComputeDeviceFingerprint(userAgent);
             var now = DateTime.UtcNow;
 
@@ -43,6 +56,7 @@ namespace NetMonitor.Service.Web
             };
 
             CoreLog.Info($"[TRUSTED] Nouvel appareil de confiance enregistré (expire dans {TrustedDeviceDays}j)");
+            SaveTrustedDevices();
             return fingerprint;
         }
 
@@ -50,11 +64,14 @@ namespace NetMonitor.Service.Web
         {
             if (string.IsNullOrWhiteSpace(fingerprint)) return false;
 
+            EnsureTrustedLoaded();
+
             if (!_trustedDevices.TryGetValue(fingerprint, out var device)) return false;
 
             if (device.ExpiresAt < DateTime.UtcNow)
             {
                 _trustedDevices.TryRemove(fingerprint, out _);
+                SaveTrustedDevices();
                 return false;
             }
             return true;
@@ -64,21 +81,38 @@ namespace NetMonitor.Service.Web
         {
             if (string.IsNullOrWhiteSpace(fingerprint)) return;
 
+            EnsureTrustedLoaded();
+
             if (_trustedDevices.TryRemove(fingerprint, out var removed))
+            {
                 CoreLog.Info($"[TRUSTED] Appareil révoqué : {TruncateUA(removed.UserAgent)}");
+                SaveTrustedDevices();
+            }
         }
 
         public static void RevokeAllTrustedDevices()
         {
+            EnsureTrustedLoaded();
+
             int count = _trustedDevices.Count;
             _trustedDevices.Clear();
+            SaveTrustedDevices();
             CoreLog.Info($"[TRUSTED] {count} appareil(s) de confiance révoqué(s)");
         }
 
-        public static int TrustedDeviceCount => _trustedDevices.Count;
+        public static int TrustedDeviceCount
+        {
+            get
+            {
+                EnsureTrustedLoaded();
+                return _trustedDevices.Count;
+            }
+        }
 
         public static List<TrustedDevice> GetAllTrustedDevices()
         {
+            EnsureTrustedLoaded();
+
             // Purge les expirés avant de renvoyer
             var now = DateTime.UtcNow;
             var expired = _trustedDevices.Where(kv => kv.Value.ExpiresAt < now)
@@ -87,9 +121,92 @@ namespace NetMonitor.Service.Web
             foreach (var key in expired)
                 _trustedDevices.TryRemove(key, out _);
 
+            if (expired.Count > 0)
+                SaveTrustedDevices();
+
             return _trustedDevices.Values
                 .OrderByDescending(d => d.CreatedAt)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Charge la liste des appareils de confiance depuis le disque (une seule fois).
+        /// Les entrées expirées sont ignorées.
+        /// </summary>
+        private static void EnsureTrustedLoaded()
+        {
+            lock (_trustedFileLock)
+            {
+                if (_trustedLoaded) return;
+
+                // Posé avant la lecture : une erreur de disque ne doit pas réessayer à chaque requête
+                _trustedLoaded = true;
+
+                try
+                {
+                    if (!File.Exists(_trustedStorePath)) return;
+
+                    string json = File.ReadAllText(_trustedStorePath);
+                    var devices = JsonSerializer.Deserialize<List<TrustedDevice>>(json, _trustedJsonOptions);
+                    if (devices == null) return;
+
+                    var now = DateTime.UtcNow;
+                    int loaded = 0;
+
+                    foreach (var d in devices)
+                    {
+                        if (string.IsNullOrWhiteSpace(d.Fingerprint)) continue;
+                        if (d.ExpiresAt < now) continue;
+
+                        _trustedDevices[d.Fingerprint] = d;
+                        loaded++;
+                    }
+
+                    CoreLog.Info($"[TRUSTED] {loaded} appareil(s) de confiance rechargé(s) depuis le disque");
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Error($"[TRUSTED] Lecture de {_trustedStorePath} impossible : {ex.Message}");
+                }
+            }
+        }
+
+        /// <summary>
+        /// Écrit la liste des appareils de confiance sur le disque (écriture atomique).
+        /// </summary>
+        private static void SaveTrustedDevices()
+        {
+            lock (_trustedFileLock)
+            {
+                try
+                {
+                    string? folder = Path.GetDirectoryName(_trustedStorePath);
+                    if (!string.IsNullOrEmpty(folder))
+                        Directory.CreateDirectory(folder);
+
+                    var list = _trustedDevices.Values
+                        .OrderBy(d => d.CreatedAt)
+                        .ToList();
+
+                    string json = JsonSerializer.Serialize(list, _trustedJsonOptions);
+
+                    // Fichier temporaire puis remplacement : évite un JSON tronqué si coupure
+                    string tmp = _trustedStorePath + ".tmp";
+                    File.WriteAllText(tmp, json);
+                    File.Move(tmp, _trustedStorePath, overwrite: true);
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Error($"[TRUSTED] Écriture de {_trustedStorePath} impossible : {ex.Message}");
+                }
+            }
+        }
+
+        private static string BuildTrustedStorePath()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor", "NetMonitor", "trusted_devices.json");
         }
 
         /// <summary>
