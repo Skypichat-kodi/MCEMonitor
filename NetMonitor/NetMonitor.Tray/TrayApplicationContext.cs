@@ -30,7 +30,6 @@ namespace NetMonitor.Tray
         private string _currentSeverity = "";
         private int _startupCheckCount = 0;
         private int _watchdogMisses = 0;
-        private readonly HashSet<int> _spawnedUiPids = new();
 
         private const string PIPE_NAME = "MCEMonitor_NetMonitorPipe";
 
@@ -374,16 +373,12 @@ namespace NetMonitor.Tray
                     return;
                 }
 
-                var proc = Process.Start(new ProcessStartInfo
+                Process.Start(new ProcessStartInfo
                 {
                     FileName = exePath,
                     Arguments = "--from-mcem",
                     UseShellExecute = true
                 });
-
-                // Tracke le PID pour ne tuer QUE cette instance à l'arrêt
-                if (proc != null)
-                    _spawnedUiPids.Add(proc.Id);
             }
             catch (Exception ex)
             {
@@ -495,19 +490,11 @@ namespace NetMonitor.Tray
                 try { p.Kill(); } catch { }
             }
 
-            // 4. Kill uniquement les UI spawnés par ce Tray
-            foreach (var pid in _spawnedUiPids)
+            // 4. Fermer NetMonitor.UI s'il tourne
+            foreach (var p in Process.GetProcessesByName("NetMonitor.UI"))
             {
-                try
-                {
-                    using var p = Process.GetProcessById(pid);
-                    if (string.Equals(p.ProcessName, "NetMonitor.UI", StringComparison.OrdinalIgnoreCase))
-                        p.Kill();
-                }
-                catch (ArgumentException) { /* processus déjà terminé */ }
-                catch { }
+                try { p.Kill(); } catch { }
             }
-            _spawnedUiPids.Clear();
 
             // 5. Dispose des timers
             watchdog?.Stop();
