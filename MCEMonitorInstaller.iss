@@ -84,10 +84,21 @@ Source: "MCEMonitor Ver 1.0\ProgramData\*.config"; \
 
 ; --- Fichiers destinés à ProgramData (sauf .config) ---
 ; (sauf aussi les binaires du MCEMonitor Client et les fichiers partagés)
+; Le couple WinDivert (DLL + pilote) est exclu ici : il est déployé par
+; DeployWinDivert() dans [Code], qui vérifie qu'il n'est pas verrouillé.
 Source: "MCEMonitor Ver 1.0\ProgramData\*"; \
     DestDir: "{commonappdata}\MCEMonitor"; \
-    Excludes: "*.config,MCEMonitorClient.*,MCEMonitor.Languages.*"; \
+    Excludes: "*.config,MCEMonitorClient.*,MCEMonitor.Languages.*,runtimes\win-x64\native\WinDivert.dll,runtimes\win-x64\native\WinDivert64.sys"; \
     Flags: ignoreversion recursesubdirs createallsubdirs; \
+    Components: core
+
+; --- WinDivert : extraits dans {tmp}, copiés par DeployWinDivert() ---
+Source: "MCEMonitor Ver 1.0\ProgramData\runtimes\win-x64\native\WinDivert.dll"; \
+    Flags: dontcopy; \
+    Components: core
+
+Source: "MCEMonitor Ver 1.0\ProgramData\runtimes\win-x64\native\WinDivert64.sys"; \
+    Flags: dontcopy; \
     Components: core
 
 ; --- MCEMonitor Client : binaires dans Program Files ---
@@ -315,6 +326,128 @@ begin
 
   Log('WaitForWinDivertCleanup : timeout après ' + IntToStr(MaxWaitMs) + ' ms');
 end;
+
+// ============================================================
+//  Déploiement du couple WinDivert (WinDivert.dll + WinDivert64.sys)
+//
+//  Ces deux fichiers ne sont PAS copiés par la section [Files] : le
+//  pilote reste mappé par le noyau tant que son déchargement n'est pas
+//  terminé (état STOP_PENDING), et Windows refuse alors l'écriture.
+//
+//  Principe :
+//    - fichiers identiques            → aucune copie
+//    - fichiers remplaçables          → remplacement des DEUX ensemble
+//    - un des deux verrouillé         → on ne touche à rien (paire intacte)
+//
+//  Le test de verrou est un renommage : un pilote chargé ne peut pas
+//  être renommé, c'est fiable et sans effet de bord sur un fichier libre.
+// ============================================================
+function WinDivertDiffers(const NewFile, ExistingFile: String): Boolean;
+var
+  SizeNew, SizeExisting: Integer;
+  VersionNew, VersionExisting: String;
+begin
+  if not FileExists(ExistingFile) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // FileSize(Name, var Size) : renvoie False si le fichier est illisible
+  if FileSize(NewFile, SizeNew) and FileSize(ExistingFile, SizeExisting) and
+     (SizeNew <> SizeExisting) then
+  begin
+    Result := True;
+    Exit;
+  end;
+
+  // Même taille (ou taille illisible pour l'un des deux) : on compare les
+  // versions, si les deux fichiers en exposent une
+  if GetVersionNumbersString(NewFile, VersionNew) and
+     GetVersionNumbersString(ExistingFile, VersionExisting) then
+    Result := VersionNew <> VersionExisting
+  else
+    Result := False;   // pas de version exploitable → considéré identique
+end;
+
+procedure DeployWinDivert();
+var
+  Dir, NewDll, NewSys, DestDll, DestSys, OldDll, OldSys: String;
+  NeedDll, NeedSys, Copied: Boolean;
+begin
+  Dir     := ExpandConstant('{commonappdata}\MCEMonitor\runtimes\win-x64\native');
+  DestDll := AddBackslash(Dir) + 'WinDivert.dll';
+  DestSys := AddBackslash(Dir) + 'WinDivert64.sys';
+  OldDll  := DestDll + '.old';
+  OldSys  := DestSys + '.old';
+
+  try
+    ExtractTemporaryFile('WinDivert.dll');
+    ExtractTemporaryFile('WinDivert64.sys');
+  except
+    Log('WinDivert : extraction des fichiers embarqués impossible, déploiement ignoré');
+    Exit;
+  end;
+
+  NewDll := ExpandConstant('{tmp}\WinDivert.dll');
+  NewSys := ExpandConstant('{tmp}\WinDivert64.sys');
+
+  NeedDll := WinDivertDiffers(NewDll, DestDll);
+  NeedSys := WinDivertDiffers(NewSys, DestSys);
+
+  if not (NeedDll or NeedSys) then
+  begin
+    Log('WinDivert : DLL et pilote déjà à jour, aucune copie');
+    Exit;
+  end;
+
+  if NeedDll then Log('WinDivert : WinDivert.dll diffère de la version installée');
+  if NeedSys then Log('WinDivert : WinDivert64.sys diffère de la version installée');
+
+  if not DirExists(Dir) then ForceDirectories(Dir);
+
+  DeleteFile(OldDll);
+  DeleteFile(OldSys);
+
+  // 1. Ecarter les anciens fichiers (le renommage échoue si le pilote est chargé)
+  if FileExists(DestSys) and not RenameFile(DestSys, OldSys) then
+  begin
+    Log('WinDivert : pilote verrouillé (chargé) - versions installées conservées');
+    if not WizardSilent then
+      MsgBox('Le pilote WinDivert est encore en cours de déchargement.' + #13#10 +
+             'Les fichiers déjà installés ont été conservés : NetMonitor fonctionnera normalement.' + #13#10 + #13#10 +
+             'Si une mise à jour du pilote était attendue, fermez tous les programmes utilisant WinDivert ' + #13#10 +
+             'puis relancez l''installation.',
+             mbInformation, MB_OK);
+    Exit;
+  end;
+
+  if FileExists(DestDll) then
+    RenameFile(DestDll, OldDll);
+
+  // 2. Copier les nouveaux fichiers, toujours par paire
+  Copied := CopyFile(NewSys, DestSys, False) and CopyFile(NewDll, DestDll, False);
+
+  if Copied then
+  begin
+    DeleteFile(OldSys);
+    DeleteFile(OldDll);
+    Log('WinDivert : DLL et pilote mis à jour');
+    Exit;
+  end;
+
+  // 3. Echec : on restaure la paire précédente
+  DeleteFile(DestSys);
+  DeleteFile(DestDll);
+  if FileExists(OldSys) then RenameFile(OldSys, DestSys);
+  if FileExists(OldDll) then RenameFile(OldDll, DestDll);
+
+  Log('WinDivert : copie impossible - versions précédentes restaurées');
+  if not WizardSilent then
+    MsgBox('La mise à jour du pilote WinDivert n''a pas pu être effectuée.' + #13#10 +
+           'Les fichiers précédents ont été restaurés : NetMonitor fonctionnera normalement.',
+           mbInformation, MB_OK);
+end;
 // ============================================================
 //  Détection du pilote PawnIO (version fiable)
 //  Vérifie la clé de registre de désinstallation — méthode
@@ -457,6 +590,10 @@ procedure CurStepChanged(CurStep: TSetupStep);
 begin
   if CurStep = ssPostInstall then
   begin
+    // Le couple WinDivert est déployé ici, une fois les autres fichiers en place.
+    // Il n'est copié que s'il diffère ET qu'il n'est pas verrouillé par un pilote chargé.
+    DeployWinDivert();
+
     if not WizardSilent then
     begin
       if not IsPawnIOInstalled() then
