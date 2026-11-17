@@ -80,7 +80,7 @@ namespace RomMonitor.Service
         public void ClearAlerts()
         {
             _alertManager.Clear();
-            CoreLog.Write("Historique des alertes vidé par IPC");
+            CoreLog.Write("Historique des alertes vidé");
 
             OnUpdate?.Invoke();
         }

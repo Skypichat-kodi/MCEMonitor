@@ -19,6 +19,11 @@ namespace RomMonitor.Service
         private static readonly string ConfigPath    = Path.Combine(ConfigFolder, "RomMonitor.config");
         private static readonly string WebConfigPath = Path.Combine(ConfigFolder, "RomMonitor.web.config");
 
+        // La protection ACL n'est appliquée qu'une seule fois par processus : Load() est
+        // appelé à chaque affichage de page, et relancer takeown + icacls à chaque requête
+        // coûtait deux processus et une ligne de log toutes les 60 secondes pour rien.
+        private static bool _webConfigProtected;
+
         // ------------------------------------------------------------
         //  Paramètres existants
         // ------------------------------------------------------------
@@ -390,7 +395,12 @@ namespace RomMonitor.Service
         /// </summary>
         private static void EnsureWebConfigProtected()
         {
+            if (_webConfigProtected) return;
             if (!File.Exists(WebConfigPath)) return;
+
+            // Une seule tentative par processus, succès ou échec : le fichier est déjà
+            // protégé par l'installeur (icacls), et Save() ne modifie pas les ACL.
+            _webConfigProtected = true;
 
             try
             {

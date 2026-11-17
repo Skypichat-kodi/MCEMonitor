@@ -442,7 +442,7 @@ namespace SystemMonitor.Service
         public void ClearAlerts()
         {
             _history.Clear();
-            CoreLog.Write("Historique des alertes vidé par IPC");
+            CoreLog.Write("Historique des alertes vidé");
             OnUpdate?.Invoke();
         }
 
