@@ -341,7 +341,7 @@ namespace SystemMonitor.Service.Web
                         });
                     SendJson(ctx, json);
                 }
-                else if (path == "/clear-history")
+                else if (path == "/clear-history" && ctx.Request.HttpMethod == "POST")
                 {
                     _engine.ClearHistory();
                     _engine.ClearAlerts();
