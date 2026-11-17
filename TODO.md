@@ -50,19 +50,6 @@ _(rien)_
   - `Add-MpPreference -ExclusionExtension ".sys"`
   - → Évite à SmartScreen de retenir le handle de `WinDivert64.sys` au démarrage (démarrage 2-3× plus rapide)
 
-- [ ] **ThreatIntelService : IDisposable**
-  - Contient `HttpClient`, `Timer`, `FileSystemWatcher` non disposés
-  - Même pattern que `GeoIpService` (déjà corrigé)
-  - **Priorité** : 🟢 opportuniste
-
-- [ ] **TrustedScannerService : IDisposable**
-  - Contient `SemaphoreSlim` non disposé
-  - **Priorité** : 🟢 opportuniste
-
-- [ ] **MicrosoftIpRangeService : IDisposable**
-  - Contient `SemaphoreSlim` non disposé
-  - **Priorité** : 🟢 opportuniste
-
 ---
 
 ## ✅ Terminé récent
@@ -116,6 +103,12 @@ _(rien)_
   - ⚠ `/clear` n'a aucun appelant connu dans le dépôt : si un outil externe l'appelait en GET, il recevra un 405.
   - **Non testé en runtime** (aucune sauvegarde disponible) — validé par revue de code uniquement.
 - **Note d'analyse** : le CSRF inter-site est déjà neutralisé par `SameSite=Strict` sur le cookie de session. Cette correction est de la défense en profondeur (préchargement navigateur, F5 sur URL mémorisée, futur assouplissement de `SameSite`).
+
+#### Ressources non libérées
+
+- [x] **`ThreatIntelService`** : implémente désormais `IDisposable` (timer, `FileSystemWatcher`, `HttpClient`). `NetMonitorEngine.Stop()` enchaîne `Stop()`, `Dispose()` puis remet à `null`, comme pour `GoogleIpRangeService`.
+- **`TrustedScannerService` et `MicrosoftIpRangeService` : items retirés sans correction.** Leur seul champ libérable est un `SemaphoreSlim`, qui ne détient aucune ressource système ici (`AvailableWaitHandle` n'est jamais utilisé). Le libérer n'apporterait rien et provoquerait une `ObjectDisposedException` dans les `finally { ...Release(); }` si une vérification DNS ou un téléchargement était en vol au moment du `Stop`.
+  - **Décision 2026-11-17 : ne rien changer.** Si un jour ce code évolue (usage de `AvailableWaitHandle`, ou ajout d'un vrai handle), réévaluer.
 
 #### Nettoyage / vérifications
 
