@@ -569,5 +569,15 @@
   "{0}/{1} serveur(s) en ligne  —  Dernière mise à jour : {2}": "{0}/{1} online server(s) — Last update: {2}",
   "Actualisation...": "Updating...",
   "Scan en cours...": "Scan in progress...",
-  "Voulez-vous vraiment vider l'historique des mesures et des alertes ? Cette action est irréversible.": "Do you really want to empty the history of measurements and alerts? This action is irreversible."
+  "Voulez-vous vraiment vider l'historique des mesures et des alertes ? Cette action est irréversible.": "Do you really want to empty the history of measurements and alerts? This action is irreversible.",
+  "Net.OriginExplanation": "Origin is information independent of severity. It explains WHO this IP is.",
+  "Net.PatternIsp": "ISP (Provider)",
+  "Net.PatternTagSafe": " — Will be tagged 'Known legitimate'",
+  "Net.PatternTagCritical": " — Will be tagged 'Confirmed malicious'",
+  "Net.PatternTagScanner": " — Will be tagged 'Research scanner'",
+  "Net.PatternTagCrawler": " — Will be tagged 'Crawler'",
+  "Net.PatternTagWhitelist": " — Will be tagged 'My whitelist'",
+  "Net.PatternExplanation": "This does NOT change the severity of the IP shown above. It adds a global rule in NetMonitor.config. Future alerts matching this pattern will be classified in the chosen list.",
+  "Net.RevertToAuto": "Back to automatic evaluation",
+  "Net.RobotExplorationGeneric": " — Generic crawler"
 }
