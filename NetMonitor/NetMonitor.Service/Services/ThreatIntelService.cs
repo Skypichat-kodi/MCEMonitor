@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace NetMonitor.Service.Services
 {
-    public class ThreatIntelService
+    public class ThreatIntelService : IDisposable
     {
         private HashSet<string> _blacklist = new();
         private readonly object _lock = new();
@@ -16,6 +16,7 @@ namespace NetMonitor.Service.Services
         private Timer? _refreshTimer;
         private FileSystemWatcher? _watcher;
         private readonly HttpClient _httpClient = new();
+        private volatile bool _disposed;
 
         public ThreatIntelService()
         {
@@ -151,6 +152,28 @@ namespace NetMonitor.Service.Services
         {
             _watcher?.Dispose();
             _refreshTimer?.Dispose();
+        }
+
+        /// <summary>
+        /// Libère le timer, le FileSystemWatcher et surtout le HttpClient.
+        /// Stop() ne libérait que le timer et le watcher : le client HTTP et son pool
+        /// de sockets restaient vivants jusquà la fin du processus.
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+
+            try { _watcher?.Dispose(); }
+            catch (Exception ex) { CoreLog.Warn($"ThreatIntelService.Dispose (watcher) : {ex.Message}"); }
+            _watcher = null;
+
+            try { _refreshTimer?.Dispose(); }
+            catch (Exception ex) { CoreLog.Warn($"ThreatIntelService.Dispose (timer) : {ex.Message}"); }
+            _refreshTimer = null;
+
+            try { _httpClient.Dispose(); }
+            catch (Exception ex) { CoreLog.Warn($"ThreatIntelService.Dispose (http) : {ex.Message}"); }
         }
     }
 }

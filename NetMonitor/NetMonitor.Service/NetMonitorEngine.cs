@@ -492,6 +492,9 @@ namespace NetMonitor.Service
             CoreLog.Write("NetMonitorEngine.Stop() : démarrage de l'arrêt propre");     
         
             _threatIntel?.Stop();
+            _threatIntel?.Dispose();
+            _threatIntel = null;
+
             _msRanges?.Stop();
             
             _googleRanges?.Stop();
