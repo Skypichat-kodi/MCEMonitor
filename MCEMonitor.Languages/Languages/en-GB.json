@@ -254,7 +254,6 @@
   "médias": "media",
   "Erreur backup horaire": "Time-based backup error",
   "Rétention mise à jour via Web.config": "Retention updated via Web.config",
-  "jours": "days",
   "Timer de sauvegarde reprogrammé suite au changement de rétention.": "Backup time reprogrammed following the retention change.",
   "...": "...",
   "clé": "key",

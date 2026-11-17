@@ -265,7 +265,6 @@
   "médias": "médias",
   "Erreur backup horaire": "Erreur backup horaire",
   "Rétention mise à jour via Web.config": "Rétention mise à jour via Web.config",
-  "jours": "jours",
   "Timer de sauvegarde reprogrammé suite au changement de rétention.": "Timer de sauvegarde reprogrammé suite au changement de rétention.",
   "Nouvelle heure détectée": "Nouvelle heure détectée",
   "Shutdown.config chargé": "Shutdown.config chargé",
