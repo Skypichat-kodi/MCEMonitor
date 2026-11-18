@@ -1768,8 +1768,11 @@ async function applySeverity(ip, severity) {
             sessionStorage.removeItem('sel-blocked-sel');
             sessionStorage.removeItem('sel-retry-sel');
             location.reload();
+        } else if (res.status === 409) {
+            // Refus explicite du service : l'entrée n'est plus une IP bloquée
+            alert(await res.text());
         } else {
-            alert('Erreur : le service a refusé la modification.');
+            alert('{{tr:Erreur : le service a refusé la modification.}}');
         }
     } catch (e) {
         alert('Erreur de communication avec le service : ' + e.message);
@@ -1834,6 +1837,8 @@ async function applyOrigin(ip, origin) {
             sessionStorage.removeItem('sel-blocked-sel');
             sessionStorage.removeItem('sel-retry-sel');
             location.reload();
+        } else if (res.status === 409) {
+            alert(await res.text());
         } else {
             alert("{{tr:Erreur : le service a refusé la modification de l'origine.}}");
         }

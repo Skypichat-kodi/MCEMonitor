@@ -467,6 +467,17 @@ namespace NetMonitor.Service.Web
                         ? $"WebServer : sévérité de {ip} → {severityStr}"
                         : $"WebServer : échec changement sévérité de {ip}");
 
+                    if (!ok)
+                    {
+                        // Le moteur refuse : l'entrée n'est pas une IP bloquée (ou plus),
+                        // ou c'est une ligne de type « processus ». On le dit au client
+                        // (409) au lieu de rediriger comme si tout s'était bien passé.
+                        SendText(ctx,
+                            LanguageManager.Get("Sévérité non appliquée : cette entrée n'est pas une IP bloquée, ou elle n'existe plus.")
+                            ?? "Sévérité non appliquée : cette entrée n'est pas une IP bloquée, ou elle n'existe plus.", 409);
+                        return;
+                    }
+
                     Redirect(ctx);
                 }
                 else if (path == "/set-origin" && ctx.Request.HttpMethod == "POST")
@@ -487,6 +498,14 @@ namespace NetMonitor.Service.Web
                     CoreLog.Write(ok
                         ? $"WebServer : origine de {ip} → {origin}"
                         : $"WebServer : échec changement origine de {ip} (IP absente des IP bloquées ou origine inconnue)");
+
+                    if (!ok)
+                    {
+                        SendText(ctx,
+                            LanguageManager.Get("Origine non appliquée : cette entrée n'est pas une IP bloquée, ou elle n'existe plus.")
+                            ?? "Origine non appliquée : cette entrée n'est pas une IP bloquée, ou elle n'existe plus.", 409);
+                        return;
+                    }
 
                     Redirect(ctx);
                 }
@@ -996,6 +1015,18 @@ namespace NetMonitor.Service.Web
             ctx.Response.Headers["Pragma"] = "no-cache";
             ctx.Response.Headers["Expires"] = "0";
 
+            ctx.Response.ContentLength64 = buffer.Length;
+            ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
+            ctx.Response.OutputStream.Close();
+        }
+
+        /// <summary>Réponse texte brute (utilisée pour les refus explicites en 409).</summary>
+        private static void SendText(HttpListenerContext ctx, string text, int status)
+        {
+            byte[] buffer = Encoding.UTF8.GetBytes(text);
+            ctx.Response.StatusCode = status;
+            ctx.Response.ContentType = "text/plain; charset=utf-8";
+            ctx.Response.Headers["Cache-Control"] = "no-store";
             ctx.Response.ContentLength64 = buffer.Length;
             ctx.Response.OutputStream.Write(buffer, 0, buffer.Length);
             ctx.Response.OutputStream.Close();
