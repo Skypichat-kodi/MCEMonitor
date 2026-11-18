@@ -27,6 +27,12 @@ namespace NetMonitor.Service.Web
         // sans consommer deux fois l'InputStream. Libéré avec la requête.
         private static readonly ConditionalWeakTable<HttpListenerRequest, Dictionary<string, string>> _formCache = new();
 
+        // Un cookie n'est pas cloisonné par le port HTTP : deux instances sur le même
+        // hôte (même nom, ports différents) partageraient le même cookie et s'écraseraient
+        // mutuellement. Le nom est donc qualifié par le port d'écoute.
+        private string SessionCookieName => $"netmon_session_{_currentPort}";
+        private string TrustedCookieName => $"netmon_trusted_device_{_currentPort}";
+
         public MiniHttpServer(NetMonitorEngine engine, NetMonitorSettings settings)
         {
             _engine = engine;
@@ -178,7 +184,7 @@ namespace NetMonitor.Service.Web
                     bool rememberDevice = rememberStr == "1";
 
                     // Vérifie si l'appareil est déjà de confiance (cookie signé)
-                    string? trustedFingerprint = GetCookie(ctx, "netmon_trusted_device");
+                    string? trustedFingerprint = GetCookie(ctx, TrustedCookieName);
                     bool isTrustedDevice = SessionStore.IsTrustedDevice(trustedFingerprint);                    
 
                     int step = int.TryParse(stepStr, out var s) ? s : 1;
@@ -195,7 +201,7 @@ namespace NetMonitor.Service.Web
                     if (isLocal)
                     {
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
-                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        SetCookie(ctx, SessionCookieName, session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (local) pour {remoteIp}");
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
@@ -205,7 +211,7 @@ namespace NetMonitor.Service.Web
                     if (!_settings.OtpEnabled)
                     {
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
-                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        SetCookie(ctx, SessionCookieName, session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (OTP désactivé) pour {remoteIp}");
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
@@ -215,7 +221,7 @@ namespace NetMonitor.Service.Web
                     if (isTrustedDevice)
                     {
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
-                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        SetCookie(ctx, SessionCookieName, session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (appareil de confiance) pour {remoteIp}");
                         RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                         return;
@@ -262,7 +268,7 @@ namespace NetMonitor.Service.Web
 
                         // OTP validé → session
                         string session = SessionStore.Create(_settings.OtpSessionMinutes);
-                        SetCookie(ctx, "netmon_session", session, _settings.OtpSessionMinutes * 60);
+                        SetCookie(ctx, SessionCookieName, session, _settings.OtpSessionMinutes * 60);
                         CoreLog.Write($"[LOGIN] Session créée (OTP validé) pour {remoteIp}");
 
                         // Si "Se souvenir de cet appareil" coché → pose le cookie de confiance
@@ -270,7 +276,7 @@ namespace NetMonitor.Service.Web
                         {
                             string userAgent = ctx.Request.UserAgent ?? "";
                             string fingerprint = SessionStore.CreateTrustedDevice(userAgent);
-                            SetCookie(ctx, "netmon_trusted_device", fingerprint, 30 * 24 * 3600);
+                            SetCookie(ctx, TrustedCookieName, fingerprint, 30 * 24 * 3600);
                             CoreLog.Info($"[LOGIN] Appareil mémorisé 30 jours pour {remoteIp}");
                         }
 
@@ -284,9 +290,9 @@ namespace NetMonitor.Service.Web
                 }
                 else if (path == "/logout")
                 {
-                    string? session = GetCookie(ctx, "netmon_session");
+                    string? session = GetCookie(ctx, SessionCookieName);
                     SessionStore.Invalidate(session);
-                    SetCookie(ctx, "netmon_session", "deleted", 0);
+                    SetCookie(ctx, SessionCookieName, "deleted", 0);
                     CoreLog.Write($"[LOGIN] Logout : session invalidée");
 
                     // Redirection vers /login (pas de 401, plus de popup Basic Auth)
@@ -299,7 +305,7 @@ namespace NetMonitor.Service.Web
                 // ============================================================
                 else
                 {
-                    string? session = GetCookie(ctx, "netmon_session");
+                    string? session = GetCookie(ctx, SessionCookieName);
                     if (!SessionStore.IsValid(session))
                     {
                         string original = Uri.EscapeDataString(path);

@@ -18,6 +18,12 @@ namespace MediaMonitor.Service
         private readonly HttpListener _listener = new();
         private readonly MediaMonitorEngine _engine;
         private readonly int _port;
+
+        // Un cookie n'est pas cloisonné par le port HTTP : deux instances sur le même
+        // hôte (même nom, ports différents) partageraient le même cookie et s'écraseraient
+        // mutuellement. Le nom est donc qualifié par le port d'écoute.
+        private string SessionCookieName => $"mm_session_{_port}";
+
         private Thread? _thread;
         private bool _running = false;
         private long _requestCount = 0;
@@ -216,16 +222,16 @@ namespace MediaMonitor.Service
                     }
 
                     string session = SessionStore.Create(15);
-                    SetCookie(ctx, "mm_session", session, 15 * 60);
+                    SetCookie(ctx, SessionCookieName, session, 15 * 60);
                     CoreLog.Write($"[LOGIN] Session créée pour {remoteIp}");
                     RedirectTo(ctx, string.IsNullOrWhiteSpace(original) ? "/" : original);
                     return;
                 }
                 else if (path == "/logout")
                 {
-                    string? session = GetCookie(ctx, "mm_session");
+                    string? session = GetCookie(ctx, SessionCookieName);
                     SessionStore.Invalidate(session);
-                    SetCookie(ctx, "mm_session", "deleted", 0);
+                    SetCookie(ctx, SessionCookieName, "deleted", 0);
                     CoreLog.Write($"[LOGIN] Logout : session invalidée");
                     RedirectTo(ctx, "/login");
                     return;
@@ -236,7 +242,7 @@ namespace MediaMonitor.Service
                 // ============================================================
                 else
                 {
-                    string? session = GetCookie(ctx, "mm_session");
+                    string? session = GetCookie(ctx, SessionCookieName);
                     if (!SessionStore.IsValid(session))
                     {
                         string original = Uri.EscapeDataString(path);
