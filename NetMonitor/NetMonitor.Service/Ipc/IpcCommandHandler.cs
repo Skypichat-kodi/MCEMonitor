@@ -675,9 +675,14 @@ namespace NetMonitor.Service.Ipc
             {
                 var retries = _engine.GetBlockedIpRetries();
 
-                // On joint avec les infos GeoIP persistées dans BlockedIpInfo
+                // On joint avec les infos GeoIP persistées dans BlockedIpInfo.
+                // GroupBy : plusieurs entrées peuvent partager le même nom (processus
+                // bloqué plusieurs fois) — sinon ToDictionary lève une ArgumentException.
                 var blockedDict = _engine.GetBlockedIps()
-                    .ToDictionary(b => b.Ip, b => b, StringComparer.OrdinalIgnoreCase);
+                    .GroupBy(b => b.Ip, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(g => g.Key,
+                                  g => g.OrderByDescending(b => b.BlockedAt).First(),
+                                  StringComparer.OrdinalIgnoreCase);
 
                 var projected = retries.Select(r =>
                 {

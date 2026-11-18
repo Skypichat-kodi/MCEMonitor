@@ -323,8 +323,15 @@ namespace NetMonitor.Service.Web
                 var blockedRetries = engine.GetBlockedIpRetries();
                 if (blockedRetries.Count > 0)
                 {
-                    // Dictionnaire pour récupérer la sévérité des IPs bloquées
-                    var blockedDict = blocked.ToDictionary(b => b.Ip, b => b, StringComparer.OrdinalIgnoreCase);
+                    // Dictionnaire pour récupérer la sévérité des IPs bloquées.
+                    // GroupBy : un processus bloqué peut avoir plusieurs entrées de même
+                    // nom, et ToDictionary lèverait « An item with the same key has
+                    // already been added » — l'exception cassait toute la page.
+                    var blockedDict = blocked
+                        .GroupBy(b => b.Ip, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(g => g.Key,
+                                      g => g.OrderByDescending(b => b.BlockedAt).First(),
+                                      StringComparer.OrdinalIgnoreCase);
 
                     foreach (var r in blockedRetries.Take(100))
                     {

@@ -770,7 +770,7 @@ namespace NetMonitor.Service
                 return true;
 
             // Resynchronisation complète des règles (recalcul de tous les blocs)
-            var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
+            var allIps = GetBlockedIps().Where(b => !b.IsProcess).Select(b => b.Ip).ToList();
             bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
 
             if (!syncOk)
@@ -1179,7 +1179,7 @@ namespace NetMonitor.Service
 
             if (!removed) return false;
 
-            var allIps = GetBlockedIps().Select(b => b.Ip).ToList();
+            var allIps = GetBlockedIps().Where(b => !b.IsProcess).Select(b => b.Ip).ToList();
             bool syncOk = FirewallHelper.SyncFirewallRules(allIps);
 
             SaveBlockedIps();
@@ -1404,11 +1404,32 @@ namespace NetMonitor.Service
                     }
                 }
                 
+                // Déduplication : un même processus a pu être bloqué plusieurs fois avant
+                // le correctif de BlockProcess (qui n'effectuait aucune vérification). On ne
+                // garde que l'entrée la plus récente par clé — chemin du processus, sinon IP —
+                // car les doublons s'affichent en double et font échouer les dictionnaires
+                // indexés par nom de processus.
+                int avantDedup = list.Count;
+                list = list
+                    .GroupBy(b => b.IsProcess
+                                    ? "P|" + (b.ProcessPath ?? b.Ip)
+                                    : "I|" + b.Ip,
+                             StringComparer.OrdinalIgnoreCase)
+                    .Select(g => g.OrderByDescending(b => b.BlockedAt).First())
+                    .ToList();
+                int doublonsSupprimes = avantDedup - list.Count;
+                if (doublonsSupprimes > 0)
+                    CoreLog.Info($"LoadBlockedIps : {doublonsSupprimes} doublon(s) supprimé(s)");
+
                 lock (_alertsLock)
                 {
                     _blockedIps.Clear();
                     _blockedIps.AddRange(list);
                 }
+
+                // Persiste le nettoyage une seule fois
+                if (doublonsSupprimes > 0)
+                    SaveBlockedIps();
 
                 // ✅ Amorcer le cache GeoIP avec les géolocs déjà connues
                 //    → aucune requête réseau pour ces IPs au démarrage ni ensuite
@@ -1443,8 +1464,15 @@ namespace NetMonitor.Service
 
                 // Reconstruit TOUTES les règles d'un coup (migration des anciennes règles
                 // individuelles vers les blocs groupés incluse)
-                bool syncOk = FirewallHelper.SyncFirewallRules(list.Select(b => b.Ip));
+                bool syncOk = FirewallHelper.SyncFirewallRules(
+                    list.Where(b => !b.IsProcess).Select(b => b.Ip));
                 CoreLog.Info($"Sync pare-feu au démarrage : {(syncOk ? "OK" : "ÉCHEC")}");
+
+                // Rétablit les règles des processus bloqués : SyncFirewallRules ne traite
+                // que les IP, donc un vidage des règles laisserait ces processus affichés
+                // comme bloqués sans aucune règle active.
+                FirewallHelper.SyncProcessRules(
+                    list.Where(b => b.IsProcess).Select(b => b.ProcessPath ?? ""));
 
                 // ============================================================
                 //  Migration one-shot de la sévérité (v3)
@@ -1901,17 +1929,35 @@ namespace NetMonitor.Service
             {
                 lock (_alertsLock)
                 {
-                    _blockedIps.Add(new BlockedIpInfo
+                    // Un même processus peut être bloqué plusieurs fois (il réapparaît après
+                    // le blocage). On met à jour l'entrée existante au lieu d'en ajouter une
+                    // seconde : sinon la liste contient des doublons et les dictionnaires
+                    // indexés par nom de processus (affichage web, IPC) lèvent
+                    // « An item with the same key has already been added ».
+                    var existing = _blockedIps.FirstOrDefault(b =>
+                        b.IsProcess &&
+                        string.Equals(b.ProcessPath, pending.ProcessPath, StringComparison.OrdinalIgnoreCase));
+
+                    if (existing != null)
                     {
-                        Ip              = pending.ProcessName,         // nom court pour l'affichage
-                        ProcessPath     = pending.ProcessPath,
-                        IsProcess       = true,
-                        BlockedAt       = DateTime.UtcNow,
-                        Source          = "UntrustedProcess",
-                        Message         = pending.TrustReason ?? "Processus bloqué",
-                        Details         = pending.ProcessPath,
-                        Severity        = pending.Severity.ToString(),   // ← restauré (comme avant)
-                    });
+                        existing.BlockedAt = DateTime.UtcNow;
+                        existing.Severity  = pending.Severity.ToString();
+                        existing.Message   = pending.TrustReason ?? existing.Message;
+                    }
+                    else
+                    {
+                        _blockedIps.Add(new BlockedIpInfo
+                        {
+                            Ip              = pending.ProcessName,         // nom court pour l'affichage
+                            ProcessPath     = pending.ProcessPath,
+                            IsProcess       = true,
+                            BlockedAt       = DateTime.UtcNow,
+                            Source          = "UntrustedProcess",
+                            Message         = pending.TrustReason ?? "Processus bloqué",
+                            Details         = pending.ProcessPath,
+                            Severity        = pending.Severity.ToString(),   // ← restauré (comme avant)
+                        });
+                    }
                 }
 
                 lock (_pendingLock)

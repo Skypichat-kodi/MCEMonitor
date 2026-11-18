@@ -128,8 +128,13 @@ namespace NetMonitor.Service
             {
                 try
                 {
+                    // Seules de vraies adresses IP doivent finir dans une règle de blocage :
+                    // les entrées de type processus portent un nom (ex. "SyncLive") dans le
+                    // champ Ip, et netsh échouerait sur remoteip=SyncLive en invalidant tout
+                    // le bloc. Leurs règles sont gérées par SyncProcessRules.
                     var ips = blockedIps
                         .Where(ip => !string.IsNullOrWhiteSpace(ip))
+                        .Where(ip => IPAddress.TryParse(ip, out _))
                         .Distinct()
                         .ToList();
 
@@ -469,6 +474,105 @@ namespace NetMonitor.Service
                 errorMessage = "Échec de la création de la règle pare-feu (netsh).";
 
             return ok;
+        }
+
+        /// <summary>
+        /// Rétablit les règles de blocage des processus à partir des entrées persistées.
+        /// Symétrique de SyncFirewallRules pour les IP : sans cela, un processus reste
+        /// affiché comme bloqué alors que sa règle a disparu (vidage manuel des règles,
+        /// ancienne version, suppression hors application).
+        /// Seules les règles manquantes sont recréées, avec un seul listing PowerShell.
+        /// </summary>
+        public static void SyncProcessRules(IEnumerable<string> processPaths)
+        {
+            try
+            {
+                var wanted = (processPaths ?? Enumerable.Empty<string>())
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (wanted.Count == 0) return;
+
+                var existing = GetExistingProcessRuleNames();
+                int kept = 0, created = 0, failed = 0;
+
+                foreach (var path in wanted)
+                {
+                    string ruleName = $"{ProcessBlockPrefix}{ComputePathHash(path)}";
+
+                    if (existing.Contains(ruleName)) { kept++; continue; }
+
+                    if (!File.Exists(path))
+                    {
+                        CoreLog.Warn($"Firewall : processus bloqué introuvable, règle non rétablie ({path})");
+                        failed++;
+                        continue;
+                    }
+
+                    if (BlockProcess(path, out string err)) created++;
+                    else
+                    {
+                        CoreLog.Warn($"Firewall : échec rétablissement règle processus ({path}) : {err}");
+                        failed++;
+                    }
+                }
+
+                CoreLog.Info($"Firewall : règles de processus — {kept} déjà présente(s), {created} rétablie(s), {failed} en échec");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("SyncProcessRules : " + ex.Message);
+            }
+        }
+
+        /// <summary>Noms des règles de blocage de processus présentes dans le pare-feu.</summary>
+        private static HashSet<string> GetExistingProcessRuleNames()
+        {
+            var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                var psScript =
+                    $"Get-NetFirewallRule -DisplayName '{ProcessBlockPrefix}*' -ErrorAction SilentlyContinue | " +
+                    "Select-Object -ExpandProperty DisplayName";
+
+                var psi = new ProcessStartInfo("powershell.exe",
+                    $"-NoProfile -ExecutionPolicy Bypass -Command \"{psScript}\"")
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError  = true,
+                    UseShellExecute        = false,
+                    CreateNoWindow         = true,
+                    StandardOutputEncoding = System.Text.Encoding.UTF8
+                };
+
+                using var p = Process.Start(psi);
+                if (p == null) return set;
+
+                var outTask = p.StandardOutput.ReadToEndAsync();
+                var errTask = p.StandardError.ReadToEndAsync();
+
+                if (!p.WaitForExit(NETSH_TIMEOUT_MS))
+                {
+                    try { p.Kill(true); } catch { }
+                    CoreLog.Warn("GetExistingProcessRuleNames : timeout PowerShell");
+                    return set;
+                }
+
+                _ = errTask.Result;
+
+                foreach (var line in outTask.Result.Split('\n'))
+                {
+                    string name = line.Trim();
+                    if (name.Length > 0) set.Add(name);
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("GetExistingProcessRuleNames : " + ex.Message);
+            }
+
+            return set;
         }
 
         public static bool UnblockProcess(string processPath)
