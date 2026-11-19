@@ -6,7 +6,20 @@
         Height="750"
         Width="1300"
         MinHeight="550"
-        MinWidth="900">
+        MinWidth="900"
+        WindowStyle="None"
+        ResizeMode="CanResize">
+
+    <!-- Barre de titre personnalisée : la barre Windows est supprimée, les boutons
+         Réduire / Agrandir / Fermer sont recréés dans l'en-tête.
+         Pas d'AllowsTransparency : il empêcherait le redimensionnement. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
 
     <Window.Resources>
 
@@ -293,7 +306,10 @@
         <!-- ============================================================ -->
         <!--  BARRE TITRE                                                  -->
         <!-- ============================================================ -->
-        <Grid Grid.Row="0" Margin="15,12,15,8">
+        <!-- Background="Transparent" est indispensable : une grille sans arrière-plan
+             n'est pas cliquable dans ses zones vides, donc seul le titre répondrait
+             à la souris. Transparent ne change aucune couleur visible. -->
+        <Grid Grid.Row="0" Margin="15,12,15,8" Background="Transparent" MouseLeftButtonDown="HeaderBar_MouseLeftButtonDown">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
@@ -306,18 +322,33 @@
                        Foreground="#4CC2FF"
                        VerticalAlignment="Center"/>
 
-            <Button Grid.Column="1"
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button
                     x:Name="btnOpenWebTop"
                     Height="30"
                     Padding="15,0"
                     VerticalContentAlignment="Center"
                     Click="btnOpenWeb_Click"
                     ToolTip="{loc:Tr 'Ouvrir la page Web dans le navigateur'}">
-                <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                    <TextBlock Text="{loc:Tr 'Ouvrir la page Web'}" VerticalAlignment="Center"/>
-                </StackPanel>
-            </Button>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="{loc:Tr 'Ouvrir la page Web'}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Boutons de la barre de titre personnalisée.
+                     Ils héritent du style Button implicite de la fenêtre :
+                     aucune couleur ni style n'est redéfini ici. -->
+                <Button x:Name="btnTitleMinimize" Content="—" Width="34" Height="30" Padding="0"
+                        Margin="8,0,0,0" Click="TitleBarMinimize_Click"
+                        ToolTip="{loc:Tr 'Réduire'}"/>
+                <Button x:Name="btnTitleMaximize" Content="□" Width="34" Height="30" Padding="0"
+                        Margin="4,0,0,0" Click="TitleBarMaximize_Click"
+                        ToolTip="{loc:Tr 'Agrandir'}"/>
+                <Button x:Name="btnTitleClose" Content="✕" Width="34" Height="30" Padding="0"
+                        Margin="4,0,0,0" Click="TitleBarClose_Click"
+                        ToolTip="{loc:Tr 'Fermer'}"/>
+            </StackPanel>
         </Grid>
 
         <!-- ============================================================ -->
