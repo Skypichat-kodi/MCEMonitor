@@ -10,6 +10,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using MCEMonitor.Languages;
 using MediaMonitor.Core.Models;
 using MediaMonitor.UI.Models;
@@ -20,6 +22,75 @@ namespace MediaMonitor.UI
 {
     public partial class MainWindow : Window
     {
+        // ============================================================
+        //  Barre de titre personnalisée (WindowStyle=None + WindowChrome)
+        //  La barre Windows est supprimée ; Réduire / Agrandir / Fermer sont
+        //  recréés dans l'en-tête de la fenêtre.
+        // ============================================================
+
+        [DllImport("dwmapi.dll", PreserveSig = true)]
+        private static extern int DwmSetWindowAttribute(IntPtr fenetre, int attribut, ref int valeur, int taille);
+
+        private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;   // Windows 11
+        private const int DWMWCP_ROUND                   = 2;
+
+        /// <summary>
+        /// Coins arrondis : WindowChrome.CornerRadius est sans effet sous Windows 11,
+        /// il faut le demander à DWM. Sous Windows 10 l'attribut est inconnu, l'appel
+        /// est sans effet et les angles restent carrés.
+        /// </summary>
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            try
+            {
+                var handle = new WindowInteropHelper(this).Handle;
+                int arrondi = DWMWCP_ROUND;
+                DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref arrondi, sizeof(int));
+            }
+            catch
+            {
+                // Windows 10 : rien à faire, la fenêtre reste à angles droits.
+            }
+        }
+
+        /// <summary>
+        /// L'en-tête fait office de barre de titre : un clic déplace la fenêtre,
+        /// un double-clic bascule agrandi / normal.
+        /// Les boutons de l'en-tête gèrent leurs propres clics et n'atteignent
+        /// donc jamais ce gestionnaire.
+        /// </summary>
+        private void HeaderBar_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                ToggleWindowState();
+                return;
+            }
+
+            if (e.ButtonState == MouseButtonState.Pressed)
+            {
+                try { DragMove(); }
+                catch (InvalidOperationException) { /* bouton relâché avant le déplacement */ }
+            }
+        }
+
+        private void ToggleWindowState()
+        {
+            WindowState = WindowState == WindowState.Maximized
+                ? WindowState.Normal
+                : WindowState.Maximized;
+        }
+
+        private void TitleBarMinimize_Click(object sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+
+        private void TitleBarMaximize_Click(object sender, RoutedEventArgs e) => ToggleWindowState();
+
+        private void TitleBarClose_Click(object sender, RoutedEventArgs e) => Close();
+
+        // ============================================================
+
         private bool IsLoggingEnabled = false;
         public static Action<string> StaticUiLog = _ => { };
 
