@@ -5,9 +5,82 @@
         Title="NetMonitor"
         Width="400" Height="180"
         WindowStartupLocation="CenterOwner"
-        ResizeMode="NoResize">
+        ResizeMode="NoResize"
+        WindowStyle="None">
 
-    <Grid Margin="15">
+    <!-- Barre de titre personnalisée : ce dialogue n'a pas d'en-tête, on en ajoute
+         un (titre + Fermer). ResizeMode reste NoResize : pas de Réduire/Agrandir. -->
+    <Window.Resources>
+        <!-- Même style de bouton implicite que les MainWindow. Sans lui, les boutons
+             de ces dialogues utilisaient le rendu WPF par défaut (gris système),
+             ce qui jurait avec le thème sombre de la fenêtre. -->
+        <Style TargetType="Button">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Padding" Value="10 5"/>
+            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="#3A3A3D"/>
+                                <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Foreground" Value="Black"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="0"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Le titre est lié à Window.Title : ici il est fourni par le code
+             appelant (constructeur InputBoxWindow). -->
+        <Grid Grid.Row="0" Background="Transparent" Margin="10,6,8,0"
+              MouseLeftButtonDown="HeaderBar_MouseLeftButtonDown">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Column="0"
+                       Text="{Binding Title, RelativeSource={RelativeSource AncestorType=Window}}"
+                       FontSize="12" Foreground="#B4B4B4" VerticalAlignment="Center"
+                       TextTrimming="CharacterEllipsis"/>
+
+            <Button Grid.Column="1" Content="✕" Width="28" Height="24" Padding="0"
+                    Click="TitleBarClose_Click" ToolTip="{loc:Tr 'Fermer'}"/>
+        </Grid>
+
+    <Grid Grid.Row="1" Margin="15">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
@@ -29,5 +102,6 @@
             <Button Content="OK" Width="90" Height="28"
                     IsDefault="True" Click="OnOk"/>
         </StackPanel>
+    </Grid>
     </Grid>
 </Window>

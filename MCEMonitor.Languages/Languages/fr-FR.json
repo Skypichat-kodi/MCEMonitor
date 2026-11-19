@@ -639,5 +639,6 @@
   "Net.ScannerHelp": "Scanners de recherche légitimes (Shodan, Censys, Palo Alto...). Les IPs correspondantes seront marquées Trusted (jaune) et bloquées si l'option est activée.",
   "Net.TrustedDevicesHelp": "Ces appareils peuvent se connecter au Web sans OTP. Ils sont mémorisés pendant 30 jours. Révoquer un appareil le force à repasser l'OTP à sa prochaine connexion.",
   "Net.WebHelp": "Permet de consulter les alertes depuis un navigateur Web (localhost ou réseau local). Désactivez-le si vous n'utilisez pas cette interface.",
-  "Net.WhitelistHelp": "Retirer un processus le fera réapparaître dans le tableau « Processus en attente » au prochain événement réseau. Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée."
+  "Net.WhitelistHelp": "Retirer un processus le fera réapparaître dans le tableau « Processus en attente » au prochain événement réseau. Décocher « Actif » désactive temporairement la confiance sans supprimer l'entrée.",
+  "Net.OriginDialogTitle": "Forcer l'origine (cette IP uniquement)"
 }

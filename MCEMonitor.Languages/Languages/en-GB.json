@@ -594,5 +594,6 @@
   "Net.ScannerHelp": "Legitimate research scanners (Shodan, Censys, Palo Alto...). Matching IPs will be marked Trusted (yellow) and blocked if the option is enabled.",
   "Net.TrustedDevicesHelp": "These devices can connect to the Web without OTP. They are remembered for 30 days. Revoking a device forces it to go through OTP again on its next connection.",
   "Net.WebHelp": "Allows viewing alerts from a web browser (localhost or local network). Disable it if you do not use this interface.",
-  "Net.WhitelistHelp": "Removing a process makes it reappear in the 'Pending processes' table at the next network event. Unchecking 'Active' temporarily disables trust without deleting the entry."
+  "Net.WhitelistHelp": "Removing a process makes it reappear in the 'Pending processes' table at the next network event. Unchecking 'Active' temporarily disables trust without deleting the entry.",
+  "Net.OriginDialogTitle": "Force origin (this IP only)"
 }
