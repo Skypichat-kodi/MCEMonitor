@@ -71,6 +71,17 @@ echo Workloads OK.
 echo.
 
 REM ============================================
+REM  Version : on reprend celle de la suite (dernier tag Git vX.Y.Z)
+REM ============================================
+set APP_VERSION=0.0.0
+set APP_CODE=1
+for /f "delims=" %%v in ('git describe --tags --abbrev^=0 --match "v*" 2^>nul') do set APP_VERSION=%%v
+set APP_VERSION=!APP_VERSION:v=!
+REM Android exige un versionCode entier, croissant : 2.3.9 -> 20309
+for /f "tokens=1,2,3 delims=." %%x in ("!APP_VERSION!") do set /a APP_CODE=%%x*10000 + %%y*100 + %%z
+echo Version APK : !APP_VERSION!  (versionCode !APP_CODE!)
+
+REM ============================================
 REM  Compilation
 REM ============================================
 echo.
@@ -81,6 +92,8 @@ echo ============================================
 echo.
 
 dotnet publish -f net8.0-android -c Release ^
+    -p:ApplicationDisplayVersion=!APP_VERSION! ^
+    -p:ApplicationVersion=!APP_CODE! ^
     -p:AndroidKeyStore=true ^
     -p:AndroidSigningKeyStore=%KEYSTORE% ^
     -p:AndroidSigningKeyAlias=%ALIAS% ^

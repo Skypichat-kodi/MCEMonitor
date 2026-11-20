@@ -12,6 +12,9 @@
 
     <ApplicationTitle>MCEMonitor Client</ApplicationTitle>
     <ApplicationId>com.mcemonitor.client</ApplicationId>
+    <!-- Valeurs de repli : BuildAndroid.bat les écrase avec la version Git
+         (-p:ApplicationDisplayVersion / -p:ApplicationVersion).
+         MAUI refuse de compiler si elles sont absentes. -->
     <ApplicationDisplayVersion>1.0</ApplicationDisplayVersion>
     <ApplicationVersion>1</ApplicationVersion>
 
