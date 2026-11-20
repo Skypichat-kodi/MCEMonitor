@@ -10,34 +10,12 @@ _(rien)_
 
 ## 📋 À faire
 
-### 🔴 Sécurité — Audit et durcissement
-
-- [x] **Auditer les `MiniHttpServer` / `WebServer` des 4 modules** *(fait le 2026-11-17)*
-  - **Contexte** : l'UI Android doit être limitée à la consultation
-  - **Résultat** : les 8 routes destructives des 4 modules sont désormais en POST (voir la session du 2026-11-17)
-  - **Test runtime** : NetMonitor ✅, SystemMonitor ✅, RomMonitor ✅, MediaMonitor ⚠ non testé (aucune sauvegarde disponible au moment du test ; contrôle par revue de code uniquement)
-  - **Restent en GET, volontairement** : `/download`, `/export-pdf` (génération, aucune destruction), `/logout`, et toutes les routes de lecture/API
-  - **Nuance importante** : le CSRF inter-site est déjà bloqué par le cookie `SameSite=Strict` ; la correction est de la défense en profondeur (préchargement navigateur, F5 sur une URL mémorisée, futur assouplissement de `SameSite`)
-
-- [x] **Vérifier les routes d'export/rapport** *(analysé le 2026-11-17 — aucune modification nécessaire)*
-  - `/export-pdf` (NetMonitor) : génère le PDF **en mémoire** (`MemoryStream` + `document.Save`), aucune écriture disque, puis le renvoie en `attachment`. Route authentifiée. Le `GET` est **le bon choix** : c'est un téléchargement déclenché par un simple lien `<a href="/export-pdf">`, qu'un `POST` casserait (il faudrait du JavaScript et un blob).
-  - `/report` (MediaMonitor) : construit un rapport HTML à partir de l'historique, en lecture seule. Route protégée par session (elle n'est pas dans la liste `isApiRoute`, donc elle passe par le contrôle de session). Aucun appelant dans le dépôt — route conservée pour un usage manuel.
-  - **Correction d'une affirmation précédente** : cet item indiquait qu'ils « écrivaient un fichier temporaire ». C'est faux : tout se fait en mémoire.
-
 ### 🟡 Planifié
 
-- [ ] **Retour explicite quand le service refuse un forçage sévérité/origine**
-  - `/set-severity` et `/set-origin` répondent `302 → 200` même si `_engine.SetManualSeverity` / `SetBlockedIpOrigin` renvoient `false` (IP absente de `_blockedIps`, ou ligne de type « processus »)
-  - Conséquence côté page : rechargement, aucune modification visible, aucune explication
-  - Le journal est désormais véridique (`WebServer : échec changement sévérité de X`), mais l'utilisateur web ne le voit pas
-  - **Piste** : renvoyer un code 409 avec un message, et l'afficher dans la modale au lieu de recharger
-  - **Priorité** : 🟢 opportuniste
-
-- [x] **Vague C — Restaurer les règles par défaut sur la page Web** *(livré le 2026-11-17)*
-  - Route `/restore-default-patterns` (POST) ajoutée dans `MiniHttpServer.cs`
-  - Section « Zone de danger » + bouton `↺ Restaurer les règles à l'origine` + confirmation nommant les 5 listes dans `NetPage.html`
-  - Séquence alignée sur l'IPC : `RestoreDefaultPatterns` → `ReloadConfig` → `ReevaluateAllBlockedIps`
-  - **Reste à valider** : clic réel sur le bouton en web (compilé et déployé, mais pas encore exercé)
+- [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
+  - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
+  - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
 - [ ] **MediaMonitor — affichage "Depuis quand"**
   - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
@@ -50,9 +28,70 @@ _(rien)_
   - Vérifier que `ServerConfigStore.Save` ne persiste plus que des champs non sensibles
   - **Coût** : 30 min
 
+### 🟢 Opportuniste
+
+- [ ] **Supprimer les 6 clés `Tab.*` mortes des JSON**
+  - `Tab.Email`, `Tab.MediaMonitor`, `Tab.WakeMonitor`, `Tab.StopMonitor`, `Tab.OnOff`, `Tab.About` : zéro utilisation
+  - Le Designer de `MainForm` appelle `Get("Email")`, `Get("OnOff")`… sans le préfixe
+  - **Priorité** : 🟢 opportuniste
+
+- [ ] **MediaMonitor.UI : ajouter un `crash.log`**
+  - Les UI NetMonitor, RomMonitor et SystemMonitor écrivent `Xxx.UI.crash.log` ; MediaMonitor.UI ne gère pas les exceptions non observées
+  - **Priorité** : 🟢 opportuniste
+
+- [ ] **Messages de log trompeurs restants** *(si d'autres apparaissent)*
+  - Corrigé le 2026-11-17 : `Historique des alertes vidé par IPC` → `Historique des alertes vidé`
+
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-19 / 20 — i18n complet, barres de titre WPF, releases
+
+**Chantier d'internationalisation terminé, harmonisation visuelle des fenêtres, remise à plat des releases GitHub.**
+
+#### i18n — traduction complète du code
+
+- [x] **C#** : 94 chaînes passées à `LanguageManager.Get(...) ?? "..."` — 7 fichiers (MCEMonitor, MCEMonitorClient.Config, MCEMonitorClient.Tray, MediaMonitor.UI, plus les trois UI NetMonitor / SystemMonitor / RomMonitor)
+- [x] **XAML NetMonitor** : 160 chaînes dans 5 fenêtres ; `xmlns:loc` ajouté aux 4 fenêtres qui ne le déclaraient pas
+- [x] **XAML — clés courtes** : 26 clés `Net.*` créées pour les chaînes contenant une apostrophe (ni la syntaxe XAML ni le parseur d'Autotrad ne les acceptent), avec entrées dans `fr-FR.json` **et** `en-GB.json`
+- [x] **HTML** : 68 textes dans `NetPage.html`, `Charts.html`, `Map.html` — y compris dans les blocs `<script>` (descriptions des cartes, `alert` / `confirm` / `prompt`)
+- [x] **Pages HTML construites en C#** : login des 4 modules (9 + 5 + 5 + 5 textes), 9 messages d'erreur du login NetMonitor, « Historique effacé » de MediaMonitor via `HTMLTranslator`
+- [x] **Trays** : `LanguageManager` branché dans les 4 projets (référence projet + `Load()` au démarrage depuis `language.config`), menus, popups et dialogues traduits
+- [x] **Clé morte `"jours"`** (minuscules) supprimée des deux JSON. Les variantes `ERREUR :` et `STATISTIQUES AVANCÉES` sont légitimes : le `Dictionary` est sensible à la casse, les deux sont réellement appelées
+- [x] **Piège documenté** : une extension `{loc:Tr …}` n'est résolue que si elle occupe **toute** la valeur de l'attribut. Trois endroits affichaient leur balise en clair (`✖ {loc:Tr 'Annuler'}` et deux textes d'aide `ℹ`) → corrigés par un `StackPanel` pour le bouton et des `<Run>` pour les textes
+
+#### NetMonitor — processus bloqués et pare-feu
+
+- [x] **Doublons de processus** : `BlockProcess` ajoutait une entrée à chaque blocage → met désormais à jour l'entrée existante (identité = `ProcessPath`, comme `UnblockProcess`)
+- [x] **Plantage de la page web** : `WebHandler` et `IpcCommandHandler` indexaient un dictionnaire par `b.Ip`, qui vaut le **nom du processus** pour les entrées `IsProcess` → `GroupBy` + entrée la plus récente (symptôme : `An item with the same key has already been added. Key: SyncLive`)
+- [x] **`LoadBlockedIps`** déduplique les fichiers existants et les réécrit
+- [x] **`SyncProcessRules`** : rétablit au démarrage les règles de processus manquantes (après un vidage manuel des règles du pare-feu, par exemple)
+- [x] **`SyncFirewallRules`** n'accepte plus que de vraies adresses IP : un nom de processus dans la liste faisait échouer tout un bloc netsh
+
+#### Sécurité des interfaces web
+
+- [x] **Cookies qualifiés par le port** sur les 4 modules (`netmon_session_14003`, `netmon_trusted_device_14003`, `sysmon_session_13003`, …) : deux instances sur le même hôte ne s'écrasent plus mutuellement l'OTP
+- [x] **Refus explicite** : `/set-severity` et `/set-origin` renvoient un **409** avec un message traduit quand le moteur refuse ; la page l'affiche dans une alerte au lieu de recharger
+
+#### WPF — barres de titre
+
+- [x] **4 MainWindow + 6 dialogues** : `WindowStyle="None"` + `WindowChrome` (sans `AllowsTransparency`), titre lié à `Window.Title`, boutons Réduire / Agrandir / Fermer, déplacement par l'en-tête, double-clic, coins arrondis via DWM (sans effet sous Windows 10)
+- [x] **`Background="Transparent"`** sur la grille d'en-tête : sans lui, seule la zone du titre répondait à la souris et la fenêtre ne se déplaçait que par le coin haut-gauche
+- [x] **Style `Button` implicite** ajouté aux 6 dialogues : leurs boutons utilisaient le rendu WPF par défaut (gris système)
+- [x] **BOM UTF-8** ajouté aux XAML qui n'en avaient pas (NetMonitor, SystemMonitor)
+
+#### Documentation et distribution
+
+- [x] **README complet** : modules, architecture, prérequis, compilation, installation, emplacements, configuration, interfaces web, clients, i18n, outils annexes, décisions d'architecture, dépannage, licence
+- [x] **Build Android** : `BuildAndroid.bat` calcule la version depuis le dernier tag `v…` et l'injecte en `-p:` (`ApplicationDisplayVersion` + versionCode, soit `20309` pour 2.3.9). Les valeurs du csproj restent en repli
+- [x] **Releases GitHub consolidées** : `v2.3.9` unique, avec l'installeur, l'APK et `Autotrad.exe`. Les releases `v2.3.7.0`, `AC2.3.7.0` et `v0.2` ont été supprimées avec leurs tags
+- [x] **`audit-process.ps1` restauré** : il avait disparu (renommé en `.old`, probablement par Autotrad) et `build.bat` ignorait l'audit silencieusement
+
+#### Décisions actées
+
+- **Client Android** : le préfixe de tag `AC…` est abandonné, un seul numéro de version pour toute la suite
+- **Styles WPF dupliqués** : volontaire — les modules doivent rester indépendants, ils ont vocation à devenir des add-ons de MCEMonitor. Pas de dictionnaire de ressources partagé
 
 ### Session 2026-11-17 — NetMonitor : page web, Tray, installeur
 
@@ -72,6 +111,8 @@ _(rien)_
 - [x] **Route `/add-pattern`** : n'existait pas (le JS postait vers une 404, le bouton portait « (futur) »). Alignée sur l'IPC `add-pattern-b64` : `AddPattern` → `ReloadConfig` → `ReclassifyBlockedIpsByPattern`
 - [x] **Route `/set-origin`** + bouton **🎯 Forcer l'origine** sur les tableaux « IP bloquées » et « Tentatives », avec modale (6 origines + Auto)
 - [x] Mentions « (futur) » retirées des libellés de boutons et du titre de la modale règle
+- [x] **Route `/restore-default-patterns`** + section « Zone de danger » dans la page web, avec bouton `↺ Restaurer les règles à l'origine` et confirmation nommant les 5 listes. Séquence alignée sur l'IPC : `RestoreDefaultPatterns` → `ReloadConfig` → `ReevaluateAllBlockedIps`
+  - **Reste à valider** : clic réel sur le bouton en web (compilé et déployé, mais jamais exercé)
 
 #### Page web — cache navigateur
 
@@ -103,6 +144,14 @@ _(rien)_
   - ⚠ `/clear` n'a aucun appelant connu dans le dépôt : si un outil externe l'appelait en GET, il recevra un 405.
   - **Non testé en runtime** (aucune sauvegarde disponible) — validé par revue de code uniquement.
 - **Note d'analyse** : le CSRF inter-site est déjà neutralisé par `SameSite=Strict` sur le cookie de session. Cette correction est de la défense en profondeur (préchargement navigateur, F5 sur URL mémorisée, futur assouplissement de `SameSite`).
+- **Audit complet des quatre serveurs web** *(clôturé le 2026-11-17)* : les 8 routes destructives sont en POST. Runtime vérifié pour NetMonitor, SystemMonitor et RomMonitor ; **MediaMonitor validé par revue de code uniquement** (aucune sauvegarde disponible ce jour-là).
+- **Restent en GET, volontairement** : `/download`, `/export-pdf`, `/logout`, et toutes les routes de lecture et d'API.
+
+#### Analyse — routes d'export et de rapport *(aucune modification nécessaire, 2026-11-17)*
+
+- **`/export-pdf`** (NetMonitor) : le PDF est généré **en mémoire** (`MemoryStream` + `document.Save`), sans aucune écriture disque, puis renvoyé en `attachment`. Route authentifiée. Le `GET` est le **bon choix** : c'est un téléchargement déclenché par un simple lien `<a href="/export-pdf">`, qu'un `POST` casserait (il faudrait du JavaScript et un blob).
+- **`/report`** (MediaMonitor) : rapport HTML construit depuis l'historique, en lecture seule, protégé par session (hors liste `isApiRoute`). Aucun appelant dans le dépôt — route conservée pour un usage manuel.
+- **Correction d'une affirmation antérieure** : l'item d'origine prétendait que ces routes « écrivaient un fichier temporaire ». C'est faux, tout se fait en mémoire.
 
 #### Ressources non libérées
 
