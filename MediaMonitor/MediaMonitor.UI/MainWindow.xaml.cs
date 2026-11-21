@@ -106,6 +106,11 @@ namespace MediaMonitor.UI
         private bool _isRefreshing = false;
         private bool _loadingConfig = false;
 
+        // Pendant le chargement des réglages, cocher un ToggleButton déclenche son
+        // événement Checked. Sans ce garde-fou, l'application réécrivait le fichier
+        // qu'elle venait de lire, et échouait si l'écriture était refusée.
+        private bool _chargementReglages;
+
         public MainWindow()
         {
             InitializeComponent();
@@ -566,17 +571,46 @@ namespace MediaMonitor.UI
             string configPath = @"C:\ProgramData\MCEMonitor\MediaMonitor.web.config";
             if (!File.Exists(configPath)) return;
 
-            foreach (var line in File.ReadAllLines(configPath))
+            _chargementReglages = true;
+            try
             {
-                if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
+                foreach (var line in File.ReadAllLines(configPath))
                 {
-                    string value = line.Split('=')[1].Trim();
-                    ToggleDvb.IsChecked = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string value = line.Split('=')[1].Trim();
+                        ToggleDvb.IsChecked = value.Equals("true", StringComparison.OrdinalIgnoreCase);
+                    }
                 }
+            }
+            finally
+            {
+                _chargementReglages = false;
             }
         }
 
         private void SaveDvbSwitch()
+        {
+            // Rien à enregistrer si l'on vient de lire le fichier, ni si l'écriture
+            // est refusée : mieux vaut une case sans effet qu'une interface qui plante.
+            if (_chargementReglages)
+                return;
+
+            try
+            {
+                EcrireDvbSwitch();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // Droits insuffisants sur ProgramData : on ignore.
+            }
+            catch (IOException)
+            {
+                // Fichier verrouillé par un autre processus : idem.
+            }
+        }
+
+        private void EcrireDvbSwitch()
         {
             string path = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),

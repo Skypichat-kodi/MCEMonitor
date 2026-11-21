@@ -500,13 +500,14 @@
                        Text="MediaMonitor"
                        FontSize="20"
                        FontWeight="Bold"
-                       Foreground="#4CC2FF"
+                       Foreground="#FFF2F2F2"
                        VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
 
                 <!-- Envoyer rapport -->
                 <Button Height="30" Padding="15,0" Margin="0,0,8,0"
+                        Style="{StaticResource BoutonTitre}"
                         VerticalContentAlignment="Center"
                         Click="SendReportNow_Click"
                         ToolTip="{loc:Tr 'Envoyer le rapport maintenant'}">
@@ -518,6 +519,7 @@
 
                 <!-- Ouvrir page Web -->
                 <Button Height="30" Padding="15,0"
+                        Style="{StaticResource BoutonTitre}"
                         VerticalContentAlignment="Center"
                         Click="btnOpenWeb_Click"
                         ToolTip="{loc:Tr 'Ouvrir la page Web dans le navigateur'}">
@@ -530,13 +532,13 @@
                 <!-- Boutons de la barre de titre personnalisée.
                      Ils héritent du style Button implicite de la fenêtre :
                      aucune couleur ni style n'est redéfini ici. -->
-                <Button x:Name="btnTitleMinimize" Content="—" Width="34" Height="30" Padding="0"
+                <Button Style="{StaticResource BoutonTitre}" x:Name="btnTitleMinimize" Content="—" Width="34" Height="30" Padding="0"
                         Margin="8,0,0,0" Click="TitleBarMinimize_Click"
                         ToolTip="{loc:Tr 'Réduire'}"/>
-                <Button x:Name="btnTitleMaximize" Content="□" Width="34" Height="30" Padding="0"
+                <Button Style="{StaticResource BoutonTitre}" x:Name="btnTitleMaximize" Content="□" Width="34" Height="30" Padding="0"
                         Margin="4,0,0,0" Click="TitleBarMaximize_Click"
                         ToolTip="{loc:Tr 'Agrandir'}"/>
-                <Button x:Name="btnTitleClose" Content="✕" Width="34" Height="30" Padding="0"
+                <Button Style="{StaticResource BoutonTitre}" x:Name="btnTitleClose" Content="✕" Width="34" Height="30" Padding="0"
                         Margin="4,0,0,0" Click="TitleBarClose_Click"
                         ToolTip="{loc:Tr 'Fermer'}"/>
             </StackPanel>
@@ -573,7 +575,7 @@
 
                     <!-- SWITCHES LOG + EMAIL -->
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-                        <Border Style="{StaticResource CardBorder}" Padding="12,8">
+                        <Border Style="{StaticResource CardBorder}" Background="Transparent" BorderThickness="0" Padding="12,8">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{loc:Tr 'Log'}"
                                            VerticalAlignment="Center"
@@ -611,7 +613,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Style="{StaticResource CardBorder}" Padding="12,8" Margin="10,0,0,0">
+                        <Border Style="{StaticResource CardBorder}" Background="Transparent" BorderThickness="0" Padding="12,8" Margin="10,0,0,0">
                             <StackPanel Orientation="Horizontal">
                                 <TextBlock Text="{loc:Tr 'Envoi du rapport automatique'}"
                                            VerticalAlignment="Center"
