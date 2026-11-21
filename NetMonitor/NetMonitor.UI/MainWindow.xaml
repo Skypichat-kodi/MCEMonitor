@@ -975,7 +975,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                            <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#b71c1c"/>
@@ -992,7 +993,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                <TextBlock Text="{Binding Count}" Foreground="White" VerticalAlignment="Center"
                                                            FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
                                             </Border>
                                         </DataTemplate>
@@ -1193,7 +1194,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                            <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#b71c1c"/>
@@ -1210,7 +1212,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                <TextBlock Text="{Binding Count}" Foreground="White" VerticalAlignment="Center"
                                                            FontWeight="Bold" FontSize="11" HorizontalAlignment="Center"/>
                                             </Border>
                                         </DataTemplate>
@@ -1606,7 +1608,8 @@
                             <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                        <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
+                                                HorizontalAlignment="Center" VerticalAlignment="Center">
                                             <Border.Style>
                                                 <Style TargetType="Border">
                                                     <Setter Property="Background" Value="#1565c0"/>
@@ -1623,7 +1626,7 @@
                                                     </Style.Triggers>
                                                 </Style>
                                             </Border.Style>
-                                            <TextBlock Text="{Binding RetryCount}" Foreground="White"
+                                            <TextBlock Text="{Binding RetryCount}" Foreground="White" VerticalAlignment="Center"
                                                        FontWeight="Bold" FontSize="11"
                                                        HorizontalAlignment="Center"/>
                                         </Border>
@@ -1909,7 +1912,8 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
-                                            <Border CornerRadius="10" Padding="6,2" HorizontalAlignment="Center" MinWidth="28">
+                                            <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
+                                                    HorizontalAlignment="Center" VerticalAlignment="Center">
                                                 <Border.Style>
                                                     <Style TargetType="Border">
                                                         <Setter Property="Background" Value="#a1d99b"/>          <!-- c1 : vert clair -->
@@ -1926,7 +1930,7 @@
                                                         </Style.Triggers>
                                                     </Style>
                                                 </Border.Style>
-                                                <TextBlock Text="{Binding Count}" Foreground="White"
+                                                <TextBlock Text="{Binding Count}" Foreground="White" VerticalAlignment="Center"
                                                            FontWeight="Bold" FontSize="11"
                                                            HorizontalAlignment="Center"/>
                                             </Border>
