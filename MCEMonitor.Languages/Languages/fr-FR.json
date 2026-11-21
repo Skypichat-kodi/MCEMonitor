@@ -624,6 +624,7 @@
   "Net.ClearAudit": "Vider l'audit",
   "Net.ClearHistory": "Effacer l'historique",
   "Net.CrawlerHelp": "Robots d'exploration génériques (Yandex, Baidu, Infrawatch...). Les IPs correspondantes seront marquées Crawler (bleu foncé) et bloquées si l'option est activée.",
+  "Net.CreateRule": "Créer une règle",
   "Net.ForceOrigin": "Forcer l'origine",
   "Net.IgnoredNetworksHelp": "Réseaux ignorés (CIDR) : ces adresses ne déclencheront jamais d'alerte. Utile pour le loopback et les réseaux locaux.",
   "Net.OpenFileLocation": "Ouvrir l'emplacement du fichier",

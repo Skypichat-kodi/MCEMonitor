@@ -579,6 +579,7 @@
   "Net.ClearAudit": "Clear audit",
   "Net.ClearHistory": "Clear history",
   "Net.CrawlerHelp": "Generic crawlers (Yandex, Baidu, Infrawatch...). Matching IPs will be marked Crawler (dark blue) and blocked if the option is enabled.",
+  "Net.CreateRule": "Create a rule",
   "Net.ForceOrigin": "Force origin",
   "Net.IgnoredNetworksHelp": "Ignored networks (CIDR): these addresses will never trigger an alert. Useful for loopback and local networks.",
   "Net.OpenFileLocation": "Open file location",
