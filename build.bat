@@ -83,52 +83,6 @@ echo SDK .NET utilisé :
 dotnet --version
 where dotnet
 
-REM ============================================================
-REM  Auto-tag apres 100 commits (robuste, sans goto, sans PS)
-REM ============================================================
-echo.
-echo ============================================
-echo  Verification du nombre de commits depuis le dernier tag
-echo ============================================
-
-set "LAST_TAG="
-for /f "delims=" %%t in ('git describe --tags --abbrev^=0 2^>nul') do set "LAST_TAG=%%t"
-
-set "COMMITS="
-if defined LAST_TAG (
-    for /f "delims=" %%c in ('git rev-list --count "!LAST_TAG!..HEAD" 2^>nul') do set "COMMITS=%%c"
-)
-
-echo Dernier tag    : !LAST_TAG!
-echo Commits depuis : !COMMITS!
-
-if defined COMMITS (
-    if !COMMITS! GEQ 100 (
-        set "TAG_NO_V=!LAST_TAG:v=!"
-        set "NEW_TAG="
-        for /f "tokens=1,2,3 delims=." %%x in ("!TAG_NO_V!") do (
-            set /a NEW_PATCH=%%z+1
-            set "NEW_TAG=v%%x.%%y.!NEW_PATCH!"
-        )
-        if defined NEW_TAG (
-            echo %ESC%[33m[INFO] Seuil atteint, creation du tag !NEW_TAG!%ESC%[0m
-            git tag "!NEW_TAG!"
-            git push origin "!NEW_TAG!"
-            if errorlevel 1 (
-                echo %ESC%[31m[ERREUR] Echec creation/push tag%ESC%[0m
-                set ERROR=1
-            ) else (
-                echo %ESC%[32m[OK] Tag !NEW_TAG! cree et pousse%ESC%[0m
-            )
-        ) else (
-            echo %ESC%[33m[WARN] Impossible de calculer la version suivante%ESC%[0m
-        )
-    ) else (
-        echo %ESC%[32m[OK] Seuil non atteint ^(!COMMITS!/100^)%ESC%[0m
-    )
-) else (
-    echo %ESC%[33m[WARN] Aucun tag ou git indisponible, skip%ESC%[0m
-)
 
 REM === ProgramFiles ===
 call :publish "%ROOT%\MCEMonitor"                               "%DEST_PROGRAM%"
