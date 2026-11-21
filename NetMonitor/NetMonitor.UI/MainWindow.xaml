@@ -791,6 +791,7 @@
             <StackPanel Grid.Column="1" Orientation="Horizontal">
                 <Button
                     x:Name="btnOpenWebTop"
+                    Style="{StaticResource BoutonTitre}"
                     Height="30"
                     Padding="15,0"
                     VerticalContentAlignment="Center"
