@@ -1784,13 +1784,6 @@
                                     <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
-
-                            <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" Margin="0,0,0,6">
@@ -1929,13 +1922,6 @@
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🏷️" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{loc:Tr 'Créer une règle (futur)'}" VerticalAlignment="Center"/>
-                                </StackPanel>
-                            </Button>
-
-                            <Button Width="180" Click="HistoryChangeOrigin_Click" Margin="0,0,10,0">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🌐" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
-                                    <TextBlock Text="{loc:Tr 'Net.ForceOrigin'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>
                         </StackPanel>
