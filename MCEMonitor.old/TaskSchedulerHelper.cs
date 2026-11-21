@@ -4,7 +4,6 @@ using System.IO;
 using System.Security.Principal;
 using System.Text;
 using System.Threading.Tasks;
-using System.Windows.Forms;
 
 namespace MCEMonitor.Utils
 {
@@ -72,7 +71,10 @@ namespace MCEMonitor.Utils
         // ============================================================
         public static string CreateShutdownTask(int hour, int minute, string mode)
         {
-            string exePath = Application.ExecutablePath;
+            // Environment.ProcessPath remplace Application.ExecutablePath (WinForms) :
+            // même valeur en .NET 8, et le fichier reste compilable sans WinForms,
+            // ce qui permet de le partager avec l'interface WPF.
+            string exePath = Environment.ProcessPath ?? string.Empty;
 
             int taskHour   = hour;
             int taskMinute = minute - 5;   // 5 min avant l'heure réelle

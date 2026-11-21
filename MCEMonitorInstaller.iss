@@ -30,7 +30,7 @@ ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0.10240
 
 ; Icônes
-SetupIconFile="MCEMonitor\Assets\MCEMonitor.ico"
+SetupIconFile="MCEMonitor.UI\Assets\MCEMonitor.ico"
 UninstallDisplayIcon={app}\MCEMonitor.exe
 
 ; Langues

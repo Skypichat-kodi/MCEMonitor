@@ -1,0 +1,57 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <RootNamespace>MCEMonitor.UI</RootNamespace>
+    <!-- Même nom que l'application WinForms qu'il remplace : c'est lui que build.bat
+         arrête, que l'installeur interroge pour la version, et que les tâches
+         planifiées visent. -->
+    <AssemblyName>MCEMonitor</AssemblyName>
+    <ApplicationIcon>Assets\MCEMonitor.ico</ApplicationIcon>
+    <PlatformTarget>x64</PlatformTarget>
+
+    <!--
+      Deux manifestes : celui du produit exige l'élévation, celui de contrôle
+      non (voir app.debug.manifest). Le second ne sert qu'à produire un
+      exécutable inspectable par l'outil de captures, Windows interdisant
+      d'observer l'interface d'un processus élevé.
+    -->
+    <ApplicationManifest Condition="'$(ManifesteVerification)' == 'true'">app.debug.manifest</ApplicationManifest>
+    <ApplicationManifest Condition="'$(ManifesteVerification)' != 'true'">app.manifest</ApplicationManifest>
+
+    <!-- La compilation de contrôle prend un mutex distinct, sinon elle s'arrête
+         aussitôt lancée : l'exécutable livrable tient déjà le mutex global. -->
+    <DefineConstants Condition="'$(ManifesteVerification)' == 'true'">$(DefineConstants);VERIF</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Estampille la version dans l'exécutable : l'installeur la lit,
+         et l'onglet À propos l'affiche. -->
+    <PackageReference Include="GitVersion.MsBuild" Version="6.8.2">
+      <PrivateAssets>All</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="MailKit" Version="4.16.0" />
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="8.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Fond commun aux interfaces des modules -->
+    <Resource Include="Resources\Images\*.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MCEMonitor.Languages\MCEMonitor.Languages.csproj" />
+  </ItemGroup>
+
+  <!--
+    Logique reprise de l'application WinForms, désormais copiée dans Partage\ :
+    le SDK l'inclut automatiquement, le projet est autonome et l'ancien dossier
+    peut être archivé sans rien casser.
+  -->
+
+</Project>

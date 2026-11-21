@@ -85,7 +85,7 @@ where dotnet
 
 
 REM === ProgramFiles ===
-call :publish "%ROOT%\MCEMonitor"                               "%DEST_PROGRAM%"
+call :publish "%ROOT%\MCEMonitor.UI"                            "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Core"           "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.UI"             "%DEST_PROGRAM%"
 call :publish "%ROOT%\MediaMonitor\MediaMonitor.Tray"           "%DEST_PROGRAM%"
