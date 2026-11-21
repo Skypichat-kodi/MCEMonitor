@@ -23,6 +23,35 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <!-- En-tetes des tableaux de l'onglet Intrusions : rouge sombre mat,
+             texte clair et separateurs discrets (pas de saumon). -->
+        <Style x:Key="EntetesIntrusion" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+            <Setter Property="Background" Value="#3A1A1A"/>
+            <Setter Property="Foreground" Value="#F0E0E0"/>
+            <Setter Property="BorderBrush" Value="#5C2A2A"/>
+        </Style>
+
+        <!-- Cellules des tableaux de l'onglet Intrusions. Le style global des
+             cellules peint un fond opaque qui masquerait celui de la ligne :
+             la teinte doit donc etre portee ici. -->
+        <Style x:Key="CellulesIntrusion" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="Background" Value="#241717"/>
+        </Style>
+
+        <!-- Lignes des tableaux de l'onglet Intrusions : rouge tres discret,
+             juste de quoi rappeler le contexte sans peser sur la lecture. -->
+        <Style x:Key="LignesIntrusion" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+            <Setter Property="Background" Value="#1E1414"/>
+            <Style.Triggers>
+                <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                    <Setter Property="Background" Value="#241818"/>
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#2E1E1E"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <SolidColorBrush x:Key="Win11Background" Color="#1E1E1E"/>
         <SolidColorBrush x:Key="Win11Panel" Color="#252526"/>
         <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
@@ -915,7 +944,7 @@
                                        Foreground="#888" FontSize="11" Text=""/>
                         </StackPanel>
 
-                        <DataGrid x:Name="ActiveIntrusionsGrid"
+                        <DataGrid x:Name="ActiveIntrusionsGrid" ColumnHeaderStyle="{StaticResource EntetesIntrusion}" CellStyle="{StaticResource CellulesIntrusion}" RowStyle="{StaticResource LignesIntrusion}"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
@@ -925,29 +954,6 @@
                                   AlternationCount="2"
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
-
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                    <Setter Property="Background" Value="#4A1F0F"/>
-                                    <Setter Property="Foreground" Value="#FFC7B5"/>
-                                    <Setter Property="BorderBrush" Value="#6B2D1A"/>
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-
-                            <DataGrid.RowStyle>
-                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                                    <Setter Property="Background" Value="#231310"/>
-                                    <Setter Property="BorderBrush" Value="#3A221B"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                            <Setter Property="Background" Value="#2A1815"/>
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#3A221B"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGrid.RowStyle>
                             
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
@@ -1156,7 +1162,7 @@
                                        Foreground="#888" FontSize="11" Text=""/>
                         </StackPanel>
 
-                        <DataGrid x:Name="PendingProcessesGrid"
+                        <DataGrid x:Name="PendingProcessesGrid" ColumnHeaderStyle="{StaticResource EntetesIntrusion}" CellStyle="{StaticResource CellulesIntrusion}" RowStyle="{StaticResource LignesIntrusion}"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
@@ -1166,29 +1172,6 @@
                                   AlternationCount="2"
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
-
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                    <Setter Property="Background" Value="#4A1F0F"/>
-                                    <Setter Property="Foreground" Value="#FFC7B5"/>
-                                    <Setter Property="BorderBrush" Value="#6B2D1A"/>
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-
-                            <DataGrid.RowStyle>
-                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                                    <Setter Property="Background" Value="#231310"/>
-                                    <Setter Property="BorderBrush" Value="#3A221B"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                            <Setter Property="Background" Value="#2A1815"/>
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#3A221B"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGrid.RowStyle>
                             
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
@@ -1381,7 +1364,7 @@
                                        Foreground="#888" FontSize="11" Text=""/>
                         </StackPanel>
 
-                        <DataGrid x:Name="BlockedIpsGrid"
+                        <DataGrid x:Name="BlockedIpsGrid" ColumnHeaderStyle="{StaticResource EntetesIntrusion}" CellStyle="{StaticResource CellulesIntrusion}" RowStyle="{StaticResource LignesIntrusion}"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
@@ -1391,27 +1374,6 @@
                                   AlternationCount="2"
                                   ScrollViewer.HorizontalScrollBarVisibility="Visible"
                                   Margin="0,0,0,0">
-                            <DataGrid.ColumnHeaderStyle>
-                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                    <Setter Property="Background" Value="#4A1F0F"/>
-                                    <Setter Property="Foreground" Value="#FFC7B5"/>
-                                    <Setter Property="BorderBrush" Value="#6B2D1A"/>
-                                </Style>
-                            </DataGrid.ColumnHeaderStyle>
-                            <DataGrid.RowStyle>
-                                <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                                    <Setter Property="Background" Value="#231310"/>
-                                    <Setter Property="BorderBrush" Value="#3A221B"/>
-                                    <Style.Triggers>
-                                        <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                            <Setter Property="Background" Value="#2A1815"/>
-                                        </Trigger>
-                                        <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#3A221B"/>
-                                        </Trigger>
-                                    </Style.Triggers>
-                                </Style>
-                            </DataGrid.RowStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
@@ -1917,7 +1879,7 @@
                                     <Setter Property="BorderBrush" Value="#243A18"/>
                                     <Style.Triggers>
                                         <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                            <Setter Property="Background" Value="#1A2412"/>
+                                            <Setter Property="Background" Value="#252526"/>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="#243A18"/>
@@ -3038,7 +3000,7 @@
                                 </StackPanel>
 
                                 <!-- Section 1 (Border ambré) -->
-                                <Border Background="#2A1E10" BorderBrush="#8B6914" BorderThickness="1"
+                                <Border Background="#252526" BorderBrush="#8B6914" BorderThickness="1"
                                         CornerRadius="6" Padding="15">
                                     <StackPanel>
 
@@ -3186,7 +3148,7 @@
                                 </StackPanel>
 
                                 <!-- Section 2 (Border vert) -->
-                                <Border Background="#1A2412" BorderBrush="#2E5A1A" BorderThickness="1"
+                                <Border Background="#252526" BorderBrush="#2E5A1A" BorderThickness="1"
                                         CornerRadius="6" Padding="15">
                                     <StackPanel>
 
