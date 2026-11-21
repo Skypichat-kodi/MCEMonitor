@@ -12,13 +12,6 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **Chiffrer les mots de passe serveurs du client Windows**
-  - `MCEMonitorClient/…/Models/ServerEntry.cs` : `Password` n'a **aucun `[JsonIgnore]`** et `ServerConfigStore.Save` sérialise l'objet entier
-  - Résultat constaté le 2026-11-21 : `C:\ProgramData\MCEMonitor\MCEMonitorClient.config` contient **15 champs `password` non vides**, en clair, dans un fichier lisible par `BUILTIN\Utilisateurs`
-  - **Piste** : DPAPI, comme pour `email.config`. Portée `CurrentUser` si Config, Service et Tray tournent sous le même compte (cas actuel — UAC ne change pas le compte), sinon `LocalMachine`
-  - Le client **Android** fait déjà les choses correctement (`SecureStorage`, rien dans le JSON)
-  - **Priorité** : 🔴 haute (15 identifiants lisibles par tout compte local)
-
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
@@ -32,11 +25,6 @@ _(rien)_
   - **Piste** : ne garder que `SYSTEM` et `Administrateurs`. Les services tournent en SYSTEM et l'UI en `requireAdministrator`, aucun Tray ne lit ces fichiers (vérifié)
   - **Non appliqué** : la modification avait été préparée puis interrompue. DPAPI couvre déjà le vol de fichier, pas la lecture locale
   - **Priorité** : 🟡 moyenne
-
-- [ ] **Supprimer les 6 clés `Tab.*` mortes des JSON**
-  - `Tab.Email`, `Tab.MediaMonitor`, `Tab.WakeMonitor`, `Tab.StopMonitor`, `Tab.OnOff`, `Tab.About` : zéro utilisation
-  - Le Designer de `MainForm` appelle `Get("Email")`, `Get("OnOff")`… sans le préfixe
-  - **Priorité** : 🟢 opportuniste
 
 - [ ] **MediaMonitor.UI : ajouter un `crash.log`**
   - Les UI NetMonitor, RomMonitor et SystemMonitor écrivent `Xxx.UI.crash.log` ; MediaMonitor.UI ne gère pas les exceptions non observées
@@ -75,8 +63,31 @@ _(rien)_
 
 - [x] **Aucun mot de passe journalisé** : vérifié dans les sept modules, aucune instruction de log ne mentionne `Password` (les occurrences sont des libellés d'interface)
 - [x] **Client Android** : les identifiants sont stockés dans `SecureStorage` et retirés du JSON ✔
-- [x] **Client Windows** : ⚠ **vérification en échec** — 15 mots de passe en clair dans `MCEMonitorClient.config`. Item de correction ajouté à la liste des tâches
+- [x] **Client Windows** : corrigé le 2026-11-21 — les quinze mots de passe sont désormais chiffrés DPAPI (voir la sous-section suivante)
 - **`adb logcat`** : non vérifié — nécessite un appareil, et le client Android est en pause
+
+#### i18n — clés mortes
+
+- [x] **Six clés `Tab.*` supprimées** de `fr-FR.json` et `en-GB.json` : `Tab.Email`, `Tab.MediaMonitor`, `Tab.WakeMonitor`, `Tab.StopMonitor`, `Tab.OnOff`, `Tab.About`
+  - Aucune n'était référencée : le Designer de `MainForm` appelle `Get("Email")`, `Get("OnOff")`, `Get("À propos")`, sans préfixe
+  - Autotrad ne les recréera pas : il ne collecte que les clés présentes dans le code
+
+#### Client Windows — mots de passe serveurs chiffrés
+
+- [x] **`ServerEntry`** : `Password` passe en `[JsonIgnore]` (jamais sérialisé) ; `PasswordLegacy` mappe l'ancien champ `password` pour migrer sans intervention ; `PasswordEnc` devient la seule forme écrite
+- [x] **`ServerConfigStore`** (Config et Service) : chiffrement avant écriture, déchiffrement à la lecture, repli sur l'ancienne valeur en clair
+- [x] **Portée `LocalMachine`** : le fichier est écrit par l'interface (compte utilisateur) et relu par le service, qui tourne en **SYSTEM** (`/RU SYSTEM` confirmé dans `TaskSchedulerHelper`)
+- [x] **Entropie `MCEMonitor.client.v1`**, identique dans les deux projets
+- [x] **Paquet `ProtectedData`** ajouté aux deux projets ; les quatre fichiers, en CP1252, convertis en UTF-8 avec BOM
+- [x] **Vérifié sur la machine** : après enregistrement depuis la Config, `MCEMonitorClient.config` contient **0 `password` renseigné, 15 vides, 15 `passwordEnc`**
+  - **Reste à confirmer** : le service client (SYSTEM) doit continuer à interroger les serveurs — même contrôle que pour le SMTP
+- Note : `MCEMonitorClient.Tray` possède des copies de `ServerEntry` et `ServerConfigStore` **qu'il n'utilise jamais** (il passe par l'IPC). Code mort à nettoyer, et ce sont les copies qui contiendraient encore un `Password` sérialisable
+
+#### build.bat — version laissée à Git
+
+- [x] **Bloc d'auto-tag supprimé** : il créait et poussait un tag `vX.Y.(Z+1)` au-delà de 100 commits depuis le dernier tag. Les tags sont désormais créés volontairement, à la publication. Les 21 `publish` sont intacts
+- **Précision** : ce bloc n'était pas la cause du passage en 2.3.11. C'est GitVersion (`ContinuousDelivery`) : tout commit postérieur au tag `v2.3.10` fait porter au build suivant la version 2.3.11
+- **Piste non retenue** : épingler `-p:Version=` sur le dernier tag dans `build.bat`, pour n'avoir aucune dérive entre deux releases. Christophe a préféré ne rien changer de plus
 
 #### Distribution
 
