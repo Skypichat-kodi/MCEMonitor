@@ -1,11 +1,5 @@
 ﻿{
   "App.Title": "Gérer MAC autorisées",
-  "Tab.Email": "Email",
-  "Tab.MediaMonitor": "Media Monitor",
-  "Tab.WakeMonitor": "Wake Monitor",
-  "Tab.StopMonitor": "Stop Monitor",
-  "Tab.OnOff": "On/Off",
-  "Tab.About": "À propos",
   "Email.Description": "Vous devez entrer vos informations d'envoi et un destinataire afin que les autres fonctionnalités \ndu logiciel puissent envoyer des rapports automatiquement.",
   "Email.Title": "Configuration Email",
   "Email.SmtpServer": "Serveur SMTP :",

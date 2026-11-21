@@ -1,10 +1,4 @@
 ﻿{
-  "Tab.Email": "Email",
-  "Tab.MediaMonitor": "Media Monitor",
-  "Tab.WakeMonitor": "Wake Monitor",
-  "Tab.StopMonitor": "Stop Monitor",
-  "Tab.OnOff": "On/Off",
-  "Tab.About": "About",
   "Email.Description": "You must enter your sending information and a recipient.\nSo that the software can automatically send reports.",
   "Email.Title": "Email Configuration",
   "Email.SmtpServer": "SMTP Server:",
