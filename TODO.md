@@ -30,6 +30,13 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
+- [ ] **Renforcer les ACL de `email.config` et des `*.web.config`**
+  - Ces fichiers contiennent les mots de passe SMTP et web. Leur ACL actuelle accorde **`BUILTIN\Utilisateurs : Read`**, donc tout compte local peut les lire
+  - `icacls` de l'installeur retire l'héritage mais accorde délibérément la lecture au groupe Utilisateurs : la protection porte sur la *modification*, pas la confidentialité
+  - **Piste** : ne garder que `SYSTEM` et `Administrateurs`. Les services tournent en SYSTEM et l'UI en `requireAdministrator`, aucun Tray ne lit ces fichiers (vérifié)
+  - **Non appliqué** : la modification avait été préparée puis interrompue. DPAPI couvre déjà le vol de fichier, pas la lecture locale
+  - **Priorité** : 🟡 moyenne
+
 - [ ] **Supprimer les 6 clés `Tab.*` mortes des JSON**
   - `Tab.Email`, `Tab.MediaMonitor`, `Tab.WakeMonitor`, `Tab.StopMonitor`, `Tab.OnOff`, `Tab.About` : zéro utilisation
   - Le Designer de `MainForm` appelle `Get("Email")`, `Get("OnOff")`… sans le préfixe
@@ -45,6 +52,36 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-21 — chiffrement DPAPI du mot de passe SMTP, release 2.3.10
+
+**Le mot de passe SMTP n'est plus stocké en clair. Publication de la 2.3.10.**
+
+#### Sécurité — chiffrement au repos
+
+- [x] **Constat** : `email.config` contenait `Password=<clair>`, lisible par tout compte local (`BUILTIN\Utilisateurs : Read`). Aucun chiffrement nulle part dans la solution (ni DPAPI, ni AES)
+- [x] **Chiffrement DPAPI** (`ProtectedData.Protect`, **portée `LocalMachine`**, Base64) autour de la clé `PasswordEnc`
+  - `LocalMachine` est indispensable : l'UI tourne en administrateur, les services en SYSTEM — `CurrentUser` rendrait la valeur illisible pour l'un des deux
+  - Une **entropie applicative commune** `MCEMonitor.email.v1` est utilisée dans les sept copies : sans elle, un programme quelconque pourrait déchiffrer ; avec une entropie divergente, un module ne relirait pas ce qu'un autre a écrit
+- [x] **Sept modules traités** : quatre écrivent (`MCEMonitor`, `MediaMonitor.Core`, `StopMonitor`, `WakeMonitor`), trois lisent seulement (`NetMonitor.Service`, `RomMonitor.Service`, `SystemMonitor.Service`)
+- [x] **Rétrocompatibilité** : `Password=` reste lu tant qu'aucune valeur chiffrée n'existe ; le premier enregistrement depuis l'UI réécrit le fichier en forme chiffrée. Aucune intervention manuelle
+- [x] **Paquet `System.Security.Cryptography.ProtectedData` 8.0.0** ajouté aux sept projets
+- [x] **Modèle de référence** : `MyAutoDNS/MyAutoDNS.Core/ConfigurationEmail.cs`, repris tel quel (entropie, portée, écriture atomique)
+- [x] **Vérifié** : les sept projets compilent sans avertissement ; le fichier est bien chiffré après enregistrement ; le test d'envoi depuis l'UI fonctionne
+  - **Reste à confirmer** : un envoi déclenché par un service (SYSTEM) — c'est le cas qui validerait la portée DPAPI
+
+#### Encodages
+
+- [x] `RomMonitor.Service/EmailConfig.cs` et `SystemMonitor.Service/EmailConfig.cs` étaient en CP1252 → convertis en UTF-8
+- [x] Les sept `EmailConfig.cs` alignés sur `charset = utf-8-bom` de `.editorconfig`
+
+#### Distribution
+
+- [x] **Tag `v2.3.10`** créé sur le commit du chiffrement, puis poussé
+- [x] **Installeur `MCEMonitorSetup-2.3.10.0.exe`** compilé (120 Mo) et publié
+- [x] **APK en 2.3.10 / versionCode 20310** : la version est calculée depuis le tag Git, plus figée à 1.0. Vérifié dans le manifeste binaire de l'APK — sa taille étant identique à la 2.3.9, seule cette lecture prouvait la version
+- [x] **Release `v2.3.10`** publiée avec l'installeur, l'APK et `Autotrad.exe`. La `2.3.9` est conservée volontairement (retour arrière possible sur un changement de format de fichier)
+- [x] **Dépôt rendu découvrable** : 20 topics (monitoring, homelab, self-hosted, intrusion-detection, windivert, dvbviewer, csharp, wpf…), homepage liée vers le site GitHub Pages, description inchangée
 
 ### Session 2026-11-19 / 20 — i18n complet, barres de titre WPF, releases
 
