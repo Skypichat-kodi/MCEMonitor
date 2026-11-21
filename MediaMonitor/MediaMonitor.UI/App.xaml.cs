@@ -1,10 +1,11 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -53,6 +54,36 @@ namespace MediaMonitor.UI
 
             // Première instance → démarrer le listener IPC
             StartActivationListener();
+
+            // ============================================================
+            //  Journalisation des exceptions non gérée
+            //  Même dispositif que les UI NetMonitor, RomMonitor et SystemMonitor :
+            //  sans cela, un plantage ne laisse aucune trace exploitable.
+            // ============================================================
+            this.DispatcherUnhandledException += (s, ex) =>
+            {
+                LogCrash("DispatcherUnhandledException", ex.Exception);
+
+                MessageBox.Show(
+                    "Erreur : " + ex.Exception.Message + "\n\n" + ex.Exception.StackTrace,
+                    "MediaMonitor.UI - Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error
+                );
+
+                ex.Handled = true;
+            };
+
+            AppDomain.CurrentDomain.UnhandledException += (s, ex) =>
+            {
+                LogCrash("UnhandledException", ex.ExceptionObject as Exception);
+            };
+
+            TaskScheduler.UnobservedTaskException += (s, ex) =>
+            {
+                LogCrash("UnobservedTaskException", ex.Exception);
+                ex.SetObserved();
+            };
 
             // ============================================================
             //  Patch anti-écran blanc (VNC / RDP)
@@ -186,6 +217,28 @@ namespace MediaMonitor.UI
                 window.WindowState = WindowState.Normal;
 
             window.Activate();
+        }
+
+        // ============================================================
+        //  Écrit une ligne dans C:\ProgramData\MCEMonitor\Logs\MediaMonitor.UI.crash.log
+        // ============================================================
+        private static void LogCrash(string source, Exception? ex)
+        {
+            try
+            {
+                string logPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor",
+                    "Logs",
+                    "MediaMonitor.UI.crash.log"
+                );
+
+                Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
+
+                File.AppendAllText(logPath,
+                    $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {source}:\n{ex}\n\n");
+            }
+            catch { }
         }
     }
 }
