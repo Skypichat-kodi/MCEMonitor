@@ -23,6 +23,14 @@
     </WindowChrome.WindowChrome>
 
     <Window.Resources>
+        <!-- Couleur systeme de selection : le template par defaut de DataGridRow
+             peint les lignes selectionnees avec SystemColors.HighlightBrush, qui
+             gagne sur les setters de style. On la ramene a un gris discret. -->
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}" Color="#3A3A40"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}" Color="#33333A"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}" Color="#FFFFFF"/>
+        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}" Color="#F0F0F0"/>
+
         <!-- En-tetes des tableaux de l'onglet Intrusions : rouge sombre mat,
              texte clair et separateurs discrets (pas de saumon). -->
         <Style x:Key="EntetesIntrusion" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
@@ -149,6 +157,7 @@
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>   <!-- pas de contour noir sur la cellule cliquee -->
 
             <Setter Property="Template">
                 <Setter.Value>
