@@ -37,6 +37,17 @@ namespace MCEMonitor.UI
             // opérationnel, comme dans la version WinForms.
             VerrouillerOngletsModules();
 
+            // Bandeau d'avertissement si la machine tourne sur batterie.
+            ChargerAlimentation();
+
+            // Les tâches planifiées peuvent être créées ou supprimées ailleurs
+            // (autre session, planificateur Windows) : on relit leur état.
+            ChargerMinuteurTaches();
+
+            // Les interfaces des modules réécrivent leurs fichiers de configuration :
+            // on recharge les champs quand cela arrive.
+            ChargerSurveillanceConfigs();
+
             // L'état du serveur est vérifié une fois la fenêtre affichée, pour ne
             // pas retarder son ouverture par un contrôle réseau.
             Loaded += async (s, e) =>
@@ -75,6 +86,164 @@ namespace MCEMonitor.UI
         private void SurFermer(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        // ============================================================
+        //  Rafraîchissement périodique de l'état des tâches planifiées
+        // ============================================================
+
+        private readonly DispatcherTimer _minuteurTaches = new() { Interval = TimeSpan.FromSeconds(30) };
+
+        private void ChargerMinuteurTaches()
+        {
+            _minuteurTaches.Tick += async (s, e) => await RafraichirToutesLesTachesAsync();
+            _minuteurTaches.Start();
+        }
+
+        private async Task RafraichirToutesLesTachesAsync()
+        {
+            try
+            {
+                // Les interrogations passent par schtasks : hors du thread d'interface,
+                // sinon la fenêtre se figerait à chaque cycle.
+                var etats = await Task.Run(() => new[]
+                {
+                    TaskSchedulerHelper.MediaMonitorServiceTaskExists(),
+                    TaskSchedulerHelper.RomMonitorTaskExists(),
+                    TaskSchedulerHelper.SystemMonitorTaskExists(),
+                    TaskSchedulerHelper.NetMonitorTaskExists(),
+                    TaskSchedulerHelper.WakeTaskExists(),
+                    TaskSchedulerHelper.StopTaskExists(),
+                    TaskSchedulerHelper.ShutdownTaskExists()
+                });
+
+                _tacheMediaExiste  = etats[0];
+                _tacheRomExiste    = etats[1];
+                _tacheSystemExiste = etats[2];
+                _tacheNetExiste    = etats[3];
+                _tacheWakeExiste   = etats[4];
+                _tacheStopExiste   = etats[5];
+                _tacheArretExiste  = etats[6];
+
+                MetAJourBoutonAutomatique();
+                MetAJourBoutonAutomatiqueRom();
+                MetAJourBoutonAutomatiqueSystem();
+                MetAJourBoutonAutomatiqueNet();
+                MetAJourBoutonAutomatiqueWake();
+                MetAJourBoutonAutomatiqueStop();
+                MetAJourBoutonAutomatiqueArret();
+            }
+            catch
+            {
+                // État inconnu : les boutons conservent leur libellé précédent.
+            }
+        }
+
+        // ============================================================
+        //  Surveillance des fichiers de configuration des modules
+        // ============================================================
+
+        private readonly DispatcherTimer _minuteurConfigs = new() { Interval = TimeSpan.FromSeconds(3) };
+
+        private (DateTime ecriture, long taille) _etatConfigRom;
+        private (DateTime ecriture, long taille) _etatConfigSystem;
+        private (DateTime ecriture, long taille) _etatConfigNet;
+
+        private static (DateTime, long) Empreinte(string chemin)
+        {
+            try
+            {
+                if (!File.Exists(chemin))
+                    return (DateTime.MinValue, 0);
+
+                var info = new FileInfo(chemin);
+                return (info.LastWriteTimeUtc, info.Length);
+            }
+            catch
+            {
+                return (DateTime.MinValue, 0);
+            }
+        }
+
+        private void ChargerSurveillanceConfigs()
+        {
+            _etatConfigRom    = Empreinte(FichierConfigRom);
+            _etatConfigSystem = Empreinte(FichierConfigSystem);
+            _etatConfigNet    = Empreinte(FichierConfigNet);
+
+            _minuteurConfigs.Tick += (s, e) => VerifierConfigsModifiees();
+            _minuteurConfigs.Start();
+        }
+
+        private void VerifierConfigsModifiees()
+        {
+            var rom = Empreinte(FichierConfigRom);
+            if (rom != _etatConfigRom) { _etatConfigRom = rom; ChargerReglagesRom(); }
+
+            var system = Empreinte(FichierConfigSystem);
+            if (system != _etatConfigSystem) { _etatConfigSystem = system; ChargerReglagesSystem(); }
+
+            var net = Empreinte(FichierConfigNet);
+            if (net != _etatConfigNet) { _etatConfigNet = net; ChargerReglagesNet(); }
+        }
+
+        // ============================================================
+        //  Alimentation : bandeau d'avertissement sur batterie
+        // ============================================================
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll")]
+        private static extern bool GetSystemPowerStatus(out SYSTEM_POWER_STATUS statut);
+
+        [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]
+        private struct SYSTEM_POWER_STATUS
+        {
+            public byte ACLineStatus;      // 0 = sur batterie, 1 = sur secteur, 255 = inconnu
+            public byte BatteryFlag;
+            public byte BatteryLifePercent;
+            public byte SystemStatusFlag;
+            public int  BatteryLifeTime;
+            public int  BatteryFullLifeTime;
+        }
+
+        private void ChargerAlimentation()
+        {
+            MetAJourBandeauBatterie();
+
+            // WM_POWERBROADCAST arrive immédiatement au changement de source
+            // d'alimentation : bien plus réactif qu'un contrôle périodique.
+            SourceInitialized += (s, e) =>
+            {
+                if (PresentationSource.FromVisual(this) is System.Windows.Interop.HwndSource source)
+                    source.AddHook(MessageAlimentation);
+            };
+        }
+
+        private const int WM_POWERBROADCAST        = 0x0218;
+        private const int PBT_APMPOWERSTATUSCHANGE = 0x000A;
+
+        private IntPtr MessageAlimentation(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool traite)
+        {
+            if (message == WM_POWERBROADCAST && wParam.ToInt32() == PBT_APMPOWERSTATUSCHANGE)
+                MetAJourBandeauBatterie();
+
+            return IntPtr.Zero;
+        }
+
+        private void MetAJourBandeauBatterie()
+        {
+            bool surBatterie = false;
+
+            try
+            {
+                if (GetSystemPowerStatus(out var statut))
+                    surBatterie = statut.ACLineStatus == 0;
+            }
+            catch
+            {
+                // Pas d'information d'alimentation : on n'affiche rien.
+            }
+
+            BandeauBatterie.Visibility = surBatterie ? Visibility.Visible : Visibility.Collapsed;
         }
 
         // ============================================================

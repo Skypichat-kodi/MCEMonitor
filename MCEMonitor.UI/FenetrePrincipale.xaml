@@ -83,6 +83,7 @@
             <Grid>
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
             </Grid.RowDefinitions>
 
@@ -123,7 +124,21 @@
             </Border>
 
             <!-- ================= Onglets ================= -->
-            <TabControl Grid.Row="1" Margin="18,14,18,18">
+            <!-- ================= Bandeau batterie ================= -->
+            <Border x:Name="BandeauBatterie"
+                    Grid.Row="1"
+                    Background="#CC3300"
+                    Visibility="Collapsed">
+                <TextBlock Text="{loc:Tr 'BatteryWarningBanner'}"
+                           Foreground="White"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="12,7" />
+            </Border>
+
+            <TabControl Grid.Row="2" Margin="18,14,18,18">
 
                 <!-- ============ Email ============ -->
                 <TabItem x:Name="OngletEmail" Header="{loc:Tr 'Email'}">
