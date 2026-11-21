@@ -92,7 +92,6 @@ namespace SystemMonitor.UI
 
         private readonly ObservableCollection<GpuCard> _gpus = new();
         private readonly ObservableCollection<NetworkCard> _networks = new();
-        private readonly ObservableCollection<AlertRow> _alerts = new();
         private List<SysHistoryPoint> _history = new();
         private readonly ObservableCollection<BsodRow> _bsods = new();
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
@@ -139,7 +138,6 @@ namespace SystemMonitor.UI
 
             GpusList.ItemsSource = _gpus;
             NetworksList.ItemsSource = _networks;
-            AlertsGrid.ItemsSource = _alerts;
             AlertsHistoryGrid.ItemsSource = _alertsHistory;
             BsodsGrid.ItemsSource = _bsods;
 
@@ -397,24 +395,6 @@ namespace SystemMonitor.UI
             {
                 var alerts = await SystemMonitorIpcClient.GetAlerts();
                 if (alerts == null) return;
-
-                // Alertes récentes (30 min) pour AlertsGrid
-                var limit = DateTime.Now.AddMinutes(-30);
-
-                _alerts.Clear();
-                foreach (var a in alerts.Where(x => x.timestamp >= limit)
-                                        .OrderByDescending(x => x.timestamp))
-                {
-                    _alerts.Add(new AlertRow
-                    {
-                        Timestamp = a.timestamp,
-                        Type = a.type ?? "",
-                        Severity = a.severity ?? "",
-                        Target = a.target ?? "",
-                        Message = a.message ?? "",
-                        EmailSent = a.emailSent
-                    });
-                }
 
                 // Historique complet pour AlertsHistoryGrid
                 _alertsHistory.Clear();
@@ -711,7 +691,6 @@ namespace SystemMonitor.UI
 
                 if (ok)
                 {
-                    _alerts.Clear();
                     _alertsHistory.Clear();
                     StatusText.Text = LanguageManager.Get("Historique des alertes vidé.") ?? "Historique des alertes vidé.";
                 }
