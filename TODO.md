@@ -10,6 +10,16 @@ _(rien)_
 
 ## 📋 À faire
 
+### 🔴 Échéance datée
+
+- [ ] **Supprimer `MCEMonitor.old`** *(à partir du 28/11/2026)*
+  - L'ancien projet WinForms a été archivé lors de la bascule vers WPF (commit `3fde0e1`, tag `v3.0.0`). Il n'est plus dans la solution et `build.bat` l'ignore
+  - **Le garder une semaine**, le temps que la 3.0.0 fasse ses preuves, puis `git rm -r MCEMonitor.old`
+  - Rien n'est perdu ensuite : l'historique Git conserve tout
+    - `git show 3fde0e1^:MCEMonitor/MainForm.cs` pour lire un fichier
+    - `git checkout 3fde0e1^ -- MCEMonitor` pour restaurer le dossier complet
+  - **Priorité** : 🔴 datée (49 fichiers, 23 Mo)
+
 ### 🟡 Planifié
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
@@ -19,6 +29,11 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
+- [ ] **Traduire les messages d'erreur propres à chaque module**
+  - Restent en français dans le code : « Xxx.Service.exe introuvable », « Impossible d'arrêter Xxx.Service tant que Xxx.UI est ouvert », « Erreur lors de l'ouverture de Xxx.UI », etc.
+  - Une trentaine de chaînes, réparties sur les six modules. Les messages d'interface (popup SMTP, fenêtre des MAC, avertissements d'élévation) sont déjà couverts par les clés `Ui.*`
+  - **Priorité** : 🟢 basse (visibles uniquement en cas de panne)
+
 - [ ] **Renforcer les ACL de `email.config` et des `*.web.config`**
   - Ces fichiers contiennent les mots de passe SMTP et web. Leur ACL actuelle accorde **`BUILTIN\Utilisateurs : Read`**, donc tout compte local peut les lire
   - `icacls` de l'installeur retire l'héritage mais accorde délibérément la lecture au groupe Utilisateurs : la protection porte sur la *modification*, pas la confidentialité
@@ -26,16 +41,28 @@ _(rien)_
   - **Non appliqué** : la modification avait été préparée puis interrompue. DPAPI couvre déjà le vol de fichier, pas la lecture locale
   - **Priorité** : 🟡 moyenne
 
-- [ ] **MediaMonitor.UI : ajouter un `crash.log`**
-  - Les UI NetMonitor, RomMonitor et SystemMonitor écrivent `Xxx.UI.crash.log` ; MediaMonitor.UI ne gère pas les exceptions non observées
-  - **Priorité** : 🟢 opportuniste
-
 - [ ] **Messages de log trompeurs restants** *(si d'autres apparaissent)*
   - Corrigé le 2026-11-17 : `Historique des alertes vidé par IPC` → `Historique des alertes vidé`
 
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-21 — bascule de l'interface vers WPF (3.0.0)
+
+**L'interface WinForms Krypton est remplacée par un projet WPF. Tag `v3.0.0`.**
+
+- Nouveau projet **`MCEMonitor.UI`** : 9 onglets, 2 fenêtres secondaires (MAC autorisées, confirmation), style MyAutoDNS — coins arrondis, ombre, fond commun aux modules
+- **`MediaMonitor.UI` gère désormais ses exceptions** : trois gestionnaires et `MediaMonitor.UI.crash.log`, comme les UI NetMonitor, RomMonitor et SystemMonitor
+  - Le filtre « bruit Mapsui » de NetMonitor n'a pas été repris : ce module n'utilise pas de carte
+- Modules masqués tant que l'envoi d'emails n'est pas opérationnel (contrôle SMTP au démarrage et à chaque enregistrement)
+- Mode `--run-scheduled` porté dans l'application WPF : l'arrêt programmé exécute réellement l'action
+- Boutons de test SMTP de StopMonitor et WakeMonitor : envoi réel
+- Traductions : 92 libellés XAML (dont les 9 en-têtes d'onglets), 49 clés ajoutées en `fr-FR` et `en-GB`
+- Correctifs : encodage CP850 non enregistré (toutes les tâches planifiées échouaient), icône de l'installeur pointant vers le dossier archivé
+- Bascule : ancien projet en `MCEMonitor.old`, logique copiée dans `MCEMonitor.UI\Partage\`, `build.bat` publie le nouveau projet, exécutable toujours nommé `MCEMonitor.exe`
+
+---
 
 ### Session 2026-11-21 — chiffrement DPAPI du mot de passe SMTP, release 2.3.10
 
