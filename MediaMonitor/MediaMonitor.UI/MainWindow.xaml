@@ -500,7 +500,7 @@
                        Text="MediaMonitor"
                        FontSize="20"
                        FontWeight="Bold"
-                       Foreground="#FFF2F2F2"
+                       Foreground="#4CC2FF"
                        VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
