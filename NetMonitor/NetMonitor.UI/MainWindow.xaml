@@ -81,6 +81,26 @@
             </Style.Triggers>
         </Style>
 
+        <!-- Cellules du tableau Audit (onglet Historique) : vert sombre, meme
+             principe que CellulesIntrusion, la teinte doit etre portee par la cellules
+             car le style global peint un fond opaque. -->
+        <Style x:Key="CellulesAudit" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="Background" Value="#16220F"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#2C4A34"/>
+                </Trigger>
+                <!-- Tableau sans focus : la selection ne doit plus se voir -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsSelected}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGrid}, Path=IsKeyboardFocusWithin}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#16220F"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
+        </Style>
+
         <!-- Lignes des tableaux de l'onglet Intrusions : rouge tres discret,
              juste de quoi rappeler le contexte sans peser sur la lecture. -->
         <Style x:Key="LignesIntrusion" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
@@ -1799,7 +1819,7 @@
                                        Foreground="#888" FontSize="11" Text=""/>
                         </StackPanel>
 
-                        <DataGrid x:Name="AlertsHistoryGrid"
+                        <DataGrid x:Name="AlertsHistoryGrid" ColumnHeaderStyle="{StaticResource EntetesIntrusion}" CellStyle="{StaticResource CellulesIntrusion}" RowStyle="{StaticResource LignesIntrusion}"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
@@ -1936,7 +1956,7 @@
                                        Foreground="#888" FontSize="11" Text=""/>
                         </StackPanel>
 
-                        <DataGrid x:Name="AuditGrid"
+                        <DataGrid x:Name="AuditGrid" CellStyle="{StaticResource CellulesAudit}"
                                   RowHeight="28"
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
@@ -1959,7 +1979,7 @@
                                     <Setter Property="BorderBrush" Value="#243A18"/>
                                     <Style.Triggers>
                                         <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                            <Setter Property="Background" Value="#252526"/>
+                                            <Setter Property="Background" Value="#182812"/>
                                         </Trigger>
                                         <Trigger Property="IsMouseOver" Value="True">
                                             <Setter Property="Background" Value="#243A18"/>
