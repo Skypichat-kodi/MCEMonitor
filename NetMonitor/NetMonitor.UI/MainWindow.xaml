@@ -28,7 +28,9 @@
         <Style x:Key="EntetesIntrusion" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
             <Setter Property="Background" Value="#3A1A1A"/>
             <Setter Property="Foreground" Value="#F0E0E0"/>
-            <Setter Property="BorderBrush" Value="#5C2A2A"/>
+            <Setter Property="BorderBrush" Value="#555555"/>   <!-- trait gris des cellules d'en-tete -->
+            <Setter Property="BorderThickness" Value="0,1,1,1"/>   <!-- un seul trait par frontiere (pas de doublon) -->
+            <Setter Property="Padding" Value="6,6"/>   <!-- bandeau d'en-tete : 29 px au lieu de 17 -->
         </Style>
 
         <!-- Cellules des tableaux de l'onglet Intrusions. Le style global des
@@ -36,6 +38,13 @@
              la teinte doit donc etre portee ici. -->
         <Style x:Key="CellulesIntrusion" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="#241717"/>
+        </Style>
+
+        <!-- Cellules de l'onglet Interceptions : meme principe que CellulesIntrusion,
+             la teinte doit etre portee par la cellule car le style global peint
+             un fond opaque qui masquerait celui de la ligne. -->
+        <Style x:Key="CellulesInterception" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+            <Setter Property="Background" Value="#0E1D2B"/>
         </Style>
 
         <!-- Lignes des tableaux de l'onglet Intrusions : rouge tres discret,
@@ -861,9 +870,12 @@
                         <TextBlock Text="{loc:Tr 'Intrusions'}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
-                <ScrollViewer VerticalScrollBarVisibility="Auto"
+                <!-- Barre verticale masquee (Hidden) : le defilement a la molette reste actif
+                     via DataGrid_PreviewMouseWheel, mais la barre ne rogne plus ~22 px
+                     de largeur sur les trois tableaux. -->
+                <ScrollViewer VerticalScrollBarVisibility="Hidden"
                               HorizontalScrollBarVisibility="Disabled"
-                              Padding="0,0,5,0">
+                              Padding="0">
                     <StackPanel Margin="0,10,0,0">
 
                         <!-- Tableau 1 : intrusions actives -->
@@ -987,7 +999,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="180">                                
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="150">                                
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center">
@@ -1028,8 +1040,8 @@
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="180"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="180"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1209,7 +1221,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
                                 <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="180">
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1282,7 +1294,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="250" MinWidth="200">
+                                <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding TrustReasonDisplay}" SortMemberPath="TrustReason" Width="200" MinWidth="200">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1290,7 +1302,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'IP distante'}" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="160"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP distante'}" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="140"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -1378,7 +1390,7 @@
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="200" MinWidth="110">
+                                <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="170" MinWidth="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1387,10 +1399,10 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="170"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="200"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="200"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="240">
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="160"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="160"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="190">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -1528,6 +1540,7 @@
 
                     <!-- DataGrid -->
                     <DataGrid x:Name="BlockedRetriesGrid" Grid.Row="3"
+                              CellStyle="{StaticResource CellulesInterception}"
                               RowHeight="28"
                               AutoGenerateColumns="False"
                               CanUserAddRows="False"
