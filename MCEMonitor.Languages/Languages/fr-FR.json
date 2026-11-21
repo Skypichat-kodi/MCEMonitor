@@ -684,4 +684,6 @@
   "Ui.MacOne": "1 adresse",
   "Ui.MacCount": "{0} adresses",
   "Ui.MacExample": "Exemple : AA:BB:CC:DD:EE:FF"
+,  "Rom.Info": "RomMonitor surveille l'espace disque et la santé SMART de vos disques. En cas de défaillance SMART critique, un email d'alerte est envoyé. Un log est tenu à jour pour chaque problème détecté.",
+  "Wake.Info": "WakeMonitor peut vous remonter des informations qui ont provoqué le réveil de votre machine. Ces informations sont envoyées par mail. Vous pouvez créer une tâche planifiée qui réagira avec Power-Troubleshooter sur l'ID = 1."
 }

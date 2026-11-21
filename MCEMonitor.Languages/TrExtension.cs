@@ -1,4 +1,4 @@
-using System;
+ï»¿using System;
 using System.Windows.Markup;
 
 namespace MCEMonitor.Languages
@@ -7,6 +7,9 @@ namespace MCEMonitor.Languages
     public class TrExtension : MarkupExtension
     {
         public string? Key { get; set; }
+
+        /// <summary>Met le texte en majuscules, sans toucher aux traductions.</summary>
+        public bool Upper { get; set; }
 
         public TrExtension() { }
 
@@ -20,11 +23,13 @@ namespace MCEMonitor.Languages
             if (string.IsNullOrWhiteSpace(Key))
                 return "";
 
-            // Appel direct à ton LanguageManager
+            // Appel direct Ã  ton LanguageManager
             string? value = LanguageManager.Get(Key);
 
-            // Si null ? fallback sur la clé brute
-            return value ?? Key;
+            // Si null ? fallback sur la clÃ© brute
+            string resultat = value ?? Key;
+
+            return Upper ? resultat.ToUpperInvariant() : resultat;
         }
     }
 }

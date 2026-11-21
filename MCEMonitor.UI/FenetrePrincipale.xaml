@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
         Title="MCEMonitor"
-        Width="1080"
+        Width="860"
         Height="660"
         WindowStyle="None"
         AllowsTransparency="True"
@@ -179,7 +179,7 @@
                                 </Grid>
                             </Border>
 
-                            <TextBlock Text="{loc:Tr 'Configuration Email'}"
+                            <TextBlock Text="{loc:Tr 'Configuration Email', Upper=True}"
                                        Style="{StaticResource TitreSection}"
                                        Margin="0,0,0,10" />
 
@@ -312,7 +312,7 @@
                             </StackPanel>
 
                             <!-- Boutons -->
-                            <StackPanel Orientation="Horizontal">
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                 <Button x:Name="BoutonEnregistrer"
                                         Content="{loc:Tr 'Enregistrer configuration'}"
                                         Style="{StaticResource BoutonAccent}"
@@ -339,7 +339,7 @@
                                     Margin="0,12,0,0">
                                 <TextBox x:Name="ZoneJournal"
                                          Style="{StaticResource ZoneLog}"
-                                         Height="100"
+                                         Height="84"
                                          IsReadOnly="True"
                                          VerticalScrollBarVisibility="Auto" />
                             </Border>
@@ -393,7 +393,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Arrêt programmé'}"
+                                   Text="{loc:Tr 'Arrêt programmé', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -456,7 +456,7 @@
                                     </ComboBox>
                                 </Grid>
 
-                                <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,4,0,0">
                                     <Button x:Name="BoutonSauvegarderArret"
                                             Content="{loc:Tr 'Sauvegarder'}"
                                             Style="{StaticResource BoutonAccent}"
@@ -482,7 +482,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="3"
-                                   Text="{loc:Tr 'Démarrage automatique (Wake-on-LAN)'}"
+                                   Text="{loc:Tr 'Démarrage automatique (Wake-on-LAN)', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -546,7 +546,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Automatisation MediaMonitor'}"
+                                   Text="{loc:Tr 'Automatisation MediaMonitor', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -589,7 +589,7 @@
 
                                 <!-- Actions -->
                                 <StackPanel Orientation="Horizontal"
-                                            Margin="0,18,0,0">
+                                            HorizontalAlignment="Center" Margin="0,18,0,0">
                                     <Button x:Name="BoutonAutomatique"
                                             Content="{loc:Tr 'Automatique OFF'}"
                                             Style="{StaticResource BoutonDanger}"
@@ -659,12 +659,12 @@
                                            FontSize="13"
                                            LineHeight="19"
                                            VerticalAlignment="Center"
-                                           Text="{loc:Tr 'Rom.Description'}" />
+                                           Text="{loc:Tr 'Rom.Info'}" />
                             </Grid>
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Automatisation RomMonitor'}"
+                                   Text="{loc:Tr 'Automatisation RomMonitor', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -691,7 +691,7 @@
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal"
-                                            Margin="0,14,0,0">
+                                            HorizontalAlignment="Center" Margin="0,14,0,0">
                                     <Button x:Name="BoutonAutomatiqueRom"
                                             Content="{loc:Tr 'Automatique OFF'}"
                                             Style="{StaticResource BoutonDanger}"
@@ -710,7 +710,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="3"
-                                   Text="{loc:Tr 'Réglages'}"
+                                   Text="{loc:Tr 'Réglages', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -866,7 +866,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Automatisation SystemMonitor'}"
+                                   Text="{loc:Tr 'Automatisation SystemMonitor', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -892,7 +892,7 @@
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal"
-                                            Margin="0,12,0,0">
+                                            HorizontalAlignment="Center" Margin="0,12,0,0">
                                     <Button x:Name="BoutonAutomatiqueSystem"
                                             Content="{loc:Tr 'Automatique OFF'}"
                                             Style="{StaticResource BoutonDanger}"
@@ -911,7 +911,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="3"
-                                   Text="{loc:Tr 'Réglages'}"
+                                   Text="{loc:Tr 'Réglages', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1096,7 +1096,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Automatisation NetMonitor'}"
+                                   Text="{loc:Tr 'Automatisation NetMonitor', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1122,7 +1122,7 @@
                                 </StackPanel>
 
                                 <StackPanel Orientation="Horizontal"
-                                            Margin="0,12,0,0">
+                                            HorizontalAlignment="Center" Margin="0,12,0,0">
                                     <Button x:Name="BoutonAutomatiqueNet"
                                             Content="{loc:Tr 'Automatique OFF'}"
                                             Style="{StaticResource BoutonDanger}"
@@ -1141,7 +1141,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="3"
-                                   Text="{loc:Tr 'Réglages'}"
+                                   Text="{loc:Tr 'Réglages', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1288,12 +1288,12 @@
                                            FontSize="13"
                                            LineHeight="19"
                                            VerticalAlignment="Center"
-                                           Text="{loc:Tr 'Wake.Description'}" />
+                                           Text="{loc:Tr 'Wake.Info'}" />
                             </Grid>
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Indications à donner dans le mail'}"
+                                   Text="{loc:Tr 'Indications à donner dans le mail', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1342,7 +1342,7 @@
                             </Grid>
                         </Border>
 
-                        <StackPanel Grid.Row="3" Orientation="Horizontal" VerticalAlignment="Top">
+                        <StackPanel Grid.Row="3" Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Top">
                             <Button x:Name="BoutonAutomatiqueWake"
                                     Content="{loc:Tr 'Automatique OFF'}"
                                     Style="{StaticResource BoutonDanger}"
@@ -1428,7 +1428,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Automatisation StopMonitor'}"
+                                   Text="{loc:Tr 'Automatisation StopMonitor', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1440,7 +1440,7 @@
                                 Padding="16,14"
                                 VerticalAlignment="Top">
                             <StackPanel>
-                                <StackPanel Orientation="Horizontal">
+                                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
                                     <Button x:Name="BoutonAutomatiqueStop"
                                             Content="{loc:Tr 'Automatique OFF'}"
                                             Style="{StaticResource BoutonDanger}"
@@ -1504,7 +1504,7 @@
                         </StackPanel>
 
                         <TextBlock Grid.Row="1"
-                                   Text="{loc:Tr 'Licence MIT'}"
+                                   Text="{loc:Tr 'Licence MIT', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
