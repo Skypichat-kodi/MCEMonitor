@@ -8,7 +8,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Media;
+using System.Windows.Media.Media3D;
 using System.Windows.Threading;
 using MCEMonitor.Languages;
 using System.Text;
@@ -2788,6 +2790,30 @@ namespace NetMonitor.UI
             {
                 grid.PreviewMouseLeftButtonDown += DataGrid_PreviewMouseLeftButtonDown;
                 grid.PreviewKeyDown             += DataGrid_PreviewKeyDown;
+            }
+        }
+
+        // Clic sur le fond de l'onglet Interceptions (titre, libelle, zone vide) :
+        // le focus clavier ne bouge pas, donc la teinte de selection resterait affichee.
+        // On ne deselectionne que si le clic ne vise ni une ligne de tableau, ni un
+        // bouton, une liste ou un champ (sinon les boutons d'action perdraient la ligne).
+        private void InterceptionsRoot_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            var hit = e.OriginalSource as DependencyObject;
+            while (hit != null)
+            {
+                if (hit is DataGrid or DataGridRow or ButtonBase or ComboBox or TextBoxBase or ScrollBar)
+                    return;
+
+                hit = hit is Visual or Visual3D
+                    ? VisualTreeHelper.GetParent(hit)
+                    : LogicalTreeHelper.GetParent(hit);
+            }
+
+            if (BlockedRetriesGrid.SelectedItem != null)
+            {
+                BlockedRetriesGrid.SelectedItem = null;
+                BlockedRetriesGrid.CurrentCell  = default;
             }
         }
 

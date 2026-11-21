@@ -1535,7 +1535,10 @@
                         <TextBlock Text="{loc:Tr 'Interceptions'}" VerticalAlignment="Center"/>
                     </StackPanel>
                 </TabItem.Header>
-                <Grid Margin="0,10,0,0">
+                <!-- Clic sur le fond de l'onglet (hors tableau) : deselectionne.
+                     Le handler ignore les clics sur boutons, listes et champs. -->
+                <Grid Margin="0,10,0,0"
+                      PreviewMouseLeftButtonDown="InterceptionsRoot_PreviewMouseLeftButtonDown">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto"/>   <!-- 0 : titre -->
                         <RowDefinition Height="Auto"/>   <!-- 1 : boutons -->
