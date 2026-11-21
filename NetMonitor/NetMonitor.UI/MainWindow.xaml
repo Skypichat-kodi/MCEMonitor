@@ -46,6 +46,19 @@
              la teinte doit donc etre portee ici. -->
         <Style x:Key="CellulesIntrusion" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="#241717"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#3D2424"/>
+                </Trigger>
+                <!-- Tableau sans focus : la selection ne doit plus se voir -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsSelected}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGrid}, Path=IsKeyboardFocusWithin}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#241717"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Cellules de l'onglet Interceptions : meme principe que CellulesIntrusion,
@@ -53,6 +66,19 @@
              un fond opaque qui masquerait celui de la ligne. -->
         <Style x:Key="CellulesInterception" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="#0E1D2B"/>
+            <Style.Triggers>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#1A3A52"/>
+                </Trigger>
+                <!-- Tableau sans focus : la selection ne doit plus se voir -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsSelected}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGrid}, Path=IsKeyboardFocusWithin}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#0E1D2B"/>
+                </MultiDataTrigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Lignes des tableaux de l'onglet Intrusions : rouge tres discret,
@@ -179,14 +205,39 @@
                     <Setter Property="Background" Value="#444444"/>
                     <Setter Property="Foreground" Value="#FFFFFF"/>
                 </Trigger>
+                <!-- Tableau sans focus : la selection ne doit plus se voir -->
+                <MultiDataTrigger>
+                    <MultiDataTrigger.Conditions>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource Self}, Path=IsSelected}" Value="True"/>
+                        <Condition Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGrid}, Path=IsKeyboardFocusWithin}" Value="False"/>
+                    </MultiDataTrigger.Conditions>
+                    <Setter Property="Background" Value="#1E1E1E"/>
+                    <Setter Property="Foreground" Value="#E5E5E5"/>
+                </MultiDataTrigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="#1E1E1E"/>
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
+            <!-- Template maison : celui du theme peint la selection et le contour de
+                 focus avec les couleurs systeme, sans qu on puisse l empecher. -->
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridRow">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                SnapsToDevicePixels="True">
+                            <DataGridCellsPresenter ItemsPanel="{TemplateBinding ItemsPanel}"
+                                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#3A3A3D"/>
@@ -491,6 +542,7 @@
         </DataTemplate>
 
         <Style TargetType="DataGrid">
+            <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="Foreground" Value="#E5E5E5"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
