@@ -12,21 +12,17 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **Chiffrer les mots de passe serveurs du client Windows**
+  - `MCEMonitorClient/…/Models/ServerEntry.cs` : `Password` n'a **aucun `[JsonIgnore]`** et `ServerConfigStore.Save` sérialise l'objet entier
+  - Résultat constaté le 2026-11-21 : `C:\ProgramData\MCEMonitor\MCEMonitorClient.config` contient **15 champs `password` non vides**, en clair, dans un fichier lisible par `BUILTIN\Utilisateurs`
+  - **Piste** : DPAPI, comme pour `email.config`. Portée `CurrentUser` si Config, Service et Tray tournent sous le même compte (cas actuel — UAC ne change pas le compte), sinon `LocalMachine`
+  - Le client **Android** fait déjà les choses correctement (`SecureStorage`, rien dans le JSON)
+  - **Priorité** : 🔴 haute (15 identifiants lisibles par tout compte local)
+
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
-
-- [ ] **MediaMonitor — affichage "Depuis quand"**
-  - Le champ `Timestamp` est présent mais pas utilisé dans l'UI Android
-  - Pourrait afficher "en cours depuis X min" sur les items live
-  - Optionnel — confort visuel
-  - **Priorité** : 🟢 opportuniste
-
-- [ ] **Tests automatisés de non-régression sécurité**
-  - Vérifier qu'aucun `Password` n'apparaît en clair dans les logs Android (`adb logcat | Select-String "Password"`)
-  - Vérifier que `ServerConfigStore.Save` ne persiste plus que des champs non sensibles
-  - **Coût** : 30 min
 
 ### 🟢 Opportuniste
 
@@ -74,6 +70,13 @@ _(rien)_
 
 - [x] `RomMonitor.Service/EmailConfig.cs` et `SystemMonitor.Service/EmailConfig.cs` étaient en CP1252 → convertis en UTF-8
 - [x] Les sept `EmailConfig.cs` alignés sur `charset = utf-8-bom` de `.editorconfig`
+
+#### Vérifications faites
+
+- [x] **Aucun mot de passe journalisé** : vérifié dans les sept modules, aucune instruction de log ne mentionne `Password` (les occurrences sont des libellés d'interface)
+- [x] **Client Android** : les identifiants sont stockés dans `SecureStorage` et retirés du JSON ✔
+- [x] **Client Windows** : ⚠ **vérification en échec** — 15 mots de passe en clair dans `MCEMonitorClient.config`. Item de correction ajouté à la liste des tâches
+- **`adb logcat`** : non vérifié — nécessite un appareil, et le client Android est en pause
 
 #### Distribution
 
