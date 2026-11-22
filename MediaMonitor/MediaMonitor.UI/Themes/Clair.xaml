@@ -12,6 +12,13 @@
     <SolidColorBrush x:Key="Texte"           Color="#FF1B1B1B" />
     <SolidColorBrush x:Key="TexteSecondaire" Color="#FF5F5F5F" />
     <SolidColorBrush x:Key="TexteTernaire"   Color="#FF8A8A8A" />
+    <SolidColorBrush x:Key="BoutonVioletFond" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="BoutonVioletBordure" Color="#FF5231A0" />
+    <SolidColorBrush x:Key="BoutonVioletTexte" Color="#FF4B2A7A" />
+    <SolidColorBrush x:Key="BoutonRougeFond" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="BoutonRougeBordure" Color="#FFB25A4F" />
+    <SolidColorBrush x:Key="BoutonRougeTexte" Color="#FF9E3D33" />
+    <SolidColorBrush x:Key="FondInfo" Color="#FFE4E4E4" />
     <SolidColorBrush x:Key="Accent"          Color="#FF0F6CBD" />
     <SolidColorBrush x:Key="AccentBascule"   Color="#FF7EB6E8" />
     <SolidColorBrush x:Key="PanelBackground" Color="#333A8DFF" />

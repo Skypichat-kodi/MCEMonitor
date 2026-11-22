@@ -370,10 +370,10 @@
 
         <!-- Style InfoButton -->
         <Style x:Key="InfoButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#333"/>
-            <Setter Property="Foreground" Value="White"/>
+            <Setter Property="Background" Value="{StaticResource FondInfo}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="FontWeight" Value="Bold"/>
-            <Setter Property="BorderBrush" Value="#555"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="HorizontalAlignment" Value="Center"/>
@@ -446,14 +446,16 @@
 
         <!-- Violet — PDF -->
         <Style x:Key="PurpleButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
-            <Setter Property="Background"  Value="#7B4FE0"/>
-            <Setter Property="BorderBrush" Value="#5231A0"/>
+            <Setter Property="Background"  Value="{StaticResource BoutonVioletFond}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BoutonVioletBordure}"/>
+            <Setter Property="Foreground" Value="{StaticResource BoutonVioletTexte}"/>
         </Style>
 
         <!-- Rouge — Purger -->
         <Style x:Key="RedButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
-            <Setter Property="Background"  Value="#CC3300"/>
-            <Setter Property="BorderBrush" Value="#8B1A00"/>
+            <Setter Property="Background"  Value="{StaticResource BoutonRougeFond}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+            <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
         </Style>
 
     </Window.Resources>
