@@ -110,6 +110,9 @@
         <Style x:Key="ProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="12"/>
             <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <!-- Sans cette couleur, la partie remplie heritait du Foreground
+                 systeme, donc d'un gris sombre en theme clair. -->
+            <Setter Property="Foreground" Value="{StaticResource Accent}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
