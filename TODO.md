@@ -122,7 +122,7 @@ _(rien)_
 - Onglet Configuration de RomMonitor.UI séparé en deux colonnes : « Indices de capacité » et
   « Indices de charge »
 
-**MCEMonitor écrit son propre journal** (`%ProgramData%MCEMonitorLogsMCEMonitor.log`) :
+**MCEMonitor écrit son propre journal** (`%ProgramData%\MCEMonitor\Logs\MCEMonitor.log`) :
 ticket de session, état des sept tâches planifiées au démarrage, contrôle SMTP et déverrouillage des
 onglets, tous les clics et changements d'onglet, réglages On/Off et des modules, exceptions non gérées.
 Le fichier est vidé à chaque ouverture ; une session qui ne finit pas par « Fermeture » a été interrompue.
@@ -142,7 +142,6 @@ d'où l'ajout d'une règle de contrôle des chaînes traduisibles.
 
 ---
 
-### Session 2026-11-21 — bascule de l'interface vers WPF (3.0.0)
 ### Session 2026-11-21 — bascule de l'interface vers WPF (3.0.0)
 
 **L'interface WinForms Krypton est remplacée par un projet WPF. Tag `v3.0.0`.**
