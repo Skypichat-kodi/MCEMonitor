@@ -6,6 +6,8 @@ using System.Reflection;
 using System.Security.Principal;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
@@ -22,6 +24,11 @@ namespace MCEMonitor.UI
         public FenetrePrincipale()
         {
             InitializeComponent();
+
+            // Journal : tous les clics sur des boutons et tous les changements
+            // d'onglet ou de liste sont tracés, sans instrumenter chaque handler.
+            AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler(JournaliserClic), true);
+            AddHandler(Selector.SelectionChangedEvent, new RoutedEventHandler(JournaliserSelection), true);
 
             ChargerConfigEmail();
             ChargerAbout();
@@ -63,6 +70,114 @@ namespace MCEMonitor.UI
         //  Déplacement de la fenêtre par l'en-tête, la barre de titre
         //  du système étant désactivée (WindowStyle=None)
         // ============================================================
+        // ============================================================
+        //  Journalisation des événements de l'interface
+        // ============================================================
+        private void JournaliserClic(object sender, RoutedEventArgs e)
+        {
+            DependencyObject? source = e.OriginalSource as DependencyObject;
+
+            while (source is not null and not ButtonBase)
+                source = ParentDe(source);
+
+            if (source is not ButtonBase bouton)
+                return;
+
+            CoreLog.Info("UI", "Clic : " + NomDuBouton(bouton));
+        }
+
+        private void JournaliserSelection(object sender, RoutedEventArgs e)
+        {
+            if (e.OriginalSource is TabControl onglets)
+            {
+                // Le Header est le plus souvent une chaine traduite (loc:Tr) ; il peut
+                // aussi etre un panneau (icone + libelle), d ou les deux lectures.
+                string titre = "?";
+
+                if (onglets.SelectedItem is TabItem item)
+                {
+                    titre = item.Header as string
+                            ?? TexteDe(item.Header as DependencyObject)
+                            ?? "?";
+                }
+
+                CoreLog.Info("UI", "Onglet : " + titre);
+            }
+            else if (e.OriginalSource is ComboBox liste)
+            {
+                string valeur = (liste.SelectedItem as ComboBoxItem)?.Content?.ToString()
+                                 ?? liste.Text ?? string.Empty;
+
+                // Les selections vides correspondent a l initialisation des listes :
+                // elles n apportent rien au journal.
+                if (string.IsNullOrWhiteSpace(valeur))
+                    return;
+
+                string nom = string.IsNullOrWhiteSpace(liste.Name) ? "(liste)" : liste.Name;
+                CoreLog.Info("UI", $"Liste {nom} : {valeur}");
+            }
+        }
+
+        private static DependencyObject? ParentDe(DependencyObject objet)
+            => objet is Visual or System.Windows.Media.Media3D.Visual3D
+                ? VisualTreeHelper.GetParent(objet)
+                : LogicalTreeHelper.GetParent(objet);
+
+        private static string NomDuBouton(ButtonBase bouton)
+        {
+            // 1. le nom XAML, quand il existe : c'est le plus precis
+            if (!string.IsNullOrWhiteSpace(bouton.Name))
+                return bouton.Name;
+
+            // 2. l'infobulle : par exemple « Fermer » pour le bouton ✕
+            if (bouton.ToolTip is string infobulle && !string.IsNullOrWhiteSpace(infobulle))
+                return infobulle.Trim();
+
+            // 3. le libelle porte directement par le bouton
+            if (bouton.Content is string texte && !string.IsNullOrWhiteSpace(texte))
+                return texte.Trim();
+
+            // 4. le libelle dessine dans son contenu (icone + texte)
+            string? trouve = TexteDe(bouton.Content as DependencyObject);
+            return string.IsNullOrWhiteSpace(trouve) ? "(bouton)" : trouve;
+        }
+
+        private static string? TexteDe(DependencyObject? racine)
+        {
+            if (racine is null)
+                return null;
+
+            if (racine is TextBlock bloc && !string.IsNullOrWhiteSpace(bloc.Text))
+                return bloc.Text;
+
+            if (racine is Visual or System.Windows.Media.Media3D.Visual3D)
+            {
+                int enfants = VisualTreeHelper.GetChildrenCount(racine);
+
+                for (int i = 0; i < enfants; i++)
+                {
+                    string? texte = TexteDe(VisualTreeHelper.GetChild(racine, i));
+
+                    if (!string.IsNullOrWhiteSpace(texte))
+                        return texte;
+                }
+            }
+
+            // En-tetes et contenus pas encore realises visuellement : arbre logique.
+            foreach (object enfant in LogicalTreeHelper.GetChildren(racine))
+            {
+                if (enfant is DependencyObject objet)
+                {
+                    string? texte = TexteDe(objet);
+
+                    if (!string.IsNullOrWhiteSpace(texte))
+                        return texte;
+                }
+            }
+
+            return null;
+        }
+
         private void EnTete_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             if (e.ButtonState == MouseButtonState.Pressed)
@@ -318,6 +433,9 @@ namespace MCEMonitor.UI
 
             cfg.Save();
 
+            CoreLog.Info("Mail", $"Configuration enregistrée : {cfg.Server}:{cfg.Port}, "
+                               + $"{cfg.SecurityMode}, expéditeur {cfg.From}");
+
             Confirmer(LanguageManager.Get("Configuration Email enregistrée")
                       ?? "Configuration Email enregistrée");
 
@@ -357,6 +475,8 @@ namespace MCEMonitor.UI
             ZoneJournal.Clear();
             BoutonTester.IsEnabled = false;
             TexteConfirmation.Visibility = Visibility.Collapsed;
+
+            CoreLog.Info("Mail", "Test SMTP demandé");
 
             Journaliser(LanguageManager.Get("Démarrage du test SMTP…") ?? "Démarrage du test SMTP…");
 
@@ -417,9 +537,13 @@ namespace MCEMonitor.UI
 
                 Confirmer(LanguageManager.Get("Email envoyé avec succès !")
                           ?? "Email envoyé avec succès !");
+
+                CoreLog.Info("Mail", "Test SMTP réussi");
             }
             catch (Exception ex)
             {
+                CoreLog.Warn("Mail", "Test SMTP échoué : " + ex.Message);
+
                 Journaliser((LanguageManager.Get("ERREUR : ") ?? "ERREUR : ") + ex.Message);
                 await RafraichirStatutSmtpAsync(0);
             }
@@ -641,6 +765,9 @@ namespace MCEMonitor.UI
 
             _basculeEnCours = true;
 
+            CoreLog.Info("MediaMonitor", "Service : "
+                                + (ServiceMediaEnCours ? "arrêt demandé" : "démarrage demandé"));
+
             try
             {
                 if (ServiceMediaEnCours)
@@ -677,6 +804,9 @@ namespace MCEMonitor.UI
 
             await Task.Delay(700);
             MetAJourEtatService();
+
+            CoreLog.Info("MediaMonitor", "Service : "
+                                + (ServiceMediaEnCours ? "en cours" : "arrêté"));
         }
 
         private async Task<bool> DemarrerServiceMediaAsync()
@@ -750,11 +880,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessage(await Task.Run(TaskSchedulerHelper.DeleteMediaMonitorServiceTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteMediaMonitorServiceTask);
+                    JournaliserTache("MediaMonitor", "MCEMonitor_MediaMonitorService", "suppression", resultat);
+                    AfficherMessage(resultat);
                 }
                 else
                 {
-                    AfficherMessage(await Task.Run(TaskSchedulerHelper.CreateMediaMonitorServiceTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateMediaMonitorServiceTask);
+                    JournaliserTache("MediaMonitor", "MCEMonitor_MediaMonitorService", "création", resultat);
+                    AfficherMessage(resultat);
                 }
 
                 await RafraichirTacheMediaAsync();
@@ -903,6 +1037,25 @@ namespace MCEMonitor.UI
             return ligne;
         }
 
+        /// <summary>
+        /// Trace une creation ou une suppression de tache planifiee, avec le retour
+        /// de schtasks. Les retours multiples (StopMonitor) sont aplatis sur une ligne.
+        /// </summary>
+        private static void JournaliserTache(
+            string domaine, string nomTache, string action, string resultat)
+        {
+            string detail = resultat.Replace('\r', ' ')
+                                    .Replace('\n', ' ')
+                                    .Trim();
+
+            string message = $"Tâche {nomTache} : {action} -> {detail}";
+
+            if (resultat.Contains("ERREUR", StringComparison.OrdinalIgnoreCase))
+                CoreLog.Warn(domaine, message);
+            else
+                CoreLog.Info(domaine, message);
+        }
+
         private void AfficherMessage(string message, bool alerte = false)
         {
             MessageMedia.Text = message;
@@ -995,6 +1148,9 @@ namespace MCEMonitor.UI
 
             _basculeRomEnCours = true;
 
+            CoreLog.Info("RomMonitor", "Service : "
+                                + (ServiceRomEnCours ? "arrêt demandé" : "démarrage demandé"));
+
             try
             {
                 if (ServiceRomEnCours)
@@ -1055,6 +1211,9 @@ namespace MCEMonitor.UI
 
             await Task.Delay(700);
             MetAJourEtatServiceRom();
+
+            CoreLog.Info("RomMonitor", "Service : "
+                                + (ServiceRomEnCours ? "en cours" : "arrêté"));
         }
 
         // Lance le Tray associé au service, dans Program Files ou Program Files (x86).
@@ -1092,11 +1251,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageRom(await Task.Run(TaskSchedulerHelper.DeleteRomMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteRomMonitorTask);
+                    JournaliserTache("RomMonitor", "MCEMonitor_RomMonitorService", "suppression", resultat);
+                    AfficherMessageRom(resultat);
                 }
                 else
                 {
-                    AfficherMessageRom(await Task.Run(TaskSchedulerHelper.CreateRomMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateRomMonitorTask);
+                    JournaliserTache("RomMonitor", "MCEMonitor_RomMonitorService", "création", resultat);
+                    AfficherMessageRom(resultat);
                 }
 
                 await RafraichirTacheRomAsync();
@@ -1260,6 +1423,8 @@ namespace MCEMonitor.UI
 
                 File.WriteAllLines(FichierConfigRom, lignes);
 
+                CoreLog.Info("RomMonitor", "Réglages enregistrés");
+
                 AfficherMessageRom(LanguageManager.Get("Réglages enregistrés") ?? "Réglages enregistrés");
             }
             catch (Exception ex)
@@ -1361,6 +1526,9 @@ namespace MCEMonitor.UI
 
             _basculeSystemEnCours = true;
 
+            CoreLog.Info("SystemMonitor", "Service : "
+                                + (ServiceSystemEnCours ? "arrêt demandé" : "démarrage demandé"));
+
             try
             {
                 if (ServiceSystemEnCours)
@@ -1409,6 +1577,9 @@ namespace MCEMonitor.UI
 
             await Task.Delay(700);
             MetAJourEtatServiceSystem();
+
+            CoreLog.Info("SystemMonitor", "Service : "
+                                + (ServiceSystemEnCours ? "en cours" : "arrêté"));
         }
 
         private async void SurAutomatisationSystem(object sender, RoutedEventArgs e)
@@ -1427,11 +1598,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageSystem(await Task.Run(TaskSchedulerHelper.DeleteSystemMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteSystemMonitorTask);
+                    JournaliserTache("SystemMonitor", "MCEMonitor_SystemMonitorService", "suppression", resultat);
+                    AfficherMessageSystem(resultat);
                 }
                 else
                 {
-                    AfficherMessageSystem(await Task.Run(TaskSchedulerHelper.CreateSystemMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateSystemMonitorTask);
+                    JournaliserTache("SystemMonitor", "MCEMonitor_SystemMonitorService", "création", resultat);
+                    AfficherMessageSystem(resultat);
                 }
 
                 await RafraichirTacheSystemAsync();
@@ -1604,6 +1779,8 @@ namespace MCEMonitor.UI
 
                 File.WriteAllLines(FichierConfigSystem, lignes);
 
+                CoreLog.Info("SystemMonitor", "Réglages enregistrés");
+
                 AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés") ?? "Réglages enregistrés");
             }
             catch (Exception ex)
@@ -1674,11 +1851,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageWake(await Task.Run(TaskSchedulerHelper.DeleteWakeTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteWakeTask);
+                    JournaliserTache("WakeMonitor", "MCEMonitor_WakeMonitor", "suppression", resultat);
+                    AfficherMessageWake(resultat);
                 }
                 else
                 {
-                    AfficherMessageWake(await Task.Run(TaskSchedulerHelper.CreateWakeTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateWakeTask);
+                    JournaliserTache("WakeMonitor", "MCEMonitor_WakeMonitor", "création", resultat);
+                    AfficherMessageWake(resultat);
                 }
 
                 await RafraichirTacheWakeAsync();
@@ -1789,6 +1970,8 @@ namespace MCEMonitor.UI
                 Directory.CreateDirectory(Path.GetDirectoryName(FichierConfigWake)!);
                 File.WriteAllLines(FichierConfigWake, lignes);
 
+                CoreLog.Info("WakeMonitor", "Réglages enregistrés");
+
                 AfficherMessageWake(LanguageManager.Get("Configuration WakeMonitor enregistrée")
                                     ?? "Configuration WakeMonitor enregistrée");
             }
@@ -1852,11 +2035,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageStop(await Task.Run(TaskSchedulerHelper.DeleteStopTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteStopTask);
+                    JournaliserTache("StopMonitor", "MCEMonitor_StopMonitor", "suppression", resultat);
+                    AfficherMessageStop(resultat);
                 }
                 else
                 {
-                    AfficherMessageStop(await Task.Run(TaskSchedulerHelper.CreateStopTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateStopTask);
+                    JournaliserTache("StopMonitor", "MCEMonitor_StopMonitor", "création", resultat);
+                    AfficherMessageStop(resultat);
                 }
 
                 await RafraichirTacheStopAsync();
@@ -2017,14 +2204,25 @@ namespace MCEMonitor.UI
 
                 EcrireConfigArret(heure, minute, mode);
 
+                CoreLog.Info("On/Off", $"Réglage enregistré : {heure:00}:{minute:00}, "
+                                     + $"mode {LibelleModeArret(mode)}");
+
                 AfficherMessageOnOff(LanguageManager.Get("Configuration enregistrée.")
                                      ?? "Configuration enregistrée.");
 
                 // Si la tâche existe déjà, on la recrée à la nouvelle heure.
                 if (await Task.Run(TaskSchedulerHelper.ShutdownTaskExists))
                 {
-                    AfficherMessageOnOff(await Task.Run(() =>
-                        TaskSchedulerHelper.CreateShutdownTask(heure, minute, mode)));
+                    string resultat = await Task.Run(() =>
+                        TaskSchedulerHelper.CreateShutdownTask(heure, minute, mode));
+
+                    JournaliserTacheArret("mise à jour", resultat, heure, minute, mode);
+                    AfficherMessageOnOff(resultat);
+                }
+                else
+                {
+                    CoreLog.Info("On/Off", "'Tâche MCEMonitor_Shutdown absente : rien à "
+                                        + "reprogrammer (automatisation désactivée)");
                 }
 
                 await RafraichirTacheArretAsync();
@@ -2051,7 +2249,10 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageOnOff(await Task.Run(TaskSchedulerHelper.DeleteShutdownTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteShutdownTask);
+
+                    JournaliserTacheArret("suppression", resultat, 0, 0, null);
+                    AfficherMessageOnOff(resultat);
                 }
                 else
                 {
@@ -2059,10 +2260,16 @@ namespace MCEMonitor.UI
                     int minute = Borner(ChampMinuteArret.Text, 0, 59, 30);
                     string mode = ModeArretChoisi();
 
-                    AfficherMessageOnOff(await Task.Run(() =>
-                        TaskSchedulerHelper.CreateShutdownTask(heure, minute, mode)));
+                    string resultat = await Task.Run(() =>
+                        TaskSchedulerHelper.CreateShutdownTask(heure, minute, mode));
+
+                    JournaliserTacheArret("création", resultat, heure, minute, mode);
+                    AfficherMessageOnOff(resultat);
 
                     EcrireConfigArret(heure, minute, mode);
+
+                    CoreLog.Info("On/Off", $"Réglage enregistré : {heure:00}:{minute:00}, "
+                                         + $"mode {LibelleModeArret(mode)}");
                 }
 
                 await RafraichirTacheArretAsync();
@@ -2071,6 +2278,48 @@ namespace MCEMonitor.UI
             {
                 AfficherMessageOnOff("Erreur : " + ex.Message, alerte: true);
             }
+        }
+
+        private static string LibelleModeArret(string mode)
+            => string.Equals(mode, ModeVeille, StringComparison.OrdinalIgnoreCase)
+                ? "veille"
+                : "arrêt";
+
+        /// <summary>Échéance réelle de la tâche : cinq minutes avant l'heure demandée.</summary>
+        private static (int heure, int minute) EcheanceTacheArret(int heure, int minute)
+        {
+            int m = minute - 5;
+            int h = heure;
+
+            if (m < 0)
+            {
+                m += 60;
+                h -= 1;
+                if (h < 0) h += 24;
+            }
+
+            return (h, m);
+        }
+
+        private static void JournaliserTacheArret(
+            string action, string resultat, int heure, int minute, string? mode)
+        {
+            string details = string.Empty;
+
+            if (mode is not null)
+            {
+                (int h, int m) = EcheanceTacheArret(heure, minute);
+                details = $" (demandé {heure:00}:{minute:00} {LibelleModeArret(mode)}, "
+                        + $"échéance {h:00}:{m:00})";
+            }
+
+            string message = $"Tâche MCEMonitor_Shutdown : {action}{details}"
+                           + $" -> {resultat.Trim()}";
+
+            if (resultat.Contains("ERREUR", StringComparison.OrdinalIgnoreCase))
+                CoreLog.Warn("On/Off", message);
+            else
+                CoreLog.Info("On/Off", message);
         }
 
         private void AfficherMessageOnOff(string message, bool alerte = false)
@@ -2163,6 +2412,9 @@ namespace MCEMonitor.UI
 
             _basculeNetEnCours = true;
 
+            CoreLog.Info("NetMonitor", "Service : "
+                                + (ServiceNetEnCours ? "arrêt demandé" : "démarrage demandé"));
+
             try
             {
                 if (ServiceNetEnCours)
@@ -2211,6 +2463,9 @@ namespace MCEMonitor.UI
 
             await Task.Delay(700);
             MetAJourEtatServiceNet();
+
+            CoreLog.Info("NetMonitor", "Service : "
+                                + (ServiceNetEnCours ? "en cours" : "arrêté"));
         }
 
         private async void SurAutomatisationNet(object sender, RoutedEventArgs e)
@@ -2229,11 +2484,15 @@ namespace MCEMonitor.UI
                     if (reponse != MessageBoxResult.Yes)
                         return;
 
-                    AfficherMessageNet(await Task.Run(TaskSchedulerHelper.DeleteNetMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.DeleteNetMonitorTask);
+                    JournaliserTache("NetMonitor", "MCEMonitor_NetMonitorService", "suppression", resultat);
+                    AfficherMessageNet(resultat);
                 }
                 else
                 {
-                    AfficherMessageNet(await Task.Run(TaskSchedulerHelper.CreateNetMonitorTask));
+                    string resultat = await Task.Run(TaskSchedulerHelper.CreateNetMonitorTask);
+                    JournaliserTache("NetMonitor", "MCEMonitor_NetMonitorService", "création", resultat);
+                    AfficherMessageNet(resultat);
                 }
 
                 await RafraichirTacheNetAsync();
@@ -2367,6 +2626,8 @@ namespace MCEMonitor.UI
                 };
 
                 File.WriteAllLines(FichierConfigNet, lignes);
+
+                CoreLog.Info("NetMonitor", "Réglages enregistrés");
 
                 AfficherMessageNet(LanguageManager.Get("Réglages NetMonitor enregistrés")
                                    ?? "Réglages NetMonitor enregistrés");

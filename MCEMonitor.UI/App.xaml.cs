@@ -3,6 +3,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -49,6 +50,14 @@ namespace MCEMonitor.UI
             // échouent silencieusement.
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
+            // Toute exception non gérée laisse une trace dans MCEMonitor.log avant
+            // que l'application ne meure : l'interface n'a aucun autre journal.
+            DispatcherUnhandledException += (_, ex) =>
+                CoreLog.Error("UI", "Exception non gérée : " + ex.Exception);
+
+            AppDomain.CurrentDomain.UnhandledException += (_, ex) =>
+                CoreLog.Error("UI", "Exception fatale : " + ex.ExceptionObject);
+
             // ============================================================
             //  MODE TÂCHE PLANIFIÉE (arrêt ou veille programmés)
             //  Traité AVANT le mutex : l'application est peut-être déjà ouverte,
@@ -58,6 +67,7 @@ namespace MCEMonitor.UI
 
             if (idxPlanifie >= 0 && idxPlanifie < e.Args.Length - 1)
             {
+                CoreLog.Info("Planifié", "Action demandée : " + e.Args[idxPlanifie + 1]);
                 MCEMonitor.ScheduledActionRunner.Run(e.Args[idxPlanifie + 1]);
                 Shutdown();
                 return;
@@ -97,6 +107,15 @@ namespace MCEMonitor.UI
             Thread.CurrentThread.CurrentCulture   = new CultureInfo(selectedLang);
 
             MCEMonitor.Languages.LanguageManager.Load(selectedLang);
+
+            // Le journal est vidé à chaque OUVERTURE : il ne contient donc que la
+            // session courante, et son ticket en première ligne. La fermeture, elle,
+            // n'efface rien : un fichier qui ne finit pas par « Fermeture » signale
+            // une session interrompue.
+            CoreLog.DemarrerSession(
+                $"Démarrage - version {VersionAffichable()}, langue {selectedLang}, "
+                + $"élevé : {(EstEleve() ? "oui" : "non")}, utilisateur {Environment.UserName}, "
+                + $"machine {Environment.MachineName}, OS {Environment.OSVersion.VersionString}");
 
             base.OnStartup(e);
 
@@ -172,6 +191,29 @@ namespace MCEMonitor.UI
                 fenetre.WindowState = WindowState.Normal;
 
             fenetre.Activate();
+        }
+
+        protected override void OnExit(ExitEventArgs e)
+        {
+            CoreLog.Info("UI", "Fermeture");
+            base.OnExit(e);
+        }
+
+        private static string VersionAffichable()
+        {
+            Version? v = Assembly.GetExecutingAssembly().GetName().Version;
+            return v == null ? "inconnue" : $"{v.Major}.{v.Minor}.{v.Build}";
+        }
+
+        private static bool EstEleve()
+        {
+            try
+            {
+                using var identite = System.Security.Principal.WindowsIdentity.GetCurrent();
+                return new System.Security.Principal.WindowsPrincipal(identite)
+                    .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+            }
+            catch { return false; }
         }
     }
 }
