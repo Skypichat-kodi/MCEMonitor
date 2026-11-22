@@ -335,9 +335,11 @@
                                            Visibility="Collapsed" />
                             </StackPanel>
 
-                            <!-- Journal du test SMTP, visible en permanence -->
+                            <!-- Journal du test SMTP : masqué au repos, révélé par le test
+                                 (voir SurTesterEmail, qui le rend visible avant d'écrire). -->
                             <Border x:Name="CadreJournal"
-                                    Margin="0,12,0,0">
+                                    Margin="0,12,0,0"
+                                    Visibility="Collapsed">
                                 <TextBox x:Name="ZoneJournal"
                                          Style="{StaticResource ZoneLog}"
                                          Height="76"
