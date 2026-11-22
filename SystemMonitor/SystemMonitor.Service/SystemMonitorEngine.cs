@@ -36,7 +36,7 @@ namespace SystemMonitor.Service
         // ------------------------------------------------------------
 
         /// <summary>Un processus n'entre dans le graphique qu'au-delà de ce seuil.</summary>
-        public const double SeuilProcessus = 25.0;
+        public const double SeuilProcessus = 10.0;
 
         /// <summary>Nombre de processus dessinés simultanément.</summary>
         private const int MaxSeriesProcessus = 5;
