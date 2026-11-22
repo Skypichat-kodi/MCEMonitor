@@ -21,19 +21,19 @@ namespace MCEMonitorClient.Service.Services
         private bool _running;
         private DateTime _lastFullScan = DateTime.MinValue;
 
-        // --- Tracking des médias pour éviter les faux started/stopped ---
+        // --- Tracking des mï¿½dias pour ï¿½viter les faux started/stopped ---
         private readonly Dictionary<string, (DateTime LastSeen, MediaItem Media)> _mediaTrack = new();
         
         // --- Anti-faux-positif : compteurs ---
         private readonly Dictionary<string, int> _consecutiveFailures = new();
         private readonly Dictionary<string, int> _consecutiveSuccesses = new();
         
-        // Paramètres ajustés pour éviter le "flapping"
-        private const int OfflineThreshold = 3;    // 3 échecs consécutifs avant de dire "offline"
-        private const int RecoveryThreshold = 2;   // 2 succès consécutifs avant de dire "ok"
+        // Paramï¿½tres ajustï¿½s pour ï¿½viter le "flapping"
+        private const int OfflineThreshold = 3;    // 3 ï¿½checs consï¿½cutifs avant de dire "offline"
+        private const int RecoveryThreshold = 2;   // 2 succï¿½s consï¿½cutifs avant de dire "ok"
         private const int HttpTimeoutSeconds = 10; // Timeout HTTP plus patient (10s)
 
-        // Durée pendant laquelle un média absent est considéré comme "peut-être de retour"
+        // Durï¿½e pendant laquelle un mï¿½dia absent est considï¿½rï¿½ comme "peut-ï¿½tre de retour"
         private const int MediaStopGraceSeconds = 90;
         
         public event Action<PollResult, PollResult?>? OnStateChanged;   
@@ -57,18 +57,18 @@ namespace MCEMonitorClient.Service.Services
             _running = true;
             _thread = new Thread(Loop) { IsBackground = true };
             _thread.Start();
-            CoreLog.Write("PollingEngine démarré");
+            CoreLog.Write("PollingEngine dï¿½marrï¿½");
         }
 
         public void Stop()
         {
             _running = false;
-            CoreLog.Write("PollingEngine arrêté");
+            CoreLog.Write("PollingEngine arrï¿½tï¿½");
         }
 
         public void ForceScan()
         {
-            CoreLog.Write("ForceScan demandé");
+            CoreLog.Write("ForceScan demandï¿½");
             _lastFullScan = DateTime.MinValue;
         }
 
@@ -86,7 +86,7 @@ namespace MCEMonitorClient.Service.Services
                     if (forceScan)
                     {
                         _lastFullScan = DateTime.Now;
-                        _ = PollAllAsync(config); // Fire & forget, le scan est parallélisé
+                        _ = PollAllAsync(config); // Fire & forget, le scan est parallï¿½lisï¿½
                     }
 
                     Thread.Sleep(1000);
@@ -103,8 +103,8 @@ namespace MCEMonitorClient.Service.Services
         {
             var activeServers = config.Servers.Where(s => s.Enabled).ToList();
 
-            // --- NOUVEAU : Parallélisation des requêtes ---
-            // On lance toutes les requêtes en même temps pour ne pas être bloqué par un serveur lent
+            // --- NOUVEAU : Parallï¿½lisation des requï¿½tes ---
+            // On lance toutes les requï¿½tes en mï¿½me temps pour ne pas ï¿½tre bloquï¿½ par un serveur lent
             var tasks = activeServers.Select(async server =>
             {
                 var result = await PollOneAsync(server);
@@ -153,7 +153,7 @@ namespace MCEMonitorClient.Service.Services
                     PreAuthenticate = true
                 };
 
-                // Timeout allongé à 10s
+                // Timeout allongï¿½ ï¿½ 10s
                 using var http = new HttpClient(handler) { Timeout = TimeSpan.FromSeconds(HttpTimeoutSeconds) };
                 using var resp = await http.GetAsync(server.ApiSummaryUrl);
 
@@ -240,12 +240,27 @@ namespace MCEMonitorClient.Service.Services
             PollResult? previous = null;
             bool stateChanged = false;
 
+            // Phase de chauffe du service distant : ses seuils ne sont pas encore
+            // Ã©valuÃ©s, l'Ã©tat renvoyÃ© n'est donc pas significatif. On le traite comme
+            // Â« ok Â» sans jamais notifier, sinon une simple rÃ©installation produit une
+            // fausse reconnexion, puis une alerte critique 90 secondes plus tard.
+            bool enChauffe = string.Equals(result.Status, "warmup", StringComparison.OrdinalIgnoreCase);
+
+            if (enChauffe)
+            {
+                result.Status        = "ok";
+                result.WorstSeverity = "ok";
+                result.Problems.Clear();
+                result.ProblemCount  = 0;
+                result.FirstProblem  = "";
+            }
+
             lock (_lock)
             {
                 if (_lastResults.TryGetValue(result.ServerId, out previous))
                     stateChanged = previous.Status != result.Status;
 
-                // ----- Hystérésis : Anti-faux-positif "offline" -----
+                // ----- Hystï¿½rï¿½sis : Anti-faux-positif "offline" -----
                 if (!result.Online || result.Status == "offline")
                 {
                     _consecutiveFailures.TryGetValue(result.ServerId, out int fails);
@@ -286,10 +301,10 @@ namespace MCEMonitorClient.Service.Services
 
             CoreLog.Write($"[POLL] {result.ServerName} : {result.Status}");
 
-            // ---- Détection des nouveaux problèmes ----
-            // Un problème est "nouveau" s'il est présent maintenant et absent avant.
-            // Ça permet de notifier même si le statut global ne change pas
-            // (ex: RAM déjà en alerte, un CPU sature ? status reste "critical").
+            // ---- Dï¿½tection des nouveaux problï¿½mes ----
+            // Un problï¿½me est "nouveau" s'il est prï¿½sent maintenant et absent avant.
+            // ï¿½a permet de notifier mï¿½me si le statut global ne change pas
+            // (ex: RAM dï¿½jï¿½ en alerte, un CPU sature ? status reste "critical").
             var newProblems = new List<ProblemItem>();
             if (previous != null && result.Problems.Count > 0)
             {
@@ -304,12 +319,12 @@ namespace MCEMonitorClient.Service.Services
             }
 
             bool hasNewProblems = newProblems.Count > 0;
-            bool shouldPush = stateChanged || hasNewProblems;
+            bool shouldPush = (stateChanged || hasNewProblems) && !enChauffe;
 
             if (shouldPush && previous != null && config.NotifyOnStateChange)
             {
                 if (hasNewProblems && !stateChanged)
-                    CoreLog.Write($"[POLL] {result.ServerName} : {newProblems.Count} nouveau(x) problème(s) sans changement de statut");
+                    CoreLog.Write($"[POLL] {result.ServerName} : {newProblems.Count} nouveau(x) problï¿½me(s) sans changement de statut");
 
                 OnStateChanged?.Invoke(result, previous);
                 PushChannel.PushAlert(result, previous, newProblems);

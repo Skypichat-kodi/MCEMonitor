@@ -104,15 +104,27 @@ namespace SystemMonitor.Service
         }
 
         /// <summary>
+        /// Nombre d'échantillons à accumuler avant d'évaluer les seuils.
+        /// Une seule définition, pour que le journal et la condition ne divergent plus.
+        /// </summary>
+        private int WarmupSamples => Math.Max(2, 90 / Math.Max(1, _settings.Interval));
+
+        /// <summary>
+        /// Vrai pendant la phase de chauffe (90 s). Publié dans l'API : un client qui
+        /// interroge le service à ce moment-là ne doit pas en déduire un état stable.
+        /// </summary>
+        public bool IsWarmup => IsWarmupPhase;
+
+        /// <summary>
         /// True tant que les buffers CPU/RAM n'ont pas atteint leur taille cible.
         /// Utilisé pour éviter les fausses alertes au démarrage du service
-        /// (phase de chauffe de 60 s après le boot).
+        /// (phase de chauffe de 90 s après le boot).
         /// </summary>
         private bool IsWarmupPhase
         {
             get
             {
-                int windowSize = Math.Max(2, 90 / Math.Max(1, _settings.Interval));
+                int windowSize = WarmupSamples;
                 return _cpuHistory.Count < windowSize || _ramHistory.Count < windowSize;
             }
         }
@@ -146,14 +158,14 @@ namespace SystemMonitor.Service
                 });
 
                 // Ignorer les seuils CPU/RAM tant que la moyenne
-                // n'est pas stabilisée (phase de chauffe de 60 s au démarrage)
+                // n'est pas stabilisée (phase de chauffe de 90 s au démarrage)
                 if (!IsWarmupPhase)
                 {
                     CheckThresholds(snap);
                 }
                 else
                 {
-                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{Math.Max(2, 60 / Math.Max(1, _settings.Interval))} échantillons)");
+                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{WarmupSamples} échantillons)");
                 }
 
                 ScanForBsods();

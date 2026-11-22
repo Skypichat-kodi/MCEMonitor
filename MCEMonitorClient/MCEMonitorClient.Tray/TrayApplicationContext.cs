@@ -1079,6 +1079,14 @@ namespace MCEMonitorClient.Tray
                 return "ok.png";
             }
 
+            // ---- Reconnexion : le serveur revient alors qu'il était hors ligne ----
+            // L'information nouvelle est le retour en ligne. Les problèmes en cours
+            // (une surcharge CPU par exemple) auront leur propre notification ensuite.
+            if (alert.PreviousStatus == "offline" && alert.Status != "offline")
+            {
+                return "connected.png";
+            }
+
             // ---- Résolution : problème(s) résolu(s) ----
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
                 alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)

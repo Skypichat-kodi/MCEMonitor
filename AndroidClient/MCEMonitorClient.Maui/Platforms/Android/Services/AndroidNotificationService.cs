@@ -572,6 +572,14 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
                 return "ok";
             }
 
+            // ---- Reconnexion : le serveur revient alors qu'il était hors ligne ----
+            // L'information nouvelle est le retour en ligne. Les problèmes en cours
+            // (une surcharge CPU par exemple) auront leur propre notification ensuite.
+            if (alert.PreviousStatus == "offline" && alert.Status != "offline")
+            {
+                return "connected";
+            }
+
             // ---- Résolution : problème(s) résolu(s) ----
             if (alert.Status == "ok" && alert.PreviousStatus != "ok" &&
                 alert.ResolvedProblems != null && alert.ResolvedProblems.Count > 0)

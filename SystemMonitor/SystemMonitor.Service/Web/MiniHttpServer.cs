@@ -207,12 +207,17 @@ namespace SystemMonitor.Service.Web
                 }
                 else if (path == "/api/summary")
                 {
+                    // Pendant la chauffe, les seuils ne sont pas évalués : l'état « ok »
+                    // serait trompeur. On publie un état distinct pour que les clients ne
+                    // le prennent pas pour une reconnexion.
+                    string etat = _engine.IsWarmup ? "warmup" : _engine.WorstSeverity;
+
                     var summary = new SystemMonitor.Service.Api.ApiSummary
                     {
                         service = "SystemMonitor",
                         machine = Environment.MachineName,
-                        status = _engine.WorstSeverity,
-                        worstSeverity = _engine.WorstSeverity
+                        status = etat,
+                        worstSeverity = etat
                     };
 
                     foreach (var p in _engine.GetProblems(20))
