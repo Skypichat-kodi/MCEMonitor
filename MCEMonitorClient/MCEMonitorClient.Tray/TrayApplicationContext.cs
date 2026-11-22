@@ -837,12 +837,31 @@ namespace MCEMonitorClient.Tray
             }
         }
 
+        private System.Windows.Application? _applicationWpf;
+        private FenetreServeurs? _fenetreServeurs;
+
         private void ShowServersPopup()
         {
             try
             {
-                var form = new ServersPopupForm();
-                form.Show();
+                // Une fenêtre WPF a besoin d'une Application : le Tray est un
+                // exécutable WinForms, on la crée à la première ouverture.
+                if (_applicationWpf == null)
+                {
+                    _applicationWpf = new System.Windows.Application
+                    {
+                        ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown
+                    };
+                }
+
+                if (_fenetreServeurs == null)
+                {
+                    _fenetreServeurs = new FenetreServeurs();
+                    _fenetreServeurs.Closed += (_, _) => _fenetreServeurs = null;
+                }
+
+                _fenetreServeurs.Show();
+                _fenetreServeurs.Activate();
             }
             catch (Exception ex)
             {

@@ -48,6 +48,9 @@ namespace MCEMonitorClient.Config
 
         private bool _bandeauAffiche;
 
+        /// <summary>Popup des états, ouvert au plus une fois.</summary>
+        private MCEMonitorClient.Tray.FenetreServeurs? _fenetreServeurs;
+
         public FenetrePrincipale()
         {
             InitializeComponent();
@@ -674,6 +677,41 @@ namespace MCEMonitorClient.Config
                 Dispatcher.Invoke(MettreAJourBandeau);
         }
 
-        private void SurEtatsServeurs(object sender, RoutedEventArgs e) { /* ShowServersStateForm */ }
+        private void SurEtatsServeurs(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                if (!ServiceEnCours())
+                {
+                    MessageBox.Show(this,
+                        LanguageManager.Get("Le Service MCEMonitorClient n'est pas en cours d'exécution.")
+                            ?? "Le Service MCEMonitorClient n'est pas en cours d'exécution.",
+                        LanguageManager.Get("Information") ?? "Information",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                    return;
+                }
+
+                // Une seule fenêtre à la fois, comme l'ancien formulaire.
+                if (_fenetreServeurs == null)
+                {
+                    _fenetreServeurs = new MCEMonitorClient.Tray.FenetreServeurs
+                    {
+                        Owner = this,
+                        WindowStartupLocation = WindowStartupLocation.CenterOwner
+                    };
+
+                    _fenetreServeurs.Closed += (_, _) => _fenetreServeurs = null;
+                }
+
+                _fenetreServeurs.Show();
+                _fenetreServeurs.Activate();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
     }
 }
