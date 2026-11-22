@@ -110,6 +110,10 @@
              car le style global peint un fond opaque. -->
         <Style x:Key="CellulesAudit" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="{StaticResource TeinteAudit}"/>
+            <!-- Le trait est porté par la cellule, comme pour les intrusions : son
+                 fond opaque recouvrirait celui de la ligne. -->
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BordureAuditClaire}"/>
             <Style.Triggers>
                 <!-- Même principe que les intrusions : suivre le survol et effacer
                      la bordure pour ne pas encadrer la ligne survolée. -->
@@ -2006,7 +2010,8 @@
                             <DataGrid.RowStyle>
                                 <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
                                     <Setter Property="Background" Value="{StaticResource LigneAuditImpaire}"/>
-                                    <Setter Property="BorderBrush" Value="{StaticResource BordureAuditClaire}"/>
+                                    <!-- Trait porté par les cellules : celui de la ligne serait recouvert. -->
+                                    <Setter Property="BorderThickness" Value="0"/>
                                     <Style.Triggers>
                                         <Trigger Property="ItemsControl.AlternationIndex" Value="0">
                                             <Setter Property="Background" Value="{StaticResource LigneAuditPaire}"/>
