@@ -1083,6 +1083,13 @@ namespace SystemMonitor.UI
 
                 int index = 0;
 
+                // Les séries de processus n'ont pas forcément autant de points que
+                // l'historique global : un processus apparu il y a peu. On les aligne
+                // à droite, sur la même échelle de temps, sinon une courbe de trois
+                // points s'étalerait sur tout le graphique et laisserait croire à un
+                // dépassement de longue durée.
+                int total = _history.Count;
+
                 foreach (SysProcessSeries serie in _processSeries.Take(5))
                 {
                     if (serie.points.Count < 2)
@@ -1098,12 +1105,14 @@ namespace SystemMonitor.UI
                         Tag             = "Proc"
                     };
 
-                    double stepX = w / Math.Max(1, serie.points.Count - 1);
+                    int largeur = Math.Max(total, serie.points.Count);
+                    double stepX = w / Math.Max(1, largeur - 1);
+                    int decalage = largeur - serie.points.Count;
 
                     for (int i = 0; i < serie.points.Count; i++)
                     {
                         double v = Math.Clamp(serie.points[i].cpuUsage, 0, 100);
-                        poly.Points.Add(new Point(i * stepX, h - v / 100.0 * h));
+                        poly.Points.Add(new Point((decalage + i) * stepX, h - v / 100.0 * h));
                     }
 
                     chartCpu.Children.Add(poly);
