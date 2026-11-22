@@ -115,6 +115,19 @@ namespace SystemMonitor.UI
         public double? gpuTemp      { get; set; }
     }
 
+    /// <summary>Série d'un processus lourd, pour les courbes supplémentaires du graphique CPU.</summary>
+    public class SysProcessSeries
+    {
+        public string name { get; set; } = "";
+        public List<SysProcessSeriesPoint> points { get; set; } = new();
+    }
+
+    public class SysProcessSeriesPoint
+    {
+        public DateTime timestamp { get; set; }
+        public double cpuUsage { get; set; }
+    }
+
     public class SysBsod
     {
         public DateTime timestamp   { get; set; }
@@ -346,6 +359,20 @@ namespace SystemMonitor.UI
             try
             {
                 return JsonSerializer.Deserialize<List<SysHistoryPoint>>(json,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Séries des processus actuellement au-dessus du seuil.</summary>
+        public static async Task<List<SysProcessSeries>?> GetProcessSeries()
+        {
+            string? json = await SendCommand("get-process-series");
+            if (string.IsNullOrWhiteSpace(json)) return null;
+
+            try
+            {
+                return JsonSerializer.Deserialize<List<SysProcessSeries>>(json,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             }
             catch { return null; }

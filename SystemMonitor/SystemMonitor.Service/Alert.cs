@@ -7,7 +7,10 @@ namespace SystemMonitor.Service
         CpuHigh,
         RamHigh,
         TempHigh,
-        GpuTempHigh
+        GpuTempHigh,
+
+        /// <summary>Processus lourd et durable. Trace dans l historique, sans e-mail.</summary>
+        ProcessHigh
     }
 
     public class Alert

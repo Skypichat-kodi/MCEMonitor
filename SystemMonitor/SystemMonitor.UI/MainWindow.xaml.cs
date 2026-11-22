@@ -169,6 +169,19 @@ namespace SystemMonitor.UI
         private readonly ObservableCollection<GpuCard> _gpus = new();
         private readonly ObservableCollection<NetworkCard> _networks = new();
         private List<SysHistoryPoint> _history = new();
+
+        /// <summary>Processus actuellement au-dessus du seuil, pour les courbes fines.</summary>
+        private List<SysProcessSeries> _processSeries = new();
+
+        /// <summary>Couleurs des courbes de processus, dans l'ordre d'affichage.</summary>
+        private static readonly Color[] CouleursProcessus =
+        {
+            Color.FromRgb(0xFF, 0xB9, 0x00),   // ambre
+            Color.FromRgb(0x6C, 0xCB, 0x5F),   // vert
+            Color.FromRgb(0xFF, 0x63, 0x47),   // corail
+            Color.FromRgb(0xC5, 0x86, 0xC0),   // mauve
+            Color.FromRgb(0x9A, 0xA0, 0xA6)    // gris clair
+        };
         private readonly ObservableCollection<BsodRow> _bsods = new();
         private readonly ObservableCollection<AlertRow> _alertsHistory = new();
         private DateTime _lastConfigWriteTime = DateTime.MinValue;
@@ -956,6 +969,11 @@ namespace SystemMonitor.UI
                 if (history == null) return;
 
                 _history = history;
+
+                // Courbes des processus lourds, en plus de la courbe globale.
+                _processSeries = await SystemMonitorIpcClient.GetProcessSeries()
+                                 ?? new List<SysProcessSeries>();
+
                 DrawCharts();
             }
             catch { }
@@ -968,10 +986,14 @@ namespace SystemMonitor.UI
 
         private void DrawCharts()
         {
+            // La courbe globale reste au-dessus des courbes de processus.
+            Panel.SetZIndex(polyCpu, 10);
+
             if (_history == null || _history.Count == 0)
             {
                 polyCpu.Points.Clear();
                 polyRam.Points.Clear();
+                DessinerSeriesProcessus();
                 txtCpuHistoMax.Text = LanguageManager.Get("Max : 0 %") ?? "Max : 0 %";
                 txtRamHistoMax.Text = LanguageManager.Get("Max : 0 %") ?? "Max : 0 %";
                 return;
@@ -979,6 +1001,7 @@ namespace SystemMonitor.UI
 
             DrawChart(chartCpu, polyCpu, _history.Select(h => h.cpuUsage).ToList());
             DrawChart(chartRam, polyRam, _history.Select(h => h.ramUsage).ToList());
+            DessinerSeriesProcessus();
 
             double maxCpu = _history.Max(h => h.cpuUsage);
             double maxRam = _history.Max(h => h.ramUsage);
@@ -1032,6 +1055,90 @@ namespace SystemMonitor.UI
                 double x = i * stepX;
                 double y = h - (v / 100.0 * h);
                 poly.Points.Add(new Point(x, y));
+            }
+        }
+
+        /// <summary>
+        /// Trace une courbe fine par processus actuellement au-dessus du seuil, et
+        /// reconstruit la légende. Les courbes sont recréées à chaque rafraîchissement :
+        /// la liste ne dépasse jamais cinq entrées.
+        /// </summary>
+        private void DessinerSeriesProcessus()
+        {
+            try
+            {
+                foreach (Polyline ancienne in chartCpu.Children.OfType<Polyline>()
+                             .Where(p => (p.Tag as string) == "Proc").ToList())
+                {
+                    chartCpu.Children.Remove(ancienne);
+                }
+
+                legendCpu.Children.Clear();
+
+                double w = chartCpu.ActualWidth;
+                double h = chartCpu.ActualHeight;
+
+                if (w <= 0 || h <= 0 || _processSeries.Count == 0)
+                    return;
+
+                int index = 0;
+
+                foreach (SysProcessSeries serie in _processSeries.Take(5))
+                {
+                    if (serie.points.Count < 2)
+                        continue;
+
+                    var pinceau = new SolidColorBrush(CouleursProcessus[index % CouleursProcessus.Length]);
+
+                    var poly = new Polyline
+                    {
+                        Stroke          = pinceau,
+                        StrokeThickness = 1,
+                        Fill            = Brushes.Transparent,
+                        Tag             = "Proc"
+                    };
+
+                    double stepX = w / Math.Max(1, serie.points.Count - 1);
+
+                    for (int i = 0; i < serie.points.Count; i++)
+                    {
+                        double v = Math.Clamp(serie.points[i].cpuUsage, 0, 100);
+                        poly.Points.Add(new Point(i * stepX, h - v / 100.0 * h));
+                    }
+
+                    chartCpu.Children.Add(poly);
+
+                    // Légende : pastille de couleur et nom suivi de sa charge actuelle.
+                    var item = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Margin      = new Thickness(0, 0, 14, 0)
+                    };
+
+                    item.Children.Add(new Rectangle
+                    {
+                        Width               = 10,
+                        Height              = 3,
+                        Fill                = pinceau,
+                        VerticalAlignment   = VerticalAlignment.Center,
+                        Margin              = new Thickness(0, 0, 5, 0)
+                    });
+
+                    item.Children.Add(new TextBlock
+                    {
+                        Text       = $"{serie.name} ({serie.points[^1].cpuUsage:F0} %)",
+                        FontSize   = 11,
+                        Foreground = pinceau
+                    });
+
+                    legendCpu.Children.Add(item);
+
+                    index++;
+                }
+            }
+            catch
+            {
+                // Un tracé raté ne doit pas interrompre le rafraîchissement des mesures.
             }
         }
 

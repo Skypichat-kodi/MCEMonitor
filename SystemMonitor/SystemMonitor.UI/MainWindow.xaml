@@ -562,9 +562,14 @@
 
                                         <Polyline x:Name="polyCpu"
                                                   Stroke="#4CC2FF"
-                                                  StrokeThickness="2"
+                                                  StrokeThickness="3"
                                                   Fill="Transparent"/>
                                     </Canvas>
+
+                                    <!-- Légende des processus suivis : une pastille de couleur par courbe -->
+                                    <StackPanel x:Name="legendCpu"
+                                                Orientation="Horizontal"
+                                                Margin="0,6,0,0" />
                                 </StackPanel>
                             </Border>
 

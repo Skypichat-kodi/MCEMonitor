@@ -31,6 +31,28 @@ namespace SystemMonitor.Service
         private string? _dernierEtat;
         private HashSet<string>? _dernieresProblemes;
 
+        // ------------------------------------------------------------
+        //  Suivi des processus lourds
+        // ------------------------------------------------------------
+
+        /// <summary>Un processus n'entre dans le graphique qu'au-delà de ce seuil.</summary>
+        public const double SeuilProcessus = 25.0;
+
+        /// <summary>Nombre de processus dessinés simultanément.</summary>
+        private const int MaxSeriesProcessus = 5;
+
+        /// <summary>Longueur d'une série, alignée sur l'historique des mesures.</summary>
+        private const int CapaciteSerieProcessus = 60;
+
+        /// <summary>Durée au-delà de laquelle un dépassement entre dans l'historique.</summary>
+        private const int DureeHistoriqueProcessusMinutes = 5;
+
+        private readonly ProcessCpuTracker _processTracker = new();
+        private readonly object _verrouSeries = new();
+        private readonly Dictionary<string, Queue<ProcessSeriesPoint>> _seriesProcessus = new(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, DateTime> _debutSurcharge = new(StringComparer.OrdinalIgnoreCase);
+        private readonly HashSet<string> _dejaHistorises = new(StringComparer.OrdinalIgnoreCase);
+
         public SystemSnapshot LastSnapshot => _lastSnapshot;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
         public bool IsRunning => _isRunning;
@@ -191,6 +213,8 @@ namespace SystemMonitor.Service
                 // Trace des changements publiés par l'API : état global et problèmes.
                 JournaliserTransitions();
 
+                SuivreProcessus();
+
                 ScanForBsods();
 
                 OnUpdate?.Invoke();
@@ -247,6 +271,100 @@ namespace SystemMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur JournaliserTransitions : " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Suit les processus qui dépassent le seuil : ils entrent dans le graphique de
+        /// l'interface, et ressortent dès qu'ils redescendent. Un dépassement continu de
+        /// cinq minutes laisse une trace dans l'historique des alertes — sans e-mail ni
+        /// notification : seule la surcharge globale reste une alerte.
+        /// </summary>
+        private void SuivreProcessus()
+        {
+            try
+            {
+                var usages = _processTracker.Relever();
+
+                var lourds = usages
+                    .Where(u => u.CpuPct >= SeuilProcessus)
+                    .Take(MaxSeriesProcessus)
+                    .ToList();
+
+                DateTime maintenant = DateTime.Now;
+
+                lock (_verrouSeries)
+                {
+                    var nomsGardes = new HashSet<string>(lourds.Select(u => u.Name), StringComparer.OrdinalIgnoreCase);
+
+                    // Un processus repassé sous le seuil disparaît du graphique.
+                    foreach (string nom in _seriesProcessus.Keys.Where(n => !nomsGardes.Contains(n)).ToList())
+                    {
+                        _seriesProcessus.Remove(nom);
+                        _debutSurcharge.Remove(nom);
+                        _dejaHistorises.Remove(nom);
+                    }
+
+                    foreach (var usage in lourds)
+                    {
+                        if (!_seriesProcessus.TryGetValue(usage.Name, out var serie))
+                        {
+                            serie = new Queue<ProcessSeriesPoint>(CapaciteSerieProcessus);
+                            _seriesProcessus[usage.Name] = serie;
+                            _debutSurcharge[usage.Name] = maintenant;
+                            _dejaHistorises.Remove(usage.Name);
+                        }
+
+                        serie.Enqueue(new ProcessSeriesPoint { Timestamp = maintenant, CpuUsage = usage.CpuPct });
+
+                        while (serie.Count > CapaciteSerieProcessus)
+                            serie.Dequeue();
+
+                        if (_dejaHistorises.Contains(usage.Name))
+                            continue;
+
+                        if ((maintenant - _debutSurcharge[usage.Name]).TotalMinutes < DureeHistoriqueProcessusMinutes)
+                            continue;
+
+                        _dejaHistorises.Add(usage.Name);
+
+                        double pic = serie.Max(p => p.CpuUsage);
+
+                        _history.Add(new Alert
+                        {
+                            Timestamp = maintenant,
+                            Type      = AlertType.ProcessHigh,
+                            Severity  = "info",
+                            Target    = usage.Name,
+                            Message   = $"{usage.Name} : au-dessus de {SeuilProcessus:F0} % "
+                                      + $"pendant {DureeHistoriqueProcessusMinutes} min (pic {pic:F0} %)",
+                            EmailSent = false
+                        });
+
+                        CoreLog.Write($"[PROCESSUS] {usage.Name} au-dessus de {SeuilProcessus:F0} % depuis "
+                                    + $"{DureeHistoriqueProcessusMinutes} min (pic {pic:F0} %) — ajouté à l'historique");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur SuivreProcessus : " + ex.Message);
+            }
+        }
+
+        /// <summary>Séries des processus actuellement au-dessus du seuil.</summary>
+        public List<ProcessSeries> GetProcessSeries()
+        {
+            lock (_verrouSeries)
+            {
+                return _seriesProcessus
+                    .Select(kv => new ProcessSeries
+                    {
+                        Name   = kv.Key,
+                        Points = kv.Value.ToList()
+                    })
+                    .OrderByDescending(s => s.Points.LastOrDefault()?.CpuUsage ?? 0)
+                    .ToList();
             }
         }
 

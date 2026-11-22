@@ -46,6 +46,7 @@ namespace SystemMonitor.Service.Ipc
                 case "get-alerts":       HandleGetAlerts(server); break;
                 case "clear-alerts":     HandleClearAlerts(server); break;
                 case "get-history":      HandleGetHistory(server); break;
+                case "get-process-series": HandleGetProcessSeries(server); break;
                 case "clear-history":    HandleClearHistory(server); break;
                 case "get-bsods":        HandleGetBsods(server); break;
                 case "clear-bsods":      HandleClearBsods(server); break;
@@ -320,6 +321,19 @@ namespace SystemMonitor.Service.Ipc
             {
                 var history = _engine.GetHistory();
                 IpcResponse.Json(server, history);
+            }
+            catch (Exception ex)
+            {
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        /// <summary>Séries des processus actuellement au-dessus du seuil, pour le graphique.</summary>
+        private void HandleGetProcessSeries(NamedPipeServerStream server)
+        {
+            try
+            {
+                IpcResponse.Json(server, _engine.GetProcessSeries());
             }
             catch (Exception ex)
             {
