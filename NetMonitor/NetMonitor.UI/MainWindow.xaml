@@ -2671,7 +2671,7 @@
                                               Margin="0,0,0,8"/>
 
                                     <!-- Listes officielles (Microsoft + Google) -->
-                                    <Border Background="#1A1A1A" BorderBrush="{StaticResource Bordure}" BorderThickness="1"
+                                    <Border Background="{StaticResource Fond}" BorderBrush="{StaticResource Bordure}" BorderThickness="1"
                                             CornerRadius="4" Padding="12" Margin="0,10,0,10">
                                         <StackPanel>
                                             <TextBlock Text="{loc:Tr 'Listes officielles'}" FontSize="12"
