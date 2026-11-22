@@ -26,4 +26,9 @@
     <SolidColorBrush x:Key="Accent"          Color="#FF4CC2FF" />
     <SolidColorBrush x:Key="AccentBascule"   Color="#FF4CC2FF" />
     <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF" />
+
+    <!-- Survol des boutons d action et trait des tableaux -->
+    <SolidColorBrush x:Key="BoutonVioletSurvol" Color="#FF8B5FF0" />
+    <SolidColorBrush x:Key="BoutonRougeSurvol" Color="#FFE64D1A" />
+    <SolidColorBrush x:Key="TraitTableau" Color="#FF3C3C3C" />
 </ResourceDictionary>

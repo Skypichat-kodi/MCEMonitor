@@ -29,7 +29,7 @@
             <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>
         </Style>
@@ -38,7 +38,7 @@
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
@@ -51,7 +51,7 @@
         <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TraitTableau}"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
@@ -449,6 +449,11 @@
             <Setter Property="Background"  Value="{StaticResource BoutonVioletFond}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BoutonVioletBordure}"/>
             <Setter Property="Foreground" Value="{StaticResource BoutonVioletTexte}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BoutonVioletSurvol}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
         <!-- Rouge — Purger -->
@@ -456,6 +461,11 @@
             <Setter Property="Background"  Value="{StaticResource BoutonRougeFond}"/>
             <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
             <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
+                </Trigger>
+            </Style.Triggers>
         </Style>
 
     </Window.Resources>
@@ -931,7 +941,7 @@
                                     <Style TargetType="DataGridCell">
                                         <Setter Property="Foreground" Value="{StaticResource Texte}"/>
                                         <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
                                                 <Setter Property="Background" Value="#80C586C0"/>
@@ -1024,7 +1034,7 @@
                                     <Style TargetType="DataGridCell">
                                         <Setter Property="Foreground" Value="{StaticResource Texte}"/>
                                         <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
                                                 <Setter Property="Background" Value="#80C586C0"/>
@@ -1186,7 +1196,7 @@
                                     <Style TargetType="DataGridCell">
                                         <Setter Property="Foreground" Value="{StaticResource Texte}"/>
                                         <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-                                        <Setter Property="BorderThickness" Value="0 0 1 1"/>
+                                        <Setter Property="BorderThickness" Value="0"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
                                                 <Setter Property="Background" Value="#80C586C0"/>
