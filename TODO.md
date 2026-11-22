@@ -109,6 +109,16 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
+- [ ] **Harmoniser le gris des en-têtes de tableau**
+  - NetMonitor utilise `#D4D4D4` (Connexions, Appareils de confiance), les modules `#E0E0E0`
+  - Écart volontairement laissé de côté pendant la session « thème clair » : à unifier ou à assumer
+  - **Priorité** : 🟢 basse (esthétique)
+
+- [ ] **Vérifier les fenêtres secondaires des modules en thème clair**
+  - Les fenêtres d'aperçu, de détail et de confirmation des quatre modules n'ont été regardées qu'en
+    thème sombre. Elles héritent des clés, donc *a priori* correctes, mais rien ne l'a confirmé
+  - **Priorité** : 🟢 basse
+
 - [ ] **Rendre réglable le seuil de suivi des processus** *(SystemMonitor)*
   - Le seuil de 10 % qui fait entrer un processus dans le graphique CPU est une constante du service
     (`SeuilProcessus`), comme le plafond de cinq courbes et la durée de cinq minutes
@@ -144,6 +154,54 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-22 — thème clair pour les cinq interfaces
+
+**Objectif** : proposer un thème clair à côté du thème sombre, dans MCEMonitor et les quatre modules,
+sans rien changer au sombre existant.
+
+**Architecture retenue**, identique dans les cinq interfaces :
+
+- `Themes/Sombre.xaml` et `Themes/Clair.xaml` ne contiennent que des `SolidColorBrush` — mêmes clés
+  de part et d'autre — et `Themes/Styles.xaml` porte les styles, qui ne citent jamais une couleur en dur
+- `GestionnaireTheme.cs` lit `C:\ProgramData\MCEMonitor\theme-ui.config` au démarrage et fusionne le
+  dictionnaire correspondant, puis les styles. Absence ou valeur inconnue → sombre
+- `App.xaml` ne déclare plus rien : le chargement se fait dans `OnStartup`, avant la création de la fenêtre
+- le bouton « Changer de thème » écrit le fichier puis **propose un redémarrage automatique**
+  (`App.LibererInstanceUnique()` avant la relance, sinon la nouvelle instance bute sur le mutex)
+- **Le thème s'applique au démarrage, pas à chaud** : les cinq interfaces totalisent plus de 5 000 lignes
+  de XAML qui utilisent `StaticResource`. Passer en `DynamicResource` partout fragiliserait l'ensemble
+  pour un gain nul — le redémarrage est proposé à la place
+- `theme-ui.config` est **distinct** de `theme.config`, vestige WinForms Krypton (`SparkleBlueDarkMode`),
+  laissé tel quel
+
+**Clés ajoutées pour le thème clair** (mêmes noms dans les cinq interfaces) :
+
+- `AccentBascule` (interrupteurs), `PanelBackground` (#333A8DFF), `FondZoneLog`, `TraitTableau`
+- `BoutonRougeFond` / `BoutonRougeBordure` / `BoutonRougeTexte` et l'équivalent vert : en clair, un fond
+  rouge plein est trop lourd, les boutons de NetMonitor passent en fond neutre cerclé de la couleur
+- `TeinteIntrusion` / `TeinteInterception` / `TeinteAudit`, `Ligne*`, `Entete*` : les tableaux colorés
+  restent colorés, mais en pastel
+- `TraitIntrusion` et, pour l'audit, la réutilisation de `BordureAuditClaire`
+
+**Couleurs sémantiques préservées** : sévérités, badges, détecteurs, catégories de médias (17 couleurs),
+échelle de la carte du monde gardent exactement les mêmes teintes dans les deux thèmes. Le thème clair
+change le fond, pas le sens.
+
+**Réglages esthétiques au cas par cas** : boutons de barre de titre en `DynamicResource Texte` (4 modules),
+journal du test SMTP masqué au repos, en-têtes d'onglet colorés (rose intrusions, bleu interceptions, vert
+audit), grille Connexions et Appareils de confiance en gris `#D4D4D4`, `GridLinesVisibility="None"` sur le
+style implicite du `DataGrid`, jauges de SystemMonitor en `Accent`, boutons violet et rouge de MediaMonitor
+neutralisés avec survols.
+
+**Piège des traits de tableau, rencontré sur les trois tableaux colorés.**
+
+- le trait horizontal posé sur la **ligne** ne s'affiche jamais : le fond opaque des cellules le recouvre.
+  Il doit être porté par la **cellule** (`BorderThickness="0,0,1,1"`), jamais par les deux
+- conséquence directe : le trait de la ligne doit être neutralisé, sinon on croit à un doublon
+- et la couleur compte autant que la présence : en sombre, le gris commun `#3C3C3C` sur un fond rouge très
+  sombre ne se voit pas ; il faut une teinte de la famille du tableau
+- valable pour les trois tableaux colorés de NetMonitor (intrusions, interceptions, audit)
 
 ### Session 2026-11-22 — client en WPF, courbes CPU par processus
 
