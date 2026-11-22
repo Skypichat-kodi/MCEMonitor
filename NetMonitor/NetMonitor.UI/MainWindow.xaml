@@ -36,7 +36,7 @@
         <Style x:Key="EntetesIntrusion" TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
             <Setter Property="Background" Value="{StaticResource EnteteIntrusion}"/>
             <Setter Property="Foreground" Value="{StaticResource TexteEnteteIntrusion}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>   <!-- trait gris des cellules d'en-tete -->
+            <Setter Property="BorderBrush" Value="{StaticResource TraitIntrusion}"/>   <!-- trait dans la teinte des tableaux rouges -->
             <Setter Property="BorderThickness" Value="0,1,1,1"/>   <!-- un seul trait par frontiere (pas de doublon) -->
             <Setter Property="Padding" Value="6,3"/>   <!-- meme hauteur que les en-tetes de l'onglet Interceptions -->
         </Style>
@@ -46,6 +46,10 @@
              la teinte doit donc etre portee ici. -->
         <Style x:Key="CellulesIntrusion" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="{StaticResource TeinteIntrusion}"/>
+            <!-- Trait vertical dans la teinte des tableaux rouges : le gris commun
+                 ne se distinguait pas sur le fond sombre. -->
+            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TraitIntrusion}"/>
             <Style.Triggers>
                 <!-- La cellule peint son propre fond : elle doit suivre le survol et
                      effacer sa bordure, sinon les traits verticaux ressortent. -->
@@ -130,6 +134,7 @@
              juste de quoi rappeler le contexte sans peser sur la lecture. -->
         <Style x:Key="LignesIntrusion" TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
             <Setter Property="Background" Value="{StaticResource LigneIntrusionImpaire}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TraitIntrusion}"/>
             <Style.Triggers>
                 <Trigger Property="ItemsControl.AlternationIndex" Value="0">
                     <Setter Property="Background" Value="{StaticResource LigneIntrusionPaire}"/>

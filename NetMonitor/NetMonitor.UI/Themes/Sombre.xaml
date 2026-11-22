@@ -22,6 +22,7 @@
     <SolidColorBrush x:Key="PanelBackground"   Color="#553A8DFF" />
 
     <!-- Teintes de fond des tableaux, propres à chaque onglet -->
+    <SolidColorBrush x:Key="TraitIntrusion" Color="#FF6B2C2C" />
     <SolidColorBrush x:Key="TeinteIntrusion"   Color="#FF241717" />
     <SolidColorBrush x:Key="SurvolIntrusion" Color="#FF2E1E1E" />
     <SolidColorBrush x:Key="TeinteInterception" Color="#FF0E1D2B" />
