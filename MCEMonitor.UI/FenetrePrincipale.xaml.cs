@@ -582,12 +582,16 @@ namespace MCEMonitor.UI
         {
             foreach (var onglet in OngletsModules)
                 onglet.Visibility = Visibility.Collapsed;
+
+            CoreLog.Info("Mail", "Onglets modules verrouillés (SMTP indisponible)");
         }
 
         private void DeverrouillerOngletsModules()
         {
             foreach (var onglet in OngletsModules)
                 onglet.Visibility = Visibility.Visible;
+
+            CoreLog.Info("Mail", "Onglets modules débloqués (SMTP opérationnel)");
         }
 
         // Un module masqué ne peut pas rester sélectionné : on retombe sur l'onglet Email.
@@ -611,6 +615,8 @@ namespace MCEMonitor.UI
             var statut = await SmtpHealthChecker.CheckAsync(0);
             AppliquerStatutSmtp(statut);
 
+            CoreLog.Info("Mail", $"Contrôle SMTP au démarrage : {statut}");
+
             if (statut == SmtpStatus.Ready)
             {
                 DeverrouillerOngletsModules();
@@ -630,6 +636,8 @@ namespace MCEMonitor.UI
         {
             var status = await SmtpHealthChecker.CheckAsync(cacheMinutes);
             AppliquerStatutSmtp(status);
+
+            CoreLog.Info("Mail", $"Contrôle SMTP : {status}");
         }
 
         private void AppliquerStatutSmtp(SmtpStatus status)
