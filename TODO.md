@@ -148,12 +148,73 @@ _(rien)_
   - **Non appliqué** : la modification avait été préparée puis interrompue. DPAPI couvre déjà le vol de fichier, pas la lecture locale
   - **Priorité** : 🟡 moyenne
 
+- [ ] **Traduire les messages en dur de NetMonitor.UI**
+  - Les `MessageBox` de la fenêtre principale (confirmation de déblocage, réanalyse des blocages,
+    enregistrement des réglages…) ne passent pas par `LanguageManager` : ils restent en français même
+    en anglais. Une vingtaine de chaînes, hors du périmètre des messages d'erreur par module
+  - **Priorité** : 🟢 basse
+
 - [ ] **Messages de log trompeurs restants** *(si d'autres apparaissent)*
   - Corrigé le 2026-11-17 : `Historique des alertes vidé par IPC` → `Historique des alertes vidé`
 
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-22 — Threat intelligence et audit des réglages NetMonitor
+
+**Threat intelligence : deux réglages sans effet et une liste qui ne se mettait pas à jour.**
+
+- le niveau IPsum (1–6) saisi dans l'interface était enregistré, transmis et relu, mais
+  `ThreatIntelService` était construit sans paramètre et son URL pointait sur `levels/3.txt` en dur :
+  changer le niveau ne faisait rien
+- la date de dernière mise à jour n'était **jamais** écrite : l'interface affichait « Dernière MAJ :
+  inconnue » à perpétuité (`BlacklistLastUpdate` restait à `0001-01-01`)
+- le minuteur tirait une fois par 24 h. Si le réseau n'était pas prêt au démarrage du service, si la
+  machine sortait de veille ou revenait d'un arrêt, **rien ne réessayait avant le lendemain** — le cas
+  le plus fréquent, et le plus silencieux
+- désormais : vérification toutes les 15 min, téléchargement seulement si dû (cache absent, niveau
+  différent de celui du cache, ou liste de plus de 24 h), date enregistrée après succès. Le cache porte
+  son niveau en première ligne ; un verrou évite deux téléchargements simultanés
+- la provenance, pour mémoire : liste publique IPsum (`stamparm/ipsum`), niveau 3 = IP signalées par au
+  moins 3 sources indépendantes, fusionnée avec `blacklist.txt` (manuelle)
+
+**Audit des réglages : quatre incohérences, toutes corrigées.**
+
+- `IgnoreSearchScanners` et `IgnoredProcesses` ne servaient à rien : déclarés, persistés, transmis à
+  l'interface pour le premier, remplis de 26 processus pour le second, mais lus par aucun code. Leur
+  suppression nettoie aussi `NetMonitor.config` au prochain enregistrement
+- `AutoBlockSubnet` devient `BlockKnownScanners` : le réglage bloque les scanners connus (Shodan,
+  Censys…), pas des plages entières. L'ancienne clé reste lue, la nouvelle prime quel que soit l'ordre
+  des lignes du fichier
+- le GeoIP (activation, fournisseur, reverse DNS) est rechargé à chaud ; l'ancien objet n'est pas
+  libéré, des résolutions pouvant être en vol
+- le message de confirmation ne promet plus un rechargement complet : il liste ce qui s'applique à
+  chaud et rappelle que la surveillance des processus de confiance demande un redémarrage
+
+**Réanalyse des blocages existants.**
+
+- bouton « ♻ Réanalyser les blocages » dans la barre du tableau des IP bloquées, message IPC
+  `reevaluate-blocked`, rapport détaillé (analysées / reclassées / obsolètes / overrides manuels)
+- critère d'obsolescence : l'IP **n'est plus blacklistée** et sa sévérité recalculée ne déclencherait
+  plus le blocage automatique avec les réglages en vigueur
+- **rien n'est débloqué sans accord** : l'interface affiche le bilan, liste les IP concernées (10 au plus
+  dans la boîte de dialogue) et demande confirmation
+- garde-fous : on ne juge l'obsolescence que si `AutoBlock` est actif, sinon tous les blocages sont
+  volontaires ; une IP encore blacklistée reste légitime quel que soit le seuil ; les sévérités forcées
+  à la main sont préservées et comptées à part
+- premier passage réel : 60 IP analysées, 37 origines récupérées (`Unknown` → `Blacklist`), 0 obsolète.
+  Les deux IP sorties de la liste sont classées Crawler et `BlockCrawlers=true` : elles seraient encore
+  bloquées aujourd'hui, donc à juste titre conservées
+- `ReevaluateAllBlockedIps()` est conservée pour ses trois appelants (restauration des patterns via IPC
+  et web, migration au démarrage) et délègue à `ReanalyzeBlockedIps()`, qui renvoie le rapport
+
+**Piège d'automatisation rencontré, à retenir.**
+
+- les clics en coordonnées partent vers la **fenêtre au premier plan**, pas vers la cible ; les captures,
+  elles, photographient la fenêtre même en arrière-plan. Des clics ont ainsi atterri dans la fenêtre de
+  conversation au lieu de l'application testée, en donnant l'illusion que les boutons ne répondaient pas
+- vérifier `GetForegroundWindow` avant tout clic en coordonnées, ou faire cliquer l'utilisateur
 
 ### Session 2026-11-22 — thème clair pour les cinq interfaces
 
