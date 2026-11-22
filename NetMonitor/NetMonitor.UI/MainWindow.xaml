@@ -359,6 +359,14 @@
             <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
 
+        <!-- Texte des cellules de DataGrid. Les colonnes texte n'heritent pas du
+             style implicite ci-dessus : sans ElementStyle, le TextBlock reste en
+             Stretch et le texte se colle en haut de la cellule. Ce style le centre,
+             comme le faisait deja la colonne IP. -->
+        <Style x:Key="TexteCellule" TargetType="TextBlock" BasedOn="{StaticResource {x:Type TextBlock}}">
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
         <Style x:Key="CardBorder" TargetType="Border">
             <Setter Property="Background" Value="#252526"/>
             <Setter Property="BorderBrush" Value="#3C3C3C"/>
@@ -1050,7 +1058,7 @@
                             
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
@@ -1112,7 +1120,7 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detectors}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1121,9 +1129,9 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1147,7 +1155,7 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" SortMemberPath="RemotePortsDisplay" Width="110"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Ports distants'}" Binding="{Binding RemotePortsDisplay}" SortMemberPath="RemotePortsDisplay" Width="110" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="*" MinWidth="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1269,7 +1277,7 @@
                             
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
@@ -1302,8 +1310,8 @@
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="60" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="150">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1385,7 +1393,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'IP distante'}" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP distante'}" Binding="{Binding RemoteEndPoint}" SortMemberPath="RemoteIp" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                             </DataGrid.Columns>
                         </DataGrid>
 
@@ -1471,8 +1479,8 @@
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding TypeDisplay}" SortMemberPath="IsProcess" Width="90" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP / Processus'}" Binding="{Binding IpDisplay}" SortMemberPath="Ip" Width="170" MinWidth="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1482,9 +1490,9 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="160"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="160"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}"  Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="160" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="160" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="190">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1517,7 +1525,7 @@
                                 </DataGridTemplateColumn>                                
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>                             
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Raison'}" Binding="{Binding Message}" Width="*" MinWidth="250">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1669,10 +1677,10 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
-                            <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150"/>
-                            <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
-                            <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>
-                            <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Détecteur initial'}" Binding="{Binding OriginalDetector}" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130" ElementStyle="{StaticResource TexteCellule}"/>
+                            <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150" ElementStyle="{StaticResource TexteCellule}"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150" ElementStyle="{StaticResource TexteCellule}"/>
                             <DataGridTextColumn Header="{loc:Tr 'Reverse DNS'}" Binding="{Binding ReverseDnsDisplay}" SortMemberPath="ReverseDns" Width="*" MinWidth="200">
                                 <DataGridTextColumn.ElementStyle>
                                     <Style TargetType="TextBlock">
@@ -1682,7 +1690,7 @@
                                     </Style>
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>                      
-                            <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Bloquée le'}" Binding="{Binding BlockedAtText}" SortMemberPath="BlockedAt" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
                             
                             <!-- NOUVELLE COLONNE SÉVÉRITÉ -->
                             <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
@@ -1718,8 +1726,8 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
 
-                            <DataGridTextColumn Header="{loc:Tr '1ʳᵉ tentative'}" Binding="{Binding FirstRetryAtText}" SortMemberPath="FirstRetryAt" Width="150"/>
-                            <DataGridTextColumn Header="{loc:Tr 'Dernière tentative'}" Binding="{Binding LastRetryAtText}" SortMemberPath="LastRetryAt" Width="150"/>
+                            <DataGridTextColumn Header="{loc:Tr '1ʳᵉ tentative'}" Binding="{Binding FirstRetryAtText}" SortMemberPath="FirstRetryAt" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                            <DataGridTextColumn Header="{loc:Tr 'Dernière tentative'}" Binding="{Binding LastRetryAtText}" SortMemberPath="LastRetryAt" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
 
                             <!-- Colonne Info (bouton ℹ par ligne) -->
                             <DataGridTemplateColumn Width="45" CanUserResize="False">
@@ -1823,10 +1831,10 @@
                                   Margin="0,0,0,0">
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="130">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1835,9 +1843,9 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150"/>                             
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="*" MinWidth="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="*" MinWidth="150" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="*" MinWidth="150" ElementStyle="{StaticResource TexteCellule}"/>                             
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -1861,8 +1869,8 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="70" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="70" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -1975,8 +1983,8 @@
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
                                 <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
@@ -2010,7 +2018,7 @@
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -2019,9 +2027,9 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150"/>                               
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150" ElementStyle="{StaticResource TexteCellule}"/>                               
                                 <DataGridTemplateColumn Width="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
@@ -2045,9 +2053,9 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="65"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="65"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="55"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="65" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="65" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="55" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="110">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
@@ -2204,7 +2212,7 @@
                               ScrollViewer.HorizontalScrollBarVisibility="Visible">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Tr 'Nom'}"
-                                                Binding="{Binding Name}" Width="160"/>
+                                                Binding="{Binding Name}" Width="160" ElementStyle="{StaticResource TexteCellule}"/>
                             <DataGridTextColumn Header="{loc:Tr 'Chemin'}"
                                                 Binding="{Binding Path}" Width="*" MinWidth="300">
                                 <DataGridTextColumn.ElementStyle>
@@ -2287,12 +2295,12 @@
                                   HeadersVisibility="Column"
                                   SelectionMode="Single">
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="{loc:Tr 'Heure'}"   Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="90"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Proto'}"   Binding="{Binding Protocol}" Width="60"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Local'}"   Binding="{Binding LocalEndpoint}" Width="180"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Distant'}" Binding="{Binding RemoteEndpoint}" Width="220"/>
-                                <DataGridTextColumn Header="{loc:Tr 'PID'}"     Binding="{Binding Pid}" Width="70"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Process'}" Binding="{Binding ProcessName}" Width="*"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Heure'}"   Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="90" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Proto'}"   Binding="{Binding Protocol}" Width="60" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Local'}"   Binding="{Binding LocalEndpoint}" Width="180" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Distant'}" Binding="{Binding RemoteEndpoint}" Width="220" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'PID'}"     Binding="{Binding Pid}" Width="70" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Process'}" Binding="{Binding ProcessName}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                             </DataGrid.Columns>
                         </DataGrid>
                     </Border>
@@ -2688,7 +2696,7 @@
                                     <DataGrid x:Name="GridIgnoredNetworks" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                               HeadersVisibility="Column" MinHeight="80" MaxHeight="150" Margin="0,0,0,10">
                                         <DataGrid.Columns>
-                                            <DataGridTextColumn Header="{loc:Tr 'Réseau (CIDR)'}" Binding="{Binding Value}" Width="*"/>
+                                            <DataGridTextColumn Header="{loc:Tr 'Réseau (CIDR)'}" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                         </DataGrid.Columns>
                                     </DataGrid>
                                     <Button Content="{loc:Tr '➕ Ajouter un réseau'}" Width="180" HorizontalAlignment="Left" Click="AddIgnoredNetwork_Click"/>
@@ -2736,7 +2744,7 @@
                                                 <DataGrid x:Name="GridSafePatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: microsoft.com)'}" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: microsoft.com)'}" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                                 <Button Content="{loc:Tr '➕ Ajouter un pattern Safe'}" Width="200" HorizontalAlignment="Left" Click="AddSafePattern_Click"/>
@@ -2750,7 +2758,7 @@
                                                 <DataGrid x:Name="GridCriticalPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: infrawat.ch)'}" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: infrawat.ch)'}" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                                 <Button Content="{loc:Tr '➕ Ajouter un pattern Critical'}" Width="200" HorizontalAlignment="Left" Click="AddCriticalPattern_Click"/>
@@ -2764,7 +2772,7 @@
                                                 <DataGrid x:Name="GridScannerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: shodan.io)'}" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: shodan.io)'}" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                                 <Button Content="{loc:Tr '➕ Ajouter un pattern Scanner'}" Width="200" HorizontalAlignment="Left" Click="AddScannerPattern_Click"/>
@@ -2778,7 +2786,7 @@
                                                 <DataGrid x:Name="GridCrawlerPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: yandex.com)'}" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="{loc:Tr 'Pattern (ex: yandex.com)'}" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                                 <Button Content="{loc:Tr '➕ Ajouter un pattern Crawler'}" Width="200" HorizontalAlignment="Left" Click="AddCrawlerPattern_Click"/>
@@ -2792,7 +2800,7 @@
                                                 <DataGrid x:Name="GridWhitelistPatterns" AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="True"
                                                           HeadersVisibility="Column" MinHeight="150" MaxHeight="250" Margin="0,0,0,10">
                                                     <DataGrid.Columns>
-                                                        <DataGridTextColumn Header="Pattern" Binding="{Binding Value}" Width="*"/>
+                                                        <DataGridTextColumn Header="Pattern" Binding="{Binding Value}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                     </DataGrid.Columns>
                                                 </DataGrid>
                                                 <Button Content="{loc:Tr '➕ Ajouter un pattern Whitelist'}" Width="200" HorizontalAlignment="Left" Click="AddWhitelistPattern_Click"/>
@@ -2983,9 +2991,9 @@
                                 </DataGridTextColumn.ElementStyle>
                             </DataGridTextColumn>
                             <DataGridTextColumn Header="{loc:Tr 'Créé le'}" 
-                                                Binding="{Binding CreatedAtDisplay}" Width="160"/>
+                                                Binding="{Binding CreatedAtDisplay}" Width="160" ElementStyle="{StaticResource TexteCellule}"/>
                             <DataGridTextColumn Header="{loc:Tr 'Expire le'}" 
-                                                Binding="{Binding ExpiresAtDisplay}" Width="160"/>
+                                                Binding="{Binding ExpiresAtDisplay}" Width="160" ElementStyle="{StaticResource TexteCellule}"/>
                             <DataGridTemplateColumn Header="{loc:Tr 'Action'}" Width="100">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
@@ -3179,9 +3187,9 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
-                                                <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="100"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn x:Name="txtStatsActiveIspsCountHeader" Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="100" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3193,9 +3201,9 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'IPs distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs distinctes'}" Binding="{Binding DistinctIps}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3207,8 +3215,8 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3383,9 +3391,9 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'IPs bloquées'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs bloquées'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3396,9 +3404,9 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Distinctes'}" Binding="{Binding DistinctIps}" Width="140"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Distinctes'}" Binding="{Binding DistinctIps}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3409,8 +3417,8 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3421,8 +3429,8 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessName}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessName}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3439,9 +3447,9 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Période'}" Binding="{Binding Label}" Width="140"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Dont critiques'}" Binding="{Binding CriticalCount}" Width="140"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Période'}" Binding="{Binding Label}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Dont critiques'}" Binding="{Binding CriticalCount}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
@@ -3452,8 +3460,8 @@
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
                                                   HeadersVisibility="Column" SelectionMode="Single">
                                             <DataGrid.Columns>
-                                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="*"/>
-                                                <DataGridTextColumn Header="{loc:Tr 'Occurrences'}" Binding="{Binding Count}" Width="140"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
+                                                <DataGridTextColumn Header="{loc:Tr 'Occurrences'}" Binding="{Binding Count}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                             </DataGrid.Columns>
                                         </DataGrid>
 
