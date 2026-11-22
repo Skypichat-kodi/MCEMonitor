@@ -844,7 +844,7 @@
                                                             </Grid>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource Accent}"/>
+                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource AccentBascule}"/>
                                                                     <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>

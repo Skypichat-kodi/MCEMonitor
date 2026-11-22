@@ -570,7 +570,7 @@
                                                                 <Trigger Property="IsChecked" Value="True">
                                                                     <Setter TargetName="SwitchBackground"
                                                                             Property="Background"
-                                                                            Value="{StaticResource Accent}"/>
+                                                                            Value="{StaticResource AccentBascule}"/>
                                                                     <Setter TargetName="SwitchThumb"
                                                                             Property="HorizontalAlignment"
                                                                             Value="Right"/>
