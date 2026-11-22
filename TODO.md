@@ -203,6 +203,35 @@ neutralisés avec survols.
   sombre ne se voit pas ; il faut une teinte de la famille du tableau
 - valable pour les trois tableaux colorés de NetMonitor (intrusions, interceptions, audit)
 
+**MediaMonitor : deux oublis corrigés après coup.**
+
+- la ligne sélectionnée prenait `Accent` en plein (`#0F6CBD` en clair) sur toute sa largeur : trop de
+  bleu. Deux clés `SelectionFond` / `SelectionTexte` le remplacent dans les sept endroits concernés
+  (cellules, lignes de liste déroulante, cellules de type de média, bouton au clic). En sombre, les
+  valeurs sont celles de l'accent d'origine : aucune régression
+- le survol du bouton « i » gardait l'accent plein sous un texte noir, donc illisible en clair : il
+  prend la teinte de sélection, avec une bordure d'accent pour rester distinct du fond au repos
+- `InfoPopupWindow.xaml` n'avait jamais été thémée : fond `#1A1A1A`, libellés `#42A5F5`, titre
+  `#B4B4B4`, boutons `#2D2D30` — tout en dur sur 264 lignes. Elle passe entièrement par les clés,
+  avec l'opacité de son image de fond ramenée à 0,08 en clair
+- écarts assumés en sombre : fond de la popup `#1A1A1A` → `#1E1E1E` (la valeur du thème), boutons
+  `#2D2D30` → `#252526`, libellés `#42A5F5` → `#4CC2FF`
+
+**Vérification de la popup sans données réelles.**
+
+- l'instance de contrôle tourne sans élévation : elle n'obtient rien du service et les tableaux
+  restent vides, donc aucune popup à ouvrir
+- deux lignes de démonstration injectées temporairement dans `_items`, et un appel direct à
+  `InfoPopupWindow(...).ShowDialog()` dans le minuteur de démonstration : c'est ce qui a permis de
+  voir le rendu réel dans les deux thèmes. Tout a été retiré ensuite (`grep TEMPORAIRE` → 0)
+- **le clic sur « i » n'ouvre rien avec des données factices, et ce n'est pas un bug** : le bouton
+  dépend d'un filtrage par nom et par type (film, série, audio…), que des lignes inventées ne
+  satisfont pas
+
+**Release 3.0.8 « Thème clair »** : installeur 3.0.8.0 et APK (`versionCode 30008`), tag `v3.0.8`,
+release marquée Latest. Le tag intermédiaire `v3.0.7`, qui n'a mené à aucune publication, a été retiré
+en local et sur le dépôt.
+
 ### Session 2026-11-22 — client en WPF, courbes CPU par processus
 
 **Le client de configuration passe entièrement en WPF** (`MCEMonitorClient`).
