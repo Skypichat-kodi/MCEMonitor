@@ -1982,12 +1982,12 @@
                                 </Style>
                             </DataGrid.RowStyle>
                             <DataGrid.Columns>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sens'}" SortMemberPath="IsOutbound" Width="60" CanUserResize="False" CellTemplate="{StaticResource TrafficDirectionTemplate}" MinWidth="60"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Première'}" Binding="{Binding FirstSeenText}" SortMemberPath="FirstSeen" Width="130" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80" MinWidth="105">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -2016,10 +2016,10 @@
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
 
-                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}"/>
-                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}" MinWidth="100"/>
+                                <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}" MinWidth="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110" ElementStyle="{StaticResource TexteCellule}" MinWidth="105"/>
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120" MinWidth="60">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -2027,10 +2027,10 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150" ElementStyle="{StaticResource TexteCellule}"/>                               
-                                <DataGridTemplateColumn Width="45" CanUserResize="False">
+                                <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" SortMemberPath="Country" Width="130" ElementStyle="{StaticResource TexteCellule}" MinWidth="80"/>
+                                <DataGridTextColumn Header="{loc:Tr 'FAI (ASN)'}" Binding="{Binding IspDisplay}" SortMemberPath="Isp" Width="150" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Organisation'}" Binding="{Binding OrgDisplay}" SortMemberPath="Org" Width="150" ElementStyle="{StaticResource TexteCellule}" MinWidth="120"/>                               
+                                <DataGridTemplateColumn Width="45" CanUserResize="False" MinWidth="45">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding RemoteIp}"
@@ -2053,10 +2053,10 @@
                                         </DataTemplate>
                                     </DataGridTemplateColumn.CellTemplate>
                                 </DataGridTemplateColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="65" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="65" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="55" ElementStyle="{StaticResource TexteCellule}"/>
-                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="110">
+                                <DataGridTextColumn Header="{loc:Tr 'Port dst'}" Binding="{Binding RemotePort}" Width="65" ElementStyle="{StaticResource TexteCellule}" MinWidth="90"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Port loc'}" Binding="{Binding LocalPort}" Width="65" ElementStyle="{StaticResource TexteCellule}" MinWidth="90"/>
+                                <DataGridTextColumn Header="PID" Binding="{Binding PidDisplay}" SortMemberPath="Pid" Width="55" ElementStyle="{StaticResource TexteCellule}" MinWidth="55"/>
+                                <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessNameDisplay}" SortMemberPath="ProcessName" Width="110" MinWidth="105">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -2114,7 +2114,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>
-                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="140">
+                                <DataGridTextColumn Header="{loc:Tr 'Détails'}" Binding="{Binding DetailsDisplay}" SortMemberPath="Details" Width="140" MinWidth="90">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
