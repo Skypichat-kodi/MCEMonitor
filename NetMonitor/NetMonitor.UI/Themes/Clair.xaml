@@ -20,7 +20,7 @@
     <SolidColorBrush x:Key="AccentBascule"     Color="#FF7EB6E8" />
     <SolidColorBrush x:Key="PanelBackground"   Color="#333A8DFF" />
 
-    <SolidColorBrush x:Key="TraitIntrusion" Color="#FFE2C4C4" />
+    <SolidColorBrush x:Key="TraitIntrusion" Color="#FFEEDCDC" />
     <SolidColorBrush x:Key="TeinteIntrusion"   Color="#FFF7EFEF" />
     <SolidColorBrush x:Key="SurvolIntrusion" Color="#FFEADCDC" />
     <SolidColorBrush x:Key="TeinteInterception" Color="#FFEFF5FB" />
