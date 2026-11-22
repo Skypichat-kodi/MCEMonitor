@@ -9,6 +9,7 @@
          identiques dans les deux thèmes. -->
     <SolidColorBrush x:Key="Fond"            Color="#FF1E1E1E" />
     <SolidColorBrush x:Key="Surface"         Color="#FF252526" />
+    <SolidColorBrush x:Key="EnteteTableau" Color="#FF2D2D30" />
     <SolidColorBrush x:Key="SurfaceEntete"   Color="#FF2D2D30" />
     <SolidColorBrush x:Key="SurfaceSurvol"   Color="#FF3A3A3D" />
     <SolidColorBrush x:Key="SurfaceActive"   Color="#FF4A4A4D" />

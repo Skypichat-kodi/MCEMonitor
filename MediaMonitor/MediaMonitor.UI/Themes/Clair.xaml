@@ -5,6 +5,7 @@
          figurent pas : elles restent identiques dans les deux thèmes. -->
     <SolidColorBrush x:Key="Fond"            Color="#FFF3F3F3" />
     <SolidColorBrush x:Key="Surface"         Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="EnteteTableau" Color="#FFD2D2D2" />
     <SolidColorBrush x:Key="SurfaceEntete"   Color="#FFF0F0F0" />
     <SolidColorBrush x:Key="SurfaceSurvol"   Color="#FFE9E9E9" />
     <SolidColorBrush x:Key="SurfaceActive"   Color="#FFDEDEDE" />
