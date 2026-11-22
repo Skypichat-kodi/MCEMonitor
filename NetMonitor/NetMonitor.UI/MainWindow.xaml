@@ -1528,7 +1528,7 @@
                                         </Style>
                                     </DataGridTextColumn.ElementStyle>
                                 </DataGridTextColumn>                     
-                                <DataGridTemplateColumn Width="45" CanUserResize="False">
+                                <DataGridTemplateColumn Width="45" MinWidth="45" CanUserResize="False">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Button Click="LookupIp_Click" Tag="{Binding Ip}"
