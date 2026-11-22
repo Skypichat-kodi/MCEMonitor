@@ -1,0 +1,342 @@
+<Window x:Class="MCEMonitorClient.Config.FenetrePrincipale"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
+        Title="MCEMonitorClient - Configuration"
+        Width="900"
+        Height="680"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterScreen"
+        Background="Transparent"
+        Foreground="{StaticResource Texte}"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        UseLayoutRounding="True">
+
+    <!--
+      Même gabarit que les interfaces MCEMonitor : fenêtre sans bordure, coins
+      arrondis et ombre portée (permis par AllowsTransparency, puisque la fenêtre
+      n'est pas redimensionnable). La marge de 14 pixels laisse la place à l'ombre.
+      La taille reprend celle de l'ancien formulaire WinForms : 900 x 680.
+    -->
+
+    <Window.Resources>
+        <Style x:Key="EnteteServeur" TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="{StaticResource Surface}" />
+            <Setter Property="Foreground" Value="{StaticResource Texte}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="8,7" />
+            <Setter Property="HorizontalContentAlignment" Value="Left" />
+        </Style>
+
+        <Style x:Key="CelluleServeur" TargetType="DataGridCell">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Texte}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}" />
+            <Setter Property="BorderThickness" Value="0,0,1,1" />
+            <Setter Property="Padding" Value="8,0" />
+            <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="DataGridCell">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              HorizontalAlignment="Left"
+                                              Margin="{TemplateBinding Padding}" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="LigneServeur" TargetType="DataGridRow">
+            <Setter Property="Background" Value="{StaticResource Fond}" />
+            <Setter Property="Foreground" Value="{StaticResource Texte}" />
+            <Style.Triggers>
+                <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                    <Setter Property="Background" Value="{StaticResource Surface}" />
+                </Trigger>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SurfaceSurvol}" />
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="{StaticResource Accent}" />
+                    <Setter Property="Foreground" Value="White" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+
+    <Border Margin="14"
+            Background="{StaticResource Fond}"
+            BorderBrush="{StaticResource Bordure}"
+            BorderThickness="1"
+            CornerRadius="12">
+
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.5" Color="Black" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />   <!-- en-tête -->
+                <RowDefinition Height="Auto" />   <!-- bandeau batterie -->
+                <RowDefinition Height="*" />      <!-- contenu -->
+                <RowDefinition Height="Auto" />   <!-- pied -->
+            </Grid.RowDefinitions>
+
+            <!-- ================= En-tête ================= -->
+            <Border Grid.Row="0"
+                    Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource Bordure}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="12,12,0,0"
+                    MouseLeftButtonDown="EnTete_MouseLeftButtonDown">
+
+                <Grid Margin="20,12,10,12">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Tr 'MCEMonitorClient'}"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Foreground="{StaticResource Accent}" />
+                        <TextBlock Text="{loc:Tr 'Configuration'}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TexteSecondaire}"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <TextBlock Grid.Column="1"
+                               x:Name="TexteVersion"
+                               HorizontalAlignment="Right"
+                               VerticalAlignment="Center"
+                               Margin="0,0,12,0"
+                               FontSize="11"
+                               Foreground="{StaticResource TexteSecondaire}"
+                               Text="" />
+
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                VerticalAlignment="Center">
+                        <Button Content="—"
+                                Style="{StaticResource BoutonFantome}"
+                                Width="32" Height="28" Padding="0" FontSize="13"
+                                ToolTip="{loc:Tr 'Réduire'}"
+                                Click="SurReduire" />
+                        <Button Content="✕"
+                                Style="{StaticResource BoutonFantome}"
+                                Width="32" Height="28" Padding="0" FontSize="13"
+                                ToolTip="{loc:Tr 'Fermer'}"
+                                Click="SurFermer" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ================= Bandeau batterie ================= -->
+            <Border x:Name="BandeauBatterie"
+                    Grid.Row="1"
+                    Background="#CC3300"
+                    Visibility="Collapsed">
+                <TextBlock Text="{loc:Tr 'BatteryWarningBanner'}"
+                           Foreground="White"
+                           FontSize="12"
+                           FontWeight="SemiBold"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           Margin="12,7" />
+            </Border>
+
+            <!-- ================= Contenu ================= -->
+            <Grid Grid.Row="2" Margin="18,14,18,8">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />   <!-- titre Serveurs -->
+                    <RowDefinition Height="Auto" />   <!-- grille -->
+                    <RowDefinition Height="Auto" />   <!-- boutons serveurs -->
+                    <RowDefinition Height="Auto" />   <!-- titre Service -->
+                    <RowDefinition Height="Auto" />   <!-- ligne Service / Tray -->
+                    <RowDefinition Height="Auto" />   <!-- titre Options -->
+                    <RowDefinition Height="Auto" />   <!-- intervalle -->
+                    <RowDefinition Height="Auto" />   <!-- cases -->
+                    <RowDefinition Height="*" />      <!-- ressort -->
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Text="{loc:Tr 'Serveurs surveillés'}"
+                           Style="{StaticResource TitreSection}"
+                           Margin="0,0,0,8" />
+
+                <DataGrid Grid.Row="1"
+                          x:Name="GrilleServeurs"
+                          Height="230"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False"
+                          HeadersVisibility="Column"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          IsReadOnly="True"
+                          AlternationCount="2"
+                          RowHeight="28"
+                          Background="{StaticResource Fond}"
+                          BorderBrush="{StaticResource Bordure}"
+                          BorderThickness="1"
+                          GridLinesVisibility="None"
+                          ColumnHeaderStyle="{StaticResource EnteteServeur}"
+                          CellStyle="{StaticResource CelluleServeur}"
+                          RowStyle="{StaticResource LigneServeur}">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn Header="{loc:Tr 'Nom'}"    Binding="{Binding Name}"    Width="*" />
+                        <DataGridTextColumn Header="{loc:Tr 'URL'}"    Binding="{Binding Url}"     Width="2*" />
+                        <DataGridTextColumn Header="{loc:Tr 'Type'}"   Binding="{Binding Type}"    Width="90" />
+                        <DataGridTextColumn Header="{loc:Tr 'Login'}"  Binding="{Binding Login}"   Width="100" />
+                        <DataGridTextColumn Header="{loc:Tr 'Actif'}"  Binding="{Binding Enabled}" Width="70" />
+                        <DataGridTextColumn Header="{loc:Tr 'État'}"   Binding="{Binding State}"   Width="80" />
+                    </DataGrid.Columns>
+                </DataGrid>
+
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,10,0,0">
+                    <Button x:Name="BoutonAjouter"
+                            Content="{loc:Tr 'Ajouter'}"
+                            Style="{StaticResource BoutonAccent}"
+                            Width="110" Height="30"
+                            Click="SurAjouter" />
+                    <Button x:Name="BoutonModifier"
+                            Content="{loc:Tr 'Modifier'}"
+                            Style="{StaticResource BoutonSecondaire}"
+                            Width="110" Height="30" Margin="8,0,0,0"
+                            Click="SurModifier" />
+                    <Button x:Name="BoutonExporter"
+                            Content="{loc:Tr 'Exporter'}"
+                            Style="{StaticResource BoutonSecondaire}"
+                            Width="110" Height="30" Margin="8,0,0,0"
+                            Click="SurExporter" />
+                    <Button x:Name="BoutonImporter"
+                            Content="{loc:Tr 'Importer'}"
+                            Style="{StaticResource BoutonSecondaire}"
+                            Width="110" Height="30" Margin="8,0,0,0"
+                            Click="SurImporter" />
+                    <Button x:Name="BoutonSupprimer"
+                            Content="{loc:Tr 'Supprimer'}"
+                            Style="{StaticResource BoutonDanger}"
+                            Width="110" Height="30" Margin="8,0,0,0"
+                            Click="SurSupprimer" />
+                    <Button x:Name="BoutonEtatsServeurs"
+                            Content="{loc:Tr 'État des serveurs'}"
+                            Style="{StaticResource BoutonSecondaire}"
+                            Width="140" Height="30" Margin="8,0,0,0"
+                            Click="SurEtatsServeurs" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="3"
+                           Text="{loc:Tr 'Service de surveillance'}"
+                           Style="{StaticResource TitreSection}"
+                           Margin="0,20,0,8" />
+
+                <StackPanel Grid.Row="4" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="BoutonAutomatique"
+                            Content="{loc:Tr 'Automatique OFF'}"
+                            Style="{StaticResource BoutonDanger}"
+                            Width="200" Height="30"
+                            Click="SurAutomatique" />
+
+                    <Button x:Name="BoutonService"
+                            Content="{loc:Tr 'OFF'}"
+                            Style="{StaticResource BoutonDanger}"
+                            Width="80" Height="30" Margin="8,0,0,0"
+                            Click="SurService" />
+
+                    <Ellipse x:Name="PastilleService"
+                             Width="10" Height="10"
+                             Fill="#555555"
+                             Margin="16,0,6,0"
+                             VerticalAlignment="Center" />
+                    <TextBlock Text="{loc:Tr 'Service'}"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TexteSecondaire}" />
+
+                    <Ellipse x:Name="PastilleTray"
+                             Width="10" Height="10"
+                             Fill="#555555"
+                             Margin="16,0,6,0"
+                             VerticalAlignment="Center" />
+                    <TextBlock Text="{loc:Tr 'Tray'}"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TexteSecondaire}" />
+
+                    <TextBlock x:Name="TexteEtatService"
+                               VerticalAlignment="Center"
+                               Margin="20,0,0,0"
+                               FontSize="12"
+                               Foreground="{StaticResource TexteSecondaire}"
+                               Text="" />
+                </StackPanel>
+
+                <TextBlock Grid.Row="5"
+                           Text="{loc:Tr 'Options'}"
+                           Style="{StaticResource TitreSection}"
+                           Margin="0,20,0,8" />
+
+                <StackPanel Grid.Row="6" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="{loc:Tr 'Intervalle de polling :'}"
+                               VerticalAlignment="Center"
+                               Foreground="{StaticResource TexteSecondaire}" />
+                    <TextBox x:Name="ChampIntervalle"
+                             Style="{StaticResource ChampParametre}"
+                             Width="70"
+                             Margin="8,0,0,0"
+                             TextAlignment="Right" />
+                    <TextBlock Text="{loc:Tr 'secondes'}"
+                               VerticalAlignment="Center"
+                               Margin="8,0,0,0"
+                               Foreground="{StaticResource TexteSecondaire}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="7" Margin="0,12,0,0">
+                    <!-- Libelles poses dans le constructeur : les cles contiennent une
+                         apostrophe, que la syntaxe {loc:Tr '...'} ne peut pas porter. -->
+                    <CheckBox x:Name="CaseNotifier"
+                              Foreground="{StaticResource Texte}" />
+                    <CheckBox x:Name="CaseSon"
+                              Foreground="{StaticResource Texte}"
+                              Margin="0,8,0,0"
+                              Content="{loc:Tr 'Jouer un son sur alerte critique'}" />
+                </StackPanel>
+            </Grid>
+
+            <!-- ================= Pied ================= -->
+            <Border Grid.Row="3"
+                    Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource Bordure}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,12,12">
+                <Grid Margin="18,10,18,10">
+                    <TextBlock x:Name="TexteStatut"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               Foreground="{StaticResource TexteSecondaire}"
+                               TextTrimming="CharacterEllipsis"
+                               Text="" />
+
+                    <Button x:Name="BoutonEnregistrer"
+                            Content="{loc:Tr 'Enregistrer'}"
+                            Style="{StaticResource BoutonAccent}"
+                            Width="150" Height="32"
+                            HorizontalAlignment="Right"
+                            Click="SurEnregistrer" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
