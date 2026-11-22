@@ -362,13 +362,13 @@ namespace SystemMonitor.UI
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
 
-                // Label "C01"
+                // Label "C01". Gris moyen conservé tel quel : il reste lisible
+                // sur fond sombre comme sur fond clair.
                 var lblName = new TextBlock
                 {
                     Text = core.name.Replace("Core ", "C"),
                     FontSize = 9,
-                    Foreground = TryFindResource("TexteTernaire") as Brush
-                                 ?? new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
                 panel.Children.Add(lblName);
