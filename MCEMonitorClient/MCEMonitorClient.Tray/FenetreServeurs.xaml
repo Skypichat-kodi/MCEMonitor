@@ -5,10 +5,9 @@
         Title="{loc:Tr 'Serveurs surveillés'}"
         Width="748"
         Height="448"
-        MinWidth="528"
-        MinHeight="328"
         WindowStyle="None"
-        ResizeMode="CanResize"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         Background="Transparent"
         Foreground="#E5E5E5"
@@ -16,16 +15,9 @@
         FontSize="13"
         UseLayoutRounding="True">
 
-    <!-- Sans WindowChrome, une fenêtre WindowStyle=None mais redimensionnable
-         laisse Windows dessiner son cadre natif : d'où le liseré autour. Le
-         chrome supprime ce cadre et garde une zone de 6 px pour redimensionner. -->
-    <WindowChrome.WindowChrome>
-        <WindowChrome CaptionHeight="0"
-                      ResizeBorderThickness="6"
-                      GlassFrameThickness="0"
-                      CornerRadius="0"
-                      UseAeroCaptionButtons="False" />
-    </WindowChrome.WindowChrome>
+    <!-- Fenetre fixe : sans WindowStyle et sans redimensionnement, Windows
+         n'ajoute aucun cadre. La transparence permet les coins arrondis et
+         l'ombre ; la marge de 14 px laisse la place a cette ombre. -->
 
     <!--
       Popup d'état des serveurs, ouvert depuis le Tray (double-clic sur
@@ -137,10 +129,15 @@
         </Style>
     </Window.Resources>
 
-    <Border Background="{StaticResource Fond}"
+    <Border Margin="14"
+            Background="{StaticResource Fond}"
             BorderBrush="{StaticResource Bordure}"
             BorderThickness="1"
             CornerRadius="12">
+
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.5" Color="Black" />
+        </Border.Effect>
 
         <Grid>
             <Grid.RowDefinitions>
