@@ -19,9 +19,9 @@ namespace MCEMonitor
             {
                 var message = new MimeMessage();
 
-                // ?? Expéditeur dynamique avec nom de machine
+                // ?? Expï¿½diteur dynamique avec nom de machine
                 message.From.Add(new MailboxAddress(
-                    $"MCEMonitor – {Environment.MachineName}",
+                    $"MCEMonitor ï¿½ {Environment.MachineName}",
                     cfg.From
                 ));
 
@@ -43,6 +43,10 @@ namespace MCEMonitor
                 };
 
                 using var client = new SmtpClient();
+                // Sans cette borne, une connexion SMTP qui reste ouverte sans
+                // repondre (etat CloseWait) bloque l'appel indefiniment : la tache
+                // planifiee n'atteint alors jamais la mise en veille.
+                client.Timeout = 15000;
 
                 await client.ConnectAsync(cfg.Server, cfg.Port, options);
                 await client.AuthenticateAsync(cfg.From, cfg.Password);
@@ -58,7 +62,7 @@ namespace MCEMonitor
                     "email_error.log"
                 );
 
-                // S’assurer que le dossier existe
+                // Sï¿½assurer que le dossier existe
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
                 File.AppendAllText(logPath,

@@ -38,63 +38,33 @@ namespace MCEMonitor
                 ? $"{hour:00}:{minute:00}"
                 : "inconnue";
 
-            // -------- Mail d'ANNONCE (5 minutes avant) --------
-            try
+            // -------- Heure cible : l'heure demandée, pas « maintenant + 5 min » --------
+            // La tâche se déclenche 5 minutes avant : on vise l'heure précise, pour qu'un
+            // envoi de mail lent ne décale jamais la mise en veille.
+            DateTime? cible = null;
+            if (hour >= 0 && minute >= 0)
             {
-                var cfg = EmailConfig.Load();
+                DateTime candidate = DateTime.Today.AddHours(hour).AddMinutes(minute);
+                if (candidate > DateTime.Now)
+                    cible = candidate;   // sinon l'heure est déjà passée : on agit aussitôt
+            }
 
-                string subject;
-                string body;
+            // -------- Mail d'ANNONCE : en tâche de fond, borné à 20 secondes --------
+            // L'envoi SMTP peut rester bloqué (connexion en CloseWait) : il ne doit
+            // jamais empêcher l'action système.
+            Task envoi = Task.Run(() => EnvoyerAnnonce(isSleep, heureProg));
+            envoi.Wait(TimeSpan.FromSeconds(20));
 
-                if (isSleep)
+            // -------- Attente jusqu'à l'heure cible --------
+            if (cible.HasValue)
+            {
+                TimeSpan reste = cible.Value - DateTime.Now;
+                if (reste > TimeSpan.Zero)
                 {
-                    // ============================================================
-                    //  MAIL — MISE EN VEILLE
-                    // ============================================================
-                    subject = "MCEMonitor – Mise en veille programmée";
-
-                    body =
-                        $"<b>Une mise en veille est programmée à : {heureProg}</b><br><br>" +
-                        "MCEMonitor est configuré pour mettre votre machine en veille dans 5 minutes.<br>" +
-                        "Si vous utilisez WOL pour la réveiller, un mail de réveil vous sera envoyé par <b>WakeMonitor</b> au réveil de la machine." +
-                        "<br><br>" +
-                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
-                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
-                        $"<b>OS :</b> {Environment.OSVersion}<br>";
+                    try { System.Threading.Thread.Sleep(reste); }
+                    catch { /* ignore */ }
                 }
-                else
-                {
-                    // ============================================================
-                    //  MAIL — ARRÊT
-                    // ============================================================
-                    subject = "MCEMonitor – Arrêt programmé";
-
-                    body =
-                        $"<b>Un arrêt est programmé à : {heureProg}</b><br><br>" +
-                        "MCEMonitor est configuré pour arrêter votre machine dans 5 minutes.<br>" +
-                        "Un email confirmant son arrêt va vous être envoyé par <b>StopMonitor</b>." +
-                        "<br><br>" +
-                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
-                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
-                        $"<b>OS :</b> {Environment.OSVersion}<br>";
-                }
-
-                // Envoi synchrone pour être sûr que le mail part avant la coupure
-                EmailSender.SendAsync(cfg, subject, body, isHtml: true)
-                           .GetAwaiter()
-                           .GetResult();
             }
-            catch (Exception ex)
-            {
-                LogError("Envoi mail annonce", ex);
-            }
-
-            // -------- Attente jusqu'à l'heure réelle --------
-            try
-            {
-                System.Threading.Thread.Sleep(TimeSpan.FromMinutes(5));
-            }
-            catch { /* ignore */ }
 
             // -------- Action système --------
             try
@@ -120,6 +90,63 @@ namespace MCEMonitor
             catch (Exception ex)
             {
                 LogError("Action système", ex);
+            }
+        }
+
+        /// <summary>
+        /// Envoi du mail d'annonce, isolé dans une tâche de fond : un serveur SMTP
+        /// qui ne répond pas ne doit ni retarder ni empêcher la mise en veille.
+        /// </summary>
+        private static void EnvoyerAnnonce(bool isSleep, string heureProg)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                string subject;
+                string body;
+
+                if (isSleep)
+                {
+                    // ============================================================
+                    //  MAIL — MISE EN VEILLE
+                    // ============================================================
+                    subject = "MCEMonitor - Mise en veille programmée";
+
+                    body =
+                        $"<b>Une mise en veille est programmée à : {heureProg}</b><br><br>" +
+                        "MCEMonitor est configuré pour mettre votre machine en veille dans 5 minutes.<br>" +
+                        "Si vous utilisez WOL pour la réveiller, un mail de réveil vous sera envoyé par <b>WakeMonitor</b> au réveil de la machine." +
+                        "<br><br>" +
+                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                        $"<b>OS :</b> {Environment.OSVersion}<br>";
+                }
+                else
+                {
+                    // ============================================================
+                    //  MAIL — ARRÊT
+                    // ============================================================
+                    subject = "MCEMonitor - Arrêt programmé";
+
+                    body =
+                        $"<b>Un arrêt est programmé à : {heureProg}</b><br><br>" +
+                        "MCEMonitor est configuré pour arrêter votre machine dans 5 minutes.<br>" +
+                        "Un email confirmant son arrêt va vous être envoyé par <b>StopMonitor</b>." +
+                        "<br><br>" +
+                        $"<b>Machine :</b> {Environment.MachineName}<br>" +
+                        $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
+                        $"<b>OS :</b> {Environment.OSVersion}<br>";
+                }
+
+                // Envoi synchrone pour être sûr que le mail part avant la coupure
+                EmailSender.SendAsync(cfg, subject, body, isHtml: true)
+                           .GetAwaiter()
+                           .GetResult();
+            }
+            catch (Exception ex)
+            {
+                LogError("Envoi mail annonce", ex);
             }
         }
 
