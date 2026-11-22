@@ -33,6 +33,48 @@ namespace SystemMonitor.UI
         private const int DWMWA_WINDOW_CORNER_PREFERENCE = 33;   // Windows 11
         private const int DWMWCP_ROUND                   = 2;
 
+        // ------------------------------------------------------------
+        //  Agrandissement borne a la zone de travail
+        //  Sans WindowStyle, Windows agrandit la fenetre sur le moniteur
+        //  entier : elle recouvre la barre des taches et son bas devient
+        //  inaccessible. WM_GETMINMAXINFO permet d'imposer la zone de
+        //  travail du moniteur qui contient la fenetre.
+        // ------------------------------------------------------------
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct POINT { public int X; public int Y; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct RECT { public int Left; public int Top; public int Right; public int Bottom; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MINMAXINFO
+        {
+            public POINT ptReserved;
+            public POINT ptMaxSize;
+            public POINT ptMaxPosition;
+            public POINT ptMinTrackSize;
+            public POINT ptMaxTrackSize;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MONITORINFO
+        {
+            public int  cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public int  dwFlags;
+        }
+
+        private const int WM_GETMINMAXINFO        = 0x0024;
+        private const int MONITOR_DEFAULTTONEAREST = 2;
+
+        [DllImport("user32.dll")]
+        private static extern IntPtr MonitorFromWindow(IntPtr fenetre, int drapeau);
+
+        [DllImport("user32.dll")]
+        private static extern bool GetMonitorInfo(IntPtr moniteur, ref MONITORINFO info);
+
         /// <summary>
         /// Coins arrondis : WindowChrome.CornerRadius est sans effet sous Windows 11,
         /// il faut le demander à DWM. Sous Windows 10 l'attribut est inconnu, l'appel
@@ -42,9 +84,10 @@ namespace SystemMonitor.UI
         {
             base.OnSourceInitialized(e);
 
+            IntPtr handle = new WindowInteropHelper(this).Handle;
+
             try
             {
-                var handle = new WindowInteropHelper(this).Handle;
                 int arrondi = DWMWCP_ROUND;
                 DwmSetWindowAttribute(handle, DWMWA_WINDOW_CORNER_PREFERENCE, ref arrondi, sizeof(int));
             }
@@ -52,6 +95,39 @@ namespace SystemMonitor.UI
             {
                 // Windows 10 : rien à faire, la fenêtre reste à angles droits.
             }
+
+            // L'agrandissement doit s'arrêter à la zone de travail.
+            try { HwndSource.FromHwnd(handle)?.AddHook(Fenetre_WndProc); }
+            catch { /* sans hook, la fenêtre s'agrandit sur le moniteur entier */ }
+        }
+
+        /// <summary>
+        /// Borne la fenêtre agrandie à la zone de travail du moniteur courant, pour
+        /// qu'elle ne passe pas sous la barre des tâches.
+        /// </summary>
+        private IntPtr Fenetre_WndProc(IntPtr hwnd, int message, IntPtr wParam, IntPtr lParam, ref bool traite)
+        {
+            if (message != WM_GETMINMAXINFO) return IntPtr.Zero;
+
+            IntPtr moniteur = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+            if (moniteur == IntPtr.Zero) return IntPtr.Zero;
+
+            var info = new MONITORINFO { cbSize = Marshal.SizeOf<MONITORINFO>() };
+            if (!GetMonitorInfo(moniteur, ref info)) return IntPtr.Zero;
+
+            var mmi = Marshal.PtrToStructure<MINMAXINFO>(lParam);
+
+            RECT ecran = info.rcMonitor;
+            RECT zone  = info.rcWork;
+
+            mmi.ptMaxPosition.X = zone.Left - ecran.Left;
+            mmi.ptMaxPosition.Y = zone.Top  - ecran.Top;
+            mmi.ptMaxSize.X     = zone.Right  - zone.Left;
+            mmi.ptMaxSize.Y     = zone.Bottom - zone.Top;
+
+            Marshal.StructureToPtr(mmi, lParam, true);
+            traite = true;
+            return IntPtr.Zero;
         }
 
         /// <summary>
