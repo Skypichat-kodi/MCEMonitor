@@ -130,6 +130,27 @@ namespace NetMonitor.UI
         public string? Origin                   { get; set; }        
     }
 
+    /// <summary>
+    /// Un blocage qui ne serait plus décidé aujourd'hui : l'IP n'est plus dans la
+    /// blacklist et sa sévérité recalculée ne déclenche plus le blocage automatique.
+    /// </summary>
+    public class ObsoleteBlockDto
+    {
+        public string ip       { get; set; } = "";
+        public string severity { get; set; } = "";
+        public string source   { get; set; } = "";
+        public string reason   { get; set; } = "";
+    }
+
+    /// <summary>Résultat d'une réanalyse des blocages existants.</summary>
+    public class ReevaluationReportDto
+    {
+        public int analysed        { get; set; }
+        public int reclassified    { get; set; }
+        public int manualOverrides { get; set; }
+        public List<ObsoleteBlockDto> obsolete { get; set; } = new();
+    }
+
     public class BlockedIpRetryDto
     {
         public string Ip                        { get; set; } = "";
@@ -465,6 +486,10 @@ namespace NetMonitor.UI
 
         public static async Task<bool> UnblockIpAsync(string ip)
             => IsOk(await SendCommand($"unblock-ip {ip}"));
+
+        /// <summary>Réanalyse les blocages existants et renvoie le rapport.</summary>
+        public static async Task<ReevaluationReportDto?> ReevaluateBlockedAsync()
+            => Deserialize<ReevaluationReportDto>(await SendCommand("reevaluate-blocked"));
 
         public static async Task<bool> ClearBlockedIpRetriesAsync()
             => IsOk(await SendCommand("clear-blocked-retries"));

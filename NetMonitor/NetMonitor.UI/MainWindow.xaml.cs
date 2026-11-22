@@ -1382,6 +1382,78 @@ namespace NetMonitor.UI
         }
 
         // ------------------------------------------------------------
+        //  Bouton : réanalyse des blocages existants
+        // ------------------------------------------------------------
+        private async void ReanalyzeBlocked_Click(object sender, RoutedEventArgs e)
+        {
+            SetBusy("Réanalyse des blocages en cours…");
+
+            var report = await NetMonitorIpcClient.ReevaluateBlockedAsync();
+
+            ClearBusy();
+
+            if (report == null)
+            {
+                MessageBox.Show(
+                    "Le service n'a pas répondu. Vérifiez qu'il est démarré.",
+                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                await RefreshSafe();
+                return;
+            }
+
+            string resume =
+                $"{report.analysed} IP analysée(s).\n\n" +
+                $"Reclassées : {report.reclassified}\n" +
+                $"Obsolètes : {report.obsolete.Count}\n" +
+                $"Sévérité forcée, préservées : {report.manualOverrides}";
+
+            if (report.obsolete.Count == 0)
+            {
+                MessageBox.Show(resume, "Réanalyse des blocages",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+                await RefreshSafe();
+                return;
+            }
+
+            // Liste volontairement bornée : au-delà, la boîte de dialogue
+            // deviendrait illisible, et le tableau reste consultable.
+            const int maxAffichees = 10;
+            var lignes = report.obsolete
+                .Take(maxAffichees)
+                .Select(o => $"  • {o.ip}  ({o.severity}, {o.source})");
+
+            string liste = string.Join("\n", lignes);
+            if (report.obsolete.Count > maxAffichees)
+                liste += $"\n  … et {report.obsolete.Count - maxAffichees} autre(s)";
+
+            var confirm = MessageBox.Show(
+                resume + "\n\n" +
+                "Ces blocages ne seraient plus décidés aujourd'hui, l'IP n'étant plus " +
+                "dans la blacklist et sa sévérité ne déclenchant plus de blocage :\n\n" +
+                liste + "\n\nLes débloquer ?",
+                "Réanalyse des blocages",
+                MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+            if (confirm != MessageBoxResult.Yes)
+            {
+                await RefreshSafe();
+                return;
+            }
+
+            int debloquees = 0;
+            foreach (var o in report.obsolete)
+            {
+                if (await NetMonitorIpcClient.UnblockIpAsync(o.ip)) debloquees++;
+            }
+
+            MessageBox.Show(
+                $"{debloquees} IP débloquée(s) sur {report.obsolete.Count}.",
+                "Réanalyse des blocages", MessageBoxButton.OK, MessageBoxImage.Information);
+
+            await RefreshSafe();
+        }
+
+        // ------------------------------------------------------------
         //  Bouton : tableau 3 (historique)
         // ------------------------------------------------------------
         private async void ClearHistory_Click(object sender, RoutedEventArgs e)

@@ -67,6 +67,7 @@
   "Redémarrage impossible : ": "Restart failed: ",
   "Redémarrage impossible : exécutable introuvable.": "Restart failed: executable not found.",
   "Redémarrer MCEMonitor maintenant ?": "Restart MCEMonitor now?",
+  "Réanalyser les blocages": "Re-analyze blocked IPs",
   "Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.": "Settings saved, but the service could not be notified: restart it.",
   "Réglages enregistrés, service rechargé.": "Settings saved, service reloaded.",
   "Relevés consécutifs :": "Consecutive readings:",

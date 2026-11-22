@@ -227,6 +227,7 @@ namespace NetMonitor.Service.Ipc
                 case "get-persistent-problems":     HandleGetPersistentProblems(server); break;
                 case "restart-computer":            HandleRestartComputer(server); break;
                 case "clear-all-blocked":           HandleClearAllBlocked(server); break;
+                case "reevaluate-blocked":          HandleReevaluateBlocked(server); break;
                 case "restore-default-patterns":    HandleRestoreDefaultPatterns(server); break;
                 case "get-trusted-devices":         HandleGetTrustedDevices(server); break;                                                                                                          
                 default:                            IpcResponse.Error(server, "unknown command"); break;
@@ -279,8 +280,26 @@ namespace NetMonitor.Service.Ipc
             return el.TryGetInt32(out var val) ? val : 0;
         }
 
-        private void HandleClearAllBlocked(NamedPipeServerStream server)
+        /// <summary>
+        /// Réanalyse les blocages existants : recalcul de la sévérité et de
+        /// l'origine, plus la liste de ceux qui ne seraient plus décidés
+        /// aujourd'hui. Aucune IP n'est débloquée ici : l'interface propose.
+        /// </summary>
+        private void HandleReevaluateBlocked(NamedPipeServerStream server)
         {
+            try
+            {
+                var report = _engine.ReanalyzeBlockedIps();
+                IpcResponse.Json(server, report);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleReevaluateBlocked : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleClearAllBlocked(NamedPipeServerStream server)        {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {

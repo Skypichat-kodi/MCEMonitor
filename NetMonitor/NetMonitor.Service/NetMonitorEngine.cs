@@ -1007,10 +1007,19 @@ namespace NetMonitor.Service
         ///
         /// ⚠ Ne touche PAS aux IPs avec un override manuel (ManualSeverity.HasValue).
         /// </summary>
-        public int ReevaluateAllBlockedIps()
+        public int ReevaluateAllBlockedIps() => ReanalyzeBlockedIps().Reclassified;
+
+        /// <summary>
+        /// Réanalyse tous les blocages d'IP : recalcule sévérité et origine avec la
+        /// blacklist et les réglages du moment, et signale en plus les blocages qui
+        /// ne seraient plus décidés aujourd'hui.
+        ///
+        /// Aucune IP n'est débloquée ici : le service rapporte, l'utilisateur décide.
+        /// Les sévérités forcées à la main sont préservées.
+        /// </summary>
+        public ReevaluationReport ReanalyzeBlockedIps()
         {
-            int updated = 0;
-            int skipped = 0;
+            var report = new ReevaluationReport();
 
             lock (_alertsLock)
             {
@@ -1018,9 +1027,11 @@ namespace NetMonitor.Service
                 {
                     if (b.IsProcess) continue;
 
+                    report.Analysed++;
+
                     if (b.ManualSeverity.HasValue)
                     {
-                        skipped++;
+                        report.ManualOverrides++;
                         continue;
                     }
 
@@ -1035,36 +1046,70 @@ namespace NetMonitor.Service
                         baseSeverity,
                         _settings,
                         _googleRanges,
-                        _msRanges,          
-                        _threatIntel,       
-                        out var newOrigin); 
+                        _msRanges,
+                        _threatIntel,
+                        out var newOrigin);
 
                     string newStr = newSeverity.ToString();
                     bool originChanged = b.Origin != newOrigin;
+
                     if (b.Severity != newStr || originChanged)
                     {
                         CoreLog.Info($"[REEVALUATE] {b.Ip} : '{b.Severity}' → '{newStr}', " +
                                      $"origin '{b.Origin}' → '{newOrigin}' " +
                                      $"(détecteur='{b.Source}', base='{baseSeverity}')");
                         b.Severity = newStr;
-                        b.Origin = newOrigin;   
-                        updated++;
+                        b.Origin   = newOrigin;
+                        report.Reclassified++;
+                    }
+
+                    // Obsolescence : le blocage ne serait plus décidé aujourd'hui.
+                    // On ne juge que si le blocage automatique est actif : sinon
+                    // tous les blocages sont volontaires et doivent rester.
+                    // Une IP encore blacklistée reste légitime, quel que soit le
+                    // réglage : c'est la liste qui la désigne, pas un seuil.
+                    bool encoreBlacklistee = _threatIntel?.IsBlacklisted(b.Ip) == true;
+
+                    if (_settings.AutoBlock && !encoreBlacklistee && !WouldBlockNow(newSeverity))
+                    {
+                        report.Obsolete.Add(new ObsoleteBlock
+                        {
+                            Ip       = b.Ip,
+                            Severity = newStr,
+                            Source   = b.Source,
+                            Reason   = $"plus dans la blacklist, sévérité {newStr} non bloquante"
+                        });
                     }
                 }
             }
 
-            if (updated > 0)
-            {
-                SaveBlockedIps();
-                CoreLog.Info($"[REEVALUATE] Terminé : {updated} IP(s) réévaluée(s), {skipped} ignorée(s) (override manuel)");
-            }
-            else
-            {
-                CoreLog.Info($"[REEVALUATE] Aucune IP à corriger ({skipped} override(s) manuel(s) préservé(s))");
-            }
+            if (report.Reclassified > 0) SaveBlockedIps();
 
-            return updated;
+            CoreLog.Info($"[REEVALUATE] Terminé : {report.Analysed} IP(s) analysée(s), " +
+                         $"{report.Reclassified} reclassée(s), {report.Obsolete.Count} obsolète(s), " +
+                         $"{report.ManualOverrides} override(s) manuel(s) préservé(s)");
+
+            return report;
         }
+
+        /// <summary>
+        /// Répond à la question : cette sévérité déclencherait-elle encore un
+        /// blocage automatique avec les réglages en vigueur ?
+        /// </summary>
+        private bool WouldBlockNow(Severity severity) => severity switch
+        {
+            Severity.Whitelisted => false,
+            Severity.Trusted     => false,
+            Severity.Safe        => false,
+            Severity.ToCheck     => false,   // jamais bloqué automatiquement
+            Severity.Critical    => _settings.AutoBlockCritical,
+            Severity.High        => _settings.AutoBlockCritical,
+            Severity.Warning     => _settings.AutoBlockWarning,
+            Severity.Info        => _settings.AutoBlockWarning,
+            Severity.Bot         => _settings.BlockBots,
+            Severity.Crawler     => _settings.BlockCrawlers,
+            _                    => true     // inconnu : on ne touche pas
+        };
 
         /// <summary>
         /// Force manuellement la sévérité d'une IP bloquée, ou l'efface
