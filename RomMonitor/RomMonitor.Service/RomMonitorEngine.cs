@@ -20,6 +20,11 @@ namespace RomMonitor.Service
         private Timer? _timer;
         private bool _isRunning;
 
+        // Surcharge disque : échantillonnage séparé, plus fin que le Tick principal,
+        // sinon une saturation passerait inaperçue entre deux contrôles.
+        private Timer? _ioTimer;
+        private readonly Dictionary<string, int> _ioStreak = new();
+
         // Cache des derniers résultats (pour IPC)
         private List<DiskInfo> _lastDisks = new();
         private List<SmartInfo> _lastSmart = new();
@@ -53,6 +58,20 @@ namespace RomMonitor.Service
             _timer.AutoReset = true;
             _timer.Start();
 
+            if (_settings.AlertOnDiskIo)
+            {
+                int secondes = Math.Max(5, _settings.DiskIoIntervalSeconds);
+
+                _ioTimer = new Timer(secondes * 1000);
+                _ioTimer.Elapsed += (s, e) => CheckDiskIo();
+                _ioTimer.AutoReset = true;
+                _ioTimer.Start();
+
+                CoreLog.Write($"Surveillance de la charge disque active "
+                            + $"({secondes} s, seuil {_settings.DiskIoWarnPercent} %, "
+                            + $"confirmation {_settings.DiskIoConfirmTicks} relevés)");
+            }
+
             // Premier check 30 secondes après le démarrage
             Task.Delay(30000).ContinueWith(_ => Tick());
         }
@@ -61,6 +80,10 @@ namespace RomMonitor.Service
         {
             _isRunning = false;
             _timer?.Stop();
+
+            _ioTimer?.Stop();
+            _ioTimer?.Dispose();
+            _ioTimer = null;
             CoreLog.Write("RomMonitorEngine arrêté");
         }
 
@@ -112,6 +135,67 @@ namespace RomMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur Tick : " + ex.Message);
+            }
+        }
+
+        // ------------------------------------------------------------------
+        //  Surcharge de lecture / écriture
+        // ------------------------------------------------------------------
+        // Un disque saturé reste à 100 % d'occupation quel que soit son débit :
+        // c'est ce qui distingue une vraie surcharge d'une simple copie de fichier.
+        // L'alerte ne part qu'après plusieurs relevés consécutifs au-dessus du seuil.
+        private void CheckDiskIo()
+        {
+            if (!_settings.AlertOnDiskIo || !_isRunning)
+                return;
+
+            try
+            {
+                foreach (DiskIoInfo io in DiskIoChecker.GetIo())
+                {
+                    if (io.PercentBusy < _settings.DiskIoWarnPercent)
+                    {
+                        _ioStreak[io.Name] = 0;
+                        continue;
+                    }
+
+                    _ioStreak.TryGetValue(io.Name, out int suite);
+                    suite++;
+                    _ioStreak[io.Name] = suite;
+
+                    if (suite < Math.Max(1, _settings.DiskIoConfirmTicks))
+                        continue;
+
+                    bool critique = io.PercentBusy >= _settings.DiskIoCriticalPercent;
+                    AlertType type = critique ? AlertType.DiskIoCritical : AlertType.DiskIoHigh;
+
+                    if (!_alertManager.CanSendAlert(type, io.Name))
+                        continue;
+
+                    int secondes = suite * Math.Max(5, _settings.DiskIoIntervalSeconds);
+
+                    var alerte = new Alert
+                    {
+                        Timestamp = DateTime.Now,
+                        Type      = type,
+                        Severity  = critique ? "Critical" : "Warning",
+                        Target    = io.Name,
+                        Message   = $"Surcharge disque {io.Name} : {io.PercentBusy:F0} % d'occupation "
+                                  + $"({io.ReadMoPerSec:F1} Mo/s lecture, "
+                                  + $"{io.WriteMoPerSec:F1} Mo/s écriture) "
+                                  + $"pendant {secondes} s",
+                        EmailSent = false
+                    };
+
+                    alerte.EmailSent = true;
+                    _ = SendDiskIoAlertEmailAsync(io, critique);
+
+                    _alertManager.Add(alerte);
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur CheckDiskIo : " + ex.Message);
             }
         }
 
@@ -296,6 +380,40 @@ namespace RomMonitor.Service
             catch (Exception ex)
             {
                 CoreLog.Write("Erreur envoi email espace : " + ex.Message);
+            }
+        }
+
+        private async Task SendDiskIoAlertEmailAsync(DiskIoInfo io, bool critique)
+        {
+            try
+            {
+                var cfg = EmailConfig.Load();
+
+                if (string.IsNullOrEmpty(cfg.Server))
+                {
+                    CoreLog.Write("[EMAIL] Config email vide, envoi annulé");
+                    return;
+                }
+
+                string subject = $"[ALERTE] Surcharge disque {io.Name}";
+
+                string body = $@"
+                    <p><b>Disque :</b> {io.Name}</p>
+                    <p><b>Statut :</b> <span style='color:#c0392b'>{(critique ? "Critical" : "Warning")}</span></p>
+                    <p><b>Occupation :</b> {io.PercentBusy:F0} %</p>
+                    <p><b>Débit lecture :</b> {io.ReadMoPerSec:F1} Mo/s</p>
+                    <p><b>Débit écriture :</b> {io.WriteMoPerSec:F1} Mo/s</p>
+                    <p><b>File d'attente :</b> {io.QueueLength:F0}</p>
+                    <hr>
+                    <p style='color:#888;font-size:12px'>Serveur : {Environment.MachineName}</p>";
+
+                await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
+
+                CoreLog.Write($"[EMAIL] Alerte surcharge disque envoyée pour {io.Name}");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur envoi email surcharge : " + ex.Message);
             }
         }
 

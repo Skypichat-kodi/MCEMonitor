@@ -725,14 +725,19 @@
                                 VerticalAlignment="Top">
                             <StackPanel>
                                 <Grid>
+                                    <!-- Colonnes de libellés larges : les champs sont poussés
+                                         vers la droite pour laisser de la place aux énoncés
+                                         des cases à cocher. -->
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="210" />
+                                        <ColumnDefinition Width="250" />
                                         <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="240" />
+                                        <ColumnDefinition Width="320" />
                                         <ColumnDefinition Width="80" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
@@ -743,7 +748,7 @@
                                                Margin="0,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Fréquence de contrôle (min) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="1"
                                              x:Name="ChampRomIntervalle"
                                              Margin="0,0,0,10"
                                              HorizontalAlignment="Left"
@@ -755,7 +760,7 @@
                                                Margin="10,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Intervalle des alertes (h) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="3"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="3"
                                              x:Name="ChampRomDelai"
                                              Margin="0,0,0,10"
                                              HorizontalAlignment="Left"
@@ -767,7 +772,7 @@
                                                Margin="0,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Seuil de danger (% libre) :'}" />
-                                    <TextBox Grid.Row="1" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="1"
                                              x:Name="ChampRomSeuilDanger"
                                              Margin="0,0,0,10"
                                              HorizontalAlignment="Left"
@@ -779,25 +784,78 @@
                                                Margin="0,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Seuil critique (% libre) :'}" />
-                                    <TextBox Grid.Row="2" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="2" Grid.Column="1"
                                              x:Name="ChampRomSeuilCritique"
+                                             Margin="0,0,0,10"
+                                             HorizontalAlignment="Left"
+                                             Width="70"
+                                             VerticalContentAlignment="Center" />
+
+                                    <!-- Surcharge disque : colonnes 2-3 libres des lignes 1 et 2 -->
+                                    <TextBlock Grid.Row="1" Grid.Column="2"
+                                               Style="{StaticResource Libelle}"
+                                               Margin="10,0,0,10"
+                                               VerticalAlignment="Center"
+                                               Text="{loc:Tr 'Surcharge disque (% occupé) :'}" />
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="3"
+                                             x:Name="ChampRomIoSeuil"
+                                             Margin="0,0,0,10"
+                                             HorizontalAlignment="Left"
+                                             Width="70"
+                                             VerticalContentAlignment="Center" />
+
+                                    <TextBlock Grid.Row="2" Grid.Column="2"
+                                               Style="{StaticResource Libelle}"
+                                               Margin="10,0,0,10"
+                                               VerticalAlignment="Center"
+                                               Text="{loc:Tr 'Surcharge critique (%) :'}" />
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="2" Grid.Column="3"
+                                             x:Name="ChampRomIoCritique"
+                                             Margin="0,0,0,10"
+                                             HorizontalAlignment="Left"
+                                             Width="70"
+                                             VerticalContentAlignment="Center" />
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0"
+                                               Style="{StaticResource Libelle}"
+                                               Margin="0,0,0,10"
+                                               VerticalAlignment="Center"
+                                               Text="{loc:Tr 'Mesure (s) :'}" />
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="3" Grid.Column="1"
+                                             x:Name="ChampRomIoIntervalle"
+                                             Margin="0,0,0,10"
+                                             HorizontalAlignment="Left"
+                                             Width="70"
+                                             VerticalContentAlignment="Center" />
+
+                                    <TextBlock Grid.Row="3" Grid.Column="2"
+                                               Style="{StaticResource Libelle}"
+                                               Margin="10,0,0,10"
+                                               VerticalAlignment="Center"
+                                               Text="{loc:Tr 'Relevés consécutifs :'}" />
+                                    <CheckBox Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
+                                              x:Name="CaseRomSmart"
+                                              Content="{loc:Tr 'Alerte email : Défaillance SMART et capacité'}"
+                                              Margin="0,6,0,0"
+                                              VerticalAlignment="Center"
+                                              IsChecked="True" />
+
+                                    <CheckBox Grid.Row="4" Grid.Column="2" Grid.ColumnSpan="2"
+                                              x:Name="CaseRomIo"
+                                              Content="{loc:Tr 'Alerte email : surcharge disque (lecture / écriture)'}"
+                                              Margin="10,6,0,0"
+                                              VerticalAlignment="Center"
+                                              IsChecked="True" />
+
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="3" Grid.Column="3"
+                                             x:Name="ChampRomIoReleves"
                                              Margin="0,0,0,10"
                                              HorizontalAlignment="Left"
                                              Width="70"
                                              VerticalContentAlignment="Center" />
                                 </Grid>
 
-                                <CheckBox x:Name="CaseRomSmart"
-                                          Content="{loc:Tr 'Alerte email en cas de défaillance SMART ou de disque plein'}"
-                                          Margin="0,6,0,0"
-                                          IsChecked="True" />
 
-                                <TextBlock Margin="0,10,0,0"
-                                           FontSize="11"
-                                           FontStyle="Italic"
-                                           TextWrapping="Wrap"
-                                           Foreground="{StaticResource TexteSecondaire}"
-                                           Text="{loc:Tr 'Les seuils en Go sont fixés à 10 Go (danger) et 5 Go (critique) pour les petits disques.'}" />
                             </StackPanel>
                         </Border>
 
@@ -945,7 +1003,7 @@
                                            Margin="0,0,0,8"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Fréquence de contrôle (s) :'}" />
-                                <TextBox Grid.Row="0" Grid.Column="1"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="1"
                                          x:Name="ChampSystemIntervalle"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -956,7 +1014,7 @@
                                            Margin="10,0,0,12"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Intervalle des alertes (min) :'}" />
-                                <TextBox Grid.Row="0" Grid.Column="3"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="3"
                                          x:Name="ChampSystemDelai"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -973,7 +1031,7 @@
                                            Margin="10,0,0,12"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Seuil CPU (%) :'}" />
-                                <TextBox Grid.Row="1" Grid.Column="3"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="3"
                                          x:Name="ChampSystemCpu"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -990,7 +1048,7 @@
                                            Margin="10,0,0,12"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Seuil RAM (%) :'}" />
-                                <TextBox Grid.Row="2" Grid.Column="3"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="2" Grid.Column="3"
                                          x:Name="ChampSystemRam"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -1007,7 +1065,7 @@
                                            Margin="10,0,0,12"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Seuil Temp. CPU (°C) :'}" />
-                                <TextBox Grid.Row="3" Grid.Column="3"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="3" Grid.Column="3"
                                          x:Name="ChampSystemTemp"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -1024,7 +1082,7 @@
                                            Margin="10,0,0,12"
                                            VerticalAlignment="Center"
                                            Text="{loc:Tr 'Seuil Temp. GPU (°C) :'}" />
-                                <TextBox Grid.Row="4" Grid.Column="3"
+                                <TextBox Style="{StaticResource ChampParametre}" Grid.Row="4" Grid.Column="3"
                                          x:Name="ChampSystemGpuTemp"
                                          Margin="0,0,0,8"
                                          HorizontalAlignment="Left" Width="70"
@@ -1173,7 +1231,7 @@
                                                Margin="0,0,0,8"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Scan de ports — fenêtre (s) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="1"
                                              x:Name="ChampNetPortScanFenetre"
                                              Width="70" Margin="0,0,0,8"
                                              HorizontalAlignment="Left"
@@ -1184,7 +1242,7 @@
                                                Margin="10,0,0,8"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Scan de ports — seuil (ports) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="3"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="3"
                                              x:Name="ChampNetPortScanSeuil"
                                              Width="70" Margin="0,0,0,8"
                                              HorizontalAlignment="Left"
@@ -1195,7 +1253,7 @@
                                                Margin="0,0,0,8"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Beaconing — fenêtre (s) :'}" />
-                                    <TextBox Grid.Row="1" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="1"
                                              x:Name="ChampNetBeaconFenetre"
                                              Width="70" Margin="0,0,0,8"
                                              HorizontalAlignment="Left"
@@ -1206,7 +1264,7 @@
                                                Margin="10,0,0,8"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Beaconing — hits minimum :'}" />
-                                    <TextBox Grid.Row="1" Grid.Column="3"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="3"
                                              x:Name="ChampNetBeaconHits"
                                              Width="70" Margin="0,0,0,8"
                                              HorizontalAlignment="Left"
@@ -1217,7 +1275,7 @@
                                                Margin="0,0,0,8"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Beaconing — jitter max (%) :'}" />
-                                    <TextBox Grid.Row="2" Grid.Column="1"
+                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="2" Grid.Column="1"
                                              x:Name="ChampNetBeaconJitter"
                                              Width="70" Margin="0,0,0,8"
                                              HorizontalAlignment="Left"

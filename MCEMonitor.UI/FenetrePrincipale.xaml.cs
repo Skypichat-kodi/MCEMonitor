@@ -1413,6 +1413,14 @@ namespace MCEMonitor.UI
 
             CaseRomSmart.IsChecked = !config.TryGetValue("AlertOnSmartFailure", out var smart)
                                      || !smart.Equals("false", StringComparison.OrdinalIgnoreCase);
+
+            ChampRomIoSeuil.Text      = config.TryGetValue("DiskIoWarnPercent", out var ioSeuil) && int.TryParse(ioSeuil, out int s1) ? s1.ToString() : "80";
+            ChampRomIoCritique.Text   = config.TryGetValue("DiskIoCriticalPercent", out var ioCrit) && int.TryParse(ioCrit, out int s2) ? s2.ToString() : "95";
+            ChampRomIoReleves.Text    = config.TryGetValue("DiskIoConfirmTicks", out var ioRel) && int.TryParse(ioRel, out int s3) ? s3.ToString() : "6";
+            ChampRomIoIntervalle.Text = config.TryGetValue("DiskIoIntervalSeconds", out var ioMes) && int.TryParse(ioMes, out int s4) ? s4.ToString() : "10";
+
+            CaseRomIo.IsChecked = !config.TryGetValue("AlertOnDiskIo", out var ioAlert)
+                                  || !ioAlert.Equals("false", StringComparison.OrdinalIgnoreCase);
         }
 
         private void SurEnregistrerReglagesRom(object sender, RoutedEventArgs e)
@@ -1425,6 +1433,17 @@ namespace MCEMonitor.UI
                 int critique   = Borner(ChampRomSeuilCritique.Text,  1,  100,  5);
                 int delai      = Borner(ChampRomDelai.Text,          1,  168, 24);
 
+                int ioSeuil    = Borner(ChampRomIoSeuil.Text,       10, 100, 80);
+                int ioCritique = Borner(ChampRomIoCritique.Text,    20, 100, 95);
+                int ioReleves  = Borner(ChampRomIoReleves.Text,      1,  60,  6);
+                int ioMesure   = Borner(ChampRomIoIntervalle.Text,   5, 300, 10);
+
+                if (ioCritique <= ioSeuil)
+                {
+                    ioCritique = Math.Min(100, ioSeuil + 5);
+                    ChampRomIoCritique.Text = ioCritique.ToString();
+                }
+
                 // Les réglages du serveur web appartiennent à RomMonitor.UI :
                 // on les relit pour les réécrire à l'identique.
                 var config = LireConfigRom();
@@ -1432,6 +1451,10 @@ namespace MCEMonitor.UI
                 string webPort     = config.TryGetValue("WebPort",     out var wp) ? wp : "8085";
                 string webUser     = config.TryGetValue("WebUsername", out var wu) ? wu : "admin";
                 string webPassword = config.TryGetValue("WebPassword", out var wm) ? wm : "changeme";
+
+                // Seuils en Go : réglés uniquement dans RomMonitor.config
+                string warnGo = config.TryGetValue("DiskSpaceWarnGo",     out var wg) ? wg : "10";
+                string critGo = config.TryGetValue("DiskSpaceCriticalGo", out var cg) ? cg : "5";
 
                 Directory.CreateDirectory(Path.GetDirectoryName(FichierConfigRom)!);
 
@@ -1450,8 +1473,8 @@ namespace MCEMonitor.UI
                     $"DiskSpaceCriticalPercent={critique}",
                     "",
                     "# Seuil d'alerte espace disque (Go libre)",
-                    "DiskSpaceWarnGo=10",
-                    "DiskSpaceCriticalGo=5",
+                    $"DiskSpaceWarnGo={warnGo}",
+                    $"DiskSpaceCriticalGo={critGo}",
                     "",
                     "# Alertes email",
                     $"AlertOnSmartFailure={(CaseRomSmart.IsChecked == true ? "true" : "false")}",
@@ -1459,6 +1482,13 @@ namespace MCEMonitor.UI
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
                     $"AlertCooldownHours={delai}",
+                    "",
+                    "# Surcharge disque : alerte si un disque reste occupe au-dela du seuil",
+                    $"AlertOnDiskIo={(CaseRomIo.IsChecked == true).ToString().ToLowerInvariant()}",
+                    $"DiskIoWarnPercent={ioSeuil}",
+                    $"DiskIoCriticalPercent={ioCritique}",
+                    $"DiskIoConfirmTicks={ioReleves}",
+                    $"DiskIoIntervalSeconds={ioMesure}",
                     "",
                     "# Serveur Web",
                     $"WebEnabled={webEnabled}",

@@ -38,6 +38,14 @@ namespace RomMonitor.Service
         public bool AlertOnSmartFailure { get; set; } = true;
         public bool AlertOnLowDiskSpace { get; set; } = true;
 
+        // Surcharge de lecture/écriture : un disque saturé reste à 100 %
+        // d'occupation, quelle que soit sa vitesse réelle.
+        public bool AlertOnDiskIo { get; set; } = true;
+        public int DiskIoWarnPercent { get; set; } = 80;
+        public int DiskIoCriticalPercent { get; set; } = 95;
+        public int DiskIoConfirmTicks { get; set; } = 6;
+        public int DiskIoIntervalSeconds { get; set; } = 10;
+
         public int AlertCooldownHours { get; set; } = 24;
 
         // ------------------------------------------------------------
@@ -103,6 +111,21 @@ namespace RomMonitor.Service
                                 break;
                             case "AlertOnLowDiskSpace":
                                 if (bool.TryParse(value, out bool als)) settings.AlertOnLowDiskSpace = als;
+                                break;
+                            case "AlertOnDiskIo":
+                                if (bool.TryParse(value, out bool adi)) settings.AlertOnDiskIo = adi;
+                                break;
+                            case "DiskIoWarnPercent":
+                                if (int.TryParse(value, out int iwp)) settings.DiskIoWarnPercent = iwp;
+                                break;
+                            case "DiskIoCriticalPercent":
+                                if (int.TryParse(value, out int icp)) settings.DiskIoCriticalPercent = icp;
+                                break;
+                            case "DiskIoConfirmTicks":
+                                if (int.TryParse(value, out int ict)) settings.DiskIoConfirmTicks = ict;
+                                break;
+                            case "DiskIoIntervalSeconds":
+                                if (int.TryParse(value, out int iis)) settings.DiskIoIntervalSeconds = iis;
                                 break;
                             case "AlertCooldownHours":
                                 if (int.TryParse(value, out int ach)) settings.AlertCooldownHours = ach;
@@ -249,6 +272,13 @@ namespace RomMonitor.Service
                     "# Alertes email",
                     $"AlertOnSmartFailure={AlertOnSmartFailure.ToString().ToLower()}",
                     $"AlertOnLowDiskSpace={AlertOnLowDiskSpace.ToString().ToLower()}",
+                    "",
+                    "# Surcharge disque : alerte si un disque reste occupe au-dela du seuil",
+                    $"AlertOnDiskIo={AlertOnDiskIo.ToString().ToLower()}",
+                    $"DiskIoWarnPercent={DiskIoWarnPercent}",
+                    $"DiskIoCriticalPercent={DiskIoCriticalPercent}",
+                    $"DiskIoConfirmTicks={DiskIoConfirmTicks}",
+                    $"DiskIoIntervalSeconds={DiskIoIntervalSeconds}",
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
                     $"AlertCooldownHours={AlertCooldownHours}"

@@ -689,97 +689,179 @@
                                            VerticalAlignment="Center"/>
                             </StackPanel>
 
-                            <!-- Grille : 1 colonne label (fixe) + 1 colonne champ (fixe) -->
+                            <!-- Deux colonnes : capacité/SMART à gauche, surcharge à droite. -->
                             <Grid>
                                 <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="260"/>
-                                    <ColumnDefinition Width="120"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="40"/>
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
-                                <Grid.RowDefinitions>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                    <RowDefinition Height="Auto"/>
-                                </Grid.RowDefinitions>
 
-                                <!-- Ligne 0 : Fréquence de contrôle -->
-                                <TextBlock Grid.Row="0" Grid.Column="0"
-                                           Text="{loc:Tr 'Fréquence de contrôle (min) :'}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,10"/>
+                                <Grid Grid.Column="0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="260"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
 
-                                <TextBox x:Name="txtInterval"
-                                         Grid.Row="0" Grid.Column="1"
-                                         Width="100"
-                                         Margin="0,0,0,10"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         VerticalContentAlignment="Center"/>
+                                    <TextBlock Text="{loc:Tr 'Indices de capacité'}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#4CC2FF"
+                                               Margin="0,0,0,10"
+                                               HorizontalAlignment="Left"/>
 
-                                <!-- Ligne 1 : Intervalle envoi alertes -->
-                                <TextBlock Grid.Row="1" Grid.Column="0"
-                                           Text="{loc:Tr 'Intervalle envoi alertes (h) :'}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,10"/>
+                                    <CheckBox x:Name="chkSmartAlert"
+                                              Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                              Content="{loc:Tr 'Alerte email : défaillance SMART ou disque plein'}"
+                                              Foreground="#E5E5E5"
+                                              Margin="0,0,0,12"
+                                              VerticalAlignment="Center"/>
 
-                                <TextBox x:Name="txtCooldown"
-                                         Grid.Row="1" Grid.Column="1"
-                                         Width="100"
-                                         Margin="0,0,0,10"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         VerticalContentAlignment="Center"/>
+                                    <TextBlock Grid.Row="2" Grid.Column="0"
+                                               Text="{loc:Tr 'Fréquence de contrôle (min) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtInterval"
+                                             Grid.Row="2" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
 
-                                <!-- Ligne 2 : Seuil warning -->
-                                <TextBlock Grid.Row="2" Grid.Column="0"
-                                           Text="{loc:Tr 'Seuil warning (% libre) :'}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="3" Grid.Column="0"
+                                               Text="{loc:Tr 'Intervalle envoi alertes (h) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtCooldown"
+                                             Grid.Row="3" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
 
-                                <TextBox x:Name="txtWarnPct"
-                                         Grid.Row="2" Grid.Column="1"
-                                         Width="100"
-                                         Margin="0,0,0,10"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         VerticalContentAlignment="Center"/>
+                                    <TextBlock Grid.Row="4" Grid.Column="0"
+                                               Text="{loc:Tr 'Seuil warning (% libre) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtWarnPct"
+                                             Grid.Row="4" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
 
-                                <!-- Ligne 3 : Seuil critique -->
-                                <TextBlock Grid.Row="3" Grid.Column="0"
-                                           Text="{loc:Tr 'Seuil critique (% libre) :'}"
-                                           VerticalAlignment="Center"
-                                           Margin="0,0,10,10"/>
+                                    <TextBlock Grid.Row="5" Grid.Column="0"
+                                               Text="{loc:Tr 'Seuil critique (% libre) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtCritPct"
+                                             Grid.Row="5" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
 
-                                <TextBox x:Name="txtCritPct"
-                                         Grid.Row="3" Grid.Column="1"
-                                         Width="100"
-                                         Margin="0,0,0,10"
-                                         Background="#1E1E1E"
-                                         Foreground="#E5E5E5"
-                                         BorderBrush="#3C3C3C"
-                                         VerticalContentAlignment="Center"/>
+                                </Grid>
 
-                                <!-- Ligne 4 : CheckBox SMART -->
-                                <CheckBox x:Name="chkSmartAlert"
-                                          Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="2"
-                                          Content="{loc:Tr 'Alerte email, SMART et disque plein'}"
-                                          Foreground="#E5E5E5"
-                                          Margin="0,5,0,0"
-                                          VerticalAlignment="Center"/>
+                                <Grid Grid.Column="2">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="260"/>
+                                        <ColumnDefinition Width="120"/>
+                                    </Grid.ColumnDefinitions>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+
+                                    <TextBlock Text="{loc:Tr 'Indices de charge'}"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Foreground="#4CC2FF"
+                                               Margin="0,0,0,10"
+                                               HorizontalAlignment="Left"/>
+
+                                    <CheckBox x:Name="chkDiskIoAlert"
+                                              Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                              Content="{loc:Tr 'Alerte email : surcharge disque (lecture / écriture)'}"
+                                              Foreground="#E5E5E5"
+                                              Margin="0,0,0,12"
+                                              VerticalAlignment="Center"/>
+
+                                    <TextBlock Grid.Row="2" Grid.Column="0"
+                                               Text="{loc:Tr 'Surcharge : seuil (% occupé) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtDiskIoWarn"
+                                             Grid.Row="2" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+
+                                    <TextBlock Grid.Row="3" Grid.Column="0"
+                                               Text="{loc:Tr 'Surcharge : seuil critique (% occupé) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtDiskIoCrit"
+                                             Grid.Row="3" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+
+                                    <TextBlock Grid.Row="4" Grid.Column="0"
+                                               Text="{loc:Tr 'Surcharge : relevés consécutifs :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtDiskIoConfirm"
+                                             Grid.Row="4" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+
+                                    <TextBlock Grid.Row="5" Grid.Column="0"
+                                               Text="{loc:Tr 'Surcharge : intervalle de mesure (s) :'}"
+                                               VerticalAlignment="Center"
+                                               Margin="0,0,10,10"/>
+                                    <TextBox x:Name="txtDiskIoInterval"
+                                             Grid.Row="5" Grid.Column="1"
+                                             Width="100"
+                                             Margin="0,0,0,10"
+                                             Background="#1E1E1E"
+                                             Foreground="#E5E5E5"
+                                             BorderBrush="#3C3C3C"
+                                             VerticalContentAlignment="Center"/>
+
+                                </Grid>
                             </Grid>
 
-                            <!-- Info seuils Go -->
-                            <TextBlock Text="{loc:Tr 'Les seuils en Go sont fixés à 10 Go (warning) et 5 Go (critique) pour les petits disques.'}"
-                                       FontSize="11"
-                                       FontStyle="Italic"
-                                       Foreground="#888"
-                                       Margin="0,15,0,0"
-                                       TextWrapping="Wrap"/>
 
                             <!-- Bouton Enregistrer -->
                             <Button x:Name="btnSaveWatchConfig"

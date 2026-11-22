@@ -781,6 +781,13 @@ namespace RomMonitor.UI
             txtCooldown.Text = "24";
             chkSmartAlert.IsChecked = true;
 
+            // Surcharge disque : un disque sature reste a 100 % d occupation.
+            chkDiskIoAlert.IsChecked = true;
+            txtDiskIoWarn.Text       = "80";
+            txtDiskIoCrit.Text       = "95";
+            txtDiskIoConfirm.Text    = "6";
+            txtDiskIoInterval.Text   = "10";
+
             try
             {
                 string configPath = Path.Combine(
@@ -824,6 +831,16 @@ namespace RomMonitor.UI
                             chkSmartAlert.IsChecked =
                                 val.Equals("true", StringComparison.OrdinalIgnoreCase);
                             break;
+
+                        case "AlertOnDiskIo":
+                            chkDiskIoAlert.IsChecked =
+                                val.Equals("true", StringComparison.OrdinalIgnoreCase);
+                            break;
+
+                        case "DiskIoWarnPercent":     txtDiskIoWarn.Text     = val; break;
+                        case "DiskIoCriticalPercent": txtDiskIoCrit.Text     = val; break;
+                        case "DiskIoConfirmTicks":    txtDiskIoConfirm.Text  = val; break;
+                        case "DiskIoIntervalSeconds": txtDiskIoInterval.Text = val; break;
                     }
                 }
             }
@@ -866,6 +883,46 @@ namespace RomMonitor.UI
                     return;
                 }
 
+                // Surcharge disque
+                if (!int.TryParse(txtDiskIoWarn.Text.Trim(), out int ioWarn) || ioWarn < 10 || ioWarn > 100)
+                {
+                    MessageBox.Show("Surcharge disque : seuil entre 10 et 100 (%).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!int.TryParse(txtDiskIoCrit.Text.Trim(), out int ioCrit) || ioCrit < 20 || ioCrit > 100)
+                {
+                    MessageBox.Show("Surcharge disque : seuil critique entre 20 et 100 (%).",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (ioWarn >= ioCrit)
+                {
+                    ioCrit = Math.Min(100, ioWarn + 5);
+                    txtDiskIoCrit.Text = ioCrit.ToString();
+
+                    MessageBox.Show(
+                        "Le seuil critique doit rester au-dessus du seuil d alerte.\n"
+                        + $"Seuil critique ajuste automatiquement a {ioCrit} %.",
+                        "Ajustement automatique", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+
+                if (!int.TryParse(txtDiskIoConfirm.Text.Trim(), out int ioConfirm) || ioConfirm < 1 || ioConfirm > 60)
+                {
+                    MessageBox.Show("Surcharge disque : nombre de relevés entre 1 et 60.",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                if (!int.TryParse(txtDiskIoInterval.Text.Trim(), out int ioInterval) || ioInterval < 5 || ioInterval > 300)
+                {
+                    MessageBox.Show("Surcharge disque : intervalle entre 5 et 300 secondes.",
+                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
                 // 2) Garde-fou ±3 entre warning et critique (aligné sur MCEMonitor)
                 if (warnPct < critPct + 3)
                 {
@@ -887,6 +944,9 @@ namespace RomMonitor.UI
                     "RomMonitor.config");
 
                 Directory.CreateDirectory(Path.GetDirectoryName(configPath)!);
+
+                int    warnGo      = 10;
+                int    critGo      = 5;
 
                 bool   webEnabled  = true;
                 int    webPort     = 8085;
@@ -912,6 +972,8 @@ namespace RomMonitor.UI
                             case "WebPort":     if (int.TryParse(val, out int wp)) webPort = wp; break;
                             case "WebUsername": webUsername = val; break;
                             case "WebPassword": webPassword = val; break;
+                            case "DiskSpaceWarnGo":     if (int.TryParse(val, out int wg)) warnGo = wg; break;
+                            case "DiskSpaceCriticalGo": if (int.TryParse(val, out int cg)) critGo = cg; break;
                         }
                     }
                 }
@@ -932,8 +994,8 @@ namespace RomMonitor.UI
                     $"DiskSpaceCriticalPercent={critPct}",
                     "",
                     "# Seuil d'alerte espace disque (Go libre)",
-                    "DiskSpaceWarnGo=10",
-                    "DiskSpaceCriticalGo=5",
+                    $"DiskSpaceWarnGo={warnGo}",
+                    $"DiskSpaceCriticalGo={critGo}",
                     "",
                     "# Alertes email",
                     $"AlertOnSmartFailure={chkSmartAlert.IsChecked == true}".ToLowerInvariant(),
@@ -941,6 +1003,13 @@ namespace RomMonitor.UI
                     "",
                     "# Anti-spam : délai minimum entre 2 alertes email du même type (heures)",
                     $"AlertCooldownHours={cooldown}",
+                    "",
+                    "# Surcharge disque : alerte si un disque reste occupe au-dela du seuil",
+                    $"AlertOnDiskIo={(chkDiskIoAlert.IsChecked == true).ToString().ToLowerInvariant()}",
+                    $"DiskIoWarnPercent={ioWarn}",
+                    $"DiskIoCriticalPercent={ioCrit}",
+                    $"DiskIoConfirmTicks={ioConfirm}",
+                    $"DiskIoIntervalSeconds={ioInterval}",
                     "",
                     "# Serveur Web",
                     $"WebEnabled={webEnabled.ToString().ToLower()}",

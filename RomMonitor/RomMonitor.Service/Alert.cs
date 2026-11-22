@@ -6,7 +6,9 @@ namespace RomMonitor.Service
     {
         SmartFailure,
         DiskSpaceLow,
-        DiskSpaceCritical
+        DiskSpaceCritical,
+        DiskIoHigh,
+        DiskIoCritical
     }
 
     public class Alert

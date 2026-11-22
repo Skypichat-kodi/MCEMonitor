@@ -147,6 +147,16 @@
              convenable pour une ligne de saisie, pas pour un journal
              multiligne. D'ou ce modele dedie.
              ============================================================ -->
+        <!-- Champs des paramètres de modules (RomMonitor, SystemMonitor, NetMonitor) :
+             cellule plus basse et marges resserrées pour que ces onglets tiennent
+             dans la fenêtre, sans toucher aux champs de la saisie courante. -->
+        <Style x:Key="ChampParametre" TargetType="TextBox"
+               BasedOn="{StaticResource {x:Type TextBox}}">
+            <Setter Property="Height" Value="22" />
+            <Setter Property="Padding" Value="7,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+
         <Style x:Key="ZoneLog" TargetType="TextBox">
             <Setter Property="Background" Value="#FF141414" />
             <Setter Property="Foreground" Value="{StaticResource Texte}" />
