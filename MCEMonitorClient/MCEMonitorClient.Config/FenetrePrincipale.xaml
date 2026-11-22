@@ -55,6 +55,14 @@
             </Setter>
         </Style>
 
+        <!-- Texte des cellules : centré, coupé proprement, avec le contenu complet
+             en infobulle quand la colonne est trop étroite. -->
+        <Style x:Key="TexteServeur" TargetType="TextBlock">
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+            <Setter Property="ToolTip" Value="{Binding RelativeSource={RelativeSource Self}, Path=Text}" />
+        </Style>
+
         <Style x:Key="LigneServeur" TargetType="DataGridRow">
             <Setter Property="Background" Value="{StaticResource Fond}" />
             <Setter Property="Foreground" Value="{StaticResource Texte}" />
@@ -197,12 +205,42 @@
                           CellStyle="{StaticResource CelluleServeur}"
                           RowStyle="{StaticResource LigneServeur}">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="{loc:Tr 'Nom'}"    Binding="{Binding Name}"    Width="*" />
-                        <DataGridTextColumn Header="{loc:Tr 'URL'}"    Binding="{Binding Url}"     Width="2*" />
-                        <DataGridTextColumn Header="{loc:Tr 'Type'}"   Binding="{Binding Type}"    Width="90" />
-                        <DataGridTextColumn Header="{loc:Tr 'Login'}"  Binding="{Binding Login}"   Width="100" />
-                        <DataGridTextColumn Header="{loc:Tr 'Actif'}"  Binding="{Binding Enabled}" Width="70" />
-                        <DataGridTextColumn Header="{loc:Tr 'État'}"   Binding="{Binding State}"   Width="80" />
+                        <DataGridTextColumn Header="{loc:Tr 'Nom'}"   Binding="{Binding Name}"        Width="1.2*" ElementStyle="{StaticResource TexteServeur}" />
+                        <DataGridTextColumn Header="{loc:Tr 'URL'}"   Binding="{Binding FullUrl}"     Width="1.8*" ElementStyle="{StaticResource TexteServeur}" />
+                        <DataGridTextColumn Header="{loc:Tr 'Type'}"  Binding="{Binding ServiceType}" Width="110"  ElementStyle="{StaticResource TexteServeur}" />
+                        <DataGridTextColumn Header="{loc:Tr 'Login'}" Binding="{Binding Username}"    Width="90"   ElementStyle="{StaticResource TexteServeur}" />
+
+                        <DataGridTemplateColumn Header="{loc:Tr 'Actif'}" Width="70" SortMemberPath="Enabled">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock VerticalAlignment="Center">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{loc:Tr 'Non'}" />
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding Enabled}" Value="True">
+                                                        <Setter Property="Text" Value="{loc:Tr 'Oui'}" />
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Pastille d'état : la couleur viendra des remontées du service -->
+                        <DataGridTemplateColumn Header="{loc:Tr 'État'}" Width="80">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Ellipse Width="10" Height="10"
+                                             Fill="#888888"
+                                             HorizontalAlignment="Left"
+                                             VerticalAlignment="Center"
+                                             Margin="8,0,0,0" />
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
                     </DataGrid.Columns>
                 </DataGrid>
 

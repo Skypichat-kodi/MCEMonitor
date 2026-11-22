@@ -44,6 +44,7 @@
   "Envoyer rapport": "Send report",
   "Indices de capacité": "Capacity indicators",
   "Indices de charge": "Load indicators",
+  "L'intervalle doit être compris entre 5 et 600 secondes.": "The interval must be between 5 and 600 seconds.",
   "Log": "Log",
   "Envoi du rapport automatique": "Automatic report sending",
   "Mesure (s) :": "Sample (s):",
