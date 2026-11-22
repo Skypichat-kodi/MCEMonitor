@@ -4,6 +4,33 @@ TODO global du projet, organisé par thème.
 
 ---
 
+## 🧭 Règle de méthode
+
+### Parité des migrations d'interface
+
+Une migration (WinForms → WPF, refonte d'un onglet, remplacement d'un contrôle) ne peut pas être
+déclarée terminée sans un **tableau de parité** établi par recherche dans le code — jamais de mémoire.
+
+À vérifier pour chaque fonction de l'ancienne interface :
+
+- appels IPC aux services (`...IpcClient.XxxAsync`) ;
+- opérations sur les tâches planifiées (`TaskSchedulerHelper.*`) ;
+- fichiers de configuration lus et écrits ;
+- services démarrés, arrêtés, rechargés à chaud ;
+- envois de mail, exports, confirmations.
+
+Relevé de l'ancienne interface :
+
+```bash
+grep -o "[A-Za-z]*IpcClient\.[A-Za-z]*" MCEMonitor.old/MainForm.cs | sort -u
+grep -o "TaskSchedulerHelper\.[A-Za-z]*" MCEMonitor.old/MainForm.cs | sort -u
+```
+
+Puis vérifier chaque résultat dans la nouvelle interface. Audit du 2026-11-22 : 23 opérations sur
+tâches retrouvées, 2 appels IPC et 1 lecture du mode de la tâche perdus — corrigés.
+
+---
+
 ## 🔧 En cours
 
 _(rien)_
@@ -48,6 +75,34 @@ _(rien)_
 
 ## ✅ Terminé récent
 
+### Session 2026-11-22 — surcharge disque, journal de MCEMonitor, parité WPF
+
+**RomMonitor surveille désormais la surcharge de lecture / écriture.**
+
+- `DiskIoChecker` interroge WMI (`Win32_PerfFormattedData_PerfDisk_LogicalDisk`) : taux d'occupation,
+  débits lecture/écriture, file d'attente, par lecteur (`_Total` et `HarddiskVolume*` écartés)
+- Deux alertes (`DiskIoHigh`, `DiskIoCritical`) déclenchées après **6 relevés consécutifs** au-dessus de
+  80 % (une minute de charge continue), avec envoi de mail ; cinq réglages exposés dans les deux UI
+- Onglet Configuration de RomMonitor.UI séparé en deux colonnes : « Indices de capacité » et
+  « Indices de charge »
+
+**MCEMonitor écrit son propre journal** (`%ProgramData%MCEMonitorLogsMCEMonitor.log`) :
+ticket de session, état des sept tâches planifiées au démarrage, contrôle SMTP et déverrouillage des
+onglets, tous les clics et changements d'onglet, réglages On/Off et des modules, exceptions non gérées.
+Le fichier est vidé à chaque ouverture ; une session qui ne finit pas par « Fermeture » a été interrompue.
+
+**Mise en veille programmée** : elle ne dépend plus de l'envoi du mail. Une connexion SMTP bloquée en
+`CloseWait` empêchait la tâche d'atteindre `SetSuspendState` ; le mail part maintenant en tâche de fond
+bornée à 20 s, et l'attente vise l'heure cible absolue. Timeout SMTP à 15 s.
+
+**Parité WinForms → WPF rétablie** : les deux appels `...IpcClient.ReloadConfigAsync` de l'ancienne
+interface (RomMonitor, SystemMonitor) avaient été perdus, ainsi que la reprise du mode (veille/arrêt)
+depuis la tâche planifiée. `ServiceReload.cs` notifie désormais RomMonitor, SystemMonitor et NetMonitor
+après chaque enregistrement de réglages ; les deux issues sont journalisées.
+
+---
+
+### Session 2026-11-21 — bascule de l'interface vers WPF (3.0.0)
 ### Session 2026-11-21 — bascule de l'interface vers WPF (3.0.0)
 
 **L'interface WinForms Krypton est remplacée par un projet WPF. Tag `v3.0.0`.**

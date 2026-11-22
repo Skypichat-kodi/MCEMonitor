@@ -1423,7 +1423,7 @@ namespace MCEMonitor.UI
                                   || !ioAlert.Equals("false", StringComparison.OrdinalIgnoreCase);
         }
 
-        private void SurEnregistrerReglagesRom(object sender, RoutedEventArgs e)
+        private async void SurEnregistrerReglagesRom(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1501,7 +1501,20 @@ namespace MCEMonitor.UI
 
                 CoreLog.Info("RomMonitor", "Réglages enregistrés");
 
-                AfficherMessageRom(LanguageManager.Get("Réglages enregistrés") ?? "Réglages enregistrés");
+                bool recharge = await ServiceReload.RechargerAsync(ServiceReload.PipeRom);
+
+                if (recharge)
+                {
+                    CoreLog.Info("RomMonitor", "Service rechargé à chaud");
+                    AfficherMessageRom(LanguageManager.Get("Réglages enregistrés, service rechargé.")
+                                       ?? "Réglages enregistrés, service rechargé.");
+                }
+                else
+                {
+                    CoreLog.Warn("RomMonitor", "Service non notifié : redémarrage nécessaire");
+                    AfficherMessageRom(LanguageManager.Get("Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.")
+                                       ?? "Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.");
+                }
             }
             catch (Exception ex)
             {
@@ -1804,7 +1817,7 @@ namespace MCEMonitor.UI
             => !config.TryGetValue(cle, out var valeur)
                || !valeur.Equals("false", StringComparison.OrdinalIgnoreCase);
 
-        private void SurEnregistrerReglagesSystem(object sender, RoutedEventArgs e)
+        private async void SurEnregistrerReglagesSystem(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -1857,7 +1870,20 @@ namespace MCEMonitor.UI
 
                 CoreLog.Info("SystemMonitor", "Réglages enregistrés");
 
-                AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés") ?? "Réglages enregistrés");
+                bool recharge = await ServiceReload.RechargerAsync(ServiceReload.PipeSystem);
+
+                if (recharge)
+                {
+                    CoreLog.Info("SystemMonitor", "Service rechargé à chaud");
+                    AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés, service rechargé.")
+                                       ?? "Réglages enregistrés, service rechargé.");
+                }
+                else
+                {
+                    CoreLog.Warn("SystemMonitor", "Service non notifié : redémarrage nécessaire");
+                    AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.")
+                                       ?? "Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.");
+                }
             }
             catch (Exception ex)
             {
@@ -2241,8 +2267,12 @@ namespace MCEMonitor.UI
                 return;
             }
 
-            // Pas de fichier : on reprend l'heure de la tâche planifiée, si elle existe.
+            // Pas de fichier : on reprend l'heure ET le mode de la tâche planifiée,
+            // si elle existe. Sans cela, une tâche restée en veille alors que le
+            // fichier a disparu s'affichait comme un arrêt (comportement de la
+            // version WinForms, perdu lors du portage).
             var horaire = TaskSchedulerHelper.GetShutdownTaskTime();
+            string? modeTache = TaskSchedulerHelper.GetShutdownTaskMode();
 
             if (horaire != null)
             {
@@ -2255,7 +2285,10 @@ namespace MCEMonitor.UI
                 ChampMinuteArret.Text = "30";
             }
 
-            ChoixTypeArret.SelectedIndex = 1;
+            ChoixTypeArret.SelectedIndex =
+                (modeTache != null && modeTache.Equals(ModeVeille, StringComparison.OrdinalIgnoreCase))
+                    ? 1
+                    : (modeTache != null ? 0 : 1);
         }
 
         private void EcrireConfigArret(int heure, int minute, string mode)
@@ -2665,7 +2698,7 @@ namespace MCEMonitor.UI
             CaseNetAutoBlock.IsChecked = EstVrai(config, "AutoBlock");
         }
 
-        private void SurEnregistrerReglagesNet(object sender, RoutedEventArgs e)
+        private async void SurEnregistrerReglagesNet(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -2705,8 +2738,20 @@ namespace MCEMonitor.UI
 
                 CoreLog.Info("NetMonitor", "Réglages enregistrés");
 
-                AfficherMessageNet(LanguageManager.Get("Réglages NetMonitor enregistrés")
-                                   ?? "Réglages NetMonitor enregistrés");
+                bool recharge = await ServiceReload.RechargerAsync(ServiceReload.PipeNet);
+
+                if (recharge)
+                {
+                    CoreLog.Info("NetMonitor", "Service rechargé à chaud");
+                    AfficherMessageNet(LanguageManager.Get("Réglages enregistrés, service rechargé.")
+                                       ?? "Réglages enregistrés, service rechargé.");
+                }
+                else
+                {
+                    CoreLog.Warn("NetMonitor", "Service non notifié : redémarrage nécessaire");
+                    AfficherMessageNet(LanguageManager.Get("Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.")
+                                       ?? "Réglages enregistrés, mais le service n'a pas pu être notifié : redémarrez-le.");
+                }
             }
             catch (Exception ex)
             {
