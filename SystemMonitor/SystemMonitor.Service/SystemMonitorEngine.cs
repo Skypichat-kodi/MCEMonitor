@@ -26,6 +26,11 @@ namespace SystemMonitor.Service
         private bool _isRunning;
         private SystemSnapshot _lastSnapshot = new();
 
+        // Suivi des transitions pour le journal : ce que les clients voient changer.
+        private bool _etaitEnChauffe;
+        private string? _dernierEtat;
+        private HashSet<string>? _dernieresProblemes;
+
         public SystemSnapshot LastSnapshot => _lastSnapshot;
         public DateTime LastUpdateTime { get; private set; } = DateTime.MinValue;
         public bool IsRunning => _isRunning;
@@ -80,6 +85,10 @@ namespace SystemMonitor.Service
             _isRunning = true;
 
             CoreLog.Write($"SystemMonitorEngine démarré (intervalle = {_settings.Interval} s)");
+            CoreLog.Write($"Seuils : CPU {(_settings.AlertOnHighCpu ? _settings.CpuThresholdPercent + " %" : "désactivé")}, "
+                        + $"RAM {(_settings.AlertOnHighRam ? _settings.RamThresholdPercent + " %" : "désactivé")}, "
+                        + $"temp. CPU {(_settings.AlertOnHighTemp ? _settings.TempThresholdCelsius + " °C" : "désactivé")}, "
+                        + $"temp. GPU {(_settings.AlertOnHighGpuTemp ? _settings.GpuTempThresholdCelsius + " °C" : "désactivé")}");
 
             _timer = new Timer(_settings.Interval * 1000);
             _timer.Elapsed += (s, e) => Tick();
@@ -159,14 +168,28 @@ namespace SystemMonitor.Service
 
                 // Ignorer les seuils CPU/RAM tant que la moyenne
                 // n'est pas stabilisée (phase de chauffe de 90 s au démarrage)
-                if (!IsWarmupPhase)
+                bool enChauffe = IsWarmupPhase;
+
+                if (!enChauffe)
                 {
+                    if (_etaitEnChauffe)
+                    {
+                        _etaitEnChauffe = false;
+                        CoreLog.Write($"Chauffe terminée après {WarmupSamples} échantillons "
+                                    + $"({WarmupSamples * _settings.Interval} s) : seuils actifs");
+                    }
+
                     CheckThresholds(snap);
                 }
-                else
+                else if (!_etaitEnChauffe)
                 {
-                    CoreLog.Write($"Tick : warmup en cours ({_cpuHistory.Count}/{WarmupSamples} échantillons)");
+                    _etaitEnChauffe = true;
+                    CoreLog.Write($"Chauffe démarrée : {WarmupSamples} échantillons "
+                                + $"({WarmupSamples * _settings.Interval} s), seuils suspendus");
                 }
+
+                // Trace des changements publiés par l'API : état global et problèmes.
+                JournaliserTransitions();
 
                 ScanForBsods();
 
@@ -182,6 +205,49 @@ namespace SystemMonitor.Service
         {
             Stop();
             _hardware?.Dispose();
+        }
+
+        /// <summary>
+        /// Journalise ce que les clients vont voir changer : l'état global publié par
+        /// l'API et la liste des problèmes. Rien n'est écrit tant que rien ne change,
+        /// ce qui garde le journal lisible même sur plusieurs jours.
+        /// </summary>
+        private void JournaliserTransitions()
+        {
+            try
+            {
+                var problemes = GetProblems();
+
+                string etat = problemes.Count == 0
+                    ? "ok"
+                    : (problemes.Any(p => p.Severity == "critical") ? "critical" : "warning");
+
+                var cles = new HashSet<string>(problemes
+                    .Where(p => !string.IsNullOrEmpty(p.Category))
+                    .Select(p => p.Category + "|" + p.Target));
+
+                if (_dernieresProblemes != null)
+                {
+                    foreach (var p in problemes.Where(p => !_dernieresProblemes.Contains(p.Category + "|" + p.Target)))
+                        CoreLog.Write($"[PROBLÈME] apparu : {p.Category} {p.Target} — {p.Message}");
+
+                    foreach (string cle in _dernieresProblemes.Where(k => !cles.Contains(k)))
+                        CoreLog.Write($"[PROBLÈME] résolu : {cle}");
+                }
+
+                if (etat != _dernierEtat)
+                {
+                    string cause = problemes.Count > 0 ? " — " + problemes[0].Message : "";
+                    CoreLog.Write($"[ÉTAT] {_dernierEtat ?? "démarrage"} -> {etat}{cause}");
+                    _dernierEtat = etat;
+                }
+
+                _dernieresProblemes = cles;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur JournaliserTransitions : " + ex.Message);
+            }
         }
 
         // ============================================================
