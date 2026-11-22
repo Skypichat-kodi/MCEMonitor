@@ -16,6 +16,17 @@
         FontSize="13"
         UseLayoutRounding="True">
 
+    <!-- Sans WindowChrome, une fenêtre WindowStyle=None mais redimensionnable
+         laisse Windows dessiner son cadre natif : d'où le liseré autour. Le
+         chrome supprime ce cadre et garde une zone de 6 px pour redimensionner. -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="0"
+                      ResizeBorderThickness="6"
+                      GlassFrameThickness="0"
+                      CornerRadius="0"
+                      UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
     <!--
       Popup d'état des serveurs, ouvert depuis le Tray (double-clic sur
       l'icône) et depuis la configuration (bouton « État des serveurs »).
