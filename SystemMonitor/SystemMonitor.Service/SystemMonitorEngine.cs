@@ -303,6 +303,8 @@ namespace SystemMonitor.Service
                         _seriesProcessus.Remove(nom);
                         _debutSurcharge.Remove(nom);
                         _dejaHistorises.Remove(nom);
+
+                        CoreLog.Write($"[PROCESSUS] fin de suivi : {nom}");
                     }
 
                     foreach (var usage in lourds)
@@ -313,6 +315,8 @@ namespace SystemMonitor.Service
                             _seriesProcessus[usage.Name] = serie;
                             _debutSurcharge[usage.Name] = maintenant;
                             _dejaHistorises.Remove(usage.Name);
+
+                            CoreLog.Write($"[PROCESSUS] suivi : {usage.Name} ({usage.CpuPct:F0} %)");
                         }
 
                         serie.Enqueue(new ProcessSeriesPoint { Timestamp = maintenant, CpuUsage = usage.CpuPct });
@@ -694,6 +698,11 @@ namespace SystemMonitor.Service
 
             try
             {
+                // Pendant la chauffe, les seuils ne sont pas évalués : aucun problème
+                // ne doit être publié, ni dans l'API, ni dans le journal.
+                if (IsWarmupPhase)
+                    return problems;
+
                 var snap = _lastSnapshot;
 
                 if (snap == null)
