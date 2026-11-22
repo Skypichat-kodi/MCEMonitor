@@ -22,8 +22,21 @@ namespace MCEMonitorClient.Config
     {
         private static Mutex? _mutex;
 
-        private const string MutexName = "Global\\MCEMonitorClient_Config";
-        private const string PipeName  = "MCEMonitorClient_Config_Activate";
+        private const string MutexName =
+#if VERIF
+            // Compilation de contrôle : mutex et pipe distincts, pour pouvoir tourner
+            // en même temps que l'exécutable livrable, qui est élevé.
+            "Global\\MCEMonitorClient_Config_Verif";
+#else
+            "Global\\MCEMonitorClient_Config";
+#endif
+
+        private const string PipeName =
+#if VERIF
+            "MCEMonitorClient_Config_Activate_Verif";
+#else
+            "MCEMonitorClient_Config_Activate";
+#endif
 
         private const int SW_RESTORE = 9;
 
