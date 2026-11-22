@@ -2928,15 +2928,75 @@ namespace MCEMonitor.UI
             bool ok = GestionnaireTheme.Enregistrer(
                 estClair ? GestionnaireTheme.Sombre : GestionnaireTheme.Clair);
 
-            Boite.Show(this,
-                ok
-                    ? (LanguageManager.Get("Le thème sera appliqué au prochain démarrage de MCEMonitor.")
-                       ?? "Le thème sera appliqué au prochain démarrage de MCEMonitor.")
-                    : (LanguageManager.Get("Impossible d'enregistrer le choix du thème.")
-                       ?? "Impossible d'enregistrer le choix du thème."),
+            if (!ok)
+            {
+                Boite.Show(this,
+                    LanguageManager.Get("Impossible d'enregistrer le choix du thème.")
+                        ?? "Impossible d'enregistrer le choix du thème.",
+                    LanguageManager.Get("Changer de thème") ?? "Changer de thème",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+                return;
+            }
+
+            // Le thème est lu au démarrage : on propose de relancer tout de suite, en
+            // précisant que les interfaces déjà ouvertes garderont l'ancien thème.
+            var redemarrer = Boite.Show(this,
+                (LanguageManager.Get("Le thème sera appliqué au prochain démarrage de MCEMonitor.")
+                    ?? "Le thème sera appliqué au prochain démarrage de MCEMonitor.")
+                + "\n\n"
+                + (LanguageManager.Get("Les interfaces de modules déjà ouvertes conserveront l'ancien thème jusqu'à leur fermeture.")
+                    ?? "Les interfaces de modules déjà ouvertes conserveront l'ancien thème jusqu'à leur fermeture.")
+                + "\n\n"
+                + (LanguageManager.Get("Redémarrer MCEMonitor maintenant ?")
+                    ?? "Redémarrer MCEMonitor maintenant ?"),
                 LanguageManager.Get("Changer de thème") ?? "Changer de thème",
-                MessageBoxButton.OK,
-                ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (redemarrer == MessageBoxResult.Yes)
+                Redemarrer();
+        }
+
+        /// <summary>
+        /// Relance l'application et ferme l'instance courante.
+        /// </summary>
+        private static void Redemarrer()
+        {
+            try
+            {
+                string? executable = Environment.ProcessPath;
+
+                if (string.IsNullOrEmpty(executable))
+                {
+                    Boite.Show(null!,
+                        LanguageManager.Get("Redémarrage impossible : exécutable introuvable.")
+                            ?? "Redémarrage impossible : exécutable introuvable.",
+                        LanguageManager.Get("Changer de thème") ?? "Changer de thème",
+                        MessageBoxButton.OK,
+                        MessageBoxImage.Warning);
+                    return;
+                }
+
+                // Le mutex doit être rendu avant que le successeur ne démarre.
+                App.LibererInstanceUnique();
+
+                Process.Start(new ProcessStartInfo
+                {
+                    FileName        = executable,
+                    UseShellExecute = true
+                });
+
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex)
+            {
+                Boite.Show(null!,
+                    (LanguageManager.Get("Redémarrage impossible : ") ?? "Redémarrage impossible : ") + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Error);
+            }
         }
 
         private const string LicenceMit = """

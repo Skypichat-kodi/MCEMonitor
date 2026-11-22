@@ -20,6 +20,28 @@ namespace MCEMonitor.UI
     {
         private static Mutex? _mutex;
 
+        /// <summary>
+        /// Libère le mutex d'instance unique.
+        ///
+        /// Indispensable avant de relancer l'application depuis elle-même : sans cela,
+        /// le successeur voit le mutex encore tenu, croit à une seconde instance et
+        /// se ferme aussitôt.
+        /// </summary>
+        internal static void LibererInstanceUnique()
+        {
+            try
+            {
+                _mutex?.ReleaseMutex();
+                _mutex?.Dispose();
+            }
+            catch
+            {
+                // Mutex déjà libéré ou détenu par un autre thread : sans conséquence.
+            }
+
+            _mutex = null;
+        }
+
         private const string PipeName = "MCEMonitor_UI_Activate";
 
         private const int SW_RESTORE = 9;
