@@ -8,7 +8,7 @@
         <local:RecConverter x:Key="RecConverter"/>
             <!-- Boutons de la barre de titre : sans cadre, le carre n'apparait qu'au survol -->
         <Style x:Key="BoutonTitre" TargetType="Button">
-            <Setter Property="Foreground" Value="#FFF2F2F2" />
+            <Setter Property="Foreground" Value="{DynamicResource Texte}" />
             <Setter Property="FontSize" Value="13" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">

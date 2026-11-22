@@ -24,53 +24,47 @@
     <Window.Resources>
 
         <!-- Couleurs Windows 11 Dark -->
-        <SolidColorBrush x:Key="Win11Background" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="Win11Panel" Color="#252526"/>
-        <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
-        <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
-        <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
-        <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>
         </Style>
 
         <Style TargetType="DataGridCell">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Fond}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Background" Value="{StaticResource Accent}"/>
                     <Setter Property="Foreground" Value="Black"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Fond}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2D2D30"/>
+                    <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="Padding" Value="10 5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -86,11 +80,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3A3A3D"/>
-                                <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Background" Value="{StaticResource Accent}"/>
                                 <Setter Property="Foreground" Value="Black"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -101,9 +95,9 @@
 
         <!-- Style ComboBox sombre -->
         <Style TargetType="ComboBox">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Fond}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="Padding" Value="6,4"/>
             <Setter Property="FontSize" Value="13"/>
@@ -119,8 +113,8 @@
                                 <ToggleButton.Template>
                                     <ControlTemplate TargetType="ToggleButton">
                                         <Border x:Name="Bd"
-                                                Background="#1E1E1E"
-                                                BorderBrush="#3C3C3C"
+                                                Background="{StaticResource Fond}"
+                                                BorderBrush="{StaticResource Bordure}"
                                                 BorderThickness="1"
                                                 CornerRadius="4">
                                             <Grid>
@@ -132,15 +126,15 @@
                                                       HorizontalAlignment="Center"
                                                       VerticalAlignment="Center"
                                                       Data="M 0 0 L 4 4 L 8 0 Z"
-                                                      Fill="#E5E5E5"/>
+                                                      Fill="{StaticResource Texte}"/>
                                             </Grid>
                                         </Border>
                                         <ControlTemplate.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
                                             </Trigger>
                                             <Trigger Property="IsChecked" Value="True">
-                                                <Setter TargetName="Bd" Property="BorderBrush" Value="#4CC2FF"/>
+                                                <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource Accent}"/>
                                             </Trigger>
                                         </ControlTemplate.Triggers>
                                     </ControlTemplate>
@@ -166,8 +160,8 @@
                                       MinWidth="{TemplateBinding ActualWidth}"
                                       MaxHeight="{TemplateBinding MaxDropDownHeight}">
                                     <Border x:Name="DropDownBorder"
-                                            Background="#252526"
-                                            BorderBrush="#3C3C3C"
+                                            Background="{StaticResource Surface}"
+                                            BorderBrush="{StaticResource Bordure}"
                                             BorderThickness="1"
                                             CornerRadius="4"/>
                                     <ScrollViewer SnapsToDevicePixels="True">
@@ -188,7 +182,7 @@
 
         <!-- Style ComboBoxItem sombre -->
         <Style TargetType="ComboBoxItem">
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="Padding" Value="8,6"/>
             <Setter Property="FontSize" Value="13"/>
@@ -202,10 +196,10 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#2D2D30"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceEntete}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="#4CC2FF"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}"/>
                                 <Setter Property="Foreground" Value="Black"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -215,13 +209,13 @@
         </Style>
 
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
         </Style>
 
         <!-- Style des cartes -->
         <Style x:Key="CardBorder" TargetType="Border">
-            <Setter Property="Background" Value="#252526"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="15"/>
@@ -230,7 +224,7 @@
         <!-- Style des barres de progression -->
         <Style x:Key="ProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="12"/>
-            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -258,8 +252,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="border"
-                                Background="#252526"
-                                BorderBrush="#3C3C3C"
+                                Background="{StaticResource Surface}"
+                                BorderBrush="{StaticResource Bordure}"
                                 BorderThickness="0,0,0,2"
                                 Padding="15,8">
                             <ContentPresenter ContentSource="Header"
@@ -268,30 +262,30 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceEntete}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceSurvol}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
         <!-- Style DataGrid -->
         <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="#252526"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-            <Setter Property="RowBackground" Value="#1E1E1E"/>
-            <Setter Property="AlternatingRowBackground" Value="#252526"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
-            <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="RowBackground" Value="{StaticResource Fond}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource Surface}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
 
@@ -303,15 +297,15 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Border x:Name="ThumbBorder"
-                                Background="#4A4A4D"
+                                Background="{StaticResource SurfaceActive}"
                                 CornerRadius="4"
                                 Margin="2"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#5A5A5E"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource TexteTernaire}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#4CC2FF"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -370,7 +364,7 @@
 
         <!-- Style CheckBox -->
         <Style TargetType="CheckBox">
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
 
@@ -400,7 +394,7 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Background" Value="{StaticResource Accent}"/>
                     <Setter Property="Foreground" Value="Black"/>
                 </Trigger>
             </Style.Triggers>
@@ -445,9 +439,9 @@
 
         <!-- Bleu — Rafraîchir -->
         <Style x:Key="BlueButton" TargetType="Button" BasedOn="{StaticResource ColoredButtonBase}">
-            <Setter Property="Background"  Value="#4CC2FF"/>
+            <Setter Property="Background"  Value="{StaticResource Accent}"/>
             <Setter Property="BorderBrush" Value="#2A8ABF"/>
-            <Setter Property="Foreground" Value="#1E1E1E"/>
+            <Setter Property="Foreground" Value="{StaticResource Fond}"/>
         </Style>
 
         <!-- Violet — PDF -->
@@ -472,7 +466,7 @@
         </Grid.RowDefinitions>
 
         <!-- Fond sombre -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
+        <Rectangle Fill="{StaticResource Fond}" Grid.RowSpan="3"/>
 
         <!-- Overlay background -->
         <Rectangle Grid.RowSpan="3">
@@ -482,7 +476,7 @@
         </Rectangle>
 
         <!-- Voile sombre pour la lisibilité -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
+        <Rectangle Fill="{StaticResource Fond}" Grid.RowSpan="3" Opacity="0.83"/>
 
         <!-- ============================================================ -->
         <!--  BARRE TITRE                                                  -->
@@ -500,7 +494,7 @@
                        Text="MediaMonitor"
                        FontSize="20"
                        FontWeight="Bold"
-                       Foreground="#4CC2FF"
+                       Foreground="{StaticResource Accent}"
                        VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -592,15 +586,15 @@
                                                     <ControlTemplate TargetType="ToggleButton">
                                                         <Grid Width="40" Height="20">
                                                             <Border x:Name="SwitchBackground"
-                                                                    CornerRadius="10" Background="#3C3C3C"/>
+                                                                    CornerRadius="10" Background="{StaticResource Bordure}"/>
                                                             <Ellipse x:Name="SwitchThumb"
                                                                      Width="16" Height="16"
-                                                                     Margin="2" Fill="#E5E5E5"
+                                                                     Margin="2" Fill="{StaticResource Texte}"
                                                                      HorizontalAlignment="Left"/>
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsChecked" Value="True">
-                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource AccentBascule}"/>
                                                                 <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
@@ -631,15 +625,15 @@
                                                     <ControlTemplate TargetType="ToggleButton">
                                                         <Grid Width="40" Height="20">
                                                             <Border x:Name="SwitchBackground"
-                                                                    CornerRadius="10" Background="#3C3C3C"/>
+                                                                    CornerRadius="10" Background="{StaticResource Bordure}"/>
                                                             <Ellipse x:Name="SwitchThumb"
                                                                      Width="16" Height="16"
-                                                                     Margin="2" Fill="#E5E5E5"
+                                                                     Margin="2" Fill="{StaticResource Texte}"
                                                                      HorizontalAlignment="Left"/>
                                                         </Grid>
                                                         <ControlTemplate.Triggers>
                                                             <Trigger Property="IsChecked" Value="True">
-                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource AccentBascule}"/>
                                                                 <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                             </Trigger>
                                                         </ControlTemplate.Triggers>
@@ -659,8 +653,8 @@
                               Padding="10"
                               Header="{loc:Tr 'Serveur Web'}"
                               Background="{StaticResource PanelBackground}"
-                              BorderBrush="{StaticResource Win11Border}"
-                              Foreground="{StaticResource Win11Text}">
+                              BorderBrush="{StaticResource Bordure}"
+                              Foreground="{StaticResource Texte}">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -690,15 +684,15 @@
                                                         <ControlTemplate TargetType="ToggleButton">
                                                             <Grid Width="40" Height="20">
                                                                 <Border x:Name="SwitchBackground"
-                                                                        CornerRadius="10" Background="#3C3C3C"/>
+                                                                        CornerRadius="10" Background="{StaticResource Bordure}"/>
                                                                 <Ellipse x:Name="SwitchThumb"
                                                                          Width="16" Height="16"
-                                                                         Margin="2" Fill="#E5E5E5"
+                                                                         Margin="2" Fill="{StaticResource Texte}"
                                                                          HorizontalAlignment="Left"/>
                                                             </Grid>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource AccentBascule}"/>
                                                                     <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -713,13 +707,13 @@
                                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtWebPort" Width="200"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtWebLogin" Width="200"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                 </StackPanel>
 
                                 <Grid Grid.Row="3">
@@ -732,17 +726,17 @@
                                     <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
 
                                     <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5"
-                                                 BorderBrush="#3C3C3C" Visibility="Visible"/>
+                                                 Background="{StaticResource Fond}" Foreground="{StaticResource Texte}"
+                                                 BorderBrush="{StaticResource Bordure}" Visibility="Visible"/>
 
                                     <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
-                                             Background="#1E1E1E" Foreground="#E5E5E5"
-                                             BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}"
+                                             BorderBrush="{StaticResource Bordure}" Visibility="Collapsed"/>
 
                                     <Button x:Name="btnShowPassword" Grid.Column="2"
                                             Width="22" Height="22" Margin="6,0,0,0" Padding="0"
                                             Click="btnShowPassword_Click"
-                                            Background="#2D2D30" BorderBrush="#3C3C3C"
+                                            Background="{StaticResource SurfaceEntete}" BorderBrush="{StaticResource Bordure}"
                                             BorderThickness="1" Cursor="Hand">
                                         <TextBlock Text="👁" FontSize="12"/>
                                     </Button>
@@ -751,7 +745,7 @@
 
                             <!-- ZONE RETENTION -->
                             <Border Grid.Column="1"
-                                    BorderBrush="#3C3C3C" BorderThickness="1,0,1,0"
+                                    BorderBrush="{StaticResource Bordure}" BorderThickness="1,0,1,0"
                                     Padding="25,0"
                                     Margin="20,0"
                                     VerticalAlignment="Stretch">
@@ -762,7 +756,7 @@
                                     <TextBlock Text="{loc:Tr 'Garder une sauvegarde :'}"
                                                FontSize="13"
                                                FontWeight="SemiBold"
-                                               Foreground="#4CC2FF"
+                                               Foreground="{StaticResource Accent}"
                                                HorizontalAlignment="Center"
                                                Margin="0,0,0,10"/>
 
@@ -797,14 +791,14 @@
                               Margin="0,0,0,10"
                               Header="{loc:Tr 'Serveur TV'}"
                               Background="{StaticResource PanelBackground}"
-                              Foreground="{StaticResource Win11Text}"
-                              BorderBrush="{StaticResource Win11Border}"
+                              Foreground="{StaticResource Texte}"
+                              BorderBrush="{StaticResource Bordure}"
                               BorderThickness="1"
                               IsExpanded="False">
                         <GroupBox Padding="10"
                                   Background="{StaticResource PanelBackground}"
-                                  BorderBrush="{StaticResource Win11Border}"
-                                  Foreground="{StaticResource Win11Text}"
+                                  BorderBrush="{StaticResource Bordure}"
+                                  Foreground="{StaticResource Texte}"
                                   Margin="0">
                             <TabControl Background="Transparent" BorderThickness="0">
                                 <TabItem Header="{loc:Tr 'DVBviewer RS'}">
@@ -830,15 +824,15 @@
                                                                 <ControlTemplate TargetType="ToggleButton">
                                                                     <Grid Width="40" Height="20">
                                                                         <Border x:Name="SwitchBackground"
-                                                                                CornerRadius="10" Background="#3C3C3C"/>
+                                                                                CornerRadius="10" Background="{StaticResource Bordure}"/>
                                                                         <Ellipse x:Name="SwitchThumb"
                                                                                  Width="16" Height="16"
-                                                                                 Margin="2" Fill="#E5E5E5"
+                                                                                 Margin="2" Fill="{StaticResource Texte}"
                                                                                  HorizontalAlignment="Left"/>
                                                                     </Grid>
                                                                     <ControlTemplate.Triggers>
                                                                         <Trigger Property="IsChecked" Value="True">
-                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                            <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource AccentBascule}"/>
                                                                             <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                                         </Trigger>
                                                                     </ControlTemplate.Triggers>
@@ -854,14 +848,14 @@
                                             <TextBlock Text="{loc:Tr 'Adresse des status :'}"
                                                        Width="120" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtDvbUrl" Width="400"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                                     Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                         </StackPanel>
 
                                         <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                             <TextBlock Text="{loc:Tr 'Login :'}"
                                                        Width="120" VerticalAlignment="Center"/>
                                             <TextBox x:Name="txtDvbUser" Width="200"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                                     Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                         </StackPanel>
 
                                         <Grid Grid.Row="3" Margin="0,0,0,8">
@@ -875,17 +869,17 @@
                                                        Grid.Column="0" VerticalAlignment="Center"/>
 
                                             <PasswordBox x:Name="txtDvbPass" Grid.Column="1" Width="177"
-                                                         Background="#1E1E1E" Foreground="#E5E5E5"
-                                                         BorderBrush="#3C3C3C" Visibility="Visible"/>
+                                                         Background="{StaticResource Fond}" Foreground="{StaticResource Texte}"
+                                                         BorderBrush="{StaticResource Bordure}" Visibility="Visible"/>
 
                                             <TextBox x:Name="txtDvbPassVisible" Grid.Column="1" Width="177"
-                                                     Background="#1E1E1E" Foreground="#E5E5E5"
-                                                     BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+                                                     Background="{StaticResource Fond}" Foreground="{StaticResource Texte}"
+                                                     BorderBrush="{StaticResource Bordure}" Visibility="Collapsed"/>
 
                                             <Button x:Name="btnShowDvbPass" Grid.Column="2"
                                                     Width="22" Height="22" Margin="6,0,0,0" Padding="0"
                                                     Click="btnShowDvbPass_Click"
-                                                    Background="#2D2D30" BorderBrush="#3C3C3C"
+                                                    Background="{StaticResource SurfaceEntete}" BorderBrush="{StaticResource Bordure}"
                                                     BorderThickness="1" Cursor="Hand">
                                                 <TextBlock Text="👁" FontSize="12"/>
                                             </Button>
@@ -933,8 +927,8 @@
                             <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
-                                        <Setter Property="Foreground" Value="#E5E5E5"/>
-                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
                                         <Setter Property="BorderThickness" Value="0 0 1 1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
@@ -962,7 +956,7 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -997,7 +991,7 @@
                             Padding="12,6" Margin="0,5,0,5">
                         <TextBlock x:Name="LastImageText"
                                    FontSize="13"
-                                   Foreground="#4CC2FF"
+                                   Foreground="{StaticResource Accent}"
                                    Text="{loc:Tr 'Dernière image ouverte : aucune'}"/>
                     </Border>
 
@@ -1026,8 +1020,8 @@
                             <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
-                                        <Setter Property="Foreground" Value="#E5E5E5"/>
-                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
                                         <Setter Property="BorderThickness" Value="0 0 1 1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
@@ -1055,7 +1049,7 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -1111,12 +1105,12 @@
                             <StackPanel DockPanel.Dock="Right"
                                         Orientation="Horizontal"
                                         VerticalAlignment="Center">
-                                <Rectangle Width="1" Height="18" Fill="#3C3C3C"
+                                <Rectangle Width="1" Height="18" Fill="{StaticResource Bordure}"
                                            Margin="16,0,16,0" VerticalAlignment="Center"/>
                                 <TextBlock Text="📦" FontSize="16" Margin="0,0,10,0" VerticalAlignment="Center"/>
                                 <TextBlock x:Name="BackupInfoText"
                                            VerticalAlignment="Center"
-                                           Foreground="#4CC2FF"
+                                           Foreground="{StaticResource Accent}"
                                            FontWeight="SemiBold"
                                            Text="Chargement..."/>
                             </StackPanel>
@@ -1134,7 +1128,7 @@
                         <StackPanel Orientation="Horizontal">
                             <TextBlock Text="{loc:Tr 'Filtrer par type : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <ComboBox x:Name="BackupFilterType" Height="32" VerticalContentAlignment="Center" Width="120" Margin="0,0,20,0"
-                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"
                                       SelectionChanged="BackupFilter_Changed">
                                 <ComboBoxItem Tag="all"    Content="{loc:Tr 'Tous'}"/>
                                 <ComboBoxItem Tag="audio"  Content="{loc:Tr 'Audio'}"/>
@@ -1147,12 +1141,12 @@
 
                             <TextBlock Text="{loc:Tr 'Filtrer par client : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <ComboBox x:Name="BackupFilterClient" Height="32" VerticalContentAlignment="Center" Width="160" Margin="0,0,20,0"
-                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"
                                       SelectionChanged="BackupFilter_Changed"/>
 
                             <TextBlock Text="{loc:Tr 'Filtrer par date : '}" VerticalAlignment="Center" Margin="0,0,6,0"/>
                             <ComboBox x:Name="BackupFilterDate" Height="32" VerticalContentAlignment="Center" Width="140"
-                                      Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"
+                                      Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"
                                       SelectionChanged="BackupFilter_Changed">
                                 <ComboBoxItem Tag="all"        Content="{loc:Tr 'Tout'}"/>
                                 <ComboBoxItem Tag="today"      Content="{loc:Tr 'Date_Aujourdhui'}"/>
@@ -1188,8 +1182,8 @@
                             <DataGridTextColumn Header="{loc:Tr 'Type'}" Binding="{Binding MediaType}" Width="100">
                                 <DataGridTextColumn.CellStyle>
                                     <Style TargetType="DataGridCell">
-                                        <Setter Property="Foreground" Value="#E5E5E5"/>
-                                        <Setter Property="BorderBrush" Value="#3C3C3C"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
                                         <Setter Property="BorderThickness" Value="0 0 1 1"/>
                                         <Style.Triggers>
                                             <DataTrigger Binding="{Binding MediaType}" Value="Serie">
@@ -1217,7 +1211,7 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="#4CC2FF"/>
+                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </Trigger>
                                         </Style.Triggers>
@@ -1271,7 +1265,7 @@
                                     <TextBlock Text="📊" FontSize="16" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{loc:Tr 'Statistiques globales'}"
                                                FontSize="14" FontWeight="Bold"
-                                               Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                               Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                 </StackPanel>
 
                                 <Grid>
@@ -1288,7 +1282,7 @@
 
                                     <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal" Margin="0,4">
                                         <TextBlock Text="{loc:Tr 'Titres lus : '}" Width="110" Foreground="#aaa"/>
-                                        <TextBlock x:Name="StatTotal" FontWeight="Bold" Foreground="#4CC2FF"/>
+                                        <TextBlock x:Name="StatTotal" FontWeight="Bold" Foreground="{StaticResource Accent}"/>
                                     </StackPanel>
                                     <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="0,4">
                                         <TextBlock Text="{loc:Tr 'Audio : '}" Width="80" Foreground="#aaa"/>
@@ -1332,7 +1326,7 @@
                                         <TextBlock Text="🎬" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="{loc:Tr 'Top séries'}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid x:Name="TopSeriesGrid"
                                               AutoGenerateColumns="False" CanUserAddRows="False"
@@ -1351,7 +1345,7 @@
                                         <TextBlock Text="🎵" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="{loc:Tr 'Top artistes'}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid x:Name="TopArtistesGrid"
                                               AutoGenerateColumns="False" CanUserAddRows="False"
@@ -1378,7 +1372,7 @@
                                         <TextBlock Text="👥" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="{loc:Tr 'Top clients'}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid x:Name="TopClientsGrid"
                                               AutoGenerateColumns="False" CanUserAddRows="False"
@@ -1397,7 +1391,7 @@
                                         <TextBlock Text="🗂" FontSize="14" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                         <TextBlock Text="{loc:Tr 'Médias par client'}"
                                                    FontSize="13" FontWeight="SemiBold"
-                                                   Foreground="#4CC2FF" VerticalAlignment="Center"/>
+                                                   Foreground="{StaticResource Accent}" VerticalAlignment="Center"/>
                                     </StackPanel>
                                     <DataGrid x:Name="PerClientGrid"
                                               AutoGenerateColumns="False" CanUserAddRows="False"
@@ -1427,15 +1421,15 @@
         <!--  STATUS BAR                                                   -->
         <!-- ============================================================ -->
         <Border Grid.Row="2"
-                Background="#252526"
-                BorderBrush="#3C3C3C"
+                Background="{StaticResource Surface}"
+                BorderBrush="{StaticResource Bordure}"
                 BorderThickness="0,1,0,0"
                 Margin="0,10,0,0"
                 Padding="15,6">
             <TextBlock x:Name="StatusText"
                        Text="{loc:Tr 'prêt'}"
                        FontSize="12"
-                       Foreground="#B4B4B4"
+                       Foreground="{StaticResource TexteSecondaire}"
                        VerticalAlignment="Center"/>
         </Border>
 
