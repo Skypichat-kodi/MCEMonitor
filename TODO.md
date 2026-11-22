@@ -29,6 +29,23 @@ grep -o "TaskSchedulerHelper\.[A-Za-z]*" MCEMonitor.old/MainForm.cs | sort -u
 Puis vérifier chaque résultat dans la nouvelle interface. Audit du 2026-11-22 : 23 opérations sur
 tâches retrouvées, 2 appels IPC et 1 lecture du mode de la tâche perdus — corrigés.
 
+Deuxième audit, même jour, après deux régressions signalées en usage :
+
+```bash
+grep -o '"[A-Za-z0-9._]*\.exe"' MCEMonitor.old/MainForm.cs | sort -u
+grep -oE "private +(async +)?void +[A-Za-z0-9_]+" MCEMonitor.old/MainForm.cs | sort -u
+```
+
+À vérifier également, en plus des appels IPC et des tâches :
+
+- **les `Process.Start`** — lancement des Tray, des interfaces de modules, des dossiers, des pages web ;
+- **les tâches `ONLOGON`** des Tray, distinctes des tâches de service (`ONSTART`) ;
+- **les gestionnaires d'événements** (boutons, cases, minuteries), un par un, avec leur action attendue.
+
+Constat du 2026-11-22 : les boutons « Ouvrir … » ne lançaient plus les Tray et les boutons
+« Automatique » ne recréaient plus leurs tâches `ONLOGON`. Ces deux points ne ressortaient pas de la
+première requête, qui ne cherchait que les classes `*IpcClient` et `TaskSchedulerHelper`.
+
 ### Chaînes traduisibles
 
 Toute chaîne visible ajoutée ou modifiée dans une interface — `{loc:Tr '…'}` dans le XAML,
@@ -92,6 +109,23 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
+- [ ] **Rendre réglable le seuil de suivi des processus** *(SystemMonitor)*
+  - Le seuil de 10 % qui fait entrer un processus dans le graphique CPU est une constante du service
+    (`SeuilProcessus`), comme le plafond de cinq courbes et la durée de cinq minutes
+  - Le placer dans l'onglet Configuration de SystemMonitor.UI, à côté des seuils CPU et RAM
+  - Envisager un seuil distinct pour l'historisation, si 10 % produit trop d'entrées `ProcessHigh`
+  - **Priorité** : 🟢 basse (demandé « plus tard » par Christophe)
+
+- [ ] **Étendre l'aperçu de courbe aux alertes globales**
+  - Seules les entrées `ProcessHigh` portent une série (`Alert.CpuSeries`). Une alerte CPU ou RAM
+    n'a pas de courbe consultable
+  - Le moteur a l'historique global sous la main au moment où l'alerte est créée : l'attacher est direct
+  - **Priorité** : 🟢 basse
+
+- [ ] **Supprimer `Theme.cs` du client de configuration**
+  - Palette WinForms (`Color`, `Font`) devenue inutilisée depuis la bascule en WPF ; plus personne ne la lit
+  - **Priorité** : 🟢 basse (nettoyage)
+
 - [ ] **Traduire les messages d'erreur propres à chaque module**
   - Restent en français dans le code : « Xxx.Service.exe introuvable », « Impossible d'arrêter Xxx.Service tant que Xxx.UI est ouvert », « Erreur lors de l'ouverture de Xxx.UI », etc.
   - Une trentaine de chaînes, réparties sur les six modules. Les messages d'interface (popup SMTP, fenêtre des MAC, avertissements d'élévation) sont déjà couverts par les clés `Ui.*`
@@ -110,6 +144,58 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-22 — client en WPF, courbes CPU par processus
+
+**Le client de configuration passe entièrement en WPF** (`MCEMonitorClient`).
+
+- `MCEMonitorClient.Config` : fenêtre principale au gabarit MCEMonitor (900 × 680, non redimensionnable),
+  dialogue d'ajout / modification d'un serveur avec test de connexion sur `/api/summary`, actions
+  ajouter / modifier / supprimer / exporter / importer, section Service et Tray, options
+- `MCEMonitorClient.Tray` : popup des serveurs réécrit (`FenetreServeurs.xaml`). Le projet reste un
+  exécutable WinForms pour le `NotifyIcon` et passe en `UseWPF` pour héberger la fenêtre
+- `App.xaml` reprend intégralement la palette de `MCEMonitor.UI` : c'est ce qui garantit le même style
+- Anciens fichiers supprimés (2 245 lignes) ; ils restent dans l'historique Git
+- Mode de contrôle `VERIF` : mutex et pipe distincts, pour tester à côté de l'exécutable livré, qui est élevé
+- **Constat de méthode** : ce client ne se teste qu'en version élevée. Sans élévation, l'écriture dans
+  `C:\ProgramData\MCEMonitor` échoue et le pipe du service est refusé aux processus de moindre intégrité
+
+**Courbes CPU par processus** (SystemMonitor).
+
+- `ProcessCpuTracker` mesure l'usage par **écart de `TotalProcessorTime`** entre deux relevés, agrégé
+  par nom. `TopProcessesCollector` ne convenait pas : il échantillonne pendant une seconde entière
+- jusqu'à cinq séries au-dessus de 10 %, courbe globale en gras, légende avec la charge courante
+- un processus repassé sous le seuil disparaît ; les séries sont alignées à droite sur l'échelle de
+  temps de l'historique global
+- après cinq minutes continues, entrée d'historique `info` / `ProcessHigh` **avec la courbe enregistrée**
+  (~1,5 Ko). Double-clic dans l'historique → aperçu (période, durée, pic, dernière valeur, courbe)
+- seuil, plafond de cinq et durée de cinq minutes sont des constantes du service
+
+**Journal et notifications de SystemMonitor.**
+
+- seuils en vigueur au démarrage, une ligne au début et à la fin de la chauffe (au lieu de dix-huit),
+  transitions `[ÉTAT]`, problèmes apparus et résolus, entrées et sorties de suivi des processus
+- la durée de chauffe était incohérente : 90 s réels, 60 s au journal, 90 s au commentaire. Une seule
+  définition désormais
+- l'API publie un état `warmup` pendant la chauffe ; les clients l'ignorent et ne notifient pas
+- `GetProblems()` ne publie plus rien pendant la chauffe : le journal annonçait un problème critique
+  alors que les seuils étaient suspendus
+- la reconnexion prime sur l'icône du problème en cours (Windows et Android) ; un serveur qui revenait
+  avec une surcharge affichait `cpu-overload.png` sur une notification de reconnexion
+
+**Parité WinForms rétablie — deux régressions signalées.**
+
+- les boutons « Ouvrir MediaMonitor / RomMonitor / SystemMonitor / NetMonitor » ne lançaient plus le
+  Tray de leur module, seulement le service
+- les boutons « Automatique » ne recréaient plus la tâche `ONLOGON` du Tray, jamais recréée depuis la
+  bascule
+- **Un Tray ne peut pas être lancé par son service**, qui tourne en session 0 (SYSTEM) sans bureau :
+  il est lancé par l'interface, et la tâche `ONLOGON` couvre le démarrage de session. Le Tray attend
+  déjà son service puis se ferme s'il n'arrive pas
+- audit complet de parité : 31 opérations sur tâches, IPC, processus lancés, 60 gestionnaires —
+  aucune autre régression trouvée
+
+**Release 3.0.6 « WPF Only »** : installeur et APK, notes reprenant tout l'historique 3.x, page 3.0.4 retirée.
 
 ### Session 2026-11-22 — surcharge disque, journal de MCEMonitor, parité WPF
 
