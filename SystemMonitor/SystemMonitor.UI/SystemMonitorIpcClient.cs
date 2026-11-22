@@ -103,6 +103,9 @@ namespace SystemMonitor.UI
         public string target        { get; set; } = "";
         public string message       { get; set; } = "";
         public bool emailSent       { get; set; }
+
+        /// <summary>Courbe enregistrée avec l'entrée, quand elle existe.</summary>
+        public List<SysProcessSeriesPoint>? series { get; set; }
     }
 
     public class SysHistoryPoint

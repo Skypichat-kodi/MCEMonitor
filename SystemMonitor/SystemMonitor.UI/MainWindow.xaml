@@ -1105,7 +1105,8 @@
                                   AutoGenerateColumns="False"
                                   CanUserAddRows="False"
                                   IsReadOnly="True"
-                                  HeadersVisibility="Column">
+                                  HeadersVisibility="Column"
+                                  MouseDoubleClick="AlertsHistory_DoubleClick">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Date'}" Binding="{Binding TimestampText}" Width="150"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="100"/>

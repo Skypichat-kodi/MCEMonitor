@@ -338,7 +338,11 @@ namespace SystemMonitor.Service
                             Target    = usage.Name,
                             Message   = $"{usage.Name} : au-dessus de {SeuilProcessus:F0} % "
                                       + $"pendant {DureeHistoriqueProcessusMinutes} min (pic {pic:F0} %)",
-                            EmailSent = false
+                            EmailSent = false,
+
+                            // La courbe est recopiée maintenant : le graphique étant
+                            // glissant, elle ne serait plus consultable ensuite.
+                            CpuSeries = serie.ToList()
                         });
 
                         CoreLog.Write($"[PROCESSUS] {usage.Name} au-dessus de {SeuilProcessus:F0} % depuis "

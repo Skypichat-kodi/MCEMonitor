@@ -496,11 +496,28 @@ namespace SystemMonitor.UI
                         Severity = a.severity ?? "",
                         Target = a.target ?? "",
                         Message = a.message ?? "",
-                        EmailSent = a.emailSent
+                        EmailSent = a.emailSent,
+                        Series = a.series
                     });
                 }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// Double-clic sur une entrée d'historique : affiche la courbe qui lui a été
+        /// enregistrée. Seules les entrées de processus en possèdent une.
+        /// </summary>
+        private void AlertsHistory_DoubleClick(object sender, MouseButtonEventArgs e)
+        {
+            if (AlertsHistoryGrid.SelectedItem is not AlertRow ligne)
+                return;
+
+            if (ligne.Series == null || ligne.Series.Count < 2)
+                return;
+
+            var fenetre = new FenetreApercuSerie(ligne.Target, ligne.Series) { Owner = this };
+            fenetre.ShowDialog();
         }
 
         // ------------------------------------------------------------
@@ -1312,6 +1329,9 @@ namespace SystemMonitor.UI
         public string Target { get; set; } = "";
         public string Message { get; set; } = "";
         public bool EmailSent { get; set; }
+
+        /// <summary>Courbe enregistrée avec l'entrée, quand elle existe.</summary>
+        public List<SysProcessSeriesPoint>? Series { get; set; }
     }
 
     public class BsodRow

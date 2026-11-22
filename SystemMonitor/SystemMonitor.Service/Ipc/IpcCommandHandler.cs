@@ -289,7 +289,8 @@ namespace SystemMonitor.Service.Ipc
                     severity = a.Severity,
                     target = a.Target,
                     message = a.Message,
-                    emailSent = a.EmailSent
+                    emailSent = a.EmailSent,
+                    series = a.CpuSeries
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
