@@ -29,6 +29,42 @@ grep -o "TaskSchedulerHelper\.[A-Za-z]*" MCEMonitor.old/MainForm.cs | sort -u
 Puis vérifier chaque résultat dans la nouvelle interface. Audit du 2026-11-22 : 23 opérations sur
 tâches retrouvées, 2 appels IPC et 1 lecture du mode de la tâche perdus — corrigés.
 
+### Chaînes traduisibles
+
+Toute chaîne visible ajoutée ou modifiée dans une interface — `{loc:Tr '…'}` dans le XAML,
+`LanguageManager.Get("…")` dans le C# — doit exister dans **`fr-FR.json` et `en-GB.json`**.
+
+Le `LanguageManager` retombe silencieusement sur la clé : un oubli ne casse rien et n'écrit aucune
+erreur, il affiche simplement du français à un utilisateur anglophone. Le défaut est donc invisible
+sans contrôle explicite.
+
+Contrôle à faire sur chaque fichier d'interface modifié :
+
+```bash
+for f in MCEMonitor.UI/*.xaml; do
+  grep -ho "loc:Tr '[^']*'" "$f" | sed "s/loc:Tr '//; s/'$//" | sort -u
+done | while IFS= read -r c; do
+  grep -qF "\"$c\"" MCEMonitor.Languages/Languages/fr-FR.json || echo "fr-FR manque : $c"
+  grep -qF "\"$c\"" MCEMonitor.Languages/Languages/en-GB.json || echo "en-GB manque : $c"
+done
+```
+
+Le contrôle est muet quand tout est traduit. Il signale normalement six lignes, qui ne sont **pas** des
+oublis : `MediaMonitor`, `NetMonitor`, `RomMonitor`, `StopMonitor`, `SystemMonitor` et `WakeMonitor`
+sont des noms propres de modules, affichés tels quels dans les deux langues et volontairement absents
+des fichiers de traduction. Tout autre nom signalé est un vrai oubli.
+
+Les clés sont des phrases françaises : les insérer dans les deux fichiers dans l'ordre alphabétique du
+bloc des phrases (pas celui des clés techniques `App.Title`, `Net.BlockIp`…), en conservant le BOM et
+les fins de ligne CRLF.
+
+Rappel de déploiement : l'application lit les traductions depuis
+`C:\ProgramData\MCEMonitor\Languages`, alimenté par `build.bat` et l'installeur. Une clé ajoutée n'a
+donc aucun effet tant que l'application n'a pas été recompilée puis réinstallée.
+
+Constat du 2026-11-22 : 15 clés absentes (surcharge disque de RomMonitor, libellés de `ServiceReload`),
+invisibles en français à cause du repli. Ajoutées en `fr-FR` et `en-GB` (commit `8208797`).
+
 ---
 
 ## 🔧 En cours
@@ -99,6 +135,10 @@ bornée à 20 s, et l'attente vise l'heure cible absolue. Timeout SMTP à 15 s.
 interface (RomMonitor, SystemMonitor) avaient été perdus, ainsi que la reprise du mode (veille/arrêt)
 depuis la tâche planifiée. `ServiceReload.cs` notifie désormais RomMonitor, SystemMonitor et NetMonitor
 après chaque enregistrement de réglages ; les deux issues sont journalisées.
+
+**Traductions complétées** : 15 clés manquaient pour la surcharge disque et les messages de
+`ServiceReload`. Le repli du `LanguageManager` les affichait en français, y compris en anglais —
+d'où l'ajout d'une règle de contrôle des chaînes traduisibles.
 
 ---
 
