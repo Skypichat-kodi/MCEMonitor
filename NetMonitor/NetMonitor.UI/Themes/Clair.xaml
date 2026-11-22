@@ -11,6 +11,7 @@
     <SolidColorBrush x:Key="SurfaceEntete"     Color="#FFF0F0F0" />
     <SolidColorBrush x:Key="SurfaceSurvol"     Color="#FFE9E9E9" />
     <SolidColorBrush x:Key="SurfaceActive"     Color="#FFDEDEDE" />
+    <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
     <SolidColorBrush x:Key="Bordure"           Color="#FFC0C0C0" />
     <SolidColorBrush x:Key="Texte"             Color="#FF1B1B1B" />
     <SolidColorBrush x:Key="TexteSecondaire"   Color="#FF5F5F5F" />

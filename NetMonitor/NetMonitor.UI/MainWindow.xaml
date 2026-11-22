@@ -219,7 +219,7 @@
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="VerticalContentAlignment" Value="Center"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>   <!-- pas de contour noir sur la cellule cliquee -->
@@ -260,7 +260,7 @@
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TraitTableau}"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
             <!-- Template maison : celui du theme peint la selection et le contour de
                  focus avec les couleurs systeme, sans qu on puisse l empecher. -->
