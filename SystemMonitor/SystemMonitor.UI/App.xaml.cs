@@ -18,7 +18,7 @@ namespace SystemMonitor.UI
         private const string MutexName = "Global\\MCEMonitor_SystemMonitorUI";
         private const string PipeName  = "MCEMonitor_SystemMonitorUI_Activate";
 
-        // Win32 imports pour l'activation de fenêtre
+        // Win32 imports pour l'activation de fenï¿½tre
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -40,14 +40,14 @@ namespace SystemMonitor.UI
 
             if (!createdNew)
             {
-                // Une instance tourne déjà ? lui demander de s'activer
+                // Une instance tourne dï¿½jï¿½ ? lui demander de s'activer
                 SignalExistingInstance();
 
                 Shutdown();
                 return;
             }
 
-            // Première instance ? démarrer le listener IPC
+            // Premiï¿½re instance ? dï¿½marrer le listener IPC
             StartActivationListener();
 
             // ============================================================
@@ -78,7 +78,7 @@ namespace SystemMonitor.UI
                 ex.SetObserved();
             };
 
-            // Patch anti-écran blanc (VNC / RDP)
+            // Patch anti-ï¿½cran blanc (VNC / RDP)
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
             // Gestion de la langue
@@ -95,11 +95,15 @@ namespace SystemMonitor.UI
 
             MCEMonitor.Languages.LanguageManager.Load(selectedLang);
 
+            // ThÃ¨me choisi dans MCEMonitor, appliquÃ© avant la crÃ©ation de la fenÃªtre
+            // (StartupUri est rÃ©solu aprÃ¨s OnStartup).
+            GestionnaireTheme.Appliquer(this);
+
             base.OnStartup(e);
         }
 
         // ============================================================
-        //  Signale à l'instance existante de venir au premier plan
+        //  Signale ï¿½ l'instance existante de venir au premier plan
         // ============================================================
         private static void SignalExistingInstance()
         {
@@ -116,13 +120,13 @@ namespace SystemMonitor.UI
             }
             catch
             {
-                // Si le pipe ne répond pas, on ne peut rien faire
-                // (l'instance existante ne répond pas)
+                // Si le pipe ne rï¿½pond pas, on ne peut rien faire
+                // (l'instance existante ne rï¿½pond pas)
             }
         }
 
         // ============================================================
-        //  Thread qui écoute les demandes d'activation
+        //  Thread qui ï¿½coute les demandes d'activation
         // ============================================================
         private void StartActivationListener()
         {
@@ -151,7 +155,7 @@ namespace SystemMonitor.UI
                     }
                     catch
                     {
-                        // On continue la boucle même en cas d'erreur
+                        // On continue la boucle mï¿½me en cas d'erreur
                     }
                 }
             })
@@ -164,8 +168,8 @@ namespace SystemMonitor.UI
         }
 
         // ============================================================
-        //  Ramène la fenêtre principale au premier plan
-        //  ou affiche un message si elle est déjà active
+        //  Ramï¿½ne la fenï¿½tre principale au premier plan
+        //  ou affiche un message si elle est dï¿½jï¿½ active
         // ============================================================
         private void ActivateMainWindow()
         {
@@ -180,18 +184,18 @@ namespace SystemMonitor.UI
             if (hwnd == IntPtr.Zero)
                 return;
 
-            // Déjà au premier plan ?
+            // Dï¿½jï¿½ au premier plan ?
             if (GetForegroundWindow() == hwnd)
             {
                 MessageBox.Show(
-                    "SystemMonitor.UI est déjà au premier plan.",
-                    "Instance déjà active",
+                    "SystemMonitor.UI est dï¿½jï¿½ au premier plan.",
+                    "Instance dï¿½jï¿½ active",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
             }
 
-            // Restaurer si minimisée
+            // Restaurer si minimisï¿½e
             if (IsIconic(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 

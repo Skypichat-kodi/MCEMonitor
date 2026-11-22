@@ -24,53 +24,47 @@
     <Window.Resources>
 
         <!-- Couleurs Windows 11 Dark -->
-        <SolidColorBrush x:Key="Win11Background" Color="#1E1E1E"/>
-        <SolidColorBrush x:Key="Win11Panel" Color="#252526"/>
-        <SolidColorBrush x:Key="Win11Border" Color="#3C3C3C"/>
-        <SolidColorBrush x:Key="Win11Text" Color="#E5E5E5"/>
-        <SolidColorBrush x:Key="Win11Accent" Color="#4CC2FF"/>
-        <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF"/>
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>
         </Style>
 
         <Style TargetType="DataGridCell">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Fond}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>
             <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="#4CC2FF"/>
+                    <Setter Property="Background" Value="{StaticResource Accent}"/>
                     <Setter Property="Foreground" Value="Black"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="DataGridRow">
-            <Setter Property="Background" Value="#1E1E1E"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Fond}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2D2D30"/>
+                    <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
 
         <Style TargetType="Button">
-            <Setter Property="Background" Value="#2D2D30"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="Padding" Value="10 5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -86,11 +80,11 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter Property="Background" Value="#3A3A3D"/>
-                                <Setter Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="#4CC2FF"/>
+                                <Setter Property="Background" Value="{StaticResource Accent}"/>
                                 <Setter Property="Foreground" Value="Black"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
@@ -100,13 +94,13 @@
         </Style>
 
         <Style TargetType="TextBlock">
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
         </Style>
 
         <!-- Style des cartes -->
         <Style x:Key="CardBorder" TargetType="Border">
-            <Setter Property="Background" Value="#252526"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="1"/>
             <Setter Property="CornerRadius" Value="6"/>
             <Setter Property="Padding" Value="15"/>
@@ -115,7 +109,7 @@
         <!-- Style des barres de progression -->
         <Style x:Key="ProgressBarStyle" TargetType="ProgressBar">
             <Setter Property="Height" Value="12"/>
-            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Template">
                 <Setter.Value>
@@ -143,8 +137,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="TabItem">
                         <Border x:Name="border"
-                                Background="#252526"
-                                BorderBrush="#3C3C3C"
+                                Background="{StaticResource Surface}"
+                                BorderBrush="{StaticResource Bordure}"
                                 BorderThickness="0,0,0,2"
                                 Padding="15,8">
                             <ContentPresenter ContentSource="Header"
@@ -153,30 +147,30 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#2D2D30"/>
-                                <Setter TargetName="border" Property="BorderBrush" Value="#4CC2FF"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceEntete}"/>
+                                <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="border" Property="Background" Value="#3A3A3D"/>
+                                <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceSurvol}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
                 </Setter.Value>
             </Setter>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="FontSize" Value="13"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
 
         <!-- Style DataGrid (fond sombre) -->
         <Style TargetType="DataGrid">
-            <Setter Property="Background" Value="#252526"/>
-            <Setter Property="Foreground" Value="#E5E5E5"/>
-            <Setter Property="BorderBrush" Value="#3C3C3C"/>
-            <Setter Property="RowBackground" Value="#1E1E1E"/>
-            <Setter Property="AlternatingRowBackground" Value="#252526"/>
-            <Setter Property="HorizontalGridLinesBrush" Value="#3C3C3C"/>
-            <Setter Property="VerticalGridLinesBrush" Value="#3C3C3C"/>
+            <Setter Property="Background" Value="{StaticResource Surface}"/>
+            <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="RowBackground" Value="{StaticResource Fond}"/>
+            <Setter Property="AlternatingRowBackground" Value="{StaticResource Surface}"/>
+            <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="VerticalGridLinesBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="FontSize" Value="13"/>
         </Style>
 
@@ -190,15 +184,15 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="Thumb">
                         <Border x:Name="ThumbBorder"
-                                Background="#4A4A4D"
+                                Background="{StaticResource SurfaceActive}"
                                 CornerRadius="4"
                                 Margin="2"/>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#5A5A5E"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource TexteTernaire}"/>
                             </Trigger>
                             <Trigger Property="IsDragging" Value="True">
-                                <Setter TargetName="ThumbBorder" Property="Background" Value="#4CC2FF"/>
+                                <Setter TargetName="ThumbBorder" Property="Background" Value="{StaticResource Accent}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -279,7 +273,7 @@
         </Grid.RowDefinitions>
 
         <!-- Fond sombre -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3"/>
+        <Rectangle Fill="{StaticResource Fond}" Grid.RowSpan="3"/>
 
         <!-- Overlay background -->
         <Rectangle Grid.RowSpan="3">
@@ -289,7 +283,7 @@
         </Rectangle>
 
         <!-- Voile sombre pour la lisibilité -->
-        <Rectangle Fill="#1E1E1E" Grid.RowSpan="3" Opacity="0.83"/>
+        <Rectangle Fill="{StaticResource Fond}" Grid.RowSpan="3" Opacity="0.83"/>
 
         <!-- ============================================================ -->
         <!--  BARRE TITRE                                                  -->
@@ -307,7 +301,7 @@
                        Text="SystemMonitor"
                        FontSize="20"
                        FontWeight="Bold"
-                       Foreground="#4CC2FF"
+                       Foreground="{StaticResource Accent}"
                        VerticalAlignment="Center"/>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal">
@@ -395,7 +389,7 @@
                                         <TextBlock Text="{loc:Tr 'Processeur'}"
                                                    FontSize="14"
                                                    FontWeight="Bold"
-                                                   Foreground="#4CC2FF"
+                                                   Foreground="{StaticResource Accent}"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
@@ -467,7 +461,7 @@
                                         <TextBlock Text="{loc:Tr 'Mémoire'}"
                                                    FontSize="14"
                                                    FontWeight="Bold"
-                                                   Foreground="#4CC2FF"
+                                                   Foreground="{StaticResource Accent}"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
@@ -539,7 +533,7 @@
                                             <TextBlock Text="{loc:Tr 'Utilisation CPU (5 min)'}"
                                                        FontSize="13"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#4CC2FF"
+                                                       Foreground="{StaticResource Accent}"
                                                        VerticalAlignment="Center"/>
                                         </StackPanel>
 
@@ -553,15 +547,15 @@
 
                                     <Canvas x:Name="chartCpu"
                                             Height="120"
-                                            Background="#1A1A1A"
+                                            Background="{StaticResource FondGraphique}"
                                             ClipToBounds="True"
                                             SizeChanged="Chart_SizeChanged">
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid25"/>
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid50"/>
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid75"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid25"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid50"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid75"/>
 
                                         <Polyline x:Name="polyCpu"
-                                                  Stroke="#4CC2FF"
+                                                  Stroke="{StaticResource Accent}"
                                                   StrokeThickness="3"
                                                   Fill="Transparent"/>
                                     </Canvas>
@@ -590,7 +584,7 @@
                                             <TextBlock Text="{loc:Tr 'Utilisation RAM (5 min)'}"
                                                        FontSize="13"
                                                        FontWeight="SemiBold"
-                                                       Foreground="#4CC2FF"
+                                                       Foreground="{StaticResource Accent}"
                                                        VerticalAlignment="Center"/>
                                         </StackPanel>
 
@@ -604,15 +598,15 @@
 
                                     <Canvas x:Name="chartRam"
                                             Height="120"
-                                            Background="#1A1A1A"
+                                            Background="{StaticResource FondGraphique}"
                                             ClipToBounds="True"
                                             SizeChanged="Chart_SizeChanged">
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid25"/>
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid50"/>
-                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="#2D2D30" StrokeThickness="1" Tag="Grid75"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid25"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid50"/>
+                                        <Line X1="0" Y1="0" X2="0" Y2="0" Stroke="{StaticResource SurfaceEntete}" StrokeThickness="1" Tag="Grid75"/>
 
                                         <Polyline x:Name="polyRam"
-                                                  Stroke="#6CCB5F"
+                                                  Stroke="{StaticResource Succes}"
                                                   StrokeThickness="2"
                                                   Fill="Transparent"/>
                                     </Canvas>
@@ -635,7 +629,7 @@
                                 <TextBlock Text="{loc:Tr 'Cartes graphiques'}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
-                                           Foreground="#4CC2FF"
+                                           Foreground="{StaticResource Accent}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
 
@@ -647,7 +641,7 @@
                                 <TextBlock Text="{loc:Tr 'Réseau'}"
                                            FontSize="14"
                                            FontWeight="SemiBold"
-                                           Foreground="#4CC2FF"
+                                           Foreground="{StaticResource Accent}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
                         </Grid>
@@ -674,7 +668,7 @@
                                                 <TextBlock Text="{Binding Name}"
                                                            FontSize="13"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#E5E5E5"
+                                                           Foreground="{StaticResource Texte}"
                                                            Margin="0,0,0,12"
                                                            TextWrapping="Wrap"/>
 
@@ -717,7 +711,7 @@
                                                     <TextBlock Text="{loc:Tr 'VRAM'}" Foreground="#aaa" FontSize="12"/>
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding VramText}"
-                                                               Foreground="#E5E5E5"
+                                                               Foreground="{StaticResource Texte}"
                                                                FontWeight="Bold"
                                                                FontSize="13"/>
                                                 </Grid>
@@ -747,7 +741,7 @@
                                                 <TextBlock Text="{Binding Name}"
                                                            FontSize="13"
                                                            FontWeight="SemiBold"
-                                                           Foreground="#E5E5E5"
+                                                           Foreground="{StaticResource Texte}"
                                                            Margin="0,0,0,12"
                                                            TextWrapping="Wrap"/>
 
@@ -759,7 +753,7 @@
                                                     <TextBlock Text="{loc:Tr '↓ Descendant'}" Foreground="#aaa" FontSize="12"/>
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding DownloadText}"
-                                                               Foreground="#6CCB5F"
+                                                               Foreground="{StaticResource Succes}"
                                                                FontWeight="Bold"
                                                                FontSize="13"/>
                                                 </Grid>
@@ -772,7 +766,7 @@
                                                     <TextBlock Text="{loc:Tr '↑ Montant'}" Foreground="#aaa" FontSize="12"/>
                                                     <TextBlock Grid.Column="1"
                                                                Text="{Binding UploadText}"
-                                                               Foreground="#4CC2FF"
+                                                               Foreground="{StaticResource Accent}"
                                                                FontWeight="Bold"
                                                                FontSize="13"/>
                                                 </Grid>
@@ -809,8 +803,8 @@
                               Padding="10"
                               Header="{loc:Tr 'Serveur Web'}"
                               Background="{StaticResource PanelBackground}"
-                              BorderBrush="{StaticResource Win11Border}"
-                              Foreground="{StaticResource Win11Text}">
+                              BorderBrush="{StaticResource Bordure}"
+                              Foreground="{StaticResource Texte}">
 
                         <Grid>
                             <Grid.ColumnDefinitions>
@@ -842,15 +836,15 @@
                                                         <ControlTemplate TargetType="ToggleButton">
                                                             <Grid Width="40" Height="20">
                                                                 <Border x:Name="SwitchBackground"
-                                                                        CornerRadius="10" Background="#3C3C3C"/>
+                                                                        CornerRadius="10" Background="{StaticResource Bordure}"/>
                                                                 <Ellipse x:Name="SwitchThumb"
                                                                          Width="16" Height="16"
-                                                                         Margin="2" Fill="#E5E5E5"
+                                                                         Margin="2" Fill="{StaticResource Texte}"
                                                                          HorizontalAlignment="Left"/>
                                                             </Grid>
                                                             <ControlTemplate.Triggers>
                                                                 <Trigger Property="IsChecked" Value="True">
-                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="#4CC2FF"/>
+                                                                    <Setter TargetName="SwitchBackground" Property="Background" Value="{StaticResource Accent}"/>
                                                                     <Setter TargetName="SwitchThumb" Property="HorizontalAlignment" Value="Right"/>
                                                                 </Trigger>
                                                             </ControlTemplate.Triggers>
@@ -865,13 +859,13 @@
                                 <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{loc:Tr 'Port :'}" Width="120" VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtWebPort" Width="200"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                 </StackPanel>
 
                                 <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,8">
                                     <TextBlock Text="{loc:Tr 'Login :'}" Width="120" VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtWebLogin" Width="200"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                 </StackPanel>
 
                                 <Grid Grid.Row="3">
@@ -884,15 +878,15 @@
                                     <TextBlock Text="{loc:Tr 'Mot de passe :'}" Grid.Column="0" VerticalAlignment="Center"/>
 
                                     <PasswordBox x:Name="txtWebPassword" Grid.Column="1" Width="177"
-                                                 Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Visible"/>
+                                                 Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}" Visibility="Visible"/>
 
                                     <TextBox x:Name="txtWebPasswordVisible" Grid.Column="1" Width="177"
-                                             Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C" Visibility="Collapsed"/>
+                                             Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}" Visibility="Collapsed"/>
 
                                     <Button x:Name="btnShowWebPassword" Grid.Column="2"
                                             Width="22" Height="22" Margin="6,0,0,0" Padding="0"
                                             Click="btnShowWebPassword_Click"
-                                            Background="#2D2D30" BorderBrush="#3C3C3C" BorderThickness="1"
+                                            Background="{StaticResource SurfaceEntete}" BorderBrush="{StaticResource Bordure}" BorderThickness="1"
                                             Cursor="Hand">
                                         <TextBlock x:Name="imgWebEye" Text="👁" FontSize="12"/>
                                     </Button>
@@ -922,7 +916,7 @@
                                 <TextBlock Text="{loc:Tr 'Réglages de surveillance'}"
                                            FontSize="14"
                                            FontWeight="Bold"
-                                           Foreground="#4CC2FF"
+                                           Foreground="{StaticResource Accent}"
                                            VerticalAlignment="Center"/>
                             </StackPanel>
 
@@ -939,9 +933,9 @@
                                                VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtInterval"
                                              Width="80"
-                                             Background="#1E1E1E"
-                                             Foreground="#E5E5E5"
-                                             BorderBrush="#3C3C3C"
+                                             Background="{StaticResource Fond}"
+                                             Foreground="{StaticResource Texte}"
+                                             BorderBrush="{StaticResource Bordure}"
                                              VerticalContentAlignment="Center"/>
                                 </StackPanel>
 
@@ -951,9 +945,9 @@
                                                VerticalAlignment="Center"/>
                                     <TextBox x:Name="txtCooldown"
                                              Width="80"
-                                             Background="#1E1E1E"
-                                             Foreground="#E5E5E5"
-                                             BorderBrush="#3C3C3C"
+                                             Background="{StaticResource Fond}"
+                                             Foreground="{StaticResource Texte}"
+                                             BorderBrush="{StaticResource Bordure}"
                                              VerticalContentAlignment="Center"/>
                                 </StackPanel>
                             </Grid>
@@ -975,7 +969,7 @@
                                 <CheckBox x:Name="chkAlertCpu"
                                           Grid.Row="0" Grid.Column="0"
                                           Content="{loc:Tr 'Alerte si CPU saturé'}"
-                                          Foreground="#E5E5E5"
+                                          Foreground="{StaticResource Texte}"
                                           VerticalAlignment="Center"
                                           Width="220"/>
                                 <TextBlock Grid.Row="0" Grid.Column="1"
@@ -984,12 +978,12 @@
                                 <TextBox x:Name="txtCpuThreshold"
                                          Grid.Row="0" Grid.Column="2"
                                          Width="80"
-                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                         Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
 
                                 <CheckBox x:Name="chkAlertRam"
                                           Grid.Row="1" Grid.Column="0"
                                           Content="{loc:Tr 'Alerte si RAM saturée'}"
-                                          Foreground="#E5E5E5"
+                                          Foreground="{StaticResource Texte}"
                                           Margin="0,10,0,0"
                                           VerticalAlignment="Center"
                                           Width="220"/>
@@ -1001,12 +995,12 @@
                                          Grid.Row="1" Grid.Column="2"
                                          Width="80"
                                          Margin="0,10,0,0"
-                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                         Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
 
                                 <CheckBox x:Name="chkAlertTemp"
                                           Grid.Row="2" Grid.Column="0"
                                           Content="{loc:Tr 'Alerte CPU température élevée'}"
-                                          Foreground="#E5E5E5"
+                                          Foreground="{StaticResource Texte}"
                                           Margin="0,10,0,0"
                                           VerticalAlignment="Center"
                                           Width="220"/>
@@ -1018,12 +1012,12 @@
                                          Grid.Row="2" Grid.Column="2"
                                          Width="80"
                                          Margin="0,10,0,0"
-                                         Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>
+                                         Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>
                                          
                               <CheckBox x:Name="chkAlertGpuTemp"
                                         Grid.Row="3" Grid.Column="0"
                                         Content="{loc:Tr 'Alerte GPU température élevée'}"
-                                        Foreground="#E5E5E5"
+                                        Foreground="{StaticResource Texte}"
                                         Margin="0,10,0,0"
                                         VerticalAlignment="Center"
                                         Width="220"/>
@@ -1035,7 +1029,7 @@
                                        Grid.Row="3" Grid.Column="2"
                                        Width="80"
                                        Margin="0,10,0,0"
-                                       Background="#1E1E1E" Foreground="#E5E5E5" BorderBrush="#3C3C3C"/>                                         
+                                       Background="{StaticResource Fond}" Foreground="{StaticResource Texte}" BorderBrush="{StaticResource Bordure}"/>                                         
                             </Grid>
 
                             <Button x:Name="btnSaveWatchConfig"
@@ -1078,7 +1072,7 @@
                             <TextBlock Text="{loc:Tr 'Historique des alertes'}"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Foreground="#4CC2FF"
+                                       Foreground="{StaticResource Accent}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
@@ -1127,7 +1121,7 @@
                             <TextBlock Text="{loc:Tr 'Écrans bleus (BSOD)'}"
                                        FontSize="14"
                                        FontWeight="SemiBold"
-                                       Foreground="#FF6347"
+                                       Foreground="{StaticResource Erreur}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
@@ -1173,7 +1167,7 @@
                                                         <Style.Triggers>
                                                             <DataTrigger Binding="{Binding DumpExists}" Value="True">
                                                                 <Setter Property="Text" Value="✅"/>
-                                                                <Setter Property="Foreground" Value="#6CCB5F"/>
+                                                                <Setter Property="Foreground" Value="{StaticResource Succes}"/>
                                                             </DataTrigger>
                                                         </Style.Triggers>
                                                     </Style>
@@ -1195,15 +1189,15 @@
         <!--  STATUS BAR                                                   -->
         <!-- ============================================================ -->
         <Border Grid.Row="2"
-                Background="#252526"
-                BorderBrush="#3C3C3C"
+                Background="{StaticResource Surface}"
+                BorderBrush="{StaticResource Bordure}"
                 BorderThickness="0,1,0,0"
                 Margin="0,10,0,0"
                 Padding="15,6">
             <TextBlock x:Name="StatusText"
                        Text="..."
                        FontSize="12"
-                       Foreground="#B4B4B4"
+                       Foreground="{StaticResource TexteSecondaire}"
                        VerticalAlignment="Center"/>
         </Border>
 
