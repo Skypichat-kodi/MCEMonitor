@@ -229,12 +229,12 @@
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
 
-                        <!-- Pastille d'état : la couleur viendra des remontées du service -->
+                        <!-- Pastille d'état : la couleur suit les remontées du service -->
                         <DataGridTemplateColumn Header="{loc:Tr 'État'}" Width="80">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <Ellipse Width="10" Height="10"
-                                             Fill="#888888"
+                                             Fill="{Binding CouleurEtat}"
                                              HorizontalAlignment="Left"
                                              VerticalAlignment="Center"
                                              Margin="8,0,0,0" />
