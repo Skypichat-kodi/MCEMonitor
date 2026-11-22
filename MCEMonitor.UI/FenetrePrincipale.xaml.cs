@@ -105,6 +105,11 @@ namespace MCEMonitor.UI
                 }
 
                 CoreLog.Info("UI", "Onglet : " + titre);
+
+                // Le journal du test SMTP ne concerne que l'onglet Email : il disparaît
+                // dès qu'on le quitte, et revient au prochain test.
+                if (onglets.SelectedItem is TabItem selectionne && selectionne != OngletEmail)
+                    CadreJournal.Visibility = Visibility.Collapsed;
             }
             else if (e.OriginalSource is ComboBox liste)
             {
