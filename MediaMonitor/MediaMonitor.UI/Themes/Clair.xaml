@@ -1,5 +1,6 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
     <!-- Thème clair de MediaMonitor.UI, dans l'esprit de Windows 11.
          Mêmes clés que Sombre.xaml. Les couleurs de catégories de médias n'y
          figurent pas : elles restent identiques dans les deux thèmes. -->
@@ -28,4 +29,13 @@
     <SolidColorBrush x:Key="BoutonVioletSurvol" Color="#FFF0EAFB" />
     <SolidColorBrush x:Key="BoutonRougeSurvol" Color="#FFF3DBD7" />
     <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
+
+    <!-- Selection des lignes et des listes : en clair, l accent plein est
+         beaucoup trop bleu sur toute une ligne. -->
+    <SolidColorBrush x:Key="SelectionFond" Color="#FFD3E4F7" />
+    <SolidColorBrush x:Key="SelectionTexte" Color="#FF1B1B1B" />
+
+    <!-- Opacite de l image de fond des popups : presque invisible en clair,
+         ou elle salirait la fenetre. -->
+    <sys:Double x:Key="FondImageOpacite">0.08</sys:Double>
 </ResourceDictionary>

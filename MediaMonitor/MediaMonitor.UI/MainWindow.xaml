@@ -42,8 +42,8 @@
             <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
-                    <Setter Property="Background" Value="{StaticResource Accent}"/>
-                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                    <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -84,8 +84,8 @@
                                 <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
-                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                <Setter Property="Foreground" Value="Black"/>
+                                <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                                <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -199,8 +199,8 @@
                                 <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceEntete}"/>
                             </Trigger>
                             <Trigger Property="IsSelected" Value="True">
-                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource Accent}"/>
-                                <Setter Property="Foreground" Value="Black"/>
+                                <Setter TargetName="Bd" Property="Background" Value="{StaticResource SelectionFond}"/>
+                                <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
@@ -394,8 +394,11 @@
             </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="{StaticResource Accent}"/>
-                    <Setter Property="Foreground" Value="Black"/>
+                    <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                    <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
+                    <!-- La bordure rappelle la couleur d accent : sans elle, le
+                         survol se distingue a peine du fond au repos. -->
+                    <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -968,8 +971,8 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                                <Setter Property="Foreground" Value="Black"/>
+                                                <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1061,8 +1064,8 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                                <Setter Property="Foreground" Value="Black"/>
+                                                <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1223,8 +1226,8 @@
                                                 <Setter Property="Foreground" Value="Black"/>
                                             </DataTrigger>
                                             <Trigger Property="IsSelected" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource Accent}"/>
-                                                <Setter Property="Foreground" Value="Black"/>
+                                                <Setter Property="Background" Value="{StaticResource SelectionFond}"/>
+                                                <Setter Property="Foreground" Value="{StaticResource SelectionTexte}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
