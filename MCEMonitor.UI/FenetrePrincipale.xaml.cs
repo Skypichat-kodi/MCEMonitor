@@ -51,6 +51,9 @@ namespace MCEMonitor.UI
             // (autre session, planificateur Windows) : on relit leur état.
             ChargerMinuteurTaches();
 
+            // Photo des taches planifiees a l ouverture, ecrite dans le journal.
+            _ = RafraichirToutesLesTachesAsync(journaliser: true);
+
             // Les interfaces des modules réécrivent leurs fichiers de configuration :
             // on recharge les champs quand cela arrive.
             ChargerSurveillanceConfigs();
@@ -215,7 +218,7 @@ namespace MCEMonitor.UI
             _minuteurTaches.Start();
         }
 
-        private async Task RafraichirToutesLesTachesAsync()
+        private async Task RafraichirToutesLesTachesAsync(bool journaliser = false)
         {
             try
             {
@@ -247,6 +250,11 @@ namespace MCEMonitor.UI
                 MetAJourBoutonAutomatiqueWake();
                 MetAJourBoutonAutomatiqueStop();
                 MetAJourBoutonAutomatiqueArret();
+
+                // Au demarrage seulement : le minuteur de 30 s ne doit pas noyer le
+                // journal, mais on veut savoir ce qui etait actif a l ouverture.
+                if (journaliser)
+                    JournaliserEtatTaches();
             }
             catch
             {
@@ -739,6 +747,36 @@ namespace MCEMonitor.UI
             {
                 // État inconnu : le bouton conserve son libellé précédent.
             }
+        }
+
+        /// <summary>
+        /// Écrit dans le journal l'état des sept tâches planifiées tel qu'il vient
+        /// d'être relevé : on sait ainsi ce qui était actif à l'ouverture.
+        /// </summary>
+        private void JournaliserEtatTaches()
+        {
+            var releve = new (string Tache, bool Active)[]
+            {
+                ("MCEMonitor_MediaMonitorService",  _tacheMediaExiste),
+                ("MCEMonitor_RomMonitorService",    _tacheRomExiste),
+                ("MCEMonitor_SystemMonitorService", _tacheSystemExiste),
+                ("MCEMonitor_NetMonitorService",    _tacheNetExiste),
+                ("MCEMonitor_WakeMonitor",          _tacheWakeExiste),
+                ("MCEMonitor_StopMonitor",          _tacheStopExiste),
+                ("MCEMonitor_Shutdown",             _tacheArretExiste)
+            };
+
+            int actives = 0;
+
+            foreach ((string tache, bool active) in releve)
+            {
+                if (active)
+                    actives++;
+
+                CoreLog.Info("Tâches", $"{tache} : {(active ? "active" : "inactive")}");
+            }
+
+            CoreLog.Info("Tâches", $"État au démarrage : {actives}/{releve.Length} active(s)");
         }
 
         private void MetAJourBoutonAutomatique()
