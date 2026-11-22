@@ -84,6 +84,9 @@ namespace NetMonitor.UI
 
             MCEMonitor.Languages.LanguageManager.Load(selectedLang);
 
+            // Thème choisi dans MCEMonitor, appliqué avant la création de la fenêtre.
+            GestionnaireTheme.Appliquer(this);
+
             base.OnStartup(e);
         }
 
