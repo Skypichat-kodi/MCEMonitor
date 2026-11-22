@@ -36,4 +36,9 @@
         <SolidColorBrush x:Key="Erreur" Color="{StaticResource CouleurErreur}" />
         <SolidColorBrush x:Key="ErreurSurvol" Color="{StaticResource CouleurErreurSurvol}" />
         <SolidColorBrush x:Key="ErreurPresse" Color="{StaticResource CouleurErreurPresse}" />
+
+        <!-- Fond des zones de journal (texte défilant) : volontairement plus sombre
+             que la surface, pour détacher le bloc du reste de la fenêtre. -->
+        <Color x:Key="CouleurFondZoneLog">#FF141414</Color>
+        <SolidColorBrush x:Key="FondZoneLog" Color="{StaticResource CouleurFondZoneLog}" />
 </ResourceDictionary>

@@ -36,4 +36,9 @@
         <SolidColorBrush x:Key="Erreur" Color="{StaticResource CouleurErreur}" />
         <SolidColorBrush x:Key="ErreurSurvol" Color="{StaticResource CouleurErreurSurvol}" />
         <SolidColorBrush x:Key="ErreurPresse" Color="{StaticResource CouleurErreurPresse}" />
+
+        <!-- Fond des zones de journal : très clair, pour détacher le bloc de la
+             surface blanche sans revenir à un fond sombre. -->
+        <Color x:Key="CouleurFondZoneLog">#FFF7F7F7</Color>
+        <SolidColorBrush x:Key="FondZoneLog" Color="{StaticResource CouleurFondZoneLog}" />
 </ResourceDictionary>
