@@ -419,7 +419,7 @@ namespace NetMonitor.Service.Ipc
                 autoBlock                = _settings.AutoBlock,
                 autoBlockCritical        = _settings.AutoBlockCritical,
                 autoBlockWarning         = _settings.AutoBlockWarning,
-                autoBlockSubnet          = _settings.AutoBlockSubnet,
+                blockKnownScanners       = _settings.BlockKnownScanners,
                 ignoredNetworks          = _settings.IgnoredNetworks,
                 disableFilters           = _settings.DisableFilters,
                 blacklistLevel           = _settings.BlacklistLevel,
@@ -435,7 +435,6 @@ namespace NetMonitor.Service.Ipc
                 crawlerPatterns                 = _settings.CrawlerPatterns,
 
                 // Scanners de recherche (Trusted)
-                ignoreSearchScanners     = _settings.IgnoreSearchScanners,
                 scannerPatterns          = _settings.ScannerPatterns,
 
                 // Patterns de classification (manquants avant → data loss au Save)

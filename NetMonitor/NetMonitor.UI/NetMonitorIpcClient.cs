@@ -76,14 +76,13 @@ namespace NetMonitor.UI
         public bool autoBlock                   { get; set; }
         public bool autoBlockCritical           { get; set; }
         public bool autoBlockWarning            { get; set; }
-        public bool autoBlockSubnet             { get; set; }
+        public bool blockKnownScanners          { get; set; }
         public string[] ignoredNetworks         { get; set; } = Array.Empty<string>();
         public bool disableFilters              { get; set; }
         public int blacklistLevel               { get; set; }             
         public DateTime blacklistLastUpdate     { get; set; }  
 
         // Scanners de recherche (Trusted) ---
-        public bool ignoreSearchScanners            { get; set; }
         public string[] scannerPatterns             { get; set; } = Array.Empty<string>();
         public bool blockBots                       { get; set; }
         public bool blockCrawlers                   { get; set; }

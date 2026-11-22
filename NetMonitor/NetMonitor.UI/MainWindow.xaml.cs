@@ -1572,7 +1572,7 @@ namespace NetMonitor.UI
                     chkAutoBlock.IsChecked                  = false;
                     chkAutoBlockCritical.IsChecked          = true;
                     chkAutoBlockWarning.IsChecked           = true;
-                    chkAutoBlockSubnet.IsChecked            = false;
+                    chkBlockKnownScanners.IsChecked            = false;
                     chkDisableFilters.IsChecked             = false;
                     txtBlacklistLevel.Text                  = "3";
                     lblBlacklistLastUpdate.Text             = LanguageManager.Get("Dernière MAJ : inconnue") ?? "Dernière MAJ : inconnue";
@@ -1599,7 +1599,7 @@ namespace NetMonitor.UI
                 chkAutoBlock.IsChecked                  = cfg.autoBlock;
                 chkAutoBlockCritical.IsChecked          = cfg.autoBlockCritical;
                 chkAutoBlockWarning.IsChecked           = cfg.autoBlockWarning;
-                chkAutoBlockSubnet.IsChecked            = cfg.autoBlockSubnet;
+                chkBlockKnownScanners.IsChecked            = cfg.blockKnownScanners;
                 chkBlockBots.IsChecked                  = cfg.blockBots;
                 chkBlockCrawlers.IsChecked              = cfg.blockCrawlers;
                 chkGoogleIpRange.IsChecked              = cfg.googleIpRangeEnabled;
@@ -1758,7 +1758,7 @@ namespace NetMonitor.UI
                 //  Dictionnaire des modifications (uniquement ce que l'UI affiche)
                 //  ➜ Tous les settings non listés ici seront PRÉSERVÉS tels quels
                 //    (GeoIpEnabled, GeoIpProvider, ReverseDnsEnabled, EnableProcessTrust,
-                //     SeverityVersion, IgnoredProcesses, SuspiciousRemotePorts,
+                //     SeverityVersion, SuspiciousRemotePorts,
                 //     IgnoredRemotePorts, BlacklistLastUpdate…)
                 // ────────────────────────────────────────────────────────────
                 var updates = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -1776,7 +1776,7 @@ namespace NetMonitor.UI
                     ["AutoBlock"]         = (chkAutoBlock.IsChecked == true).ToString().ToLower(),
                     ["AutoBlockCritical"] = (chkAutoBlockCritical.IsChecked == true).ToString().ToLower(),
                     ["AutoBlockWarning"]  = (chkAutoBlockWarning.IsChecked == true).ToString().ToLower(),
-                    ["AutoBlockSubnet"]   = (chkAutoBlockSubnet.IsChecked == true).ToString().ToLower(),
+                    ["BlockKnownScanners"] = (chkBlockKnownScanners.IsChecked == true).ToString().ToLower(),
 
                     // --- Robots d'exploration ---
                     ["GoogleIpRangeEnabled"]      = (chkGoogleIpRange.IsChecked == true).ToString().ToLower(),
@@ -1823,7 +1823,11 @@ namespace NetMonitor.UI
 
                 MessageBox.Show(
                     reloaded
-                        ? "Réglages NetMonitor enregistrés.\n\nLe service a rechargé la configuration à chaud."
+                        ? "Réglages NetMonitor enregistrés.\n\n" +
+                          "Appliqués à chaud : seuils, patterns, réseaux ignorés, plages IP, " +
+                          "GeoIP et blocage automatique.\n" +
+                          "La surveillance des processus de confiance, elle, demande un " +
+                          "redémarrage du service."
                         : "Réglages enregistrés, mais le service n'a pas pu être notifié.\nRedémarrez-le pour appliquer.",
                     "NetMonitor", MessageBoxButton.OK,
                     reloaded ? MessageBoxImage.Information : MessageBoxImage.Warning);

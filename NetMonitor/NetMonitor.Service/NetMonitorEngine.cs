@@ -1665,6 +1665,9 @@ namespace NetMonitor.Service
             int  oldMsRefreshHours   = _settings.MicrosoftIpRangeRefreshHours;
             bool oldGoogleEnabled    = _settings.GoogleIpRangeEnabled;
             int  oldGoogleRefreshHrs = _settings.GoogleIpRangeRefreshHours;
+            bool oldGeoEnabled       = _settings.GeoIpEnabled;
+            string oldGeoProvider    = _settings.GeoIpProvider;
+            bool oldReverseDns       = _settings.ReverseDnsEnabled;
 
             _settings.Reload();
             _processTrust?.Reload();
@@ -1714,6 +1717,27 @@ namespace NetMonitor.Service
             {
                 CoreLog.Info($"[CONFIG] Changement de mode AutoBlock : {oldAutoBlock} → {_settings.AutoBlock}");
                 _emailScheduler?.OnModeChanged(oldAutoBlock, _settings.AutoBlock);
+            }
+
+            // ============================================================
+            //  5. GeoIP — reconstruire si l'un des trois réglages a changé
+            // ============================================================
+            if (oldGeoEnabled != _settings.GeoIpEnabled
+                || !string.Equals(oldGeoProvider, _settings.GeoIpProvider, StringComparison.Ordinal)
+                || oldReverseDns != _settings.ReverseDnsEnabled)
+            {
+                CoreLog.Info($"[CONFIG] GeoIp : activé {oldGeoEnabled} → {_settings.GeoIpEnabled}, " +
+                             $"fournisseur « {oldGeoProvider} » → « {_settings.GeoIpProvider} », " +
+                             $"reverse DNS {oldReverseDns} → {_settings.ReverseDnsEnabled}");
+
+                // L'ancien objet n'est volontairement pas libéré : des résolutions
+                // peuvent être en vol et le champ _geoIp est lu sans verrou. Il est
+                // abandonné au ramasse-miettes, ce qui évite une ObjectDisposedException
+                // pour un réglage qui ne change qu'à la main et très rarement.
+                _geoIp = new GeoIpService(
+                    _settings.GeoIpProvider,
+                    _settings.GeoIpEnabled,
+                    _settings.ReverseDnsEnabled);
             }
         }
 
@@ -2245,7 +2269,7 @@ namespace NetMonitor.Service
 
                 if (evt.IsKnownScanner)
                 {
-                    shouldBlock = _settings.AutoBlockSubnet;
+                    shouldBlock = _settings.BlockKnownScanners;
                 }
                 else if (evt.Severity == Severity.Critical || evt.Severity == Severity.High)
                 {

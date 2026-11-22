@@ -15,8 +15,9 @@ public sealed class BeaconingDetector : IConnectionAwareDetector
     {
         if (ci.Pid <= 0) return null;
 
-        // Nouveau : utilise la whitelist de processus (chemin + hash)
-        // au lieu de la liste statique IgnoredProcesses.
+        // Utilise la liste des processus de confiance (chemin + empreinte) plutot
+        // qu une liste de noms en dur : un nom de processus se falsifie, un chemin
+        // et une empreinte non.
         if (ctx.IsTrustedProcess(ci.Pid))
             return null;
 

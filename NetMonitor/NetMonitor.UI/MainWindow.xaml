@@ -2671,7 +2671,7 @@
                                               Tag="{StaticResource DotWarning}"
                                               Content="{loc:Tr 'Bloquer les menaces inconnues'}"/>
 
-                                    <CheckBox x:Name="chkAutoBlockSubnet"
+                                    <CheckBox x:Name="chkBlockKnownScanners"
                                               Style="{StaticResource ColoredCheckBox}"
                                               Tag="{StaticResource Vert}"
                                               Content="{loc:Tr 'Bloquer les scanners de recherche'}"/>

@@ -28,9 +28,12 @@ namespace NetMonitor.Service
         public bool AutoBlock                       { get; set; } = false;
         public bool AutoBlockCritical               { get; set; } = true;
         public bool AutoBlockWarning                { get; set; } = true;
-        public bool AutoBlockSubnet                 { get; set; } = false;
+        // Bloque les scanners connus (Shodan, Censys...) quand le mode AutoBlock
+        // est actif. Ancien nom : AutoBlockSubnet, qui laissait croire à un
+        // blocage de plages entières. La clé du fichier suit le renommage,
+        // l'ancienne reste lue pour les configurations déjà écrites.
+        public bool BlockKnownScanners              { get; set; } = false;
         public bool MicrosoftIpRangeEnabled         { get; set; } = true;
-        public bool IgnoreSearchScanners            { get; set; } = false;
         
         // ============================================================
         //  Robots d'exploration (Google, Bing...)
@@ -105,16 +108,6 @@ namespace NetMonitor.Service
         //  Bruit / Faux positifs
         // ============================================================
         public int[] IgnoredRemotePorts     { get; set; } = { 53, 123 };
-        public string[] IgnoredProcesses    { get; set; } = new[]
-        {
-            "svchost", "System", "Idle", "CrossDeviceService", "OneDrive",
-            "OneDriveSetup", "MicrosoftEdgeUpdate", "MicrosoftEdgeUpdateSetup",
-            "WidgetService", "MoUsoCoreWorker", "UsoClient", "WaasMedicAgent",
-            "TrustedInstaller", "SearchIndexer", "SearchProtocolHost", "SearchFilterHost",
-            "backgroundTaskHost", "RuntimeBroker", "ShellExperienceHost",
-            "StartMenuExperienceHost", "Widgets", "MsMpEng", "NisSrv",
-            "SecurityHealthService", "WpnService", "WpnUserService"
-        };
         public string[] IgnoredNetworks     { get; set; } = new[] { "127.0.0.0/8", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" };
         public bool DisableFilters          { get; set; } = false;
         public int[] SuspiciousRemotePorts  { get; set; } = { 4444, 1337, 31337, 6667, 3389 };
@@ -132,6 +125,10 @@ namespace NetMonitor.Service
             {
                 if (File.Exists(ConfigPath))
                 {
+                    // La clé renommée BlockKnownScanners prime sur l'ancienne
+                    // AutoBlockSubnet, quel que soit l'ordre des lignes du fichier.
+                    bool blockKnownScannersVu = false;
+
                     foreach (var line in File.ReadAllLines(ConfigPath))
                     {
                         if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
@@ -157,8 +154,6 @@ namespace NetMonitor.Service
                             case "GeoIpProvider"                : if (!string.IsNullOrWhiteSpace(value)) settings.GeoIpProvider = value; break;
                             case "ReverseDnsEnabled"            : if (bool.TryParse(value, out bool rd)) settings.ReverseDnsEnabled = rd; break;
                             case "EnableProcessTrust"           : if (bool.TryParse(value, out bool ept)) settings.EnableProcessTrust = ept; break;
-                            case "IgnoreSearchScanners"         : if (bool.TryParse(value, out bool iss)) settings.IgnoreSearchScanners = iss; break;
-                            case "IgnoredProcesses"             : settings.IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : settings.IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "TrustedScannerPatterns":
                             case "ScannerPatterns":
@@ -172,7 +167,8 @@ namespace NetMonitor.Service
                             case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) settings.AutoBlock = ab; break;
                             case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) settings.AutoBlockCritical = abc; break;
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) settings.AutoBlockWarning = abw; break;
-                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) settings.AutoBlockSubnet = abs; break;
+                            case "BlockKnownScanners"           : if (bool.TryParse(value, out bool bks)) { settings.BlockKnownScanners = bks; blockKnownScannersVu = true; } break;
+                            case "AutoBlockSubnet"              : if (!blockKnownScannersVu && bool.TryParse(value, out bool abs)) settings.BlockKnownScanners = abs; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire)) settings.MicrosoftIpRangeEnabled = mire; break;
                             case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr)) settings.MicrosoftIpRangeRefreshHours = mirr; break;
                             case "GoogleIpRangeEnabled"         : if (bool.TryParse(value, out bool gire)) settings.GoogleIpRangeEnabled = gire; break;
@@ -241,9 +237,6 @@ namespace NetMonitor.Service
                     $"BeaconMinHits={BeaconMinHits}",
                     $"BeaconJitterTolerancePct={BeaconJitterTolerancePct.ToString(CultureInfo.InvariantCulture)}",
                     "",
-                    "# --- Processus ignorés ---",
-                    $"IgnoredProcesses={string.Join(",", IgnoredProcesses)}",
-                    "",
                     "# --- Réseaux ignorés ---",
                     $"IgnoredNetworks={string.Join(",", IgnoredNetworks)}",
                     "",
@@ -286,13 +279,10 @@ namespace NetMonitor.Service
                     "# --- Whitelist de processus (chemin + hash + signature) ---",
                     $"EnableProcessTrust={EnableProcessTrust.ToString().ToLower()}",
                     "",
-                    "# --- Ignorer les scanners de recherche (Shodan, Censys...) ---",
-                    $"IgnoreSearchScanners={IgnoreSearchScanners.ToString().ToLower()}",
-                    "",
                     $"AutoBlock={AutoBlock.ToString().ToLower()}",
                     $"AutoBlockCritical={AutoBlockCritical.ToString().ToLower()}",
                     $"AutoBlockWarning={AutoBlockWarning.ToString().ToLower()}",
-                    $"AutoBlockSubnet={AutoBlockSubnet.ToString().ToLower()}",
+                    $"BlockKnownScanners={BlockKnownScanners.ToString().ToLower()}",
                     "",
                     "# --- Robots d'exploration (Google, Bing...) ---",
                     $"GoogleIpRangeEnabled={GoogleIpRangeEnabled.ToString().ToLower()}",
@@ -345,6 +335,9 @@ namespace NetMonitor.Service
             {
                 if (File.Exists(ConfigPath))
                 {
+                    // Idem : la nouvelle clé l'emporte sur l'ancienne.
+                    bool blockKnownScannersVu2 = false;
+
                     foreach (var line in File.ReadAllLines(ConfigPath))
                     {
                         if (string.IsNullOrWhiteSpace(line) || line.StartsWith("#")) continue;
@@ -364,7 +357,8 @@ namespace NetMonitor.Service
                             case "AutoBlock"                    : if (bool.TryParse(value, out bool ab)) AutoBlock = ab; break;
                             case "AutoBlockCritical"            : if (bool.TryParse(value, out bool abc)) AutoBlockCritical = abc; break;
                             case "AutoBlockWarning"             : if (bool.TryParse(value, out bool abw)) AutoBlockWarning = abw; break;
-                            case "AutoBlockSubnet"              : if (bool.TryParse(value, out bool abs)) AutoBlockSubnet = abs; break;
+                            case "BlockKnownScanners"           : if (bool.TryParse(value, out bool bks2)) { BlockKnownScanners = bks2; blockKnownScannersVu2 = true; } break;
+                            case "AutoBlockSubnet"              : if (!blockKnownScannersVu2 && bool.TryParse(value, out bool abs2)) BlockKnownScanners = abs2; break;
                             case "MicrosoftIpRangeEnabled"      : if (bool.TryParse(value, out bool mire2)) MicrosoftIpRangeEnabled = mire2; break;
                             case "MicrosoftIpRangeRefreshHours" : if (int.TryParse(value, out int mirr2)) MicrosoftIpRangeRefreshHours = mirr2; break;
                             case "GoogleIpRangeEnabled"         : if (bool.TryParse(value, out bool gire3)) GoogleIpRangeEnabled = gire3; break;
@@ -372,7 +366,6 @@ namespace NetMonitor.Service
                             case "BlockBots"                    : if (bool.TryParse(value, out bool bb3)) BlockBots = bb3; break;
                             case "BlockCrawlers"                : if (bool.TryParse(value, out bool bc3)) BlockCrawlers = bc3; break;
                             case "CrawlerPatterns"              : CrawlerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
-                            case "IgnoredProcesses"             : IgnoredProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
                             case "SuspiciousRemotePorts"        : if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;
