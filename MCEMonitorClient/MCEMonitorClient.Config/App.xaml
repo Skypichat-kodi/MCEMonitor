@@ -232,7 +232,12 @@
             <Setter Property="Background" Value="{StaticResource Surface}" />
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}" />
             <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="Padding" Value="14,7" />
+            <!-- Rembourrage vertical nul : tous les boutons du client ont une hauteur
+                 fixe. Avec le 14,7 de la palette MCEMonitor, le texte n'avait plus la
+                 place dans 30 px et se retrouvait décalé vers le bas. -->
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
                 <Setter.Value>
