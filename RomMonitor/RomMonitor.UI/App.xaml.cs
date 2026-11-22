@@ -19,7 +19,7 @@ namespace RomMonitor.UI
         private const string PipeName  = "MCEMonitor_RomMonitorUI_Activate";
 
         // ============================================================
-        //  Win32 imports pour l'activation de fenêtre
+        //  Win32 imports pour l'activation de fenï¿½tre
         // ============================================================
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -45,13 +45,13 @@ namespace RomMonitor.UI
 
             if (!createdNew)
             {
-                // Une instance tourne déjà ? lui demander de s'activer
+                // Une instance tourne dï¿½jï¿½ ? lui demander de s'activer
                 SignalExistingInstance();
                 Shutdown();
                 return;
             }
 
-            // Première instance ? démarrer le listener IPC
+            // Premiï¿½re instance ? dï¿½marrer le listener IPC
             StartActivationListener();
 
             // ============================================================
@@ -84,7 +84,7 @@ namespace RomMonitor.UI
             };
 
             // ============================================================
-            //  PATCH ANTI-ÉCRAN BLANC (VNC / RDP)
+            //  PATCH ANTI-ï¿½CRAN BLANC (VNC / RDP)
             // ============================================================
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
@@ -104,11 +104,15 @@ namespace RomMonitor.UI
 
             MCEMonitor.Languages.LanguageManager.Load(selectedLang);
 
+            // ThÃ¨me choisi dans MCEMonitor, appliquÃ© avant la crÃ©ation de la fenÃªtre
+            // (StartupUri est rÃ©solu aprÃ¨s OnStartup).
+            GestionnaireTheme.Appliquer(this);
+
             base.OnStartup(e);
         }
 
         // ============================================================
-        //  Signale à l'instance existante de venir au premier plan
+        //  Signale ï¿½ l'instance existante de venir au premier plan
         // ============================================================
         private static void SignalExistingInstance()
         {
@@ -125,12 +129,12 @@ namespace RomMonitor.UI
             }
             catch
             {
-                // Si le pipe ne répond pas, on ne peut rien faire
+                // Si le pipe ne rï¿½pond pas, on ne peut rien faire
             }
         }
 
         // ============================================================
-        //  Thread qui écoute les demandes d'activation
+        //  Thread qui ï¿½coute les demandes d'activation
         // ============================================================
         private void StartActivationListener()
         {
@@ -159,7 +163,7 @@ namespace RomMonitor.UI
                     }
                     catch
                     {
-                        // On continue la boucle même en cas d'erreur
+                        // On continue la boucle mï¿½me en cas d'erreur
                     }
                 }
             })
@@ -172,8 +176,8 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  Ramène la fenêtre principale au premier plan
-        //  ou affiche un message si elle est déjà active
+        //  Ramï¿½ne la fenï¿½tre principale au premier plan
+        //  ou affiche un message si elle est dï¿½jï¿½ active
         // ============================================================
         private void ActivateMainWindow()
         {
@@ -188,19 +192,19 @@ namespace RomMonitor.UI
             if (hwnd == IntPtr.Zero)
                 return;
 
-            // Déjà au premier plan ET pas minimisée ?
+            // Dï¿½jï¿½ au premier plan ET pas minimisï¿½e ?
             if (GetForegroundWindow() == hwnd &&
                 window.WindowState != WindowState.Minimized)
             {
                 MessageBox.Show(
-                    "RomMonitor.UI est déjà au premier plan.",
-                    "Instance déjà active",
+                    "RomMonitor.UI est dï¿½jï¿½ au premier plan.",
+                    "Instance dï¿½jï¿½ active",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
             }
 
-            // Restaurer si minimisée
+            // Restaurer si minimisï¿½e
             if (IsIconic(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 
