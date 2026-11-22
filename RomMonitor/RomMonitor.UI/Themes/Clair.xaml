@@ -15,4 +15,8 @@
     <SolidColorBrush x:Key="Accent"          Color="#FF0F6CBD" />
     <SolidColorBrush x:Key="AccentBascule"   Color="#FF7EB6E8" />
     <SolidColorBrush x:Key="PanelBackground" Color="#333A8DFF" />
+
+    <!-- En-tête de tableau et trait de séparation -->
+    <SolidColorBrush x:Key="EnteteTableau" Color="#FFE0E0E0" />
+    <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
 </ResourceDictionary>

@@ -27,10 +27,10 @@
 
         <!-- Style en-têtes de colonnes -->
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <Setter Property="Background" Value="{StaticResource EnteteTableau}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontWeight" Value="SemiBold"/>
             <Setter Property="Padding" Value="6,4"/>
         </Style>
@@ -40,7 +40,7 @@
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
-            <Setter Property="BorderThickness" Value="0 0 1 1"/>
+            <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="FontSize" Value="13"/>
             <Style.Triggers>
                 <Trigger Property="IsSelected" Value="True">
@@ -54,7 +54,7 @@
         <Style TargetType="DataGridRow">
             <Setter Property="Background" Value="{StaticResource Fond}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
-            <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <Setter Property="BorderBrush" Value="{StaticResource TraitTableau}"/>
             <Setter Property="BorderThickness" Value="0 0 0 1"/>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
