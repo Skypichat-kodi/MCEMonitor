@@ -591,6 +591,10 @@
             <Setter Property="Background" Value="{StaticResource Surface}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+            <!-- Sans ceci, le DataGrid dessine son propre quadrillage (All par
+                 defaut) en plus des bordures de cellules : deux jeux de traits
+                 superposes, d ou l impression de lignes trop marquees. -->
+            <Setter Property="GridLinesVisibility" Value="None"/>
             <Setter Property="RowBackground" Value="{StaticResource Fond}"/>
             <Setter Property="AlternatingRowBackground" Value="{StaticResource Surface}"/>
             <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource Bordure}"/>
