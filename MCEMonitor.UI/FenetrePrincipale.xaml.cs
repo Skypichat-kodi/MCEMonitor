@@ -966,6 +966,9 @@ namespace MCEMonitor.UI
                     return;
 
                 MetAJourEtatService();
+
+                // Parité WinForms : le Tray démarre avec le service.
+                DemarrerTrayMedia();
             }
 
             try
@@ -1265,20 +1268,30 @@ namespace MCEMonitor.UI
         // Lance le Tray associé au service, dans Program Files ou Program Files (x86).
         private static void DemarrerTray(string nomTray)
         {
-            foreach (var racine in new[]
-                     {
-                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
-                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
-                     })
+            try
             {
-                string chemin = Path.Combine(racine, "MCEMonitor", nomTray);
+                // Comme dans l'ancienne interface : ne pas relancer un Tray qui tourne déjà.
+                string nomProcessus = Path.GetFileNameWithoutExtension(nomTray);
 
-                if (File.Exists(chemin))
-                {
-                    Process.Start(new ProcessStartInfo { FileName = chemin, UseShellExecute = true });
+                if (Process.GetProcessesByName(nomProcessus).Length > 0)
                     return;
+
+                foreach (var racine in new[]
+                         {
+                             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
+                         })
+                {
+                    string chemin = Path.Combine(racine, "MCEMonitor", nomTray);
+
+                    if (File.Exists(chemin))
+                    {
+                        Process.Start(new ProcessStartInfo { FileName = chemin, UseShellExecute = true });
+                        return;
+                    }
                 }
             }
+            catch { }
         }
 
         private async void SurAutomatisationRom(object sender, RoutedEventArgs e)
@@ -1298,12 +1311,17 @@ namespace MCEMonitor.UI
                         return;
 
                     string resultat = await Task.Run(TaskSchedulerHelper.DeleteRomMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    await Task.Run(TaskSchedulerHelper.DeleteRomTrayTask);
                     JournaliserTache("RomMonitor", "MCEMonitor_RomMonitorService", "suppression", resultat);
                     AfficherMessageRom(resultat);
                 }
                 else
                 {
                     string resultat = await Task.Run(TaskSchedulerHelper.CreateRomMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    if (!TaskSchedulerHelper.RomTrayTaskExists())
+                        await Task.Run(TaskSchedulerHelper.CreateRomTrayTask);
                     JournaliserTache("RomMonitor", "MCEMonitor_RomMonitorService", "création", resultat);
                     AfficherMessageRom(resultat);
                 }
@@ -1351,6 +1369,9 @@ namespace MCEMonitor.UI
 
                 await Task.Delay(1200);
                 MetAJourEtatServiceRom();
+
+                // Parité WinForms : le Tray démarre avec le service.
+                DemarrerTray("RomMonitor.Tray.exe");
             }
 
             try
@@ -1688,12 +1709,17 @@ namespace MCEMonitor.UI
                         return;
 
                     string resultat = await Task.Run(TaskSchedulerHelper.DeleteSystemMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    await Task.Run(TaskSchedulerHelper.DeleteSystemTrayTask);
                     JournaliserTache("SystemMonitor", "MCEMonitor_SystemMonitorService", "suppression", resultat);
                     AfficherMessageSystem(resultat);
                 }
                 else
                 {
                     string resultat = await Task.Run(TaskSchedulerHelper.CreateSystemMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    if (!TaskSchedulerHelper.SystemTrayTaskExists())
+                        await Task.Run(TaskSchedulerHelper.CreateSystemTrayTask);
                     JournaliserTache("SystemMonitor", "MCEMonitor_SystemMonitorService", "création", resultat);
                     AfficherMessageSystem(resultat);
                 }
@@ -1740,6 +1766,9 @@ namespace MCEMonitor.UI
 
                 await Task.Delay(1200);
                 MetAJourEtatServiceSystem();
+
+                // Parité WinForms : le Tray démarre avec le service.
+                DemarrerTray("SystemMonitor.Tray.exe");
             }
 
             try
@@ -2594,12 +2623,17 @@ namespace MCEMonitor.UI
                         return;
 
                     string resultat = await Task.Run(TaskSchedulerHelper.DeleteNetMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    await Task.Run(TaskSchedulerHelper.DeleteNetTrayTask);
                     JournaliserTache("NetMonitor", "MCEMonitor_NetMonitorService", "suppression", resultat);
                     AfficherMessageNet(resultat);
                 }
                 else
                 {
                     string resultat = await Task.Run(TaskSchedulerHelper.CreateNetMonitorTask);
+                    // Parité WinForms : la tâche du Tray suit celle du service.
+                    if (!TaskSchedulerHelper.NetTrayTaskExists())
+                        await Task.Run(TaskSchedulerHelper.CreateNetTrayTask);
                     JournaliserTache("NetMonitor", "MCEMonitor_NetMonitorService", "création", resultat);
                     AfficherMessageNet(resultat);
                 }
@@ -2646,6 +2680,9 @@ namespace MCEMonitor.UI
 
                 await Task.Delay(1200);
                 MetAJourEtatServiceNet();
+
+                // Parité WinForms : le Tray démarre avec le service.
+                DemarrerTray("NetMonitor.Tray.exe");
             }
 
             try

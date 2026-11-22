@@ -458,5 +458,69 @@ namespace MCEMonitor.Utils
             try { return t.Wait(1000) ? (t.Result ?? "") : ""; }
             catch { return ""; }
         }
+
+        // ============================================================
+        //  TRAY DES MODULES : démarrage à l'ouverture de session
+        //
+        //  Un Tray ne peut pas être lancé par son service : celui-ci tourne en
+        //  session 0 (SYSTEM), où il n'y a aucun bureau. Une tâche ONLOGON le
+        //  démarre dans la session de l'utilisateur ; le Tray attend ensuite son
+        //  service et se ferme s'il n'arrive pas. Mécanisme de l'ancienne
+        //  interface WinForms, rétabli à l'identique.
+        // ============================================================
+
+        public const string TacheTrayMedia  = "MCEMonitor_MediaMonitorTray";
+        public const string TacheTrayRom    = "MCEMonitor_RomMonitorTray";
+        public const string TacheTraySystem = "MCEMonitor_SystemMonitorTray";
+        public const string TacheTrayNet    = "MCEMonitor_NetMonitorTray";
+
+        public static bool MediaTrayTaskExists()  => QueryTask(TacheTrayMedia);
+        public static bool RomTrayTaskExists()    => QueryTask(TacheTrayRom);
+        public static bool SystemTrayTaskExists() => QueryTask(TacheTraySystem);
+        public static bool NetTrayTaskExists()    => QueryTask(TacheTrayNet);
+
+        public static string CreateMediaTrayTask()  => CreerTacheTray(TacheTrayMedia,  "MediaMonitor.Tray.exe");
+        public static string CreateRomTrayTask()    => CreerTacheTray(TacheTrayRom,    "RomMonitor.Tray.exe");
+        public static string CreateSystemTrayTask() => CreerTacheTray(TacheTraySystem, "SystemMonitor.Tray.exe");
+        public static string CreateNetTrayTask()    => CreerTacheTray(TacheTrayNet,    "NetMonitor.Tray.exe");
+
+        public static string DeleteMediaTrayTask()  => SupprimerTache(TacheTrayMedia);
+        public static string DeleteRomTrayTask()    => SupprimerTache(TacheTrayRom);
+        public static string DeleteSystemTrayTask() => SupprimerTache(TacheTraySystem);
+        public static string DeleteNetTrayTask()    => SupprimerTache(TacheTrayNet);
+
+        private static string CreerTacheTray(string nomTache, string nomExe)
+        {
+            string exePath = TrouverTray(nomExe);
+
+            if (exePath.Length == 0)
+                return "ERREUR : " + nomExe + " introuvable.";
+
+            return RunAdmin(
+                $"schtasks /Create /TN \"{nomTache}\" " +
+                "/SC ONLOGON " +
+                $"/TR \"\\\"{exePath}\\\"\" /RL HIGHEST /F"
+            );
+        }
+
+        private static string SupprimerTache(string nomTache)
+            => RunAdmin($"schtasks /Delete /TN \"{nomTache}\" /F");
+
+        private static string TrouverTray(string nomExe)
+        {
+            foreach (var racine in new[]
+                     {
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles),
+                         Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86)
+                     })
+            {
+                string chemin = Path.Combine(racine, "MCEMonitor", nomExe);
+
+                if (File.Exists(chemin))
+                    return chemin;
+            }
+
+            return "";
+        }
     }
 }
