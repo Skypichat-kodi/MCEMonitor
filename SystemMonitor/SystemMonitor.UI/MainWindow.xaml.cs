@@ -367,16 +367,20 @@ namespace SystemMonitor.UI
                 {
                     Text = core.name.Replace("Core ", "C"),
                     FontSize = 9,
-                    Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
+                    Foreground = TryFindResource("TexteTernaire") as Brush
+                                 ?? new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
                 panel.Children.Add(lblName);
 
-                // Conteneur de la barre verticale
+                // Conteneur de la barre verticale. Le fond suivait un gris très
+                // sombre codé en dur : sur thème clair, les coeurs au repos
+                // apparaissaient comme des blocs noirs.
                 var barBg = new Border
                 {
                     Height = 45,
-                    Background = new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30)),
+                    Background = TryFindResource("SurfaceEntete") as Brush
+                                 ?? new SolidColorBrush(Color.FromRgb(0x2D, 0x2D, 0x30)),
                     CornerRadius = new CornerRadius(3),
                     Margin = new Thickness(0, 2, 0, 2)
                 };
