@@ -16,5 +16,5 @@
     <SolidColorBrush x:Key="Succes"          Color="#FF107C10" />
     <SolidColorBrush x:Key="Erreur"          Color="#FFC42B1C" />
     <SolidColorBrush x:Key="FondGraphique"   Color="#FFF7F7F7" />
-    <SolidColorBrush x:Key="PanelBackground" Color="#223A8DFF" />
+    <SolidColorBrush x:Key="PanelBackground" Color="#333A8DFF" />
 </ResourceDictionary>
