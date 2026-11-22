@@ -1,0 +1,39 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <!-- Thème clair, dans l'esprit de Windows 11. -->
+    <!-- Mêmes clés que Themes/Sombre.xaml : les surfaces s'éclaircissent au lieu de
+         s'assombrir, et l'accent est assombri pour rester lisible sur fond blanc. -->
+        <Color x:Key="CouleurFond">#FFF3F3F3</Color>
+        <Color x:Key="CouleurSurface">#FFFFFFFF</Color>
+        <Color x:Key="CouleurSurfaceSurvol">#FFF0F0F0</Color>
+        <Color x:Key="CouleurSurfaceActive">#FFE2E2E2</Color>
+        <Color x:Key="CouleurBordure">#FFD6D6D6</Color>
+        <Color x:Key="CouleurTexte">#FF1B1B1B</Color>
+        <Color x:Key="CouleurTexteSecondaire">#FF5F5F5F</Color>
+        <Color x:Key="CouleurAccent">#FF0F6CBD</Color>
+        <Color x:Key="CouleurAccentSurvol">#FF1B7FD4</Color>
+        <Color x:Key="CouleurAccentPresse">#FF0C5A9E</Color>
+        <Color x:Key="CouleurSucces">#FF107C10</Color>
+        <Color x:Key="CouleurSuccesSurvol">#FF158F15</Color>
+        <Color x:Key="CouleurSuccesPresse">#FF0C630C</Color>
+        <Color x:Key="CouleurErreur">#FFC42B1C</Color>
+        <Color x:Key="CouleurErreurSurvol">#FFD63B2C</Color>
+        <Color x:Key="CouleurErreurPresse">#FFA31E12</Color>
+
+        <SolidColorBrush x:Key="Fond" Color="{StaticResource CouleurFond}" />
+        <SolidColorBrush x:Key="Surface" Color="{StaticResource CouleurSurface}" />
+        <SolidColorBrush x:Key="SurfaceSurvol" Color="{StaticResource CouleurSurfaceSurvol}" />
+        <SolidColorBrush x:Key="SurfaceActive" Color="{StaticResource CouleurSurfaceActive}" />
+        <SolidColorBrush x:Key="Bordure" Color="{StaticResource CouleurBordure}" />
+        <SolidColorBrush x:Key="Texte" Color="{StaticResource CouleurTexte}" />
+        <SolidColorBrush x:Key="TexteSecondaire" Color="{StaticResource CouleurTexteSecondaire}" />
+        <SolidColorBrush x:Key="Accent" Color="{StaticResource CouleurAccent}" />
+        <SolidColorBrush x:Key="AccentSurvol" Color="{StaticResource CouleurAccentSurvol}" />
+        <SolidColorBrush x:Key="AccentPresse" Color="{StaticResource CouleurAccentPresse}" />
+        <SolidColorBrush x:Key="Succes" Color="{StaticResource CouleurSucces}" />
+        <SolidColorBrush x:Key="SuccesSurvol" Color="{StaticResource CouleurSuccesSurvol}" />
+        <SolidColorBrush x:Key="SuccesPresse" Color="{StaticResource CouleurSuccesPresse}" />
+        <SolidColorBrush x:Key="Erreur" Color="{StaticResource CouleurErreur}" />
+        <SolidColorBrush x:Key="ErreurSurvol" Color="{StaticResource CouleurErreurSurvol}" />
+        <SolidColorBrush x:Key="ErreurPresse" Color="{StaticResource CouleurErreurPresse}" />
+</ResourceDictionary>

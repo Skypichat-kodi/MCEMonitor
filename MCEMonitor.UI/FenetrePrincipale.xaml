@@ -303,7 +303,7 @@
                                          Width="11" Height="11"
                                          Margin="10,0,8,0"
                                          VerticalAlignment="Center"
-                                         Fill="#FFA0A0A0" />
+                                         Fill="{StaticResource TexteSecondaire}" />
                                 <TextBlock x:Name="TexteStatut"
                                            Margin="0"
                                            VerticalAlignment="Center"

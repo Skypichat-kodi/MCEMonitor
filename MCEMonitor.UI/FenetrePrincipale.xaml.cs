@@ -2896,17 +2896,42 @@ namespace MCEMonitor.UI
             }
         }
 
-        // Le choix du thème n'est pas encore implémenté côté WPF : la palette
-        // sombre de MyAutoDNS est pour l'instant la seule définie. Le bouton est
-        // en place pour ne pas perdre la fonction lors de la bascule.
+        // Le choix est enregistré, puis appliqué au démarrage suivant : les styles
+        // référencent les couleurs en StaticResource, résolu une seule fois au
+        // chargement.
         private void SurChoisirTheme(object sender, RoutedEventArgs e)
         {
-            Boite.Show(this, 
-                LanguageManager.Get("Le choix du thème sera disponible dans une prochaine version.")
-                ?? "Le choix du thème sera disponible dans une prochaine version.",
+            bool estClair = GestionnaireTheme.ThemeChoisi() == GestionnaireTheme.Clair;
+
+            string etat = estClair
+                ? (LanguageManager.Get("Le thème clair est actif.") ?? "Le thème clair est actif.")
+                : (LanguageManager.Get("Le thème sombre est actif.") ?? "Le thème sombre est actif.");
+
+            string question = estClair
+                ? (LanguageManager.Get("Passer au thème sombre ?") ?? "Passer au thème sombre ?")
+                : (LanguageManager.Get("Passer au thème clair ?") ?? "Passer au thème clair ?");
+
+            var reponse = Boite.Show(this,
+                etat + "\n\n" + question,
+                LanguageManager.Get("Changer de thème") ?? "Changer de thème",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Question);
+
+            if (reponse != MessageBoxResult.Yes)
+                return;
+
+            bool ok = GestionnaireTheme.Enregistrer(
+                estClair ? GestionnaireTheme.Sombre : GestionnaireTheme.Clair);
+
+            Boite.Show(this,
+                ok
+                    ? (LanguageManager.Get("Le thème sera appliqué au prochain démarrage de MCEMonitor.")
+                       ?? "Le thème sera appliqué au prochain démarrage de MCEMonitor.")
+                    : (LanguageManager.Get("Impossible d'enregistrer le choix du thème.")
+                       ?? "Impossible d'enregistrer le choix du thème."),
                 LanguageManager.Get("Changer de thème") ?? "Changer de thème",
                 MessageBoxButton.OK,
-                MessageBoxImage.Information);
+                ok ? MessageBoxImage.Information : MessageBoxImage.Warning);
         }
 
         private const string LicenceMit = """

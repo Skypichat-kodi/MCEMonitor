@@ -119,6 +119,10 @@ namespace MCEMonitor.UI
 
             base.OnStartup(e);
 
+            // Thème choisi, puis styles : dans cet ordre, les styles référencent les
+            // pinceaux du thème en StaticResource.
+            GestionnaireTheme.Appliquer(this);
+
             var fenetre = new FenetrePrincipale();
             MainWindow  = fenetre;
             fenetre.Show();
