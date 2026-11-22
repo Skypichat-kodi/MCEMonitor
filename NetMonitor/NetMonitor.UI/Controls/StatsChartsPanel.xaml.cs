@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using LiveChartsCore;
 using LiveChartsCore.SkiaSharpView;
 using LiveChartsCore.SkiaSharpView.Painting;
@@ -12,22 +14,42 @@ namespace NetMonitor.UI.Controls
 {
     public partial class StatsChartsPanel : UserControl
     {
-        // Palette partagée avec la version web
-        private static readonly SKColor Blue    = SKColor.Parse("#4CC2FF");
-        private static readonly SKColor Red     = SKColor.Parse("#FF6347");
-        private static readonly SKColor Orange  = SKColor.Parse("#FFB900");
-        private static readonly SKColor Green   = SKColor.Parse("#6CCB5F");
-        private static readonly SKColor Purple  = SKColor.Parse("#7B4FE0");
-        private static readonly SKColor Gray    = SKColor.Parse("#666666");
-
-        private static readonly SKColor TextColor  = SKColor.Parse("#E5E5E5");
-        private static readonly SKColor AxisColor  = SKColor.Parse("#3C3C3C");
-
-        private static readonly SKColor[] Palette =
+        /// <summary>
+        /// Couleur d'un pinceau du thème, convertie pour SkiaSharp.
+        ///
+        /// Le rendu Skia ne connaît pas les ressources WPF : sans cette conversion,
+        /// les graphiques restaient peints pour un fond sombre, texte clair compris,
+        /// même en thème clair.
+        /// </summary>
+        private static SKColor DepuisRessource(string cle, string repli)
         {
-            Blue, Red, Orange, Green, Purple,
-            SKColor.Parse("#FF8A72"), SKColor.Parse("#41AB5D"), SKColor.Parse("#9ECAE1")
-        };
+            if (Application.Current?.TryFindResource(cle) is SolidColorBrush pinceau)
+            {
+                Color c = pinceau.Color;
+                return new SKColor(c.R, c.G, c.B, c.A);
+            }
+
+            return SKColor.Parse(repli);
+        }
+
+        // Palette partagée avec la version web. Les couleurs d'interface suivent le
+        // thème ; les couleurs de sévérité restent fixes, ce sont des repères.
+        private static SKColor Blue      => DepuisRessource("Accent", "#4CC2FF");
+        private static SKColor Red       => SKColor.Parse("#FF6347");
+        private static SKColor Orange    => SKColor.Parse("#FFB900");
+        private static SKColor Green     => SKColor.Parse("#6CCB5F");
+        private static SKColor Purple    => SKColor.Parse("#7B4FE0");
+        private static SKColor Gray      => SKColor.Parse("#666666");
+
+        private static SKColor TextColor => DepuisRessource("Texte", "#E5E5E5");
+        private static SKColor AxisColor => DepuisRessource("Bordure", "#3C3C3C");
+
+        private static SKColor[] Palette =>
+            new[]
+            {
+                Blue, Red, Orange, Green, Purple,
+                SKColor.Parse("#FF8A72"), SKColor.Parse("#41AB5D"), SKColor.Parse("#9ECAE1")
+            };
 
         public StatsChartsPanel()
         {
@@ -123,7 +145,7 @@ namespace NetMonitor.UI.Controls
                     Stroke = new SolidColorPaint(color, 2),
                     Fill = new SolidColorPaint(color.WithAlpha(40)),
                     GeometryFill = new SolidColorPaint(color),
-                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometryStroke = new SolidColorPaint(DepuisRessource("Surface", "#1E1E1E"), 2),
                     GeometrySize = buckets.Count > 20 ? 4 : 8,   // points plus petits si beaucoup de buckets
                     LineSmoothness = 0.5
                 }
@@ -332,7 +354,7 @@ namespace NetMonitor.UI.Controls
                     Stroke = new SolidColorPaint(Blue, 2),
                     Fill = new SolidColorPaint(Blue.WithAlpha(40)),
                     GeometryFill = new SolidColorPaint(Blue),
-                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometryStroke = new SolidColorPaint(DepuisRessource("Surface", "#1E1E1E"), 2),
                     GeometrySize = 8,
                     LineSmoothness = 0.5
                 }
@@ -386,7 +408,7 @@ namespace NetMonitor.UI.Controls
                     Stroke = new SolidColorPaint(Orange, 2),
                     Fill = new SolidColorPaint(Orange.WithAlpha(40)),
                     GeometryFill = new SolidColorPaint(Orange),
-                    GeometryStroke = new SolidColorPaint(SKColor.Parse("#1E1E1E"), 2),
+                    GeometryStroke = new SolidColorPaint(DepuisRessource("Surface", "#1E1E1E"), 2),
                     GeometrySize = 8,
                     LineSmoothness = 0.5
                 }

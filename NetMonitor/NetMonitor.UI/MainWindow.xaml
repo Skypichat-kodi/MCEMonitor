@@ -38,7 +38,7 @@
             <Setter Property="Foreground" Value="{StaticResource TexteEnteteIntrusion}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>   <!-- trait gris des cellules d'en-tete -->
             <Setter Property="BorderThickness" Value="0,1,1,1"/>   <!-- un seul trait par frontiere (pas de doublon) -->
-            <Setter Property="Padding" Value="6,6"/>   <!-- bandeau d'en-tete : 29 px au lieu de 17 -->
+            <Setter Property="Padding" Value="6,3"/>   <!-- meme hauteur que les en-tetes de l'onglet Interceptions -->
         </Style>
 
         <!-- Cellules des tableaux de l'onglet Intrusions. Le style global des
@@ -47,8 +47,15 @@
         <Style x:Key="CellulesIntrusion" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="{StaticResource TeinteIntrusion}"/>
             <Style.Triggers>
+                <!-- La cellule peint son propre fond : elle doit suivre le survol et
+                     effacer sa bordure, sinon les traits verticaux ressortent. -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsMouseOver}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource SurvolIntrusion}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource SurvolIntrusion}"/>
+                </DataTrigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="{StaticResource SelectionIntrusion}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource SelectionIntrusion}"/>
                 </Trigger>
                 <!-- Tableau sans focus : la selection ne doit plus se voir -->
                 <MultiDataTrigger>
@@ -66,9 +73,20 @@
              un fond opaque qui masquerait celui de la ligne. -->
         <Style x:Key="CellulesInterception" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="{StaticResource TeinteInterception}"/>
+            <Setter Property="BorderThickness" Value="0,0,1,0"/>
+            <Setter Property="BorderBrush" Value="{StaticResource BordureLigneInterception}"/>
             <Style.Triggers>
+                <!-- La cellule peint son propre fond : sans ce déclencheur, le survol
+                     de la ligne resterait invisible sous elle. -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsMouseOver}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource LigneInterceptionSurvol}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource LigneInterceptionSurvol}"/>
+                </DataTrigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="{StaticResource SelectionInterception}"/>
+                    <!-- La bordure prend la couleur du fond : sinon le trait vertical
+                         des cellules ressort de part et d'autre de la sélection. -->
+                    <Setter Property="BorderBrush" Value="{StaticResource SelectionInterception}"/>
                 </Trigger>
                 <!-- Tableau sans focus : la selection ne doit plus se voir -->
                 <MultiDataTrigger>
@@ -87,8 +105,15 @@
         <Style x:Key="CellulesAudit" TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
             <Setter Property="Background" Value="{StaticResource TeinteAudit}"/>
             <Style.Triggers>
+                <!-- Même principe que les intrusions : suivre le survol et effacer
+                     la bordure pour ne pas encadrer la ligne survolée. -->
+                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsMouseOver}" Value="True">
+                    <Setter Property="Background" Value="{StaticResource BordureAuditClaire}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource BordureAuditClaire}"/>
+                </DataTrigger>
                 <Trigger Property="IsSelected" Value="True">
                     <Setter Property="Background" Value="{StaticResource SelectionAudit}"/>
+                    <Setter Property="BorderBrush" Value="{StaticResource SelectionAudit}"/>
                 </Trigger>
                 <!-- Tableau sans focus : la selection ne doit plus se voir -->
                 <MultiDataTrigger>
@@ -110,7 +135,7 @@
                     <Setter Property="Background" Value="{StaticResource LigneIntrusionPaire}"/>
                 </Trigger>
                 <Trigger Property="IsMouseOver" Value="True">
-                    <Setter Property="Background" Value="#2E1E1E"/>
+                    <Setter Property="Background" Value="{StaticResource SurvolIntrusion}"/>
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -305,9 +330,7 @@
         </Style>
 
         <!-- Couleurs pour les pastilles des checkboxes -->
-        <SolidColorBrush x:Key="DotCritical" Color="#FF6347"/>
         <SolidColorBrush x:Key="DotWarning"  Color="#FFB900"/>
-        <SolidColorBrush x:Key="DotSubnet"   Color="#6CCB5F"/>
         <SolidColorBrush x:Key="DotBot"      Color="#5BC0EB"/>
         <SolidColorBrush x:Key="DotCrawler"  Color="#1E88E5"/>
 
@@ -415,7 +438,7 @@
                                 <Setter Property="Background" Value="#FFFFFF"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Safe">
-                                <Setter Property="Background" Value="#6CCB5F"/>
+                                <Setter Property="Background" Value="{StaticResource Vert}"/>
                             </DataTrigger>
                             <DataTrigger Binding="{Binding Severity}" Value="Bot">
                                 <Setter Property="Background" Value="#5BC0EB"/>
@@ -822,7 +845,7 @@
         <!--  Bouton "i" rond pour les colonnes Info                       -->
         <!-- ============================================================ -->
         <Style x:Key="InfoButtonStyle" TargetType="Button">
-            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Background" Value="{StaticResource FondInfo}"/>
             <Setter Property="Foreground" Value="{StaticResource Accent}"/>
             <Setter Property="FontWeight" Value="Bold"/>
             <Setter Property="FontSize" Value="11"/>
@@ -974,11 +997,12 @@
                             <Button Width="160" Margin="0,0,10,0" Click="BlockSelected_Click">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#CC3300"/>
-                                        <Setter Property="BorderBrush" Value="#FF6347"/>
+                                        <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#E64D1A"/>
+                                                <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1094,8 +1118,9 @@
                                                         ToolTip="{loc:Tr 'Marquer comme Safe (liste Microsoft vérifiée)'}">
                                                     <Button.Style>
                                                         <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                            <Setter Property="Background" Value="#3A7A33"/>
-                                                            <Setter Property="BorderBrush" Value="#6CCB5F"/>
+                                                            <Setter Property="Background" Value="{StaticResource BoutonVertFond}"/>
+                                                            <Setter Property="BorderBrush" Value="{StaticResource BoutonVertBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonVertTexte}"/>
                                                             <Setter Property="Foreground" Value="White"/>
                                                             <Setter Property="Visibility" Value="Collapsed"/>
                                                             <Style.Triggers>
@@ -1103,7 +1128,7 @@
                                                                     <Setter Property="Visibility" Value="Visible"/>
                                                                 </DataTrigger>
                                                                 <Trigger Property="IsMouseOver" Value="True">
-                                                                    <Setter Property="Background" Value="#4A9A40"/>
+                                                                    <Setter Property="Background" Value="{StaticResource BoutonVertSurvol}"/>
                                                                 </Trigger>
                                                             </Style.Triggers>
                                                         </Style>
@@ -1186,11 +1211,12 @@
                             <Button Width="220" Margin="0,0,10,0" Click="BlockSelectedProcess_Click">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#CC3300"/>
-                                        <Setter Property="BorderBrush" Value="#FF6347"/>
+                                        <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#E64D1A"/>
+                                                <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1203,11 +1229,12 @@
                             <Button Width="240" Click="WhitelistSelectedProcess_Click">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="#3A7A33"/>
-                                        <Setter Property="BorderBrush" Value="#6CCB5F"/>
+                                        <Setter Property="Background" Value="{StaticResource BoutonVertFond}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource BoutonVertBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonVertTexte}"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="#4A9A40"/>
+                                                <Setter Property="Background" Value="{StaticResource BoutonVertSurvol}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
@@ -1220,17 +1247,18 @@
                             <Button Width="160" Click="DismissPendingProcess_Click" Margin="10,0,0,0">
                                 <Button.Style>
                                     <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                        <Setter Property="Background" Value="{StaticResource SurfaceActive}"/>
-                                        <Setter Property="BorderBrush" Value="#6A6A6D"/>
+                                        <Setter Property="Background" Value="{StaticResource Surface}"/>
+                                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource Texte}"/>
                                         <Style.Triggers>
                                             <Trigger Property="IsMouseOver" Value="True">
-                                                <Setter Property="Background" Value="{StaticResource TexteTernaire}"/>
+                                                <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
                                             </Trigger>
                                         </Style.Triggers>
                                     </Style>
                                 </Button.Style>
                                 <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="✖" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center" Foreground="{StaticResource Texte}"/>
+                                    <TextBlock Text="✖" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
                                     <TextBlock Text="{loc:Tr 'Retirer de la liste'}" VerticalAlignment="Center"/>
                                 </StackPanel>
                             </Button>                            
@@ -1406,9 +1434,9 @@
                         <!-- Tableau 2 : IP et Processus bloqués -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
-                                       Foreground="#FF6347" VerticalAlignment="Center"/>
+                                       Foreground="{StaticResource Rouge}" VerticalAlignment="Center"/>
                             <TextBlock Text="{loc:Tr 'IP et Processus bloqués'}" FontSize="14"
-                                       FontWeight="SemiBold" Foreground="#FF6347"
+                                       FontWeight="SemiBold" Foreground="{StaticResource Rouge}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
@@ -1640,22 +1668,23 @@
 
                         <DataGrid.ColumnHeaderStyle>
                             <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
-                                <Setter Property="Background" Value="#1A3A5C"/>
-                                <Setter Property="Foreground" Value="#B5D7FF"/>
-                                <Setter Property="BorderBrush" Value="#2E5A8A"/>
+                                <Setter Property="Background" Value="{StaticResource EnteteInterception}"/>
+                                <Setter Property="Padding" Value="6,3"/>
+                                <Setter Property="Foreground" Value="{StaticResource TexteEnteteInterception}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BordureInterception}"/>
                             </Style>
                         </DataGrid.ColumnHeaderStyle>
 
                         <DataGrid.RowStyle>
                             <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
-                                <Setter Property="Background" Value="#0A1520"/>
-                                <Setter Property="BorderBrush" Value="#1F3A52"/>
+                                <Setter Property="Background" Value="{StaticResource LigneInterceptionA}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BordureLigneInterception}"/>
                                 <Style.Triggers>
                                     <Trigger Property="ItemsControl.AlternationIndex" Value="0">
-                                        <Setter Property="Background" Value="#0F1F2E"/>
+                                        <Setter Property="Background" Value="{StaticResource LigneInterceptionB}"/>
                                     </Trigger>
                                     <Trigger Property="IsMouseOver" Value="True">
-                                        <Setter Property="Background" Value="#16324F"/>
+                                        <Setter Property="Background" Value="{StaticResource LigneInterceptionSurvol}"/>
                                     </Trigger>
                                 </Style.Triggers>
                             </Style>
@@ -1899,9 +1928,9 @@
                         <!-- Tableau 4 : Audit Whitelist -->
                         <StackPanel Orientation="Horizontal" Margin="0,25,0,8">
                             <TextBlock Text="🛡" FontSize="16" Margin="0,0,8,0"
-                                       Foreground="#6CCB5F" VerticalAlignment="Center"/>
+                                       Foreground="{StaticResource Vert}" VerticalAlignment="Center"/>
                             <TextBlock Text="{loc:Tr 'Alertes ignorées (IP de confiance)'}" FontSize="14"
-                                       FontWeight="SemiBold" Foreground="#6CCB5F"
+                                       FontWeight="SemiBold" Foreground="{StaticResource Vert}"
                                        VerticalAlignment="Center"/>
                         </StackPanel>
 
@@ -2155,9 +2184,9 @@
 
                     <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,8">
                         <TextBlock Text="✅" FontSize="16" Margin="0,0,8,0"
-                                   Foreground="#6CCB5F" VerticalAlignment="Center"/>
+                                   Foreground="{StaticResource Vert}" VerticalAlignment="Center"/>
                         <TextBlock Text="{loc:Tr 'Processus approuvés'}" FontSize="14"
-                                   FontWeight="SemiBold" Foreground="#6CCB5F"
+                                   FontWeight="SemiBold" Foreground="{StaticResource Vert}"
                                    VerticalAlignment="Center"/>
                         <TextBlock x:Name="txtWhitelistSummary" FontSize="12" Foreground="#999"
                                    Margin="15,0,0,0" VerticalAlignment="Center"/>
@@ -2173,11 +2202,12 @@
                         <Button Width="220" Click="RemoveWhitelistEntry_Click">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                    <Setter Property="Background" Value="#CC3300"/>
-                                    <Setter Property="BorderBrush" Value="#FF6347"/>
+                                    <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#E64D1A"/>
+                                            <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -2288,6 +2318,16 @@
                                   IsReadOnly="True"
                                   HeadersVisibility="Column"
                                   SelectionMode="Single">
+                            <!-- En-tête propre à cet onglet : violet discret, pour le
+                                 distinguer des tableaux d'intrusions et d'interceptions. -->
+                            <DataGrid.ColumnHeaderStyle>
+                                <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                    <Setter Property="Background" Value="{StaticResource EnteteConnexion}"/>
+                                    <Setter Property="Foreground" Value="{StaticResource TexteEnteteConnexion}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource BordureConnexion}"/>
+                                    <Setter Property="Padding" Value="6,3"/>
+                                </Style>
+                            </DataGrid.ColumnHeaderStyle>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="{loc:Tr 'Heure'}"   Binding="{Binding TimestampText}" SortMemberPath="Timestamp" Width="90" ElementStyle="{StaticResource TexteCellule}"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Proto'}"   Binding="{Binding Protocol}" Width="60" ElementStyle="{StaticResource TexteCellule}"/>
@@ -2605,7 +2645,7 @@
 
                                     <CheckBox x:Name="chkAutoBlockCritical"
                                               Style="{StaticResource ColoredCheckBox}"
-                                              Tag="{StaticResource DotCritical}"
+                                              Tag="{StaticResource Rouge}"
                                               Content="{loc:Tr 'Bloquer les menaces critiques'}"/>
 
                                     <CheckBox x:Name="chkAutoBlockWarning"
@@ -2615,7 +2655,7 @@
 
                                     <CheckBox x:Name="chkAutoBlockSubnet"
                                               Style="{StaticResource ColoredCheckBox}"
-                                              Tag="{StaticResource DotSubnet}"
+                                              Tag="{StaticResource Vert}"
                                               Content="{loc:Tr 'Bloquer les scanners de recherche'}"/>
 
                                     <CheckBox x:Name="chkBlockBots"
@@ -2820,18 +2860,18 @@
                             </Border>
 
                             <!-- Mode Debug -->
-                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15" BorderBrush="#FF6347">
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15" BorderBrush="{StaticResource Rouge}">
                                 <StackPanel>
                                     <CheckBox x:Name="chkDisableFilters"
                                               Content="{loc:Tr 'Mode Debug : Désactiver les filtres et whitelists'}"
-                                              Foreground="#FF6347"
+                                              Foreground="{StaticResource Rouge}"
                                               FontWeight="Bold"
                                               Margin="0,0,0,5"
                                               Checked="ChkDisableFilters_Checked"
                                               Unchecked="ChkDisableFilters_Unchecked"/>
                                     <TextBlock x:Name="lblDisableFiltersWarning"
                                                Text="{loc:Tr '⚠ ATTENTION : Cette option désactive toutes les protections. Utilisez-la uniquement pour tester les détecteurs.'}"
-                                               Foreground="#FF6347"
+                                               Foreground="{StaticResource Rouge}"
                                                FontSize="11"
                                                TextWrapping="Wrap"
                                                Visibility="Collapsed"
@@ -2841,13 +2881,13 @@
 
                             <!-- Zone de danger -->
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15"
-                                    BorderBrush="#FF6347" BorderThickness="1">
+                                    BorderBrush="{StaticResource Rouge}" BorderThickness="1">
                                 <StackPanel>
                                     <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
                                         <TextBlock Text="⚠" FontSize="16" Margin="0,0,8,0"
-                                                   Foreground="#FF6347" VerticalAlignment="Center"/>
+                                                   Foreground="{StaticResource Rouge}" VerticalAlignment="Center"/>
                                         <TextBlock Text="{loc:Tr 'Zone de danger'}" FontSize="14"
-                                                   FontWeight="Bold" Foreground="#FF6347"
+                                                   FontWeight="Bold" Foreground="{StaticResource Rouge}"
                                                    VerticalAlignment="Center"/>
                                     </StackPanel>
 
@@ -2861,11 +2901,12 @@
                                             Click="btnClearAllBlockedIps_Click">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                <Setter Property="Background" Value="#CC3300"/>
-                                                <Setter Property="BorderBrush" Value="#FF6347"/>
+                                                <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                                 <Style.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#E64D1A"/>
+                                                        <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -2883,11 +2924,12 @@
                                             Click="btnRestoreDefaultPatterns_Click">
                                         <Button.Style>
                                             <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                <Setter Property="Background" Value="#CC3300"/>
-                                                <Setter Property="BorderBrush" Value="#FF6347"/>
+                                                <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                                <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                                 <Style.Triggers>
                                                     <Trigger Property="IsMouseOver" Value="True">
-                                                        <Setter Property="Background" Value="#E64D1A"/>
+                                                        <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                                     </Trigger>
                                                 </Style.Triggers>
                                             </Style>
@@ -2948,11 +2990,12 @@
                         <Button Width="240" Click="RevokeAllTrustedDevices_Click">
                             <Button.Style>
                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                    <Setter Property="Background" Value="#CC3300"/>
-                                    <Setter Property="BorderBrush" Value="#FF6347"/>
+                                    <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                    <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                     <Style.Triggers>
                                         <Trigger Property="IsMouseOver" Value="True">
-                                            <Setter Property="Background" Value="#E64D1A"/>
+                                            <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                         </Trigger>
                                     </Style.Triggers>
                                 </Style>
@@ -2973,6 +3016,15 @@
                               IsReadOnly="True"
                               HeadersVisibility="Column"
                               SelectionMode="Single">
+                        <!-- Même en-tête gris que le tableau de l'onglet Connexions -->
+                        <DataGrid.ColumnHeaderStyle>
+                            <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                                <Setter Property="Background" Value="{StaticResource EnteteConnexion}"/>
+                                <Setter Property="Foreground" Value="{StaticResource TexteEnteteConnexion}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource BordureConnexion}"/>
+                                <Setter Property="Padding" Value="6,3"/>
+                            </Style>
+                        </DataGrid.ColumnHeaderStyle>
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="{loc:Tr 'Navigateur / Appareil'}" 
                                                 Binding="{Binding UserAgentDisplay}" Width="*" MinWidth="300">
@@ -2996,12 +3048,13 @@
                                                 ToolTip="{loc:Tr 'Révoquer cet appareil'}">
                                             <Button.Style>
                                                 <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
-                                                    <Setter Property="Background" Value="#CC3300"/>
-                                                    <Setter Property="BorderBrush" Value="#FF6347"/>
+                                                    <Setter Property="Background" Value="{StaticResource BoutonRougeFond}"/>
+                                                    <Setter Property="BorderBrush" Value="{StaticResource BoutonRougeBordure}"/>
+                                        <Setter Property="Foreground" Value="{StaticResource BoutonRougeTexte}"/>
                                                     <Setter Property="Padding" Value="4,0"/>
                                                     <Style.Triggers>
                                                         <Trigger Property="IsMouseOver" Value="True">
-                                                            <Setter Property="Background" Value="#E64D1A"/>
+                                                            <Setter Property="Background" Value="{StaticResource BoutonRougeSurvol}"/>
                                                         </Trigger>
                                                     </Style.Triggers>
                                                 </Style>
@@ -3023,6 +3076,36 @@
             <!--  ONGLET STATISTIQUES (2 sous-onglets)                 -->
             <!-- ====================================================== -->
             <TabItem>
+                <!-- Styles propres à cet onglet : les tableaux de statistiques sont des
+                     listes de lecture, sans sélection ni alternance, et n'avaient aucun
+                     style de ligne : le quadrillage implicite ressortait trop. -->
+                <TabItem.Resources>
+                    <Style TargetType="DataGridColumnHeader" BasedOn="{StaticResource {x:Type DataGridColumnHeader}}">
+                        <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+                        <Setter Property="Foreground" Value="{StaticResource Texte}"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+                        <Setter Property="Padding" Value="6,3"/>
+                    </Style>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                        <Setter Property="Background" Value="{StaticResource Surface}"/>
+                        <Setter Property="BorderBrush" Value="{StaticResource Fond}"/>
+                        <Style.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter Property="Background" Value="{StaticResource Fond}"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                    <Style TargetType="DataGridCell" BasedOn="{StaticResource {x:Type DataGridCell}}">
+                        <Setter Property="Background" Value="Transparent"/>
+                        <!-- Aucun trait vertical : seules les lignes portent la séparation,
+                             dans une teinte à peine plus foncée que le fond. -->
+                        <Setter Property="BorderThickness" Value="0"/>
+                        <Setter Property="FocusVisualStyle" Value="{x:Null}"/>
+                    </Style>
+                </TabItem.Resources>
                 <TabItem.Header>
                     <StackPanel Orientation="Horizontal">
                         <TextBlock Text="📊" FontSize="15" Margin="0,0,8,0" VerticalAlignment="Center"/>
@@ -3154,7 +3237,7 @@
                                                                Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
                                                                Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                                     <TextBlock x:Name="txtStatsActiveWorst" FontSize="20" FontWeight="Bold"
-                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
+                                                               Foreground="{StaticResource Vert}" HorizontalAlignment="Center" Text="OK"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -3179,7 +3262,7 @@
                                                    FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsActiveIspsGrid" MinHeight="120" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3193,7 +3276,7 @@
                                                    FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsActiveCountriesGrid" MinHeight="100" MaxHeight="180"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3207,7 +3290,7 @@
                                                    FontWeight="SemiBold" Foreground="#FFB900" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsActiveDetectorsGrid" MinHeight="100" MaxHeight="180"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3264,7 +3347,7 @@
                                         <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
                                             <TextBlock Text="📈" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
                                             <TextBlock Text="{loc:Tr 'Historique et blocages'}" FontSize="16"
-                                                       FontWeight="Bold" Foreground="#6CCB5F" VerticalAlignment="Center"/>
+                                                       FontWeight="Bold" Foreground="{StaticResource Vert}" VerticalAlignment="Center"/>
                                             <TextBlock x:Name="txtBlockedSummary" FontSize="12" Foreground="#999"
                                                        Margin="15,0,0,0" VerticalAlignment="Center"/>
                                         </StackPanel>
@@ -3283,7 +3366,7 @@
                                                     <TextBlock Text="{loc:Tr 'Total alertes'}" FontSize="11"
                                                                Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                                     <TextBlock x:Name="txtStatsTotalAlerts" FontSize="26" FontWeight="Bold"
-                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                               Foreground="{StaticResource Vert}" HorizontalAlignment="Center" Text="0"/>
                                                 </StackPanel>
                                             </Border>
 
@@ -3292,7 +3375,7 @@
                                                     <TextBlock Text="{loc:Tr 'IPs distinctes'}" FontSize="11"
                                                                Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                                     <TextBlock x:Name="txtStatsDistinctIps" FontSize="26" FontWeight="Bold"
-                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                               Foreground="{StaticResource Vert}" HorizontalAlignment="Center" Text="0"/>
                                                 </StackPanel>
                                             </Border>
 
@@ -3301,7 +3384,7 @@
                                                     <TextBlock Text="{loc:Tr 'Pays distincts'}" FontSize="11"
                                                                Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                                     <TextBlock x:Name="txtStatsDistinctCountries" FontSize="26" FontWeight="Bold"
-                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="0"/>
+                                                               Foreground="{StaticResource Vert}" HorizontalAlignment="Center" Text="0"/>
                                                 </StackPanel>
                                             </Border>
 
@@ -3310,7 +3393,7 @@
                                                     <TextBlock Text="{loc:Tr 'Pire sévérité'}" FontSize="11"
                                                                Foreground="#999" HorizontalAlignment="Center" Margin="0,0,0,6"/>
                                                     <TextBlock x:Name="txtStatsWorstSeverity" FontSize="20" FontWeight="Bold"
-                                                               Foreground="#6CCB5F" HorizontalAlignment="Center" Text="OK"/>
+                                                               Foreground="{StaticResource Vert}" HorizontalAlignment="Center" Text="OK"/>
                                                 </StackPanel>
                                             </Border>
                                         </Grid>
@@ -3332,7 +3415,7 @@
                                                                 <ControlTemplate.Triggers>
                                                                     <Trigger Property="IsSelected" Value="True">
                                                                         <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceEntete}"/>
-                                                                        <Setter TargetName="border" Property="BorderBrush" Value="#6CCB5F"/>
+                                                                        <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource Vert}"/>
                                                                     </Trigger>
                                                                     <Trigger Property="IsMouseOver" Value="True">
                                                                         <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceSurvol}"/>
@@ -3383,7 +3466,7 @@
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsBlockedIspsGrid" MinHeight="120" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'FAI'}" Binding="{Binding Isp}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="180" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3396,7 +3479,7 @@
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsBlockedCountriesGrid" MinHeight="100" MaxHeight="180"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Pays'}" Binding="{Binding CountryDisplay}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3409,7 +3492,7 @@
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsBlockedDetectorsGrid" MinHeight="100" MaxHeight="180"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Detector}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'IPs'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3421,7 +3504,7 @@
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsTopProcessesGrid" MinHeight="100" MaxHeight="200"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Processus'}" Binding="{Binding ProcessName}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3439,7 +3522,7 @@
                                         </StackPanel>
                                         <DataGrid x:Name="StatsActivityGrid" MinHeight="100" MaxHeight="220"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single" Margin="0,0,0,10">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single" Margin="0,0,0,10">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Période'}" Binding="{Binding Label}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Alertes'}" Binding="{Binding Count}" Width="120" ElementStyle="{StaticResource TexteCellule}"/>
@@ -3452,7 +3535,7 @@
                                                    FontWeight="SemiBold" Foreground="#8FDA80" Margin="0,5,0,5"/>
                                         <DataGrid x:Name="StatsSeverityDistributionGrid" MinHeight="100" MaxHeight="200"
                                                   AutoGenerateColumns="False" CanUserAddRows="False" IsReadOnly="True"
-                                                  HeadersVisibility="Column" SelectionMode="Single">
+                                                  HeadersVisibility="Column" AlternationCount="2" SelectionMode="Single">
                                             <DataGrid.Columns>
                                                 <DataGridTextColumn Header="{loc:Tr 'Sévérité'}" Binding="{Binding Severity}" Width="*" ElementStyle="{StaticResource TexteCellule}"/>
                                                 <DataGridTextColumn Header="{loc:Tr 'Occurrences'}" Binding="{Binding Count}" Width="140" ElementStyle="{StaticResource TexteCellule}"/>

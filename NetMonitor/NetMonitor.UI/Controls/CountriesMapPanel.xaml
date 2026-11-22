@@ -14,9 +14,9 @@
                     Content="+"
                     Width="32" Height="32"
                     FontSize="18" FontWeight="Bold"
-                    Background="#EE252526"
-                    Foreground="#E5E5E5"
-                    BorderBrush="#4CC2FF" BorderThickness="1"
+                    Background="{DynamicResource Surface}"
+                    Foreground="{DynamicResource Texte}"
+                    BorderBrush="{DynamicResource Accent}" BorderThickness="1"
                     Cursor="Hand"
                     Click="BtnZoomIn_Click"
                     ToolTip="Zoom avant"/>
@@ -24,9 +24,9 @@
                     Content="−"
                     Width="32" Height="32" Margin="0,4,0,0"
                     FontSize="18" FontWeight="Bold"
-                    Background="#EE252526"
-                    Foreground="#E5E5E5"
-                    BorderBrush="#4CC2FF" BorderThickness="1"
+                    Background="{DynamicResource Surface}"
+                    Foreground="{DynamicResource Texte}"
+                    BorderBrush="{DynamicResource Accent}" BorderThickness="1"
                     Cursor="Hand"
                     Click="BtnZoomOut_Click"
                     ToolTip="Zoom arrière"/>
@@ -34,8 +34,8 @@
 
         <!-- Tooltip WPF overlay -->
         <Border x:Name="TooltipBorder"
-                Background="#EE252526"
-                BorderBrush="#4CC2FF"
+                Background="{DynamicResource Surface}"
+                BorderBrush="{DynamicResource Accent}"
                 BorderThickness="1"
                 CornerRadius="4"
                 Padding="8,4"
@@ -44,7 +44,7 @@
                 IsHitTestVisible="False"
                 Visibility="Collapsed">
             <TextBlock x:Name="TooltipText"
-                       Foreground="#E5E5E5"
+                       Foreground="{DynamicResource Texte}"
                        FontSize="12" />
         </Border>
     </Grid>

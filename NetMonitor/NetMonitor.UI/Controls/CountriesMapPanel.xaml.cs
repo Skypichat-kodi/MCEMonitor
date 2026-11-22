@@ -41,11 +41,28 @@ namespace NetMonitor.UI.Controls
             Loaded += (_, __) => EnsureGeoJsonLoaded();
         }
 
+        /// <summary>
+        /// Couleur d'un pinceau du thème, convertie pour Mapsui.
+        /// </summary>
+        private static Mapsui.Styles.Color DepuisRessource(string cle, string repli)
+        {
+            if (Application.Current?.TryFindResource(cle) is System.Windows.Media.SolidColorBrush pinceau)
+            {
+                var c = pinceau.Color;
+                return new Mapsui.Styles.Color(c.R, c.G, c.B, c.A);
+            }
+
+            return Mapsui.Styles.Color.FromString(repli);
+        }
+
         private void InitializeMap()
         {
             var map = new Mapsui.Map
             {
-                BackColor = Mapsui.Styles.Color.FromString("#1A1A1A")
+                // Le fond de la carte suit le thème : noir en sombre, presque blanc
+                // en clair. Sans cela, la carte restait un bloc sombre au milieu
+                // d'une interface claire.
+                BackColor = DepuisRessource("Fond", "#1A1A1A")
             };
 
             map.Layers.Add(_choroplethLayer);
@@ -253,7 +270,9 @@ namespace NetMonitor.UI.Controls
 
         private Mapsui.Styles.Color GetColor(int count)
         {
-            if (count <= 0) return Mapsui.Styles.Color.FromString("#454545");  // gris pale visible
+            // Les pays sans alerte prennent la couleur de bordure du thème : gris
+            // foncé en sombre, gris clair en clair.
+            if (count <= 0) return DepuisRessource("Bordure", "#454545");
 
             if (_mode == "active")
             {

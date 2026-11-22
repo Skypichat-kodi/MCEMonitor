@@ -11,7 +11,7 @@
     <SolidColorBrush x:Key="SurfaceEntete"     Color="#FFF0F0F0" />
     <SolidColorBrush x:Key="SurfaceSurvol"     Color="#FFE9E9E9" />
     <SolidColorBrush x:Key="SurfaceActive"     Color="#FFDEDEDE" />
-    <SolidColorBrush x:Key="Bordure"           Color="#FFD6D6D6" />
+    <SolidColorBrush x:Key="Bordure"           Color="#FFC0C0C0" />
     <SolidColorBrush x:Key="Texte"             Color="#FF1B1B1B" />
     <SolidColorBrush x:Key="TexteSecondaire"   Color="#FF5F5F5F" />
     <SolidColorBrush x:Key="TexteTernaire"     Color="#FF8A8A8A" />
@@ -20,21 +20,54 @@
     <SolidColorBrush x:Key="PanelBackground"   Color="#333A8DFF" />
 
     <SolidColorBrush x:Key="TeinteIntrusion"   Color="#FFF7EFEF" />
+    <SolidColorBrush x:Key="SurvolIntrusion" Color="#FFEADCDC" />
     <SolidColorBrush x:Key="TeinteInterception" Color="#FFEFF5FB" />
     <SolidColorBrush x:Key="TeinteAudit"       Color="#FFF1F7EC" />
 
     <!-- Teintes propres à chaque onglet : lignes alternées, en-têtes, sélections -->
-    <SolidColorBrush x:Key="EnteteIntrusion" Color="#FFF7E8E8" />
-    <SolidColorBrush x:Key="TexteEnteteIntrusion" Color="#FF8A3A3A" />
+    <SolidColorBrush x:Key="EnteteConnexion" Color="#FFD4D4D4" />
+    <SolidColorBrush x:Key="TexteEnteteConnexion" Color="#FF353535" />
+    <SolidColorBrush x:Key="BordureConnexion" Color="#FFC6C6C6" />
+    <SolidColorBrush x:Key="EnteteIntrusion" Color="#FFE9C3C3" />
+    <SolidColorBrush x:Key="TexteEnteteIntrusion" Color="#FF6B1C1C" />
     <SolidColorBrush x:Key="LigneIntrusionImpaire" Color="#FFFCF7F7" />
     <SolidColorBrush x:Key="LigneIntrusionPaire" Color="#FFF8F0F0" />
-    <SolidColorBrush x:Key="SelectionIntrusion" Color="#FFF2DEDE" />
-    <SolidColorBrush x:Key="SelectionInterception" Color="#FFDCEBF7" />
+    <SolidColorBrush x:Key="SelectionIntrusion" Color="#FFE0C4C4" />
+    <SolidColorBrush x:Key="SelectionInterception" Color="#FF9FC6E8" />
     <SolidColorBrush x:Key="LigneAuditImpaire" Color="#FFF7FAF3" />
     <SolidColorBrush x:Key="LigneAuditPaire" Color="#FFF2F7EC" />
     <SolidColorBrush x:Key="EnteteAudit" Color="#FFE6F0DC" />
     <SolidColorBrush x:Key="TexteEnteteAudit" Color="#FF3F6B2E" />
-    <SolidColorBrush x:Key="SelectionAudit" Color="#FFDCEBD3" />
+    <SolidColorBrush x:Key="SelectionAudit" Color="#FFC2DBB2" />
     <SolidColorBrush x:Key="BordureAudit" Color="#FFC9DDBB" />
-    <SolidColorBrush x:Key="BordureAuditClaire" Color="#FFD5E4C9" />
+    <SolidColorBrush x:Key="BordureAuditClaire" Color="#FFC6DAB5" />
+
+    <!-- Couleurs d'état et fond de la pastille d'information -->
+    <SolidColorBrush x:Key="Rouge" Color="#FFC98880" />
+    <SolidColorBrush x:Key="RougeBouton"       Color="#FFC98880" />
+    <SolidColorBrush x:Key="RougeBoutonSurvol" Color="#FFD6A29A" />
+    <SolidColorBrush x:Key="Vert" Color="#FF8FB98C" />
+    <SolidColorBrush x:Key="FondInfo" Color="#FFE4E4E4" />
+
+    <SolidColorBrush x:Key="VertBouton"       Color="#FF8FB98C" />
+    <SolidColorBrush x:Key="VertBoutonSurvol" Color="#FFA3C9A0" />
+
+    <!-- Onglet Interceptions : en-tête, lignes alternées et bordures -->
+    <SolidColorBrush x:Key="EnteteInterception" Color="#FFD3E6F7" />
+    <SolidColorBrush x:Key="TexteEnteteInterception" Color="#FF17456E" />
+    <SolidColorBrush x:Key="BordureInterception" Color="#FFB4D2EA" />
+    <SolidColorBrush x:Key="LigneInterceptionA" Color="#FFF8FCFF" />
+    <SolidColorBrush x:Key="LigneInterceptionB" Color="#FFEFF6FD" />
+    <SolidColorBrush x:Key="LigneInterceptionSurvol" Color="#FFD3E7F8" />
+    <SolidColorBrush x:Key="BordureLigneInterception" Color="#FFDCEAF6" />
+
+    <!-- Boutons d'action : fond neutre et contour coloré en thème clair -->
+    <SolidColorBrush x:Key="BoutonRougeFond" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="BoutonRougeSurvol" Color="#FFF3DBD7" />
+    <SolidColorBrush x:Key="BoutonRougeBordure" Color="#FFB25A4F" />
+    <SolidColorBrush x:Key="BoutonRougeTexte" Color="#FF9E3D33" />
+    <SolidColorBrush x:Key="BoutonVertFond" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="BoutonVertSurvol" Color="#FFE1EFDF" />
+    <SolidColorBrush x:Key="BoutonVertBordure" Color="#FF7BA878" />
+    <SolidColorBrush x:Key="BoutonVertTexte" Color="#FF2F6B2A" />
 </ResourceDictionary>

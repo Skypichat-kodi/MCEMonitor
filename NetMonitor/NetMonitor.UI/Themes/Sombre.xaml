@@ -22,10 +22,14 @@
 
     <!-- Teintes de fond des tableaux, propres à chaque onglet -->
     <SolidColorBrush x:Key="TeinteIntrusion"   Color="#FF241717" />
+    <SolidColorBrush x:Key="SurvolIntrusion" Color="#FF2E1E1E" />
     <SolidColorBrush x:Key="TeinteInterception" Color="#FF0E1D2B" />
     <SolidColorBrush x:Key="TeinteAudit"       Color="#FF16220F" />
 
     <!-- Teintes propres à chaque onglet : lignes alternées, en-têtes, sélections -->
+    <SolidColorBrush x:Key="EnteteConnexion" Color="#FF2E2E31" />
+    <SolidColorBrush x:Key="TexteEnteteConnexion" Color="#FFD0D0D0" />
+    <SolidColorBrush x:Key="BordureConnexion" Color="#FF454545" />
     <SolidColorBrush x:Key="EnteteIntrusion" Color="#FF3A1A1A" />
     <SolidColorBrush x:Key="TexteEnteteIntrusion" Color="#FFF0E0E0" />
     <SolidColorBrush x:Key="LigneIntrusionImpaire" Color="#FF1E1414" />
@@ -39,4 +43,33 @@
     <SolidColorBrush x:Key="SelectionAudit" Color="#FF2C4A34" />
     <SolidColorBrush x:Key="BordureAudit" Color="#FF2E5A1A" />
     <SolidColorBrush x:Key="BordureAuditClaire" Color="#FF243A18" />
+
+    <!-- Couleurs d'état et fond de la pastille d'information -->
+    <SolidColorBrush x:Key="Rouge" Color="#FFFF6347" />
+    <SolidColorBrush x:Key="RougeBouton"       Color="#FFCC3300" />
+    <SolidColorBrush x:Key="RougeBoutonSurvol" Color="#FFE64D1A" />
+    <SolidColorBrush x:Key="Vert" Color="#FF6CCB5F" />
+    <SolidColorBrush x:Key="FondInfo" Color="#FF333333" />
+
+    <SolidColorBrush x:Key="VertBouton"       Color="#FF3A7A33" />
+    <SolidColorBrush x:Key="VertBoutonSurvol" Color="#FF4A9A40" />
+
+    <!-- Onglet Interceptions : en-tête, lignes alternées et bordures -->
+    <SolidColorBrush x:Key="EnteteInterception" Color="#FF1A3A5C" />
+    <SolidColorBrush x:Key="TexteEnteteInterception" Color="#FFB5D7FF" />
+    <SolidColorBrush x:Key="BordureInterception" Color="#FF2E5A8A" />
+    <SolidColorBrush x:Key="LigneInterceptionA" Color="#FF0A1520" />
+    <SolidColorBrush x:Key="LigneInterceptionB" Color="#FF0F1F2E" />
+    <SolidColorBrush x:Key="LigneInterceptionSurvol" Color="#FF16324F" />
+    <SolidColorBrush x:Key="BordureLigneInterception" Color="#FF1F3A52" />
+
+    <!-- Boutons d'action : fond neutre et contour coloré en thème clair -->
+    <SolidColorBrush x:Key="BoutonRougeFond" Color="#FFCC3300" />
+    <SolidColorBrush x:Key="BoutonRougeSurvol" Color="#FFE64D1A" />
+    <SolidColorBrush x:Key="BoutonRougeBordure" Color="#FFCC3300" />
+    <SolidColorBrush x:Key="BoutonRougeTexte" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="BoutonVertFond" Color="#FF3A7A33" />
+    <SolidColorBrush x:Key="BoutonVertSurvol" Color="#FF4A9A40" />
+    <SolidColorBrush x:Key="BoutonVertBordure" Color="#FF3A7A33" />
+    <SolidColorBrush x:Key="BoutonVertTexte" Color="#FFFFFFFF" />
 </ResourceDictionary>
