@@ -32,8 +32,8 @@
     <SolidColorBrush x:Key="BordureConnexion" Color="#FFC6C6C6" />
     <SolidColorBrush x:Key="EnteteIntrusion" Color="#FFE9C3C3" />
     <SolidColorBrush x:Key="TexteEnteteIntrusion" Color="#FF6B1C1C" />
-    <SolidColorBrush x:Key="LigneIntrusionImpaire" Color="#FFFCF7F7" />
-    <SolidColorBrush x:Key="LigneIntrusionPaire" Color="#FFF8F0F0" />
+    <SolidColorBrush x:Key="LigneIntrusionImpaire" Color="#FFFAE6E6" />
+    <SolidColorBrush x:Key="LigneIntrusionPaire" Color="#FFF5DCDC" />
     <SolidColorBrush x:Key="SelectionIntrusion" Color="#FFE0C4C4" />
     <SolidColorBrush x:Key="SelectionInterception" Color="#FF9FC6E8" />
     <SolidColorBrush x:Key="LigneAuditImpaire" Color="#FFF7FAF3" />
