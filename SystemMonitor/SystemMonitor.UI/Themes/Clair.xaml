@@ -18,4 +18,8 @@
     <SolidColorBrush x:Key="Erreur"          Color="#FFC42B1C" />
     <SolidColorBrush x:Key="FondGraphique"   Color="#FFF7F7F7" />
     <SolidColorBrush x:Key="PanelBackground" Color="#333A8DFF" />
+
+    <!-- En-tête de tableau et trait de séparation -->
+    <SolidColorBrush x:Key="EnteteTableau" Color="#FFE0E0E0" />
+    <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
 </ResourceDictionary>
