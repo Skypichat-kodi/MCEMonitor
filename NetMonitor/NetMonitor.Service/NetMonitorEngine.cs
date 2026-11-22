@@ -184,7 +184,24 @@ namespace NetMonitor.Service
         {
             _settings = settings;
             _context = new DetectorContext(settings);
-            _threatIntel = new ThreatIntelService();
+            // Le service ignore tout des réglages : on lui passe des accesseurs
+            // plutôt qu'une copie, pour qu'il lise toujours la valeur courante
+            // (niveau de la liste) et qu'il puisse enregistrer la date de mise à jour.
+            _threatIntel = new ThreatIntelService(
+                () => _settings.BlacklistLevel,
+                () => _settings.BlacklistLastUpdate,
+                dt =>
+                {
+                    _settings.BlacklistLastUpdate = dt;
+                    try
+                    {
+                        _settings.Save();
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreLog.Warn($"ThreatIntel : sauvegarde de la date impossible : {ex.Message}");
+                    }
+                });
             _trustedScanners = new TrustedScannerService(settings.ScannerPatterns);
             _geoIp = new GeoIpService(settings.GeoIpProvider, settings.GeoIpEnabled, settings.ReverseDnsEnabled);
             if (settings.EnableProcessTrust)

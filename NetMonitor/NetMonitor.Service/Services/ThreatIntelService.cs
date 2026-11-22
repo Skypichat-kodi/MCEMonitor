@@ -9,6 +9,16 @@ namespace NetMonitor.Service.Services
 {
     public class ThreatIntelService : IDisposable
     {
+        // La liste elle-même est renouvelée toutes les 24 h, mais la VÉRIFICATION
+        // tourne beaucoup plus souvent. Un cycle fixe de 24 h ratait le rattrapage
+        // quand le réseau n'était pas encore prêt au démarrage du service, quand la
+        // machine sortait de veille, ou après un arrêt : plus rien ne réessayait
+        // avant le lendemain.
+        private static readonly TimeSpan IntervalleRafraichissement = TimeSpan.FromHours(24);
+        private static readonly TimeSpan IntervalleVerification     = TimeSpan.FromMinutes(15);
+        private const string UrlModele =
+            "https://raw.githubusercontent.com/stamparm/ipsum/master/levels/{0}.txt";
+
         private HashSet<string> _blacklist = new();
         private readonly object _lock = new();
         private readonly string _manualBlacklistFile;
@@ -18,8 +28,25 @@ namespace NetMonitor.Service.Services
         private readonly HttpClient _httpClient = new();
         private volatile bool _disposed;
 
-        public ThreatIntelService()
+        // Le service ne reçoit pas une copie des réglages mais des accesseurs :
+        // il lit ainsi toujours la valeur courante, y compris après une
+        // modification faite depuis l'interface.
+        private readonly Func<int> _lireNiveau;
+        private readonly Func<DateTime> _lireDerniereMaj;
+        private readonly Action<DateTime> _enregistrerMaj;
+
+        private int _niveauEnCache = -1;      // niveau dont le cache local est issu
+        private int _telechargementEnCours;   // 0/1 : évite deux téléchargements simultanés
+
+        public ThreatIntelService(
+            Func<int> lireNiveau,
+            Func<DateTime> lireDerniereMaj,
+            Action<DateTime> enregistrerMaj)
         {
+            _lireNiveau = lireNiveau;
+            _lireDerniereMaj = lireDerniereMaj;
+            _enregistrerMaj = enregistrerMaj;
+
             var baseDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "MCEMonitor", "NetMonitor");
@@ -53,12 +80,48 @@ namespace NetMonitor.Service.Services
                 CoreLog.Warn($"ThreatIntel Watcher : {ex.Message}");
             }
 
-            // 3. Télécharge la liste auto en arrière-plan
-            _ = RefreshAutoBlacklistAsync();
+            // 3. Vérifie tout de suite si une mise à jour est due
+            _ = VerifierEtRafraichirAsync();
 
-            // 4. Rafraîchit toutes les 24h
-            _refreshTimer = new Timer(async _ => await RefreshAutoBlacklistAsync(), null,
-                TimeSpan.FromHours(24), TimeSpan.FromHours(24));
+            // 4. Revérifie régulièrement : c'est ce battement qui rattrape les
+            //    mises à jour manquées (réseau absent au démarrage, veille, arrêt).
+            //    Premier tir différé : l'étape 3 vient de le faire.
+            _refreshTimer = new Timer(_ => { _ = VerifierEtRafraichirAsync(); }, null,
+                IntervalleVerification, IntervalleVerification);
+        }
+
+        /// <summary>
+        /// Télécharge la liste seulement si elle est due : cache absent, niveau
+        /// demandé différent de celui du cache, ou liste de plus de 24 h. Appelée
+        /// souvent, elle ne fait rien la plupart du temps.
+        /// </summary>
+        private async Task VerifierEtRafraichirAsync()
+        {
+            if (Interlocked.Exchange(ref _telechargementEnCours, 1) == 1) return;
+            try
+            {
+                int niveau = Math.Clamp(_lireNiveau(), 1, 6);
+
+                bool cacheAbsent  = !File.Exists(_autoBlacklistFile);
+                bool niveauChange = _niveauEnCache != niveau;
+
+                DateTime derniere = _lireDerniereMaj();
+                bool perimee = derniere == DateTime.MinValue
+                            || DateTime.UtcNow - derniere >= IntervalleRafraichissement;
+
+                if (!cacheAbsent && !niveauChange && !perimee) return;
+
+                string raison = cacheAbsent  ? "cache absent"
+                              : niveauChange ? $"niveau {niveau} demandé"
+                                             : "liste de plus de 24 h";
+
+                CoreLog.Info($"ThreatIntel : mise à jour due ({raison}).");
+                await RefreshAutoBlacklistAsync(niveau);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _telechargementEnCours, 0);
+            }
         }
 
         /// <summary>
@@ -94,6 +157,17 @@ namespace NetMonitor.Service.Services
                     foreach (var line in File.ReadLines(_autoBlacklistFile))
                     {
                         var ip = line.Trim();
+
+                        // Le cache porte le niveau qui l'a produit : au redémarrage,
+                        // on sait s'il correspond encore au réglage, sans rien
+                        // télécharger inutilement.
+                        if (ip.StartsWith("# ipsum level="))
+                        {
+                            if (int.TryParse(ip.Substring("# ipsum level=".Length), out int niveauCache))
+                                _niveauEnCache = niveauCache;
+                            continue;
+                        }
+
                         if (!string.IsNullOrWhiteSpace(ip) && !ip.StartsWith("#"))
                             tempList.Add(ip);
                     }
@@ -113,13 +187,15 @@ namespace NetMonitor.Service.Services
             }
         }
 
-        private async Task RefreshAutoBlacklistAsync()
+        private async Task RefreshAutoBlacklistAsync(int niveau)
         {
             try
             {
-                CoreLog.Info("ThreatIntel : téléchargement de la liste IPsum (niveau 3)...");
-                string content = await _httpClient.GetStringAsync("https://raw.githubusercontent.com/stamparm/ipsum/master/levels/3.txt");
-                
+                string url = string.Format(UrlModele, niveau);
+                CoreLog.Info($"ThreatIntel : téléchargement de la liste IPsum (niveau {niveau})...");
+
+                string content = await _httpClient.GetStringAsync(url);
+
                 var newIps = new HashSet<string>();
                 foreach (var line in content.Split('\n'))
                 {
@@ -128,17 +204,29 @@ namespace NetMonitor.Service.Services
                         newIps.Add(ip);
                 }
 
-                // Sauvegarde locale pour les redémarrages hors-ligne
-                await File.WriteAllTextAsync(_autoBlacklistFile, string.Join("\n", newIps));
-                
+                // Sauvegarde locale pour les redémarrages hors-ligne. La première
+                // ligne retient le niveau utilisé.
+                await File.WriteAllTextAsync(_autoBlacklistFile,
+                    $"# ipsum level={niveau}\n" + string.Join("\n", newIps));
+
+                _niveauEnCache = niveau;
+
                 // Recharge la blacklist globale (qui va fusionner manuel + auto)
                 LoadBlacklist();
-                
-                CoreLog.Info($"ThreatIntel : mise à jour réussie. {newIps.Count} IP dans la liste auto.");
+
+                // La date est enfin enregistrée : l'interface ne peut plus afficher
+                // « inconnue » après une mise à jour réussie.
+                _enregistrerMaj(DateTime.UtcNow);
+
+                CoreLog.Info($"ThreatIntel : mise à jour réussie (niveau {niveau}). " +
+                             $"{newIps.Count} IP dans la liste auto, " +
+                             $"prochaine due dans {IntervalleRafraichissement.TotalHours:0} h.");
             }
             catch (Exception ex)
             {
-                CoreLog.Warn($"ThreatIntel download échoué : {ex.Message}. Utilisation du cache.");
+                CoreLog.Warn($"ThreatIntel download échoué (niveau {niveau}) : {ex.Message}. " +
+                             $"Nouvelle tentative dans {IntervalleVerification.TotalMinutes:0} min, " +
+                             $"cache conservé.");
             }
         }
 
