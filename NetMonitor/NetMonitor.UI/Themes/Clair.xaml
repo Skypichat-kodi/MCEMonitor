@@ -51,6 +51,11 @@
     <SolidColorBrush x:Key="Vert" Color="#FF8FB98C" />
     <SolidColorBrush x:Key="FondInfo" Color="#FFE4E4E4" />
 
+    <!-- Selection douce : reprise de MediaMonitor.UI, pour le survol des
+         boutons d information et les listes deroulantes. -->
+    <SolidColorBrush x:Key="SelectionFond" Color="#FFD3E4F7" />
+    <SolidColorBrush x:Key="SelectionTexte" Color="#FF1B1B1B" />
+
     <SolidColorBrush x:Key="VertBouton"       Color="#FF8FB98C" />
     <SolidColorBrush x:Key="VertBoutonSurvol" Color="#FFA3C9A0" />
 

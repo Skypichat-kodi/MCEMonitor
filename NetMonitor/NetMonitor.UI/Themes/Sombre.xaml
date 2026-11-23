@@ -53,6 +53,11 @@
     <SolidColorBrush x:Key="Vert" Color="#FF6CCB5F" />
     <SolidColorBrush x:Key="FondInfo" Color="#FF333333" />
 
+    <!-- Selection douce : reprise de MediaMonitor.UI. En sombre, ce sont les
+         valeurs de l accent d origine, donc aucun changement visuel. -->
+    <SolidColorBrush x:Key="SelectionFond" Color="#FF4CC2FF" />
+    <SolidColorBrush x:Key="SelectionTexte" Color="#FF000000" />
+
     <SolidColorBrush x:Key="VertBouton"       Color="#FF3A7A33" />
     <SolidColorBrush x:Key="VertBoutonSurvol" Color="#FF4A9A40" />
 
