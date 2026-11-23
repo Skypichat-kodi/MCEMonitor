@@ -487,6 +487,42 @@
     .table-wrapper.theme-danger + .more-indicator button { color: #FF8A72; }
     .table-wrapper.theme-danger + .more-indicator button:hover { background: rgba(255, 99, 71, 0.1); }
 
+    /* ============================================================ */
+    /*  Barre de filtres au-dessus d'un tableau                     */
+    /* ============================================================ */
+    .filter-bar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+
+    .filter-bar .filter-label {
+        color: #B4B4B4;
+        font-size: 12px;
+    }
+
+    .filter-bar select {
+        background: #252526;
+        color: #E5E5E5;
+        border: 1px solid #3C3C3C;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-family: inherit;
+        font-size: 12px;
+    }
+
+    .filter-bar .filter-count {
+        color: #888;
+        font-size: 11px;
+        margin-left: auto;
+    }
+
+    /* Ligne masquée par un filtre. Le !important est nécessaire : le bouton
+       « Voir plus » joue sur le style inline des lignes, qui primerait sinon. */
+    tr.filtered-out { display: none !important; }
+
     .table-wrapper.theme-success + .more-indicator button { color: #8FDA80; }
     .table-wrapper.theme-success + .more-indicator button:hover { background: rgba(108, 203, 95, 0.1); }
     
@@ -883,7 +919,42 @@
         ♻ {{tr:Réanalyser les blocages}}
     </button>
 </div>
-<div class="table-wrapper theme-danger">
+<div class="filter-bar" id="blocked-filters">
+    <span class="filter-label">🔍</span>
+    <select id="blockedFilterType">
+        <option value="">{{tr:Tous}}</option>
+        <option value="IP">IP</option>
+        <option value="Processus">{{tr:Processus}}</option>
+    </select>
+    <span class="filter-label">{{tr:Sévérité :}}</span>
+    <select id="blockedFilterSeverity">
+        <option value="">{{tr:Toutes}}</option>
+        <option value="Critical">Critical</option>
+        <option value="High">High</option>
+        <option value="Warning">Warning</option>
+        <option value="Info">Info</option>
+        <option value="Crawler">Crawler</option>
+        <option value="Bot">Bot</option>
+        <option value="Trusted">Trusted</option>
+        <option value="Safe">Safe</option>
+        <option value="ToCheck">ToCheck</option>
+        <option value="Whitelisted">Whitelisted</option>
+        <option value="Scanner">Scanner</option>
+    </select>
+    <span class="filter-label">{{tr:Origine :}}</span>
+    <select id="blockedFilterOrigin">
+        <option value="">{{tr:Toutes}}</option>
+        <option value="Blacklist">Blacklist</option>
+        <option value="Scanner">Scanner</option>
+        <option value="Crawler">Crawler</option>
+        <option value="Bot">Bot</option>
+        <option value="Microsoft">Microsoft</option>
+        <option value="Whitelist">Whitelist</option>
+        <option value="—">{{tr:Aucune}}</option>
+    </select>
+    <span class="filter-count" id="blockedFilterCount"></span>
+</div>
+<div class="table-wrapper theme-danger" id="blocked-table">
     <table>
         <thead>
             <tr>
@@ -1330,6 +1401,54 @@ document.getElementById('btnReanalyzeBlocked').addEventListener('click', functio
         .catch(function (e) { alert('Erreur de communication avec le service : ' + e.message); });
 });
 
+</script>
+
+<script>
+// ============================================================
+//  Filtres du tableau des IP bloquées (type, sévérité, origine)
+// ============================================================
+(function () {
+    var wrapper = document.getElementById('blocked-table');
+    if (!wrapper) return;
+
+    var tbody = wrapper.querySelector('tbody');
+    if (!tbody) return;
+
+    var selType = document.getElementById('blockedFilterType');
+    var selSev  = document.getElementById('blockedFilterSeverity');
+    var selOrig = document.getElementById('blockedFilterOrigin');
+    var counter = document.getElementById('blockedFilterCount');
+    if (!selType || !selSev || !selOrig) return;
+
+    function apply() {
+        var rows = tbody.querySelectorAll('tr');
+        var visible = 0, total = 0;
+
+        Array.prototype.forEach.call(rows, function (tr) {
+            // Ligne « Aucune IP bloquée » : hors décompte
+            if (tr.querySelector('td[colspan]')) return;
+            total++;
+
+            var okType = !selType.value || tr.dataset.type === selType.value;
+            var okSev  = !selSev.value  || tr.dataset.sev === selSev.value;
+            var okOrig = !selOrig.value || tr.dataset.origin === selOrig.value;
+
+            var ok = okType && okSev && okOrig;
+            tr.classList.toggle('filtered-out', !ok);
+            if (ok) visible++;
+        });
+
+        counter.textContent = (visible === total || total === 0)
+            ? ''
+            : visible + ' / ' + total;
+    }
+
+    [selType, selSev, selOrig].forEach(function (s) {
+        s.addEventListener('change', apply);
+    });
+
+    apply();
+})();
 </script>
 
 <script>

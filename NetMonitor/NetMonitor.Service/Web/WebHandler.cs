@@ -204,7 +204,7 @@ namespace NetMonitor.Service.Web
                             : "";
 
                         // ⚠ 2. Append APRÈS les déclarations
-                            blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"" data-isp='{WebUtility.HtmlEncode(b.Isp ?? "")}' data-org='{WebUtility.HtmlEncode(b.Org ?? "")}' data-rdns='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}'>
+                            blockedRows.Append($@"<tr class='selectable' onclick=""rowClick(this, 'blocked-sel')"" data-isp='{WebUtility.HtmlEncode(b.Isp ?? "")}' data-org='{WebUtility.HtmlEncode(b.Org ?? "")}' data-rdns='{WebUtility.HtmlEncode(b.ReverseDns ?? "")}' data-type='{(b.IsProcess ? "Processus" : "IP")}' data-sev='{WebUtility.HtmlEncode(badgeText)}' data-origin='{WebUtility.HtmlEncode(OriginToDisplay(b.Origin.ToString()))}'>
                             {BuildTrafficCell(b.IsOutbound)}
                             <td style='width:30px;text-align:center'><input type='radio' name='blocked-sel' value='{ipEnc}'></td>
                             <td>{b.BlockedAt.ToLocalTime():dd/MM HH:mm:ss}</td>

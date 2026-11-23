@@ -2722,6 +2722,88 @@ namespace NetMonitor.UI
             UpdateCount();
         }
 
+        /// <summary>
+        /// Filtre du tableau des IP bloquées : type (IP / processus), sévérité,
+        /// origine et recherche texte, combinés.
+        ///
+        /// La valeur « Scanner » du filtre de sévérité ne compare pas la sévérité
+        /// stockée mais le badge affiché : une IP reconnue comme scanner est montrée
+        /// ainsi même quand sa sévérité est par exemple Trusted.
+        /// </summary>
+        private void SetupBlockedFilter()
+        {
+            var view = CollectionViewSource.GetDefaultView(_blockedIps);
+            if (view == null) return;
+
+            view.Filter = obj =>
+            {
+                if (obj is not BlockedIpRow item) return true;
+
+                // 1. Type
+                string type = SelectedTag(cmbBlockedType);
+                if (type == "IP" && item.IsProcess) return false;
+                if (type == "Processus" && !item.IsProcess) return false;
+
+                // 2. Sévérité (ou badge « Scanner »)
+                string severity = SelectedTag(cmbBlockedSeverity);
+                if (severity.Length > 0)
+                {
+                    if (severity == "Scanner")
+                    {
+                        if (!item.IsKnownScanner) return false;
+                    }
+                    else if (!string.Equals(item.Severity, severity, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                // 3. Origine
+                string origin = SelectedTag(cmbBlockedOrigin);
+                if (origin.Length > 0)
+                {
+                    if (origin == "Aucune")
+                    {
+                        if (!string.IsNullOrWhiteSpace(item.Origin)
+                            && !string.Equals(item.Origin, "Unknown", StringComparison.OrdinalIgnoreCase))
+                            return false;
+                    }
+                    else if (!string.Equals(item.Origin, origin, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false;
+                    }
+                }
+
+                // 4. Recherche texte
+                if (!string.IsNullOrWhiteSpace(txtBlockedSearch.Text))
+                {
+                    string query = txtBlockedSearch.Text.Trim().ToLowerInvariant();
+                    string haystack = $"{item.Ip} {item.ProcessPath} {item.Source} {item.Message}"
+                        .ToLowerInvariant();
+                    if (!haystack.Contains(query)) return false;
+                }
+
+                return true;
+            };
+
+            // Recalculer le compteur après chaque rafraîchissement
+            ((INotifyCollectionChanged)view).CollectionChanged += (_, __) =>
+                UpdateFilterCount(BlockedIpsGrid, lblBlockedFilterCount, _blockedIps.Count);
+
+            UpdateFilterCount(BlockedIpsGrid, lblBlockedFilterCount, _blockedIps.Count);
+        }
+
+        /// <summary>
+        /// Valeur technique de l'élément sélectionné, portée par son Tag. Vide pour
+        /// « Tous » / « Toutes », qui n'a pas de Tag. Passer par le Tag évite de
+        /// comparer des libellés traduits.
+        /// </summary>
+        private static string SelectedTag(System.Windows.Controls.ComboBox combo)
+        {
+            if (combo.SelectedIndex <= 0) return "";
+            return (combo.SelectedItem as System.Windows.Controls.ComboBoxItem)?.Tag?.ToString() ?? "";
+        }
+
         // ------------------------------------------------------------
         //  Handlers de changement de filtre
         // ------------------------------------------------------------
@@ -2815,11 +2897,10 @@ namespace NetMonitor.UI
                 "ProcessName;ProcessPath;TrustReason;RemoteIp",
                 cmbPendingSeverity, null, txtPendingSearch, lblPendingFilterCount);
 
-            SetupFilter<BlockedIpRow>(
-                BlockedIpsGrid, _blockedIps,
-                _ => "", _ => "",
-                "Ip;ProcessPath;Source;Message",
-                null, null, txtBlockedSearch, lblBlockedFilterCount);
+            // Le tableau des IP bloquées a son propre filtre : type, sévérité, origine
+            // et recherche se combinent. SetupFilter ne convient pas ici, il ne gère
+            // que deux sélecteurs et laissait le menu « Type » sans effet.
+            SetupBlockedFilter();
 
             SetupFilter<AlertRow>(
                 AlertsHistoryGrid, _alertsHistory,
@@ -2842,6 +2923,8 @@ namespace NetMonitor.UI
             cmbActiveSeverity.SelectedIndex  = 0;
             cmbPendingSeverity.SelectedIndex = 0;
             cmbBlockedType.SelectedIndex     = 0;
+            cmbBlockedSeverity.SelectedIndex = 0;
+            cmbBlockedOrigin.SelectedIndex   = 0;
             cmbHistorySeverity.SelectedIndex = 0;                
         }
         

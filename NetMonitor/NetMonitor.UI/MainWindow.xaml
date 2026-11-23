@@ -1498,8 +1498,38 @@
                             <ComboBox x:Name="cmbBlockedType" Width="120" Margin="0,0,15,0"
                                       SelectionChanged="BlockedFilter_Changed">
                                 <ComboBoxItem Content="{loc:Tr 'Tous'}"/>
-                                <ComboBoxItem Content="IP"/>
-                                <ComboBoxItem Content="{loc:Tr 'Processus'}"/>
+                                <ComboBoxItem Content="IP" Tag="IP"/>
+                                <ComboBoxItem Content="{loc:Tr 'Processus'}" Tag="Processus"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Sévérité :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TexteSecondaire}" FontSize="12"/>
+                            <ComboBox x:Name="cmbBlockedSeverity" Width="140" Margin="0,0,15,0"
+                                      SelectionChanged="BlockedFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Toutes'}"/>
+                                <ComboBoxItem Content="Critical" Tag="Critical"/>
+                                <ComboBoxItem Content="High" Tag="High"/>
+                                <ComboBoxItem Content="Warning" Tag="Warning"/>
+                                <ComboBoxItem Content="Info" Tag="Info"/>
+                                <ComboBoxItem Content="Crawler" Tag="Crawler"/>
+                                <ComboBoxItem Content="Bot" Tag="Bot"/>
+                                <ComboBoxItem Content="Trusted" Tag="Trusted"/>
+                                <ComboBoxItem Content="Safe" Tag="Safe"/>
+                                <ComboBoxItem Content="ToCheck" Tag="ToCheck"/>
+                                <ComboBoxItem Content="Whitelisted" Tag="Whitelisted"/>
+                                <ComboBoxItem Content="Scanner" Tag="Scanner"/>
+                            </ComboBox>
+
+                            <TextBlock Text="{loc:Tr 'Origine :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TexteSecondaire}" FontSize="12"/>
+                            <ComboBox x:Name="cmbBlockedOrigin" Width="140" Margin="0,0,15,0"
+                                      SelectionChanged="BlockedFilter_Changed">
+                                <ComboBoxItem Content="{loc:Tr 'Toutes'}"/>
+                                <ComboBoxItem Content="Blacklist" Tag="Blacklist"/>
+                                <ComboBoxItem Content="Scanner" Tag="Scanner"/>
+                                <ComboBoxItem Content="Crawler" Tag="Crawler"/>
+                                <ComboBoxItem Content="Bot" Tag="Bot"/>
+                                <ComboBoxItem Content="Microsoft" Tag="Microsoft"/>
+                                <ComboBoxItem Content="Whitelist" Tag="Whitelist"/>
+                                <ComboBoxItem Content="{loc:Tr 'Aucune'}" Tag="Aucune"/>
                             </ComboBox>
 
                             <TextBlock Text="{loc:Tr 'Recherche :'}" VerticalAlignment="Center" Margin="0,0,6,0" Foreground="{StaticResource TexteSecondaire}" FontSize="12"/>
