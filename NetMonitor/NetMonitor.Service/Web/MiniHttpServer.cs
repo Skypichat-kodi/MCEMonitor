@@ -542,18 +542,6 @@ namespace NetMonitor.Service.Web
                     CoreLog.Write($"WebServer : pattern '{value}' ajouté à '{list}' ({reclassified} IP(s) reclassée(s))");
                     Redirect(ctx);
                 }
-                else if (path == "/restore-default-patterns" && ctx.Request.HttpMethod == "POST")
-                {
-                    // Même séquence que la commande IPC restore-default-patterns :
-                    // les patterns qui classaient certaines IP ont disparu, elles doivent
-                    // donc revenir à la sévérité de leur détecteur.
-                    _settings.RestoreDefaultPatterns();
-                    _engine.ReloadConfig();
-                    int reevaluated = _engine.ReevaluateAllBlockedIps();
-
-                    CoreLog.Write($"WebServer : patterns restaurés aux valeurs par défaut ({reevaluated} IP(s) réévaluée(s))");
-                    Redirect(ctx);
-                }
                 else if (path == "/mark-safe" && ctx.Request.HttpMethod == "POST")
                 {
                     string ip = ReadFormValue(ctx, "ip");

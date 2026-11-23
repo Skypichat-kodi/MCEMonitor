@@ -1026,16 +1026,6 @@
     </table>
 </div>
 
-<h2 class="h2-danger">
-    <span style="font-size:20px">⚠</span>
-    {{tr:Zone de danger}}
-</h2>
-<div class="action-bar" style="margin-bottom:10px">
-    <button type="button" id="btnRestorePatterns" class="action-btn danger">
-        ↺ {{tr:Restaurer les règles à l'origine}}
-    </button>
-</div>
-
 <div class="footer">
     {{tr:NetMonitor - Généré à}} {{LastUpdate}}
 </div>
@@ -1319,15 +1309,6 @@ document.getElementById('btnChangeOriginRetries').addEventListener('click', func
     openOriginPicker(r.value);
 });
 
-document.getElementById('btnRestorePatterns').addEventListener('click', function() {
-    if (!confirm("{{tr:Restaurer les listes de règles à leurs valeurs d'origine ?}}" + "\n\n" +
-                 "{{tr:Les règles ajoutées manuellement (safe, critical, scanner, crawler, whitelist) seront supprimées et les IP bloquées seront réévaluées.}}"))
-        return;
-
-    fetch('/restore-default-patterns', { method: 'POST' })
-        .then(function () { location.reload(); })
-        .catch(function (e) { alert('Erreur de communication avec le service : ' + e.message); });
-});
 </script>
 
 <script>
