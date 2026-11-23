@@ -30,9 +30,14 @@
     -->
 
     <Window.Resources>
-        <!-- Les couleurs ne sont plus definies ici : elles viennent du dictionnaire
-             de theme charge dans Application.Resources avant l ouverture de la
-             fenetre. Les declarer localement les rendrait insensibles au theme. -->
+        <SolidColorBrush x:Key="Fond"            Color="#FF1B1B1B" />
+        <SolidColorBrush x:Key="Surface"         Color="#FF252526" />
+        <SolidColorBrush x:Key="SurfaceSurvol"   Color="#FF2E2E31" />
+        <SolidColorBrush x:Key="Bordure"         Color="#FF3C3C3C" />
+        <SolidColorBrush x:Key="Texte"           Color="#FFE5E5E5" />
+        <SolidColorBrush x:Key="TexteSecondaire" Color="#FFB4B4B4" />
+        <SolidColorBrush x:Key="Accent"          Color="#FF4CC2FF" />
+        <SolidColorBrush x:Key="Succes"          Color="#FF6CCB5F" />
 
         <Style x:Key="Bouton" TargetType="Button">
             <Setter Property="Foreground" Value="{StaticResource Texte}" />
