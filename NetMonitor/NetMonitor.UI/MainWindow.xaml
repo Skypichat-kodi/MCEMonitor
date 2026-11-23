@@ -1228,7 +1228,8 @@
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
                             <Button Click="ToggleActiveMore_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{StaticResource Bordure}"
                                     Padding="8,2" Cursor="Hand"
                                     ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtActiveMoreLabel" Text="▼ 12 / 0"
@@ -1461,7 +1462,8 @@
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
                             <Button Click="TogglePendingMore_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{StaticResource Bordure}"
                                     Padding="8,2" Cursor="Hand"
                                     ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtPendingMoreLabel" Text="▼ 12 / 0"
@@ -1637,7 +1639,8 @@
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
                             <Button Click="ToggleBlockedMore_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{StaticResource Bordure}"
                                     Padding="8,2" Cursor="Hand"
                                     ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtBlockedMoreLabel" Text="▼ 12 / 0"
@@ -1991,7 +1994,8 @@
                                     HorizontalAlignment="Center" Margin="0,4,0,0"
                                     Visibility="Collapsed">
                             <Button Click="ToggleHistoryMore_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{StaticResource Bordure}"
                                     Padding="8,2" Cursor="Hand"
                                     ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtHistoryMoreLabel" Text="▼ 12 / 0"
@@ -2227,7 +2231,8 @@
                                     HorizontalAlignment="Center" Margin="0,4,0,10"
                                     Visibility="Collapsed">
                             <Button Click="ToggleAuditMore_Click"
-                                    Background="Transparent" BorderThickness="0"
+                                    Background="Transparent" BorderThickness="1"
+                                    BorderBrush="{StaticResource Bordure}"
                                     Padding="8,2" Cursor="Hand"
                                     ToolTip="{loc:Tr 'Afficher toutes les lignes'}">
                                 <TextBlock x:Name="txtAuditMoreLabel" Text="▼ 12 / 0"
