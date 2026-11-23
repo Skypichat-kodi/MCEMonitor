@@ -233,11 +233,16 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
+                        <!-- SnapsToDevicePixels et UseLayoutRounding : sans eux, le rayon
+                             interieur du Border (6 - 3 = 3) est antialiase et laisse
+                             transparaitre le fond de la page dans les quatre coins. -->
                         <Border x:Name="Cadre"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="3"
-                                CornerRadius="6">
+                                BorderThickness="0"
+                                CornerRadius="6"
+                                SnapsToDevicePixels="True"
+                                UseLayoutRounding="True">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
                                               Margin="{TemplateBinding Padding}" />
@@ -275,7 +280,7 @@
                         <Border x:Name="Cadre"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="3"
+                                BorderThickness="0"
                                 CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
@@ -314,7 +319,7 @@
                         <Border x:Name="Cadre"
                                 Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="3"
+                                BorderThickness="0"
                                 CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"
