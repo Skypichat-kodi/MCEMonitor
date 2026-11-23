@@ -255,8 +255,8 @@
                         </Border>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Cadre" Property="Background" Value="{StaticResource SurvolBouton}" />
-                                <Setter TargetName="Cadre" Property="BorderBrush" Value="{StaticResource SurvolBouton}" />
+                                <Setter TargetName="Cadre" Property="Background" Value="{StaticResource AccentSurvol}" />
+                                <Setter TargetName="Cadre" Property="BorderBrush" Value="{StaticResource AccentSurvol}" />
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter TargetName="Cadre" Property="Background" Value="{StaticResource AccentPresse}" />
