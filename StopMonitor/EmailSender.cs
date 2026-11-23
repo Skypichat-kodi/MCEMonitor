@@ -9,9 +9,9 @@ namespace StopMonitor
 {
     public enum EmailStyle
     {
-        Normal,   // gris (arrêts)
-        Error,    // rouge (crash / coupure électrique)
-        Success   // vert (démarrage normal)
+        Normal,   // gris (arrÃªts)
+        Error,    // rouge (crash / coupure Ã©lectrique)
+        Success   // vert (dÃ©marrage normal)
     }
 
     public static class EmailSender
@@ -27,9 +27,9 @@ namespace StopMonitor
             {
                 var message = new MimeMessage();
 
-                // Expéditeur avec nom de machine
+                // ExpÃ©diteur avec nom de machine
                 message.From.Add(new MailboxAddress(
-                    $"StopMonitor – {Environment.MachineName}",
+                    $"StopMonitor â€“ {Environment.MachineName}",
                     cfg.From
                 ));
 
@@ -95,9 +95,9 @@ namespace StopMonitor
 
             string title = style switch
             {
-                EmailStyle.Error => "StopMonitor – Alerte",
-                EmailStyle.Success => "StopMonitor – Démarrage normal",
-                _ => "StopMonitor – Rapport"
+                EmailStyle.Error => "StopMonitor â€“ Alerte",
+                EmailStyle.Success => "StopMonitor â€“ DÃ©marrage normal",
+                _ => "StopMonitor â€“ Rapport"
             };
 
             // Fond neutre (V1 / R1)
@@ -114,13 +114,13 @@ namespace StopMonitor
 
         <p style='text-align:center;color:#555;margin-top:5px'>
             Machine : <b>{Environment.MachineName}</b><br>
-            Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+            GÃ©nÃ©rÃ© le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
         </p>
 
         {body}
 
         <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
-            Rapport généré automatiquement par StopMonitor.
+            Rapport gÃ©nÃ©rÃ© automatiquement par StopMonitor.
         </p>
     </div>
 </div>";

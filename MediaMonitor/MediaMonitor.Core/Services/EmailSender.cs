@@ -20,9 +20,9 @@ namespace MediaMonitor.Core.Services
             {
                 var message = new MimeMessage();
 
-                // ?? Expéditeur dynamique avec nom de machine
+                // ?? ExpÃ©diteur dynamique avec nom de machine
                 message.From.Add(new MailboxAddress(
-                    $"MediaMonitor – {Environment.MachineName}",
+                    $"MediaMonitor â€“ {Environment.MachineName}",
                     cfg.From
                 ));
 
@@ -38,18 +38,18 @@ namespace MediaMonitor.Core.Services
                                     box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
 
                             <h2 style='text-align:center;color:#2980b9;margin-top:0'>
-                                MediaMonitor – Rapport d'activité
+                                MediaMonitor â€“ Rapport d'activitÃ©
                             </h2>
 
                             <p style='text-align:center;color:#555;margin-top:5px'>
                                 Machine : <b>{Environment.MachineName}</b><br>
-                                Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+                                GÃ©nÃ©rÃ© le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
                             </p>
 
                             {body}
 
                             <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
-                                Rapport généré automatiquement par MediaMonitor.
+                                Rapport gÃ©nÃ©rÃ© automatiquement par MediaMonitor.
                             </p>
                         </div>
                     </div>";
@@ -85,7 +85,7 @@ namespace MediaMonitor.Core.Services
                     "email_error.log"
                 );
 
-                // S’assurer que le dossier existe
+                // Sâ€™assurer que le dossier existe
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
                 File.AppendAllText(logPath,

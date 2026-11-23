@@ -23,12 +23,12 @@ namespace NetMonitor.Service // <-- DOIT ETRE NetMonitor.Service
                     body = $@"
                     <div style='font-family:Segoe UI,Arial,sans-serif;font-size:14px;color:#333;background:#f5f5f5;padding:20px'>
                         <div style='max-width:650px;margin:auto;background:white;border-radius:8px;padding:20px; box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
-                            <h2 style='text-align:center;color:#c0392b;margin-top:0'>NetMonitor - Alerte réseau</h2>
+                            <h2 style='text-align:center;color:#c0392b;margin-top:0'>NetMonitor - Alerte rÃ©seau</h2>
                             <p style='text-align:center;color:#555;margin-top:5px'>
-                                Machine : <b>{Environment.MachineName}</b><br>Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+                                Machine : <b>{Environment.MachineName}</b><br>GÃ©nÃ©rÃ© le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
                             </p>
                             {body}
-                            <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>Alerte générée automatiquement par NetMonitor.</p>
+                            <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>Alerte gÃ©nÃ©rÃ©e automatiquement par NetMonitor.</p>
                         </div>
                     </div>";
                 }
@@ -50,7 +50,7 @@ namespace NetMonitor.Service // <-- DOIT ETRE NetMonitor.Service
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
 
-                CoreLog.Write($"[EMAIL] Envoyé : {subject}");
+                CoreLog.Write($"[EMAIL] EnvoyÃ© : {subject}");
             }
             catch (Exception ex)
             {

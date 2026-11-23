@@ -38,18 +38,18 @@ namespace SystemMonitor.Service
                                     box-shadow:0 2px 6px rgba(0,0,0,0.1)'>
 
                             <h2 style='text-align:center;color:#c0392b;margin-top:0'>
-                                SystemMonitor - Alerte système
+                                SystemMonitor - Alerte systÃ¨me
                             </h2>
 
                             <p style='text-align:center;color:#555;margin-top:5px'>
                                 Machine : <b>{Environment.MachineName}</b><br>
-                                Généré le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
+                                GÃ©nÃ©rÃ© le {DateTime.Now:dd/MM/yyyy HH:mm:ss}
                             </p>
 
                             {body}
 
                             <p style='margin-top:20px;color:#888;font-size:12px;text-align:center'>
-                                Alerte générée automatiquement par RomMonitor.
+                                Alerte gÃ©nÃ©rÃ©e automatiquement par RomMonitor.
                             </p>
                         </div>
                     </div>";
@@ -76,7 +76,7 @@ namespace SystemMonitor.Service
                 await client.SendAsync(message);
                 await client.DisconnectAsync(true);
 
-                CoreLog.Write($"[EMAIL] Envoyé : {subject}");
+                CoreLog.Write($"[EMAIL] EnvoyÃ© : {subject}");
             }
             catch (Exception ex)
             {

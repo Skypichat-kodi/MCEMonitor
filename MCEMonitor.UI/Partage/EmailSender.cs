@@ -22,7 +22,7 @@ namespace MCEMonitor
                 // Expéditeur dynamique : le nom affiché porte celui de la machine,
                 // l'adresse reste celle de la configuration.
                 message.From.Add(new MailboxAddress(
-                    $"MCEMonitor à {Environment.MachineName}",
+                    $"MCEMonitor – {Environment.MachineName}",
                     cfg.From
                 ));
 
