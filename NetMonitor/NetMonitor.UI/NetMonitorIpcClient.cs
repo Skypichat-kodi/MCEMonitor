@@ -580,6 +580,18 @@ namespace NetMonitor.UI
             string payload = EncodeB64Payload(new { ip, origin = org });
             return IsOk(await SendCommand($"set-blocked-ip-origin-b64 {payload}"));
         }
+
+        /// <summary>
+        /// Force l'origine d'une entrée d'historique ou d'audit. Distinct de la version
+        /// « bloquée » : celle-ci ne connaît que les IP présentes dans le tableau des
+        /// blocages, et échouait sur les entrées d'audit.
+        /// </summary>
+        public static async Task<bool> SetHistoryOriginAsync(string ip, string? originOrAuto)
+        {
+            string org = string.IsNullOrWhiteSpace(originOrAuto) ? "auto" : originOrAuto;
+            string payload = EncodeB64Payload(new { ip, origin = org });
+            return IsOk(await SendCommand($"set-history-origin-b64 {payload}"));
+        }
         
         public static async Task<bool> SetWebConfig(bool enabled, int port, string username, string password)
         {

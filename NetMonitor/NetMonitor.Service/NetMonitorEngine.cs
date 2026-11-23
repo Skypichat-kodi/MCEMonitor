@@ -248,6 +248,11 @@ namespace NetMonitor.Service
 
             // Migration des données au démarrage ═══
             MigrateDataIfNeeded();
+
+            // Requalification des entrées d'audit et d'historique enregistrées du temps
+            // où toute IP critique était classée Safe. Idempotente : une entrée déjà
+            // passée en Bot n'est plus reprise.
+            MigrateGoogleSafeToBot();
                                  
             _msRanges.Start();
             LoadManualSafeIps();
@@ -1187,6 +1192,60 @@ namespace NetMonitor.Service
         /// ⚠ L'origine manuelle est PERDUE si l'IP est débloquée puis re-bloquée
         /// (attribut du blocage, pas de l'IP).
         /// </summary>
+        /// <summary>
+        /// Force l'origine d'une entrée d'historique ou d'audit. Jusqu'ici, le bouton
+        /// « Forcer l'origine » de l'onglet Historique appelait la méthode des blocages,
+        /// qui ne connaît que les IP bloquées : sur une entrée d'audit ordinaire, il ne
+        /// pouvait donc rien faire.
+        ///
+        /// « auto » recalcule l'origine avec les données de l'entrée, sinon la valeur
+        /// fournie est appliquée telle quelle.
+        /// </summary>
+        public bool SetHistoryOrigin(string ip, string origin)
+        {
+            if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(origin)) return false;
+
+            int changed = 0;
+            bool auto = string.Equals(origin, "auto", StringComparison.OrdinalIgnoreCase);
+
+            lock (_alertsLock)
+            {
+                foreach (var evt in _auditHistory.Concat(_alerts).Concat(_activeIntrusions))
+                {
+                    if (!string.Equals(evt.RemoteIp, ip, StringComparison.OrdinalIgnoreCase)) continue;
+
+                    if (auto)
+                    {
+                        SeverityScorer.Evaluate(
+                            evt.RemoteIp,
+                            evt.ReverseDns,
+                            evt.Isp,
+                            evt.Org,
+                            evt.Source,
+                            evt.Severity,
+                            _settings,
+                            _googleRanges,
+                            _msRanges,
+                            _threatIntel,
+                            out var computed);
+
+                        if (evt.Origin != computed) { evt.Origin = computed; changed++; }
+                    }
+                    else if (Enum.TryParse<IpOrigin>(origin, ignoreCase: true, out var wanted))
+                    {
+                        if (evt.Origin != wanted) { evt.Origin = wanted; changed++; }
+                    }
+                }
+            }
+
+            if (changed == 0) return false;
+
+            SaveAudit();
+            SaveHistory();
+            CoreLog.Info($"Origine de {ip} forcée à '{origin}' sur {changed} entrée(s) d'historique");
+            return true;
+        }
+
         public bool SetBlockedIpOrigin(string ip, string origin)
         {
             if (string.IsNullOrWhiteSpace(ip) || string.IsNullOrWhiteSpace(origin))
@@ -2703,6 +2762,61 @@ namespace NetMonitor.Service
             {
                 CoreLog.Error($"[MIGRATION] Échec : {ex.Message}");
             }
+        }
+
+        /// <summary>
+        /// Requalifie en Bot les entrées encore classées Safe alors que leur IP
+        /// appartient à la liste Google officielle.
+        ///
+        /// Concerne l'historique, les intrusions actives et l'audit : avant la
+        /// distinction Bot / Safe, toutes les IP critiques étaient rangées en Safe,
+        /// si bien que la sévérité Bot n'apparaissait jamais dans les tableaux.
+        ///
+        /// Idempotente : seules les entrées encore en Safe sont examinées. Elle ne
+        /// fait rien si les plages Google sont désactivées, faute de pouvoir trancher.
+        /// </summary>
+        private void MigrateGoogleSafeToBot()
+        {
+            if (_googleRanges?.IsEnabled != true) return;
+
+            int changed = 0;
+
+            lock (_alertsLock)
+            {
+                changed += RequalifyGoogleSafeAsBot(_auditHistory);
+                changed += RequalifyGoogleSafeAsBot(_alerts);
+                changed += RequalifyGoogleSafeAsBot(_activeIntrusions);
+            }
+
+            if (changed == 0) return;
+
+            SaveAudit();
+            SaveHistory();
+
+            CoreLog.Info($"[MIGRATION] {changed} entrée(s) Safe → Bot " +
+                         $"(IP de la liste Google officielle)");
+        }
+
+        private int RequalifyGoogleSafeAsBot(List<IntrusionEvent> events)
+        {
+            int changed = 0;
+
+            foreach (var evt in events)
+            {
+                if (evt.Severity != Severity.Safe) continue;
+                if (string.IsNullOrWhiteSpace(evt.RemoteIp)) continue;
+                if (_googleRanges?.IsGoogleIp(evt.RemoteIp!) != true) continue;
+
+                evt.Severity = Severity.Bot;
+                evt.TrustReason = "Robot officiel Google (liste officielle)";
+
+                if (!string.IsNullOrEmpty(evt.Message))
+                    evt.Message = evt.Message.Replace("[WHITELIST]", "[BOT]");
+
+                changed++;
+            }
+
+            return changed;
         }
 
         private void MigrateIntrusionEvents(List<IntrusionEvent> events, string label)

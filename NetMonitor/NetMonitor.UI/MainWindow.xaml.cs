@@ -3451,7 +3451,17 @@ namespace NetMonitor.UI
             if (picker.ShowDialog() != true) return;
 
             SetBusy($"Changement d'origine de {ip}…");
-            bool ok = await NetMonitorIpcClient.SetBlockedIpOriginAsync(ip, picker.SelectedOrigin);
+
+            // Une IP peut n'exister que dans l'historique ou l'audit, sans être bloquée :
+            // c'est le cas courant des IP Google, jamais bloquées. La commande « bloquée »
+            // ne les connaît pas et échouait silencieusement.
+            bool estBloquee = _blockedIps.Any(b =>
+                string.Equals(b.Ip, ip, StringComparison.OrdinalIgnoreCase));
+
+            bool ok = estBloquee
+                ? await NetMonitorIpcClient.SetBlockedIpOriginAsync(ip, picker.SelectedOrigin)
+                : await NetMonitorIpcClient.SetHistoryOriginAsync(ip, picker.SelectedOrigin);
+
             ClearBusy();
 
             if (!ok) { /* message d'erreur */ return; }

@@ -73,6 +73,12 @@ namespace NetMonitor.Service.Ipc
                 return;
             }
 
+            if (command.StartsWith("set-history-origin-b64 ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleSetHistoryOriginB64(command, server);
+                return;
+            }
+
             if (command.StartsWith("toggle-whitelist-entry-b64 ", StringComparison.OrdinalIgnoreCase))
             {
                 HandleToggleWhitelistEntryB64(command, server);
@@ -915,8 +921,40 @@ namespace NetMonitor.Service.Ipc
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }
 
-        private void HandleSetBlockedIpOriginB64(string command, NamedPipeServerStream server)
+        private void HandleSetHistoryOriginB64(string command, NamedPipeServerStream server)
         {
+            try
+            {
+                string base64 = command.Substring("set-history-origin-b64 ".Length).Trim();
+                using var doc = TryDecodeB64Json(base64);
+                if (doc == null) { IpcResponse.Error(server, "payload b64 invalide"); return; }
+
+                var root = doc.RootElement;
+                string ip     = GetJsonString(root, "ip") ?? "";
+                string origin = GetJsonString(root, "origin") ?? "auto";
+
+                if (string.IsNullOrWhiteSpace(ip))
+                {
+                    IpcResponse.Error(server, "ip manquante");
+                    return;
+                }
+
+                bool ok = _engine.SetHistoryOrigin(ip, origin);
+                IpcResponse.Json(server, new
+                {
+                    status = ok ? "ok" : "error",
+                    ip,
+                    origin
+                });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("Erreur HandleSetHistoryOriginB64 : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
+        private void HandleSetBlockedIpOriginB64(string command, NamedPipeServerStream server)        {
             try
             {
                 string base64 = command.Substring("set-blocked-ip-origin-b64 ".Length).Trim();
