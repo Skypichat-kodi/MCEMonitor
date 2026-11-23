@@ -18,7 +18,7 @@ namespace SystemMonitor.UI
         private const string MutexName = "Global\\MCEMonitor_SystemMonitorUI";
         private const string PipeName  = "MCEMonitor_SystemMonitorUI_Activate";
 
-        // Win32 imports pour l'activation de fen�tre
+        // Win32 imports pour l'activation de fenêtre
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
 
@@ -40,14 +40,14 @@ namespace SystemMonitor.UI
 
             if (!createdNew)
             {
-                // Une instance tourne d�j� ? lui demander de s'activer
+                // Une instance tourne déjà ? lui demander de s'activer
                 SignalExistingInstance();
 
                 Shutdown();
                 return;
             }
 
-            // Premi�re instance ? d�marrer le listener IPC
+            // Première instance ? démarrer le listener IPC
             StartActivationListener();
 
             // ============================================================
@@ -78,7 +78,7 @@ namespace SystemMonitor.UI
                 ex.SetObserved();
             };
 
-            // Patch anti-�cran blanc (VNC / RDP)
+            // Patch anti-écran blanc (VNC / RDP)
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
             // Gestion de la langue
@@ -103,7 +103,7 @@ namespace SystemMonitor.UI
         }
 
         // ============================================================
-        //  Signale � l'instance existante de venir au premier plan
+        //  Signale à l'instance existante de venir au premier plan
         // ============================================================
         private static void SignalExistingInstance()
         {
@@ -120,13 +120,13 @@ namespace SystemMonitor.UI
             }
             catch
             {
-                // Si le pipe ne r�pond pas, on ne peut rien faire
-                // (l'instance existante ne r�pond pas)
+                // Si le pipe ne répond pas, on ne peut rien faire
+                // (l'instance existante ne répond pas)
             }
         }
 
         // ============================================================
-        //  Thread qui �coute les demandes d'activation
+        //  Thread qui écoute les demandes d'activation
         // ============================================================
         private void StartActivationListener()
         {
@@ -155,7 +155,7 @@ namespace SystemMonitor.UI
                     }
                     catch
                     {
-                        // On continue la boucle m�me en cas d'erreur
+                        // On continue la boucle même en cas d'erreur
                     }
                 }
             })
@@ -168,8 +168,8 @@ namespace SystemMonitor.UI
         }
 
         // ============================================================
-        //  Ram�ne la fen�tre principale au premier plan
-        //  ou affiche un message si elle est d�j� active
+        //  Ramène la fenêtre principale au premier plan
+        //  ou affiche un message si elle est déjà active
         // ============================================================
         private void ActivateMainWindow()
         {
@@ -184,18 +184,18 @@ namespace SystemMonitor.UI
             if (hwnd == IntPtr.Zero)
                 return;
 
-            // D�j� au premier plan ?
+            // Déjà au premier plan ?
             if (GetForegroundWindow() == hwnd)
             {
                 MessageBox.Show(
-                    "SystemMonitor.UI est d�j� au premier plan.",
-                    "Instance d�j� active",
+                    "SystemMonitor.UI est déjà au premier plan.",
+                    "Instance déjà active",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
             }
 
-            // Restaurer si minimis�e
+            // Restaurer si minimisée
             if (IsIconic(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 

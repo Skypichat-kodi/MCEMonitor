@@ -19,7 +19,7 @@ namespace RomMonitor.UI
         private const string PipeName  = "MCEMonitor_RomMonitorUI_Activate";
 
         // ============================================================
-        //  Win32 imports pour l'activation de fen�tre
+        //  Win32 imports pour l'activation de fenêtre
         // ============================================================
         [DllImport("user32.dll")]
         private static extern bool SetForegroundWindow(IntPtr hWnd);
@@ -45,13 +45,13 @@ namespace RomMonitor.UI
 
             if (!createdNew)
             {
-                // Une instance tourne d�j� ? lui demander de s'activer
+                // Une instance tourne déjà ? lui demander de s'activer
                 SignalExistingInstance();
                 Shutdown();
                 return;
             }
 
-            // Premi�re instance ? d�marrer le listener IPC
+            // Première instance ? démarrer le listener IPC
             StartActivationListener();
 
             // ============================================================
@@ -84,7 +84,7 @@ namespace RomMonitor.UI
             };
 
             // ============================================================
-            //  PATCH ANTI-�CRAN BLANC (VNC / RDP)
+            //  PATCH ANTI-ÉCRAN BLANC (VNC / RDP)
             // ============================================================
             RenderOptions.ProcessRenderMode = RenderMode.SoftwareOnly;
 
@@ -112,7 +112,7 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  Signale � l'instance existante de venir au premier plan
+        //  Signale à l'instance existante de venir au premier plan
         // ============================================================
         private static void SignalExistingInstance()
         {
@@ -129,12 +129,12 @@ namespace RomMonitor.UI
             }
             catch
             {
-                // Si le pipe ne r�pond pas, on ne peut rien faire
+                // Si le pipe ne répond pas, on ne peut rien faire
             }
         }
 
         // ============================================================
-        //  Thread qui �coute les demandes d'activation
+        //  Thread qui écoute les demandes d'activation
         // ============================================================
         private void StartActivationListener()
         {
@@ -163,7 +163,7 @@ namespace RomMonitor.UI
                     }
                     catch
                     {
-                        // On continue la boucle m�me en cas d'erreur
+                        // On continue la boucle même en cas d'erreur
                     }
                 }
             })
@@ -176,8 +176,8 @@ namespace RomMonitor.UI
         }
 
         // ============================================================
-        //  Ram�ne la fen�tre principale au premier plan
-        //  ou affiche un message si elle est d�j� active
+        //  Ramène la fenêtre principale au premier plan
+        //  ou affiche un message si elle est déjà active
         // ============================================================
         private void ActivateMainWindow()
         {
@@ -192,19 +192,19 @@ namespace RomMonitor.UI
             if (hwnd == IntPtr.Zero)
                 return;
 
-            // D�j� au premier plan ET pas minimis�e ?
+            // Déjà au premier plan ET pas minimisée ?
             if (GetForegroundWindow() == hwnd &&
                 window.WindowState != WindowState.Minimized)
             {
                 MessageBox.Show(
-                    "RomMonitor.UI est d�j� au premier plan.",
-                    "Instance d�j� active",
+                    "RomMonitor.UI est déjà au premier plan.",
+                    "Instance déjà active",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
                 return;
             }
 
-            // Restaurer si minimis�e
+            // Restaurer si minimisée
             if (IsIconic(hwnd))
                 ShowWindow(hwnd, SW_RESTORE);
 
