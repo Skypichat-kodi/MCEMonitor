@@ -322,16 +322,19 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <!-- BorderThickness en TemplateBinding et non en dur : sans cela,
-                             un bouton ne peut plus choisir sa propre epaisseur, comme les
-                             « Voir plus » qui demandent un trait fin. -->
-                        <Border Background="{TemplateBinding Background}"
-                                BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="{TemplateBinding BorderThickness}"
-                                CornerRadius="6">
+                        <!-- Le fond est dessine sur toute la surface arrondie, le contour
+                             par-dessus. Avec un seul Border, WPF arrondit le fond a
+                             rayon - epaisseur et laisse apparaitre le fond de la fenetre
+                             dans les quatre angles, d ou un liseré sombre. -->
+                        <Grid>
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="6"/>
+                            <Border BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="6"/>
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
-                        </Border>
+                        </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
