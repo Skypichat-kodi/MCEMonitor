@@ -19,8 +19,9 @@
     <SolidColorBrush x:Key="TraitTableau" Color="#FF3C3C3C" />
     <SolidColorBrush x:Key="Bordure"           Color="#FF3C3C3C" />
 
-    <!-- Contour des boutons de depliage des tableaux : conserve en sombre. -->
-    <SolidColorBrush x:Key="TraitDepliage"    Color="#FF3C3C3C" />
+    <!-- Contour des boutons de depliage des tableaux : transparent dans les deux
+         themes, le trait alourdissait le bas des tableaux sans rien apporter. -->
+    <SolidColorBrush x:Key="TraitDepliage"    Color="#00FFFFFF" />
     <SolidColorBrush x:Key="Texte"             Color="#FFE5E5E5" />
     <SolidColorBrush x:Key="TexteSecondaire"   Color="#FFB4B4B4" />
     <SolidColorBrush x:Key="TexteTernaire"     Color="#FF5A5A5E" />
