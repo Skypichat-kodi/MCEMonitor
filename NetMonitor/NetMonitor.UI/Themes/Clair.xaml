@@ -17,6 +17,11 @@
     <SolidColorBrush x:Key="SurfaceActive"     Color="#FFDEDEDE" />
     <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
     <SolidColorBrush x:Key="Bordure"           Color="#FFC0C0C0" />
+
+    <!-- Contour des boutons de depliage des tableaux. Invisible en clair : le
+         trait n apportait rien sur fond clair, il alourdissait le bas des
+         tableaux. En sombre il reste utile pour detacher le bouton. -->
+    <SolidColorBrush x:Key="TraitDepliage"    Color="#00FFFFFF" />
     <SolidColorBrush x:Key="Texte"             Color="#FF1B1B1B" />
     <SolidColorBrush x:Key="TexteSecondaire"   Color="#FF5F5F5F" />
     <SolidColorBrush x:Key="TexteTernaire"     Color="#FF8A8A8A" />
