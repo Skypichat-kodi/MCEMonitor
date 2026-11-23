@@ -12,6 +12,9 @@
         <Color x:Key="CouleurTexteSecondaire">#FFA0A0A0</Color>
         <Color x:Key="CouleurAccent">#FF0078D4</Color>
         <Color x:Key="CouleurAccentSurvol">#FF1B8AE0</Color>
+        <!-- Survol des boutons : blanc casse plutot que bleu. Le bleu au survol
+             se confondait avec les boutons d action, qui sont deja bleus. -->
+        <Color x:Key="CouleurSurvolBouton">#FFE6E6E6</Color>
         <Color x:Key="CouleurAccentPresse">#FF0067B8</Color>
         <Color x:Key="CouleurSucces">#FF3FB950</Color>
         <Color x:Key="CouleurSuccesSurvol">#FF4ECD60</Color>
@@ -29,6 +32,7 @@
         <SolidColorBrush x:Key="TexteSecondaire" Color="{StaticResource CouleurTexteSecondaire}" />
         <SolidColorBrush x:Key="Accent" Color="{StaticResource CouleurAccent}" />
         <SolidColorBrush x:Key="AccentSurvol" Color="{StaticResource CouleurAccentSurvol}" />
+        <SolidColorBrush x:Key="SurvolBouton" Color="{StaticResource CouleurSurvolBouton}" />
         <SolidColorBrush x:Key="AccentPresse" Color="{StaticResource CouleurAccentPresse}" />
         <SolidColorBrush x:Key="Succes" Color="{StaticResource CouleurSucces}" />
         <SolidColorBrush x:Key="SuccesSurvol" Color="{StaticResource CouleurSuccesSurvol}" />

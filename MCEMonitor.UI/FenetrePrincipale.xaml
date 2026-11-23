@@ -39,7 +39,7 @@
                                 <Setter Property="Foreground" Value="White" />
                             </Trigger>
                             <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Cadre" Property="BorderBrush" Value="{StaticResource AccentSurvol}" />
+                                <Setter TargetName="Cadre" Property="BorderBrush" Value="{StaticResource SurvolBouton}" />
                             </Trigger>
                         </ControlTemplate.Triggers>
                     </ControlTemplate>
