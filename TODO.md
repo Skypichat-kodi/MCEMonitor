@@ -96,12 +96,53 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **MCEMonitor.UI : coches de blocage automatique à la place des réglages NetMonitor**
+  - L'onglet NetMonitor de MCEMonitor expose aujourd'hui des paramètres de service dont on n'a presque
+    jamais besoin au quotidien. Les remplacer par ce qui se règle vraiment souvent : l'activation du
+    blocage automatique et ses coches colorées de sévérité (critiques, inconnues, scanners, robots
+    officiels, robots génériques)
+  - **Sans les listes officielles ni les seuils de détecteurs** : celles-ci restent dans NetMonitor.UI,
+    où on les consulte une fois pour toutes
+  - Objectif : bloquer une catégorie sans ouvrir NetMonitor, qui n'est pas forcément lancé
+  - Les coches écrivent les mêmes clés de configuration (`AutoBlock`, `AutoBlockCritical`,
+    `AutoBlockWarning`, `BlockKnownScanners`, `BlockBots`, `BlockCrawlers`) puis demandent un rechargement
+    à chaud, comme le fait déjà NetMonitor.UI
+  - **Priorité** : 🟡 moyenne
+
+- [ ] **NetMonitor : exécutables Microsoft approuvés en boucle**
+  - Des exécutables Microsoft reviennent sans arrêt dans la liste des processus à approuver, malgré une
+    approbation. À investiguer : comparaison chemin + empreinte au moment de l'approbation, mise à jour
+    de l'exécutable entre deux passages, ou processus relancé depuis un chemin différent
+  - Vérifier la mise en cache de la liste des processus de confiance, et la persistance de
+    `trusted_processes.json` (clé ajoutée, puis relue au démarrage)
+  - Conséquence actuelle : bruit permanent et risque de reflexe d'approbation chez l'utilisateur
+  - **Priorité** : 🔴 haute (gêne quotidienne)
+
+- [ ] **MCEMonitorClient Android : liste des serveurs plus lisible**
+  - Retirer la carte « Top IP » de l'interface pour les serveurs NetMonitor : elle n'apporte rien sur
+    mobile et occupe la place de l'essentiel
+  - Revoir la présentation de la liste des serveurs, aujourd'hui encombrée
+  - **Priorité** : 🟡 moyenne
+
+- [ ] **Alertes de surcharge disque dans les clients** *(RomMonitor)*
+  - Les lectures et écritures sont déjà surveillées côté service, mais aucun client ne les remonte :
+    ajouter l'icône d'alerte dans les clients Windows (Tray) et Android, à côté des états CPU, RAM et
+    disque
+  - L'API du service RomMonitor doit être complétée pour publier la mesure et son état
+  - Même principe que la surcharge disque déjà traitée côté SystemMonitor
+  - **Priorité** : 🟡 moyenne (trois chantiers liés : service, Tray, Android)
+
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
 ### 🟢 Opportuniste
+
+- [ ] **MediaMonitor : retirer l'overlay des logos REC et TV**
+  - Dans la popup d'informations, l'overlay de lecture se superpose au logo de chaîne et au logo
+    d'enregistrement. Il n'a de sens que sur une miniature vidéo
+  - **Priorité** : 🟢 basse (esthétique)
 
 - [ ] **Harmoniser le gris des en-têtes de tableau**
   - NetMonitor utilise `#D4D4D4` (Connexions, Appareils de confiance), les modules `#E0E0E0`
@@ -154,6 +195,55 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-23 — filtres, finitions graphiques, release 3.0.9
+
+**Filtres et analyse des blocages.**
+
+- filtres par type, sévérité et origine sur le tableau des IP bloquées, dans l'interface Windows et sur
+  la page web, avec compteur de lignes visibles
+- bouton « Réanalyser les blocages » dans les deux interfaces : recalcule sévérité et origine avec la
+  blacklist du moment, signale les blocages qui ne seraient plus décidés, et ne débloque rien sans
+  confirmation
+- l'origine d'une IP est conservée au moment du blocage : elle était perdue, d'où des lignes vides dans
+  le tableau alors que l'intrusion l'indiquait
+- **piège des traits de tableau** : le trait posé sur la ligne est recouvert par le fond opaque des
+  cellules ; il doit être porté par la cellule, et dans la teinte du tableau
+
+**Apparence.**
+
+- **boutons** : bordure de trois points, puis fond dessiné **sous** le contour — un seul `Border` arrondit
+  le fond à rayon moins épaisseur et laisse un liseré du fond de fenêtre dans les angles. Corrigé dans les
+  six projets, y compris les gabarits nommés dont les déclencheurs visaient le `Border`
+- **`TemplateBinding` rétabli** : mon script d'épaississement avait figé `BorderThickness` en dur dans les
+  gabarits, rendant tout réglage par bouton inopérant — d'où un correctif qui semblait sans effet
+- survol des boutons ordinaires en gris au lieu du bleu, qui les confondait avec les boutons d'action
+- bouton « i » recentré : un `ContentPresenter` centre la ligne de texte, pas le glyphe ; rendu en niveaux
+  de gris pour éviter les franges du ClearType sur 22 px
+- en-têtes de tableaux plus contrastés en thème clair ; ligne du tableau rouge rosie
+- **Tray** : la fenêtre des serveurs reprend les ressources du client de configuration, barre de
+  défilement comprise. Le client reste autonome — aucune lecture de `theme-ui.config`
+
+**Page web.**
+
+- bouton « Restaurer les règles à l'origine » retiré : action trop lourde pour une page consultée à
+  distance, elle reste dans l'interface Windows
+- bouton « Réanalyser les blocages » ajouté ; colonne Origine de l'historique à largeur fixe
+
+**Installation.**
+
+- quatorze mégaoctets de natives Linux, macOS et Android retirés : `SystemMonitor.Service` publiait les
+  bibliothèques de toutes les plateformes. `RuntimeIdentifier` `win-x64` **avec** `SelfContained=false`,
+  faute de quoi .NET 6+ bascule en publication autonome et ajoute 150 Mo
+- assemblys satellites limités à `fr;en;de;de-DE;es;es-ES` via `Directory.Build.props` : dix-huit fichiers
+  de ressources deviennent quatre. Les variantes régionales sont indispensables, DiskInfoToolkit ne
+  publiant que `de-DE` et `es-ES`
+- installeur : nettoyage des runtimes étrangers, des dossiers de culture abandonnés (dont `zh-Hant`, que
+  TaskScheduler publie sous ce nom et non `zh-CN`), et des `WinDivert*.old`
+- **ne pas supprimer le dossier `runtimes` entier** : `win` et `win-x64` portent les bibliothèques .NET
+  des services et le pilote WinDivert
+
+**Release 3.0.9** : installeur 3.0.9.0 (110,5 Mo, contre 115,9 pour la 3.0.8) et APK `versionCode 30009`.
 
 ### Session 2026-11-23 — hygiène : encodages, ancien projet, branche morte
 
