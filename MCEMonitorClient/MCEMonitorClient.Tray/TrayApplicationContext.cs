@@ -840,6 +840,50 @@ namespace MCEMonitorClient.Tray
         private System.Windows.Application? _applicationWpf;
         private FenetreServeurs? _fenetreServeurs;
 
+        /// <summary>
+        /// Charge les couleurs du thème choisi dans les ressources de l'application.
+        ///
+        /// La fenêtre des serveurs n'a plus de couleurs propres : elle emprunte les
+        /// clés Fond, Surface, Bordure, Texte, Accent… Ce dictionnaire doit donc être
+        /// en place avant sa création, sinon les StaticResource ne trouvent rien.
+        ///
+        /// Fichier absent ou illisible : thème sombre, comme partout ailleurs.
+        /// </summary>
+        private static void ChargerTheme(System.Windows.Application application)
+        {
+            string nom = "Sombre";
+
+            try
+            {
+                string chemin = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "theme-ui.config");
+
+                if (File.Exists(chemin))
+                {
+                    string contenu = File.ReadAllText(chemin).Trim();
+                    if (contenu.Equals("Clair", StringComparison.OrdinalIgnoreCase))
+                        nom = "Clair";
+                }
+            }
+            catch
+            {
+                // Fichier protégé ou absent : on garde le thème sombre.
+            }
+
+            try
+            {
+                application.Resources.MergedDictionaries.Add(new System.Windows.ResourceDictionary
+                {
+                    Source = new Uri($"pack://application:,,,/Themes/{nom}.xaml", UriKind.Absolute)
+                });
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write($"Thème Tray : chargement impossible ({ex.Message})");
+            }
+        }
+
         private void ShowServersPopup()
         {
             try
@@ -852,6 +896,8 @@ namespace MCEMonitorClient.Tray
                     {
                         ShutdownMode = System.Windows.ShutdownMode.OnExplicitShutdown
                     };
+
+                    ChargerTheme(_applicationWpf);
                 }
 
                 if (_fenetreServeurs == null)
