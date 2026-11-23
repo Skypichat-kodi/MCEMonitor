@@ -36,7 +36,7 @@
             <Setter Property="Foreground" Value="{StaticResource Texte}" />
             <Setter Property="Background" Value="{StaticResource Surface}" />
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}" />
-            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderThickness" Value="3"/>
             <Setter Property="Padding" Value="14,0" />
             <Setter Property="Cursor" Value="Hand" />
             <Setter Property="Template">
