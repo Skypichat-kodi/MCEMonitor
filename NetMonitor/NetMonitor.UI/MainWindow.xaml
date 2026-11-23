@@ -314,7 +314,7 @@
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
-            <Setter Property="Padding" Value="10 8"/>
+            <Setter Property="Padding" Value="10 5"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="3"/>
             <Setter Property="FontSize" Value="13"/>
@@ -332,8 +332,11 @@
                             <Border BorderBrush="{TemplateBinding BorderBrush}"
                                     BorderThickness="{TemplateBinding BorderThickness}"
                                     CornerRadius="6"/>
+                            <!-- Margin = Padding : sans ce report, le rembourrage du bouton
+                                 est ignore et sa hauteur ne bouge pas. -->
                             <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                                              VerticalAlignment="Center"
+                                              Margin="{TemplateBinding Padding}"/>
                         </Grid>
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">

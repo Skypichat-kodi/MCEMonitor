@@ -63,7 +63,7 @@
         <Style TargetType="Button">
             <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
-            <Setter Property="Padding" Value="10 8"/>
+            <Setter Property="Padding" Value="10 5"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="3"/>
             <Setter Property="FontSize" Value="13"/>
