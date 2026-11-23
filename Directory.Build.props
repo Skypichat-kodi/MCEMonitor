@@ -1,0 +1,24 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Assemblys satellites de localisation : par defaut, chaque bibliotheque
+         tierce embarque une dizaine de cultures - de, de-DE, es, es-ES, fr, it,
+         ja, pl, ru, sv, tr, zh-CN - soit dix-huit fichiers et autant de dossiers
+         dans chaque sortie, installes dans Program Files et ProgramData.
+
+         On ne garde que les langues que le logiciel propose : francais,
+         allemand et espagnol. L'anglais n'a pas de satellite propre - les
+         ressources neutres, dans l'assembly principal, le servent deja - mais
+         il est liste pour rester explicite. Les autres cultures retombent sur
+         ces ressources neutres.
+
+         Les variantes regionales sont indispensables : DiskInfoToolkit ne
+         publie que de-DE et es-ES, pas de ni es.
+
+         Ces fichiers ne peuvent pas etre regroupes ailleurs : .NET resout un
+         satellite uniquement dans un sous-dossier portant le nom de la culture,
+         place a cote de l'assembly principal. -->
+    <SatelliteResourceLanguages>fr;en;de;de-DE;es;es-ES</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+</Project>

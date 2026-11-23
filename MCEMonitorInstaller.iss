@@ -59,6 +59,43 @@ Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MC
 ; Il est maintenant uniquement dans ProgramData.
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\ffmpeg"
 
+; Runtimes des autres systèmes, laissés par les versions précédentes.
+; SystemMonitor.Service publiait les bibliothèques natives de toutes les
+; plateformes (android, linux, osx, maccatalyst) : quatorze mégaoctets que
+; Windows n'a jamais ouverts. La publication est désormais limitée à win-x64,
+; mais une mise à jour ne retire pas les fichiers déjà installés : on efface
+; donc le dossier, que [Files] recrée ensuite avec ce qui est réellement
+; nécessaire. WinDivert n'est pas concerné, il est déployé par
+; DeployWinDivert() depuis le dossier temporaire.
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes"
+
+; Dossiers de culture abandonnés. Les assemblys satellites ne suivent plus
+; que le français, l'allemand et l'espagnol (Directory.Build.props) : les
+; autres ne sont plus produits, mais resteraient en place après une mise à
+; jour. de-DE et es-ES viennent en plus d'un paquet DiskInfoToolkit qui n'est
+; plus référencé nulle part.
+; Les cultures conservées - de, es, fr - sont recréées par [Files] et ne sont
+; donc pas listées ici.
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\de-DE"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\es-ES"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\it"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\ja"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\pl"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\ru"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\sv"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\tr"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\zh-CN"
+
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\de-DE"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\es-ES"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\it"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\ja"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\pl"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\ru"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\sv"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\tr"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\zh-CN"
+
 [Files]
 Source: "LICENSE_inno.txt"; DestDir: "{app}"; Flags: ignoreversion
 

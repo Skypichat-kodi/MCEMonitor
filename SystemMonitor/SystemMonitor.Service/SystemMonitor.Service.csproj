@@ -7,6 +7,16 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Version>1.0.0</Version>
     <PlatformTarget>x64</PlatformTarget>
+
+    <!-- Sans identifiant de plateforme, la publication recopiait les bibliotheques
+         natives de tous les systemes fournies par LibreHardwareMonitorLib et
+         System.IO.Ports : android, linux, osx, maccatalyst. Quatorze megaoctets
+         installes dans ProgramData que Windows n ouvre jamais.
+         SelfContained reste a false : depuis .NET 6, preciser un identifiant de
+         plateforme suffit a basculer en publication autonome, ce qui ajouterait
+         le runtime complet au lieu de retirer les fichiers inutiles. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
   </PropertyGroup>
 
   <ItemGroup>
