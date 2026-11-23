@@ -884,8 +884,22 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="11">
-                            <ContentPresenter HorizontalAlignment="Center"
-                                              VerticalAlignment="Center"/>
+                            <!-- Un ContentPresenter centre la ligne de texte, pas le glyphe :
+                                 avec une bordure de 3 px la zone utile tombe à 16 px et le
+                                 « i » paraissait décalé. Le TextBlock avec une hauteur de
+                                 ligne égale à la taille de police centre le glyphe lui-même. -->
+                            <TextBlock Text="{TemplateBinding Content}"
+                                       FontSize="{TemplateBinding FontSize}"
+                                       FontWeight="{TemplateBinding FontWeight}"
+                                       Foreground="{TemplateBinding Foreground}"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       TextAlignment="Center"
+                                       LineStackingStrategy="BlockLineHeight"
+                                       LineHeight="{TemplateBinding FontSize}"
+                                       Margin="1,2,0,0"
+                                       TextOptions.TextRenderingMode="Grayscale"
+                                       TextOptions.TextFormattingMode="Display"/>
                         </Border>
                     </ControlTemplate>
                 </Setter.Value>
