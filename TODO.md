@@ -92,13 +92,7 @@ _(rien)_
 
 ### 🔴 Échéance datée
 
-- [ ] **Supprimer `MCEMonitor.old`** *(à partir du 28/11/2026)*
-  - L'ancien projet WinForms a été archivé lors de la bascule vers WPF (commit `3fde0e1`, tag `v3.0.0`). Il n'est plus dans la solution et `build.bat` l'ignore
-  - **Le garder une semaine**, le temps que la 3.0.0 fasse ses preuves, puis `git rm -r MCEMonitor.old`
-  - Rien n'est perdu ensuite : l'historique Git conserve tout
-    - `git show 3fde0e1^:MCEMonitor/MainForm.cs` pour lire un fichier
-    - `git checkout 3fde0e1^ -- MCEMonitor` pour restaurer le dossier complet
-  - **Priorité** : 🔴 datée (49 fichiers, 23 Mo)
+_(rien)_
 
 ### 🟡 Planifié
 
@@ -160,6 +154,48 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-23 — hygiène : encodages, ancien projet, branche morte
+
+**Accents détruits dans quatre fichiers.**
+
+- même signature partout : le caractère de substitution `U+FFFD` (`EF BF BD`), trace d'une conversion
+  d'encodage ratée où chaque octet accentué a été remplacé
+- touchés : `MCEMonitor.UI/Partage/EmailSender.cs`, `MCEMonitorClient.Service/Services/PollingEngine.cs`,
+  `RomMonitor.UI/App.xaml.cs`, `SystemMonitor.UI/App.xaml.cs`
+- deux messages affichés à l'utilisateur étaient concernés (« RomMonitor.UI est déjà au premier plan. »,
+  son équivalent SystemMonitor, « Instance déjà active »), ainsi que trois messages de journal de
+  PollingEngine
+- **piège évité** : PowerShell lit un fichier sans BOM en Windows-1252 et réencode les accents déjà
+  corrects en double encodage (`Durée` devient `DurÃ©e`). Un premier script a abîmé les fichiers, vus aux
+  octets (`c3 83 c2 a9` au lieu de `c3 a9`), restaurés depuis Git et refaits avec bun/Node
+
+**Six `EmailSender.cs` convertis de Windows-1252 vers UTF-8.**
+
+- MediaMonitor.Core, NetMonitor, RomMonitor, SystemMonitor, StopMonitor, WakeMonitor : ils s'affichaient
+  mal dans tout éditeur réglé sur UTF-8, et le mélange d'encodages finit toujours par coûter des accents
+- conversion par décodage explicite `windows-1252`, sans BOM, fins de ligne inchangées
+- contrôles : nombre de caractères identique, nombre de lignes identique, UTF-8 valide après écriture,
+  34 lignes modifiées et aucune autre
+- **piège évité** : ces fichiers contiennent l'octet `0x96`, tiret demi-cadratin en windows-1252 mais
+  caractère de contrôle en latin-1. Un décodage latin-1 aurait glissé un caractère invisible dans les
+  sujets d'email
+- le nom d'affichage de MCEMonitor.UI est aligné sur les autres modules : `MCEMonitor – MACHINE`
+
+**`MCEMonitor.old` supprimé.**
+
+- l'ancien projet WinForms, 49 fichiers, était inerte depuis la bascule 3.0.0 : absent de la solution,
+  de `build.bat` et de l'installeur, aucune référence nulle part
+- supprimé deux jours avant la date prévue, la 3.0.8 ayant fait ses preuves entre-temps
+- rien n'est perdu : le renommage s'est fait au commit `3fde0e1`, donc
+  - `git show 3fde0e1^:MCEMonitor/MainForm.cs` pour lire un fichier
+  - `git checkout 3fde0e1^ -- MCEMonitor` pour restaurer le dossier complet
+- solution recompilée après suppression : 0 erreur
+
+**Branche distante `refactor/decompose-webserver` supprimée.**
+
+- reliquat d'un essai de découpage du serveur web, dernier commit « Revert » du 07/09/2026
+- entièrement contenue dans `main` : aucun commit en avance, 548 commits de retard. Branche morte
 
 ### Session 2026-11-22 — Threat intelligence et audit des réglages NetMonitor
 
