@@ -322,9 +322,12 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
+                        <!-- BorderThickness en TemplateBinding et non en dur : sans cela,
+                             un bouton ne peut plus choisir sa propre epaisseur, comme les
+                             « Voir plus » qui demandent un trait fin. -->
                         <Border Background="{TemplateBinding Background}"
                                 BorderBrush="{TemplateBinding BorderBrush}"
-                                BorderThickness="3"
+                                BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="6">
                             <ContentPresenter HorizontalAlignment="Center"
                                               VerticalAlignment="Center"/>
