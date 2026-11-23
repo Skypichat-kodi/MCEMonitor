@@ -19,9 +19,10 @@ namespace MCEMonitor
             {
                 var message = new MimeMessage();
 
-                // ?? Exp�diteur dynamique avec nom de machine
+                // Expéditeur dynamique : le nom affiché porte celui de la machine,
+                // l'adresse reste celle de la configuration.
                 message.From.Add(new MailboxAddress(
-                    $"MCEMonitor � {Environment.MachineName}",
+                    $"MCEMonitor à {Environment.MachineName}",
                     cfg.From
                 ));
 
@@ -62,7 +63,7 @@ namespace MCEMonitor
                     "email_error.log"
                 );
 
-                // S�assurer que le dossier existe
+                // S'assurer que le dossier existe
                 Directory.CreateDirectory(Path.GetDirectoryName(logPath)!);
 
                 File.AppendAllText(logPath,
