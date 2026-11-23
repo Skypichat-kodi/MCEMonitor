@@ -2297,12 +2297,21 @@ namespace NetMonitor.Service
                     // ↓ Continue vers les intrusions actives
                 }
             }
-            // --- 2c. Autres IP critiques (Google / Cloudflare / privé) → Safe ---
+            // --- 2c. Autres IP critiques (Google / Cloudflare / privé) ---
             else if (!string.IsNullOrWhiteSpace(evt.RemoteIp) && FirewallHelper.IsCriticalIp(evt.RemoteIp))
             {
-                evt.Severity = Severity.Safe;
-                evt.Message = $"[WHITELIST] {evt.Message}";
-                evt.TrustReason = "IP de confiance (Google / Cloudflare / réseau local)";
+                // Toutes ces IP restent hors détection, mais elles n ont pas la même
+                // nature : une IP de la liste Google officielle est un robot officiel,
+                // pas une « IP de confiance » au sens de Cloudflare ou du réseau local.
+                // Les distinguer évite le fourre-tout Safe et rend enfin lisible la
+                // sévérité Bot, qui existait sans jamais servir.
+                bool estGoogle = _googleRanges?.IsGoogleIp(evt.RemoteIp!) == true;
+
+                evt.Severity = estGoogle ? Severity.Bot : Severity.Safe;
+                evt.Message = estGoogle ? $"[BOT] {evt.Message}" : $"[WHITELIST] {evt.Message}";
+                evt.TrustReason = estGoogle
+                    ? "Robot officiel Google (liste officielle)"
+                    : "IP de confiance (Cloudflare / réseau local)";
 
                 lock (_alertsLock)
                 {
@@ -2312,7 +2321,9 @@ namespace NetMonitor.Service
                 SaveAudit();
 
                 _geoIp?.ResolveInBackground(evt.RemoteIp);
-                CoreLog.Debug($"[FILTRÉ] {evt.RemoteIp} → Safe (autre IP critique)");
+                CoreLog.Debug(estGoogle
+                    ? $"[FILTRÉ] {evt.RemoteIp} → Bot (google officiel)"
+                    : $"[FILTRÉ] {evt.RemoteIp} → Safe (autre IP critique)");
                 return;
             }
 
