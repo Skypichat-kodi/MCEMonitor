@@ -59,21 +59,51 @@ Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MC
 ; Il est maintenant uniquement dans ProgramData.
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\ffmpeg"
 
-; Runtimes des autres systèmes, laissés par les versions précédentes.
-; SystemMonitor.Service publiait les bibliothèques natives de toutes les
-; plateformes (android, linux, osx, maccatalyst) : quatorze mégaoctets que
-; Windows n'a jamais ouverts. La publication est désormais limitée à win-x64,
-; mais une mise à jour ne retire pas les fichiers déjà installés : on efface
-; donc le dossier, que [Files] recrée ensuite avec ce qui est réellement
-; nécessaire. WinDivert n'est pas concerné, il est déployé par
-; DeployWinDivert() depuis le dossier temporaire.
-Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes"
+; Runtimes des autres systemes, laisses par les versions precedentes.
+; SystemMonitor.Service publiait les bibliotheques natives de toutes les
+; plateformes (android, linux, osx, maccatalyst) : quatorze megaoctets que
+; Windows n'a jamais ouverts. La publication est desormais limitee a win-x64,
+; mais une mise a jour ne retire pas les fichiers deja installes.
+;
+; Seules les plateformes etrangeres sont listees : win et win-x64 restent en
+; place, car ils contiennent les bibliotheques .NET dont les services se
+; servent (System.Diagnostics.EventLog, System.Management) et le pilote
+; WinDivert. Les effacer obligerait a les recopier, sans aucune raison.
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\android-arm"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\android-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\android-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\android-x86"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-arm"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-armel"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-bionic-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-bionic-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-musl-arm"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-musl-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-musl-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\linux-x86"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\maccatalyst-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\maccatalyst-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\osx"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\osx-arm64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\osx-x64"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\runtimes\unix"
+
+; Ancien pilote ecarte lors d'une mise a jour precedente. DeployWinDivert()
+; renomme les fichiers en .old pour tester s'ils sont libres, puis les efface
+; une fois la copie reussie : un .old qui subsiste vient d'un passage ou le
+; pilote etait encore en cours de dechargement. Ces fichiers ne sont jamais
+; charges par le noyau, leur suppression aboutit donc toujours.
+Type: files; Name: "{commonappdata}\MCEMonitor\runtimes\win-x64\native\WinDivert.dll.old"
+Type: files; Name: "{commonappdata}\MCEMonitor\runtimes\win-x64\native\WinDivert64.sys.old"
 
 ; Dossiers de culture abandonnés. Les assemblys satellites ne suivent plus
 ; que le français, l'allemand et l'espagnol (Directory.Build.props) : les
 ; autres ne sont plus produits, mais resteraient en place après une mise à
 ; jour. de-DE et es-ES viennent en plus d'un paquet DiskInfoToolkit qui n'est
-; plus référencé nulle part.
+; plus référencé nulle part, et zh-Hant de TaskScheduler, qui le publiait
+; sous ce nom et non sous zh-CN.
 ; Les cultures conservées - de, es, fr - sont recréées par [Files] et ne sont
 ; donc pas listées ici.
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\de-DE"
@@ -85,6 +115,7 @@ Type: filesandordirs; Name: "{autopf}\MCEMonitor\ru"
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\sv"
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\tr"
 Type: filesandordirs; Name: "{autopf}\MCEMonitor\zh-CN"
+Type: filesandordirs; Name: "{autopf}\MCEMonitor\zh-Hant"
 
 Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\de-DE"
 Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\es-ES"
@@ -95,6 +126,7 @@ Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\ru"
 Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\sv"
 Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\tr"
 Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\zh-CN"
+Type: filesandordirs; Name: "{commonappdata}\MCEMonitor\zh-Hant"
 
 [Files]
 Source: "LICENSE_inno.txt"; DestDir: "{app}"; Flags: ignoreversion
