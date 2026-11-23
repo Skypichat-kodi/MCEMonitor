@@ -299,7 +299,17 @@ namespace NetMonitor.Service.Ipc
             }
         }
 
-        private void HandleClearAllBlocked(NamedPipeServerStream server)        {
+        /// <summary>
+        /// Convertit le nom d'origine envoyé par l'interface en enum. Toute valeur
+        /// inconnue ou absente donne Unknown, jamais une exception.
+        /// </summary>
+        private static IpOrigin ParseOrigin(string? value)
+            => Enum.TryParse<IpOrigin>(value, ignoreCase: true, out var origin)
+                ? origin
+                : IpOrigin.Unknown;
+
+        private void HandleClearAllBlocked(NamedPipeServerStream server)
+        {
             var sw = System.Diagnostics.Stopwatch.StartNew();
             try
             {
@@ -746,19 +756,21 @@ namespace NetMonitor.Service.Ipc
             try
             {
                 string payload = command.Substring("block-ip ".Length).Trim();
-                var parts = payload.Split('|', 5);   // ? 5 au lieu de 4
+                var parts = payload.Split('|', 6);   // 6 : l'origine est le dernier champ
 
                 string ip = parts[0].Trim();
                 string? source   = parts.Length > 1 ? parts[1] : null;
                 string? message  = parts.Length > 2 ? parts[2] : null;
                 string? details  = parts.Length > 3 ? parts[3] : null;
                 string? severity = parts.Length > 4 ? parts[4] : null;
+                string? originTxt = parts.Length > 5 ? parts[5] : null;
 
                 // L'IPC est déclenché uniquement par des actions humaines (UI WPF ou page web)
                 // → tout blocage via IPC est par définition manuel, donc forceManual=true.
                 bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
                                           isAutomatic: false,
-                                          forceManual: true);
+                                          forceManual: true,
+                                          origin: ParseOrigin(originTxt));
                 
                 if (ok)
                     IpcResponse.Json(server, new { status = "ok", blocked = true, ip });
@@ -788,11 +800,13 @@ namespace NetMonitor.Service.Ipc
                 string? message  = GetJsonString(root, "message");
                 string? details  = GetJsonString(root, "details");
                 string? severity = GetJsonString(root, "severity");
+                string? originTxt = GetJsonString(root, "origin");
 
                 // IPC = toujours action humaine → forceManual=true (comme la version legacy)
                 bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
                                           isAutomatic: false,
-                                          forceManual: true);
+                                          forceManual: true,
+                                          origin: ParseOrigin(originTxt));
 
                 if (ok)
                     IpcResponse.Json(server, new { status = "ok", blocked = true, ip });

@@ -729,7 +729,8 @@ namespace NetMonitor.Service
                             string? source = null, string? message = null,
                             string? details = null, string? severity = null,
                             bool isAutomatic = false,
-                            bool forceManual = false)
+                            bool forceManual = false,
+                            IpOrigin origin = IpOrigin.Unknown)
         {
                     errorMessage = "";
 
@@ -776,7 +777,13 @@ namespace NetMonitor.Service
                         Details         = details,
                         Severity        = severity ?? "-",
                         IsKnownScanner  = isKnownScanner,
-                        IsOutbound      = false
+                        IsOutbound      = false,
+
+                        // L'origine était perdue au blocage : le tableau des IP bloquées
+                        // affichait « — » alors que la ligne des intrusions l'indiquait.
+                        // Elle vient maintenant de l'événement qui a déclenché le blocage,
+                        // ou de l'appelant pour une action manuelle.
+                        Origin          = origin
                     });
                 }
                 _activeIntrusions.RemoveAll(a => a.RemoteIp == ip);
@@ -817,8 +824,9 @@ namespace NetMonitor.Service
             return true;
         }
         
-        public bool BlockIp(string ip, string? source, string? message, string? details)
-            => BlockIp(ip, out _, source, message, details, null);
+        public bool BlockIp(string ip, string? source, string? message, string? details,
+                            IpOrigin origin = IpOrigin.Unknown)
+            => BlockIp(ip, out _, source, message, details, null, origin: origin);
 
         /// <summary>
         /// Résout les informations GeoIP d'une IP bloquée en tâche de fond, puis
@@ -2042,6 +2050,7 @@ namespace NetMonitor.Service
                             Message         = pending.TrustReason ?? "Processus bloqué",
                             Details         = pending.ProcessPath,
                             Severity        = pending.Severity.ToString(),   // ← restauré (comme avant)
+                            Origin          = pending.Origin
                         });
                     }
                 }
@@ -2338,7 +2347,7 @@ namespace NetMonitor.Service
                 {
                     if (BlockIp(evt.RemoteIp, out string fwError,
                                 evt.Source, evt.Message, evt.Details, evt.Severity.ToString(),
-                                isAutomatic: true))
+                                isAutomatic: true, origin: evt.Origin))
                     {
                         CoreLog.Write($"[AUTO-BLOCK] IP {evt.RemoteIp} bloquée automatiquement " +
                                       $"(détecteur: {evt.Source}, sévérité: {evt.Severity})");

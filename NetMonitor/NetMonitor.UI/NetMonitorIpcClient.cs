@@ -600,17 +600,20 @@ namespace NetMonitor.UI
         // ---------- Commandes avec résultat détaillé ----------
 
         public static async Task<bool> BlockIpAsync(string ip, string? source = null,
-            string? message = null, string? details = null, string? severity = null)
+            string? message = null, string? details = null, string? severity = null,
+            string? origin = null)
         {
-            var result = await BlockIpWithResultAsync(ip, source, message, details, severity);
+            var result = await BlockIpWithResultAsync(ip, source, message, details, severity, origin);
             return result.Success;
         }
 
         public static async Task<(bool Success, string? Error)> BlockIpWithResultAsync(
             string ip, string? source = null, string? message = null,
-            string? details = null, string? severity = null)
+            string? details = null, string? severity = null, string? origin = null)
         {
-            string payload = EncodeB64Payload(new { ip, source, message, details, severity });
+            // L'origine fait partie du blocage : sans elle, la ligne ajoutée au tableau
+            // des IP bloquées afficherait « — » alors que l'intrusion l'indiquait.
+            string payload = EncodeB64Payload(new { ip, source, message, details, severity, origin });
             string cmd = $"block-ip-b64 {payload}";
             string? json = await SendCommand(cmd);
 

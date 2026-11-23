@@ -412,7 +412,10 @@ namespace NetMonitor.Service.Web
                     // Web = toujours une action humaine → bypass IsCriticalIp
                     bool ok = _engine.BlockIp(ip, out string error, source, message, details, severity,
                                               isAutomatic: false,
-                                              forceManual: true);
+                                              forceManual: true,
+                                              // L'alerte active connaît l'origine : on la conserve,
+                                              // sinon la ligne bloquée perdrait cette information.
+                                              origin: matching?.Origin ?? IpOrigin.Unknown);
                     CoreLog.Write(ok
                         ? $"WebServer : IP {ip} bloquée" + (matching != null
                             ? $" (source={source})"

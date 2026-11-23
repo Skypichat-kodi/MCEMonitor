@@ -1229,7 +1229,7 @@ namespace NetMonitor.UI
             SetBusy($"Blocage de {ip} en cours…");
 
             var (ok, errorMsg) = await NetMonitorIpcClient.BlockIpWithResultAsync(
-                ip, primaryDetector, row.Message, null, row.Severity);
+                ip, primaryDetector, row.Message, null, row.Severity, row.Origin);
 
             ClearBusy();
 
