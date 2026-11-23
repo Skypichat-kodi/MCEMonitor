@@ -879,6 +879,9 @@
     <button type="button" id="btnChangeOriginBlocked" class="action-btn" style="background:#8B5CF6">
         🎯 {{tr:Forcer l'origine}}
     </button>
+    <button type="button" id="btnReanalyzeBlocked" class="action-btn" style="background:#2E7D6B">
+        ♻ {{tr:Réanalyser les blocages}}
+    </button>
 </div>
 <div class="table-wrapper theme-danger">
     <table>
@@ -1307,6 +1310,24 @@ document.getElementById('btnChangeOriginRetries').addEventListener('click', func
     var r = document.querySelector('input[name="retry-sel"]:checked');
     if (!r) { alert("{{tr:Sélectionnez d'abord une IP dans le tableau des interceptions.}}"); return; }
     openOriginPicker(r.value);
+});
+
+document.getElementById('btnReanalyzeBlocked').addEventListener('click', function() {
+    if (!confirm("{{tr:Réanalyser tous les blocages avec la blacklist et les règles actuelles ?}}" + "\n\n" +
+                 "{{tr:Aucune IP ne sera débloquée : les blocages qui ne seraient plus décidés aujourd'hui sont seulement signalés.}}"))
+        return;
+
+    fetch('/reevaluate-blocked', { method: 'POST' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+            var bilan = "{{tr:Analysées :}} " + d.analysed + "\n" +
+                        "{{tr:Reclassées :}} " + d.reclassified + "\n" +
+                        "{{tr:Obsolètes :}} " + ((d.obsolete || []).length) + "\n" +
+                        "{{tr:Sévérité forcée, préservées :}} " + d.manualOverrides;
+            alert(bilan);
+            location.reload();
+        })
+        .catch(function (e) { alert('Erreur de communication avec le service : ' + e.message); });
 });
 
 </script>

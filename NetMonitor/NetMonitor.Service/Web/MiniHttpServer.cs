@@ -542,6 +542,37 @@ namespace NetMonitor.Service.Web
                     CoreLog.Write($"WebServer : pattern '{value}' ajouté à '{list}' ({reclassified} IP(s) reclassée(s))");
                     Redirect(ctx);
                 }
+                else if (path == "/reevaluate-blocked" && ctx.Request.HttpMethod == "POST")
+                {
+                    // Même réanalyse que le bouton de l'interface Windows : recalcul
+                    // de la sévérité et de l'origine, et signalement des blocages qui
+                    // ne seraient plus décidés aujourd'hui.
+                    //
+                    // Rien n'est débloqué ici, volontairement : la page se contente de
+                    // rapporter, le déblocage reste une décision prise ailleurs.
+                    var report = _engine.ReanalyzeBlockedIps();
+
+                    CoreLog.Write($"WebServer : réanalyse des blocages ({report.Analysed} IP, " +
+                                  $"{report.Reclassified} reclassée(s), {report.Obsolete.Count} obsolète(s))");
+
+                    string json = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        analysed        = report.Analysed,
+                        reclassified    = report.Reclassified,
+                        manualOverrides = report.ManualOverrides,
+                        obsolete        = report.Obsolete.Select(o => new
+                        {
+                            ip       = o.Ip,
+                            severity = o.Severity,
+                            source   = o.Source
+                        })
+                    }, new System.Text.Json.JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+                    });
+
+                    SendJson(ctx, json);
+                }
                 else if (path == "/mark-safe" && ctx.Request.HttpMethod == "POST")
                 {
                     string ip = ReadFormValue(ctx, "ip");
