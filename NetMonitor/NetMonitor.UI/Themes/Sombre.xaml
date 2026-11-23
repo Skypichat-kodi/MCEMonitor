@@ -10,6 +10,10 @@
     <SolidColorBrush x:Key="Fond"              Color="#FF1E1E1E" />
     <SolidColorBrush x:Key="Surface"           Color="#FF252526" />
     <SolidColorBrush x:Key="SurfaceEntete"     Color="#FF2D2D30" />
+
+    <!-- Fond des en-tetes de tableau. Meme valeur que SurfaceEntete en sombre :
+         le rendu reste identique, la cle n existe que pour le theme clair. -->
+    <SolidColorBrush x:Key="EnteteTableau"    Color="#FF2D2D30" />
     <SolidColorBrush x:Key="SurfaceSurvol"     Color="#FF3A3A3D" />
     <SolidColorBrush x:Key="SurfaceActive"     Color="#FF4A4A4D" />
     <SolidColorBrush x:Key="TraitTableau" Color="#FF3C3C3C" />

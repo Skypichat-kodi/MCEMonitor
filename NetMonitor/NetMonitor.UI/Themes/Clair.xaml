@@ -9,6 +9,10 @@
     <SolidColorBrush x:Key="Fond"              Color="#FFF3F3F3" />
     <SolidColorBrush x:Key="Surface"           Color="#FFFFFFFF" />
     <SolidColorBrush x:Key="SurfaceEntete"     Color="#FFF0F0F0" />
+
+    <!-- Fond des en-tetes de tableau. Distinct de SurfaceEntete, qui sert au
+         survol des lignes et aux listes : l en-tete doit se detacher davantage. -->
+    <SolidColorBrush x:Key="EnteteTableau"    Color="#FFD6D6D6" />
     <SolidColorBrush x:Key="SurfaceSurvol"     Color="#FFE9E9E9" />
     <SolidColorBrush x:Key="SurfaceActive"     Color="#FFDEDEDE" />
     <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
@@ -27,10 +31,10 @@
     <SolidColorBrush x:Key="TeinteAudit"       Color="#FFF1F7EC" />
 
     <!-- Teintes propres à chaque onglet : lignes alternées, en-têtes, sélections -->
-    <SolidColorBrush x:Key="EnteteConnexion" Color="#FFD4D4D4" />
+    <SolidColorBrush x:Key="EnteteConnexion" Color="#FFC9C9C9" />
     <SolidColorBrush x:Key="TexteEnteteConnexion" Color="#FF353535" />
     <SolidColorBrush x:Key="BordureConnexion" Color="#FFC6C6C6" />
-    <SolidColorBrush x:Key="EnteteIntrusion" Color="#FFE9C3C3" />
+    <SolidColorBrush x:Key="EnteteIntrusion" Color="#FFE2B4B4" />
     <SolidColorBrush x:Key="TexteEnteteIntrusion" Color="#FF6B1C1C" />
     <SolidColorBrush x:Key="LigneIntrusionImpaire" Color="#FFFAE6E6" />
     <SolidColorBrush x:Key="LigneIntrusionPaire" Color="#FFF5DCDC" />
@@ -38,7 +42,7 @@
     <SolidColorBrush x:Key="SelectionInterception" Color="#FF9FC6E8" />
     <SolidColorBrush x:Key="LigneAuditImpaire" Color="#FFF7FAF3" />
     <SolidColorBrush x:Key="LigneAuditPaire" Color="#FFF2F7EC" />
-    <SolidColorBrush x:Key="EnteteAudit" Color="#FFE6F0DC" />
+    <SolidColorBrush x:Key="EnteteAudit" Color="#FFD7E9C7" />
     <SolidColorBrush x:Key="TexteEnteteAudit" Color="#FF3F6B2E" />
     <SolidColorBrush x:Key="SelectionAudit" Color="#FFC2DBB2" />
     <SolidColorBrush x:Key="BordureAudit" Color="#FFC9DDBB" />
@@ -60,7 +64,7 @@
     <SolidColorBrush x:Key="VertBoutonSurvol" Color="#FFA3C9A0" />
 
     <!-- Onglet Interceptions : en-tête, lignes alternées et bordures -->
-    <SolidColorBrush x:Key="EnteteInterception" Color="#FFD3E6F7" />
+    <SolidColorBrush x:Key="EnteteInterception" Color="#FFC2DCF5" />
     <SolidColorBrush x:Key="TexteEnteteInterception" Color="#FF17456E" />
     <SolidColorBrush x:Key="BordureInterception" Color="#FFB4D2EA" />
     <SolidColorBrush x:Key="LigneInterceptionA" Color="#FFF8FCFF" />

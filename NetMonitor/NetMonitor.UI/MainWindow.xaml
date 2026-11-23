@@ -155,7 +155,9 @@
 
 
         <Style TargetType="DataGridColumnHeader">
-            <Setter Property="Background" Value="{StaticResource SurfaceEntete}"/>
+            <!-- EnteteTableau et non SurfaceEntete : cette derniere sert aussi au
+                 survol des lignes, qui doit rester plus clair que l en-tete. -->
+            <Setter Property="Background" Value="{StaticResource EnteteTableau}"/>
             <Setter Property="Foreground" Value="{StaticResource Texte}"/>
             <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
             <Setter Property="BorderThickness" Value="0 0 1 1"/>

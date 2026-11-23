@@ -20,6 +20,6 @@
     <SolidColorBrush x:Key="PanelBackground" Color="#333A8DFF" />
 
     <!-- En-tête de tableau et trait de séparation -->
-    <SolidColorBrush x:Key="EnteteTableau" Color="#FFE0E0E0" />
+    <SolidColorBrush x:Key="EnteteTableau" Color="#FFD6D6D6" />
     <SolidColorBrush x:Key="TraitTableau" Color="#FFEFEFEF" />
 </ResourceDictionary>
