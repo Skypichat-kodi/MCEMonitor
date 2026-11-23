@@ -247,7 +247,7 @@
                         <ControlTemplate.Triggers>
                             <Trigger Property="IsMouseOver" Value="True">
                                 <Setter Property="Background" Value="{StaticResource SurfaceSurvol}"/>
-                                <Setter Property="BorderBrush" Value="{StaticResource Accent}"/>
+                                <Setter Property="BorderBrush" Value="{StaticResource SurvolBoutonBordure}"/>
                             </Trigger>
                             <Trigger Property="IsPressed" Value="True">
                                 <Setter Property="Background" Value="{StaticResource Accent}"/>

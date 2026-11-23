@@ -26,6 +26,10 @@
     <SolidColorBrush x:Key="TexteSecondaire"   Color="#FF5F5F5F" />
     <SolidColorBrush x:Key="TexteTernaire"     Color="#FF8A8A8A" />
     <SolidColorBrush x:Key="Accent"            Color="#FF0F6CBD" />
+
+
+    <!-- Survol du bouton commun : inchange en clair, meme teinte que l accent. -->
+    <SolidColorBrush x:Key="SurvolBoutonBordure" Color="#FF0F6CBD" />
     <SolidColorBrush x:Key="AccentBascule"     Color="#FF7EB6E8" />
     <SolidColorBrush x:Key="PanelBackground"   Color="#333A8DFF" />
 

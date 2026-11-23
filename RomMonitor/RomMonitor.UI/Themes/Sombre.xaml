@@ -13,6 +13,9 @@
     <SolidColorBrush x:Key="TexteSecondaire" Color="#FFB4B4B4" />
     <SolidColorBrush x:Key="TexteTernaire"   Color="#FF5A5A5E" />
     <SolidColorBrush x:Key="Accent"          Color="#FF4CC2FF" />
+
+    <!-- Survol du bouton commun : blanc casse plutot que bleu. -->
+    <SolidColorBrush x:Key="SurvolBoutonBordure" Color="#FF909090" />
     <SolidColorBrush x:Key="AccentBascule"   Color="#FF4CC2FF" />
     <SolidColorBrush x:Key="PanelBackground" Color="#553A8DFF" />
 
