@@ -108,14 +108,6 @@ _(rien)_
   - Les boîtes de dialogue, elles, sont désormais thémées : reste à confirmer leur rendu en clair
   - **Priorité** : 🟢 basse
 
-- [ ] **Traduire les libellés du XAML de NetMonitor**
-  - Constat de la session du 2026-11-24 : le **code** est traduit (186 messages), mais les chaînes
-    `{loc:Tr '…'}` du XAML ne le sont pas. Le contrôle rituel en signale des dizaines :
-    « 1ʳᵉ tentative », « Activité par période », « Actions irréversibles. À utiliser uniquement en cas
-    de problème majeur… », « Top FAI par pays », etc.
-  - Même méthode que pour le code : clés en `fr-FR` **et** `en-GB`, puis compilation
-  - **Priorité** : 🟢 basse (l interface reste lisible en français)
-
 - [ ] **Renforcer les ACL de `email.config` et des `*.web.config`**
   - Ces fichiers contiennent les mots de passe SMTP et web. Leur ACL actuelle accorde **`BUILTIN\Utilisateurs : Read`**, donc tout compte local peut les lire
   - `icacls` de l'installeur retire l'héritage mais accorde délibérément la lecture au groupe Utilisateurs : la protection porte sur la *modification*, pas la confidentialité
@@ -126,6 +118,32 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — traduction des interfaces, jusqu au bout
+
+**Les 725 libellés `{loc:Tr}` des cinq interfaces** existent désormais en `fr-FR` et `en-GB` : colonnes,
+boutons, descriptions, libellés des sélecteurs d origine et de patterns. 168 clés ajoutées.
+
+**25 valeurs anglaises restaient en français**, planquées dans des clés techniques — `Email.Test.AuthSuccess`
+valant encore « Authentification réussie. », `Wake.ConfigSaved`, `MediaMonitorForm.Title`… Les contrôles
+précédents portaient sur les **clés**, jamais sur les **valeurs** : ils ne pouvaient pas les voir. Un
+contrôle des valeurs a été écrit pour les débusquer.
+
+**Deux écueils, notés pour la suite.**
+
+- Les insertions ligne à ligne cassaient le JSON : le fichier mêle phrases et clés techniques
+  (`App.Title`, `Rom.Info`) sans être trié, et mes insertions tombaient après des lignes sans virgule.
+  Deux restaurations `git checkout` plus tard, la méthode est passée au **parseur** : on lit l objet,
+  on ajoute les clés, on réécrit tout — phrases triées, techniques à leur place.
+- Le contrôle par `grep` **ment sur les antislashs** : il comparait le texte brut du JSON (`\\\\`) à
+  celui du XAML (`\\`) et signalait un faux manquant sur « Ouvrir le dossier C:\\Windows\\Minidump ».
+  Seul un parseur dit la vérité.
+
+**Sur les apostrophes**, vérifié également : aucune clé du XAML n en contient (la syntaxe `loc:Tr '…'`
+l interdirait), et aucune variante `'` contre `’` ne se contredit entre le XAML et les fichiers.
+
+Les référentiels font **1 073 clés** en français et **1 074** en anglais. Le contrôle rituel des cinq
+interfaces est muet, hors les six noms propres de modules.
 
 ### Session 2026-11-24 — opportunistes : boîtes, traductions, seuil réglable
 
