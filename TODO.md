@@ -103,11 +103,6 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
-- [ ] **Vérifier les fenêtres secondaires des modules en thème clair**
-  - Les fenêtres d'aperçu et de détail des quatre modules n'ont été regardées qu'en thème sombre
-  - Les boîtes de dialogue, elles, sont désormais thémées : reste à confirmer leur rendu en clair
-  - **Priorité** : 🟢 basse
-
 - [ ] **Renforcer les ACL de `email.config` et des `*.web.config`**
   - Ces fichiers contiennent les mots de passe SMTP et web. Leur ACL actuelle accorde **`BUILTIN\Utilisateurs : Read`**, donc tout compte local peut les lire
   - `icacls` de l'installeur retire l'héritage mais accorde délibérément la lecture au groupe Utilisateurs : la protection porte sur la *modification*, pas la confidentialité
@@ -141,6 +136,8 @@ contrôle des valeurs a été écrit pour les débusquer.
 
 **Sur les apostrophes**, vérifié également : aucune clé du XAML n en contient (la syntaxe `loc:Tr '…'`
 l interdirait), et aucune variante `'` contre `’` ne se contredit entre le XAML et les fichiers.
+
+**Vérifié à l écran** par Christophe : le thème clair est bon, boîtes de dialogue thémées comprises.
 
 Les référentiels font **1 073 clés** en français et **1 074** en anglais. Le contrôle rituel des cinq
 interfaces est muet, hors les six noms propres de modules.
