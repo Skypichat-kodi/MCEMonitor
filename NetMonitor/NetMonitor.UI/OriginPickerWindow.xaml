@@ -105,7 +105,7 @@
                     <Border Width="16" Height="16" Background="Transparent"
                             BorderBrush="#555" BorderThickness="1"
                             CornerRadius="3" Margin="0,0,10,0"/>
-                    <TextBlock Text="{loc:Tr '— Inconnue'}" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="{loc:Tr 'Inconnue'}" FontWeight="Bold" VerticalAlignment="Center"/>
                     <TextBlock Text="{loc:Tr ' — Aucune classification'}" FontSize="11" Opacity="0.7"
                                Margin="6,0,0,0" VerticalAlignment="Center"/>
                 </StackPanel>

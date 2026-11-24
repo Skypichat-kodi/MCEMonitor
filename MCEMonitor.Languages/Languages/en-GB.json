@@ -85,6 +85,7 @@
   "Impossible d'ouvrir le navigateur :": "Unable to open the browser:",
   "Impossible de démarrer RomMonitor.Service.exe :": "Unable to start RomMonitor.Service.exe:",
   "Impossible de vider l'historique (service non joignable ?).": "Unable to clear the history (service unreachable?).",
+  "Inconnue": "Unknown",
   "IP {0} bloquée par le pare-feu.": "IP {0} blocked by the firewall.",
   "IP {0} débloquée.": "IP {0} unblocked.",
   "IPs actives": "Active IPs",

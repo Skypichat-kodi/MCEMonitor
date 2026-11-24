@@ -88,6 +88,7 @@
   "Impossible d'ouvrir le navigateur :": "Impossible d'ouvrir le navigateur :",
   "Impossible de démarrer RomMonitor.Service.exe :": "Impossible de démarrer RomMonitor.Service.exe :",
   "Impossible de vider l'historique (service non joignable ?).": "Impossible de vider l'historique (service non joignable ?).",
+  "Inconnue": "Inconnue",
   "IP {0} bloquée par le pare-feu.": "IP {0} bloquée par le pare-feu.",
   "IP {0} débloquée.": "IP {0} débloquée.",
   "IPs actives": "IPs actives",
