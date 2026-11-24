@@ -166,6 +166,48 @@ _(rien)_
 
 ## ✅ Terminé récent
 
+### Session 2026-11-24 — liste de confiance lisible et actualisation suspendue
+
+**La colonne « Liste ».** Le tableau des alertes ignorées ne disait pas quelle liste avait retiré
+l'alerte. Un champ `TrustedList` porte désormais le nom : Microsoft, Google, ou vide. Distinct de
+l'origine, qui décrit la nature de l'IP et mélange scanners, robots et blacklist. Les entrées
+antérieures au champ le déduisent de leur origine, pour ne pas afficher un tiret sur une IP dont on sait
+pertinemment d'où elle vient.
+
+**Les origines manquantes.** `IpOrigin` ne connaissait que Scanner, Crawler, Bot, Microsoft, Blacklist et
+Whitelist : les 135 IP Cloudflare et réseau local de l'audit n'avaient aucune origine, et la colonne
+affichait un tiret gris sur fond transparent — une cellule vide. Deux valeurs ajoutées, **Cloudflare**
+et **Local**, classées par `SeverityScorer`, avec leurs badges orange et gris bleuté. L historique
+d'audit est reclassé au chargement (`[AUDIT] 135 origine(s) précisée(s)` dans le journal). Le cas
+réellement indéterminé affiche maintenant un badge **« Inconnu »** explicite — il n en reste que cinq,
+les ajouts manuels de liste blanche.
+
+**Trois chaînes muettes réparées**, toutes de la même famille : l information existait côté service et
+mourait en route, sans erreur.
+
+  - `get-alerts` ne projetait pas l'origine : l'historique des intrusions affichait « Inconnu » sur ses
+    42 lignes ;
+  - le groupage de l'audit ne recopiait pas l'origine : la colonne du tableau vert était vide malgré des
+    événements qui la portaient ;
+  - la colonne « Liste » liait une propriété absente de la classe de ligne — WPF ne signale rien, il
+    affiche du vide.
+
+**Actualisation automatique suspendue.** Elle tourne toutes les 5 s dans l UI, toutes les 20 s sur la
+page web, et ramenait la vue au point zéro au moment où on la lisait. Elle se tait désormais dès qu on
+touche à un filtre, à une recherche ou à un tri de colonne, et reprend par n importe quel bouton
+d'actualisation. Un bandeau le signale : dans la barre d'état de l UI, et sur la page web avec un bouton
+**Reprendre**.
+
+**Largeurs.** « Tentatives » était coupé : renommé **« Nb/T »** (70 px, 60 sur le web) dans les quatre
+tableaux, les deux interfaces portant enfin le même nom. Colonne Liste à 115, colonne IP à 165 — les
+adresses s'affichaient tronquées en `20.250.119-`.
+
+**Constat non traité, volontairement** : les colonnes Pays, FAI et Organisation du tableau vert restent
+vides. Le quota d ipwho.is est épuisé (`HTTP 429`, pause de 24 h), et les compilations répétées
+relancent le rattrapage de géolocalisation à chaque redémarrage du service. Piste notée : ne pas
+interroger l API pour les IP dont l'origine est déjà connue (Microsoft, Cloudflare, Google, local), soit
+98 % des appels. Christophe a préféré ne pas y toucher pour l instant.
+
 ### Session 2026-11-24 — signatures par catalogue Windows
 
 Les exécutables Microsoft revenaient sans arrêt dans la liste des processus à approuver, malgré une
