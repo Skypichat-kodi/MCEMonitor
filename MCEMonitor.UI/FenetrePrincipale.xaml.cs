@@ -106,6 +106,10 @@ namespace MCEMonitor.UI
 
                 CoreLog.Info("UI", "Onglet : " + titre);
 
+                // Un message d'enregistrement décrit une action ponctuelle : il ne
+                // suit pas d'un module à l'autre.
+                EffacerMessages();
+
                 // Le journal du test SMTP ne concerne que l'onglet Email : il disparaît
                 // dès qu'on le quitte, et revient au prochain test.
                 if (onglets.SelectedItem is TabItem selectionne && selectionne != OngletEmail)
@@ -1110,11 +1114,68 @@ namespace MCEMonitor.UI
                 CoreLog.Info(domaine, message);
         }
 
+        // ------------------------------------------------------------
+        //  Messages d'action
+        //
+        //  Les sept zones de message des onglets partagent le même sort :
+        //  elles s'effacent d'elles-mêmes après quelques secondes, et à chaque
+        //  changement d'onglet. Une confirmation « service rechargé » n'a pas à
+        //  rester à l'écran une heure.
+        // ------------------------------------------------------------
+        private readonly Dictionary<TextBlock, DispatcherTimer> _minuteursMessage = new();
+
+        private void AfficherMessageZone(TextBlock zone, string message, bool alerte)
+        {
+            zone.Text = message;
+            zone.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
+            zone.Visibility = Visibility.Visible;
+
+            if (_minuteursMessage.TryGetValue(zone, out var ancien))
+                ancien.Stop();
+
+            // Une erreur mérite d'être lue ; une confirmation peut partir vite.
+            var minuteur = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromSeconds(alerte ? 15 : 6)
+            };
+
+            minuteur.Tick += (_, _) =>
+            {
+                minuteur.Stop();
+                _minuteursMessage.Remove(zone);
+                zone.Visibility = Visibility.Collapsed;
+            };
+
+            _minuteursMessage[zone] = minuteur;
+            minuteur.Start();
+        }
+
+        private void MasquerMessage(TextBlock zone)
+        {
+            if (_minuteursMessage.TryGetValue(zone, out var minuteur))
+            {
+                minuteur.Stop();
+                _minuteursMessage.Remove(zone);
+            }
+
+            zone.Visibility = Visibility.Collapsed;
+        }
+
+        private void EffacerMessages()
+        {
+            foreach (var zone in new[]
+                     {
+                         MessageOnOff, MessageMedia, MessageRom, MessageSystem,
+                         MessageNet, MessageWake, MessageStop
+                     })
+            {
+                MasquerMessage(zone);
+            }
+        }
+
         private void AfficherMessage(string message, bool alerte = false)
         {
-            MessageMedia.Text = message;
-            MessageMedia.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageMedia.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageMedia, message, alerte);
         }
 
         // ============================================================
@@ -1204,7 +1265,7 @@ namespace MCEMonitor.UI
 
             // Le message d'enregistrement décrit l'état du service au moment du clic :
             // il devient faux dès qu'on le démarre ou qu'on l'arrête.
-            MessageRom.Visibility = Visibility.Collapsed;
+            MasquerMessage(MessageRom);
 
             CoreLog.Info("RomMonitor", "Service : "
                                 + (ServiceRomEnCours ? "arrêt demandé" : "démarrage demandé"));
@@ -1345,10 +1406,8 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageRom(string message)
         {
-            MessageRom.Text = message;
-            MessageRom.Foreground = (Brush)FindResource(
-                message.StartsWith("ERREUR", StringComparison.OrdinalIgnoreCase) ? "Erreur" : "TexteSecondaire");
-            MessageRom.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageRom, message,
+                message.StartsWith("ERREUR", StringComparison.OrdinalIgnoreCase));
         }
 
         private async void SurOuvrirRomUI(object sender, RoutedEventArgs e)
@@ -1651,7 +1710,7 @@ namespace MCEMonitor.UI
 
             _basculeSystemEnCours = true;
 
-            MessageSystem.Visibility = Visibility.Collapsed;
+            MasquerMessage(MessageSystem);
 
             CoreLog.Info("SystemMonitor", "Service : "
                                 + (ServiceSystemEnCours ? "arrêt demandé" : "démarrage demandé"));
@@ -1751,9 +1810,7 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageSystem(string message, bool alerte = false)
         {
-            MessageSystem.Text = message;
-            MessageSystem.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageSystem.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageSystem, message, alerte);
         }
 
         private async void SurOuvrirSystemUI(object sender, RoutedEventArgs e)
@@ -2033,9 +2090,7 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageWake(string message, bool alerte = false)
         {
-            MessageWake.Text = message;
-            MessageWake.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageWake.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageWake, message, alerte);
         }
 
         // WakeMonitor.exe ne produit un mail que si le dernier événement système est un vrai
@@ -2217,9 +2272,7 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageStop(string message, bool alerte = false)
         {
-            MessageStop.Text = message;
-            MessageStop.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageStop.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageStop, message, alerte);
         }
 
         // StopMonitor.exe sans argument n'envoie aucun mail : il n'analyse qu'en mode
@@ -2492,9 +2545,7 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageOnOff(string message, bool alerte = false)
         {
-            MessageOnOff.Text = message;
-            MessageOnOff.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageOnOff.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageOnOff, message, alerte);
         }
 
         // ============================================================
@@ -2580,7 +2631,7 @@ namespace MCEMonitor.UI
 
             _basculeNetEnCours = true;
 
-            MessageNet.Visibility = Visibility.Collapsed;
+            MasquerMessage(MessageNet);
 
             CoreLog.Info("NetMonitor", "Service : "
                                 + (ServiceNetEnCours ? "arrêt demandé" : "démarrage demandé"));
@@ -2680,9 +2731,7 @@ namespace MCEMonitor.UI
 
         private void AfficherMessageNet(string message, bool alerte = false)
         {
-            MessageNet.Text = message;
-            MessageNet.Foreground = (Brush)FindResource(alerte ? "Erreur" : "TexteSecondaire");
-            MessageNet.Visibility = Visibility.Visible;
+            AfficherMessageZone(MessageNet, message, alerte);
         }
 
         private async void SurOuvrirNetUI(object sender, RoutedEventArgs e)
