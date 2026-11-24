@@ -180,10 +180,14 @@ namespace RomMonitor.Service
                         Type      = type,
                         Severity  = critique ? "Critical" : "Warning",
                         Target    = io.Name,
+                        // Les requêtes d'abord : c'est leur nombre qui sature un disque,
+                        // pas le débit. Un disque peut être à genoux en transportant
+                        // quelques centaines de kilo-octets par seconde, s'il s'agit de
+                        // milliers de petites E/S.
                         Message   = $"Surcharge disque {io.Name} : {io.PercentBusy:F0} % d'occupation "
-                                  + $"({io.ReadMoPerSec:F1} Mo/s lecture, "
-                                  + $"{io.WriteMoPerSec:F1} Mo/s écriture) "
-                                  + $"pendant {secondes} s",
+                                  + $"({io.ReadsPerSec:F0} lectures/s, {io.WritesPerSec:F0} écritures/s, "
+                                  + $"file d'attente {io.QueueLength:F0}) pendant {secondes} s "
+                                  + $"— soit {io.ReadMoPerSec:F1} Mo/s lus, {io.WriteMoPerSec:F1} Mo/s écrits",
                         EmailSent = false
                     };
 
@@ -400,10 +404,14 @@ namespace RomMonitor.Service
                 string body = $@"
                     <p><b>Disque :</b> {io.Name}</p>
                     <p><b>Statut :</b> <span style='color:#c0392b'>{(critique ? "Critical" : "Warning")}</span></p>
-                    <p><b>Occupation :</b> {io.PercentBusy:F0} %</p>
-                    <p><b>Débit lecture :</b> {io.ReadMoPerSec:F1} Mo/s</p>
-                    <p><b>Débit écriture :</b> {io.WriteMoPerSec:F1} Mo/s</p>
+                    <p><b>Temps d'occupation :</b> {io.PercentBusy:F0} %</p>
+                    <p><b>Requêtes lecture :</b> {io.ReadsPerSec:F0} /s</p>
+                    <p><b>Requêtes écriture :</b> {io.WritesPerSec:F0} /s</p>
                     <p><b>File d'attente :</b> {io.QueueLength:F0}</p>
+                    <hr>
+                    <p><b>Débit :</b> {io.ReadMoPerSec:F1} Mo/s lus, {io.WriteMoPerSec:F1} Mo/s écrits</p>
+                    <p style='color:#888;font-size:12px'>Le nombre de requêtes est la cause de la saturation ;
+                    le débit n'en est que la conséquence.</p>
                     <hr>
                     <p style='color:#888;font-size:12px'>Serveur : {Environment.MachineName}</p>";
 

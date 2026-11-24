@@ -13,8 +13,18 @@ namespace RomMonitor.Service
     {
         public string Name { get; set; } = "";        // « C: »
         public double PercentBusy { get; set; }       // % du temps où le disque était occupé
+
+        // Nombre de requêtes traitées par seconde : c'est ce qui sature un disque,
+        // pas le volume transporté. Un débit de 0,2 Mo/s peut représenter des
+        // milliers de petites E/S et mettre un disque à genoux.
+        public double ReadsPerSec { get; set; }
+        public double WritesPerSec { get; set; }
+
+        // Débit correspondant, en mégaoctets par seconde : utile pour situer le
+        // contexte, jamais pour juger de la saturation.
         public double ReadMoPerSec { get; set; }
         public double WriteMoPerSec { get; set; }
+
         public double QueueLength { get; set; }
     }
 
@@ -36,7 +46,8 @@ namespace RomMonitor.Service
             try
             {
                 using var requete = new ManagementObjectSearcher(
-                    "SELECT Name, PercentDiskTime, DiskReadBytesPerSec, DiskWriteBytesPerSec, " +
+                    "SELECT Name, PercentDiskTime, DiskReadsPerSec, DiskWritesPerSec, " +
+                    "DiskReadBytesPerSec, DiskWriteBytesPerSec, " +
                     "CurrentDiskQueueLength FROM Win32_PerfFormattedData_PerfDisk_LogicalDisk");
 
                 foreach (ManagementBaseObject brut in requete.Get())
@@ -54,6 +65,8 @@ namespace RomMonitor.Service
                         {
                             Name          = nom,
                             PercentBusy   = VersDouble(brut["PercentDiskTime"]),
+                            ReadsPerSec   = VersDouble(brut["DiskReadsPerSec"]),
+                            WritesPerSec  = VersDouble(brut["DiskWritesPerSec"]),
                             ReadMoPerSec  = VersDouble(brut["DiskReadBytesPerSec"]) / 1024.0 / 1024.0,
                             WriteMoPerSec = VersDouble(brut["DiskWriteBytesPerSec"]) / 1024.0 / 1024.0,
                             QueueLength   = VersDouble(brut["CurrentDiskQueueLength"])
