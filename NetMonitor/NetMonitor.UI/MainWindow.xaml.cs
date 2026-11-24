@@ -278,9 +278,9 @@ namespace NetMonitor.UI
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
-                MessageBox.Show(
-                    "NetMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("NetMonitor.UI ne peut être lancé que depuis MCEMonitor.") ?? "NetMonitor.UI ne peut être lancé que depuis MCEMonitor.",
+                    LanguageManager.Get("Accès refusé") ?? "Accès refusé", MessageBoxButton.OK, MessageBoxImage.Error);
                 Application.Current.Shutdown();
                 return;
             }
@@ -288,10 +288,10 @@ namespace NetMonitor.UI
             bool serviceRunning = Process.GetProcessesByName("NetMonitor.Service").Length > 0;
             if (!serviceRunning)
             {
-                MessageBox.Show(
-                    "Le service NetMonitor n'est pas démarré.\n" +
-                    "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
-                    "Service non démarré", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Le service NetMonitor n'est pas démarré.\n") ?? "Le service NetMonitor n'est pas démarré.\n") +
+                    LanguageManager.Get("Veuillez lancer MCEMonitor pour le démarrer automatiquement.") ?? "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré", MessageBoxButton.OK, MessageBoxImage.Warning);
                 Close();
                 return;
             }
@@ -997,9 +997,9 @@ namespace NetMonitor.UI
         {
             if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP dans le tableau des interceptions.") ?? "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -1012,7 +1012,7 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(LanguageManager.Get("Échec du changement de sévérité.") ?? "Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, LanguageManager.Get("Échec du changement de sévérité.") ?? "Échec du changement de sévérité.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
             await RefreshSafe();
@@ -1022,9 +1022,9 @@ namespace NetMonitor.UI
         {
             if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow retryRow)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP dans le tableau des interceptions.") ?? "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -1047,9 +1047,9 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.") ?? "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1058,18 +1058,18 @@ namespace NetMonitor.UI
 
         private async void btnRestoreDefaultPatterns_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Restaurer TOUTES les listes de patterns à leurs valeurs d'origine ?\n\n" +
-                "Cela va écraser :\n" +
-                "  • SafePatterns\n" +
-                "  • CriticalPatterns\n" +
-                "  • ScannerPatterns\n" +
-                "  • CrawlerPatterns\n" +
-                "  • WhitelistPatterns\n" +
-                "  • IgnoredNetworks\n\n" +
-                "⚠ Vos personnalisations seront PERDUES.\n" +
-                "Les autres réglages (AutoBlock, Web, etc.) ne sont pas touchés.",
-                "Confirmation - Zone de danger",
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Restaurer TOUTES les listes de patterns à leurs valeurs d'origine ?\n\n") ?? "Restaurer TOUTES les listes de patterns à leurs valeurs d'origine ?\n\n") +
+                (LanguageManager.Get("Cela va écraser :\n") ?? "Cela va écraser :\n") +
+                (LanguageManager.Get("  • SafePatterns\n") ?? "  • SafePatterns\n") +
+                (LanguageManager.Get("  • CriticalPatterns\n") ?? "  • CriticalPatterns\n") +
+                (LanguageManager.Get("  • ScannerPatterns\n") ?? "  • ScannerPatterns\n") +
+                (LanguageManager.Get("  • CrawlerPatterns\n") ?? "  • CrawlerPatterns\n") +
+                (LanguageManager.Get("  • WhitelistPatterns\n") ?? "  • WhitelistPatterns\n") +
+                (LanguageManager.Get("  • IgnoredNetworks\n\n") ?? "  • IgnoredNetworks\n\n") +
+                (LanguageManager.Get("⚠ Vos personnalisations seront PERDUES.\n") ?? "⚠ Vos personnalisations seront PERDUES.\n") +
+                LanguageManager.Get("Les autres réglages (AutoBlock, Web, etc.) ne sont pas touchés.") ?? "Les autres réglages (AutoBlock, Web, etc.) ne sont pas touchés.",
+                LanguageManager.Get("Confirmation - Zone de danger") ?? "Confirmation - Zone de danger",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -1081,30 +1081,30 @@ namespace NetMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
-                    "Les listes de patterns ont été restaurées aux valeurs par défaut.\n" +
-                    "Le service a rechargé la configuration à chaud.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Les listes de patterns ont été restaurées aux valeurs par défaut.\n") ?? "Les listes de patterns ont été restaurées aux valeurs par défaut.\n") +
+                    LanguageManager.Get("Le service a rechargé la configuration à chaud.") ?? "Le service a rechargé la configuration à chaud.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 // Recharge l'UI pour voir les nouveaux patterns
                 LoadSettings();
             }
             else
             {
-                MessageBox.Show(
-                    "Échec de la restauration.\nVérifiez le journal du service.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec de la restauration.\nVérifiez le journal du service.") ?? "Échec de la restauration.\nVérifiez le journal du service.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
 
         private async void btnClearAllBlockedIps_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Êtes-vous certain de vouloir libérer TOUTES les IP bloquées du pare-feu ?\n\n" +
-                "Vous serez de nouveau ouvert sur toutes les IPs.\n\n" +
-                "⚠ Cette action est irréversible.\n" +
-                "(Les processus bloqués sont conservés.)",
-                "Confirmation - Zone de danger",
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Êtes-vous certain de vouloir libérer TOUTES les IP bloquées du pare-feu ?\n\n") ?? "Êtes-vous certain de vouloir libérer TOUTES les IP bloquées du pare-feu ?\n\n") +
+                (LanguageManager.Get("Vous serez de nouveau ouvert sur toutes les IPs.\n\n") ?? "Vous serez de nouveau ouvert sur toutes les IPs.\n\n") +
+                (LanguageManager.Get("⚠ Cette action est irréversible.\n") ?? "⚠ Cette action est irréversible.\n") +
+                LanguageManager.Get("(Les processus bloqués sont conservés.)") ?? "(Les processus bloqués sont conservés.)",
+                LanguageManager.Get("Confirmation - Zone de danger") ?? "Confirmation - Zone de danger",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
 
@@ -1116,17 +1116,17 @@ namespace NetMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
-                    "Toutes les IP ont été libérées du pare-feu.\n" +
-                    "Les compteurs de tentatives ont également été vidés.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Toutes les IP ont été libérées du pare-feu.\n") ?? "Toutes les IP ont été libérées du pare-feu.\n") +
+                    LanguageManager.Get("Les compteurs de tentatives ont également été vidés.") ?? "Les compteurs de tentatives ont également été vidés.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show(
-                    "Échec de la libération des IPs.\n" +
-                    "Vérifiez le journal du service pour plus de détails.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Échec de la libération des IPs.\n") ?? "Échec de la libération des IPs.\n") +
+                    LanguageManager.Get("Vérifiez le journal du service pour plus de détails.") ?? "Vérifiez le journal du service pour plus de détails.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             await RefreshSafe();
@@ -1169,10 +1169,10 @@ namespace NetMonitor.UI
         {
             if (sender is not Button btn || btn.Tag is not string fingerprint) return;
 
-            var confirm = MessageBox.Show(
-                "Révoquer cet appareil ?\n\n" +
-                "Il devra repasser l'OTP à sa prochaine connexion.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Révoquer cet appareil ?\n\n") ?? "Révoquer cet appareil ?\n\n") +
+                LanguageManager.Get("Il devra repasser l'OTP à sa prochaine connexion.") ?? "Il devra repasser l'OTP à sa prochaine connexion.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1182,7 +1182,7 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(LanguageManager.Get("Échec de la révocation.") ?? "Échec de la révocation.", "NetMonitor",
+                Boite.Show(this, LanguageManager.Get("Échec de la révocation.") ?? "Échec de la révocation.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1194,16 +1194,16 @@ namespace NetMonitor.UI
         {
             if (_trustedDevices.Count == 0)
             {
-                MessageBox.Show(LanguageManager.Get("Aucun appareil à révoquer.") ?? "Aucun appareil à révoquer.", "NetMonitor",
+                Boite.Show(this, LanguageManager.Get("Aucun appareil à révoquer.") ?? "Aucun appareil à révoquer.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Révoquer TOUS les {_trustedDevices.Count} appareils de confiance ?\n\n" +
-                "Tous les appareils devront repasser l'OTP à leur prochaine connexion.\n" +
-                "⚠ Cette action est irréversible.",
-                "Confirmation - Tout révoquer",
+            var confirm = Boite.Show(this, 
+                string.Format(LanguageManager.Get("Révoquer TOUS les {0} appareils de confiance ?") ?? "Révoquer TOUS les {0} appareils de confiance ?", _trustedDevices.Count) + "\n\n" +
+                (LanguageManager.Get("Tous les appareils devront repasser l'OTP à leur prochaine connexion.\n") ?? "Tous les appareils devront repasser l'OTP à leur prochaine connexion.\n") +
+                LanguageManager.Get("⚠ Cette action est irréversible.") ?? "⚠ Cette action est irréversible.",
+                LanguageManager.Get("Confirmation - Tout révoquer") ?? "Confirmation - Tout révoquer",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (confirm != MessageBoxResult.Yes) return;
@@ -1214,13 +1214,13 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(LanguageManager.Get("Échec de la révocation totale.") ?? "Échec de la révocation totale.", "NetMonitor",
+                Boite.Show(this, LanguageManager.Get("Échec de la révocation totale.") ?? "Échec de la révocation totale.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
-            MessageBox.Show(LanguageManager.Get("Tous les appareils de confiance ont été révoqués.") ?? "Tous les appareils de confiance ont été révoqués.",
-                "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+            Boite.Show(this, LanguageManager.Get("Tous les appareils de confiance ont été révoqués.") ?? "Tous les appareils de confiance ont été révoqués.",
+                LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
 
             await RefreshTrustedDevicesAsync();
         }
@@ -1238,9 +1238,9 @@ namespace NetMonitor.UI
         {
             if (ActiveIntrusionsGrid.SelectedItem is not GroupedAlertRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une intrusion dans le tableau du haut.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une intrusion dans le tableau du haut.") ?? "Sélectionnez d'abord une intrusion dans le tableau du haut.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -1248,17 +1248,17 @@ namespace NetMonitor.UI
 
             if (string.IsNullOrWhiteSpace(ip))
             {
-                MessageBox.Show(
-                    "Impossible d'extraire une adresse IP depuis cette ligne.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Warning);
+                Boite.Show(this, 
+                    LanguageManager.Get("Impossible d'extraire une adresse IP depuis cette ligne.") ?? "Impossible d'extraire une adresse IP depuis cette ligne.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Bloquer définitivement l'adresse IP {ip} via le pare-feu Windows ?\n\n" +
-                "Deux règles seront créées (entrée + sortie).\n" +
-                "L'IP passera dans le tableau « IP bloquées ».",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var confirm = Boite.Show(this, 
+                string.Format(LanguageManager.Get("Bloquer définitivement l'adresse IP {0} via le pare-feu Windows ?") ?? "Bloquer définitivement l'adresse IP {0} via le pare-feu Windows ?", ip) + "\n\n" +
+                (LanguageManager.Get("Deux règles seront créées (entrée + sortie).\n") ?? "Deux règles seront créées (entrée + sortie).\n") +
+                LanguageManager.Get("L'IP passera dans le tableau « IP bloquées ».") ?? "L'IP passera dans le tableau « IP bloquées ».",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1276,15 +1276,15 @@ namespace NetMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
-                    $"IP {ip} bloquée par le pare-feu.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    string.Format(LanguageManager.Get("IP {0} bloquée par le pare-feu.") ?? "IP {0} bloquée par le pare-feu.", ip),
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             else
             {
-                MessageBox.Show(
-                    $"Échec du blocage de {ip}.\n\n{errorMsg}",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    string.Format(LanguageManager.Get("Échec du blocage de {0}.") ?? "Échec du blocage de {0}.", ip) + "\n\n" + errorMsg,
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
 
             await RefreshSafe();
@@ -1294,10 +1294,10 @@ namespace NetMonitor.UI
         {
             if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
 
-            var confirm = MessageBox.Show(
-                $"Ajouter ce processus à la liste blanche ?\n\n{row.ProcessPath}\n\n" +
-                "Il ne sera plus jamais détecté comme non approuvé.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Ajouter ce processus à la liste blanche ?") ?? "Ajouter ce processus à la liste blanche ?") + "\n\n" + row.ProcessPath + "\n\n" +
+                LanguageManager.Get("Il ne sera plus jamais détecté comme non approuvé.") ?? "Il ne sera plus jamais détecté comme non approuvé.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (confirm != MessageBoxResult.Yes) return;
 
             SetBusy("Ajout à la liste blanche en cours…");
@@ -1306,8 +1306,8 @@ namespace NetMonitor.UI
 
             ClearBusy();
 
-            MessageBox.Show(ok ? "Processus ajouté à la liste blanche." : "Échec de l'ajout.",
-                "NetMonitor", MessageBoxButton.OK,
+            Boite.Show(this, ok ? "Processus ajouté à la liste blanche." : "Échec de l'ajout.",
+                LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
             await RefreshSafe();
         }
@@ -1316,10 +1316,10 @@ namespace NetMonitor.UI
         {
             if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
 
-            var confirm = MessageBox.Show(
-                $"Retirer ce processus de la liste d'attente ?\n\n{row.ProcessPath}\n\n" +
-                "Il ne sera ni autorisé (whitelist) ni bloqué. S'il réapparaît, il sera à nouveau listé.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Retirer ce processus de la liste d'attente ?") ?? "Retirer ce processus de la liste d'attente ?") + "\n\n" + row.ProcessPath + "\n\n" +
+                LanguageManager.Get("Il ne sera ni autorisé (whitelist) ni bloqué. S'il réapparaît, il sera à nouveau listé.") ?? "Il ne sera ni autorisé (whitelist) ni bloqué. S'il réapparaît, il sera à nouveau listé.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1331,9 +1331,9 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec du retrait. Le processus a peut-être déjà disparu ou le service n'a pas répondu.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec du retrait. Le processus a peut-être déjà disparu ou le service n'a pas répondu.") ?? "Échec du retrait. Le processus a peut-être déjà disparu ou le service n'a pas répondu.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1344,10 +1344,10 @@ namespace NetMonitor.UI
         {
             if (PendingProcessesGrid.SelectedItem is not PendingProcessRow row) return;
 
-            var confirm = MessageBox.Show(
-                $"Bloquer ce processus via le pare-feu Windows ?\n\n{row.ProcessPath}\n\n" +
-                "Une règle sortante sera créée pour ce programme.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Bloquer ce processus via le pare-feu Windows ?") ?? "Bloquer ce processus via le pare-feu Windows ?") + "\n\n" + row.ProcessPath + "\n\n" +
+                LanguageManager.Get("Une règle sortante sera créée pour ce programme.") ?? "Une règle sortante sera créée pour ce programme.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
             if (confirm != MessageBoxResult.Yes) return;
 
             SetBusy("Blocage du processus en cours…");
@@ -1356,8 +1356,8 @@ namespace NetMonitor.UI
 
             ClearBusy();
 
-            MessageBox.Show(ok ? "Processus bloqué." : $"Échec du blocage.\n\n{err}",
-                "NetMonitor", MessageBoxButton.OK,
+            Boite.Show(this, ok ? "Processus bloqué." : $"Échec du blocage.\n\n{err}",
+                LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
             await RefreshSafe();
         }
@@ -1371,10 +1371,10 @@ namespace NetMonitor.UI
 
         private async void ClearActive_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Vider la liste des intrusions détectées ?\n\n" +
-                "Les IP bloquées (tableau 2) et l'historique (tableau 3) sont conservés.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Vider la liste des intrusions détectées ?\n\n") ?? "Vider la liste des intrusions détectées ?\n\n") +
+                LanguageManager.Get("Les IP bloquées (tableau 2) et l'historique (tableau 3) sont conservés.") ?? "Les IP bloquées (tableau 2) et l'historique (tableau 3) sont conservés.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1395,16 +1395,16 @@ namespace NetMonitor.UI
             if (string.IsNullOrWhiteSpace(ip))
             {
                 var dlg = new InputBoxWindow("Débloquer une IP",
-                    "Entrez l'adresse IP à débloquer :");
+                    LanguageManager.Get("Entrez l'adresse IP à débloquer :") ?? "Entrez l'adresse IP à débloquer :");
                 if (dlg.ShowDialog() == true)
                     ip = dlg.Value;
             }
 
             if (string.IsNullOrWhiteSpace(ip)) return;
 
-            var confirm = MessageBox.Show(
-                $"Retirer les règles de blocage pour l'adresse IP {ip} ?",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                string.Format(LanguageManager.Get("Retirer les règles de blocage pour l'adresse IP {0} ?") ?? "Retirer les règles de blocage pour l'adresse IP {0} ?", ip),
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1414,9 +1414,11 @@ namespace NetMonitor.UI
 
             ClearBusy();
 
-            MessageBox.Show(
-                ok ? $"IP {ip} débloquée." : $"Échec du déblocage de {ip}.",
-                "NetMonitor", MessageBoxButton.OK,
+            Boite.Show(this, 
+                ok
+                    ? string.Format(LanguageManager.Get("IP {0} débloquée.") ?? "IP {0} débloquée.", ip)
+                    : string.Format(LanguageManager.Get("Échec du déblocage de {0}.") ?? "Échec du déblocage de {0}.", ip),
+                LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK,
                 ok ? MessageBoxImage.Information : MessageBoxImage.Error);
 
             await RefreshSafe();
@@ -1435,9 +1437,9 @@ namespace NetMonitor.UI
 
             if (report == null)
             {
-                MessageBox.Show(
-                    "Le service n'a pas répondu. Vérifiez qu'il est démarré.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Le service n'a pas répondu. Vérifiez qu'il est démarré.") ?? "Le service n'a pas répondu. Vérifiez qu'il est démarré.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 await RefreshSafe();
                 return;
             }
@@ -1450,7 +1452,7 @@ namespace NetMonitor.UI
 
             if (report.obsolete.Count == 0)
             {
-                MessageBox.Show(resume, "Réanalyse des blocages",
+                Boite.Show(this, resume, "Réanalyse des blocages",
                     MessageBoxButton.OK, MessageBoxImage.Information);
                 await RefreshSafe();
                 return;
@@ -1467,12 +1469,12 @@ namespace NetMonitor.UI
             if (report.obsolete.Count > maxAffichees)
                 liste += $"\n  … et {report.obsolete.Count - maxAffichees} autre(s)";
 
-            var confirm = MessageBox.Show(
+            var confirm = Boite.Show(this, 
                 resume + "\n\n" +
-                "Ces blocages ne seraient plus décidés aujourd'hui, l'IP n'étant plus " +
-                "dans la blacklist et sa sévérité ne déclenchant plus de blocage :\n\n" +
+                (LanguageManager.Get("Ces blocages ne seraient plus décidés aujourd'hui, l'IP n'étant plus ") ?? "Ces blocages ne seraient plus décidés aujourd'hui, l'IP n'étant plus ") +
+                (LanguageManager.Get("dans la blacklist et sa sévérité ne déclenchant plus de blocage :\n\n") ?? "dans la blacklist et sa sévérité ne déclenchant plus de blocage :\n\n") +
                 liste + "\n\nLes débloquer ?",
-                "Réanalyse des blocages",
+                LanguageManager.Get("Réanalyse des blocages") ?? "Réanalyse des blocages",
                 MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes)
@@ -1487,9 +1489,9 @@ namespace NetMonitor.UI
                 if (await NetMonitorIpcClient.UnblockIpAsync(o.ip)) debloquees++;
             }
 
-            MessageBox.Show(
-                $"{debloquees} IP débloquée(s) sur {report.obsolete.Count}.",
-                "Réanalyse des blocages", MessageBoxButton.OK, MessageBoxImage.Information);
+            Boite.Show(this, 
+                string.Format(LanguageManager.Get("{0} IP débloquée(s) sur {1}.") ?? "{0} IP débloquée(s) sur {1}.", debloquees, report.obsolete.Count),
+                LanguageManager.Get("Réanalyse des blocages") ?? "Réanalyse des blocages", MessageBoxButton.OK, MessageBoxImage.Information);
 
             await RefreshSafe();
         }
@@ -1499,10 +1501,10 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         private async void ClearHistory_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Effacer TOUT l'historique des intrusions ?\n\n" +
-                "Cette action est irréversible.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Effacer TOUT l'historique des intrusions ?\n\n") ?? "Effacer TOUT l'historique des intrusions ?\n\n") +
+                LanguageManager.Get("Cette action est irréversible.") ?? "Cette action est irréversible.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1515,9 +1517,9 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         private async void ClearAudit_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Vider l'historique des alertes ignorées (IP de confiance) ?",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                LanguageManager.Get("Vider l'historique des alertes ignorées (IP de confiance) ?") ?? "Vider l'historique des alertes ignorées (IP de confiance) ?",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -1591,23 +1593,23 @@ namespace NetMonitor.UI
         {
             if (WhitelistGrid.SelectedItem is not WhitelistEntryRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une entrée dans la liste.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une entrée dans la liste.") ?? "Sélectionnez d'abord une entrée dans la liste.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
-            var confirm = MessageBox.Show(
-                $"Retirer cette entrée de la liste blanche ?\n\n{row.Path}\n\n" +
-                "Le processus réapparaîtra dans « Processus en attente » au prochain événement réseau.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Retirer cette entrée de la liste blanche ?") ?? "Retirer cette entrée de la liste blanche ?") + "\n\n" + row.Path + "\n\n" +
+                LanguageManager.Get("Le processus réapparaîtra dans « Processus en attente » au prochain événement réseau.") ?? "Le processus réapparaîtra dans « Processus en attente » au prochain événement réseau.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Warning);
 
             if (confirm != MessageBoxResult.Yes) return;
 
             bool ok = await NetMonitorIpcClient.RemoveWhitelistEntryAsync(row.Path);
             if (!ok)
             {
-                MessageBox.Show(LanguageManager.Get("Échec du retrait.") ?? "Échec du retrait.", "NetMonitor",
+                Boite.Show(this, LanguageManager.Get("Échec du retrait.") ?? "Échec du retrait.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1627,8 +1629,8 @@ namespace NetMonitor.UI
             {
                 // Revert visuel
                 cb.IsChecked = !newState;
-                MessageBox.Show(
-                    "Échec du changement d'état.", "NetMonitor",
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec du changement d'état.") ?? "Échec du changement d'état.", "NetMonitor",
                     MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
@@ -1841,11 +1843,11 @@ namespace NetMonitor.UI
                 // ────────────────────────────────────────────────────────────
                 if (chkDisableFilters.IsChecked == true)
                 {
-                    var confirm = MessageBox.Show(
-                        "Vous êtes sur le point d'activer le mode Debug.\n\n" +
-                        "Cela va DÉSACTIVER toutes les whitelists. Le système risque d'être inondé de fausses alertes.\n\n" +
-                        "Voulez-vous vraiment continuer ?",
-                        "Confirmation mode Debug",
+                    var confirm = Boite.Show(this, 
+                        (LanguageManager.Get("Vous êtes sur le point d'activer le mode Debug.\n\n") ?? "Vous êtes sur le point d'activer le mode Debug.\n\n") +
+                        (LanguageManager.Get("Cela va DÉSACTIVER toutes les whitelists. Le système risque d'être inondé de fausses alertes.\n\n") ?? "Cela va DÉSACTIVER toutes les whitelists. Le système risque d'être inondé de fausses alertes.\n\n") +
+                        LanguageManager.Get("Voulez-vous vraiment continuer ?") ?? "Voulez-vous vraiment continuer ?",
+                        LanguageManager.Get("Confirmation mode Debug") ?? "Confirmation mode Debug",
                         MessageBoxButton.YesNo,
                         MessageBoxImage.Warning);
 
@@ -1935,20 +1937,20 @@ namespace NetMonitor.UI
 
                 bool reloaded = await NetMonitorIpcClient.ReloadConfigAsync();
 
-                MessageBox.Show(
+                Boite.Show(this, 
                     reloaded
                         ? "Réglages NetMonitor enregistrés.\n\n" +
-                          "Appliqués à chaud : seuils, patterns, réseaux ignorés, plages IP, " +
-                          "GeoIP et blocage automatique.\n" +
-                          "La surveillance des processus de confiance, elle, demande un " +
-                          "redémarrage du service."
+                          (LanguageManager.Get("Appliqués à chaud : seuils, patterns, réseaux ignorés, plages IP, ") ?? "Appliqués à chaud : seuils, patterns, réseaux ignorés, plages IP, ") +
+                          (LanguageManager.Get("GeoIP et blocage automatique.\n") ?? "GeoIP et blocage automatique.\n") +
+                          (LanguageManager.Get("La surveillance des processus de confiance, elle, demande un ") ?? "La surveillance des processus de confiance, elle, demande un ") +
+                          LanguageManager.Get("redémarrage du service.") ?? "redémarrage du service."
                         : "Réglages enregistrés, mais le service n'a pas pu être notifié.\nRedémarrez-le pour appliquer.",
-                    "NetMonitor", MessageBoxButton.OK,
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK,
                     reloaded ? MessageBoxImage.Information : MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1960,10 +1962,10 @@ namespace NetMonitor.UI
 
         private async void ClearBlockedRetries_Click(object sender, RoutedEventArgs e)
         {
-            var confirm = MessageBox.Show(
-                "Vider la liste des tentatives sur IP bloquée ?\n\n" +
-                "Les IP resteront bloquées dans le pare-feu. Seuls les compteurs sont effacés.",
-                "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            var confirm = Boite.Show(this, 
+                (LanguageManager.Get("Vider la liste des tentatives sur IP bloquée ?\n\n") ?? "Vider la liste des tentatives sur IP bloquée ?\n\n") +
+                LanguageManager.Get("Les IP resteront bloquées dans le pare-feu. Seuls les compteurs sont effacés.") ?? "Les IP resteront bloquées dans le pare-feu. Seuls les compteurs sont effacés.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
 
             if (confirm != MessageBoxResult.Yes) return;
 
@@ -2079,8 +2081,8 @@ namespace NetMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
-                    "Paramètres Web mis à jour.",
+                Boite.Show(this, 
+                    LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
                     "OK",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);
@@ -2095,7 +2097,7 @@ namespace NetMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur",
+                    Boite.Show(this, LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
@@ -2111,7 +2113,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -2148,7 +2150,7 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -2158,12 +2160,12 @@ namespace NetMonitor.UI
             {
                 string logFolder = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-                    "MCEMonitor", "Logs");
+                    LanguageManager.Get("MCEMonitor") ?? "MCEMonitor", "Logs");
 
                 if (!Directory.Exists(logFolder)) Directory.CreateDirectory(logFolder);
                 Process.Start("explorer.exe", logFolder);
             }
-            catch (Exception ex) { MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message); }
+            catch (Exception ex) { Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message); }
         }
 
         private async void ExportPdf_Click(object sender, RoutedEventArgs e)
@@ -2173,7 +2175,7 @@ namespace NetMonitor.UI
                 string? base64 = await NetMonitorIpcClient.ExportPdfAsync();
                 if (string.IsNullOrEmpty(base64))
                 {
-                    MessageBox.Show(LanguageManager.Get("Erreur lors de la génération du PDF.") ?? "Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Boite.Show(this, LanguageManager.Get("Erreur lors de la génération du PDF.") ?? "Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -2189,12 +2191,12 @@ namespace NetMonitor.UI
                 if (sfd.ShowDialog() == true)
                 {
                     File.WriteAllBytes(sfd.FileName, pdfBytes);
-                    MessageBox.Show(LanguageManager.Get("Rapport PDF enregistré avec succès.") ?? "Rapport PDF enregistré avec succès.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Boite.Show(this, LanguageManager.Get("Rapport PDF enregistré avec succès.") ?? "Rapport PDF enregistré avec succès.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -2220,8 +2222,8 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
-                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2241,8 +2243,8 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
-                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -2672,17 +2674,17 @@ namespace NetMonitor.UI
                 }
 
                 // Cas 4 : rien n'existe → avertir
-                MessageBox.Show(
-                    $"L'emplacement n'existe pas :\n{path}",
-                    "Chemin introuvable",
+                Boite.Show(this, 
+                    (LanguageManager.Get("L'emplacement n'existe pas :") ?? "L'emplacement n'existe pas :") + "\n" + path,
+                    LanguageManager.Get("Chemin introuvable") ?? "Chemin introuvable",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
-                    $"Impossible d'ouvrir l'emplacement :\n{ex.Message}",
-                    "Erreur",
+                Boite.Show(this, 
+                    (LanguageManager.Get("Impossible d'ouvrir l'emplacement :") ?? "Impossible d'ouvrir l'emplacement :") + "\n" + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
             }
@@ -3207,8 +3209,8 @@ namespace NetMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
-                    "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 
@@ -3330,18 +3332,18 @@ namespace NetMonitor.UI
         {
             if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP bloquée dans le tableau.") ?? "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             if (row.IsProcess)
             {
-                MessageBox.Show(
-                    "La sévérité des processus n'est pas modifiable manuellement.\n" +
-                    "Elle dépend du détecteur qui a signalé le processus.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    (LanguageManager.Get("La sévérité des processus n'est pas modifiable manuellement.\n") ?? "La sévérité des processus n'est pas modifiable manuellement.\n") +
+                    LanguageManager.Get("Elle dépend du détecteur qui a signalé le processus.") ?? "Elle dépend du détecteur qui a signalé le processus.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -3365,10 +3367,10 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec du changement de sévérité.\n" +
-                    "L'IP a peut-être été débloquée entre-temps.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Échec du changement de sévérité.\n") ?? "Échec du changement de sévérité.\n") +
+                    LanguageManager.Get("L'IP a peut-être été débloquée entre-temps.") ?? "L'IP a peut-être été débloquée entre-temps.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -3379,18 +3381,18 @@ namespace NetMonitor.UI
         {
             if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP bloquée dans le tableau.") ?? "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
             if (row.IsProcess)
             {
-                MessageBox.Show(
-                    "L'origine des processus n'est pas modifiable manuellement.\n" +
-                    "Elle dépend du détecteur qui a signalé le processus.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    (LanguageManager.Get("L'origine des processus n'est pas modifiable manuellement.\n") ?? "L'origine des processus n'est pas modifiable manuellement.\n") +
+                    LanguageManager.Get("Elle dépend du détecteur qui a signalé le processus.") ?? "Elle dépend du détecteur qui a signalé le processus.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -3411,10 +3413,10 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec du changement d'origine.\n" +
-                    "L'IP a peut-être été débloquée entre-temps.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Échec du changement d'origine.\n") ?? "Échec du changement d'origine.\n") +
+                    LanguageManager.Get("L'IP a peut-être été débloquée entre-temps.") ?? "L'IP a peut-être été débloquée entre-temps.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -3425,9 +3427,9 @@ namespace NetMonitor.UI
         {
             if (BlockedRetriesGrid.SelectedItem is not BlockedIpRetryRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP dans le tableau des interceptions.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP dans le tableau des interceptions.") ?? "Sélectionnez d'abord une IP dans le tableau des interceptions.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -3448,9 +3450,9 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec du changement d'origine.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec du changement d'origine.") ?? "Échec du changement d'origine.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -3550,11 +3552,11 @@ namespace NetMonitor.UI
             if (sender is not Button btn || btn.Tag is not string ip) return;
             if (string.IsNullOrWhiteSpace(ip)) return;
 
-            var confirm = MessageBox.Show(
-                $"Marquer {ip} comme Safe (liste Microsoft vérifiée) ?\n\n" +
-                "Cette alerte sera déplacée dans le tableau vert « Alertes ignorées ». " +
-                "Les futures alertes sur cette IP seront aussi automatiquement classées Safe.",
-                "Confirmation",
+            var confirm = Boite.Show(this, 
+                string.Format(LanguageManager.Get("Marquer {0} comme Safe (liste Microsoft vérifiée) ?") ?? "Marquer {0} comme Safe (liste Microsoft vérifiée) ?", ip) + "\n\n" +
+                (LanguageManager.Get("Cette alerte sera déplacée dans le tableau vert « Alertes ignorées ». ") ?? "Cette alerte sera déplacée dans le tableau vert « Alertes ignorées ». ") +
+                LanguageManager.Get("Les futures alertes sur cette IP seront aussi automatiquement classées Safe.") ?? "Les futures alertes sur cette IP seront aussi automatiquement classées Safe.",
+                LanguageManager.Get("Confirmation") ?? "Confirmation",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Question);
 
@@ -3566,10 +3568,10 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec du marquage Safe.\n" +
-                    "L'IP a peut-être déjà été traitée entre-temps.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    (LanguageManager.Get("Échec du marquage Safe.\n") ?? "Échec du marquage Safe.\n") +
+                    LanguageManager.Get("L'IP a peut-être déjà été traitée entre-temps.") ?? "L'IP a peut-être déjà été traitée entre-temps.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -3580,9 +3582,9 @@ namespace NetMonitor.UI
         {
             if (BlockedIpsGrid.SelectedItem is not BlockedIpRow row)
             {
-                MessageBox.Show(
-                    "Sélectionnez d'abord une IP bloquée dans le tableau.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                Boite.Show(this, 
+                    LanguageManager.Get("Sélectionnez d'abord une IP bloquée dans le tableau.") ?? "Sélectionnez d'abord une IP bloquée dans le tableau.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
 
@@ -3596,9 +3598,9 @@ namespace NetMonitor.UI
 
             if (!ok)
             {
-                MessageBox.Show(
-                    "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, 
+                    LanguageManager.Get("Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.") ?? "Échec de l'ajout du pattern.\nLe service n'a peut-être pas pu être notifié.",
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -3648,8 +3650,8 @@ namespace NetMonitor.UI
 
                 if (!File.Exists(configPath))
                 {
-                    MessageBox.Show(LanguageManager.Get("NetMonitor.web.config introuvable.") ?? "NetMonitor.web.config introuvable.",
-                        "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Boite.Show(this, LanguageManager.Get("NetMonitor.web.config introuvable.") ?? "NetMonitor.web.config introuvable.",
+                        LanguageManager.Get("Erreur") ?? "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return;
                 }
 
@@ -3701,20 +3703,20 @@ namespace NetMonitor.UI
                 }
                 catch { }
 
-                MessageBox.Show(
+                Boite.Show(this, 
                     enabled
                         ? "OTP activé. Un code sera demandé avant chaque action critique (bloquer, débloquer, marquer safe…).\n\n" +
-                          "Les pages en lecture seule (/stats, /api/*) restent accessibles sans OTP."
+                          LanguageManager.Get("Les pages en lecture seule (/stats, /api/*) restent accessibles sans OTP.") ?? "Les pages en lecture seule (/stats, /api/*) restent accessibles sans OTP."
                         : "OTP désactivé. Les actions critiques ne demanderont plus de code.",
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Information);
 
                 // Recharge la config du service pour prise en compte immédiate
                 await NetMonitorIpcClient.ReloadConfigAsync();
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
-                    "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
+                    LanguageManager.Get("NetMonitor") ?? "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
         

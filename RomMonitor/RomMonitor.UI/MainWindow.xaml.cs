@@ -181,9 +181,9 @@ namespace RomMonitor.UI
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
-                MessageBox.Show(
-                    "RomMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé",
+                Boite.Show(this,
+                    LanguageManager.Get("RomMonitor.UI ne peut être lancé que depuis MCEMonitor.") ?? "RomMonitor.UI ne peut être lancé que depuis MCEMonitor.",
+                    LanguageManager.Get("Accès refusé") ?? "Accès refusé",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error
                 );
@@ -196,7 +196,7 @@ namespace RomMonitor.UI
 
             if (!serviceRunning)
             {
-                var result = MessageBox.Show(
+                var result = Boite.Show(this, 
                     (LanguageManager.Get("RomMonitor.Service n'est pas en cours d'exécution.")
                         ?? "RomMonitor.Service n'est pas en cours d'exécution.")
                     + "\n\n" +
@@ -219,9 +219,9 @@ namespace RomMonitor.UI
 
                         if (!File.Exists(servicePath))
                         {
-                            MessageBox.Show(
-                                "RomMonitor.Service.exe est introuvable dans :\n" + servicePath,
-                                "Erreur",
+                            Boite.Show(this,
+                                (LanguageManager.Get("RomMonitor.Service.exe est introuvable dans :") ?? "RomMonitor.Service.exe est introuvable dans :") + "\n" + servicePath,
+                                LanguageManager.Get("Erreur") ?? "Erreur",
                                 MessageBoxButton.OK,
                                 MessageBoxImage.Error
                             );
@@ -242,9 +242,9 @@ namespace RomMonitor.UI
                     }
                     catch (Exception ex)
                     {
-                        MessageBox.Show(
-                            "Impossible de démarrer RomMonitor.Service.exe :\n" + ex.Message,
-                            "Erreur",
+                        Boite.Show(this,
+                            (LanguageManager.Get("Impossible de démarrer RomMonitor.Service.exe :") ?? "Impossible de démarrer RomMonitor.Service.exe :") + "\n" + ex.Message,
+                            LanguageManager.Get("Erreur") ?? "Erreur",
                             MessageBoxButton.OK,
                             MessageBoxImage.Error
                         );
@@ -596,7 +596,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
             }
         }
 
@@ -613,9 +613,9 @@ namespace RomMonitor.UI
 
                 if (!File.Exists(historyPath))
                 {
-                    MessageBox.Show(
-                        "Aucun historique d'alertes disponible pour l'instant.",
-                        "Historique",
+                    Boite.Show(this,
+                        LanguageManager.Get("Aucun historique d'alertes disponible pour l'instant.") ?? "Aucun historique d'alertes disponible pour l'instant.",
+                        LanguageManager.Get("Historique") ?? "Historique",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information
                     );
@@ -630,7 +630,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
             }
         }
 
@@ -638,7 +638,7 @@ namespace RomMonitor.UI
         {
             try
             {
-                var result = MessageBox.Show(
+                var result = Boite.Show(this, 
                     "Voulez-vous vraiment vider tout l'historique des alertes ?\n" +
                     "Cette action est irréversible.",
                     "Vider l'historique",
@@ -657,7 +657,7 @@ namespace RomMonitor.UI
                 }
                 else
                 {
-                    MessageBox.Show(
+                    Boite.Show(this, 
                         "Impossible de vider l'historique (service non joignable ?).",
                         "Erreur",
                         MessageBoxButton.OK,
@@ -666,7 +666,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
         
@@ -739,7 +739,7 @@ namespace RomMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
                     "OK",
                     MessageBoxButton.OK,
@@ -753,7 +753,7 @@ namespace RomMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Boite.Show(this, LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
@@ -769,7 +769,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -813,7 +813,7 @@ namespace RomMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -933,28 +933,28 @@ namespace RomMonitor.UI
                 // 1) Validation numérique
                 if (!int.TryParse(txtInterval.Text.Trim(), out int interval) || interval < 15 || interval > 1440)
                 {
-                    MessageBox.Show(LanguageManager.Get("Fréquence de contrôle : entier entre 15 et 1440 (minutes).") ?? "Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
+                    Boite.Show(this, LanguageManager.Get("Fréquence de contrôle : entier entre 15 et 1440 (minutes).") ?? "Fréquence de contrôle : entier entre 15 et 1440 (minutes).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtWarnPct.Text.Trim(), out int warnPct) || warnPct < 5 || warnPct > 100)
                 {
-                    MessageBox.Show(LanguageManager.Get("Seuil warning : entier entre 5 et 100 (%).") ?? "Seuil warning : entier entre 5 et 100 (%).",
+                    Boite.Show(this, LanguageManager.Get("Seuil warning : entier entre 5 et 100 (%).") ?? "Seuil warning : entier entre 5 et 100 (%).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtCritPct.Text.Trim(), out int critPct) || critPct < 1 || critPct > 100)
                 {
-                    MessageBox.Show(LanguageManager.Get("Seuil critique : entier entre 1 et 100 (%).") ?? "Seuil critique : entier entre 1 et 100 (%).",
+                    Boite.Show(this, LanguageManager.Get("Seuil critique : entier entre 1 et 100 (%).") ?? "Seuil critique : entier entre 1 et 100 (%).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtCooldown.Text.Trim(), out int cooldown) || cooldown < 1 || cooldown > 168)
                 {
-                    MessageBox.Show(LanguageManager.Get("Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).") ?? "Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).",
+                    Boite.Show(this, LanguageManager.Get("Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).") ?? "Intervalle d'envoi des alertes : entier entre 1 et 168 (heures).",
                         "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
@@ -962,15 +962,17 @@ namespace RomMonitor.UI
                 // Surcharge disque
                 if (!int.TryParse(txtDiskIoWarn.Text.Trim(), out int ioWarn) || ioWarn < 10 || ioWarn > 100)
                 {
-                    MessageBox.Show("Surcharge disque : seuil entre 10 et 100 (%).",
-                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Boite.Show(this,
+                        LanguageManager.Get("Surcharge disque : seuil entre 10 et 100 (%).") ?? "Surcharge disque : seuil entre 10 et 100 (%).",
+                        LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtDiskIoCrit.Text.Trim(), out int ioCrit) || ioCrit < 20 || ioCrit > 100)
                 {
-                    MessageBox.Show("Surcharge disque : seuil critique entre 20 et 100 (%).",
-                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Boite.Show(this,
+                        LanguageManager.Get("Surcharge disque : seuil critique entre 20 et 100 (%).") ?? "Surcharge disque : seuil critique entre 20 et 100 (%).",
+                        LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -979,23 +981,25 @@ namespace RomMonitor.UI
                     ioCrit = Math.Min(100, ioWarn + 5);
                     txtDiskIoCrit.Text = ioCrit.ToString();
 
-                    MessageBox.Show(
-                        "Le seuil critique doit rester au-dessus du seuil d alerte.\n"
-                        + $"Seuil critique ajuste automatiquement a {ioCrit} %.",
-                        "Ajustement automatique", MessageBoxButton.OK, MessageBoxImage.Information);
+                    Boite.Show(this,
+                        (LanguageManager.Get("Le seuil critique doit rester au-dessus du seuil d'alerte.") ?? "Le seuil critique doit rester au-dessus du seuil d'alerte.") + "\n"
+                        + (LanguageManager.Get("Seuil critique ajusté automatiquement à") ?? "Seuil critique ajusté automatiquement à") + $" {ioCrit} %.",
+                        LanguageManager.Get("Ajustement automatique") ?? "Ajustement automatique", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
 
                 if (!int.TryParse(txtDiskIoConfirm.Text.Trim(), out int ioConfirm) || ioConfirm < 1 || ioConfirm > 60)
                 {
-                    MessageBox.Show("Surcharge disque : nombre de relevés entre 1 et 60.",
-                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Boite.Show(this,
+                        LanguageManager.Get("Surcharge disque : nombre de relevés entre 1 et 60.") ?? "Surcharge disque : nombre de relevés entre 1 et 60.",
+                        LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (!int.TryParse(txtDiskIoInterval.Text.Trim(), out int ioInterval) || ioInterval < 5 || ioInterval > 300)
                 {
-                    MessageBox.Show("Surcharge disque : intervalle entre 5 et 300 secondes.",
-                        "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    Boite.Show(this,
+                        LanguageManager.Get("Surcharge disque : intervalle entre 5 et 300 secondes.") ?? "Surcharge disque : intervalle entre 5 et 300 secondes.",
+                        LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
@@ -1005,10 +1009,10 @@ namespace RomMonitor.UI
                     warnPct = Math.Min(100, critPct + 3);
                     txtWarnPct.Text = warnPct.ToString();
 
-                    MessageBox.Show(
-                        "Le seuil warning doit être au moins à 3 unités au-dessus du critique.\n" +
-                        $"Seuil warning ajusté automatiquement à {warnPct} %.",
-                        "Ajustement automatique",
+                    Boite.Show(this,
+                        (LanguageManager.Get("Le seuil warning doit être au moins à 3 unités au-dessus du critique.") ?? "Le seuil warning doit être au moins à 3 unités au-dessus du critique.") + "\n" +
+                        (LanguageManager.Get("Seuil warning ajusté automatiquement à") ?? "Seuil warning ajusté automatiquement à") + $" {warnPct} %.",
+                        LanguageManager.Get("Ajustement automatique") ?? "Ajustement automatique",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
@@ -1106,26 +1110,26 @@ namespace RomMonitor.UI
 
                 if (reloaded)
                 {
-                    MessageBox.Show(
-                        "Réglages de surveillance enregistrés.\n\n" +
-                        "Le service a rechargé la configuration à chaud.",
-                        "OK",
+                    Boite.Show(this,
+                        (LanguageManager.Get("Réglages de surveillance enregistrés.") ?? "Réglages de surveillance enregistrés.") + "\n\n" +
+                        (LanguageManager.Get("Le service a rechargé la configuration à chaud.") ?? "Le service a rechargé la configuration à chaud."),
+                        LanguageManager.Get("OK") ?? "OK",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show(
-                        "Réglages enregistrés, mais le service n'a pas pu être notifié.\n" +
-                        "Redémarrez-le pour appliquer les modifications.",
-                        "Attention",
+                    Boite.Show(this,
+                        (LanguageManager.Get("Réglages enregistrés, mais le service n'a pas pu être notifié.") ?? "Réglages enregistrés, mais le service n'a pas pu être notifié.") + "\n" +
+                        (LanguageManager.Get("Redémarrez-le pour appliquer les modifications.") ?? "Redémarrez-le pour appliquer les modifications."),
+                        LanguageManager.Get("Attention") ?? "Attention",
                         MessageBoxButton.OK,
                         MessageBoxImage.Warning);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
                     "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }

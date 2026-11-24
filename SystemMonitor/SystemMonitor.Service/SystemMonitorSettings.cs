@@ -40,6 +40,11 @@ namespace SystemMonitor.Service
         public bool AlertOnHighGpuTemp { get; set; } = true;
         public int GpuTempThresholdCelsius { get; set; } = 85;
 
+        // Seuil de CPU au-dessus duquel un processus entre dans le graphique et
+        // déclenche une alerte ProcessHigh. Fixé à 10 % par le passé ; réglable
+        // depuis l onglet Configuration de SystemMonitor.UI.
+        public int ProcessThresholdPercent { get; set; } = 10;
+
         // ============================================================
         //  Serveur Web (persistés dans SystemMonitor.web.config)
         // ============================================================
@@ -92,6 +97,9 @@ namespace SystemMonitor.Service
                                 break;
                             case "CpuCooldownMinutes":
                                 if (int.TryParse(value, out int cc)) settings.CpuCooldownMinutes = cc;
+                                break;
+                            case "ProcessThresholdPercent":
+                                if (int.TryParse(value, out int pt)) settings.ProcessThresholdPercent = pt;
                                 break;
                             case "AlertOnHighRam":
                                 if (bool.TryParse(value, out bool ar)) settings.AlertOnHighRam = ar;
@@ -240,6 +248,7 @@ namespace SystemMonitor.Service
                     $"AlertOnHighCpu={AlertOnHighCpu.ToString().ToLower()}",
                     $"CpuThresholdPercent={CpuThresholdPercent}",
                     $"CpuCooldownMinutes={CpuCooldownMinutes}",
+                    $"ProcessThresholdPercent={ProcessThresholdPercent}",
                     "",
                     "# Alertes RAM",
                     $"AlertOnHighRam={AlertOnHighRam.ToString().ToLower()}",
@@ -325,6 +334,9 @@ namespace SystemMonitor.Service
                                 break;
                             case "CpuCooldownMinutes":
                                 if (int.TryParse(value, out int cc)) CpuCooldownMinutes = cc;
+                                break;
+                            case "ProcessThresholdPercent":
+                                if (int.TryParse(value, out int pt2)) ProcessThresholdPercent = pt2;
                                 break;
                             case "AlertOnHighRam":
                                 if (bool.TryParse(value, out bool ar)) AlertOnHighRam = ar;

@@ -35,8 +35,11 @@ namespace SystemMonitor.Service
         //  Suivi des processus lourds
         // ------------------------------------------------------------
 
-        /// <summary>Un processus n'entre dans le graphique qu'au-delà de ce seuil.</summary>
-        public const double SeuilProcessus = 10.0;
+        /// <summary>Valeur par défaut du seuil, si la configuration n en donne pas.</summary>
+        public const double SeuilProcessusParDefaut = 10.0;
+
+        /// <summary>Un processus n entre dans le graphique qu au-delà de ce seuil (réglable).</summary>
+        private double SeuilProcessus => Math.Clamp(_settings.ProcessThresholdPercent, 1, 100);
 
         /// <summary>Nombre de processus dessinés simultanément.</summary>
         private const int MaxSeriesProcessus = 5;

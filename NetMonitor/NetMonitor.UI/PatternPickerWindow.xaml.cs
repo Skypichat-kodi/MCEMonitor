@@ -106,7 +106,7 @@ namespace NetMonitor.UI
             // Vérifie qu'une valeur est bien sélectionnée
             if (string.IsNullOrWhiteSpace(txtSelectedValue.Text) || txtSelectedValue.Text == "-")
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     "La valeur sélectionnée est vide ou indisponible pour cette IP.",
                     "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;

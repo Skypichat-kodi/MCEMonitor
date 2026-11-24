@@ -198,9 +198,10 @@ namespace MediaMonitor.UI
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
-                MessageBox.Show(
-                    "MediaMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé",
+                Boite.Show(this,
+                    LanguageManager.Get("MediaMonitor.UI ne peut être lancé que depuis MCEMonitor.")
+                        ?? "MediaMonitor.UI ne peut être lancé que depuis MCEMonitor.",
+                    LanguageManager.Get("Accès refusé") ?? "Accès refusé",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 Application.Current.Shutdown();
@@ -212,10 +213,12 @@ namespace MediaMonitor.UI
             bool serviceRunning = Process.GetProcessesByName("MediaMonitor.Service").Length > 0;
             if (!serviceRunning)
             {
-                MessageBox.Show(
-                    "Le service MediaMonitor n'est pas démarré.\n" +
-                    "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
-                    "Service non démarré",
+                Boite.Show(this,
+                    (LanguageManager.Get("Le service MediaMonitor n'est pas démarré.")
+                        ?? "Le service MediaMonitor n'est pas démarré.") + "\n" +
+                    (LanguageManager.Get("Veuillez lancer MCEMonitor pour le démarrer automatiquement.")
+                        ?? "Veuillez lancer MCEMonitor pour le démarrer automatiquement."),
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
                 Close();
@@ -488,11 +491,14 @@ namespace MediaMonitor.UI
             try
             {
                 var result = await ServiceIpcClient.SendReport();
-                MessageBox.Show(result ? "Rapport envoyé." : "Erreur lors de l'envoi du rapport.");
+                Boite.Show(this, result
+                    ? (LanguageManager.Get("Rapport envoyé.") ?? "Rapport envoyé.")
+                    : (LanguageManager.Get("Erreur lors de l'envoi du rapport.")
+                        ?? "Erreur lors de l'envoi du rapport."));
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message);
             }
         }
@@ -501,7 +507,7 @@ namespace MediaMonitor.UI
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Port invalide.") ?? "Port invalide.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK,
@@ -514,7 +520,7 @@ namespace MediaMonitor.UI
 
             if (string.IsNullOrWhiteSpace(login) || string.IsNullOrWhiteSpace(pass))
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Veuillez entrer un login et un mot de passe.") 
                         ?? "Veuillez entrer un login et un mot de passe.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
@@ -527,7 +533,7 @@ namespace MediaMonitor.UI
             {
                 await ServiceIpcClient.SetWebPort(port);
                 await ServiceIpcClient.SetWebCredentials(login, pass);
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
                     LanguageManager.Get("OK") ?? "OK",
                     MessageBoxButton.OK,
@@ -536,7 +542,7 @@ namespace MediaMonitor.UI
                 catch (Exception ex)
                 {
                     UiLog("Erreur IPC WebAll : " + ex.Message);   // ← log, pas de trad
-                    MessageBox.Show(
+                    Boite.Show(this, 
                         (LanguageManager.Get("Erreur IPC :") ?? "Erreur IPC :") + " " + ex.Message,
                         LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK,
@@ -569,7 +575,7 @@ namespace MediaMonitor.UI
         {
             if (!int.TryParse(txtWebPort.Text, out int port))
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Port Web invalide.") ?? "Port Web invalide.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK,
@@ -589,7 +595,7 @@ namespace MediaMonitor.UI
             catch (Exception ex)
             {
                 UiLog("Erreur ouverture /backup : " + ex.Message);   // ← log
-                MessageBox.Show(
+                Boite.Show(this, 
                     (LanguageManager.Get("Impossible d’ouvrir la page /backup.\n") 
                         ?? "Impossible d’ouvrir la page /backup.\n") + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
@@ -860,7 +866,7 @@ namespace MediaMonitor.UI
         {
             if (_currentBackup == null)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Aucun backup à exporter.") ?? "Aucun backup à exporter.",
                     LanguageManager.Get("Info") ?? "Info",
                     MessageBoxButton.OK,
@@ -880,7 +886,7 @@ namespace MediaMonitor.UI
             try
             {
                 PdfBackupGenerator.Generate(_currentBackup, dlg.FileName);
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("PDF généré avec succès.") ?? "PDF généré avec succès.",
                     LanguageManager.Get("OK") ?? "OK",
                     MessageBoxButton.OK,
@@ -888,7 +894,7 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     (LanguageManager.Get("Erreur génération PDF :") ?? "Erreur génération PDF :") 
                         + " " + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
@@ -907,7 +913,7 @@ namespace MediaMonitor.UI
             var msg = LanguageManager.Get("Voulez-vous vraiment supprimer TOUTES les sauvegardes ?")
                       ?? "Voulez-vous vraiment supprimer TOUTES les sauvegardes ?";
 
-            if (MessageBox.Show(msg, "Confirmation",
+            if (Boite.Show(this, msg, "Confirmation",
                                 MessageBoxButton.YesNo,
                                 MessageBoxImage.Warning) != MessageBoxResult.Yes)
                 return;
@@ -921,7 +927,7 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     (LanguageManager.Get("Erreur purge :") ?? "Erreur purge :") 
                         + " " + ex.Message);
             }
@@ -988,15 +994,22 @@ namespace MediaMonitor.UI
             string? json = await ServiceIpcClient.SendRaw($"get-file-info {path}");
             if (json == null)
             {
-                MessageBox.Show($"Impossible d'obtenir les informations du fichier.\n\nChemin : {path}",
-                                "Erreur IPC", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this,
+                    (LanguageManager.Get("Impossible d'obtenir les informations du fichier.")
+                        ?? "Impossible d'obtenir les informations du fichier.") + "\n\n" +
+                    (LanguageManager.Get("Chemin :") ?? "Chemin :") + " " + path,
+                    LanguageManager.Get("Erreur IPC") ?? "Erreur IPC",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
             if (json.Contains("\"error\""))
             {
-                MessageBox.Show($"Erreur renvoyée par le serveur :\n\n{json}",
-                                "Erreur IPC", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this,
+                    (LanguageManager.Get("Erreur renvoyée par le serveur :")
+                        ?? "Erreur renvoyée par le serveur :") + "\n\n" + json,
+                    LanguageManager.Get("Erreur IPC") ?? "Erreur IPC",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1004,8 +1017,11 @@ namespace MediaMonitor.UI
             try { fullInfo = System.Text.Json.JsonSerializer.Deserialize<MediaUsageItem>(json); }
             catch (Exception ex)
             {
-                MessageBox.Show($"Erreur de désérialisation : {ex.Message}",
-                                "Erreur JSON", MessageBoxButton.OK, MessageBoxImage.Error);
+                Boite.Show(this,
+                    (LanguageManager.Get("Erreur de désérialisation :")
+                        ?? "Erreur de désérialisation :") + " " + ex.Message,
+                    LanguageManager.Get("Erreur JSON") ?? "Erreur JSON",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
                 return;
             }
 
@@ -1030,7 +1046,7 @@ namespace MediaMonitor.UI
 
                 if (fullInfo == null)
                 {
-                    MessageBox.Show(
+                    Boite.Show(this, 
                         LanguageManager.Get("Impossible d'obtenir les informations du fichier.") 
                             ?? "Impossible d'obtenir les informations du fichier.",
                         LanguageManager.Get("Erreur IPC") ?? "Erreur IPC",
@@ -1042,7 +1058,7 @@ namespace MediaMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     (LanguageManager.Get("Erreur lors de l'analyse du fichier :") 
                         ?? "Erreur lors de l'analyse du fichier :") + " " + ex.Message);
             }

@@ -200,9 +200,9 @@ namespace SystemMonitor.UI
             string[] args = Environment.GetCommandLineArgs();
             if (args.Length < 2 || args[1] != "--from-mcem")
             {
-                MessageBox.Show(
-                    "SystemMonitor.UI ne peut être lancé que depuis MCEMonitor.",
-                    "Accès refusé",
+                Boite.Show(this,
+                    LanguageManager.Get("SystemMonitor.UI ne peut être lancé que depuis MCEMonitor.") ?? "SystemMonitor.UI ne peut être lancé que depuis MCEMonitor.",
+                    LanguageManager.Get("Accès refusé") ?? "Accès refusé",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
                 Application.Current.Shutdown();
@@ -214,10 +214,10 @@ namespace SystemMonitor.UI
 
             if (!serviceRunning)
             {
-                MessageBox.Show(
-                    "Le service SystemMonitor n'est pas démarré.\n" +
-                    "Veuillez lancer MCEMonitor pour le démarrer automatiquement.",
-                    "Service non démarré",
+                Boite.Show(this,
+                    (LanguageManager.Get("Le service SystemMonitor n'est pas démarré.") ?? "Le service SystemMonitor n'est pas démarré.") + "\n" +
+                    (LanguageManager.Get("Veuillez lancer MCEMonitor pour le démarrer automatiquement.") ?? "Veuillez lancer MCEMonitor pour le démarrer automatiquement."),
+                    LanguageManager.Get("Service non démarré") ?? "Service non démarré",
                     MessageBoxButton.OK,
                     MessageBoxImage.Warning);
 
@@ -585,7 +585,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le dossier Logs.") ?? "Impossible d'ouvrir le dossier Logs.") + "\n" + ex.Message);
             }
         }
 
@@ -675,7 +675,7 @@ namespace SystemMonitor.UI
 
             if (ok)
             {
-                MessageBox.Show(
+                Boite.Show(this, 
                     LanguageManager.Get("Paramètres Web mis à jour.") ?? "Paramètres Web mis à jour.",
                     "OK",
                     MessageBoxButton.OK,
@@ -689,7 +689,7 @@ namespace SystemMonitor.UI
             {
                 if (!int.TryParse(txtWebPort.Text, out int port))
                 {
-                    MessageBox.Show(LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Boite.Show(this, LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 
@@ -705,7 +705,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
                 return false;
             }
         }
@@ -743,7 +743,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le navigateur :") ?? "Impossible d'ouvrir le navigateur :") + " " + ex.Message);
             }
         }
 
@@ -763,9 +763,9 @@ namespace SystemMonitor.UI
 
                 if (!File.Exists(historyPath))
                 {
-                    MessageBox.Show(
-                        "Aucun historique d'alertes disponible pour l'instant.",
-                        "Historique",
+                    Boite.Show(this,
+                        LanguageManager.Get("Aucun historique d'alertes disponible pour l'instant.") ?? "Aucun historique d'alertes disponible pour l'instant.",
+                        LanguageManager.Get("Historique") ?? "Historique",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                     return;
@@ -779,7 +779,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir l'historique.") ?? "Impossible d'ouvrir l'historique.") + "\n" + ex.Message);
             }
         }
 
@@ -787,10 +787,10 @@ namespace SystemMonitor.UI
         {
             try
             {
-                var result = MessageBox.Show(
-                    "Voulez-vous vraiment vider tout l'historique des alertes ?\n" +
-                    "Cette action est irréversible.",
-                    "Vider l'historique",
+                var result = Boite.Show(this,
+                    (LanguageManager.Get("Voulez-vous vraiment vider tout l'historique des alertes ?") ?? "Voulez-vous vraiment vider tout l'historique des alertes ?") + "\n" +
+                    (LanguageManager.Get("Cette action est irréversible.") ?? "Cette action est irréversible."),
+                    LanguageManager.Get("Vider l'historique") ?? "Vider l'historique",
                     MessageBoxButton.YesNo,
                     MessageBoxImage.Warning);
 
@@ -806,16 +806,16 @@ namespace SystemMonitor.UI
                 }
                 else
                 {
-                    MessageBox.Show(
-                        "Impossible de vider l'historique (service non joignable ?).",
-                        "Erreur",
+                    Boite.Show(this,
+                        LanguageManager.Get("Impossible de vider l'historique (service non joignable ?).") ?? "Impossible de vider l'historique (service non joignable ?).",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -843,6 +843,7 @@ namespace SystemMonitor.UI
                 txtTempThreshold.Text = "85";
                 chkAlertGpuTemp.IsChecked = true;
                 txtGpuTempThreshold.Text = "85";
+                txtProcessThreshold.Text = "10";
 
                 if (!File.Exists(configPath))
                     return;
@@ -870,6 +871,7 @@ namespace SystemMonitor.UI
                         case "TempThresholdCelsius":     txtTempThreshold.Text = val; break;
                         case "AlertOnHighGpuTemp":       chkAlertGpuTemp.IsChecked = val.Equals("true", StringComparison.OrdinalIgnoreCase); break;
                         case "GpuTempThresholdCelsius":  txtGpuTempThreshold.Text = val; break;
+                        case "ProcessThresholdPercent":  txtProcessThreshold.Text = val; break;
                     }
                 }
             }
@@ -900,6 +902,7 @@ namespace SystemMonitor.UI
                     ["TempThresholdCelsius"] = txtTempThreshold.Text.Trim(),
                     ["AlertOnHighGpuTemp"] = (chkAlertGpuTemp.IsChecked == true).ToString().ToLower(),
                     ["GpuTempThresholdCelsius"] = txtGpuTempThreshold.Text.Trim(),
+                    ["ProcessThresholdPercent"] = txtProcessThreshold.Text.Trim(),
                 };
 
                 var newLines = new List<string>();
@@ -956,16 +959,16 @@ namespace SystemMonitor.UI
 
                 if (reloaded)
                 {
-                    MessageBox.Show(
-                        "Réglages de surveillance enregistrés.\n\n" +
-                        "Le service a rechargé la configuration à chaud.",
-                        "OK",
+                    Boite.Show(this,
+                        (LanguageManager.Get("Réglages de surveillance enregistrés.") ?? "Réglages de surveillance enregistrés.") + "\n\n" +
+                        (LanguageManager.Get("Le service a rechargé la configuration à chaud.") ?? "Le service a rechargé la configuration à chaud."),
+                        LanguageManager.Get("OK") ?? "OK",
                         MessageBoxButton.OK,
                         MessageBoxImage.Information);
                 }
                 else
                 {
-                    MessageBox.Show(
+                    Boite.Show(this, 
                         "Réglages enregistrés, mais le service n'a pas pu être notifié.\n" +
                         "Redémarrez-le pour appliquer les modifications.",
                         "Attention",
@@ -975,7 +978,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1176,7 +1179,7 @@ namespace SystemMonitor.UI
         {
             try
             {
-                var result = MessageBox.Show(
+                var result = Boite.Show(this, 
                     "Voulez-vous vraiment vider l'historique du graphique ?\n" +
                     "Les courbes seront remises à zéro.",
                     "Vider le graphique",
@@ -1196,16 +1199,16 @@ namespace SystemMonitor.UI
                 }
                 else
                 {
-                    MessageBox.Show(
-                        "Impossible de vider l'historique (service non joignable ?).",
-                        "Erreur",
+                    Boite.Show(this,
+                        LanguageManager.Get("Impossible de vider l'historique (service non joignable ?).") ?? "Impossible de vider l'historique (service non joignable ?).",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1243,7 +1246,7 @@ namespace SystemMonitor.UI
         {
             try
             {
-                var result = MessageBox.Show(
+                var result = Boite.Show(this, 
                     "Voulez-vous vraiment vider l'historique des BSOD ?\n" +
                     "Cette action est irréversible.",
                     "Vider l'historique BSOD",
@@ -1262,16 +1265,16 @@ namespace SystemMonitor.UI
                 }
                 else
                 {
-                    MessageBox.Show(
-                        "Impossible de vider l'historique (service non joignable ?).",
-                        "Erreur",
+                    Boite.Show(this,
+                        LanguageManager.Get("Impossible de vider l'historique (service non joignable ?).") ?? "Impossible de vider l'historique (service non joignable ?).",
+                        LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK,
                         MessageBoxImage.Error);
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
             }
         }
 
@@ -1283,7 +1286,7 @@ namespace SystemMonitor.UI
 
                 if (!Directory.Exists(folder))
                 {
-                    MessageBox.Show(
+                    Boite.Show(this, 
                         "Le dossier C:\\Windows\\Minidump n'existe pas sur cette machine.",
                         "Info",
                         MessageBoxButton.OK,
@@ -1295,7 +1298,7 @@ namespace SystemMonitor.UI
             }
             catch (Exception ex)
             {
-                MessageBox.Show((LanguageManager.Get("Impossible d'ouvrir le dossier.") ?? "Impossible d'ouvrir le dossier.") + "\n" + ex.Message);
+                Boite.Show(this, (LanguageManager.Get("Impossible d'ouvrir le dossier.") ?? "Impossible d'ouvrir le dossier.") + "\n" + ex.Message);
             }
         }
     }

@@ -92,7 +92,7 @@ namespace MCEMonitorClient.Config
         {
             if (string.IsNullOrWhiteSpace(ChampNom.Text))
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("Le nom est obligatoire.") ?? "Le nom est obligatoire.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -103,7 +103,7 @@ namespace MCEMonitorClient.Config
 
             if (string.IsNullOrWhiteSpace(ChampUrl.Text))
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("L'URL est obligatoire.") ?? "L'URL est obligatoire.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -115,7 +115,7 @@ namespace MCEMonitorClient.Config
             if (!int.TryParse(ChampPort.Text, NumberStyles.Integer, CultureInfo.CurrentCulture, out int port)
                 || port < 1 || port > 65535)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("Le port doit être compris entre 1 et 65535.")
                         ?? "Le port doit être compris entre 1 et 65535.",
                     LanguageManager.Get("Erreur") ?? "Erreur",

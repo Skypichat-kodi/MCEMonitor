@@ -149,7 +149,7 @@ namespace MCEMonitorClient.Config
                               CultureInfo.CurrentCulture, out int intervalle)
                 || intervalle < IntervalleMin || intervalle > IntervalleMax)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("L'intervalle doit être compris entre 5 et 600 secondes.")
                         ?? "L'intervalle doit être compris entre 5 et 600 secondes.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
@@ -166,7 +166,7 @@ namespace MCEMonitorClient.Config
 
             if (ServerConfigStore.Save(_config))
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("Configuration enregistrée.") ?? "Configuration enregistrée.",
                     LanguageManager.Get("OK") ?? "OK",
                     MessageBoxButton.OK, MessageBoxImage.Information);
@@ -175,7 +175,7 @@ namespace MCEMonitorClient.Config
             }
             else
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     LanguageManager.Get("Erreur lors de la sauvegarde.") ?? "Erreur lors de la sauvegarde.",
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Error);
@@ -242,7 +242,7 @@ namespace MCEMonitorClient.Config
 
             if (serveur == null) { SignalerSelection(); return; }
 
-            MessageBoxResult reponse = MessageBox.Show(this,
+            MessageBoxResult reponse = Boite.Show(this,
                 string.Format(
                     LanguageManager.Get("Voulez-vous vraiment supprimer le serveur :\n\n{0} ?")
                         ?? "Voulez-vous vraiment supprimer le serveur :\n\n{0} ?",
@@ -260,7 +260,7 @@ namespace MCEMonitorClient.Config
 
         private void SignalerSelection()
         {
-            MessageBox.Show(this,
+            Boite.Show(this,
                 LanguageManager.Get("Sélectionnez un serveur.") ?? "Sélectionnez un serveur.",
                 LanguageManager.Get("Info") ?? "Info",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -268,7 +268,7 @@ namespace MCEMonitorClient.Config
 
         private void MessageErreurSauvegarde()
         {
-            MessageBox.Show(this,
+            Boite.Show(this,
                 LanguageManager.Get("Erreur lors de la sauvegarde.") ?? "Erreur lors de la sauvegarde.",
                 LanguageManager.Get("Erreur") ?? "Erreur",
                 MessageBoxButton.OK, MessageBoxImage.Error);
@@ -296,7 +296,7 @@ namespace MCEMonitorClient.Config
             {
                 File.Copy(ServerConfigStore.GetConfigPath(), dlg.FileName, overwrite: true);
 
-                MessageBox.Show(this,
+                Boite.Show(this,
                     string.Format(
                         LanguageManager.Get("Configuration exportée : {0}") ?? "Configuration exportée : {0}",
                         dlg.FileName),
@@ -305,7 +305,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Erreur export : " + ex.Message,
+                Boite.Show(this, (LanguageManager.Get("Erreur export :") ?? "Erreur export :") + " " + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -335,7 +335,7 @@ namespace MCEMonitorClient.Config
 
                 if (importe == null)
                 {
-                    MessageBox.Show(this,
+                    Boite.Show(this,
                         LanguageManager.Get("Le fichier ne contient pas une configuration valide.")
                             ?? "Le fichier ne contient pas une configuration valide.",
                         LanguageManager.Get("Erreur") ?? "Erreur",
@@ -343,7 +343,7 @@ namespace MCEMonitorClient.Config
                     return;
                 }
 
-                MessageBoxResult confirm = MessageBox.Show(this,
+                MessageBoxResult confirm = Boite.Show(this,
                     string.Format(
                         LanguageManager.Get("Remplacer la configuration actuelle ?")
                             ?? "Remplacer la configuration actuelle ?\n\nServeurs actuels : {0}\nServeurs dans le fichier : {1}",
@@ -370,7 +370,7 @@ namespace MCEMonitorClient.Config
                     RechargerLignes();
                     AfficherOptions();
 
-                    MessageBox.Show(this,
+                    Boite.Show(this,
                         string.Format(
                             LanguageManager.Get("Configuration importée : {0} serveur(s).")
                                 ?? "Configuration importée : {0} serveur(s).",
@@ -385,7 +385,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, "Erreur import : " + ex.Message,
+                Boite.Show(this, (LanguageManager.Get("Erreur import :") ?? "Erreur import :") + " " + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -515,7 +515,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, (LanguageManager.Get("Erreur") ?? "Erreur") + " : " + ex.Message,
+                Boite.Show(this, (LanguageManager.Get("Erreur") ?? "Erreur") + " : " + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -539,7 +539,7 @@ namespace MCEMonitorClient.Config
 
         private bool Confirmer(string cle)
         {
-            return MessageBox.Show(this,
+            return Boite.Show(this,
                 LanguageManager.Get(cle) ?? cle,
                 LanguageManager.Get("Confirmation") ?? "Confirmation",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
@@ -547,7 +547,7 @@ namespace MCEMonitorClient.Config
 
         private void Informer(string cle)
         {
-            MessageBox.Show(this,
+            Boite.Show(this,
                 LanguageManager.Get(cle) ?? cle,
                 LanguageManager.Get("OK") ?? "OK",
                 MessageBoxButton.OK, MessageBoxImage.Information);
@@ -564,7 +564,7 @@ namespace MCEMonitorClient.Config
 
                 if (!File.Exists(chemin))
                 {
-                    MessageBox.Show(this,
+                    Boite.Show(this,
                         string.Format(LanguageManager.Get("Impossible de trouver :\n{0}") ?? "Impossible de trouver :\n{0}", chemin),
                         LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK, MessageBoxImage.Error);
@@ -576,7 +576,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     string.Format(LanguageManager.Get("Erreur au démarrage du service : {0}") ?? "Erreur au démarrage du service : {0}", ex.Message));
             }
         }
@@ -594,7 +594,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     string.Format(LanguageManager.Get("Erreur à l'arrêt du service : {0}") ?? "Erreur à l'arrêt du service : {0}", ex.Message));
             }
         }
@@ -621,7 +621,7 @@ namespace MCEMonitorClient.Config
 
                 if (!File.Exists(chemin))
                 {
-                    MessageBox.Show(this,
+                    Boite.Show(this,
                         string.Format(LanguageManager.Get("Impossible de trouver :\n{0}") ?? "Impossible de trouver :\n{0}", chemin),
                         LanguageManager.Get("Erreur") ?? "Erreur",
                         MessageBoxButton.OK, MessageBoxImage.Error);
@@ -633,7 +633,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     string.Format(LanguageManager.Get("Erreur au démarrage du Tray : {0}") ?? "Erreur au démarrage du Tray : {0}", ex.Message));
             }
         }
@@ -651,7 +651,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this,
+                Boite.Show(this,
                     string.Format(LanguageManager.Get("Erreur à l'arrêt du Tray : {0}") ?? "Erreur à l'arrêt du Tray : {0}", ex.Message));
             }
         }
@@ -683,7 +683,7 @@ namespace MCEMonitorClient.Config
             {
                 if (!ServiceEnCours())
                 {
-                    MessageBox.Show(this,
+                    Boite.Show(this,
                         LanguageManager.Get("Le Service MCEMonitorClient n'est pas en cours d'exécution.")
                             ?? "Le Service MCEMonitorClient n'est pas en cours d'exécution.",
                         LanguageManager.Get("Information") ?? "Information",
@@ -708,7 +708,7 @@ namespace MCEMonitorClient.Config
             }
             catch (Exception ex)
             {
-                MessageBox.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }

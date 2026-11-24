@@ -233,7 +233,6 @@ namespace MediaMonitor.UI
                 AlbumArtImage.Stretch = Stretch.Uniform;
                 AlbumArtImage.HorizontalAlignment = HorizontalAlignment.Center;
                 AlbumArtImage.VerticalAlignment = VerticalAlignment.Center;
-                VideoOverlay.Visibility = Visibility.Collapsed;
 
                 // Chargement direct depuis le disque (AlbumArt n’est pas rempli pour les images)
                 try
@@ -340,7 +339,6 @@ namespace MediaMonitor.UI
                 AlbumArtBorder.Width = 260;
                 AlbumArtBorder.Height = 146;
                 AlbumArtImage.Stretch = Stretch.UniformToFill;
-                VideoOverlay.Visibility = Visibility.Visible;
             }
             else
             {
@@ -369,7 +367,6 @@ namespace MediaMonitor.UI
                 AlbumArtBorder.Width = 120;
                 AlbumArtBorder.Height = 120;
                 AlbumArtImage.Stretch = Stretch.UniformToFill;
-                VideoOverlay.Visibility = Visibility.Collapsed;
             }
 
             // Miniature
@@ -492,9 +489,13 @@ private void LoadChannelLogo()
     }
     catch (Exception ex)
     {
-        MessageBox.Show(
-            "Erreur chargement logo DVBViewer\n\n" +
-            ex.ToString());
+        Boite.Show(this,
+            (LanguageManager.Get("Erreur de chargement du logo DVBViewer")
+                ?? "Erreur de chargement du logo DVBViewer") + "\n\n" +
+            ex.ToString(),
+            LanguageManager.Get("Erreur") ?? "Erreur",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
 
         AlbumArtImage.Source = DefaultCover;
     }

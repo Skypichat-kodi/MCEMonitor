@@ -15,8 +15,6 @@
   <!-- On retire l'inclusion implicite -->
   <ItemGroup>
     <None Remove="RomMonitor.ico" />
-    <None Remove="warning.png" />
-    <None Remove="critical.png" />
     <None Remove="romok.png" />
     <None Remove="hdd-critical.png" />
   </ItemGroup>
@@ -24,8 +22,6 @@
   <!-- On les embarque dans l'assembly -->
   <ItemGroup>
     <EmbeddedResource Include="RomMonitor.ico" LogicalName="RomMonitor.ico" />
-    <EmbeddedResource Include="warning.png"    LogicalName="warning.png" />
-    <EmbeddedResource Include="critical.png"   LogicalName="critical.png" />
     <EmbeddedResource Include="romok.png"        LogicalName="romok.png" />
     <EmbeddedResource Include="hdd-critical.png" LogicalName="hdd-critical.png" />
   </ItemGroup>
