@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
+using System.Xml.Linq;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service.Services;
@@ -469,7 +470,7 @@ public sealed class ProcessTrustService
                 if (!string.Equals(actualHash, pathMatch.Sha256, StringComparison.OrdinalIgnoreCase))
                 {
                     // Le hash a changé. Vérifier si c'est une MAJ légitime (signature OK)
-                    string? newPublisher       = TryGetAuthenticodePublisher(fullPath);
+                    string? newPublisher       = TryGetPublisher(fullPath);
                     string? entryPublisherName = GetPublisherName(pathMatch.Publisher);
 
                     if (newPublisher != null
@@ -512,7 +513,7 @@ public sealed class ProcessTrustService
             string? publisher = null;
             if (!string.IsNullOrWhiteSpace(pathMatch.Publisher))
             {
-                publisher = TryGetAuthenticodePublisher(fullPath);
+                publisher = TryGetPublisher(fullPath);
                 if (publisher == null)
                 {
                     return new ProcessTrustResult
@@ -557,7 +558,7 @@ public sealed class ProcessTrustService
         //          → vérifier si c'est un changement de dossier
         //            d'un éditeur déjà connu (contrôle manuel)
         // ============================================================
-        string? changedPublisher = TryGetAuthenticodePublisher(fullPath);
+        string? changedPublisher = TryGetPublisher(fullPath);
 
         if (changedPublisher != null)
         {
@@ -656,6 +657,186 @@ public sealed class ProcessTrustService
         catch { return null; }
     }
 
+    // ============================================================
+    //  Signature par catalogue Windows
+    //
+    //  La plupart des exécutables de Windows 10 et 11 — y compris
+    //  svchost.exe, smartscreen.exe, DeviceCensus.exe — ne portent AUCUNE
+    //  signature dans le fichier : ils sont signés par un catalogue, un
+    //  fichier .cat signé, rangé dans CatRoot et associé au binaire par le
+    //  hash de son contenu. Sans cette recherche, ces binaires passaient
+    //  pour non signés : ni auto-trust Microsoft, ni filtre système —
+    //  d'où la liste des processus à approuver qui se remplissait toute
+    //  seule.
+    // ============================================================
+    [DllImport("wintrust.dll", SetLastError = true)]
+    private static extern bool CryptCATAdminAcquireContext(out IntPtr phCatAdmin, IntPtr pgSubsystem, uint dwFlags);
+
+    [DllImport("wintrust.dll", SetLastError = true)]
+    private static extern bool CryptCATAdminCalcHashFromFileHandle(IntPtr hFile, ref uint pcbHash, byte[]? pbHash, uint dwFlags);
+
+    [DllImport("wintrust.dll", SetLastError = true)]
+    private static extern IntPtr CryptCATAdminEnumCatalogFromHash(IntPtr hCatAdmin, byte[] pbHash, uint cbHash, uint dwFlags, ref IntPtr phCatInfo);
+
+    [DllImport("wintrust.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    private static extern bool CryptCATCatalogInfoFromContext(IntPtr hCatInfo, ref CatalogInfo psCatInfo, uint dwFlags);
+
+    [DllImport("wintrust.dll")]
+    private static extern bool CryptCATAdminReleaseCatalogContext(IntPtr hCatAdmin, IntPtr hCatInfo, uint dwFlags);
+
+    [DllImport("wintrust.dll")]
+    private static extern bool CryptCATAdminReleaseContext(IntPtr hCatAdmin, uint dwFlags);
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct CatalogInfo
+    {
+        public uint cbStruct;
+
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        public string wszCatalogFile;
+    }
+
+    /// <summary>
+    /// Retrouve le catalogue Windows auquel appartient un fichier et retourne
+    /// son chemin, ou null si le fichier n'est dans aucun catalogue.
+    /// </summary>
+    internal static string? TryGetCatalogFile(string filePath)
+    {
+        IntPtr hCatAdmin = IntPtr.Zero;
+        IntPtr hCatInfo  = IntPtr.Zero;
+
+        try
+        {
+            if (!CryptCATAdminAcquireContext(out hCatAdmin, IntPtr.Zero, 0))
+                return null;
+
+            uint tailleHash = 0;
+
+            using (var flux = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                IntPtr hFichier = flux.SafeFileHandle.DangerousGetHandle();
+
+                // Premier appel : seulement la taille du hash.
+                if (!CryptCATAdminCalcHashFromFileHandle(hFichier, ref tailleHash, null, 0))
+                    return null;
+
+                if (tailleHash == 0 || tailleHash > 128)
+                    return null;
+
+                var hash = new byte[tailleHash];
+
+                if (!CryptCATAdminCalcHashFromFileHandle(hFichier, ref tailleHash, hash, 0))
+                    return null;
+
+                hCatInfo = CryptCATAdminEnumCatalogFromHash(hCatAdmin, hash, tailleHash, 0, ref hCatInfo);
+
+                if (hCatInfo == IntPtr.Zero)
+                    return null;
+            }
+
+            var info = new CatalogInfo { cbStruct = (uint)Marshal.SizeOf(typeof(CatalogInfo)) };
+
+            if (!CryptCATCatalogInfoFromContext(hCatInfo, ref info, 0))
+                return null;
+
+            return string.IsNullOrWhiteSpace(info.wszCatalogFile) ? null : info.wszCatalogFile;
+        }
+        catch { return null; }
+        finally
+        {
+            if (hCatInfo != IntPtr.Zero && hCatAdmin != IntPtr.Zero)
+                CryptCATAdminReleaseCatalogContext(hCatAdmin, hCatInfo, 0);
+
+            if (hCatAdmin != IntPtr.Zero)
+                CryptCATAdminReleaseContext(hCatAdmin, 0);
+        }
+    }
+
+    // Mémoïse le résultat par chemin : le hash d'un binaire de plusieurs mégaoctets
+    // ne se recalcule pas à chaque paquet. Trente minutes suffisent — une mise à jour
+    // de Windows sera vue au plus tard au bout de ce délai, ou au redémarrage.
+    private static readonly ConcurrentDictionary<string, (string? Editeur, DateTime Vu)> _cacheEditeur = new();
+    private static readonly TimeSpan CacheEditeurTtl = TimeSpan.FromMinutes(30);
+
+    /// <summary>
+    /// Éditeur déclaré par un paquet du Microsoft Store (MSIX).
+    ///
+    /// Ces paquets n'ont ni signature dans l'exécutable ni catalogue dans CatRoot :
+    /// leur identité est portée par AppxManifest.xml, que Windows valide au moment
+    /// de l'installation. Le dossier WindowsApps est en lecture seule et protégé
+    /// par TrustedInstaller : falsifier ce manifeste suppose déjà les droits SYSTEM,
+    /// c'est-à-dire le pouvoir de faire bien pire.
+    ///
+    /// Ce n'est donc pas une preuve cryptographique, mais un faisceau : chemin
+    /// WindowsApps, paquet installé, éditeur déclaré cohérent.
+    /// </summary>
+    private static string? TryGetPackagePublisher(string filePath)
+    {
+        try
+        {
+            const string racine = @"\WindowsApps\";
+
+            int debut = filePath.IndexOf(racine, StringComparison.OrdinalIgnoreCase);
+            if (debut < 0) return null;
+
+            int finDossier = filePath.IndexOf('\\', debut + racine.Length);
+            if (finDossier < 0) return null;
+
+            string dossier    = filePath[..finDossier];
+            string manifeste  = Path.Combine(dossier, "AppxManifest.xml");
+
+            if (!File.Exists(manifeste)) return null;
+
+            var doc = XDocument.Load(manifeste);
+
+            var identite = doc.Root?.Elements().FirstOrDefault(e => e.Name.LocalName == "Identity");
+            string? editeur = identite?.Attribute("Publisher")?.Value;
+
+            return string.IsNullOrWhiteSpace(editeur) ? null : editeur;
+        }
+        catch { return null; }
+    }
+
+    /// <summary>
+    /// Éditeur d'un binaire, que la signature soit embarquée dans le fichier ou
+    /// portée par un catalogue Windows.
+    /// </summary>
+    internal static string? TryGetPublisher(string filePath)
+    {
+        if (string.IsNullOrWhiteSpace(filePath))
+            return null;
+
+        if (_cacheEditeur.TryGetValue(filePath, out var memo) && DateTime.UtcNow - memo.Vu < CacheEditeurTtl)
+            return memo.Editeur;
+
+        string? editeur = TryGetAuthenticodePublisher(filePath);
+
+        if (editeur == null)
+        {
+            string? catalogue = TryGetCatalogFile(filePath);
+
+            if (catalogue != null)
+            {
+                // Le fichier .cat est lui-même signé en dur : le hash du membre a
+                // déjà été retrouvé dedans, la signature du catalogue fait foi.
+                editeur = TryGetAuthenticodePublisher(catalogue);
+
+                if (editeur != null)
+                    CoreLog.Debug($"[TRUST] {Path.GetFileName(filePath)} : signé par catalogue ({Path.GetFileName(catalogue)})");
+            }
+        }
+
+        // Paquets du Store : identité déclarée par AppxManifest.xml.
+        if (editeur == null)
+            editeur = TryGetPackagePublisher(filePath);
+
+        if (_cacheEditeur.Count > 500)
+            _cacheEditeur.Clear();
+
+        _cacheEditeur[filePath] = (editeur, DateTime.UtcNow);
+        return editeur;
+    }
+
     /// <summary>
     /// Vérifie la signature Authenticode et retourne le SUBJECT du certificat signataire
     /// (ex. "CN=Microsoft Corporation, O=Microsoft Corporation, ...").
@@ -748,7 +929,9 @@ public sealed class ProcessTrustService
         if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             return false;
 
-        string? publisher = TryGetAuthenticodePublisher(filePath);
+        // Signature embarquée, puis catalogue Windows : sans la seconde, la
+        // quasi-totalité des binaires système passait pour non signée.
+        string? publisher = TryGetPublisher(filePath);
         if (string.IsNullOrEmpty(publisher))
             return false;
 

@@ -2009,6 +2009,15 @@ namespace NetMonitor.Service
             if (string.IsNullOrWhiteSpace(processPath)) return false;
             if (_processTrust == null) return false;
 
+            // Un processus dont le chemin n'a pas pu être lu n'a pas d'entrée
+            // utilisable : la clé « [no-path]::Nom » ne correspondra jamais au
+            // chemin réel, et le processus reviendrait indéfiniment dans la liste.
+            if (processPath.StartsWith("[no-path]::", StringComparison.OrdinalIgnoreCase))
+            {
+                CoreLog.Warn($"Approbation refusée : chemin inconnu pour {processPath[11..]} — relancez la détection quand le processus tourne");
+                return false;
+            }
+
             // Cherche le processus en attente pour récupérer son nom
             PendingProcessInfo? pending;
             lock (_pendingLock)
