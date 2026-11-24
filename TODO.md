@@ -124,20 +124,18 @@ _(rien)_
   - Revoir la présentation de la liste des serveurs, aujourd'hui encombrée
   - **Priorité** : 🟡 moyenne
 
-- [ ] **Alertes de surcharge disque dans les clients** *(RomMonitor)*
-  - Les lectures et écritures sont déjà surveillées côté service, mais aucun client ne les remonte :
-    ajouter l'icône d'alerte dans les clients Windows (Tray) et Android, à côté des états CPU, RAM et
-    disque
-  - L'API du service RomMonitor doit être complétée pour publier la mesure et son état
-  - Même principe que la surcharge disque déjà traitée côté SystemMonitor
-  - **Priorité** : 🟡 moyenne (trois chantiers liés : service, Tray, Android)
-
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
 ### 🟢 Opportuniste
+
+- [ ] **Supprimer les icônes d'alerte devenues inutiles** *(RomMonitor.Tray)*
+  - `warning.png` et `critical.png` ne sont plus référencés depuis que le Tray utilise les icônes du
+    client de configuration (`romok.png`, `hdd-critical.png`)
+  - Les retirer du projet et de `RomMonitor.Tray.csproj`
+  - **Priorité** : 🟢 basse (nettoyage)
 
 - [ ] **MediaMonitor : retirer l'overlay des logos REC et TV**
   - Dans la popup d'informations, l'overlay de lecture se superpose au logo de chaîne et au logo
@@ -195,6 +193,39 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — surcharges d'E/S visibles dans les clients
+
+**Requêtes ou débit : la confusion était dans le message.**
+
+- l'alerte annonçait un pourcentage d'occupation et deux débits, alors que ce sont les **requêtes** qui
+  saturent un disque. Un disque peut être à genoux en échangeant quelques centaines de kilo-octets par
+  seconde, s'il s'agit de milliers de petites E/S
+- deux compteurs ajoutés (`DiskReadsPerSec`, `DiskWritesPerSec`) ; message et mail présentent désormais
+  les requêtes, la file d'attente, puis le débit — présenté comme une conséquence
+- cas réel : une base SQLite mal en point, 588 % d'occupation pour 0,2 Mo/s
+- `PercentDiskTime` **n'est pas borné à 100 %** : sa valeur élevée est parlante, elle n'est pas plafonnée,
+  et le libellé devient « temps d'occupation »
+
+**Les alertes remontent enfin dans les clients.**
+
+- `WorstSeverity` ignorait les E/S : ni l'icône du Tray ni celle d'Android ne changeaient. C'est la cause
+  du silence côté clients alors que le mail partait
+- `LastIo` conserve le relevé, comme `LastDisks` et `LastSmart` ; `/api/summary` et `/api/detail`
+  publient la catégorie `DiskIo` ; nouvelle commande IPC `get-io`, seuils exposés dans `get-config`
+- Tray : interroge `get-io`, ajoute le problème à la liste, libellé « Disque »
+- Android : `ProblemKind.DiskIo`, libellé « Disque (E/S) », et traduction des catégories techniques
+- seul le relevé courant compte : une surcharge passée ne laisse pas l'icône bloquée en alerte
+
+**Icônes.**
+
+- `romok.png` et `hdd-critical.png`, copiées du client de configuration, remplacent `warning.png` et
+  `critical.png` : RomMonitor ne surveille que des disques, l'icône le dit maintenant
+- côté Android, `hdd_critical` pour la variante critique
+
+**Non modifié volontairement** : le filtre des lecteurs réseau. `I:` d'un serveur est un partage
+`\\192.168.1.19\medias 3`, et sa valeur aberrante venait d'un disque réellement saturé, pas d'un défaut de
+mesure.
 
 ### Session 2026-11-23 — filtres, finitions graphiques, release 3.0.9
 
