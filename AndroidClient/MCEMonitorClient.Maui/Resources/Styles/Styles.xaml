@@ -398,17 +398,20 @@
         <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
     </Style>
 
+    <!-- Couleurs de la barre de navigation. Le gabarit MAUI affichait le titre en
+         violet (#9880e5) en thème sombre, et les couleurs des onglets en magenta
+         (#D600AA) en thème clair. -->
     <Style TargetType="Shell" ApplyToDerivedTypes="True">
-        <Setter Property="Shell.BackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource OffBlack}}" />
-        <Setter Property="Shell.ForegroundColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}" />
-        <Setter Property="Shell.TitleColor" Value="{AppThemeBinding Light={StaticResource Black}, Dark={StaticResource SecondaryDarkText}}" />
-        <Setter Property="Shell.DisabledColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
-        <Setter Property="Shell.UnselectedColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray200}}" />
+        <Setter Property="Shell.BackgroundColor" Value="#14212B" />
+        <Setter Property="Shell.ForegroundColor" Value="#4CC2FF" />
+        <Setter Property="Shell.TitleColor" Value="#4CC2FF" />
+        <Setter Property="Shell.DisabledColor" Value="#5A5A5E" />
+        <Setter Property="Shell.UnselectedColor" Value="#B4B4B4" />
         <Setter Property="Shell.NavBarHasShadow" Value="False" />
-        <Setter Property="Shell.TabBarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Black}}" />
-        <Setter Property="Shell.TabBarForegroundColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
-        <Setter Property="Shell.TabBarTitleColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
-        <Setter Property="Shell.TabBarUnselectedColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource Gray200}}" />
+        <Setter Property="Shell.TabBarBackgroundColor" Value="#101820" />
+        <Setter Property="Shell.TabBarForegroundColor" Value="#4CC2FF" />
+        <Setter Property="Shell.TabBarTitleColor" Value="#4CC2FF" />
+        <Setter Property="Shell.TabBarUnselectedColor" Value="#B4B4B4" />
     </Style>
 
     <Style TargetType="NavigationPage">
@@ -418,10 +421,10 @@
     </Style>
 
     <Style TargetType="TabbedPage">
-        <Setter Property="BarBackgroundColor" Value="{AppThemeBinding Light={StaticResource White}, Dark={StaticResource Gray950}}" />
-        <Setter Property="BarTextColor" Value="{AppThemeBinding Light={StaticResource Magenta}, Dark={StaticResource White}}" />
-        <Setter Property="UnselectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource Gray950}}" />
-        <Setter Property="SelectedTabColor" Value="{AppThemeBinding Light={StaticResource Gray950}, Dark={StaticResource Gray200}}" />
+        <Setter Property="BarBackgroundColor" Value="#101820" />
+        <Setter Property="BarTextColor" Value="#4CC2FF" />
+        <Setter Property="UnselectedTabColor" Value="#B4B4B4" />
+        <Setter Property="SelectedTabColor" Value="#4CC2FF" />
     </Style>
 
 </ResourceDictionary>

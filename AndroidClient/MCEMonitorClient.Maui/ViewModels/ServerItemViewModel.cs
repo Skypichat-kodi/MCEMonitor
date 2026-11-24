@@ -35,6 +35,25 @@ namespace MCEMonitorClient.Maui.ViewModels
 
         public event PropertyChangedEventHandler? PropertyChanged;
 
+        /// <summary>
+        /// Serveur retenu par l'utilisateur. La sélection est gérée ici et non par
+        /// le CollectionView : sur Android, celui-ci dessine sa propre surbrillance
+        /// (orange sur certains appareils) que rien dans le XAML ne peut changer.
+        /// </summary>
+        private bool _isSelected;
+        public bool IsSelected
+        {
+            get => _isSelected;
+            set
+            {
+                if (_isSelected != value)
+                {
+                    _isSelected = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
+
         protected void OnPropertyChanged([CallerMemberName] string? name = null)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
     }

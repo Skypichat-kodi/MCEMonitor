@@ -109,7 +109,18 @@ public partial class MainPage : ContentPage
 
     private ServerItemViewModel? GetSelected()
     {
-        return serversList.SelectedItem as ServerItemViewModel;
+        return _servers.FirstOrDefault(s => s.IsSelected);
+    }
+
+    /// <summary>
+    /// Retient un serveur et retire la marque des autres. Le CollectionView est en
+    /// SelectionMode=None : c'est le modèle qui porte l'état, afin d'éviter la
+    /// surbrillance native d'Android.
+    /// </summary>
+    private void SelectServer(ServerItemViewModel vm)
+    {
+        foreach (var s in _servers)
+            s.IsSelected = ReferenceEquals(s, vm);
     }
 
     private async void OnAddClicked(object sender, EventArgs e)
@@ -149,17 +160,12 @@ public partial class MainPage : ContentPage
         await Task.CompletedTask;
     }
 
-    private void OnServerSelected(object sender, SelectionChangedEventArgs e)
-    {
-        // Plus utilisé : on passe par OnServerTapped + menu contextuel
-    }
-
     private async void OnServerTapped(object sender, TappedEventArgs e)
     {
         if (sender is not Border border || border.BindingContext is not ServerItemViewModel vm)
             return;
 
-        serversList.SelectedItem = vm;
+        SelectServer(vm);
 
         // Déterminer si le serveur est online (état connu du dernier poll)
         string knownStatus = PollingState.GetStatus(vm.Server.Id);
