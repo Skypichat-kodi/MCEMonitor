@@ -964,10 +964,13 @@
                             <Grid Margin="0,10,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="140"/>
+                                    <!-- Colonne des libellés : élargie, « Seuil Temp. CPU (°C) : »
+                                         n y tenait pas et venait buter sur le champ. -->
+                                    <ColumnDefinition Width="210"/>
                                     <ColumnDefinition Width="Auto"/>
                                 </Grid.ColumnDefinitions>
                                 <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
                                     <RowDefinition Height="Auto"/>
@@ -1014,7 +1017,7 @@
                                           Width="220"/>
                                 <TextBlock Grid.Row="2" Grid.Column="1"
                                            Text="{loc:Tr 'Seuil Temp. CPU (°C) :'}"
-                                           Margin="0,10,0,0"
+                                           Margin="0,10,10,0"
                                            VerticalAlignment="Center"/>
                                 <TextBox x:Name="txtTempThreshold"
                                          Grid.Row="2" Grid.Column="2"
