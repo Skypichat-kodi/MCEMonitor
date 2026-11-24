@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="colorPrimary">#512BD4</color>
-    <color name="colorPrimaryDark">#2B0B98</color>
-    <color name="colorAccent">#2B0B98</color>
+    <!-- Couleurs de la barre système Android. Les valeurs du gabarit MAUI étaient
+         violettes (#512BD4) et juraient avec le reste de l'application, toute en
+         gris et bleu. -->
+    <color name="colorPrimary">#14212B</color>
+    <color name="colorPrimaryDark">#101820</color>
+    <color name="colorAccent">#4CC2FF</color>
 </resources>

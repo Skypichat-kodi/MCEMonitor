@@ -106,7 +106,6 @@ namespace MCEMonitorClient.Maui.ViewModels
         public ObservableCollection<NetPendingItem> Pending { get; } = new();
         public ObservableCollection<NetWhitelistItem> Whitelist { get; } = new();
         public ObservableCollection<NetProblemItem> Problems { get; } = new();
-        public ObservableCollection<NetTopIpItem> TopIps { get; } = new();
         public ObservableCollection<NetTopCountryItem> TopCountries { get; } = new();
         public ObservableCollection<NetTopDetectorItem> TopDetectors { get; } = new();
 
@@ -120,7 +119,6 @@ namespace MCEMonitorClient.Maui.ViewModels
         public bool HasWhitelist => Whitelist.Count > 0;
         public bool HasNoWhitelist => Whitelist.Count == 0;
         public bool HasProblems => Problems.Count > 0;
-        public bool HasTopIps => TopIps.Count > 0;
         public bool HasTopCountries => TopCountries.Count > 0;
         public bool HasTopDetectors => TopDetectors.Count > 0;
 
@@ -349,20 +347,9 @@ namespace MCEMonitorClient.Maui.ViewModels
             // ---- Stats ----
             StatsSummaryText = $"{d.Stats.TotalAlerts} alerte(s)  ·  {d.Stats.DistinctIps} IP(s)  ·  {d.Stats.DistinctCountries} pays";
 
-            TopIps.Clear();
-            foreach (var ip in d.Stats.TopIps)
-            {
-                TopIps.Add(new NetTopIpItem
-                {
-                    Ip = ip.Ip,
-                    Count = ip.Count,
-                    MaxSeverity = ip.MaxSeverity,
-                    SeverityColor = SeverityColor(ip.MaxSeverity),
-                    Location = FormatLocation(ip.Country, ip.CountryCode),
-                    Isp = ip.Isp ?? ""
-                });
-            }
-            OnPropertyChanged(nameof(HasTopIps));
+            // Les meilleures IP ne sont plus affichées : sur un écran de téléphone,
+            // la carte prenait la place des informations utiles sans rien apprendre
+            // qu'une liste de blocages ne dise déjà.
 
             TopCountries.Clear();
             foreach (var c in d.Stats.TopCountries)
@@ -504,16 +491,6 @@ namespace MCEMonitorClient.Maui.ViewModels
         public Color SeverityColor { get; set; } = Colors.Gray;
         public string Category { get; set; } = "";
         public string Message { get; set; } = "";
-    }
-
-    public class NetTopIpItem
-    {
-        public string Ip { get; set; } = "";
-        public int Count { get; set; }
-        public string MaxSeverity { get; set; } = "";
-        public Color SeverityColor { get; set; } = Colors.Gray;
-        public string Location { get; set; } = "";
-        public string Isp { get; set; } = "";
     }
 
     public class NetTopCountryItem

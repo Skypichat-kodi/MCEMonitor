@@ -3,8 +3,17 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:converters="clr-namespace:MCEMonitorClient.Maui.Converters"
              x:Class="MCEMonitorClient.Maui.MainPage"
-             Title="Serveurs"
-             BackgroundColor="#1E1E1E">
+             Title="Serveurs">
+
+    <!-- Fond de page : dégradé sombre bleuté, en harmonie avec la couleur d'accent.
+         Le gris uniforme donnait une page plate. -->
+    <ContentPage.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#1A1A1E" Offset="0.0" />
+            <GradientStop Color="#14212B" Offset="0.55" />
+            <GradientStop Color="#101820" Offset="1.0" />
+        </LinearGradientBrush>
+    </ContentPage.Background>
 
     <Grid RowDefinitions="Auto,*,Auto,Auto" Padding="12" RowSpacing="12">
 
@@ -39,6 +48,35 @@
                 <DataTemplate>
                     <Border Margin="0,4" Padding="12" StrokeShape="RoundRectangle 8"
                             BackgroundColor="#252526" Stroke="#3C3C3C" StrokeThickness="1">
+                        <!-- La sélection prenait le fond orange par défaut de MAUI. On lui
+                             préfère un relief : bordure d'accent et ombre portée, le fond
+                             reste celui de la carte. -->
+                        <VisualStateManager.VisualStateGroups>
+                            <VisualStateGroup Name="CommonStates">
+                                <VisualState Name="Normal">
+                                    <VisualState.Setters>
+                                        <Setter Property="Stroke" Value="#3C3C3C" />
+                                        <Setter Property="Shadow">
+                                            <Setter.Value>
+                                                <Shadow Brush="Black" Offset="0,2" Radius="6" Opacity="0.25" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </VisualState.Setters>
+                                </VisualState>
+                                <VisualState Name="Selected">
+                                    <VisualState.Setters>
+                                        <Setter Property="Stroke" Value="#4CC2FF" />
+                                        <Setter Property="StrokeThickness" Value="2" />
+                                        <Setter Property="Shadow">
+                                            <Setter.Value>
+                                                <Shadow Brush="#4CC2FF" Offset="0,5" Radius="14" Opacity="0.45" />
+                                            </Setter.Value>
+                                        </Setter>
+                                    </VisualState.Setters>
+                                </VisualState>
+                            </VisualStateGroup>
+                        </VisualStateManager.VisualStateGroups>
+
                         <Border.GestureRecognizers>
                             <TapGestureRecognizer Tapped="OnServerTapped" />
                         </Border.GestureRecognizers>

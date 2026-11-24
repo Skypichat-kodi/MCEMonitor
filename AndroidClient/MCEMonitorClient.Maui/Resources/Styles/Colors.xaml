@@ -6,8 +6,12 @@
 
     <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
-    <Color x:Key="Primary">#512BD4</Color>
-    <Color x:Key="PrimaryDark">#ac99ea</Color>
+    <!-- Couleur d'accent de l'application. Le violet #512BD4 du gabarit MAUI jurait
+         avec le reste, tout en gris et bleu. -->
+    <Color x:Key="Primary">#4CC2FF</Color>
+    <!-- Fond des boutons en thème sombre : un bleu très sombre, pour que le texte
+         clair reste lisible. -->
+    <Color x:Key="PrimaryDark">#1E3A4D</Color>
     <Color x:Key="PrimaryDarkText">#242424</Color>
     <Color x:Key="Secondary">#DFD8F7</Color>
     <Color x:Key="SecondaryDarkText">#9880e5</Color>

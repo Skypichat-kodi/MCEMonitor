@@ -279,43 +279,6 @@
                     </Border>
 
                     <!-- ============================================================ -->
-                    <!-- Top IPs -->
-                    <!-- ============================================================ -->
-                    <Border IsVisible="{Binding HasTopIps}"
-                            BackgroundColor="#252526" Stroke="#3C3C3C"
-                            StrokeThickness="1" StrokeShape="RoundRectangle 8"
-                            Padding="14">
-                        <VerticalStackLayout Spacing="10">
-                            <Label Text="TOP IPs"
-                                   FontSize="12" FontAttributes="Bold"
-                                   TextColor="#4CC2FF" />
-                            <VerticalStackLayout BindableLayout.ItemsSource="{Binding TopIps}"
-                                                 Spacing="8">
-                                <BindableLayout.ItemTemplate>
-                                    <DataTemplate>
-                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
-                                            <Ellipse Grid.Column="0"
-                                                     WidthRequest="8" HeightRequest="8"
-                                                     Fill="{Binding SeverityColor}"
-                                                     VerticalOptions="Center" />
-                                            <VerticalStackLayout Grid.Column="1" Spacing="2">
-                                                <Label Text="{Binding Ip}"
-                                                       FontSize="13" TextColor="#E5E5E5" />
-                                                <Label Text="{Binding Isp}"
-                                                       FontSize="10" TextColor="#888888" />
-                                            </VerticalStackLayout>
-                                            <Label Grid.Column="2"
-                                                   Text="{Binding Count, StringFormat='x{0}'}"
-                                                   FontSize="13" FontAttributes="Bold"
-                                                   TextColor="#FFB900" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </BindableLayout.ItemTemplate>
-                            </VerticalStackLayout>
-                        </VerticalStackLayout>
-                    </Border>
-
-                    <!-- ============================================================ -->
                     <!-- Top pays -->
                     <!-- ============================================================ -->
                     <Border IsVisible="{Binding HasTopCountries}"
