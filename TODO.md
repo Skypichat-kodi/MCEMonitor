@@ -96,15 +96,6 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **NetMonitor : exécutables Microsoft approuvés en boucle**
-  - Des exécutables Microsoft reviennent sans arrêt dans la liste des processus à approuver, malgré une
-    approbation. À investiguer : comparaison chemin + empreinte au moment de l'approbation, mise à jour
-    de l'exécutable entre deux passages, ou processus relancé depuis un chemin différent
-  - Vérifier la mise en cache de la liste des processus de confiance, et la persistance de
-    `trusted_processes.json` (clé ajoutée, puis relue au démarrage)
-  - Conséquence actuelle : bruit permanent et risque de reflexe d'approbation chez l'utilisateur
-  - **Priorité** : 🔴 haute (gêne quotidienne)
-
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (743 clés) et `en-GB` (698 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
@@ -174,6 +165,35 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — signatures par catalogue Windows
+
+Les exécutables Microsoft revenaient sans arrêt dans la liste des processus à approuver, malgré une
+approbation. La cause n était pas l approbation mais la **lecture de la signature** : la quasi-totalité des
+binaires de Windows 10 et 11 — `svchost`, `smartscreen`, `DeviceCensus`, `cleanmgr`, `MoUsoCoreWorker`,
+`GameBarPresenceWriter`, `SoftLandingTask` — ne portent aucune signature dans le fichier. Ils sont signés
+par un **catalogue** : un `.cat` rangé dans `CatRoot`, relié au binaire par le hash de son contenu.
+`TryGetAuthenticodePublisher` n appelait `WinVerifyTrust` qu avec `WTD_CHOICE_FILE`, donc ces binaires
+passaient pour non signés : ni auto-trust « signé Microsoft », ni filtre système, et une entrée dans la
+liste à chaque nouvelle connexion.
+
+**Lecture des catalogues** : `CryptCATAdminCalcHashFromFileHandle` puis `CryptCATAdminEnumCatalogFromHash`,
+le `.cat` trouvé étant lui-même signé en dur. Résultat mémoïsé 30 minutes par chemin : hacher un binaire de
+plusieurs mégaoctets à chaque paquet aurait coûté cher.
+
+**Paquets du Store** : pas de catalogue dans `CatRoot`. L éditeur est lu dans `AppxManifest.xml`. Ce n est
+pas une preuve cryptographique — le dossier `WindowsApps` est en lecture seule et protégé par
+TrustedInstaller, falsifier ce manifeste suppose déjà les droits SYSTEM — mais c est un faisceau suffisant
+pour ne pas noyer la liste.
+
+**Plus d entrée `[no-path]::Nom`** à l approbation : cette clé ne peut correspondre à aucun chemin réel, et
+le processus revenait indéfiniment. L approbation est refusée, avec un message dans le journal.
+
+Vérifié en appelant le service compilé : `smartscreen`, `DeviceCensus`, `cleanmgr` et `svchost` donnent
+`O=Microsoft Corporation` ; le paquet `MicrosoftStartFeedProvider` donne `CN=Microsoft Corporation` ;
+`Discord.exe` reste `CN=Discord Inc.` ; `MCEMonitor.Languages.dll` ne donne aucun éditeur.
+
+Installé sur le serveur Windows 10 de Christophe et sur le PC de dev. À confirmer sur la durée.
 
 ### Session 2026-11-24 — coches de blocage automatique dans MCEMonitor
 
