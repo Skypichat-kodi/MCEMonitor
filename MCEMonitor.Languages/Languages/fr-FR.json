@@ -20,6 +20,7 @@
   "Media.Task.Delete": "Supprimer tâche planifiée",
   "Media.UI.Open": "Ouvrir MediaMonitor",
   "Wake.Description": "WakeMonitor peut vous remonter des informations qui ont provoqué le réveil de votre machine.\nCes informations sont envoyées par mail.",
+  "Nb/T": "Nb/T",
   "Wake.Options.Title": "Indications à donner dans le mail",
   "Wake.Option.PublicIP": "Inclure IP publique",
   "Wake.Option.LocalIP": "Inclure IP locale",

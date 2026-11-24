@@ -1145,7 +1145,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Nb/T'}" SortMemberPath="Count" Width="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -1369,7 +1369,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Nb/T'}" SortMemberPath="Count" Width="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -1825,7 +1825,7 @@
                             <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                             
                             <!-- COLONNE TENTATIVES -->
-                            <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="130">
+                            <DataGridTemplateColumn Header="{loc:Tr 'Nb/T'}" SortMemberPath="RetryCount" Width="70">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -2117,7 +2117,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130" MinWidth="130">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Nb/T'}" SortMemberPath="Count" Width="70" MinWidth="70">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"

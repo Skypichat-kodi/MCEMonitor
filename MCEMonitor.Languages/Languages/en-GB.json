@@ -17,6 +17,7 @@
   "Media.Task.Delete": "Delete scheduled task",
   "Media.UI.Open": "Open MediaMonitor",
   "Wake.Description": "WakeMonitor can report information about what caused your machine to wake up.\nThis information is sent by email.",
+  "Nb/T": "No./Try",
   "Wake.Options.Title": "Information to include in the email",
   "Wake.Option.PublicIP": "Include public IP",
   "Wake.Option.LocalIP": "Include local IP",
