@@ -103,68 +103,59 @@ _(rien)_
 
 ### 🟢 Opportuniste
 
-- [ ] **Supprimer les icônes d'alerte devenues inutiles** *(RomMonitor.Tray)*
-  - `warning.png` et `critical.png` ne sont plus référencés depuis que le Tray utilise les icônes du
-    client de configuration (`romok.png`, `hdd-critical.png`)
-  - Les retirer du projet et de `RomMonitor.Tray.csproj`
-  - **Priorité** : 🟢 basse (nettoyage)
-
-- [ ] **MediaMonitor : retirer l'overlay des logos REC et TV**
-  - Dans la popup d'informations, l'overlay de lecture se superpose au logo de chaîne et au logo
-    d'enregistrement. Il n'a de sens que sur une miniature vidéo
-  - **Priorité** : 🟢 basse (esthétique)
-
-- [ ] **Harmoniser le gris des en-têtes de tableau**
-  - NetMonitor utilise `#D4D4D4` (Connexions, Appareils de confiance), les modules `#E0E0E0`
-  - Écart volontairement laissé de côté pendant la session « thème clair » : à unifier ou à assumer
-  - **Priorité** : 🟢 basse (esthétique)
-
 - [ ] **Vérifier les fenêtres secondaires des modules en thème clair**
-  - Les fenêtres d'aperçu, de détail et de confirmation des quatre modules n'ont été regardées qu'en
-    thème sombre. Elles héritent des clés, donc *a priori* correctes, mais rien ne l'a confirmé
+  - Les fenêtres d'aperçu et de détail des quatre modules n'ont été regardées qu'en thème sombre
+  - Les boîtes de dialogue, elles, sont désormais thémées : reste à confirmer leur rendu en clair
   - **Priorité** : 🟢 basse
 
-- [ ] **Rendre réglable le seuil de suivi des processus** *(SystemMonitor)*
-  - Le seuil de 10 % qui fait entrer un processus dans le graphique CPU est une constante du service
-    (`SeuilProcessus`), comme le plafond de cinq courbes et la durée de cinq minutes
-  - Le placer dans l'onglet Configuration de SystemMonitor.UI, à côté des seuils CPU et RAM
-  - Envisager un seuil distinct pour l'historisation, si 10 % produit trop d'entrées `ProcessHigh`
-  - **Priorité** : 🟢 basse (demandé « plus tard » par Christophe)
-
-- [ ] **Étendre l'aperçu de courbe aux alertes globales**
-  - Seules les entrées `ProcessHigh` portent une série (`Alert.CpuSeries`). Une alerte CPU ou RAM
-    n'a pas de courbe consultable
-  - Le moteur a l'historique global sous la main au moment où l'alerte est créée : l'attacher est direct
-  - **Priorité** : 🟢 basse
-
-- [ ] **Supprimer `Theme.cs` du client de configuration**
-  - Palette WinForms (`Color`, `Font`) devenue inutilisée depuis la bascule en WPF ; plus personne ne la lit
-  - **Priorité** : 🟢 basse (nettoyage)
-
-- [ ] **Traduire les messages d'erreur propres à chaque module**
-  - Restent en français dans le code : « Xxx.Service.exe introuvable », « Impossible d'arrêter Xxx.Service tant que Xxx.UI est ouvert », « Erreur lors de l'ouverture de Xxx.UI », etc.
-  - Une trentaine de chaînes, réparties sur les six modules. Les messages d'interface (popup SMTP, fenêtre des MAC, avertissements d'élévation) sont déjà couverts par les clés `Ui.*`
-  - **Priorité** : 🟢 basse (visibles uniquement en cas de panne)
+- [ ] **Traduire les libellés du XAML de NetMonitor**
+  - Constat de la session du 2026-11-24 : le **code** est traduit (186 messages), mais les chaînes
+    `{loc:Tr '…'}` du XAML ne le sont pas. Le contrôle rituel en signale des dizaines :
+    « 1ʳᵉ tentative », « Activité par période », « Actions irréversibles. À utiliser uniquement en cas
+    de problème majeur… », « Top FAI par pays », etc.
+  - Même méthode que pour le code : clés en `fr-FR` **et** `en-GB`, puis compilation
+  - **Priorité** : 🟢 basse (l interface reste lisible en français)
 
 - [ ] **Renforcer les ACL de `email.config` et des `*.web.config`**
   - Ces fichiers contiennent les mots de passe SMTP et web. Leur ACL actuelle accorde **`BUILTIN\Utilisateurs : Read`**, donc tout compte local peut les lire
   - `icacls` de l'installeur retire l'héritage mais accorde délibérément la lecture au groupe Utilisateurs : la protection porte sur la *modification*, pas la confidentialité
   - **Piste** : ne garder que `SYSTEM` et `Administrateurs`. Les services tournent en SYSTEM et l'UI en `requireAdministrator`, aucun Tray ne lit ces fichiers (vérifié)
-  - **Non appliqué** : la modification avait été préparée puis interrompue. DPAPI couvre déjà le vol de fichier, pas la lecture locale
+  - **Écarté pour l'instant** : Christophe ne veut pas y toucher. DPAPI couvre déjà le vol de fichier, pas la lecture locale
   - **Priorité** : 🟡 moyenne
-
-- [ ] **Traduire les messages en dur de NetMonitor.UI**
-  - Les `MessageBox` de la fenêtre principale (confirmation de déblocage, réanalyse des blocages,
-    enregistrement des réglages…) ne passent pas par `LanguageManager` : ils restent en français même
-    en anglais. Une vingtaine de chaînes, hors du périmètre des messages d'erreur par module
-  - **Priorité** : 🟢 basse
-
-- [ ] **Messages de log trompeurs restants** *(si d'autres apparaissent)*
-  - Corrigé le 2026-11-17 : `Historique des alertes vidé par IPC` → `Historique des alertes vidé`
 
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — opportunistes : boîtes, traductions, seuil réglable
+
+**Les boîtes de dialogue.** Les 190 `MessageBox` WinForms des interfaces sont remplacés par une boîte
+WPF au style des modules : fond, bordure, accent et icône issus du thème, titre dans l'en-tête, croix
+discrète, boutons Oui / Non ou OK. Chaque module porte **sa propre copie** (`Boite.cs` +
+`FenetreDialogue`), les modules étant indépendants : rien n est partagé. Les sept `App.xaml.cs` gardent
+leur `MessageBox` — ils traitent les exceptions non récupérées au démarrage, avant que les ressources de
+thème soient chargées, où une boîte thémée lèverait une seconde exception.
+
+**Les traductions.** 186 messages passent par `LanguageManager`, **148 clés** ajoutées en `fr-FR` et
+`en-GB` (908 et 863 au total). Les messages interpolés deviennent des clés à paramètres via
+`string.Format`, pour que l ordre des mots reste celui de la langue cible. Les `\n` du source sont
+dé-échappés à l écriture, sans quoi `LanguageManager` ne les aurait jamais retrouvés.
+
+**Un piège corrigé en route.** L automatisation avait produit `LanguageManager.Get("X") ?? "X" + suite` :
+`??` étant moins prioritaire que `+`, la concaténation se retrouvait avalée et le message tronqué dès que
+la clé existait. Fichier restauré, tout parenthésé, vérifié par recherche.
+
+**Le seuil des processus.** La constante `SeuilProcessus` (10 %) devient `ProcessThresholdPercent`,
+réglable depuis l onglet Configuration de SystemMonitor.UI, bornée entre 1 et 100, relue à chaud.
+
+**Nettoyages.** `warning.png` et `critical.png` du Tray RomMonitor supprimés (déclarés en ressource, plus
+chargés depuis la bascule vers `hdd-critical.png`) ; `Theme.cs` du client de configuration supprimé
+(palette WinForms sans lecteur) ; overlay de lecture de la popup MediaMonitor retiré, il se superposait aux
+logos de chaîne et d enregistrement.
+
+**Deux items clos sans travail** : le gris des en-têtes était déjà harmonisé à `#D6D6D6` dans les quatre
+modules, et les deux `ForceTick demandé via IPC` sont des messages exacts. L aperçu de courbe étendu aux
+alertes globales a été **écarté** par Christophe.
 
 ### Session 2026-11-24 — liste de confiance lisible et actualisation suspendue
 
