@@ -142,6 +142,15 @@ l interdirait), et aucune variante `'` contre `’` ne se contredit entre le XAM
 Les référentiels font **1 073 clés** en français et **1 074** en anglais. Le contrôle rituel des cinq
 interfaces est muet, hors les six noms propres de modules.
 
+**Release 3.0.10** : tag `v3.0.10` posé sur `955feca`, publiée et marquée Latest — installeur
+`MCEMonitorSetup-3.0.10.0.exe` (110,7 Mo) et APK `com.mcemonitor.client-Signed.apk` (37,5 Mo,
+`versionCode 30010`). C est GitVersion qui fabrique la version depuis les tags : le tag doit être posé
+**avant** la compilation, `build.bat` lisant ensuite la version dans l exécutable pour l installeur.
+
+Note publiée : coches de blocage automatique, seuil des processus réglable, signatures par catalogue
+Windows, colonne Liste et origines nommées, actualisation suspendue, boîtes thémées et traduction
+complète, page des serveurs Android épurée.
+
 ### Session 2026-11-24 — opportunistes : boîtes, traductions, seuil réglable
 
 **Les boîtes de dialogue.** Les 190 `MessageBox` WinForms des interfaces sont remplacés par une boîte
