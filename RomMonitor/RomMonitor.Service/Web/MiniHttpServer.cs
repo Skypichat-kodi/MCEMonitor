@@ -268,6 +268,26 @@ namespace RomMonitor.Service.Web
                         }
                     }
 
+                    // Saturation des entrées/sorties. Le nombre de requêtes explique la
+                    // saturation ; le débit n'en est que la conséquence.
+                    foreach (var io in _engine.LastIo)
+                    {
+                        bool criticalIo = io.PercentBusy >= settings.DiskIoCriticalPercent;
+
+                        if (!criticalIo && io.PercentBusy < settings.DiskIoWarnPercent)
+                            continue;
+
+                        summary.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                        {
+                            severity = criticalIo ? "critical" : "warning",
+                            category = "DiskIo",
+                            target   = io.Name,
+                            message  = $"Disque {io.Name} : {io.PercentBusy:F0} % d'occupation "
+                                     + $"({io.ReadsPerSec:F0} lectures/s, {io.WritesPerSec:F0} écritures/s, "
+                                     + $"file {io.QueueLength:F0})"
+                        });
+                    }
+
                     string json = System.Text.Json.JsonSerializer.Serialize(summary,
                         new System.Text.Json.JsonSerializerOptions
                         {
@@ -336,6 +356,25 @@ namespace RomMonitor.Service.Web
                                 message  = $"Disque {d.Name} : espace faible ({d.FreePercent:F1}%)"
                             });
                         }
+                    }
+
+                    // --- Saturation des entrées/sorties ---
+                    foreach (var io in _engine.LastIo)
+                    {
+                        bool criticalIo = io.PercentBusy >= settings.DiskIoCriticalPercent;
+
+                        if (!criticalIo && io.PercentBusy < settings.DiskIoWarnPercent)
+                            continue;
+
+                        detail.problems.Add(new RomMonitor.Service.Api.ApiProblem
+                        {
+                            severity = criticalIo ? "critical" : "warning",
+                            category = "DiskIo",
+                            target   = io.Name,
+                            message  = $"Disque {io.Name} : {io.PercentBusy:F0} % d'occupation "
+                                     + $"({io.ReadsPerSec:F0} lectures/s, {io.WritesPerSec:F0} écritures/s, "
+                                     + $"file {io.QueueLength:F0})"
+                        });
                     }
 
                     // --- Disques (volumes logiques) ---

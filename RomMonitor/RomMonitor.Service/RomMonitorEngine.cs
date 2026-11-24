@@ -29,8 +29,14 @@ namespace RomMonitor.Service
         private List<DiskInfo> _lastDisks = new();
         private List<SmartInfo> _lastSmart = new();
 
+        // Dernier relevé des entrées/sorties par lecteur. Il sert à la sévérité
+        // globale et à l'API : sans lui, une surcharge d'E/S ne faisait changer
+        // ni l'icône du Tray, ni l'état publié par le service.
+        private List<DiskIoInfo> _lastIo = new();
+
         public IReadOnlyList<DiskInfo> LastDisks => _lastDisks;
         public IReadOnlyList<SmartInfo> LastSmart => _lastSmart;
+        public IReadOnlyList<DiskIoInfo> LastIo => _lastIo;
         public IReadOnlyList<Alert> LastAlerts => _alertManager.GetAlerts();
         public DateTime LastCheckTime { get; private set; } = DateTime.MinValue;
 
@@ -151,7 +157,11 @@ namespace RomMonitor.Service
 
             try
             {
-                foreach (DiskIoInfo io in DiskIoChecker.GetIo())
+                // On conserve le relevé, même quand aucune alerte ne part : la
+                // sévérité globale et l'API en ont besoin.
+                _lastIo = DiskIoChecker.GetIo();
+
+                foreach (DiskIoInfo io in _lastIo)
                 {
                     if (io.PercentBusy < _settings.DiskIoWarnPercent)
                     {
@@ -481,6 +491,13 @@ namespace RomMonitor.Service
                         return "critical";
                 }
 
+                // 1c. Disque saturé par les entrées/sorties
+                foreach (var io in _lastIo)
+                {
+                    if (io.PercentBusy >= _settings.DiskIoCriticalPercent)
+                        return "critical";
+                }
+
                 // ============================================================
                 //  Priorité 2 : WARNING
                 // ============================================================
@@ -499,6 +516,15 @@ namespace RomMonitor.Service
                              || d.FreeGo < _settings.DiskSpaceWarnGo;
 
                     if (warn)
+                        return "warning";
+                }
+
+                // 2c. Disque saturé par les entrées/sorties. Seul le relevé courant
+                //     compte : une surcharge passée ne doit pas laisser l'icône en
+                //     alerte indéfiniment.
+                foreach (var io in _lastIo)
+                {
+                    if (io.PercentBusy >= _settings.DiskIoWarnPercent)
                         return "warning";
                 }
 

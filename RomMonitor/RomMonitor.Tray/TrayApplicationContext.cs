@@ -43,9 +43,13 @@ namespace RomMonitor.Tray
         // ------------------------------------------------------------
         private void LoadIcons()
         {
-            _defaultIcon  = EmbeddedResourceLoader.LoadIcon("RomMonitor.ico")      ?? SystemIcons.Application;
-            _warningIcon  = EmbeddedResourceLoader.LoadPngAsIcon("warning.png")    ?? _defaultIcon;
-            _criticalIcon = EmbeddedResourceLoader.LoadPngAsIcon("critical.png")   ?? _defaultIcon;
+            _defaultIcon  = EmbeddedResourceLoader.LoadIcon("RomMonitor.ico") ?? SystemIcons.Application;
+
+            // Mêmes icônes que le client de configuration pour un problème de disque :
+            // RomMonitor ne surveille que des disques, les icônes génériques d'alerte
+            // ne disaient pas de quoi il s'agissait.
+            _warningIcon  = EmbeddedResourceLoader.LoadPngAsIcon("romok.png")        ?? _defaultIcon;
+            _criticalIcon = EmbeddedResourceLoader.LoadPngAsIcon("hdd-critical.png") ?? _defaultIcon;
         }
 
         // ------------------------------------------------------------
@@ -363,6 +367,7 @@ namespace RomMonitor.Tray
             {
                 // ---- 1) Seuils depuis la config ----
                 int warnPct = 15, critPct = 5, warnGo = 10, critGo = 5;
+                int ioWarn = 80, ioCrit = 95;
 
                 using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
                 {
@@ -391,6 +396,12 @@ namespace RomMonitor.Tray
 
                     if (r.TryGetProperty("diskSpaceCriticalGo", out var vCritGo))
                         critGo = vCritGo.GetInt32();
+
+                    if (r.TryGetProperty("diskIoWarnPercent", out var vIoWarn))
+                        ioWarn = vIoWarn.GetInt32();
+
+                    if (r.TryGetProperty("diskIoCriticalPercent", out var vIoCrit))
+                        ioCrit = vIoCrit.GetInt32();
                 }
 
                 var problems = new List<ProblemInfo>();
@@ -483,6 +494,52 @@ namespace RomMonitor.Tray
                             Severity  = status == "Critical" ? "critical" : "warning",
                             Category  = "SmartFailure",
                             Message   = $"{model} : {reason}"
+                        });
+                    }
+                }
+
+                // ---- 4) Saturation des entrées/sorties (état actuel) ----
+                // Le nombre de requêtes explique la saturation, le débit n'en est que la
+                // conséquence : on les affiche dans cet ordre.
+                using (var c = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut))
+                {
+                    c.Connect(1000);
+                    if (!c.IsConnected) return problems;
+
+                    byte[] cmd = Encoding.UTF8.GetBytes("get-io");
+                    c.Write(cmd, 0, cmd.Length);
+                    c.Flush();
+
+                    using var mem = new MemoryStream();
+                    byte[] buf = new byte[16384];
+                    while (true)
+                    {
+                        int n = c.Read(buf, 0, buf.Length);
+                        if (n <= 0) break;
+                        mem.Write(buf, 0, n);
+                    }
+
+                    using var doc = JsonDocument.Parse(Encoding.UTF8.GetString(mem.ToArray()));
+
+                    foreach (var io in doc.RootElement.EnumerateArray())
+                    {
+                        string name   = io.GetProperty("name").GetString() ?? "";
+                        double charge = io.GetProperty("percentBusy").GetDouble();
+
+                        bool criticalIo = charge >= ioCrit;
+                        if (!criticalIo && charge < ioWarn) continue;
+
+                        double lectures  = io.GetProperty("readsPerSec").GetDouble();
+                        double ecritures = io.GetProperty("writesPerSec").GetDouble();
+                        double file      = io.GetProperty("queueLength").GetDouble();
+
+                        problems.Add(new ProblemInfo
+                        {
+                            Timestamp = DateTime.Now,
+                            Severity  = criticalIo ? "critical" : "warning",
+                            Category  = criticalIo ? "DiskIoSaturated" : "DiskIoBusy",
+                            Message   = $"Disque {name} saturé : {charge:F0} % d'occupation "
+                                      + $"({lectures:F0} lectures/s, {ecritures:F0} écritures/s, file {file:F0})"
                         });
                     }
                 }

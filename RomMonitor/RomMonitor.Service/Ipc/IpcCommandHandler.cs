@@ -36,6 +36,7 @@ namespace RomMonitor.Service
             {
                 case "get-status":       HandleGetStatus(server); break;
                 case "get-disks":        HandleGetDisks(server); break;
+                case "get-io":           HandleGetIo(server); break;
                 case "get-smart":        HandleGetSmart(server); break;
                 case "get-alerts":       HandleGetAlerts(server); break;
                 case "get-config":       HandleGetConfig(server); break;
@@ -81,6 +82,27 @@ namespace RomMonitor.Service
             IpcResponse.Json(server, disks);
         }
 
+        /// <summary>
+        /// Relevé des entrées/sorties par lecteur. Sert au Tray pour signaler un
+        /// disque saturé : la sévérité globale ne suffit pas, il lui faut le détail
+        /// pour la fenêtre des problèmes.
+        /// </summary>
+        private void HandleGetIo(NamedPipeServerStream server)
+        {
+            var mesures = _engine.LastIo.Select(io => new
+            {
+                name          = io.Name,
+                percentBusy   = Math.Round(io.PercentBusy, 0),
+                readsPerSec   = Math.Round(io.ReadsPerSec, 0),
+                writesPerSec  = Math.Round(io.WritesPerSec, 0),
+                readMoPerSec  = Math.Round(io.ReadMoPerSec, 1),
+                writeMoPerSec = Math.Round(io.WriteMoPerSec, 1),
+                queueLength   = Math.Round(io.QueueLength, 0)
+            }).ToList();
+
+            IpcResponse.Json(server, mesures);
+        }
+
         private void HandleGetSmart(NamedPipeServerStream server)
         {
             var smart = _engine.LastSmart.Select(s => new
@@ -124,6 +146,9 @@ namespace RomMonitor.Service
                 diskSpaceCriticalPercent = _settings.DiskSpaceCriticalPercent,
                 diskSpaceWarnGo = _settings.DiskSpaceWarnGo,
                 diskSpaceCriticalGo = _settings.DiskSpaceCriticalGo,
+                diskIoWarnPercent = _settings.DiskIoWarnPercent,
+                diskIoCriticalPercent = _settings.DiskIoCriticalPercent,
+                alertOnDiskIo = _settings.AlertOnDiskIo,
                 alertOnSmartFailure = _settings.AlertOnSmartFailure,
                 alertOnLowDiskSpace = _settings.AlertOnLowDiskSpace,
                 alertCooldownHours = _settings.AlertCooldownHours

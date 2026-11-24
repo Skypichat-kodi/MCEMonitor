@@ -173,7 +173,15 @@ namespace MCEMonitorClient.Maui.ViewModels
                     SeverityColor = p.Severity == "critical"
                         ? Color.FromArgb("#FF6347")
                         : Color.FromArgb("#FFB900"),
-                    Category = p.Category,
+                    // Les catégories techniques du service deviennent des libellés
+                    // lisibles, comme dans le Tray Windows.
+                    Category = p.Category switch
+                    {
+                        "Smart"     => "SMART",
+                        "DiskSpace" => "Disque",
+                        "DiskIo"    => "Disque",
+                        _           => p.Category
+                    },
                     Target = p.Target,
                     Message = p.Message
                 });

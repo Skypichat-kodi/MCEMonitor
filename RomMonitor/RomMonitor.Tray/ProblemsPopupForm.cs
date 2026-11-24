@@ -31,8 +31,8 @@ namespace RomMonitor.Tray
             this.BackColor = Color.FromArgb(37, 37, 38);
             this.Padding = new Padding(1);
 
-            Image? iconWarning  = LoadImage("warning.png");
-            Image? iconCritical = LoadImage("critical.png");
+            Image? iconWarning  = LoadImage("romok.png");
+            Image? iconCritical = LoadImage("hdd-critical.png");
 
             this.Paint += (s, e) =>
             {
@@ -220,6 +220,8 @@ namespace RomMonitor.Tray
                 "SmartFailure"       => "SMART",
                 "DiskSpaceLow"       => "Disque",
                 "DiskSpaceCritical"  => "Disque",
+                "DiskIoBusy"         => "Disque",
+                "DiskIoSaturated"    => "Disque",
                 _                    => p.Category
             };
 

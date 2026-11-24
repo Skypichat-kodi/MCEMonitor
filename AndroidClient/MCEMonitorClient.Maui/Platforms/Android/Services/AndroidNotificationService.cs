@@ -746,7 +746,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
         private enum ProblemKind
         {
             Unknown, CpuUsage, CpuTemp, RamUsage,
-            DiskSpace, DiskSmart, DiskTemp, GpuTemp, Bsod
+            DiskSpace, DiskSmart, DiskTemp, DiskIo, GpuTemp, Bsod
         }
 
         private static ProblemKind Classify(ProblemItem p)
@@ -755,6 +755,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             {
                 case "smart":       return ProblemKind.DiskSmart;
                 case "diskspace":   return ProblemKind.DiskSpace;
+                case "diskio":      return ProblemKind.DiskIo;
                 case "cpuhigh":     return ProblemKind.CpuUsage;
                 case "ramhigh":     return ProblemKind.RamUsage;
                 case "temphigh":    return ProblemKind.CpuTemp;
@@ -774,7 +775,8 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
         }
 
         private static bool IsDiskKind(ProblemKind k) =>
-            k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart || k == ProblemKind.DiskTemp;
+            k == ProblemKind.DiskSpace || k == ProblemKind.DiskSmart
+         || k == ProblemKind.DiskTemp  || k == ProblemKind.DiskIo;
 
         private static bool IsCpuKind(ProblemKind k) =>
             k == ProblemKind.CpuUsage || k == ProblemKind.CpuTemp;
@@ -784,6 +786,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             ProblemKind.DiskSpace => "Disque (espace)",
             ProblemKind.DiskSmart => "Disque (SMART)",
             ProblemKind.DiskTemp  => "Disque (température)",
+            ProblemKind.DiskIo    => "Disque (E/S)",
             ProblemKind.CpuUsage  => "CPU (surcharge)",
             ProblemKind.CpuTemp   => "CPU (température)",
             ProblemKind.RamUsage  => "RAM",
@@ -797,6 +800,7 @@ namespace MCEMonitorClient.Maui.Platforms.Android.Services
             ProblemKind.DiskSpace => "romok",
             ProblemKind.DiskSmart => "romok",
             ProblemKind.DiskTemp  => "romok",
+            ProblemKind.DiskIo    => "romok",
             ProblemKind.CpuUsage  => "cpuok",
             ProblemKind.CpuTemp   => "cpuok",
             ProblemKind.RamUsage  => "ramok",
