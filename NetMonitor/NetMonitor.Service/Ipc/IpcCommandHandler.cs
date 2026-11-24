@@ -406,6 +406,10 @@ namespace NetMonitor.Service.Ipc
                     org            = a.Org,           
                     reverseDns     = a.ReverseDns,                     
                     isOutbound     = a.IsOutbound,           
+                    // Sans ce champ, l'historique des intrusions affichait « Inconnu »
+                    // sur toutes ses lignes : le DTO côté UI n'avait rien à lire.
+                    origin         = a.Origin.ToString(),
+                    trustedList    = a.TrustedList,
                 }).ToList();
 
                 IpcResponse.Json(server, projected);
@@ -1078,6 +1082,7 @@ namespace NetMonitor.Service.Ipc
                     groupKey       = a.GroupKey,
                     isOutbound     = a.IsOutbound,
                     origin         = a.Origin.ToString(),          
+                    trustedList    = a.TrustedListEffective,
                 }).ToList();
 
                 IpcResponse.Json(server, projected);

@@ -27,7 +27,9 @@ public enum IpOrigin
     Bot        = 3,   // Liste Google officielle          (bleu clair)
     Microsoft  = 4,   // Liste Microsoft officielle       (bleu MS)
     Blacklist  = 5,   // IPsum blacklist                  (rouge sombre)
-    Whitelist  = 6    // Match WhitelistPatterns          (blanc)
+    Whitelist  = 6,   // Match WhitelistPatterns          (blanc)
+    Cloudflare = 7,   // Plages Cloudflare officielles    (orange)
+    Local      = 8    // Réseau local / lien-local        (gris bleuté)
 }
 
 public sealed class DetectorResult

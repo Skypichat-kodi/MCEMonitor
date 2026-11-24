@@ -91,28 +91,44 @@ namespace NetMonitor.Service.Services
                 return Severity.Bot;
             }
 
-            // 5. Crawler (patterns reverse DNS / ISP / Org)
+            // 5. Cloudflare → Safe + Origin Cloudflare
+            //    Distinct de Google et du réseau local : ce sont des IP de confiance,
+            //    mais sans nom de liste, la colonne Origine restait vide.
+            if (!string.IsNullOrWhiteSpace(ip) && FirewallHelper.IsCloudflareIp(ip))
+            {
+                origin = IpOrigin.Cloudflare;
+                return Severity.Safe;
+            }
+
+            // 6. Réseau local / lien-local → Safe + Origin Local
+            if (!string.IsNullOrWhiteSpace(ip) && FirewallHelper.IsLocalIp(ip))
+            {
+                origin = IpOrigin.Local;
+                return Severity.Safe;
+            }
+
+            // 7. Crawler (patterns reverse DNS / ISP / Org)
             if (MatchesAnyPattern(candidates, settings.CrawlerPatterns))
             {
                 origin = IpOrigin.Crawler;
                 return Severity.Crawler;
             }
 
-            // 6. Safe (patterns)
+            // 8. Safe (patterns)
             if (MatchesAnyPattern(candidates, settings.SafePatterns))
             {
                 origin = IpOrigin.Unknown;   // safe mais pas d'origine identifiable
                 return Severity.Safe;
             }
 
-            // 7. Scanner (patterns) → Trusted + Origin Scanner
+            // 9. Scanner (patterns) → Trusted + Origin Scanner
             if (MatchesAnyPattern(candidates, settings.ScannerPatterns))
             {
                 origin = IpOrigin.Scanner;
                 return Severity.Trusted;
             }
 
-            // 8. Blacklist IPsum → Critical + Origin Blacklist
+            // 10. Blacklist IPsum → Critical + Origin Blacklist
             if (threatIntel != null
                 && !string.IsNullOrWhiteSpace(ip)
                 && threatIntel.IsBlacklisted(ip))
@@ -121,15 +137,15 @@ namespace NetMonitor.Service.Services
                 return Severity.Critical;
             }
 
-            // 9. CriticalPatterns → Critical + Origin Unknown (patterns ≠ blacklist)
+            // 11. CriticalPatterns → Critical + Origin Unknown (patterns ≠ blacklist)
             if (MatchesAnyPattern(candidates, settings.CriticalPatterns))
                 return Severity.Critical;
 
-            // 10. Détecteur critique
+            // 12. Détecteur critique
             if (detectorSeverity == Severity.Critical || detectorSeverity == Severity.High)
                 return detectorSeverity;
 
-            // 11. Défaut
+            // 13. Défaut
             return Severity.Warning;
         }
 

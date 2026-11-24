@@ -2342,6 +2342,7 @@ namespace NetMonitor.Service
                     evt.Severity = Severity.Safe;
                     evt.Message = $"[WHITELIST] {evt.Message}";
                     evt.TrustReason = "IP Microsoft vérifiée (liste officielle)";
+                    evt.TrustedList = "Microsoft";
 
                     lock (_alertsLock)
                     {
@@ -2380,6 +2381,7 @@ namespace NetMonitor.Service
                 evt.TrustReason = estGoogle
                     ? "Robot officiel Google (liste officielle)"
                     : "IP de confiance (Cloudflare / réseau local)";
+                evt.TrustedList = estGoogle ? "Google" : null;
 
                 lock (_alertsLock)
                 {
@@ -2517,10 +2519,32 @@ namespace NetMonitor.Service
                 var list = System.Text.Json.JsonSerializer.Deserialize<List<IntrusionEvent>>(json, JsonFileOpts);
                 if (list != null)
                 {
+                    // Les entrées antérieures aux origines Cloudflare et Local portent
+                    // Unknown alors que l'information est dans leur raison. On les
+                    // reclasse ici : sans cela, l'historique afficherait éternellement
+                    // « Inconnu » sur des IP dont on sait pertinemment d'où elles viennent.
+                    int reclassees = 0;
+
+                    foreach (var evt in list)
+                    {
+                        if (evt.Origin != IpOrigin.Unknown) continue;
+                        if (string.IsNullOrWhiteSpace(evt.RemoteIp)) continue;
+
+                        if (FirewallHelper.IsCloudflareIp(evt.RemoteIp))      { evt.Origin = IpOrigin.Cloudflare; reclassees++; }
+                        else if (FirewallHelper.IsLocalIp(evt.RemoteIp))      { evt.Origin = IpOrigin.Local;      reclassees++; }
+                        else if (FirewallHelper.IsGoogleIp(evt.RemoteIp))     { evt.Origin = IpOrigin.Bot;        reclassees++; }
+                    }
+
                     lock (_alertsLock)
                     {
                         _auditHistory.Clear();
                         _auditHistory.AddRange(list);
+                    }
+
+                    if (reclassees > 0)
+                    {
+                        CoreLog.Info($"[AUDIT] {reclassees} origine(s) précisée(s) (Cloudflare / local / Google)");
+                        SaveAudit();
                     }
                 }
             }
@@ -2605,7 +2629,13 @@ namespace NetMonitor.Service
                             Isp             = isp,
                             Org             = org,          
                             ReverseDns      = reverseDns,                        
-                            IsOutbound      = last.IsOutbound
+                            IsOutbound      = last.IsOutbound,
+
+                            // Sans cette ligne, Origin restait Unknown et le badge du
+                            // tableau affichait son tiret par défaut : la colonne « Origine »
+                            // semblait vide alors que les événements, eux, la portaient.
+                            Origin          = g.Select(x => x.Origin)
+                                               .FirstOrDefault(o => o != IpOrigin.Unknown)
                         };
                     })
                     .OrderByDescending(x => x.LastSeen)
@@ -2818,6 +2848,7 @@ namespace NetMonitor.Service
 
                 evt.Severity = Severity.Bot;
                 evt.TrustReason = "Robot officiel Google (liste officielle)";
+                evt.TrustedList = "Google";
 
                 if (!string.IsNullOrEmpty(evt.Message))
                     evt.Message = evt.Message.Replace("[WHITELIST]", "[BOT]");

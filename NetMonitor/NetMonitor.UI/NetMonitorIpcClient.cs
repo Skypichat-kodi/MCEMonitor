@@ -295,6 +295,7 @@ namespace NetMonitor.UI
         public string GroupKey      { get; set; } = "";
         public bool IsOutbound      { get; set; }
         public string? Origin       { get; set; }        
+        public string? TrustedList  { get; set; }
     }    
 
     public class PersistentProblemDto

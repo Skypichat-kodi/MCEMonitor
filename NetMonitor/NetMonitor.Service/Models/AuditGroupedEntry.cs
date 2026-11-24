@@ -28,6 +28,20 @@ namespace NetMonitor.Service.Models
 
         /// <summary>Origine de l'IP (Scanner / Crawler / Bot / Microsoft / Blacklist / Whitelist).</summary>
         public IpOrigin Origin      { get; set; } = IpOrigin.Unknown;
+
+        /// <summary>Liste de confiance qui a fait ignorer l'alerte : Microsoft, Google, ou vide.</summary>
+        public string? TrustedList  { get; set; }
+
+        /// <summary>
+        /// Liste à afficher. Les entrées antérieures au champ n'ont que leur origine :
+        /// on la traduit en nom de liste plutôt que d'afficher un tiret à côté d'une
+        /// IP dont on sait pertinemment d'où elle vient.
+        /// </summary>
+        public string? TrustedListEffective =>
+            !string.IsNullOrWhiteSpace(TrustedList) ? TrustedList
+            : Origin == IpOrigin.Microsoft ? "Microsoft"
+            : Origin == IpOrigin.Bot       ? "Google"
+            : null;
         
         public string GroupKey =>
             $"{Pid}|{RemoteIp ?? ""}|{LocalPort}|{RemotePort}|{ProcessName ?? ""}";                

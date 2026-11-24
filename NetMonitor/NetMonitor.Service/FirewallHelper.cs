@@ -35,6 +35,36 @@ namespace NetMonitor.Service
             "157.56.0.0/14"
         };
 
+        // Réseau local / lien-local : les IP qui ne sortent jamais de la machine
+        // ou du LAN.
+        private static readonly string[] LocalNetworks = new[]
+        {
+            "127.0.0.0/8",
+            "10.0.0.0/8",
+            "172.16.0.0/12",
+            "192.168.0.0/16",
+            "169.254.0.0/16"
+        };
+
+        // Plages Google officielles (les plus courantes)
+        private static readonly string[] GoogleNetworks = new[]
+        {
+            "142.250.0.0/15", 
+            "172.217.0.0/16", 
+            "216.58.192.0/19", 
+            "74.125.0.0/16", 
+            "173.194.0.0/16"
+        };
+
+        // Plages Cloudflare officielles
+        private static readonly string[] CloudflareNetworks = new[]
+        {
+            "104.16.0.0/12", 
+            "172.64.0.0/13", 
+            "1.1.1.0/24", 
+            "1.0.0.0/24"
+        };
+
         // Plages critiques NON-Microsoft (Google, Cloudflare, privé)
         private static readonly string[] OtherCriticalNetworks = new[]
         {
@@ -53,6 +83,28 @@ namespace NetMonitor.Service
             "1.1.1.0/24", 
             "1.0.0.0/24"
         };
+
+        /// <summary>L'IP appartient-elle au réseau local ou au lien-local ?</summary>
+        public static bool IsLocalIp(string ip)
+            => MatchesAnyNetwork(ip, LocalNetworks);
+
+        /// <summary>L'IP appartient-elle à une plage Cloudflare ?</summary>
+        public static bool IsCloudflareIp(string ip)
+            => MatchesAnyNetwork(ip, CloudflareNetworks);
+
+        /// <summary>L'IP appartient-elle à une plage Google ?</summary>
+        public static bool IsGoogleIp(string ip)
+            => MatchesAnyNetwork(ip, GoogleNetworks);
+
+        private static bool MatchesAnyNetwork(string ip, string[] networks)
+        {
+            if (!IPAddress.TryParse(ip, out var addr)) return false;
+
+            foreach (var cidr in networks)
+                if (IsInCidr(addr, cidr)) return true;
+
+            return false;
+        }
 
         /// <summary>
         /// L'IP ressemble-t-elle à Microsoft (via plages hardcodées) ?

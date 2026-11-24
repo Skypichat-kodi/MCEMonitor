@@ -24,4 +24,12 @@ public sealed class IntrusionEvent
 
     /// <summary>Origine de l'IP (Scanner / Crawler / Bot / Microsoft / Blacklist / Whitelist).</summary>
     public IpOrigin Origin      { get; set; } = IpOrigin.Unknown;
+
+    /// <summary>
+    /// Liste de confiance qui a fait retirer cette alerte : « Microsoft »,
+    /// « Google », ou vide. Distincte de <see cref="Origin"/>, qui décrit la nature
+    /// de l'IP et mélange scanners, robots et blacklist. Champ libre, pour accueillir
+    /// d'autres listes plus tard.
+    /// </summary>
+    public string? TrustedList  { get; set; }
 }

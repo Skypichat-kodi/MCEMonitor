@@ -268,6 +268,37 @@
         flex-wrap: wrap;
     }
 
+    /* Bandeau d'actualisation suspendue : visible seulement quand un filtre, une
+       recherche ou un tri a interrompu le rechargement automatique. */
+    .auto-pause-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 20px;
+        padding: 8px 12px;
+        border: 1px solid #3C3C3C;
+        border-left: 3px solid #FFB900;
+        border-radius: 4px;
+        background: #2A2A2C;
+        color: #C8C8C8;
+        font-size: 13px;
+    }
+
+    .auto-pause-bar button {
+        padding: 4px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 3px;
+        border: 1px solid #4CC2FF;
+        background: transparent;
+        color: #4CC2FF;
+    }
+
+    .auto-pause-bar button:hover {
+        background: #4CC2FF;
+        color: #101820;
+    }
+
     .action-btn {
         display: inline-flex;
         align-items: center;
@@ -782,7 +813,9 @@
     .badge.origin-microsoft { background: #0078D4; color: white; }
     .badge.origin-blacklist { background: #8B0000; color: white; }
     .badge.origin-whitelist { background: #FFFFFF; color: black; }
-    .badge.origin-unknown   { background: transparent; color: #555; border: 1px solid #3C3C3C; }                                         
+    .badge.origin-cloudflare { background: #F6821F; color: white; }
+    .badge.origin-local      { background: #607D8B; color: white; }
+    .badge.origin-unknown   { background: #5A5A5E; color: #F0F0F0; border: 1px solid #7A7A7E; }                                         
 </style>
 
 </head>
@@ -809,6 +842,11 @@
     <a href="/whitelist" class="action-btn">
         ✅ {{tr:Liste blanche}}
     </a>
+</div>
+
+<div id="autoPauseBar" class="auto-pause-bar" style="display:none">
+    <span>⏸ {{tr:Actualisation automatique suspendue}}</span>
+    <button type="button" id="autoResumeBtn">{{tr:Reprendre}}</button>
 </div>
 
 <div class="info-panel">
@@ -1079,6 +1117,7 @@
                 <th style="width:60px">{{tr:Compteur}}</th>
                 <th>{{tr:Sévérité}}</th>
                 <th>{{tr:Origine}}</th>
+                <th>{{tr:Liste}}</th>
                 <th>{{tr:Détecteur}}</th>
                 <th>{{tr:IP}}</th>
                 <th>{{tr:Pays}}</th>    
@@ -1529,6 +1568,7 @@ document.getElementById('btnReanalyzeBlocked').addEventListener('click', functio
     var PAUSE_DELAY = 120000;  // 2 min : une sélection est active
 
     var timer = null;
+    var suspendu = false;
 
     function hasActiveSelection() {
         return document.querySelector('input[name="active-sel"]:checked')  !== null
@@ -1536,13 +1576,53 @@ document.getElementById('btnReanalyzeBlocked').addEventListener('click', functio
             || document.querySelector('input[name="blocked-sel"]:checked') !== null;
     }
 
+    function montrerBandeau(visible) {
+        var barre = document.getElementById('autoPauseBar');
+        if (barre) barre.style.display = visible ? 'flex' : 'none';
+    }
+
     function schedule() {
         clearTimeout(timer);
+        if (suspendu) return;               // ← filtre, recherche ou tri en cours
         if (hasActiveSelection()) return;   // ← pas de reload tant que sélection active
         timer = setTimeout(function () { location.reload(); }, BASE_DELAY);
     }
 
-    // Exposé pour les fonctions d'action (blocage, whitelist…)
+    // Suspend l'actualisation automatique. Le rechargement ramènerait la page au
+    // point zéro au moment précis où l'utilisateur filtre ou trie. Le bouton
+    // « Rafraîchir » recharge la page et repart donc de zéro, sans rien coder de plus.
+    function suspendre() {
+        if (suspendu) return;
+        suspendu = true;
+        clearTimeout(timer);
+        montrerBandeau(true);
+    }
+
+    function reprendre() {
+        suspendu = false;
+        montrerBandeau(false);
+        schedule();
+    }
+
+    var bouton = document.getElementById('autoResumeBtn');
+    if (bouton) bouton.addEventListener('click', reprendre);
+
+    // Filtres (listes déroulantes) et recherche : toute interaction suspend.
+    document.addEventListener('change', function (e) {
+        if (e.target && e.target.tagName === 'SELECT') suspendre();
+    }, true);
+
+    document.addEventListener('input', function (e) {
+        if (e.target && (e.target.type === 'text' || e.target.type === 'search')) suspendre();
+    }, true);
+
+    // Tri par clic sur un en-tête : même raison, l'ordre est perdu au rechargement.
+    Array.prototype.forEach.call(document.querySelectorAll('th'), function (th) {
+        th.addEventListener('click', suspendre);
+    });
+
+    // Exposé pour les fonctions d'action (blocage, whitelist…) : pause muette,
+    // sans bandeau, le temps que l'action se termine.
     window.__pauseAutoRefresh  = function () { clearTimeout(timer); };
     window.__resumeAutoRefresh = schedule;
 

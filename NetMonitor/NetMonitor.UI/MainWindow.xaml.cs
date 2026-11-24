@@ -229,6 +229,31 @@ namespace NetMonitor.UI
         // si l'utilisateur laisse une ligne sélectionnée en s'absentant.
         private static readonly TimeSpan SelectionGracePeriod = TimeSpan.FromMinutes(2);
         private DateTime? _selectionSince; 
+
+        // Vrai dès que l'utilisateur filtre, cherche ou trie : la minuterie se tait
+        // et le bandeau de la barre d'état le signale. Les boutons d'actualisation
+        // la relancent.
+        private bool _autoRefreshSuspendu;
+
+        private void SuspendreAutoRefresh()
+        {
+            if (_autoRefreshSuspendu) return;
+
+            _autoRefreshSuspendu = true;
+            BandeauAutoRefresh.Visibility = Visibility.Visible;
+        }
+
+        private void ReprendreAutoRefresh()
+        {
+            _autoRefreshSuspendu = false;
+            BandeauAutoRefresh.Visibility = Visibility.Collapsed;
+        }
+
+        private async void ReprendreAutoRefresh_Click(object sender, RoutedEventArgs e)
+        {
+            ReprendreAutoRefresh();
+            await RefreshSafe();
+        }
                
         // Problèmes déjà notifiés à l'utilisateur (clé = Category + Message)
         // Utilise un dictionnaire avec timestamp pour permettre la re-notification
@@ -315,6 +340,15 @@ namespace NetMonitor.UI
             _refreshTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             _refreshTimer.Tick += async (_, __) =>
             {
+                // ────────────────────────────────────────────────────────
+                //  Suspendue dès que l'utilisateur touche à un filtre, à une
+                //  recherche ou à un tri : le rechargement ramènerait la vue au
+                //  point zéro au moment précis où il est en train de la lire.
+                //  Les boutons d'actualisation la relancent.
+                // ────────────────────────────────────────────────────────
+                if (_autoRefreshSuspendu)
+                    return;
+
                 // ────────────────────────────────────────────────────────
                 //  Anti-freeze : tolère une sélection pendant 2 min maximum.
                 //  Au-delà, force le refresh (les sélections seront restaurées
@@ -640,7 +674,8 @@ namespace NetMonitor.UI
                             Isp             = a.Isp,
                             Org             = a.Org,            
                             ReverseDns      = a.ReverseDns,
-                            Origin          = a.Origin ?? "Unknown"                                     
+                            Origin          = a.Origin ?? "Unknown",
+                            TrustedList     = a.TrustedList
                         })
                         .OrderByDescending(x => x.Count)
                         .ThenByDescending(x => x.LastSeen)
@@ -1101,7 +1136,10 @@ namespace NetMonitor.UI
         //  Appareils de confiance
         // ============================================================
         private async void RefreshTrustedDevices_Click(object sender, RoutedEventArgs e)
-            => await RefreshTrustedDevicesAsync();
+        {
+            ReprendreAutoRefresh();
+            await RefreshTrustedDevicesAsync();
+        }
 
         private async Task RefreshTrustedDevicesAsync()
         {
@@ -1191,7 +1229,10 @@ namespace NetMonitor.UI
         //  Boutons : tableau 1 (intrusions actives)
         // ------------------------------------------------------------
         private async void Refresh_Click(object sender, RoutedEventArgs e)
-            => await RefreshSafe();
+        {
+            ReprendreAutoRefresh();
+            await RefreshSafe();
+        }
 
         private async void BlockSelected_Click(object sender, RoutedEventArgs e)
         {
@@ -1508,6 +1549,7 @@ namespace NetMonitor.UI
 
         private async void RefreshWhitelist_Click(object sender, RoutedEventArgs e)
         {
+            ReprendreAutoRefresh();
             await RefreshWhitelistAsync();
         }
 
@@ -1912,6 +1954,7 @@ namespace NetMonitor.UI
 
         private async void RefreshBlockedRetries_Click(object sender, RoutedEventArgs e)
         {
+            ReprendreAutoRefresh();
             await RefreshSafe();
         }
 
@@ -2232,6 +2275,7 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         private async void RefreshStats_Click(object sender, RoutedEventArgs e)
         {
+            ReprendreAutoRefresh();
             await RefreshStatsAsync();
         }
 
@@ -2809,36 +2853,42 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         private void ActiveFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_activeIntrusions)?.Refresh();
             UpdateFilterCount(ActiveIntrusionsGrid, lblActiveFilterCount, _activeIntrusions.Count);
         }
 
         private void PendingFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_pendingProcesses)?.Refresh();
             UpdateFilterCount(PendingProcessesGrid, lblPendingFilterCount, _pendingProcesses.Count);
         }
 
         private void BlockedFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_blockedIps)?.Refresh();
             UpdateFilterCount(BlockedIpsGrid, lblBlockedFilterCount, _blockedIps.Count);
         }
 
         private void HistoryFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_alertsHistory)?.Refresh();
             UpdateFilterCount(AlertsHistoryGrid, lblHistoryFilterCount, _alertsHistory.Count);
         }
 
         private void AuditFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_auditGrouped)?.Refresh();
             UpdateFilterCount(AuditGrid, lblAuditFilterCount, _auditGrouped.Count);
         }
 
         private void RetriesFilter_Changed(object sender, EventArgs e)
         {
+            SuspendreAutoRefresh();
             CollectionViewSource.GetDefaultView(_blockedRetries)?.Refresh();
             UpdateFilterCount(BlockedRetriesGrid, lblRetriesFilterCount, _blockedRetries.Count);
         }
@@ -2954,6 +3004,8 @@ namespace NetMonitor.UI
         private void HandleGridSorting(object sender, DataGridSortingEventArgs e)
         {
             if (sender is not DataGrid grid) return;
+
+            SuspendreAutoRefresh();
             e.Handled = true;
 
             var view = CollectionViewSource.GetDefaultView(grid.ItemsSource);
@@ -4061,6 +4113,11 @@ namespace NetMonitor.UI
         public string? ReverseDns               { get; set; }         
         public bool IsOutbound                  { get; set; }
         public string Origin                    { get; set; } = "Unknown";
+
+        /// <summary>Liste de confiance à l'origine du retrait : Microsoft, Google, ou vide.</summary>
+        public string? TrustedList              { get; set; }
+
+        public string TrustedListDisplay        => string.IsNullOrWhiteSpace(TrustedList) ? "-" : TrustedList;
         
         public string TrafficDirectionIcon      => IsOutbound ? "→" : "←";
         public string TrafficDirectionTooltip   => IsOutbound ? "Trafic sortant" : "Trafic entrant";

@@ -541,8 +541,11 @@
                     HorizontalAlignment="Center" VerticalAlignment="Center">
                 <Border.Style>
                     <Style TargetType="Border">
-                        <Setter Property="Background" Value="Transparent"/>
-                        <Setter Property="BorderBrush" Value="{StaticResource Bordure}"/>
+                        <!-- Défaut : origine inconnue. Un badge gris explicite plutôt qu'un
+                             tiret discret : une cellule vide laissait croire à un manque
+                             d'information sur une IP qu'on a pourtant ignorée. -->
+                        <Setter Property="Background" Value="#5A5A5E"/>
+                        <Setter Property="BorderBrush" Value="#7A7A7E"/>
                         <Setter Property="BorderThickness" Value="1"/>
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding Origin}" Value="Scanner">
@@ -569,6 +572,14 @@
                                 <Setter Property="Background" Value="#FFFFFF"/>
                                 <Setter Property="BorderBrush" Value="#FFFFFF"/>
                             </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Cloudflare">
+                                <Setter Property="Background" Value="#F6821F"/>
+                                <Setter Property="BorderBrush" Value="#F6821F"/>
+                            </DataTrigger>
+                            <DataTrigger Binding="{Binding Origin}" Value="Local">
+                                <Setter Property="Background" Value="#607D8B"/>
+                                <Setter Property="BorderBrush" Value="#607D8B"/>
+                            </DataTrigger>
                         </Style.Triggers>
                     </Style>
                 </Border.Style>
@@ -576,8 +587,8 @@
                            TextAlignment="Center" VerticalAlignment="Center">
                     <TextBlock.Style>
                         <Style TargetType="TextBlock">
-                            <Setter Property="Text" Value="—"/>
-                            <Setter Property="Foreground" Value="#555"/>
+                            <Setter Property="Text" Value="{loc:Tr 'Inconnu'}"/>
+                            <Setter Property="Foreground" Value="#F0F0F0"/>
                             <Style.Triggers>
                                 <DataTrigger Binding="{Binding Origin}" Value="Scanner">
                                     <Setter Property="Text" Value="Scanner"/>
@@ -602,6 +613,14 @@
                                 <DataTrigger Binding="{Binding Origin}" Value="Whitelist">
                                     <Setter Property="Text" Value="Whitelist"/>
                                     <Setter Property="Foreground" Value="Black"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Cloudflare">
+                                    <Setter Property="Text" Value="Cloudflare"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding Origin}" Value="Local">
+                                    <Setter Property="Text" Value="Local"/>
+                                    <Setter Property="Foreground" Value="White"/>
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
@@ -1126,7 +1145,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -1350,7 +1369,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="140" ElementStyle="{StaticResource TexteCellule}"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -1806,7 +1825,7 @@
                             <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}"/>
                             
                             <!-- COLONNE TENTATIVES -->
-                            <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="100">
+                            <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="RetryCount" Width="130">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -2098,7 +2117,7 @@
                                 <DataGridTextColumn Header="{loc:Tr 'Dernière'}" Binding="{Binding LastSeenText}" SortMemberPath="LastSeen" Width="130" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
                                 
                                 <!-- COLONNE TENTATIVES DEPLACEE ICI -->
-                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="80" MinWidth="105">
+                                <DataGridTemplateColumn Header="{loc:Tr 'Tentatives'}" SortMemberPath="Count" Width="130" MinWidth="130">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <Border CornerRadius="9" Padding="8,0" Height="18" MinWidth="30"
@@ -2129,8 +2148,11 @@
 
                                 <DataGridTemplateColumn Header="{loc:Tr 'Sévérité'}" SortMemberPath="Severity" Width="100" CellTemplate="{StaticResource SeverityBadgeTemplate}" MinWidth="100"/>
                                 <DataGridTemplateColumn Header="{loc:Tr 'Origine'}" SortMemberPath="Origin" Width="100" CellTemplate="{StaticResource OriginBadgeTemplate}" MinWidth="90"/>
+                                <!-- Liste de confiance qui a fait ignorer l'alerte (Microsoft, Google).
+                                     Distincte de l'origine, qui décrit la nature de l'IP. -->
+                                <DataGridTextColumn Header="{loc:Tr 'Liste'}" Binding="{Binding TrustedListDisplay}" SortMemberPath="TrustedList" Width="115" ElementStyle="{StaticResource TexteCellule}" MinWidth="100"/>
                                 <DataGridTextColumn Header="{loc:Tr 'Détecteur'}" Binding="{Binding Source}" Width="110" ElementStyle="{StaticResource TexteCellule}" MinWidth="105"/>
-                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="120" MinWidth="60">
+                                <DataGridTextColumn Header="{loc:Tr 'IP'}" Binding="{Binding RemoteIp}" Width="165" MinWidth="165">
                                     <DataGridTextColumn.ElementStyle>
                                         <Style TargetType="TextBlock">
                                             <Setter Property="VerticalAlignment" Value="Center"/>
@@ -3650,6 +3672,7 @@
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
                 <Ellipse x:Name="StatusDot" Grid.Column="0"
@@ -3660,7 +3683,32 @@
                            Text="..." FontSize="12" Foreground="{StaticResource TexteSecondaire}"
                            VerticalAlignment="Center"/>
 
-                <TextBlock x:Name="txtLastUpdate" Grid.Column="2"
+                <!-- Signalé seulement quand l'actualisation automatique est en pause :
+                     sans ce rappel, on croit l'application figée. -->
+                <Border x:Name="BandeauAutoRefresh" Grid.Column="2"
+                        Visibility="Collapsed"
+                        Background="{StaticResource Bordure}"
+                        CornerRadius="3" Padding="8,1" Margin="0,0,14,0"
+                        VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="⏸" FontSize="11" Margin="0,0,6,0"
+                                   VerticalAlignment="Center"
+                                   Foreground="{StaticResource TexteSecondaire}"/>
+                        <TextBlock Text="{loc:Tr 'Actualisation automatique suspendue'}"
+                                   FontSize="11" VerticalAlignment="Center"
+                                   Foreground="{StaticResource TexteSecondaire}"/>
+                        <Button Content="{loc:Tr 'Reprendre'}"
+                                Click="ReprendreAutoRefresh_Click"
+                                Margin="8,0,0,0"
+                                Padding="8,1"
+                                FontSize="11"
+                                BorderThickness="1"
+                                Cursor="Hand"
+                                VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
+
+                <TextBlock x:Name="txtLastUpdate" Grid.Column="3"
                            Text="" FontSize="11" Foreground="#888"
                            VerticalAlignment="Center"/>
             </Grid>

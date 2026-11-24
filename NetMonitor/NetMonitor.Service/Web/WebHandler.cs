@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using MCEMonitor.Languages;
 using NetMonitor.Service.Models;
 using System.Text.Json;
 
@@ -297,6 +298,7 @@ namespace NetMonitor.Service.Web
                             <td class='count-cell'><span class='count-badge green {countClass}' title='{a.Count} occurrence(s)'>{a.Count}</span></td>
                             <td><span class='badge {sevClass}'>{WebUtility.HtmlEncode(badgeText)}</span></td>
                             <td><span class='badge {originClass}'>{WebUtility.HtmlEncode(originText)}</span></td>
+                            <td>{WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(a.TrustedListEffective) ? "-" : a.TrustedListEffective)}</td>
                             <td>{WebUtility.HtmlEncode(a.Source)}</td>
                             <td title='{WebUtility.HtmlEncode(a.ReverseDns ?? "")}'>{WebUtility.HtmlEncode(a.RemoteIp ?? "")}</td>
                             <td>{WebUtility.HtmlEncode(FormatCountry(a.Country, a.CountryCode))}</td>
@@ -315,7 +317,7 @@ namespace NetMonitor.Service.Web
                 }
                 else
                 {
-                    auditRows.Append("<tr><td colspan='19' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
+                    auditRows.Append("<tr><td colspan='20' style='text-align:center;color:#888;padding:20px'>Aucune alerte ignorée</td></tr>");
                 }
 
                  // --- Tableau 5 : tentatives sur IP bloquée ---
@@ -794,6 +796,8 @@ namespace NetMonitor.Service.Web
             "Microsoft"  => "microsoft",   // bleu MS
             "Blacklist"  => "blacklist",   // rouge sombre
             "Whitelist"  => "whitelist",   // blanc
+            "Cloudflare" => "cloudflare",  // orange
+            "Local"      => "local",       // gris bleuté
             _            => "unknown"      // gris
         };
 
@@ -808,7 +812,11 @@ namespace NetMonitor.Service.Web
             "Microsoft"  => "Microsoft",
             "Blacklist"  => "Blacklist",
             "Whitelist"  => "Whitelist",
-            _            => "—"
+            "Cloudflare" => "Cloudflare",
+            "Local"      => "Local",
+            // Origine non déterminée : on le dit, au lieu de laisser un tiret qui
+            // se confond avec une cellule vide.
+            _            => LanguageManager.Get("Inconnu") ?? "Inconnu"
         };
         
         /// <summary>
