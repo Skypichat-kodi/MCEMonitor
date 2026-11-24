@@ -1202,7 +1202,7 @@
                         </Border>
 
                         <TextBlock Grid.Row="3"
-                                   Text="{loc:Tr 'Réglages', Upper=True}"
+                                   Text="{loc:Tr 'Blocage automatique', Upper=True}"
                                    Style="{StaticResource TitreSection}"
                                    Margin="0,0,0,8" />
 
@@ -1213,81 +1213,51 @@
                                 CornerRadius="6"
                                 Padding="16,14"
                                 VerticalAlignment="Top">
-                            <StackPanel>
-                                <Grid>
-                                    <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="250" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="240" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="*" />
-                                    </Grid.ColumnDefinitions>
-                                    <Grid.RowDefinitions>
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                        <RowDefinition Height="Auto" />
-                                    </Grid.RowDefinitions>
+                            <!-- Défilement de secours : sur une fenêtre courte, la ligne
+                                 d'aide se retrouvait rognée par le bas du cadre. -->
+                            <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                         HorizontalScrollBarVisibility="Disabled"
+                                         Focusable="False">
+                                <StackPanel>
+                                    <CheckBox x:Name="CaseNetAutoBlock"
+                                              Content="{loc:Tr 'Activer le blocage automatique (interrupteur principal)'}"
+                                              FontWeight="Bold"
+                                              Margin="0,0,0,10" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="0"
-                                               Style="{StaticResource Libelle}"
-                                               Margin="0,0,0,8"
-                                               VerticalAlignment="Center"
-                                               Text="{loc:Tr 'Scan de ports — fenêtre (s) :'}" />
-                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="1"
-                                             x:Name="ChampNetPortScanFenetre"
-                                             Width="70" Margin="0,0,0,8"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+                                    <CheckBox x:Name="CaseNetAutoBlockCritical"
+                                              Style="{StaticResource CocheColoree}"
+                                              Tag="{StaticResource PastilleCritique}"
+                                              Content="{loc:Tr 'Bloquer les menaces critiques'}"
+                                              Margin="0,0,0,7" />
 
-                                    <TextBlock Grid.Row="0" Grid.Column="2"
-                                               Style="{StaticResource Libelle}"
-                                               Margin="10,0,0,8"
-                                               VerticalAlignment="Center"
-                                               Text="{loc:Tr 'Scan de ports — seuil (ports) :'}" />
-                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="0" Grid.Column="3"
-                                             x:Name="ChampNetPortScanSeuil"
-                                             Width="70" Margin="0,0,0,8"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+                                    <CheckBox x:Name="CaseNetAutoBlockWarning"
+                                              Style="{StaticResource CocheColoree}"
+                                              Tag="{StaticResource PastilleInconnue}"
+                                              Content="{loc:Tr 'Bloquer les menaces inconnues'}"
+                                              Margin="0,0,0,7" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0"
-                                               Style="{StaticResource Libelle}"
-                                               Margin="0,0,0,8"
-                                               VerticalAlignment="Center"
-                                               Text="{loc:Tr 'Beaconing — fenêtre (s) :'}" />
-                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="1"
-                                             x:Name="ChampNetBeaconFenetre"
-                                             Width="70" Margin="0,0,0,8"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+                                    <CheckBox x:Name="CaseNetBlockKnownScanners"
+                                              Style="{StaticResource CocheColoree}"
+                                              Tag="{StaticResource PastilleScanner}"
+                                              Content="{loc:Tr 'Bloquer les scanners de recherche'}"
+                                              Margin="0,0,0,7" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="2"
-                                               Style="{StaticResource Libelle}"
-                                               Margin="10,0,0,8"
-                                               VerticalAlignment="Center"
-                                               Text="{loc:Tr 'Beaconing — hits minimum :'}" />
-                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="1" Grid.Column="3"
-                                             x:Name="ChampNetBeaconHits"
-                                             Width="70" Margin="0,0,0,8"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+                                    <CheckBox x:Name="CaseNetBlockBots"
+                                              Style="{StaticResource CocheColoree}"
+                                              Tag="{StaticResource PastilleRobot}"
+                                              Content="{loc:Tr 'Bloquer les robots officiels (Googlebot, Bingbot...)'}"
+                                              Margin="0,0,0,7" />
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0"
-                                               Style="{StaticResource Libelle}"
-                                               Margin="0,0,0,8"
-                                               VerticalAlignment="Center"
-                                               Text="{loc:Tr 'Beaconing — jitter max (%) :'}" />
-                                    <TextBox Style="{StaticResource ChampParametre}" Grid.Row="2" Grid.Column="1"
-                                             x:Name="ChampNetBeaconJitter"
-                                             Width="70" Margin="0,0,0,8"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
-                                </Grid>
+                                    <CheckBox x:Name="CaseNetBlockCrawlers"
+                                              Style="{StaticResource CocheColoree}"
+                                              Tag="{StaticResource PastilleCrawler}"
+                                              Content="{loc:Tr 'Bloquer les robots génériques (Yandex, Baidu...)'}" />
 
-                                <CheckBox x:Name="CaseNetAutoBlock"
-                                          Content="{loc:Tr 'Blocage automatique par pare-feu (sévérité High et plus)'}"
-                                          Margin="0,6,0,0" />
-                            </StackPanel>
+                                    <TextBlock Style="{StaticResource Aide}"
+                                               Margin="0,10,0,0"
+                                               Text="{loc:Tr 'Les services de confiance (Microsoft, Google, Windows) restent toujours exclus.'}" />
+                                </StackPanel>
+                            </ScrollViewer>
                         </Border>
 
                         <StackPanel Grid.Row="5"

@@ -41,4 +41,13 @@
              surface blanche sans revenir à un fond sombre. -->
         <Color x:Key="CouleurFondZoneLog">#FFF7F7F7</Color>
         <SolidColorBrush x:Key="FondZoneLog" Color="{StaticResource CouleurFondZoneLog}" />
+
+        <!-- Pastilles des catégories de blocage automatique (onglet NetMonitor).
+             Sur fond clair, les teintes du thème sombre sont trop pâles : on
+             descend d'un ton, en gardant l'ordre rouge / ambre / vert / bleu. -->
+        <SolidColorBrush x:Key="PastilleCritique" Color="#FFD32F2F" />
+        <SolidColorBrush x:Key="PastilleInconnue" Color="#FFE0A000" />
+        <SolidColorBrush x:Key="PastilleScanner"  Color="#FF2E7D32" />
+        <SolidColorBrush x:Key="PastilleRobot"    Color="#FF0288D1" />
+        <SolidColorBrush x:Key="PastilleCrawler"  Color="#FF1565C0" />
 </ResourceDictionary>

@@ -41,4 +41,13 @@
              que la surface, pour détacher le bloc du reste de la fenêtre. -->
         <Color x:Key="CouleurFondZoneLog">#FF141414</Color>
         <SolidColorBrush x:Key="FondZoneLog" Color="{StaticResource CouleurFondZoneLog}" />
+
+        <!-- Pastilles des catégories de blocage automatique (onglet NetMonitor).
+             Mêmes valeurs que dans NetMonitor.UI, pour que la coche d'une catégorie
+             ait la même couleur dans les deux interfaces. -->
+        <SolidColorBrush x:Key="PastilleCritique" Color="#FFFF5B5B" />
+        <SolidColorBrush x:Key="PastilleInconnue" Color="#FFFFB900" />
+        <SolidColorBrush x:Key="PastilleScanner"  Color="#FF3FB950" />
+        <SolidColorBrush x:Key="PastilleRobot"    Color="#FF5BC0EB" />
+        <SolidColorBrush x:Key="PastilleCrawler"  Color="#FF1E88E5" />
 </ResourceDictionary>

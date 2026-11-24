@@ -1202,6 +1202,10 @@ namespace MCEMonitor.UI
 
             _basculeRomEnCours = true;
 
+            // Le message d'enregistrement décrit l'état du service au moment du clic :
+            // il devient faux dès qu'on le démarre ou qu'on l'arrête.
+            MessageRom.Visibility = Visibility.Collapsed;
+
             CoreLog.Info("RomMonitor", "Service : "
                                 + (ServiceRomEnCours ? "arrêt demandé" : "démarrage demandé"));
 
@@ -1535,6 +1539,12 @@ namespace MCEMonitor.UI
                     AfficherMessageRom(LanguageManager.Get("Réglages enregistrés, service rechargé.")
                                        ?? "Réglages enregistrés, service rechargé.");
                 }
+                else if (!ServiceRomEnCours)
+                {
+                    CoreLog.Info("RomMonitor", "Service arrêté : réglages appliqués à son démarrage");
+                    AfficherMessageRom(LanguageManager.Get("Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.")
+                                       ?? "Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.");
+                }
                 else
                 {
                     CoreLog.Warn("RomMonitor", "Service non notifié : redémarrage nécessaire");
@@ -1640,6 +1650,8 @@ namespace MCEMonitor.UI
                 return;
 
             _basculeSystemEnCours = true;
+
+            MessageSystem.Visibility = Visibility.Collapsed;
 
             CoreLog.Info("SystemMonitor", "Service : "
                                 + (ServiceSystemEnCours ? "arrêt demandé" : "démarrage demandé"));
@@ -1851,6 +1863,13 @@ namespace MCEMonitor.UI
             => !config.TryGetValue(cle, out var valeur)
                || !valeur.Equals("false", StringComparison.OrdinalIgnoreCase);
 
+        // Variante pour les clés dont le défaut du service est « faux » : sans elle,
+        // une clé absente du fichier afficherait une coche que le service n'applique pas.
+        private static bool EstVrai(Dictionary<string, string> config, string cle, bool defaut)
+            => config.TryGetValue(cle, out var valeur)
+                ? !valeur.Equals("false", StringComparison.OrdinalIgnoreCase)
+                : defaut;
+
         private async void SurEnregistrerReglagesSystem(object sender, RoutedEventArgs e)
         {
             try
@@ -1911,6 +1930,12 @@ namespace MCEMonitor.UI
                     CoreLog.Info("SystemMonitor", "Service rechargé à chaud");
                     AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés, service rechargé.")
                                        ?? "Réglages enregistrés, service rechargé.");
+                }
+                else if (!ServiceSystemEnCours)
+                {
+                    CoreLog.Info("SystemMonitor", "Service arrêté : réglages appliqués à son démarrage");
+                    AfficherMessageSystem(LanguageManager.Get("Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.")
+                                       ?? "Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.");
                 }
                 else
                 {
@@ -2555,6 +2580,8 @@ namespace MCEMonitor.UI
 
             _basculeNetEnCours = true;
 
+            MessageNet.Visibility = Visibility.Collapsed;
+
             CoreLog.Info("NetMonitor", "Service : "
                                 + (ServiceNetEnCours ? "arrêt demandé" : "démarrage demandé"));
 
@@ -2721,62 +2748,37 @@ namespace MCEMonitor.UI
         {
             var config = LireConfig(FichierConfigNet);
 
-            ChampNetPortScanFenetre.Text = Valeur(config, "PortScanWindowSeconds", "10");
-            ChampNetPortScanSeuil.Text   = Valeur(config, "PortScanThreshold", "20");
-            ChampNetBeaconFenetre.Text   = Valeur(config, "BeaconWindowSeconds", "300");
-            ChampNetBeaconHits.Text      = Valeur(config, "BeaconMinHits", "6");
-
-            // Le jitter est stocké en fraction (0,05) et affiché en pourcentage (5).
-            int jitter = 5;
-
-            if (config.TryGetValue("BeaconJitterTolerancePct", out var brut) &&
-                double.TryParse(brut, System.Globalization.NumberStyles.Float,
-                                System.Globalization.CultureInfo.InvariantCulture, out double fraction))
-            {
-                jitter = (int)Math.Round(fraction * 100.0);
-            }
-
-            ChampNetBeaconJitter.Text = jitter.ToString();
-            CaseNetAutoBlock.IsChecked = EstVrai(config, "AutoBlock");
+            // Valeurs par défaut : celles du service (NetMonitorSettings), pour qu'une
+            // clé absente du fichier n'affiche pas une coche contraire à ce que le
+            // service applique réellement.
+            CaseNetAutoBlock.IsChecked          = EstVrai(config, "AutoBlock", false);
+            CaseNetAutoBlockCritical.IsChecked  = EstVrai(config, "AutoBlockCritical", true);
+            CaseNetAutoBlockWarning.IsChecked   = EstVrai(config, "AutoBlockWarning", true);
+            CaseNetBlockKnownScanners.IsChecked = EstVrai(config, "BlockKnownScanners", false);
+            CaseNetBlockBots.IsChecked          = EstVrai(config, "BlockBots", false);
+            CaseNetBlockCrawlers.IsChecked      = EstVrai(config, "BlockCrawlers", true);
         }
 
         private async void SurEnregistrerReglagesNet(object sender, RoutedEventArgs e)
         {
             try
             {
-                int portScanFenetre = Borner(ChampNetPortScanFenetre.Text, 1, 300, 10);
-                int portScanSeuil   = Borner(ChampNetPortScanSeuil.Text,   2, 1000, 20);
-                int beaconFenetre   = Borner(ChampNetBeaconFenetre.Text,   30, 3600, 300);
-                int beaconHits      = Borner(ChampNetBeaconHits.Text,      3, 100, 6);
-                int jitterPct       = Borner(ChampNetBeaconJitter.Text,    1, 100, 5);
-
-                // Fraction à point décimal, indépendante de la langue du système :
-                // le service lit ce fichier avec InvariantCulture.
-                string jitter = (jitterPct / 100.0).ToString(System.Globalization.CultureInfo.InvariantCulture);
-
-                Directory.CreateDirectory(Path.GetDirectoryName(FichierConfigNet)!);
-
-                var lignes = new[]
+                // Seules les clés de blocage sont touchées. La fusion laisse intact
+                // tout le reste du fichier : patterns de sévérité, réseaux ignorés,
+                // listes officielles Microsoft et Google, threat intelligence, GeoIP,
+                // date de mise à jour de la blacklist… Un File.WriteAllLines, ici,
+                // les effaçait à chaque enregistrement.
+                var modifications = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
                 {
-                    "# ============================================================",
-                    "# NetMonitor.config",
-                    "# Configuration du service NetMonitor",
-                    "# ============================================================",
-                    "",
-                    "# --- Détecteur : Scan de ports ---",
-                    $"PortScanWindowSeconds={portScanFenetre}",
-                    $"PortScanThreshold={portScanSeuil}",
-                    "",
-                    "# --- Détecteur : Beaconing (C2) ---",
-                    $"BeaconWindowSeconds={beaconFenetre}",
-                    $"BeaconMinHits={beaconHits}",
-                    $"BeaconJitterTolerancePct={jitter}",
-                    "",
-                    "# --- Blocage automatique ---",
-                    $"AutoBlock={(CaseNetAutoBlock.IsChecked == true ? "true" : "false")}"
+                    ["AutoBlock"]          = TexteBooleen(CaseNetAutoBlock.IsChecked),
+                    ["AutoBlockCritical"]  = TexteBooleen(CaseNetAutoBlockCritical.IsChecked),
+                    ["AutoBlockWarning"]   = TexteBooleen(CaseNetAutoBlockWarning.IsChecked),
+                    ["BlockKnownScanners"] = TexteBooleen(CaseNetBlockKnownScanners.IsChecked),
+                    ["BlockBots"]          = TexteBooleen(CaseNetBlockBots.IsChecked),
+                    ["BlockCrawlers"]      = TexteBooleen(CaseNetBlockCrawlers.IsChecked)
                 };
 
-                File.WriteAllLines(FichierConfigNet, lignes);
+                FusionnerConfigNet(modifications);
 
                 CoreLog.Info("NetMonitor", "Réglages enregistrés");
 
@@ -2787,6 +2789,12 @@ namespace MCEMonitor.UI
                     CoreLog.Info("NetMonitor", "Service rechargé à chaud");
                     AfficherMessageNet(LanguageManager.Get("Réglages enregistrés, service rechargé.")
                                        ?? "Réglages enregistrés, service rechargé.");
+                }
+                else if (!ServiceNetEnCours)
+                {
+                    CoreLog.Info("NetMonitor", "Service arrêté : réglages appliqués à son démarrage");
+                    AfficherMessageNet(LanguageManager.Get("Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.")
+                                       ?? "Réglages enregistrés. Le service n'est pas démarré : ils seront appliqués à son démarrage.");
                 }
                 else
                 {
@@ -2799,6 +2807,72 @@ namespace MCEMonitor.UI
             {
                 AfficherMessageNet("Erreur lors de l'enregistrement : " + ex.Message, alerte: true);
             }
+        }
+
+        private static string TexteBooleen(bool? valeur) => valeur == true ? "true" : "false";
+
+        /// <summary>
+        /// Met à jour quelques clés de NetMonitor.config sans rien perdre du reste.
+        ///
+        /// Les valeurs sont remplacées sur place, les clés absentes sont ajoutées à
+        /// la suite du bloc de blocage automatique, et tout ce qui n'est pas cité —
+        /// commentaires, patterns, listes officielles, date de la blacklist — est
+        /// recopié tel quel. Réécrire le fichier entier, comme le faisait
+        /// l'enregistrement précédent, remettait le service sur ses valeurs par
+        /// défaut sans le moindre avertissement.
+        /// </summary>
+        private void FusionnerConfigNet(Dictionary<string, string> modifications)
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(FichierConfigNet)!);
+
+            var restants = new Dictionary<string, string>(modifications, StringComparer.OrdinalIgnoreCase);
+            var lignes   = new List<string>();
+
+            if (File.Exists(FichierConfigNet))
+                lignes.AddRange(File.ReadAllLines(FichierConfigNet));
+
+            int derniereModifiee = -1;
+
+            for (int i = 0; i < lignes.Count; i++)
+            {
+                string ligne = lignes[i];
+
+                if (string.IsNullOrWhiteSpace(ligne) || ligne.TrimStart().StartsWith("#", StringComparison.Ordinal))
+                    continue;
+
+                var parties = ligne.Split('=', 2);
+                if (parties.Length != 2)
+                    continue;
+
+                string cle = parties[0].Trim();
+
+                if (restants.TryGetValue(cle, out var valeur))
+                {
+                    lignes[i] = cle + "=" + valeur;
+                    restants.Remove(cle);
+                    derniereModifiee = i;
+                }
+            }
+
+            if (restants.Count > 0)
+            {
+                var manquantes = restants.Select(kv => kv.Key + "=" + kv.Value).ToList();
+
+                if (derniereModifiee >= 0)
+                {
+                    lignes.InsertRange(derniereModifiee + 1, manquantes);
+                }
+                else
+                {
+                    if (lignes.Count > 0 && lignes[^1].Length > 0)
+                        lignes.Add(string.Empty);
+
+                    lignes.Add("# --- Blocage automatique ---");
+                    lignes.AddRange(manquantes);
+                }
+            }
+
+            File.WriteAllLines(FichierConfigNet, lignes);
         }
 
         // Lecture commune des fichiers de configuration « clé=valeur ».
