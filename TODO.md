@@ -118,12 +118,6 @@ _(rien)_
   - Conséquence actuelle : bruit permanent et risque de reflexe d'approbation chez l'utilisateur
   - **Priorité** : 🔴 haute (gêne quotidienne)
 
-- [ ] **MCEMonitorClient Android : liste des serveurs plus lisible**
-  - Retirer la carte « Top IP » de l'interface pour les serveurs NetMonitor : elle n'apporte rien sur
-    mobile et occupe la place de l'essentiel
-  - Revoir la présentation de la liste des serveurs, aujourd'hui encombrée
-  - **Priorité** : 🟡 moyenne
-
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
   - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
@@ -193,6 +187,33 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — page des serveurs Android
+
+**Carte « TOP IPs » retirée** de la page NetMonitor : sur un écran de téléphone, elle prenait la place des
+informations utiles sans rien apprendre qu'une liste de blocages ne dise déjà. Le code du modèle suit
+(`TopIps`, `HasTopIps`, `NetTopIpItem`). L'API du service continue de publier `topIps` : la page web s'en
+sert.
+
+**La sélection orange ne venait pas du XAML.** Sur Android, le `CollectionView` dessine sa propre
+surbrillance au niveau natif, avec la couleur du système — orange sur certains appareils — qu'aucun état
+visuel ne peut neutraliser. La sélection native est donc désactivée (`SelectionMode=None`) et l'état porté
+par le modèle : `IsSelected` sur `ServerItemViewModel`, un `DataTrigger` sur le `Border`. Le serveur retenu
+se signale par un **relief** — bordure d'accent de 2 px, ombre portée bleutée — et non par un aplat.
+
+**Le violet du gabarit, éliminé à trois niveaux.**
+
+- `Shell.TitleColor` valait `#9880e5` en thème sombre, et le magenta `#D600AA` servait aux onglets en thème
+  clair. Cette couleur peint aussi les titres des pages de chaque service, qui se contentent de définir
+  leur `Title`. Le style du Shell est maintenant fixe (`#14212B` / `#4CC2FF`), sans dépendance au thème
+- la couleur d'accent de l'application (`Primary`) et `colorAccent` Android passent au bleu `#4CC2FF` ;
+  `PrimaryDark`, fond des boutons en thème sombre, devient `#1E3A4D` pour garder le texte clair lisible
+- la barre système Android (`colorPrimary`) abandonne `#512BD4` pour les teintes du fond de page
+
+**Fond de page** : dégradé sombre bleuté au lieu du gris uniforme, en harmonie avec l'accent.
+
+**Versions** : le tag `v3.0.10` a été posé sur `e5c128b`, avant ces corrections. Il faudra le déplacer,
+ou publier une 3.0.11.
 
 ### Session 2026-11-24 — surcharges d'E/S visibles dans les clients
 
