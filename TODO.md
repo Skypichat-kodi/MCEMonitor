@@ -96,19 +96,6 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **MCEMonitor.UI : coches de blocage automatique à la place des réglages NetMonitor**
-  - L'onglet NetMonitor de MCEMonitor expose aujourd'hui des paramètres de service dont on n'a presque
-    jamais besoin au quotidien. Les remplacer par ce qui se règle vraiment souvent : l'activation du
-    blocage automatique et ses coches colorées de sévérité (critiques, inconnues, scanners, robots
-    officiels, robots génériques)
-  - **Sans les listes officielles ni les seuils de détecteurs** : celles-ci restent dans NetMonitor.UI,
-    où on les consulte une fois pour toutes
-  - Objectif : bloquer une catégorie sans ouvrir NetMonitor, qui n'est pas forcément lancé
-  - Les coches écrivent les mêmes clés de configuration (`AutoBlock`, `AutoBlockCritical`,
-    `AutoBlockWarning`, `BlockKnownScanners`, `BlockBots`, `BlockCrawlers`) puis demandent un rechargement
-    à chaud, comme le fait déjà NetMonitor.UI
-  - **Priorité** : 🟡 moyenne
-
 - [ ] **NetMonitor : exécutables Microsoft approuvés en boucle**
   - Des exécutables Microsoft reviennent sans arrêt dans la liste des processus à approuver, malgré une
     approbation. À investiguer : comparaison chemin + empreinte au moment de l'approbation, mise à jour
@@ -119,7 +106,7 @@ _(rien)_
   - **Priorité** : 🔴 haute (gêne quotidienne)
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (616 clés) et `en-GB` (571 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (743 clés) et `en-GB` (698 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -187,6 +174,42 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-24 — coches de blocage automatique dans MCEMonitor
+
+L onglet NetMonitor de MCEMonitor montrait les seuils des détecteurs — fenêtre de scan de ports, seuil,
+beaconing, jitter — qui ne se règlent qu une fois, et une seule case de blocage. Il affiche désormais ce
+qui se change au quotidien : l interrupteur principal, puis les cinq catégories, chacune avec sa pastille
+colorée : critiques, inconnues, scanners, robots officiels, robots génériques. Enregistrer suffit à bloquer
+une catégorie sans ouvrir NetMonitor. Les seuils restent dans NetMonitor.UI, où ils étaient déjà.
+
+**Le bug qui comptait.** L enregistrement réécrivait `NetMonitor.config` en entier avec huit clés.
+Tout le reste disparaissait : `CriticalPatterns`, `ScannerPatterns`, `SafePatterns`, `WhitelistPatterns`,
+`IgnoredNetworks`, `CrawlerPatterns`, `BlacklistLevel`, `BlacklistLastUpdate`, GeoIP, `IpLookupUrl`, les
+listes officielles Microsoft et Google. Le service repartait sur ses valeurs par défaut, sans un mot dans
+les journaux. Un `File.WriteAllLines` remplacé par une fusion : les valeurs sont remplacées sur place, les
+clés absentes ajoutées à la suite du bloc, le reste recopié tel quel. Vérifié sur une copie de la
+configuration réelle : aucune clé perdue, `BlacklistLastUpdate` intacte.
+
+**Le style.** Une pastille ronde plutôt qu'une case : la couleur vient de la propriété `Tag` du `CheckBox`
+(`Style CocheColoree`), et chaque thème porte ses teintes (`PastilleCritique`, `PastilleInconnue`,
+`PastilleScanner`, `PastilleRobot`, `PastilleCrawler`) — plus soutenues en thème clair, où les teintes du
+sombre disparaissent. Le point intérieur mesure un nombre pair de pixels (`Width="8"`) : à 7, centré dans
+une boîte de 16, il tombait sur un demi-pixel et le lissage le décalait visiblement.
+
+**Les messages.** `EstVrai` supposait « coché » quand une clé manque ; `AutoBlock` valant faux par défaut
+dans le service, une variante prend le défaut réel. Le message d enregistrement distingue désormais service
+arrêté et service injoignable, et s efface quand on bascule le service — il décrivait sinon un état périmé,
+ce qui a fait croire un moment à une notification en échec alors que les trois services étaient simplement
+arrêtés.
+
+**Le rechargement à chaud** (`ServiceReload`) parle le protocole des clients des modules : octets bruts,
+lecture jusqu à la fermeture, 2 s pour se connecter et 12 s pour la réponse, durée journalisée. Mesuré sur
+la machine : 47 à 62 ms, huit essais sur huit.
+
+**Langues** : huit phrases ajoutées en `fr-FR` et `en-GB`, dont les six libellés des coches. Ceux-ci
+manquaient dans les deux fichiers alors que NetMonitor.UI les emploie mot pour mot : ses coches sont
+désormais traduites aussi.
 
 ### Session 2026-11-24 — page des serveurs Android
 
