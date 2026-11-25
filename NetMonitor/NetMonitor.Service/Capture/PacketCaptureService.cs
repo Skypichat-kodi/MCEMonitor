@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Channels;
@@ -44,16 +45,16 @@ namespace NetMonitor.Service.Capture
                 return;
 
             _captureTask = Task.Run(() => CaptureLoopAsync(_cts.Token));
-            CoreLog.Info($"WinDivert : capture dÈmarrÈe avec le filtre '{_filter}'");
+            CoreLog.Info($"WinDivert : capture d√©marr√©e avec le filtre '{_filter}'");
         }
 
         /// <summary>
-        /// Tente d'ouvrir WinDivert avec plusieurs essais espacÈs.
-        /// Objectif : absorber les Èchecs transitoires au dÈmarrage
-        /// (BFE pas prÍt, autre logiciel libÈrant le pilote, antivirus
-        /// temporisant le chargementÖ).
+        /// Tente d'ouvrir WinDivert avec plusieurs essais espac√©s.
+        /// Objectif : absorber les √©checs transitoires au d√©marrage
+        /// (BFE pas pr√™t, autre logiciel lib√©rant le pilote, antivirus
+        /// temporisant le chargement‚Ä¶).
         ///
-        /// Codes d'erreur frÈquents :
+        /// Codes d'erreur fr√©quents :
         ///   1058 (ERROR_SERVICE_DISABLED)  ? pilote pas encore disponible
         ///   5    (ERROR_ACCESS_DENIED)     ? droits admin insuffisants
         ///   2    (ERROR_FILE_NOT_FOUND)    ? DLL/SYS manquants
@@ -71,7 +72,7 @@ namespace NetMonitor.Service.Capture
                     int delayMs = RETRY_DELAYS_MS[attempt];
                     CoreLog.Warn(
                         $"WinDivert : nouvelle tentative {attempt + 1}/{totalAttempts} " +
-                        $"dans {delayMs} ms (dernier code : {lastErr})Ö");
+                        $"dans {delayMs} ms (dernier code : {lastErr})‚Ä¶");
                     try { Thread.Sleep(delayMs); }
                     catch { /* jamais bloquant */ }
                 }
@@ -84,14 +85,14 @@ namespace NetMonitor.Service.Capture
                 lastErr = Marshal.GetLastWin32Error();
                 _handle = IntPtr.Zero;
 
-                // Pour ces codes, rÈessayer ne sert ‡ rien : on abandonne tout de suite.
+                // Pour ces codes, r√©essayer ne sert √† rien : on abandonne tout de suite.
                 //   2   = ERROR_FILE_NOT_FOUND      ? fichiers absents, retry inutile
                 //   5   = ERROR_ACCESS_DENIED       ? droits admin manquants, retry inutile
                 //   1275= ERROR_DRIVER_BLOCKED      ? antivirus, retry inutile
                 if (lastErr == 2 || lastErr == 5 || lastErr == 1275)
                 {
                     CoreLog.Error(
-                        $"WinDivert : Èchec dÈfinitif (code {lastErr}) ó nouvelle tentative inutile.");
+                        $"WinDivert : √©chec d√©finitif (code {lastErr}) ‚Äî nouvelle tentative inutile.");
                     break;
                 }
             }
@@ -100,22 +101,22 @@ namespace NetMonitor.Service.Capture
             {
                 2    => "Fichiers WinDivert.dll / WinDivert64.sys introuvables dans le dossier de sortie.",
                 5    => "Droits administrateur insuffisants.",
-                1058 => "Le pilote WinDivert ne peut pas dÈmarrer (service dÈsactivÈ, " +
+                1058 => "Le pilote WinDivert ne peut pas d√©marrer (service d√©sactiv√©, " +
                         "ou conflit avec un autre logiciel utilisant WinDivert, " +
-                        "ou Base Filtering Engine (BFE) non dÈmarrÈ).",
-                1275 => "Le pilote WinDivert est bloquÈ par un antivirus / une politique de sÈcuritÈ.",
-                577  => "Signature numÈrique du pilote WinDivert non reconnue par Windows.",
-                _    => "Consultez le journal Windows (Event Viewer) pour plus de dÈtails."
+                        "ou Base Filtering Engine (BFE) non d√©marr√©).",
+                1275 => "Le pilote WinDivert est bloqu√© par un antivirus / une politique de s√©curit√©.",
+                577  => "Signature num√©rique du pilote WinDivert non reconnue par Windows.",
+                _    => "Consultez le journal Windows (Event Viewer) pour plus de d√©tails."
             };
 
             string msg =
-                $"WinDivert : Èchec de l'ouverture aprËs {totalAttempts} tentative(s) " +
+                $"WinDivert : √©chec de l'ouverture apr√®s {totalAttempts} tentative(s) " +
                 $"(dernier code {lastErr}). {hint}";
 
             CoreLog.Error(msg);
 
-            // On utilise Exception.Source pour transmettre la catÈgorie ‡ l'UI.
-            // "WinDivertRestart" dÈclenche la popup "RedÈmarrer l'ordinateur ?" cÙtÈ UI.
+            // On utilise Exception.Source pour transmettre la cat√©gorie √† l'UI.
+            // "WinDivertRestart" d√©clenche la popup "Red√©marrer l'ordinateur ?" c√¥t√© UI.
             var ex = new Exception(msg) { Source = "WinDivertRestart" };
             OnError?.Invoke(this, ex);
             return false;
@@ -147,12 +148,12 @@ namespace NetMonitor.Service.Capture
 
                             if (!_writer.TryWrite(rawPacket))
                             {
-                                CoreLog.Warn("WinDivert : file de traitement pleine, paquet ignorÈ");
+                                CoreLog.Warn("WinDivert : file de traitement pleine, paquet ignor√©");
                             }
                         }
                         else if (!ct.IsCancellationRequested)
                         {
-                            CoreLog.Warn($"[WinDivert] WinDivertRecv a ÈchouÈ (code {err})");
+                            CoreLog.Warn($"[WinDivert] WinDivertRecv a √©chou√© (code {err})");
                             await Task.Delay(10, ct);
                         }
                     }
@@ -179,7 +180,42 @@ namespace NetMonitor.Service.Capture
                 _handle = IntPtr.Zero;
             }
             try { _captureTask?.Wait(TimeSpan.FromSeconds(2)); } catch { }
-            CoreLog.Info("WinDivert : capture arr?tÈe");
+
+            // Fermer le handle ne suffit pas : le pilote reste charg√© dans le noyau,
+            // et les anti-cheats refusent alors de d√©marrer le jeu ‚Äî Ricochet, pour
+            // Call of Duty, voit un pilote de capture actif et bloque le lancement.
+            ArreterPilote();
+
+            CoreLog.Info("WinDivert : capture arr√™t√©e");
+        }
+
+        /// <summary>
+        /// Arr√™te le service noyau WinDivert, que WinDivertClose laisse en place.
+        ///
+        /// Volontairement court : appel√© aussi depuis le cleanup d'arr√™t, qui ne
+        /// dispose que de deux secondes avant que Windows ne coupe le processus.
+        /// </summary>
+        private static void ArreterPilote()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo("sc.exe", "stop WinDivert")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var processus = Process.Start(psi);
+                processus?.WaitForExit(1500);
+
+                CoreLog.Info("[WINDIVERT] Pilote d√©charg√© (sc stop WinDivert)");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("[WINDIVERT] D√©chargement du pilote impossible : " + ex.Message);
+            }
         }
 
         public void Dispose() { Stop(); _cts.Dispose(); }

@@ -455,11 +455,18 @@ namespace NetMonitor.Tray
             // 1. Envoie shutdown
             try
             {
-                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.Out);
+                // InOut et non Out : le service répond à la commande, et écrire dans
+                // un tube déjà fermé levait chez lui une exception qui l'empêchait de
+                // s'arrêter. On lit donc la réponse avant de refermer.
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
                 client.Connect(1000);
-                using var writer = new StreamWriter(client);
-                writer.WriteLine("shutdown");
-                writer.Flush();
+
+                byte[] octets = Encoding.UTF8.GetBytes("shutdown");
+                client.Write(octets, 0, octets.Length);
+                client.Flush();
+
+                var reponse = new byte[256];
+                try { client.Read(reponse, 0, reponse.Length); } catch { }
             }
             catch (Exception ex)
             {

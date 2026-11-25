@@ -563,10 +563,17 @@ namespace NetMonitor.Service.Ipc
 
         private void HandleShutdown(NamedPipeServerStream server)
         {
-            IpcResponse.Ok(server);
             CoreLog.Write("IPC : shutdown demandé");
 
+            // L'arrêt est planifié AVANT de répondre. Le client peut avoir fermé le
+            // tube — c'est le cas du Tray, qui écrit puis s'en va —, et une écriture
+            // qui lève interromprait le handler : le service ne s'arrêterait jamais
+            // proprement, ProcessExit ne passerait pas, et le pilote WinDivert
+            // resterait chargé, bloquant les jeux protégés par un anti-cheat.
             System.Threading.Tasks.Task.Delay(500).ContinueWith(_ => Environment.Exit(0));
+
+            try { IpcResponse.Ok(server); }
+            catch { /* client déjà parti : l'arrêt est enclenché, c'est l'essentiel */ }
         }
 
         private void HandleGetWhitelist(NamedPipeServerStream server)

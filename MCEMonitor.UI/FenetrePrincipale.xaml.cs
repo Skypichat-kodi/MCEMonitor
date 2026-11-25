@@ -864,6 +864,37 @@ namespace MCEMonitor.UI
                                 + (ServiceMediaEnCours ? "en cours" : "arrêté"));
         }
 
+        /// <summary>
+        /// Arrête le service noyau WinDivert, que la capture de NetMonitor laisse chargé
+        /// même après la fermeture de son handle.
+        ///
+        /// Le pilote de capture fait refuser le démarrage de certains jeux protégés par
+        /// un anti-cheat — Ricochet, pour Call of Duty, voit un pilote de capture actif
+        /// et bloque le lancement. Arrêter NetMonitor ne suffit donc pas.
+        /// </summary>
+        private static async Task DechargerPiloteWinDivertAsync()
+        {
+            try
+            {
+                var psi = new ProcessStartInfo("sc.exe", "stop WinDivert")
+                {
+                    CreateNoWindow = true,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var processus = Process.Start(psi);
+
+                if (processus != null)
+                    await processus.WaitForExitAsync();
+            }
+            catch
+            {
+                // Pilote absent ou déjà arrêté : l'arrêt du service, lui, a bien eu lieu.
+            }
+        }
+
         private async Task<bool> DemarrerServiceMediaAsync()
         {
             if (!File.Exists(CheminServiceMedia))
@@ -2670,6 +2701,11 @@ namespace MCEMonitor.UI
 
                     foreach (var processus in Process.GetProcessesByName("NetMonitor.Service"))
                         processus.Kill();
+
+                    // Ces modules sont des exécutables ordinaires : Kill ne laisse aucune
+                    // chance au service de fermer son handle WinDivert, et le pilote
+                    // resterait chargé — de quoi empêcher Call of Duty de démarrer.
+                    await DechargerPiloteWinDivertAsync();
                 }
                 else
                 {
