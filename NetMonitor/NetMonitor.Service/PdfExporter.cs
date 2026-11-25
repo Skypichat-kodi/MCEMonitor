@@ -279,7 +279,7 @@ namespace NetMonitor.Service
                 {
                     new Colonne { Titre = "Sens",           Largeur = 34 },
                     new Colonne { Titre = "Date",           Largeur = 58 },
-                    new Colonne { Titre = "Sévérité",       Largeur = 52 },
+                    new Colonne { Titre = "Sévérité",       Largeur = 62 },
                     new Colonne { Titre = "Type",           Largeur = 46 },
                     new Colonne { Titre = "IP / Processus", Largeur = 92 },
                     new Colonne { Titre = "Pays",           Largeur = 82 },
@@ -287,7 +287,7 @@ namespace NetMonitor.Service
                     new Colonne { Titre = "Organisation",   Largeur = 78 },
                     new Colonne { Titre = "Origine",        Largeur = 54 },
                     new Colonne { Titre = "Détecteur",      Largeur = 58 },
-                    new Colonne { Titre = "Raison",         Largeur = 160 }
+                    new Colonne { Titre = "Raison",         Largeur = 150 }
                 }
             };
 
@@ -322,7 +322,7 @@ namespace NetMonitor.Service
                 {
                     new Colonne { Titre = "Sens",              Largeur = 34 },
                     new Colonne { Titre = "IP",                Largeur = 78 },
-                    new Colonne { Titre = "Sévérité",          Largeur = 52 },
+                    new Colonne { Titre = "Sévérité",          Largeur = 62 },
                     new Colonne { Titre = "Détecteur initial", Largeur = 70 },
                     new Colonne { Titre = "Pays",              Largeur = 80 },
                     new Colonne { Titre = "FAI (ASN)",         Largeur = 70 },
@@ -331,7 +331,7 @@ namespace NetMonitor.Service
                     new Colonne { Titre = "Bloquée le",        Largeur = 58 },
                     new Colonne { Titre = "Origine",           Largeur = 52 },
                     new Colonne { Titre = "Nb/T",              Largeur = 34 },
-                    new Colonne { Titre = "Dernière",          Largeur = 82 }
+                    new Colonne { Titre = "Dernière",          Largeur = 72 }
                 }
             };
 
@@ -377,7 +377,7 @@ namespace NetMonitor.Service
                 {
                     new Colonne { Titre = "Sens",          Largeur = 34 },
                     new Colonne { Titre = "Date",          Largeur = 58 },
-                    new Colonne { Titre = "Sévérité",      Largeur = 52 },
+                    new Colonne { Titre = "Sévérité",      Largeur = 62 },
                     new Colonne { Titre = "Origine",       Largeur = 52 },
                     new Colonne { Titre = "Détecteur",     Largeur = 68 },
                     new Colonne { Titre = "IP",            Largeur = 76 },
@@ -385,7 +385,7 @@ namespace NetMonitor.Service
                     new Colonne { Titre = "FAI (ASN)",     Largeur = 70 },
                     new Colonne { Titre = "Organisation",  Largeur = 76 },
                     new Colonne { Titre = "Processus",     Largeur = 70 },
-                    new Colonne { Titre = "Détails",       Largeur = 150 }
+                    new Colonne { Titre = "Détails",       Largeur = 140 }
                 }
             };
 
@@ -420,7 +420,7 @@ namespace NetMonitor.Service
                 {
                     new Colonne { Titre = "Sens",         Largeur = 34 },
                     new Colonne { Titre = "Date",         Largeur = 58 },
-                    new Colonne { Titre = "Sévérité",     Largeur = 52 },
+                    new Colonne { Titre = "Sévérité",     Largeur = 62 },
                     new Colonne { Titre = "Origine",      Largeur = 54 },
                     new Colonne { Titre = "Liste",        Largeur = 46 },
                     new Colonne { Titre = "Détecteur",    Largeur = 62 },
@@ -428,7 +428,7 @@ namespace NetMonitor.Service
                     new Colonne { Titre = "Pays",         Largeur = 82 },
                     new Colonne { Titre = "FAI (ASN)",    Largeur = 74 },
                     new Colonne { Titre = "Organisation", Largeur = 80 },
-                    new Colonne { Titre = "Raison",       Largeur = 166 }
+                    new Colonne { Titre = "Raison",       Largeur = 156 }
                 }
             };
 
@@ -504,15 +504,26 @@ namespace NetMonitor.Service
             };
         }
 
+        /// <summary>
+        /// Couleur de la pastille d'une sévérité. Toutes les valeurs de l'énumération
+        /// doivent être couvertes : une valeur oubliée sort sans pastille, et la ligne
+        /// perd son repère visuel. « Info » prend l'orange de Warning et « High »
+        /// le rouge de Critical, comme dans l'interface. « Whitelisted » est blanc à
+        /// l'écran — invisible sur du papier — il devient gris clair.
+        /// </summary>
         private static XColor? CouleurSeverite(string severite) => severite?.ToLowerInvariant() switch
         {
-            "critical" => XColor.FromArgb(0xC6, 0x28, 0x28),
-            "high"     => XColor.FromArgb(0xE5, 0x39, 0x35),
-            "warning"  => XColor.FromArgb(0xF5, 0x9E, 0x0B),
-            "bot"      => XColor.FromArgb(0x5B, 0xC0, 0xEB),
-            "trusted"  => XColor.FromArgb(0x2E, 0x7D, 0x32),
-            "safe"     => XColor.FromArgb(0x43, 0xA0, 0x47),
-            _          => null
+            "critical"    => XColor.FromArgb(0xC6, 0x28, 0x28),
+            "high"        => XColor.FromArgb(0xE5, 0x39, 0x35),
+            "warning"     => XColor.FromArgb(0xF5, 0x9E, 0x0B),
+            "info"        => XColor.FromArgb(0xF5, 0x9E, 0x0B),
+            "tocheck"     => XColor.FromArgb(0xC2, 0x18, 0x5B),
+            "crawler"     => XColor.FromArgb(0x1E, 0x88, 0xE5),
+            "bot"         => XColor.FromArgb(0x5B, 0xC0, 0xEB),
+            "trusted"     => XColor.FromArgb(0x2E, 0x7D, 0x32),
+            "safe"        => XColor.FromArgb(0x43, 0xA0, 0x47),
+            "whitelisted" => XColor.FromArgb(0x9E, 0x9E, 0x9E),
+            _             => XColor.FromArgb(0xAA, 0xAA, 0xAA)
         };
 
         private static string Tronquer(XGraphics gfx, string texte, XFont police, double largeur)
