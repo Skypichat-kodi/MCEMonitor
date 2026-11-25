@@ -92,7 +92,20 @@ _(rien)_
 
 ### 🔴 Échéance datée
 
-_(rien)_
+- [ ] **Surveiller les conflits de pilote (WinDivert)** — *demandé le 2026-11-25, urgent*
+  - Ricochet, l anti-cheat de Call of Duty, refuse de tourner tant qu un pilote de capture est chargé :
+    `WinDivert64.sys` empêche le jeu de démarrer, même NetMonitor fermé. Le pilote est désormais déchargé à
+    l arrêt (`20c1b57`), mais on veut que le conflit soit géré tout seul
+  - **Réglage** : liste noire d exécutables dans les paramètres de NetMonitor.UI, `cod.exe` par défaut —
+    même mécanisme que `CrawlerPatterns` (tableau de chaînes en CSV dans `NetMonitor.config`)
+  - **Surveillance** : dans le moteur, toutes les trois secondes, comparaison des processus en cours aux
+    noms de la liste (insensible à la casse)
+  - **À la détection** : capture arrêtée, pilote déchargé, et le Tray prévient — **réutiliser les
+    notifications existantes du Tray**, sans nouvel icône ni nouveau mécanisme
+  - **À la disparition** : capture recréée, pilote rechargé (`Stop()` annule le jeton, il faut donc
+    réinstancier `PacketCaptureService`)
+  - **Hors périmètre** : rien à signaler côté clients — page web et Android inchangées
+  - **Priorité** : 🔴 urgente
 
 ### 🟡 Planifié
 
