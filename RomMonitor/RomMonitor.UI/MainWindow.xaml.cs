@@ -857,10 +857,12 @@ namespace RomMonitor.UI
             txtCooldown.Text = "24";
             chkSmartAlert.IsChecked = true;
 
-            // Surcharge disque : un disque sature reste a 100 % d occupation.
+            // Surcharge disque : le pourcentage peut dépasser 100. PercentDiskTime
+            // compte aussi le temps passé par les requêtes en attente, si bien qu un
+            // disque débordé rapporte plusieurs centaines de pour cent.
             chkDiskIoAlert.IsChecked = true;
-            txtDiskIoWarn.Text       = "80";
-            txtDiskIoCrit.Text       = "95";
+            txtDiskIoWarn.Text       = "150";
+            txtDiskIoCrit.Text       = "400";
             txtDiskIoConfirm.Text    = "6";
             txtDiskIoInterval.Text   = "10";
 
@@ -960,25 +962,25 @@ namespace RomMonitor.UI
                 }
 
                 // Surcharge disque
-                if (!int.TryParse(txtDiskIoWarn.Text.Trim(), out int ioWarn) || ioWarn < 10 || ioWarn > 100)
+                if (!int.TryParse(txtDiskIoWarn.Text.Trim(), out int ioWarn) || ioWarn < 10 || ioWarn > 1000)
                 {
                     Boite.Show(this,
-                        LanguageManager.Get("Surcharge disque : seuil entre 10 et 100 (%).") ?? "Surcharge disque : seuil entre 10 et 100 (%).",
+                        LanguageManager.Get("Surcharge disque : seuil entre 10 et 1000 (%).") ?? "Surcharge disque : seuil entre 10 et 1000 (%).",
                         LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
-                if (!int.TryParse(txtDiskIoCrit.Text.Trim(), out int ioCrit) || ioCrit < 20 || ioCrit > 100)
+                if (!int.TryParse(txtDiskIoCrit.Text.Trim(), out int ioCrit) || ioCrit < 20 || ioCrit > 1000)
                 {
                     Boite.Show(this,
-                        LanguageManager.Get("Surcharge disque : seuil critique entre 20 et 100 (%).") ?? "Surcharge disque : seuil critique entre 20 et 100 (%).",
+                        LanguageManager.Get("Surcharge disque : seuil critique entre 20 et 1000 (%).") ?? "Surcharge disque : seuil critique entre 20 et 1000 (%).",
                         LanguageManager.Get("Valeur invalide") ?? "Valeur invalide", MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }
 
                 if (ioWarn >= ioCrit)
                 {
-                    ioCrit = Math.Min(100, ioWarn + 5);
+                    ioCrit = Math.Min(1000, ioWarn + 5);
                     txtDiskIoCrit.Text = ioCrit.ToString();
 
                     Boite.Show(this,

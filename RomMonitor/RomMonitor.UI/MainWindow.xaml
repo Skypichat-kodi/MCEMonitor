@@ -807,6 +807,7 @@
 
                                     <TextBlock Grid.Row="2" Grid.Column="0"
                                                Text="{loc:Tr 'Surcharge : seuil (% occupé) :'}"
+                                               ToolTip="{loc:Tr 'Un disque saturé peut dépasser 100 % : la valeur compte aussi le temps passé par les requêtes en attente.'}"
                                                VerticalAlignment="Center"
                                                Margin="0,0,10,10"/>
                                     <TextBox x:Name="txtDiskIoWarn"
@@ -820,6 +821,7 @@
 
                                     <TextBlock Grid.Row="3" Grid.Column="0"
                                                Text="{loc:Tr 'Surcharge : seuil critique (% occupé) :'}"
+                                               ToolTip="{loc:Tr 'Un disque saturé peut dépasser 100 % : la valeur compte aussi le temps passé par les requêtes en attente.'}"
                                                VerticalAlignment="Center"
                                                Margin="0,0,10,10"/>
                                     <TextBox x:Name="txtDiskIoCrit"

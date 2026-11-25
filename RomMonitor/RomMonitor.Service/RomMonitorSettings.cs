@@ -38,11 +38,13 @@ namespace RomMonitor.Service
         public bool AlertOnSmartFailure { get; set; } = true;
         public bool AlertOnLowDiskSpace { get; set; } = true;
 
-        // Surcharge de lecture/écriture : un disque saturé reste à 100 %
-        // d'occupation, quelle que soit sa vitesse réelle.
+        // Surcharge de lecture/écriture. Le pourcentage vient de PercentDiskTime,
+        // qui ne s arrête pas à 100 : il cumule le temps de toutes les requêtes en
+        // attente, si bien qu un disque débordé rapporte plusieurs centaines de
+        // pour cent. 100 % veut dire « occupé sans arrêt », 600 % « la file s allonge ».
         public bool AlertOnDiskIo { get; set; } = true;
-        public int DiskIoWarnPercent { get; set; } = 80;
-        public int DiskIoCriticalPercent { get; set; } = 95;
+        public int DiskIoWarnPercent { get; set; } = 150;
+        public int DiskIoCriticalPercent { get; set; } = 400;
         public int DiskIoConfirmTicks { get; set; } = 6;
         public int DiskIoIntervalSeconds { get; set; } = 10;
 
@@ -116,10 +118,10 @@ namespace RomMonitor.Service
                                 if (bool.TryParse(value, out bool adi)) settings.AlertOnDiskIo = adi;
                                 break;
                             case "DiskIoWarnPercent":
-                                if (int.TryParse(value, out int iwp)) settings.DiskIoWarnPercent = iwp;
+                                if (int.TryParse(value, out int iwp)) settings.DiskIoWarnPercent = Math.Clamp(iwp, 10, 1000);
                                 break;
                             case "DiskIoCriticalPercent":
-                                if (int.TryParse(value, out int icp)) settings.DiskIoCriticalPercent = icp;
+                                if (int.TryParse(value, out int icp)) settings.DiskIoCriticalPercent = Math.Clamp(icp, 20, 1000);
                                 break;
                             case "DiskIoConfirmTicks":
                                 if (int.TryParse(value, out int ict)) settings.DiskIoConfirmTicks = ict;
@@ -274,6 +276,9 @@ namespace RomMonitor.Service
                     $"AlertOnLowDiskSpace={AlertOnLowDiskSpace.ToString().ToLower()}",
                     "",
                     "# Surcharge disque : alerte si un disque reste occupe au-dela du seuil",
+                    "# Le pourcentage peut depasser 100 : PercentDiskTime compte aussi le temps",
+                    "# passe par les requetes en attente. 100 = sature, 600 = file qui s allonge.",
+                    "# Bornes : avertissement 10-1000, critique 20-1000.",
                     $"AlertOnDiskIo={AlertOnDiskIo.ToString().ToLower()}",
                     $"DiskIoWarnPercent={DiskIoWarnPercent}",
                     $"DiskIoCriticalPercent={DiskIoCriticalPercent}",
