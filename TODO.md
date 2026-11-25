@@ -139,6 +139,33 @@ _(rien)_
 
 ## ✅ Terminé récent
 
+### Session 2026-11-25 (fin) — acquitter un BSOD depuis le Tray
+
+Un crash survenu la veille maintenait l icône du Tray en alerte critique, et le seul moyen de la faire
+taire était « Vider la liste » — c est-à-dire perdre l information. Le vrai besoin était ailleurs :
+dire « j ai vu », sans rien effacer.
+
+**La popup du Tray porte désormais une croix** à droite de chaque ligne de crash, et seulement celles-là :
+CPU, RAM et températures n en ont pas. Le clic acquitte le BSOD auprès du service, qui note la date dans
+`bsod_history.json` ; `GetProblems()` cesse de le signaler, `WorstSeverity` retombe à `ok`, et l icône
+redevient normale dans l instant — la sévérité est relue sans attendre le minuteur, et la popup se referme.
+
+- rien n est supprimé : la ligne reste dans l interface, le dump reste sur disque, l historique reste
+  complet. C est un acquittement, pas un effacement
+- les 24 heures demeurent en filet de sécurité : sans intervention, un crash cesse de sonner de lui-même
+  le lendemain. Les deux règles cohabitent
+- chaque crash porte son propre acquittement : un événement plus récent rejoue l alerte
+- IPC `ack-bsod <ticks>|<code>`, et tolérance d une seconde sur l horodatage — la date fait un
+  aller-retour par le canal et le JSON, où une égalité stricte échouerait sur un arrondi
+
+`BsodHistory.cs`, l un des fichiers encore en Windows-1252, est converti en UTF-8 avec BOM au passage.
+
+**Vérifié en conditions réelles** par Christophe, après installation et redémarrage du service et du Tray :
+crash retiré de la popup, icône revenue à la normale immédiatement, clients à jour sans intervention, et
+alerte toujours présente dans l historique.
+
+**Commit** : `73e7b45`.
+
 ### Session 2026-11-25 (suite) — statistiques et carte dans le PDF, boîtes d alerte
 
 **Le rapport PDF ne contenait que des tableaux.** Il ouvre désormais sur une page de statistiques
