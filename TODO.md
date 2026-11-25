@@ -114,14 +114,15 @@ _(rien)_
     d un fournisseur à l autre sur 429 — un quota ne bloquerait plus la géolocalisation
   - **Priorité** : 🟡 moyenne (Christophe préfère attendre la reprise du quota avant de décider)
 
-- [ ] **Graphiques vectoriels et carte dans le PDF NetMonitor**
-  - Sections « Statistiques » : `SeverityCounts`, `TopLocalPorts`, `ActivityByHour`, tops pays et détecteurs
-  - La carte Mapsui est dessinée par le contrôle ; piste retenue : capture du `MapControl` depuis l UI,
-    restituée en couleur dans le PDF
+- [ ] **Finitions du PDF NetMonitor** *(relevé du 2026-11-25)*
+  - L histogramme n a **pas de légende** pour la part rouge : rien ne dit qu elle représente les
+    événements critiques, et « max N » ne permet pas de lire une valeur
+  - Une **page presque vide** suit un tableau de quelques lignes. Piste : enchaîner les tableaux depuis la
+    page de la carte plutôt que d en ouvrir une systématiquement
   - **Priorité** : 🟢 basse
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 101 clés) et `en-GB` (1 102 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 103 clés) et `en-GB` (1 104 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -137,6 +138,66 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-25 (suite) — statistiques et carte dans le PDF, boîtes d alerte
+
+**Le rapport PDF ne contenait que des tableaux.** Il ouvre désormais sur une page de statistiques
+dessinée entièrement par `XGraphics` — rectangles et texte, aucune image, donc net à n importe quel
+agrandissement : bandeau de synthèse (alertes, IP distinctes, pays, sévérité maximale), activité par
+heure sur vingt-quatre barres avec la part critique empilée en rouge, puis quatre classements —
+sévérités, pays d origine, détecteurs, ports locaux. Les ports portent leur nom usuel (`445 — SMB`,
+`3389 — RDP`) pour que le chiffre parle à qui lit la feuille.
+
+Nouveau fichier `PdfGraphiques.cs` (primitives : barres horizontales, histogramme, bandeau), section
+`Stats`, case « Statistiques et graphiques » dans la fenêtre d export, `stats` dans le formulaire web.
+
+**La carte des pays** suit, sur sa propre page : choroplèthe rendu **hors écran** par
+`CountriesMapPanel.RendrePng()`, avec un viewport de taille imposée (1800×900). Fond blanc et pays sans
+alerte en gris très clair — à l écran ils prennent la couleur de bordure du thème, presque noire, ce qui
+aurait donné une feuille entièrement sombre. Les styles d écran sont rétablis en sortie.
+
+- une image ne peut pas passer par le canal IPC, qui lit un seul bloc de 4096 octets : l interface dépose
+  le PNG dans `%ProgramData%\MCEMonitor\NetMonitor\pdf_map.png`, le service le lit, vérifie sa
+  signature et **le supprime** — une carte oubliée ne doit jamais resservir
+- la carte porte sur **toutes** les alertes, comme les autres graphiques. Cela demandait un agrégat de
+  pays global qui n existait pas : `GlobalStats` expose maintenant `TopCountries` et
+  `AlertsByCountryCode`, calculés par `StatsBuilder`. Le périmètre mixte de la page disparaît
+
+**Trois pièges rencontrés, tous vérifiés à l écran.**
+
+- `DessinerStatistiques` ne renvoyait pas sa position finale : les tableaux se seraient dessinés par-dessus
+  les graphiques. Elle la retourne, et l appelant enchaîne dessus
+- un export ne demandant que la carte commençait par une page réduite au titre, la carte ouvrant
+  systématiquement une nouvelle page. Elle se pose désormais sous l en-tête quand la page est vierge
+- surtout : **WPF ne construit le contenu d un onglet qu au premier affichage**. `MapActivePanel` valait
+  donc `null` tant que l onglet Statistiques n avait pas été ouvert, et l export produisait un rapport
+  sans carte. Les essais précédents passaient tous par cet onglet, d où l illusion. La carte est
+  maintenant rendue par un panneau créé pour l occasion, hors arbre visuel
+
+Côté mise en page, deux corrections signalées sur une capture : les chiffres du bandeau débordaient sous
+leur cadre, et les cadres des cases comme les pistes grises des barres dessinaient une grille de traits
+horizontaux et verticaux sans apporter d information. Fonds clairs sans bordure, pistes supprimées.
+
+**Les boîtes d alerte ne s affichaient pas dans trois modules.** En lançant MediaMonitor.UI, le message
+affiché était « Ressource `Erreur` introuvable » — alors que la boîte voulait dire « Accès refusé ».
+Cause : les thèmes de MediaMonitor, NetMonitor et RomMonitor ne définissent pas la clé `Erreur`, si bien
+que le `FindResource` de `FenetreDialogue` levait avant d avoir peint la boîte, et l exception remontait
+au gestionnaire global. Corrigé par `TryFindResource` avec couleur de repli dans les six copies, plus la
+clé manquante ajoutée aux trois thèmes qui l oubliaient.
+
+**MediaMonitor.UI s ouvre au centre de l écran** : elle n avait aucune `WindowStartupLocation` et Windows
+la plaçait en cascade, trop bas. Vérifié par mesure — 1300×750 posée à (310,141), centre à (960,516),
+exactement celui de l écran utile.
+
+**Vérifications.** Rendu Windows du PDF (moteur `Windows.Data.Pdf`, indépendant du visualiseur) :
+88 rectangles, aucun trait, aucune couleur blanche sur la page des graphiques. Les lignes blanches vues
+sur les barres à fort zoom sont des **jointures de tuiles du visualiseur**, pas un défaut du document —
+invisibles sur fond blanc, elles ne se voient que sur une barre colorée. Appel direct du service :
+`export-pdf History` donne 65 ko sur une page, `Stats,Map,History` 212 ko sur quatre pages, carte en
+page 2, fichier consommé.
+
+**Commits** : `fa28df2` (statistiques), `d59f8eb` (carte globale), `ba8d1c7` (boîtes d alerte, centrage,
+carte indépendante de l onglet).
 
 ### Session 2026-11-25 — PDF refondu, réveil programmé, GeoIP et encodages
 
