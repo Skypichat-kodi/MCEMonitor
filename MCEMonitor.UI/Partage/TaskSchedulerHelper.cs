@@ -36,6 +36,33 @@ namespace MCEMonitor.Utils
         public static string DeleteWakeTask()
             => RunAdmin("schtasks /Delete /TN \"MCEMonitor_WakeMonitor\" /F");
 
+        // ------------------------------------------------------------
+        //  Réveil programmé : envoie un paquet magique aux MAC de la liste
+        //  à l'heure choisie. La tâche relance le même exécutable avec
+        //  l'argument « --send-wol », qui court-circuite la détection de
+        //  réveil et se contente d'émettre.
+        // ------------------------------------------------------------
+        public static string CreateWolScheduleTask(string heure)
+        {
+            string exe = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "MCEMonitor",
+                "WakeMonitor.exe"
+            );
+
+            return RunAdmin(
+                "schtasks /Create /TN \"MCEMonitor_WolSchedule\" " +
+                $"/SC DAILY /ST {heure} " +
+                $"/TR \"\\\"{exe}\\\" --send-wol\" /RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteWolScheduleTask()
+            => RunAdmin("schtasks /Delete /TN \"MCEMonitor_WolSchedule\" /F");
+
+        public static bool WolScheduleTaskExists()
+            => QueryTask("MCEMonitor_WolSchedule");
+
         public static bool WakeTaskExists()
             => QueryTask("MCEMonitor_WakeMonitor");
 

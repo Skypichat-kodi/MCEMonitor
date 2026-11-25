@@ -1312,14 +1312,24 @@
                                            VerticalAlignment="Top"
                                            Margin="0,0,10,0" />
 
-                                <TextBlock Grid.Column="1"
-                                           FontStyle="Italic"
-                                           TextWrapping="Wrap"
-                                           Foreground="{StaticResource TexteSecondaire}"
-                                           FontSize="13"
-                                           LineHeight="19"
-                                           VerticalAlignment="Center"
-                                           Text="{loc:Tr 'Wake.Info'}" />
+                                <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                    <TextBlock FontStyle="Italic"
+                                               TextWrapping="Wrap"
+                                               Foreground="{StaticResource TexteSecondaire}"
+                                               FontSize="13"
+                                               LineHeight="19"
+                                               Text="{loc:Tr 'Wake.Info'}" />
+
+                                    <!-- Rappel du fonctionnement des adresses MAC autorisées :
+                                         il figurait dans l ancienne interface WinForms et avait
+                                         disparu à la migration. -->
+                                    <TextBlock TextWrapping="Wrap"
+                                               Margin="0,8,0,0"
+                                               Foreground="{StaticResource TexteSecondaire}"
+                                               FontSize="12"
+                                               LineHeight="18"
+                                               Text="{loc:Tr 'Wake.MacHelp'}" />
+                                </StackPanel>
                             </Grid>
                         </Border>
 

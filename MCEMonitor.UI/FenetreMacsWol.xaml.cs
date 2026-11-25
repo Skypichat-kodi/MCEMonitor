@@ -2,11 +2,13 @@
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using MCEMonitor.Languages;
+using MCEMonitor.Utils;
 
 namespace MCEMonitor.UI
 {
@@ -32,6 +34,7 @@ namespace MCEMonitor.UI
             InitializeComponent();
 
             ChargerListe();
+            ChargerPlanification();
             MetAJourIndice();
 
             // La fenêtre secondaire reçoit sa propre marge d'ombre : on la centre
@@ -190,6 +193,76 @@ namespace MCEMonitor.UI
             TexteNombre.Text = nombre == 0
                 ? LanguageManager.Get("Ui.MacNone") ?? "Aucune adresse"
                 : nombre == 1 ? LanguageManager.Get("Ui.MacOne") ?? "1 adresse" : string.Format(LanguageManager.Get("Ui.MacCount") ?? "{0} adresses", nombre);
+        }
+
+        // ------------------------------------------------------------
+        //  Réveil programmé
+        // ------------------------------------------------------------
+        private void ChargerPlanification()
+        {
+            var (actif, heure) = PlanificationWol.Lire();
+
+            CaseReveilProgramme.IsChecked = actif;
+            ChampHeure.Text               = heure;
+
+            MetAJourTextePlanification(null);
+        }
+
+        private void SurChangementPlanification(object sender, RoutedEventArgs e)
+            => MetAJourTextePlanification(null);
+
+        private void SurChangementPlanification(object sender, TextChangedEventArgs e)
+            => MetAJourTextePlanification(null);
+
+        private async void SurAppliquerPlanification(object sender, RoutedEventArgs e)
+        {
+            string heure = (ChampHeure.Text ?? "").Trim();
+
+            if (!System.Text.RegularExpressions.Regex.IsMatch(heure, @"^([01]\d|2[0-3]):[0-5]\d$"))
+            {
+                MetAJourTextePlanification(
+                    LanguageManager.Get("L heure doit être au format HH:mm, par exemple 07:30.")
+                    ?? "L heure doit être au format HH:mm, par exemple 07:30.");
+                return;
+            }
+
+            bool actif = CaseReveilProgramme.IsChecked == true;
+
+            try
+            {
+                PlanificationWol.Ecrire(actif, heure);
+
+                string resultat = await Task.Run(() => actif
+                    ? TaskSchedulerHelper.CreateWolScheduleTask(heure)
+                    : TaskSchedulerHelper.DeleteWolScheduleTask());
+
+                CoreLog.Info("WakeMonitor",
+                    $"Réveil programmé {(actif ? "activé à " + heure : "désactivé")} : {resultat}");
+
+                MetAJourTextePlanification(actif
+                    ? string.Format(LanguageManager.Get("Réveil programmé activé : un paquet magique sera envoyé à {0}.")
+                        ?? "Réveil programmé activé : un paquet magique sera envoyé à {0}.", heure)
+                    : LanguageManager.Get("Réveil programmé désactivé.") ?? "Réveil programmé désactivé.");
+            }
+            catch (Exception ex)
+            {
+                MetAJourTextePlanification("Erreur : " + ex.Message);
+            }
+        }
+
+        private void MetAJourTextePlanification(string? message)
+        {
+            if (message != null)
+            {
+                TextePlanification.Text = message;
+                return;
+            }
+
+            TextePlanification.Text = CaseReveilProgramme.IsChecked == true
+                ? LanguageManager.Get("Activé : les adresses ci-dessus seront réveillées chaque jour à l heure indiquée.")
+                    ?? "Activé : les adresses ci-dessus seront réveillées chaque jour à l heure indiquée."
+                : LanguageManager.Get("Désactivé : aucun paquet ne sera envoyé.")
+                    ?? "Désactivé : aucun paquet ne sera envoyé.";
         }
     }
 }

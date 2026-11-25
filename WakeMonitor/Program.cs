@@ -10,26 +10,51 @@ namespace WakeMonitor
     {
         private static Mutex? _mutex;
 
-        static async Task Main()
+        static async Task Main(string[] args)
         {
+            // Mode Ã©mission : lancÃ© par la tÃ¢che planifiÃ©e du rÃ©veil programmÃ©.
+            // Il ne constate rien, il rÃ©veille â€” donc ni mutex, ni lecture des
+            // Ã©vÃ©nements de veille.
+            if (args.Any(a => string.Equals(a, "--send-wol", StringComparison.OrdinalIgnoreCase)))
+            {
+                var planification = WolScheduleSettings.Load();
+
+                if (!planification.Enabled)
+                {
+                    LogHelper.Write("RÃ©veil programmÃ© dÃ©sactivÃ© : aucun paquet envoyÃ©.");
+                    return;
+                }
+
+                var envoyees = WolSender.EnvoyerAUxMacsAutorisees(out var erreurs);
+
+                LogHelper.Write($"RÃ©veil programmÃ© ({planification.Time}) : " +
+                                $"{envoyees.Count} paquet(s) envoyÃ©(s)" +
+                                (envoyees.Count > 0 ? " â€” " + string.Join(", ", envoyees) : ""));
+
+                foreach (string erreur in erreurs)
+                    LogHelper.Write("  Ã©chec : " + erreur);
+
+                return;
+            }
+
             bool createdNew;
             _mutex = new Mutex(true, "Global\\MCEMonitor_WakeMonitor", out createdNew);
             if (!createdNew)
                 return;
 
             LogHelper.Clear();
-            LogHelper.Write("WakeMonitor démarré.");
+            LogHelper.Write("WakeMonitor dï¿½marrï¿½.");
 
             try
             {
-                // 1) Vérification du vrai réveil Power-Troubleshooter
+                // 1) Vï¿½rification du vrai rï¿½veil Power-Troubleshooter
                 if (!WakeEventFilter.IsRealWakeEvent())
                 {
-                    LogHelper.Write("Événement ignoré : ce n'est pas un réveil Power-Troubleshooter.");
+                    LogHelper.Write("ï¿½vï¿½nement ignorï¿½ : ce n'est pas un rï¿½veil Power-Troubleshooter.");
                     return;
                 }
 
-                LogHelper.Write("Réveil Power-Troubleshooter détecté.");
+                LogHelper.Write("Rï¿½veil Power-Troubleshooter dï¿½tectï¿½.");
 
                 var cfg  = EmailConfig.Load();
                 var opt  = WakeMonitorSettings.Load();
@@ -40,13 +65,13 @@ namespace WakeMonitor
                 string publicIp = await PublicIP.GetPublicIP();
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
-                // --- Cause corrigée intelligente ---
+                // --- Cause corrigï¿½e intelligente ---
                 // wake.Cause pointe vers wake.WakeCause via WakeInfo
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
                     : wake.WakeCause;
 
-                // Détection WOL depuis hibernation S4
+                // Dï¿½tection WOL depuis hibernation S4
                 if (cause == "Inconnue" && IsWolFromHibernate())
                 {
                     cause = "Wake-on-LAN (depuis hibernation S4)";
@@ -55,30 +80,30 @@ namespace WakeMonitor
                 // Correction HID : Windows ne remplit pas WakeSourceText en S4
                 if ((cause == "Unknown" || cause == "Inconnue") && !string.IsNullOrEmpty(usb))
                 {
-                    cause = "Périphérique USB (probablement HID)";
+                    cause = "Pï¿½riphï¿½rique USB (probablement HID)";
                 }
 
-                // 2) Analyse WOL via stratégie hybride
+                // 2) Analyse WOL via stratï¿½gie hybride
                 var wol = WolDetectionStrategy.Detect(wake, macLocal, opt);
 
-                // Bloc visuel si Windows a mal classé le réveil
+                // Bloc visuel si Windows a mal classï¿½ le rï¿½veil
                 string wolCorrectionBlock = "";
                 if (wake.IsLikelyWol)
                 {
                     wolCorrectionBlock = @"
 <div style='background:#e8f4ff;border-left:4px solid #3498db;padding:10px;margin-bottom:15px'>
-    <b>Cause réelle probable :</b> Wake-on-LAN (Magic Packet)<br>
-    <span style='color:#555'>Windows a mal classé la source du réveil.</span>
+    <b>Cause rï¿½elle probable :</b> Wake-on-LAN (Magic Packet)<br>
+    <span style='color:#555'>Windows a mal classï¿½ la source du rï¿½veil.</span>
 </div>";
                 }
 
                 // 3) Log interne
                 string duration = wake.SleepDuration.ToString(@"hh\:mm\:ss");
 
-                LogHelper.WriteBlock("Infos réveil",
-                    $"Réveil : {wake.WakeTime}\n" +
+                LogHelper.WriteBlock("Infos rï¿½veil",
+                    $"Rï¿½veil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
-                    $"Durée : {duration}\n" +
+                    $"Durï¿½e : {duration}\n" +
                     $"Cause : {cause}\n" +
                     $"USB : {usb}\n" +
                     $"Machine : {Environment.MachineName}\n" +
@@ -97,11 +122,11 @@ namespace WakeMonitor
                 string body =
                     wol.HtmlBlock +
                     wolCorrectionBlock +
-                    "<b>=== Détails du réveil ===</b><br>" +
-                    $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
+                    "<b>=== Dï¿½tails du rï¿½veil ===</b><br>" +
+                    $"<b>Heure de rï¿½veil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
-                    $"<b>Durée :</b> {duration}<br>" +
-                    $"<b>Cause du réveil :</b> {cause}<br>" +
+                    $"<b>Durï¿½e :</b> {duration}<br>" +
+                    $"<b>Cause du rï¿½veil :</b> {cause}<br>" +
                     $"<b>USB :</b> {usb}<br>" +
                     $"<b>Machine :</b> {Environment.MachineName}<br>" +
                     $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
@@ -113,18 +138,18 @@ namespace WakeMonitor
 
                 await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
 
-                LogHelper.Write("Email envoyé avec succès.");
+                LogHelper.Write("Email envoyï¿½ avec succï¿½s.");
             }
             catch (Exception ex)
             {
                 LogHelper.Write("ERREUR : " + ex.Message);
             }
 
-            LogHelper.Write("WakeMonitor terminé.");
+            LogHelper.Write("WakeMonitor terminï¿½.");
         }
 
         // ---------------------------------------------------------
-        // Détection WOL depuis hibernation S4
+        // Dï¿½tection WOL depuis hibernation S4
         // ---------------------------------------------------------
 
         private static bool IsWolFromHibernate()
