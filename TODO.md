@@ -139,6 +139,25 @@ _(rien)_
 
 ## ✅ Terminé récent
 
+### Session 2026-11-25 (publication) — version 3.1.0 et consolidation des notes
+
+**Passage en 3.1.0.** Tag `v3.1.0` posé sur le commit courant, `dfac534`, puis poussé — GitVersion
+fabrique la version depuis les tags, donc le tag précède la compilation. Rien n est écrit en dur : les
+csproj ne portent aucune version, `build.bat` lit celle de `MCEMonitor.exe` pour l installeur, et
+`BuildAndroid.bat` fait `git describe` pour `ApplicationDisplayVersion`, avec `versionCode =
+majeur×10000 + mineur×100 + correctif`, soit **30100** pour la 3.1.0.
+
+**Les notes de la branche 3.x sont condensées en une seule page**, publiée sous le nom
+« MCEMonitor 3.1.0 WPF » — par symétrie avec « MCEMonitor 2.3.10 WinForm ». Les releases 3.0.6, 3.0.8,
+3.0.9 et 3.0.10 ont été supprimées, leurs notes fondues dans la nouvelle : même choix que pour la
+branche 2.x.
+
+Les **tags git sont conservés** (`v3.0.6` à `v3.0.10`) : l historique reste consultable, et GitVersion
+part toujours du plus récent, `v3.1.0`. Seules les releases ont disparu.
+
+Livrables joints à la release : `MCEMonitorSetup-3.1.0.0.exe` (110,7 Mo) et `MCEMonitorClient.apk`
+(37,6 Mo, `versionCode 30100`).
+
 ### Session 2026-11-25 (fin) — acquitter un BSOD depuis le Tray
 
 Un crash survenu la veille maintenait l icône du Tray en alerte critique, et le seul moyen de la faire
@@ -336,7 +355,7 @@ l interdirait), et aucune variante `'` contre `’` ne se contredit entre le XAM
 Les référentiels font **1 073 clés** en français et **1 074** en anglais. Le contrôle rituel des cinq
 interfaces est muet, hors les six noms propres de modules.
 
-**Release 3.0.10** : tag `v3.0.10` posé sur `955feca`, publiée et marquée Latest — installeur
+**Release 3.0.10** : *(release supprimée le 2026-11-25, notes reprises dans la 3.1.0 WPF ; le tag `v3.0.10` reste dans l historique)* tag posé sur `955feca`, publiée et marquée Latest — installeur
 `MCEMonitorSetup-3.0.10.0.exe` (110,7 Mo) et APK `com.mcemonitor.client-Signed.apk` (37,5 Mo,
 `versionCode 30010`). C est GitVersion qui fabrique la version depuis les tags : le tag doit être posé
 **avant** la compilation, `build.bat` lisant ensuite la version dans l exécutable pour l installeur.
