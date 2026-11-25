@@ -2259,32 +2259,30 @@ namespace NetMonitor.UI
         /// <summary>
         /// Dépose la carte en cours en PNG pour le rapport PDF.
         ///
-        /// Le rendu est fait hors écran par le panneau lui-même : l'onglet des
-        /// statistiques n'a pas besoin d'être ouvert, ni la carte visible. Les
-        /// dernières statistiques reçues lui sont réappliquées au passage : sans
-        /// cela, un export lancé sans avoir jamais visité cet onglet produirait
-        /// une carte entièrement grise.
+        /// Le panneau est créé pour l'occasion, hors de l'arbre visuel : WPF ne
+        /// construit le contenu d'un onglet qu'au premier affichage, si bien que
+        /// MapActivePanel vaut null tant que l'onglet Statistiques n'a pas été
+        /// ouvert. Un panneau dédié rend l'export indépendant de ce que
+        /// l'utilisateur a visité, et sans changer d'onglet sous ses yeux.
         /// </summary>
         private async Task DeposerCarteAsync()
         {
             try
             {
-                if (MapActivePanel == null) return;
+                var panneau = new Controls.CountriesMapPanel();
 
                 // La carte du rapport porte sur toutes les alertes, pas sur les seules
                 // actives : elle suit ainsi les autres graphiques de la page.
                 if (_lastStats != null)
                 {
-                    var carteGlobale = new StatsBlockDto
+                    panneau.Update(new StatsBlockDto
                     {
                         AlertsByCountryCode = _lastStats.AlertsByCountryCode,
                         TopCountries = _lastStats.TopCountries
-                    };
-
-                    MapActivePanel.Update(carteGlobale, "active");
+                    }, "active");
                 }
 
-                byte[]? png = MapActivePanel.RendrePng();
+                byte[]? png = panneau.RendrePng();
                 if (png == null || png.Length == 0) return;
 
                 string dossier = Path.Combine(

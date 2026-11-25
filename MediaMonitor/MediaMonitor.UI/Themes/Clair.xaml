@@ -22,6 +22,7 @@
     <SolidColorBrush x:Key="BoutonRougeTexte" Color="#FF9E3D33" />
     <SolidColorBrush x:Key="FondInfo" Color="#FFE4E4E4" />
     <SolidColorBrush x:Key="Accent"          Color="#FF0F6CBD" />
+    <SolidColorBrush x:Key="Erreur"          Color="#FFC42B1C" />
 
 
     <!-- Survol du bouton commun : inchange en clair, meme teinte que l accent. -->

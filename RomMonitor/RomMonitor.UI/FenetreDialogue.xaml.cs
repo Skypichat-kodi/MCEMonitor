@@ -33,7 +33,13 @@ namespace RomMonitor.UI
             }
 
             Icone.Text       = alerte ? "\uE7BA" : "\uE946";   // triangle d'alerte ou pastille d'information
-            Icone.Foreground = (Brush)FindResource(alerte ? "Erreur" : "Accent");
+            // TryFindResource plutôt que FindResource : au démarrage, la boîte peut
+            // s'ouvrir avant que le thème soit appliqué, et FindResource lèverait une
+            // exception qui masquerait le message d'origine.
+            Icone.Foreground = TryFindResource(alerte ? "Erreur" : "Accent") as Brush
+                               ?? new SolidColorBrush(alerte
+                                      ? Color.FromRgb(0xE5, 0x39, 0x35)    // rouge d'alerte
+                                      : Color.FromRgb(0x4C, 0xC2, 0xFF));  // bleu d'accent
         }
 
         private void EnTete_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

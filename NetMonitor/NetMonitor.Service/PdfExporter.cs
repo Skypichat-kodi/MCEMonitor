@@ -796,7 +796,8 @@ namespace NetMonitor.Service
 
             foreach (var port in stats.TopLocalPorts.Take(10))
             {
-                string libelle = port.Port + " — " + NomPort(port.Port);
+                string nom = NomPort(port.Port);
+                string libelle = string.IsNullOrEmpty(nom) ? port.Port.ToString() : port.Port + " — " + nom;
                 barres.Add(new PdfGraphiques.Barre(libelle, port.Count, XColor.FromArgb(0xD8, 0x82, 0x27)));
             }
 
@@ -822,7 +823,7 @@ namespace NetMonitor.Service
             5900  => "VNC",
             8080  => "HTTP alt.",
             8443  => "HTTPS alt.",
-            _     => "port " + port
+            _     => ""
         };
 
         private static string LibelleSeveriteMax(string? severite) => severite switch
