@@ -96,8 +96,32 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
+  - Relevé du 2026-11-25 : 116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` ; 51 ont des
+    accents **dans des chaînes** (messages de journal, textes d interface)
+  - Le compilateur s en accommode (repli de Roslyn sur l ANSI, vérifié sur la DLL), mais deux fichiers ont
+    déjà été corrompus en `U+FFFD` de cette façon : la situation est fragile, pas saine
+  - **Méthode** : projet par projet, conversion, contrôle de l absence de `U+FFFD`, compilation, relecture
+    du diff. Les diffs sont volumineux (toutes les lignes accentuées changent), à faire à froid
+  - **Priorité** : 🟡 moyenne
+
+- [ ] **Fournisseur GeoIP de rechange** *(repli automatique)*
+  - `ipwho.is` épuise son quota par IP publique et le fait payer très cher (72 717 s d attente observées).
+    Changer d IP ne suffit pas : le FAI en a redonné une identique
+  - `ip-api.com` (45 req/min, sans clé, reverse DNS inclus) et `ipapi.co` (1 000 req/jour) répondent tous
+    deux quand `ipwho.is` refuse, testé le 2026-11-25
+  - **À faire** : parseur acceptant les deux formats (`success`/`status`, `country`/`countryCode`) et repli
+    d un fournisseur à l autre sur 429 — un quota ne bloquerait plus la géolocalisation
+  - **Priorité** : 🟡 moyenne (Christophe préfère attendre la reprise du quota avant de décider)
+
+- [ ] **Graphiques vectoriels et carte dans le PDF NetMonitor**
+  - Sections « Statistiques » : `SeverityCounts`, `TopLocalPorts`, `ActivityByHour`, tops pays et détecteurs
+  - La carte Mapsui est dessinée par le contrôle ; piste retenue : capture du `MapControl` depuis l UI,
+    restituée en couleur dans le PDF
+  - **Priorité** : 🟢 basse
+
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (743 clés) et `en-GB` (698 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 101 clés) et `en-GB` (1 102 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -113,6 +137,88 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-25 — PDF refondu, réveil programmé, GeoIP et encodages
+
+**Le PDF de NetMonitor ne ressemblait plus à l interface.** Il imprimait tout, dans un ordre hérité,
+avec des colonnes que l écran n affiche plus et des dates répétées à chaque ligne. Refonte complète :
+A4 paysage, colonnes choisies pour leur utilité (Sens, Sévérité, Pays, FAI, Organisation, Reverse DNS,
+Liste), ports et dates redondantes écartées — l heure figure une fois en tête de groupe, pas sur chacune
+des lignes.
+
+- `PdfSection` (énumération) et `ExportPdfWindow.xaml` : cinq cases à cocher — intrusions, bloquées,
+  audit, statistiques, carte — plus Annuler / Exporter. Styles locaux (`BoutonSecondaire`, `BoutonAccent`,
+  `BoutonFantome`), `Foreground` explicite sur les cases, sans quoi le thème clair les rendait illisibles
+- IPC `export-pdf` acceptant la liste des sections, et formulaire `.export-pdf` sur la page web
+- `ListeConfiance()` déduite de l origine de l IP, plutôt que du champ stocké — même règle que l UI
+- dix sévérités couvertes : `Info`, `ToCheck`, `Crawler` et `Whitelisted` manquaient, leurs lignes
+  sortaient sans pastille ; colonne Sévérité fixée à 62 px
+- pastilles centrées sur une largeur réservée, égale au plus long libellé du tableau et non à la largeur
+  de chaque cellule ; quadrillage et cadre fermé dessinés à chaque page
+
+**Un piège PdfSharpCore.** `XGraphics.Dispose()` ne libère pas son créneau de dessin : appeler `Dispose`
+avant de dessiner le pied de page d une page suivante lève une exception. La liste des graphiques est
+donc conservée jusqu à la fin, et les pieds sont dessinés dans le graphique de leur propre page.
+
+**WakeMonitor — réveil programmé.** Le module savait réveiller une machine à la demande, pas à l heure
+dite. Trois pièces : `WolSender.cs` (paquet magique de 102 octets, vérifié), `WolScheduleSettings.cs`
+et `PlanificationWol.cs` pour la tâche `MCEMonitor_WolSchedule`, quotidienne en SYSTEM. La fenêtre des
+MACs devient « Machines à réveiller » : une coche par machine, une heure, une minute, deux flèches ▲▼,
+bouton Appliquer dans le pied. `FlecheReglage` rejoint `Themes/Styles.xaml` (20×15, police 8) et sert
+aussi à l arrêt programmé On/Off, dont les colonnes s alignent (118/90/124/90, champ Heure et ComboBox
+à x=178).
+
+Deux corrections d affichage au passage : l encadré `Wake.MacHelp` de l onglet, disparu lors d une
+refonte précédente, est rétabli ; et le champ MAC ne laissait plus son indice grisé collé au curseur,
+faute d un `MetAJourIndice()` appelé après reformatage.
+
+**SystemMonitor** : la grille des réglages comptait quatre `RowDefinition` pour cinq lignes de contenu,
+la dernière se retrouvait rognée. Cinquième ligne ajoutée, colonne des libellés à 210 px, marge 10 px.
+
+**Android — historique des alertes RomMonitor.** `/api/detail` publie désormais les trente dernières
+alertes ; la page de détail les présente sous une section « HISTORIQUE ». La carte des TOP IPs, elle,
+a été retirée des deux pages de détail : elle n apportait rien à la lecture.
+
+**GeoIP — le quota brûlait à chaque redémarrage.** Diagnostic de départ : les IP de confiance
+s affichaient sans pays ni FAI. Cause : le cache vivait en mémoire seulement, si bien que chaque
+redémarrage du service redemandait la géoloc d IP déjà résolues. Ces rafales épuisaient le quota
+d `ipwho.is` — 150 IP redemandées pour rien à chaque compilation.
+
+- cache persistant `geoip_cache.json` : relu au démarrage, 5 000 entrées au plus, purge au-delà de
+  sept jours, écriture groupée au plus toutes les dix secondes (drapeau `_cacheModifie`), sauvegarde
+  forcée au `Dispose`
+- `Retry-After` respecté : le service imposait un plancher de 24 h, prolongeant la pause au-delà du
+  délai réclamé par l API. Bornes désormais 5 min – 48 h
+- indicateur dans la barre d état, après l état de la surveillance : pastille verte (résolutions
+  actives), rouge (quota épuisé), grise (géolocalisation désactivée), infobulle donnant la date de
+  reprise ou le nombre d IP en cache. Commande IPC `get-geoip-status` → `GeoIpStatusDto` →
+  `GetGeoIpStatusAsync()`
+
+Constat du soir : redémarrer la box **n a pas changé l IP publique** (`90.48.71.48` avant comme après),
+donc le quota est resté consommé. `Retry-After` annonçait 72 717 secondes, soit une reprise vers 14:30
+le lendemain. Deux fournisseurs de rechange testés le même soir, réponse immédiate dans les deux cas :
+`ip-api.com` (45 req/min, sans clé, fournit même le reverse DNS) et `ipapi.co` (1 000 req/jour). Le
+parseur actuel est propre au format d `ipwho.is` : basculer demande de lire aussi `status` et
+`countryCode`.
+
+**Encodages — les caractères du journal.** Christophe a remarqué `[WARN] [GEOIP] Quota �puis� � pause`.
+Le journal n était pas en cause : le caractère de remplacement était **écrit en dur** dans deux fichiers
+sources — 48 occurrences dans `GeoIpService.cs`, 33 dans `WakeMonitor/Program.cs` —, corrompus lors
+d une relecture en UTF-8 d un contenu Windows-1252.
+
+Accents restaurés mot par mot, en repartant des codepoints réels. Leçon retenue : ma première passe a
+raté neuf mots pour avoir conservé le « e » de la forme non accentuée (`d�emarrage` au lieu de
+`d�marrage`). Les deux fichiers, jusqu ici en Windows-1252 sans BOM, passent en UTF-8 **avec** BOM comme
+le reste du projet : sans BOM, l accident peut se reproduire au premier outil qui rouvre le fichier en
+ANSI. Fins de ligne inchangées, 0 `U+FFFD` dans tout le dépôt.
+
+**Découverte au passage, non traitée** : 124 fichiers texte du dépôt sont en Windows-1252 —
+116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` —, dont 51 avec des accents dans des
+chaînes de code. Le compilateur s en sort : Roslyn tente l UTF-8, échoue sur les octets invalides et se
+rabat sur l ANSI. Vérifié sur la DLL produite, qui contient bien « NetMonitor.Service démarré (langue = …) »
+alors que ce message vient d un fichier ANSI. La situation reste fragile, pas cassée.
+
+**Commits** : `f12d4d9` (cache GeoIP et indicateur), `d3ad351` (accents, BOM, pastille 12 px).
 
 ### Session 2026-11-24 — traduction des interfaces, jusqu au bout
 
@@ -312,8 +418,8 @@ se signale par un **relief** — bordure d'accent de 2 px, ombre portée bleuté
 
 **Fond de page** : dégradé sombre bleuté au lieu du gris uniforme, en harmonie avec l'accent.
 
-**Versions** : le tag `v3.0.10` a été posé sur `e5c128b`, avant ces corrections. Il faudra le déplacer,
-ou publier une 3.0.11.
+**Versions** : *(résolu le 2026-11-24)* le tag `v3.0.10` avait été posé sur `e5c128b`, avant ces corrections ;
+il a été reporté sur `955feca` puis publié en version 3.0.10.
 
 ### Session 2026-11-24 — surcharges d'E/S visibles dans les clients
 
