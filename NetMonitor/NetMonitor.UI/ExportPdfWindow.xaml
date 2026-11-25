@@ -15,6 +15,73 @@
         FontSize="13"
         UseLayoutRounding="True">
 
+    <Window.Resources>
+        <!-- Styles locaux : NetMonitor.UI ne definit pas de styles de bouton
+             partages, chaque fenetre porte les siens (voir FenetreDialogue). -->
+        <Style x:Key="BoutonSecondaire" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource Texte}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Cadre"
+                                Background="{StaticResource Surface}"
+                                BorderBrush="{StaticResource Bordure}"
+                                BorderThickness="1"
+                                CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Cadre" Property="BorderBrush" Value="{StaticResource Accent}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BoutonAccent" TargetType="Button">
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Cadre" Background="{StaticResource Accent}" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Cadre" Property="Opacity" Value="0.85" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="BoutonFantome" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TexteSecondaire}" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Cadre" Background="Transparent" CornerRadius="4">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Cadre" Property="Background" Value="{StaticResource SurfaceSurvol}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
     <Border Margin="14"
             Background="{StaticResource Fond}"
             BorderBrush="{StaticResource Bordure}"
@@ -64,14 +131,19 @@
                            Margin="0,0,0,14" />
 
                 <CheckBox x:Name="CaseBloquees"     IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'IP et processus bloqués'}" />
                 <CheckBox x:Name="CaseInterceptions" IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'Tentatives sur IP bloquée'}" />
                 <CheckBox x:Name="CaseHistorique"    IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'Historique des intrusions'}" />
                 <CheckBox x:Name="CaseAudit"         IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'Alertes ignorées (IP de confiance)'}" />
                 <CheckBox x:Name="CaseListeBlanche"  IsChecked="True"
+                           Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'Liste blanche des processus'}" />
             </StackPanel>
 
