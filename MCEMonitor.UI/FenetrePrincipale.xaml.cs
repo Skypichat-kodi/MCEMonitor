@@ -1927,6 +1927,27 @@ namespace MCEMonitor.UI
                 ? !valeur.Equals("false", StringComparison.OrdinalIgnoreCase)
                 : defaut;
 
+        private void SurReglerArret(object sender, RoutedEventArgs e)
+        {
+            string etiquette = (sender as Button)?.Tag?.ToString() ?? "";
+            bool   surHeure  = etiquette.StartsWith("heure", StringComparison.Ordinal);
+            int    pas       = etiquette.EndsWith("+1", StringComparison.Ordinal) ? 1 : -1;
+
+            var champ = surHeure ? ChampHeureArret : ChampMinuteArret;
+            int borne = surHeure ? 23 : 59;
+
+            if (!int.TryParse((champ.Text ?? "").Trim(), out int valeur))
+                valeur = 0;
+
+            valeur += pas;
+
+            // Retour circulaire : au-delà de la borne, on repart de l autre côté.
+            if (valeur < 0)     valeur = borne;
+            if (valeur > borne) valeur = 0;
+
+            champ.Text = valeur.ToString("00");
+        }
+
         private async void SurEnregistrerReglagesSystem(object sender, RoutedEventArgs e)
         {
             try

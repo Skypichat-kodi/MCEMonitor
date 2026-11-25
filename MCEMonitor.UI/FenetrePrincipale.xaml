@@ -410,10 +410,10 @@
                             <StackPanel>
                                 <Grid>
                                     <Grid.ColumnDefinitions>
-                                        <ColumnDefinition Width="110" />
-                                        <ColumnDefinition Width="80" />
-                                        <ColumnDefinition Width="110" />
-                                        <ColumnDefinition Width="80" />
+                                        <ColumnDefinition Width="118" />
+                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="124" />
+                                        <ColumnDefinition Width="90" />
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
@@ -426,22 +426,68 @@
                                                Margin="0,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Heure (0–23) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="1"
-                                             x:Name="ChampHeureArret"
-                                             Width="70" Margin="0,0,0,10"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+<Grid Grid.Row="0" Grid.Column="1" Margin="8,0,0,10" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBox Grid.Column="0" x:Name="ChampHeureArret"
+                                                 Width="64"
+                                                 VerticalContentAlignment="Center" />
+
+                                        <!-- Flèches empilées, collées à la saisie. -->
+                                        <Grid Grid.Column="1" Margin="2,0,0,0" VerticalAlignment="Center">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Button Grid.Row="0" Content="▲"
+                                                    Style="{StaticResource FlecheReglage}"
+                                                    Width="20" Height="15" Padding="0"
+                                                    Tag="heure+1"
+                                                    Click="SurReglerArret" />
+                                            <Button Grid.Row="1" Content="▼"
+                                                    Style="{StaticResource FlecheReglage}"
+                                                    Width="20" Height="15" Padding="0"
+                                                    Tag="heure-1"
+                                                    Click="SurReglerArret" />
+                                        </Grid>
+                                    </Grid>
 
                                     <TextBlock Grid.Row="0" Grid.Column="2"
                                                Style="{StaticResource Libelle}"
                                                Margin="10,0,0,10"
                                                VerticalAlignment="Center"
                                                Text="{loc:Tr 'Minute (0–59) :'}" />
-                                    <TextBox Grid.Row="0" Grid.Column="3"
-                                             x:Name="ChampMinuteArret"
-                                             Width="70" Margin="0,0,0,10"
-                                             HorizontalAlignment="Left"
-                                             VerticalContentAlignment="Center" />
+<Grid Grid.Row="0" Grid.Column="3" Margin="8,0,0,10" VerticalAlignment="Center">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBox Grid.Column="0" x:Name="ChampMinuteArret"
+                                                 Width="64"
+                                                 VerticalContentAlignment="Center" />
+
+                                        <!-- Flèches empilées, collées à la saisie. -->
+                                        <Grid Grid.Column="1" Margin="2,0,0,0" VerticalAlignment="Center">
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+                                            <Button Grid.Row="0" Content="▲"
+                                                    Style="{StaticResource FlecheReglage}"
+                                                    Width="20" Height="15" Padding="0"
+                                                    Tag="minute+1"
+                                                    Click="SurReglerArret" />
+                                            <Button Grid.Row="1" Content="▼"
+                                                    Style="{StaticResource FlecheReglage}"
+                                                    Width="20" Height="15" Padding="0"
+                                                    Tag="minute-1"
+                                                    Click="SurReglerArret" />
+                                        </Grid>
+                                    </Grid>
 
                                     <TextBlock Grid.Row="1" Grid.Column="0"
                                                Style="{StaticResource Libelle}"
@@ -450,7 +496,7 @@
                                                Text="{loc:Tr 'OnOff.Type'}" />
                                     <ComboBox Grid.Row="1" Grid.Column="1"
                                               x:Name="ChoixTypeArret"
-                                              Width="160" Margin="0,0,0,10"
+                                              Width="160" Margin="8,0,0,10"
                                               HorizontalAlignment="Left"
                                               VerticalAlignment="Center"
                                               Grid.ColumnSpan="2">

@@ -15,6 +15,7 @@
         FontSize="13"
         UseLayoutRounding="True">
 
+
     <!-- Fenêtre secondaire, même habillage que la fenêtre principale -->
     <Border Margin="14"
             Background="{StaticResource Fond}"
@@ -116,21 +117,70 @@
                                       VerticalAlignment="Center"
                                       Click="SurChangementPlanification" />
 
-                            <TextBlock Text="{loc:Tr 'Heure d’envoi :'}"
+                            <TextBlock Text="{loc:Tr 'Heure :'}"
                                        Margin="20,0,8,0"
                                        VerticalAlignment="Center"
                                        Foreground="{StaticResource TexteSecondaire}" />
 
-                            <TextBox x:Name="ChampHeure"
-                                     Width="70"
-                                     VerticalContentAlignment="Center"
-                                     TextChanged="SurChangementPlanification" />
+                            <Grid VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
 
-                            <TextBlock Text="HH:mm"
-                                       Margin="8,0,0,0"
-                                       VerticalAlignment="Center"
-                                       FontSize="11"
-                                       Foreground="{StaticResource TexteSecondaire}" />
+                                <TextBox Grid.Column="0" x:Name="ChampHeure"
+                                         Width="64"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="SurChangementPlanification" />
+
+                                <!-- Flèches empilées, collées à la saisie : un seul bloc. -->
+                                <Grid Grid.Column="1" Margin="2,0,0,0" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Row="0" Content="▲"
+                                            Style="{StaticResource FlecheReglage}"
+                                            Width="20" Height="15" Padding="0"
+                                            Tag="heure+1"
+                                            Click="SurReglerHeure" />
+                                    <Button Grid.Row="1" Content="▼"
+                                            Style="{StaticResource FlecheReglage}"
+                                            Width="20" Height="15" Padding="0"
+                                            Tag="heure-1"
+                                            Click="SurReglerHeure" />
+                                </Grid>
+                            </Grid>
+
+                            <Grid VerticalAlignment="Center">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <TextBox Grid.Column="0" x:Name="ChampMinute"
+                                         Width="64"
+                                         VerticalContentAlignment="Center"
+                                         TextChanged="SurChangementPlanification" />
+
+                                <!-- Flèches empilées, collées à la saisie : un seul bloc. -->
+                                <Grid Grid.Column="1" Margin="2,0,0,0" VerticalAlignment="Center">
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+                                    <Button Grid.Row="0" Content="▲"
+                                            Style="{StaticResource FlecheReglage}"
+                                            Width="20" Height="15" Padding="0"
+                                            Tag="minute+1"
+                                            Click="SurReglerHeure" />
+                                    <Button Grid.Row="1" Content="▼"
+                                            Style="{StaticResource FlecheReglage}"
+                                            Width="20" Height="15" Padding="0"
+                                            Tag="minute-1"
+                                            Click="SurReglerHeure" />
+                                </Grid>
+                            </Grid>
 
                         </StackPanel>
 

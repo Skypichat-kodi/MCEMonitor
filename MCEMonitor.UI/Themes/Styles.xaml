@@ -108,6 +108,31 @@
         <!-- Champs des paramètres de modules (RomMonitor, SystemMonitor, NetMonitor) :
              cellule plus basse et marges resserrées pour que ces onglets tiennent
              dans la fenêtre, sans toucher aux champs de la saisie courante. -->
+        <!-- Flèche de réglage : un petit bloc collé à un champ numérique, sans
+             contour ni rembourrage, pour former un ensemble avec la saisie plutôt
+             qu un bouton de plus. Utilisé par le réveil programmé et l arrêt
+             programmé. -->
+        <Style x:Key="FlecheReglage" TargetType="Button">
+            <Setter Property="Foreground" Value="{StaticResource TexteSecondaire}" />
+            <Setter Property="FontSize" Value="8" />
+            <Setter Property="Focusable" Value="False" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Cadre" Background="Transparent">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Cadre" Property="Background" Value="{StaticResource SurfaceSurvol}" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
         <Style x:Key="ChampParametre" TargetType="TextBox"
                BasedOn="{StaticResource {x:Type TextBox}}">
             <Setter Property="Height" Value="22" />

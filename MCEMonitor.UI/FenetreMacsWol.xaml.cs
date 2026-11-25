@@ -113,6 +113,11 @@ namespace MCEMonitor.UI
             ChampMac.Text = saisie;
             ChampMac.CaretIndex = Math.Min(curseur, ChampMac.Text.Length);
             ChampMac.TextChanged += SurSaisieMac;
+
+            // Le reformatage coupe TextChanged : sans cet appel, l'indication grise
+            // restait affichée par-dessus le texte saisi dès que la frappe était
+            // corrigée à la volée (minuscules, tirets, douze caractères collés).
+            MetAJourIndice();
         }
 
         private void SurAjouter(object sender, RoutedEventArgs e)
@@ -203,7 +208,11 @@ namespace MCEMonitor.UI
             var (actif, heure) = PlanificationWol.Lire();
 
             CaseReveilProgramme.IsChecked = actif;
-            ChampHeure.Text               = heure;
+
+            // L heure est stockée en « HH:mm » ; les deux champs la partagent.
+            var parties = heure.Split(':');
+            ChampHeure.Text  = parties.Length > 0 ? parties[0] : "07";
+            ChampMinute.Text = parties.Length > 1 ? parties[1] : "00";
 
             MetAJourTextePlanification(null);
         }
@@ -211,20 +220,54 @@ namespace MCEMonitor.UI
         private void SurChangementPlanification(object sender, RoutedEventArgs e)
             => MetAJourTextePlanification(null);
 
+        /// <summary>
+        /// Avance ou recule d une unité le champ visé par le bouton : l heure reste
+        /// entre 0 et 23, la minute entre 0 et 59, sans retenue sur le champ voisin.
+        /// </summary>
+        private void SurReglerHeure(object sender, RoutedEventArgs e)
+        {
+            string etiquette = (sender as Button)?.Tag?.ToString() ?? "";
+            bool   surHeure  = etiquette.StartsWith("heure", StringComparison.Ordinal);
+            int    pas       = etiquette.EndsWith("+1", StringComparison.Ordinal) ? 1 : -1;
+
+            var champ = surHeure ? ChampHeure : ChampMinute;
+            int borne = surHeure ? 23 : 59;
+
+            if (!int.TryParse((champ.Text ?? "").Trim(), out int valeur))
+                valeur = 0;
+
+            valeur += pas;
+
+            if (valeur < 0)     valeur = borne;
+            if (valeur > borne) valeur = 0;
+
+            champ.Text = valeur.ToString("00");
+        }
+
         private void SurChangementPlanification(object sender, TextChangedEventArgs e)
             => MetAJourTextePlanification(null);
 
         private async void SurAppliquerPlanification(object sender, RoutedEventArgs e)
         {
-            string heure = (ChampHeure.Text ?? "").Trim();
-
-            if (!System.Text.RegularExpressions.Regex.IsMatch(heure, @"^([01]\d|2[0-3]):[0-5]\d$"))
+            // Deux champs séparés, comme dans l onglet On/Off : le réglage se fait
+            // à la minute près, sans tranche imposée.
+            if (!int.TryParse((ChampHeure.Text ?? "").Trim(), out int heures) || heures < 0 || heures > 23)
             {
                 MetAJourTextePlanification(
-                    LanguageManager.Get("L heure doit être au format HH:mm, par exemple 07:30.")
-                    ?? "L heure doit être au format HH:mm, par exemple 07:30.");
+                    LanguageManager.Get("L heure doit être comprise entre 0 et 23.")
+                    ?? "L heure doit être comprise entre 0 et 23.");
                 return;
             }
+
+            if (!int.TryParse((ChampMinute.Text ?? "").Trim(), out int minutes) || minutes < 0 || minutes > 59)
+            {
+                MetAJourTextePlanification(
+                    LanguageManager.Get("Les minutes doivent être comprises entre 0 et 59.")
+                    ?? "Les minutes doivent être comprises entre 0 et 59.");
+                return;
+            }
+
+            string heure = $"{heures:00}:{minutes:00}";
 
             bool actif = CaseReveilProgramme.IsChecked == true;
 
