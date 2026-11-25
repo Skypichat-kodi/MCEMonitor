@@ -80,10 +80,14 @@ namespace MCEMonitorClient.Maui.ViewModels
         public ObservableCollection<RomDiskItem> Disks { get; } = new();
         public ObservableCollection<RomSmartItem> Smart { get; } = new();
         public ObservableCollection<RomProblemItem> Problems { get; } = new();
+        public ObservableCollection<RomHistoryItem> History { get; } = new();
 
         public bool HasDisks => Disks.Count > 0;
         public bool HasSmart => Smart.Count > 0;
         public bool HasProblems => Problems.Count > 0;
+
+        /// <summary>L historique ne s affiche que s il y a quelque chose à montrer.</summary>
+        public bool HasHistory => History.Count > 0;
 
         // ============================================================
         //  Cycle de vie
@@ -187,6 +191,33 @@ namespace MCEMonitorClient.Maui.ViewModels
                 });
             }
             OnPropertyChanged(nameof(HasProblems));
+
+            // ---- Historique ----
+            History.Clear();
+            foreach (var h in d.History)
+            {
+                History.Add(new RomHistoryItem
+                {
+                    When          = h.Timestamp.ToLocalTime().ToString("dd/MM HH:mm"),
+                    Severity      = h.Severity,
+                    SeverityColor = h.Severity == "critical"
+                        ? Color.FromArgb("#FF6347")
+                        : Color.FromArgb("#FFB900"),
+                    Category      = h.Type switch
+                    {
+                        "SmartFailure"      => "SMART",
+                        "DiskSpaceLow"      => "Disque",
+                        "DiskSpaceCritical" => "Disque",
+                        "DiskIoHigh"        => "Disque (E/S)",
+                        "DiskIoCritical"    => "Disque (E/S)",
+                        _                   => h.Type
+                    },
+                    Target        = h.Target,
+                    Message       = h.Message,
+                    EmailSent     = h.EmailSent
+                });
+            }
+            OnPropertyChanged(nameof(HasHistory));
 
             // ---- Disques ----
             Disks.Clear();
@@ -318,5 +349,16 @@ namespace MCEMonitorClient.Maui.ViewModels
         public string Category { get; set; } = "";
         public string Target { get; set; } = "";
         public string Message { get; set; } = "";
+    }
+
+    public class RomHistoryItem
+    {
+        public string When { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public Color SeverityColor { get; set; } = Colors.Gray;
+        public string Category { get; set; } = "";
+        public string Target { get; set; } = "";
+        public string Message { get; set; } = "";
+        public bool EmailSent { get; set; }
     }
 }

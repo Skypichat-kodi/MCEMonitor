@@ -236,6 +236,58 @@
                     </VerticalStackLayout>
                 </Border>
 
+                <!-- Historique des alertes : les dernières remontées par le service -->
+                <Border IsVisible="{Binding HasHistory}"
+                        BackgroundColor="#252526"
+                        Stroke="#3C3C3C"
+                        StrokeThickness="1" StrokeShape="RoundRectangle 8"
+                        Padding="14"
+                        Margin="0,12,0,0">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="HISTORIQUE"
+                               FontSize="12" FontAttributes="Bold"
+                               TextColor="#C9C9C9" />
+
+                        <VerticalStackLayout BindableLayout.ItemsSource="{Binding History}"
+                                             Spacing="8">
+                            <BindableLayout.ItemTemplate>
+                                <DataTemplate>
+                                    <Border BackgroundColor="#1E1E1E"
+                                            Stroke="#3C3C3C"
+                                            StrokeThickness="1"
+                                            StrokeShape="RoundRectangle 6"
+                                            Padding="10,8">
+                                        <VerticalStackLayout Spacing="4">
+                                            <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="6">
+                                                <Ellipse Grid.Column="0"
+                                                         WidthRequest="8" HeightRequest="8"
+                                                         Fill="{Binding SeverityColor}"
+                                                         VerticalOptions="Center" />
+                                                <Label Grid.Column="1"
+                                                       Text="{Binding When}"
+                                                       FontSize="11" TextColor="#B4B4B4"
+                                                       VerticalOptions="Center" />
+                                                <Label Grid.Column="2"
+                                                       Text="{Binding Target}"
+                                                       FontSize="12" FontAttributes="Bold"
+                                                       TextColor="#E5E5E5"
+                                                       VerticalOptions="Center" />
+                                                <Label Grid.Column="3"
+                                                       Text="{Binding Category}"
+                                                       FontSize="10" TextColor="#888888"
+                                                       VerticalOptions="Center"
+                                                       HorizontalTextAlignment="End" />
+                                            </Grid>
+                                            <Label Text="{Binding Message}"
+                                                   FontSize="12" TextColor="#B4B4B4" />
+                                        </VerticalStackLayout>
+                                    </Border>
+                                </DataTemplate>
+                            </BindableLayout.ItemTemplate>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
                 <Label Text="Tirer vers le bas pour rafraîchir"
                        FontSize="11" TextColor="#666666"
                        HorizontalTextAlignment="Center"

@@ -13,6 +13,19 @@ namespace RomMonitor.Service.Api
         public List<ApiProblem> problems { get; set; } = new();
         public List<DiskDetailDto> disks { get; set; } = new();
         public List<SmartDetailDto> smart { get; set; } = new();
+
+        /// <summary>Dernières alertes enregistrées, les plus récentes en tête.</summary>
+        public List<HistoryEntryDto> history { get; set; } = new();
+    }
+
+    public class HistoryEntryDto
+    {
+        public DateTime timestamp { get; set; }
+        public string type { get; set; } = "";
+        public string severity { get; set; } = "";
+        public string target { get; set; } = "";
+        public string message { get; set; } = "";
+        public bool emailSent { get; set; }
     }
 
     public class DiskDetailDto

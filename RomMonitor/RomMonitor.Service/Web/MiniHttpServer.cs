@@ -311,6 +311,21 @@ namespace RomMonitor.Service.Web
                         smart = new System.Collections.Generic.List<RomMonitor.Service.Api.SmartDetailDto>()
                     };
 
+                    // --- Historique des alertes (30 dernières, plus récentes en tête) ---
+                    detail.history = _engine.LastAlerts
+                        .OrderByDescending(a => a.Timestamp)
+                        .Take(30)
+                        .Select(a => new RomMonitor.Service.Api.HistoryEntryDto
+                        {
+                            timestamp = a.Timestamp,
+                            type      = a.Type.ToString(),
+                            severity  = a.Severity ?? "",
+                            target    = a.Target ?? "",
+                            message   = a.Message ?? "",
+                            emailSent = a.EmailSent
+                        })
+                        .ToList();
+
                     // --- Problèmes SMART + espace disque (même logique que /api/summary) ---
                     foreach (var s in _engine.LastSmart)
                     {

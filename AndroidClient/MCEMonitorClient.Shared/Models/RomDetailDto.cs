@@ -13,6 +13,19 @@ namespace MCEMonitorClient.Shared.Models
         public List<RomProblemDto> Problems { get; set; } = new();
         public List<RomDiskDto> Disks { get; set; } = new();
         public List<RomSmartDto> Smart { get; set; } = new();
+
+        /// <summary>Dernières alertes enregistrées par le service, les plus récentes en tête.</summary>
+        public List<RomHistoryDto> History { get; set; } = new();
+    }
+
+    public class RomHistoryDto
+    {
+        public DateTime Timestamp { get; set; }
+        public string Type { get; set; } = "";
+        public string Severity { get; set; } = "";
+        public string Target { get; set; } = "";
+        public string Message { get; set; } = "";
+        public bool EmailSent { get; set; }
     }
 
     public class RomProblemDto
