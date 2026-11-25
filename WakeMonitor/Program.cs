@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Diagnostics;
@@ -43,18 +43,18 @@ namespace WakeMonitor
                 return;
 
             LogHelper.Clear();
-            LogHelper.Write("WakeMonitor d�marr�.");
+            LogHelper.Write("WakeMonitor démarré.");
 
             try
             {
-                // 1) V�rification du vrai r�veil Power-Troubleshooter
+                // 1) Vérification du vrai réveil Power-Troubleshooter
                 if (!WakeEventFilter.IsRealWakeEvent())
                 {
-                    LogHelper.Write("�v�nement ignor� : ce n'est pas un r�veil Power-Troubleshooter.");
+                    LogHelper.Write("Événement ignoré : ce n'est pas un réveil Power-Troubleshooter.");
                     return;
                 }
 
-                LogHelper.Write("R�veil Power-Troubleshooter d�tect�.");
+                LogHelper.Write("Réveil Power-Troubleshooter détecté.");
 
                 var cfg  = EmailConfig.Load();
                 var opt  = WakeMonitorSettings.Load();
@@ -65,13 +65,13 @@ namespace WakeMonitor
                 string publicIp = await PublicIP.GetPublicIP();
                 string usb      = UsbDeviceDetector.GetLastUsbDevice();
 
-                // --- Cause corrig�e intelligente ---
+                // --- Cause corrigée intelligente ---
                 // wake.Cause pointe vers wake.WakeCause via WakeInfo
                 string cause = WakeEventFilter.IsWolAttempt()
                     ? WakeCauseDetector.GetProbableWakeCause(wake, macLocal, opt)
                     : wake.WakeCause;
 
-                // D�tection WOL depuis hibernation S4
+                // Détection WOL depuis hibernation S4
                 if (cause == "Inconnue" && IsWolFromHibernate())
                 {
                     cause = "Wake-on-LAN (depuis hibernation S4)";
@@ -80,30 +80,30 @@ namespace WakeMonitor
                 // Correction HID : Windows ne remplit pas WakeSourceText en S4
                 if ((cause == "Unknown" || cause == "Inconnue") && !string.IsNullOrEmpty(usb))
                 {
-                    cause = "P�riph�rique USB (probablement HID)";
+                    cause = "Périphérique USB (probablement HID)";
                 }
 
-                // 2) Analyse WOL via strat�gie hybride
+                // 2) Analyse WOL via stratégie hybride
                 var wol = WolDetectionStrategy.Detect(wake, macLocal, opt);
 
-                // Bloc visuel si Windows a mal class� le r�veil
+                // Bloc visuel si Windows a mal classé le réveil
                 string wolCorrectionBlock = "";
                 if (wake.IsLikelyWol)
                 {
                     wolCorrectionBlock = @"
 <div style='background:#e8f4ff;border-left:4px solid #3498db;padding:10px;margin-bottom:15px'>
-    <b>Cause r�elle probable :</b> Wake-on-LAN (Magic Packet)<br>
-    <span style='color:#555'>Windows a mal class� la source du r�veil.</span>
+    <b>Cause réelle probable :</b> Wake-on-LAN (Magic Packet)<br>
+    <span style='color:#555'>Windows a mal classé la source du réveil.</span>
 </div>";
                 }
 
                 // 3) Log interne
                 string duration = wake.SleepDuration.ToString(@"hh\:mm\:ss");
 
-                LogHelper.WriteBlock("Infos r�veil",
-                    $"R�veil : {wake.WakeTime}\n" +
+                LogHelper.WriteBlock("Infos réveil",
+                    $"Réveil : {wake.WakeTime}\n" +
                     $"Sommeil : {wake.SleepTime}\n" +
-                    $"Dur�e : {duration}\n" +
+                    $"Durée : {duration}\n" +
                     $"Cause : {cause}\n" +
                     $"USB : {usb}\n" +
                     $"Machine : {Environment.MachineName}\n" +
@@ -122,11 +122,11 @@ namespace WakeMonitor
                 string body =
                     wol.HtmlBlock +
                     wolCorrectionBlock +
-                    "<b>=== D�tails du r�veil ===</b><br>" +
-                    $"<b>Heure de r�veil :</b> {wake.WakeTime}<br>" +
+                    "<b>=== Détails du réveil ===</b><br>" +
+                    $"<b>Heure de réveil :</b> {wake.WakeTime}<br>" +
                     $"<b>Heure d'endormissement :</b> {wake.SleepTime}<br>" +
-                    $"<b>Dur�e :</b> {duration}<br>" +
-                    $"<b>Cause du r�veil :</b> {cause}<br>" +
+                    $"<b>Durée :</b> {duration}<br>" +
+                    $"<b>Cause du réveil :</b> {cause}<br>" +
                     $"<b>USB :</b> {usb}<br>" +
                     $"<b>Machine :</b> {Environment.MachineName}<br>" +
                     $"<b>Utilisateur :</b> {Environment.UserName}<br>" +
@@ -138,18 +138,18 @@ namespace WakeMonitor
 
                 await EmailSender.SendAsync(cfg, subject, body, isHtml: true);
 
-                LogHelper.Write("Email envoy� avec succ�s.");
+                LogHelper.Write("Email envoyé avec succès.");
             }
             catch (Exception ex)
             {
                 LogHelper.Write("ERREUR : " + ex.Message);
             }
 
-            LogHelper.Write("WakeMonitor termin�.");
+            LogHelper.Write("WakeMonitor terminé.");
         }
 
         // ---------------------------------------------------------
-        // D�tection WOL depuis hibernation S4
+        // Détection WOL depuis hibernation S4
         // ---------------------------------------------------------
 
         private static bool IsWolFromHibernate()

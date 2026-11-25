@@ -3687,7 +3687,7 @@
                     <!-- État de la géolocalisation : verte quand les résolutions passent,
                          rouge quand le quota de l API est épuisé. -->
                     <Ellipse x:Name="GeoIpDot"
-                             Width="8" Height="8" Fill="Gray"
+                             Width="12" Height="12" Fill="Gray"
                              Margin="18,0,6,0" VerticalAlignment="Center"
                              ToolTip="{loc:Tr 'État de la géolocalisation'}"/>
                     <TextBlock x:Name="GeoIpText"

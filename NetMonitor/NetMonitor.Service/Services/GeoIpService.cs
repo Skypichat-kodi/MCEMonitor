@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -10,7 +10,7 @@ public sealed class GeoIpService : IDisposable
 {
     private readonly ConcurrentDictionary<string, GeoInfo> _cache = new();
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
-    private readonly SemaphoreSlim _throttle = new(2, 2);   // �tait new(5, 5)
+    private readonly SemaphoreSlim _throttle = new(2, 2);   // était new(5, 5)
     private readonly string _providerTemplate;
     private readonly bool _enabled;
     private readonly bool _reverseDnsEnabled;
@@ -32,7 +32,7 @@ public sealed class GeoIpService : IDisposable
 
     public bool IsEnabled => _enabled;
     
-    // Quota API �puis� (429) � partag� avec NetMonitorEngine pour reporter les lots
+    // Quota API épuisé (429) — partagé avec NetMonitorEngine pour reporter les lots
     private DateTime _quotaExceededUntil = DateTime.MinValue;
     public bool IsQuotaExceeded => DateTime.UtcNow < _quotaExceededUntil;
 
@@ -124,9 +124,9 @@ public sealed class GeoIpService : IDisposable
     }
     
     /// <summary>
-    /// Amorce le cache avec une g�oloc d�j� connue (typiquement lue depuis
-    /// blocked_ips.json ou alert_history.json au d�marrage).
-    /// Ne fait rien si CountryCode est vide (pas de g�oloc valide � seeder).
+    /// Amorce le cache avec une géoloc déjà connue (typiquement lue depuis
+    /// blocked_ips.json ou alert_history.json au démarrage).
+    /// Ne fait rien si CountryCode est vide (pas de géoloc valide à seeder).
     /// </summary>
     public void SeedCache(string ip, GeoInfo info)
     {
@@ -136,8 +136,8 @@ public sealed class GeoIpService : IDisposable
     }
 
     /// <summary>
-    /// Invalide l'entr�e de cache d'une IP (force un re-fetch au prochain ResolveAsync).
-    /// Utilis� par le refresh p�riodique.
+    /// Invalide l'entrée de cache d'une IP (force un re-fetch au prochain ResolveAsync).
+    /// Utilisé par le refresh périodique.
     /// </summary>
     public void InvalidateCache(string ip)
     {
@@ -151,7 +151,7 @@ public sealed class GeoIpService : IDisposable
         if (!_enabled) return;
         if (string.IsNullOrWhiteSpace(ip)) return;
 
-        // Ne pas relancer si on a d�j� une entr�e valide (non expir�e, avec CountryCode)
+        // Ne pas relancer si on a déjà une entrée valide (non expirée, avec CountryCode)
         if (_cache.TryGetValue(ip, out var existing) &&
             DateTime.UtcNow - existing.ResolvedAt < CacheTtl &&
             !string.IsNullOrEmpty(existing.CountryCode))
@@ -167,11 +167,11 @@ public sealed class GeoIpService : IDisposable
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
-        // Quota �puis� : ne pas appeler l'API, retourner un objet transitoire non cach�
+        // Quota épuisé : ne pas appeler l'API, retourner un objet transitoire non caché
         if (DateTime.UtcNow < _quotaExceededUntil)
             return new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.MinValue };
         
-        // Cache hit : seulement si CountryCode non vide (sinon = �chec cach�)
+        // Cache hit : seulement si CountryCode non vide (sinon = échec caché)
         if (_cache.TryGetValue(ip, out var cached) &&
             DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
             !string.IsNullOrEmpty(cached.CountryCode))
@@ -197,7 +197,7 @@ public sealed class GeoIpService : IDisposable
 
         if (!_enabled)
         {
-            var disabled = new GeoInfo { Ip = ip, Country = "(d�sactiv�)", ResolvedAt = DateTime.UtcNow };
+            var disabled = new GeoInfo { Ip = ip, Country = "(désactivé)", ResolvedAt = DateTime.UtcNow };
             _cache[ip] = disabled;
             return disabled;
         }
@@ -205,7 +205,7 @@ public sealed class GeoIpService : IDisposable
         await _throttle.WaitAsync();
         try
         {
-            // Re-check sous le s�maphore (un autre thread a pu r�soudre entre-temps)
+            // Re-check sous le sémaphore (un autre thread a pu résoudre entre-temps)
             if (_cache.TryGetValue(ip, out cached) &&
                 DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
                 !string.IsNullOrEmpty(cached.CountryCode))
@@ -218,15 +218,15 @@ public sealed class GeoIpService : IDisposable
 
             if (fetched == null)
             {
-                // ? �chec : on retourne un objet "transitoire" SANS le mettre en cache.
+                // ? échec : on retourne un objet "transitoire" SANS le mettre en cache.
                 //    FinalizeBlockedIpGeoAsync le verra avec CountryCode vide et retentera.
-                //    (L'appelant peut diff�rencier via ResolvedAt == DateTime.MinValue)
+                //    (L'appelant peut différencier via ResolvedAt == DateTime.MinValue)
                 return new GeoInfo
                 {
                     Ip = ip,
                     Country = "?",
                     CountryCode = "",
-                    ResolvedAt = DateTime.MinValue   // ? marqueur "pas r�solu, pas cach�"
+                    ResolvedAt = DateTime.MinValue   // ? marqueur "pas résolu, pas caché"
                 };
             }
 
@@ -238,7 +238,7 @@ public sealed class GeoIpService : IDisposable
 
             _cache[ip] = fetched;
             _cacheModifie = true;
-            SauvegarderCacheDisque();   // ? cache uniquement sur succ�s
+            SauvegarderCacheDisque();   // ? cache uniquement sur succès
             return fetched;
         }
         finally { _throttle.Release(); }
@@ -253,8 +253,8 @@ public sealed class GeoIpService : IDisposable
 
                 if ((int)resp.StatusCode == 429)
                 {
-                    // ipwho.is : quota journalier ? pause de 24h par d�faut
-                    // (Retry-After si pr�sent, mais souvent absent ou court)
+                    // ipwho.is : quota journalier ? pause de 24h par défaut
+                    // (Retry-After si présent, mais souvent absent ou court)
                     // On respecte le delai demande par l API : le plancher de 24 h
                     // prolongeait la pause au-dela de ce qu elle reclame.
                     var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromHours(1);
@@ -266,7 +266,7 @@ public sealed class GeoIpService : IDisposable
                         retryAfter = TimeSpan.FromHours(48);
 
                     _quotaExceededUntil = DateTime.UtcNow + retryAfter;
-                    CoreLog.Warn($"[GEOIP] Quota �puis� � pause jusqu'� {_quotaExceededUntil.ToLocalTime():yyyy-MM-dd HH:mm}");
+                    CoreLog.Warn($"[GEOIP] Quota épuisé — pause jusqu'à {_quotaExceededUntil.ToLocalTime():yyyy-MM-dd HH:mm}");
                     return null;
                 }
 
@@ -277,7 +277,7 @@ public sealed class GeoIpService : IDisposable
             if (root.TryGetProperty("success", out var s) && s.ValueKind == JsonValueKind.False)
             {
                 string msg = GetStr(root, "message");
-                CoreLog.Warn($"[GEOIP] {ip} refus� par l'API : {(string.IsNullOrEmpty(msg) ? "raison inconnue" : msg)}");
+                CoreLog.Warn($"[GEOIP] {ip} refusé par l'API : {(string.IsNullOrEmpty(msg) ? "raison inconnue" : msg)}");
                 return null;   // ? PAS de cache
             }
 
@@ -293,12 +293,12 @@ public sealed class GeoIpService : IDisposable
                 org = GetStr(conn, "org");
             }
 
-            // ? Si le code pays est vide alors que l'API a r�pondu "success",
-            //    c'est suspect : on log mais on accepte (IP sans g�oloc connue)
+            // ? Si le code pays est vide alors que l'API a répondu "success",
+            //    c'est suspect : on log mais on accepte (IP sans géoloc connue)
             if (string.IsNullOrEmpty(code))
             {
-                CoreLog.Warn($"[GEOIP] {ip} succ�s mais country_code vide (country='{country}')");
-                return null;   // ? on pr�f�re re-tenter plus tard
+                CoreLog.Warn($"[GEOIP] {ip} succès mais country_code vide (country='{country}')");
+                return null;   // ? on préfère re-tenter plus tard
             }
 
             return new GeoInfo
@@ -360,7 +360,7 @@ public sealed class GeoIpService : IDisposable
     public void Clear() => _cache.Clear();
     
     // ============================================================
-    //  IDisposable � lib�re le pool HTTP et le s�maphore
+    //  IDisposable — libère le pool HTTP et le sémaphore
     // ============================================================
     public void Dispose()
     {
@@ -375,6 +375,6 @@ public sealed class GeoIpService : IDisposable
         try { _throttle.Dispose(); }
         catch (Exception ex) { CoreLog.Warn($"GeoIpService.Dispose (throttle) : {ex.Message}"); }
 
-        CoreLog.Info("GeoIpService dispos�");
+        CoreLog.Info("GeoIpService disposé");
     }    
 }
