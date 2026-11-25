@@ -13,6 +13,7 @@ namespace NetMonitor.Service
     public enum PdfSection
     {
         Stats,
+        Map,
         Blocked,
         Retries,
         History,
@@ -82,9 +83,10 @@ namespace NetMonitor.Service
             {
                 switch (section)
                 {
-                    // Les statistiques ne sont pas un tableau : elles occupent leur
-                    // propre page, dessinée juste après l'en-tête.
+                    // Ni les statistiques ni la carte ne sont des tableaux : ils
+                    // occupent leurs propres pages, dessinées autour de l'en-tête.
                     case PdfSection.Stats:     break;
+                    case PdfSection.Map:       break;
                     case PdfSection.Blocked:   tableaux.Add(TableauIpBloquees(blocked));           break;
                     case PdfSection.Retries:   tableaux.Add(TableauInterceptions(retries, blocked)); break;
                     case PdfSection.History:   tableaux.Add(TableauHistorique(history));            break;
@@ -118,6 +120,33 @@ namespace NetMonitor.Service
             if (sections.Contains(PdfSection.Stats) && stats != null)
                 y = DessinerStatistiques(gfx, stats, largeur, y) + 18;
 
+            // La carte prend une page entière : à 786 points de large, elle occupe
+            // plus de la moitié de la hauteur utile.
+            if (sections.Contains(PdfSection.Map))
+            {
+                byte[]? carte = ChargerCarte();
+
+                if (carte != null)
+                {
+                    // La carte s'ajoute sous l'en-tête quand la page est encore
+                    // vierge : sans cela, un rapport ne demandant que la carte
+                    // produisait une première page réduite au titre.
+                    bool pageVierge = !(sections.Contains(PdfSection.Stats) && stats != null);
+
+                    if (!pageVierge)
+                    {
+                        page = NouvellePage(document);
+                        gfx  = XGraphics.FromPdfPage(page);
+                        graphiques.Add(gfx);
+                        y = MargeHaut;
+                    }
+
+                    DessinerCarte(gfx, carte, page, largeur, y);
+                    y = page.Height;   // page consommée : les tableaux suivants
+                                       // ouvriront la leur
+                }
+            }
+
             foreach (var tableau in tableaux)
             {
                 if (y > page.Height - MargeBas - 90)
@@ -139,6 +168,78 @@ namespace NetMonitor.Service
             using var ms = new MemoryStream();
             document.Save(ms, false);
             return ms.ToArray();
+        }
+
+        /// <summary>
+        /// Chemin de la carte déposée par l'interface avant l'export.
+        /// Le service lit un seul bloc de 4096 octets par commande IPC : une image
+        /// ne peut pas y transiter, elle passe donc par un fichier.
+        /// </summary>
+        private static string CheminCarte => Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+            "MCEMonitor", "NetMonitor", "pdf_map.png");
+
+        /// <summary>
+        /// Lit la carte laissée par l'interface, puis l'efface : une carte oubliée
+        /// ne doit jamais resservir pour un rapport ultérieur.
+        /// </summary>
+        private static byte[]? ChargerCarte()
+        {
+            try
+            {
+                string chemin = CheminCarte;
+                if (!File.Exists(chemin)) return null;
+
+                byte[] octets = File.ReadAllBytes(chemin);
+                File.Delete(chemin);
+
+                // Signature PNG : un fichier tronqué ou d'un autre type ferait
+                // échouer XImage au milieu du rapport.
+                if (octets.Length < 1000) return null;
+                if (octets[0] != 0x89 || octets[1] != 0x50 || octets[2] != 0x4E || octets[3] != 0x47) return null;
+
+                return octets;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn($"[PDF] Carte illisible : {ex.Message}");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Page de la carte : titre, image à la largeur utile, légende de l'échelle.
+        /// </summary>
+        private static void DessinerCarte(XGraphics gfx, byte[] png, PdfPage page, double largeur, double haut)
+        {
+            double y = haut;
+
+            gfx.DrawString("Carte des pays d'origine", PoliceSection, XBrushes.Black,
+                           new XPoint(MargeGauche, y));
+            y += 20;
+
+            gfx.DrawString("Toutes les alertes — le nombre croît du jaune au rouge",
+                           PoliceSoustitre, XBrushes.DimGray, new XPoint(MargeGauche, y));
+            y += 16;
+
+            using var image = XImage.FromStream(() => new MemoryStream(png));
+
+            if (image.PixelWidth <= 0 || image.PixelHeight <= 0) return;
+
+            double ratio = image.PixelHeight / (double)image.PixelWidth;
+            double largeurImage = largeur;
+            double hauteurImage = largeurImage * ratio;
+
+            // La carte ne doit pas empiéter sur le pied de page.
+            double hauteurDisponible = page.Height - y - MargeBas - 16;
+
+            if (hauteurImage > hauteurDisponible)
+            {
+                hauteurImage = hauteurDisponible;
+                largeurImage = hauteurImage / ratio;
+            }
+
+            gfx.DrawImage(image, MargeGauche, y, largeurImage, hauteurImage);
         }
 
         private static PdfPage NouvellePage(PdfDocument document)
@@ -598,7 +699,7 @@ namespace NetMonitor.Service
             double xDroite = MargeGauche + largeurColonne + ecart;
 
             gfx.DrawString("Répartition par sévérité", PoliceEntete, XBrushes.Black, new XPoint(MargeGauche, y));
-            gfx.DrawString("Pays d'origine (alertes actives)", PoliceEntete, XBrushes.Black, new XPoint(xDroite, y));
+            gfx.DrawString("Pays d'origine", PoliceEntete, XBrushes.Black, new XPoint(xDroite, y));
             y += 11;
 
             PdfGraphiques.BarresHorizontales(gfx, PoliceTexte, PolicePied, BarresSeverites(stats),
@@ -660,9 +761,11 @@ namespace NetMonitor.Service
         private static List<PdfGraphiques.Barre> BarresPays(GlobalStats stats)
         {
             var barres = new List<PdfGraphiques.Barre>();
-            if (stats.Active?.TopCountries == null) return barres;
 
-            foreach (var pays in stats.Active.TopCountries.Take(10))
+            // Toutes les alertes, comme les sévérités, les détecteurs et les ports.
+            if (stats.TopCountries == null) return barres;
+
+            foreach (var pays in stats.TopCountries.Take(10))
             {
                 string libelle = string.IsNullOrWhiteSpace(pays.CountryCode)
                     ? pays.Country

@@ -37,6 +37,7 @@ namespace NetMonitor.UI
             Sections.Clear();
 
             if (CaseStatistiques.IsChecked == true)  Sections.Add("Stats");
+            if (CaseCarte.IsChecked == true)         Sections.Add("Map");
             if (CaseBloquees.IsChecked == true)      Sections.Add("Blocked");
             if (CaseInterceptions.IsChecked == true) Sections.Add("Retries");
             if (CaseHistorique.IsChecked == true)    Sections.Add("History");

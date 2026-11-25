@@ -45,6 +45,44 @@ public static class StatsBuilder
         }
         stats.DistinctCountries = globalCountries.Count;
 
+        // --- Pays sur l'ensemble des alertes : carte et classement globaux ---
+        // Les blocs actifs et bloqués n'en donnent qu'une partie ; le rapport PDF
+        // et la carte du global ont besoin de la totalité.
+        var paysParCode = new Dictionary<string, int>();
+        var nomsPays = new Dictionary<string, string>();
+        var ipsParPays = new Dictionary<string, HashSet<string>>();
+
+        foreach (var ev in validAlerts)
+        {
+            var gi = geo.TryGetCached(ev.RemoteIp!);
+            if (gi == null || gi.IsPrivate || string.IsNullOrEmpty(gi.CountryCode)) continue;
+
+            string code = gi.CountryCode;
+            paysParCode[code] = paysParCode.GetValueOrDefault(code) + 1;
+
+            if (!string.IsNullOrWhiteSpace(gi.Country)) nomsPays[code] = gi.Country;
+
+            if (!ipsParPays.TryGetValue(code, out var ips))
+            {
+                ips = new HashSet<string>();
+                ipsParPays[code] = ips;
+            }
+            ips.Add(ev.RemoteIp!);
+        }
+
+        stats.AlertsByCountryCode = paysParCode;
+        stats.TopCountries = paysParCode
+            .OrderByDescending(kv => kv.Value)
+            .Take(topCountriesLimit)
+            .Select(kv => new CountryStats
+            {
+                Country = nomsPays.TryGetValue(kv.Key, out var nom) ? nom : kv.Key,
+                CountryCode = kv.Key,
+                Count = kv.Value,
+                DistinctIps = ipsParPays.TryGetValue(kv.Key, out var ips) ? ips.Count : 0
+            })
+            .ToList();
+
         // ========= Bloc 1 : intrusions actives / IPs bloquées 24h =========
         if (autoBlockMode)
         {

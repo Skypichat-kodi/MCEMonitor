@@ -66,6 +66,11 @@ public sealed class GlobalStats
     public int DistinctCountries                    { get; set; }
     public string WorstSeverity                     { get; set; } = "ok";
     public DateTime GeneratedAt                     { get; set; } = DateTime.UtcNow;
+
+    /// <summary>Pays sur l'ensemble des alertes, toutes périodes : carte et classement.</summary>
+    public List<CountryStats> TopCountries          { get; set; } = new();
+    public Dictionary<string, int> AlertsByCountryCode { get; set; } = new();
+
     public Dictionary<string, int> SeverityCounts   { get; set; } = new();
     public List<PortStats> TopLocalPorts            { get; set; } = new();
     public List<PortStats> TopRemotePorts           { get; set; } = new();

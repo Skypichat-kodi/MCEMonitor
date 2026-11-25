@@ -133,6 +133,9 @@
                 <CheckBox x:Name="CaseStatistiques"  IsChecked="True" Margin="0,0,0,8"
                            Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'Statistiques et graphiques'}" />
+                <CheckBox x:Name="CaseCarte"         IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
+                          Content="{loc:Tr 'Carte des pays d’origine'}" />
                 <CheckBox x:Name="CaseBloquees"     IsChecked="True" Margin="0,0,0,8"
                            Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'IP et processus bloqués'}" />

@@ -25,6 +25,9 @@ namespace NetMonitor.UI.Controls
         private string _mode = "active";
         private DateTime _lastHoverTime = DateTime.MinValue;
 
+        /// <summary>Étendue monde affichée, conservée pour le rendu hors écran.</summary>
+        private MRect _monde = new MRect(-20037508.34, -7970000, 20037508.34, 19970000);
+
         public CountriesMapPanel()
         {
             InitializeComponent();
@@ -78,6 +81,8 @@ namespace NetMonitor.UI.Controls
 
             map.Navigator.ZoomToBox(worldBounds);
             map.Navigator.OverridePanBounds = worldBounds;   // empêche de scroller sous le pôle Sud
+
+            _monde = worldBounds;
 
             MapControl.Map = map;
 
@@ -231,7 +236,7 @@ namespace NetMonitor.UI.Controls
         // ────────────────────────────────────────────────────────────
         //  Style des pays selon le nombre d'alertes
         // ────────────────────────────────────────────────────────────
-        private void StyleFeatures()
+        private void StyleFeatures(bool impression = false)
         {
             System.Diagnostics.Debug.WriteLine($"[MAP] StyleFeatures: features={_features?.Count ?? 0}, dataMap={_dataMap.Count} pays");
 
@@ -246,7 +251,19 @@ namespace NetMonitor.UI.Controls
             foreach (var cf in _features)
             {
                 int count = _dataMap.TryGetValue(cf.Code, out var c) ? c : 0;
-                var fill = GetColor(count);
+
+                // À l'écran, un pays sans alerte prend la couleur de bordure du thème ;
+                // sur une feuille imprimée en fond blanc, cette même couleur donnerait
+                // une carte entièrement sombre. D'où le gris très clair réservé au PDF.
+                var fill = count > 0
+                    ? GetColor(count)
+                    : impression
+                        ? Mapsui.Styles.Color.FromString("#EDEDED")
+                        : DepuisRessource("Bordure", "#454545");
+
+                var contour = impression
+                    ? Mapsui.Styles.Color.FromString("#B4B4B4")
+                    : Mapsui.Styles.Color.FromString("#666666");
 
                 var feature = new GeometryFeature(cf.Geometry)
                 {
@@ -258,7 +275,7 @@ namespace NetMonitor.UI.Controls
                 feature.Styles.Add(new VectorStyle
                 {
                     Fill    = new Brush(fill),
-                    Outline = new Pen(Mapsui.Styles.Color.FromString("#666666"), 1)  // contour visible
+                    Outline = new Pen(contour, 1)
                 });
 
                 features.Add(feature);
@@ -266,6 +283,62 @@ namespace NetMonitor.UI.Controls
 
             _choroplethLayer.Features = features;
             _choroplethLayer.DataHasChanged();
+        }
+
+        /// <summary>
+        /// Rend la carte en PNG pour le rapport PDF.
+        ///
+        /// Le rendu se fait hors écran, avec un viewport de taille imposée : la carte
+        /// n'a pas besoin d'être visible, ni même l'onglet ouvert. Fond blanc et pays
+        /// sans alerte en gris très clair, pour une feuille imprimée — la version
+        /// d'écran reste inchangée, les styles sont rétablis en sortie.
+        /// </summary>
+        public byte[]? RendrePng(int largeur = 1800, int hauteur = 900)
+        {
+            EnsureGeoJsonLoaded();
+
+            if (_features == null || _features.Count == 0) return null;
+
+            var map = MapControl.Map;
+            if (map == null) return null;
+
+            try
+            {
+                // Le monde entier tient dans le viewport : la résolution suit le côté
+                // le plus contraignant, sans déformer la carte.
+                double resolution = Math.Max(_monde.Width / largeur, _monde.Height / hauteur);
+
+                var viewport = new Viewport(
+                    _monde.Centroid.X, _monde.Centroid.Y, resolution, 0, largeur, hauteur);
+
+                var couches = map.Layers.Where(l => l.Enabled).ToList();
+
+                StyleFeatures(impression: true);
+
+                try
+                {
+                    var rendu = new Mapsui.Rendering.Skia.MapRenderer().RenderToBitmapStream(
+                        viewport,
+                        couches,
+                        map.RenderService,
+                        Mapsui.Styles.Color.White,
+                        1f,
+                        Array.Empty<Mapsui.Widgets.IWidget>(),
+                        Mapsui.Rendering.RenderFormat.Png,
+                        95);
+
+                    return rendu?.ToArray();
+                }
+                finally
+                {
+                    StyleFeatures();   // rétablit les couleurs d'écran
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[MAP] Rendu PNG : " + ex.Message);
+                return null;
+            }
         }
 
         private Mapsui.Styles.Color GetColor(int count)

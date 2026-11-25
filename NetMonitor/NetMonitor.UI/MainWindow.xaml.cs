@@ -2222,6 +2222,12 @@ namespace NetMonitor.UI
                 var choix = new ExportPdfWindow { Owner = this };
                 if (choix.ShowDialog() != true) return;
 
+                // La carte ne peut pas passer par le canal IPC, qui lit un seul bloc de
+                // 4096 octets : l'interface la dépose en PNG, le service la lira puis
+                // l'effacera. Une carte manquante n'empêche pas le rapport de se faire.
+                if (choix.Sections.Contains("Map"))
+                    await DeposerCarteAsync();
+
                 string? base64 = await NetMonitorIpcClient.ExportPdfAsync(string.Join(",", choix.Sections));
                 if (string.IsNullOrEmpty(base64))
                 {
@@ -2247,6 +2253,52 @@ namespace NetMonitor.UI
             catch (Exception ex)
             {
                 Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Dépose la carte en cours en PNG pour le rapport PDF.
+        ///
+        /// Le rendu est fait hors écran par le panneau lui-même : l'onglet des
+        /// statistiques n'a pas besoin d'être ouvert, ni la carte visible. Les
+        /// dernières statistiques reçues lui sont réappliquées au passage : sans
+        /// cela, un export lancé sans avoir jamais visité cet onglet produirait
+        /// une carte entièrement grise.
+        /// </summary>
+        private async Task DeposerCarteAsync()
+        {
+            try
+            {
+                if (MapActivePanel == null) return;
+
+                // La carte du rapport porte sur toutes les alertes, pas sur les seules
+                // actives : elle suit ainsi les autres graphiques de la page.
+                if (_lastStats != null)
+                {
+                    var carteGlobale = new StatsBlockDto
+                    {
+                        AlertsByCountryCode = _lastStats.AlertsByCountryCode,
+                        TopCountries = _lastStats.TopCountries
+                    };
+
+                    MapActivePanel.Update(carteGlobale, "active");
+                }
+
+                byte[]? png = MapActivePanel.RendrePng();
+                if (png == null || png.Length == 0) return;
+
+                string dossier = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                    "MCEMonitor", "NetMonitor");
+
+                Directory.CreateDirectory(dossier);
+                await File.WriteAllBytesAsync(Path.Combine(dossier, "pdf_map.png"), png);
+            }
+            catch (Exception ex)
+            {
+                // La carte est un supplément : son échec ne doit pas empêcher
+                // la génération du rapport.
+                System.Diagnostics.Debug.WriteLine("[PDF] Dépôt de la carte : " + ex.Message);
             }
         }
 

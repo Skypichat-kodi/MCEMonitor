@@ -243,7 +243,11 @@ namespace NetMonitor.UI
         public List<PortStatDto> TopLocalPorts              { get; set; } = new();
         public List<PortStatDto> TopRemotePorts             { get; set; } = new();
         public List<DailyStatDto> ActivityByDay             { get; set; } = new();
-        public List<DetectorStatDto> TopDetectors           { get; set; } = new();                
+        public List<DetectorStatDto> TopDetectors           { get; set; } = new();
+
+        /// <summary>Pays sur l'ensemble des alertes, toutes périodes.</summary>
+        public List<CountryStatDto> TopCountries            { get; set; } = new();
+        public Dictionary<string, int> AlertsByCountryCode  { get; set; } = new();
     }
 
     public class WhitelistEntryDto
