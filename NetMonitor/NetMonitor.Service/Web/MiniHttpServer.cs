@@ -696,6 +696,7 @@ namespace NetMonitor.Service.Web
                         _engine.GetAuditHistory(),
                         _engine.GetBlockedIpRetries(),
                         _engine.GetWhitelistEntries(),
+                        Task.Run(() => _engine.GetStatsAsync()).Result,
                         sections);
 
                     ctx.Response.StatusCode = 200;

@@ -30,3 +30,6 @@ Installer/MCEMonitorSetup.exe
 /Installer
 AndroidClient/MCEMonitorClient.Maui/mcemonitor.keystore
 Installer/MCEMonitorSetup.exe
+_test_map/
+_test_pdf/
+_test_render/

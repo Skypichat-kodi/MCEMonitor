@@ -12,6 +12,7 @@ namespace NetMonitor.Service
     /// <summary>Sections exportables du rapport.</summary>
     public enum PdfSection
     {
+        Stats,
         Blocked,
         Retries,
         History,
@@ -45,6 +46,7 @@ namespace NetMonitor.Service
         private static readonly XFont PoliceEntete    = new("Arial", 8, XFontStyle.Bold);
         private static readonly XFont PoliceTexte     = new("Arial", 8, XFontStyle.Regular);
         private static readonly XFont PolicePied      = new("Arial", 7, XFontStyle.Regular);
+        private static readonly XFont PoliceChiffre   = new("Arial", 13, XFontStyle.Bold);
 
         private sealed class Colonne
         {
@@ -67,6 +69,7 @@ namespace NetMonitor.Service
             List<IntrusionEvent> audit,
             List<BlockedIpRetryInfo> retries,
             List<ProcessTrustInfo> whitelist,
+            GlobalStats? stats,
             IEnumerable<PdfSection> sections)
         {
             using var document = new PdfDocument();
@@ -79,6 +82,9 @@ namespace NetMonitor.Service
             {
                 switch (section)
                 {
+                    // Les statistiques ne sont pas un tableau : elles occupent leur
+                    // propre page, dessinée juste après l'en-tête.
+                    case PdfSection.Stats:     break;
                     case PdfSection.Blocked:   tableaux.Add(TableauIpBloquees(blocked));           break;
                     case PdfSection.Retries:   tableaux.Add(TableauInterceptions(retries, blocked)); break;
                     case PdfSection.History:   tableaux.Add(TableauHistorique(history));            break;
@@ -104,6 +110,13 @@ namespace NetMonitor.Service
             gfx.DrawString($"Généré le {DateTime.Now:dd/MM/yyyy à HH:mm}", PoliceSoustitre, XBrushes.DimGray,
                            new XPoint(MargeGauche + 240, y));
             y += 24;
+
+            // Les graphiques tiennent sous l'en-tête : on les y dessine directement,
+            // sinon la première page ne contiendrait que le titre du rapport.
+            // La position finale est reprise : sans elle, les tableaux se dessineraient
+            // par-dessus les graphiques.
+            if (sections.Contains(PdfSection.Stats) && stats != null)
+                y = DessinerStatistiques(gfx, stats, largeur, y) + 18;
 
             foreach (var tableau in tableaux)
             {
@@ -539,6 +552,185 @@ namespace NetMonitor.Service
 
             return texte.Substring(0, longueur) + "…";
         }
+
+        /// <summary>
+        /// Page de statistiques : un bandeau de synthèse, l'activité par heure sur
+        /// toute la largeur, puis deux rangées de deux classements.
+        ///
+        /// Tout est vectoriel — rectangles et texte —, pour rester net à l'impression.
+        /// Les libellés de sévérité gardent les noms des tableaux (Critical, High…) :
+        /// une page qui renommerait les mêmes données forcerait à faire la correspondance.
+        /// </summary>
+        private static double DessinerStatistiques(XGraphics gfx, GlobalStats stats, double largeur, double haut)
+        {
+            gfx.DrawString("Statistiques", PoliceSection, XBrushes.Black, new XPoint(MargeGauche, haut));
+            double y = haut + 20;
+
+            // ── Bandeau de synthèse ────────────────────────────────
+            PdfGraphiques.BandeauSynthese(gfx, PolicePied, PoliceChiffre,
+                new List<(string, string)>
+                {
+                    ("Alertes enregistrées", stats.TotalAlerts.ToString("N0")),
+                    ("IP distinctes",       stats.DistinctIps.ToString("N0")),
+                    ("Pays distincts",      stats.DistinctCountries.ToString("N0")),
+                    ("Sévérité maximale",   LibelleSeveriteMax(stats.WorstSeverity))
+                },
+                MargeGauche, y, largeur, 34);
+
+            y += 56;
+
+            // ── Activité par heure, toute la largeur ──────────────
+            gfx.DrawString("Activité par heure", PoliceEntete, XBrushes.Black, new XPoint(MargeGauche, y));
+            y += 12;
+
+            PdfGraphiques.HistogrammeHeures(gfx, PolicePied, HeuresCompletes(stats.ActivityByHour),
+                                           MargeGauche, y + 8, largeur, 60,
+                                           XColor.FromArgb(0x42, 0x9E, 0xD9),
+                                           XColor.FromArgb(0xC6, 0x28, 0x28));
+
+            // Marge franche sous l'axe : les étiquettes d'heure descendent sous la
+            // ligne de base et venaient heurter le titre de la rangée suivante.
+            y += 8 + 60 + 20;
+
+            // ── Deux colonnes de classements ──────────────────────
+            const double ecart = 26;
+            double largeurColonne = (largeur - ecart) / 2;
+            double xDroite = MargeGauche + largeurColonne + ecart;
+
+            gfx.DrawString("Répartition par sévérité", PoliceEntete, XBrushes.Black, new XPoint(MargeGauche, y));
+            gfx.DrawString("Pays d'origine (alertes actives)", PoliceEntete, XBrushes.Black, new XPoint(xDroite, y));
+            y += 11;
+
+            PdfGraphiques.BarresHorizontales(gfx, PoliceTexte, PolicePied, BarresSeverites(stats),
+                                            MargeGauche, y, largeurColonne, 64);
+            PdfGraphiques.BarresHorizontales(gfx, PoliceTexte, PolicePied, BarresPays(stats),
+                                            xDroite, y, largeurColonne, 92);
+
+            y += 10 * PdfGraphiques.Pas + 14;
+
+            gfx.DrawString("Détecteurs les plus déclenchés", PoliceEntete, XBrushes.Black, new XPoint(MargeGauche, y));
+            gfx.DrawString("Ports locaux les plus visés", PoliceEntete, XBrushes.Black, new XPoint(xDroite, y));
+            y += 11;
+
+            PdfGraphiques.BarresHorizontales(gfx, PoliceTexte, PolicePied, BarresDetecteurs(stats),
+                                            MargeGauche, y, largeurColonne, 108);
+            PdfGraphiques.BarresHorizontales(gfx, PoliceTexte, PolicePied, BarresPorts(stats),
+                                            xDroite, y, largeurColonne, 96);
+
+            return y + 10 * PdfGraphiques.Pas;
+        }
+
+        /// <summary>Vingt-quatre heures, même si le moteur n'en renvoie qu'une partie.</summary>
+        private static List<(int Heure, int Total, int Critiques)> HeuresCompletes(List<HourlyStats> source)
+        {
+            var parHeure = (source ?? new List<HourlyStats>())
+                .GroupBy(h => h.Hour)
+                .ToDictionary(g => g.Key, g => g.First());
+
+            var resultat = new List<(int, int, int)>(24);
+
+            for (int heure = 0; heure < 24; heure++)
+            {
+                var trouvee = parHeure.TryGetValue(heure, out var h) ? h : null;
+                resultat.Add((heure, trouvee?.Count ?? 0, trouvee?.CriticalCount ?? 0));
+            }
+
+            return resultat;
+        }
+
+        private static List<PdfGraphiques.Barre> BarresSeverites(GlobalStats stats)
+        {
+            // Du plus grave au moins grave, dans l'ordre de l'énumération Severity.
+            string[] ordre = { "Critical", "High", "Warning", "ToCheck", "Bot", "Crawler", "Info", "Safe", "Trusted", "Whitelisted" };
+
+            var barres = new List<PdfGraphiques.Barre>();
+
+            foreach (string severite in ordre)
+            {
+                if (stats.SeverityCounts == null) break;
+                if (!stats.SeverityCounts.TryGetValue(severite, out int nombre) || nombre <= 0) continue;
+
+                barres.Add(new PdfGraphiques.Barre(severite, nombre,
+                           CouleurSeverite(severite) ?? XColor.FromArgb(0xAA, 0xAA, 0xAA)));
+            }
+
+            return barres;
+        }
+
+        private static List<PdfGraphiques.Barre> BarresPays(GlobalStats stats)
+        {
+            var barres = new List<PdfGraphiques.Barre>();
+            if (stats.Active?.TopCountries == null) return barres;
+
+            foreach (var pays in stats.Active.TopCountries.Take(10))
+            {
+                string libelle = string.IsNullOrWhiteSpace(pays.CountryCode)
+                    ? pays.Country
+                    : pays.CountryCode + " · " + pays.Country;
+
+                barres.Add(new PdfGraphiques.Barre(libelle, pays.Count, XColor.FromArgb(0x37, 0x7D, 0xB3)));
+            }
+
+            return barres;
+        }
+
+        private static List<PdfGraphiques.Barre> BarresDetecteurs(GlobalStats stats)
+        {
+            var barres = new List<PdfGraphiques.Barre>();
+            if (stats.TopDetectors == null) return barres;
+
+            foreach (var detecteur in stats.TopDetectors.Take(10))
+                barres.Add(new PdfGraphiques.Barre(detecteur.Detector, detecteur.Count,
+                                                   XColor.FromArgb(0x6A, 0x4C, 0xA8)));
+
+            return barres;
+        }
+
+        private static List<PdfGraphiques.Barre> BarresPorts(GlobalStats stats)
+        {
+            var barres = new List<PdfGraphiques.Barre>();
+            if (stats.TopLocalPorts == null) return barres;
+
+            foreach (var port in stats.TopLocalPorts.Take(10))
+            {
+                string libelle = port.Port + " — " + NomPort(port.Port);
+                barres.Add(new PdfGraphiques.Barre(libelle, port.Count, XColor.FromArgb(0xD8, 0x82, 0x27)));
+            }
+
+            return barres;
+        }
+
+        /// <summary>Nom usuel d'un port, pour que « 445 » parle à qui lit le rapport.</summary>
+        private static string NomPort(int port) => port switch
+        {
+            21    => "FTP",
+            22    => "SSH",
+            23    => "Telnet",
+            53    => "DNS",
+            80    => "HTTP",
+            123   => "NTP",
+            135   => "RPC",
+            139   => "NetBIOS",
+            443   => "HTTPS",
+            445   => "SMB",
+            1433  => "SQL Server",
+            3306  => "MySQL",
+            3389  => "RDP",
+            5900  => "VNC",
+            8080  => "HTTP alt.",
+            8443  => "HTTPS alt.",
+            _     => "port " + port
+        };
+
+        private static string LibelleSeveriteMax(string? severite) => severite switch
+        {
+            "critical" => "Critical",
+            "warning"  => "Warning",
+            "high"     => "High",
+            "ok"       => "Aucune",
+            null or "" => "Aucune",
+            _          => severite
+        };
 
         private static void DessinerPieds(PdfDocument document, string machineName, List<XGraphics> graphiques)
         {

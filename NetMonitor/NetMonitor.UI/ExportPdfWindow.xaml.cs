@@ -36,6 +36,7 @@ namespace NetMonitor.UI
         {
             Sections.Clear();
 
+            if (CaseStatistiques.IsChecked == true)  Sections.Add("Stats");
             if (CaseBloquees.IsChecked == true)      Sections.Add("Blocked");
             if (CaseInterceptions.IsChecked == true) Sections.Add("Retries");
             if (CaseHistorique.IsChecked == true)    Sections.Add("History");
@@ -45,8 +46,8 @@ namespace NetMonitor.UI
             if (Sections.Count == 0)
             {
                 Boite.Show(this,
-                    LanguageManager.Get("Cochez au moins un tableau à exporter.")
-                    ?? "Cochez au moins un tableau à exporter.",
+                    LanguageManager.Get("Cochez au moins une section à exporter.")
+                    ?? "Cochez au moins une section à exporter.",
                     LanguageManager.Get("Exporter un rapport PDF") ?? "Exporter un rapport PDF",
                     MessageBoxButton.OK,
                     MessageBoxImage.Information);

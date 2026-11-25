@@ -868,6 +868,7 @@
          plusieurs valeurs « sections », que le serveur relit jointes par des virgules. -->
     <form method="get" action="/export-pdf" class="export-pdf">
         <span class="export-pdf-titre">{{tr:Exporter PDF}} :</span>
+        <label><input type="checkbox" name="sections" value="Stats" checked> {{tr:Statistiques}}</label>
         <label><input type="checkbox" name="sections" value="Blocked" checked> {{tr:IP bloquées}}</label>
         <label><input type="checkbox" name="sections" value="Retries" checked> {{tr:Interceptions}}</label>
         <label><input type="checkbox" name="sections" value="History" checked> {{tr:Historique}}</label>

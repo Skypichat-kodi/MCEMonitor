@@ -1149,6 +1149,7 @@ namespace NetMonitor.Service.Ipc
                     _engine.GetAuditHistory(),
                     _engine.GetBlockedIpRetries(),
                     _engine.GetWhitelistEntries(),
+                    Task.Run(() => _engine.GetStatsAsync()).Result,
                     sections);
 
                 // On renvoie le PDF encodé en Base64 pour passer dans le pipe

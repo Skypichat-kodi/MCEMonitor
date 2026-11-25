@@ -124,12 +124,15 @@
 
             <!-- Choix des sections -->
             <StackPanel Grid.Row="1" Margin="20,18,20,0">
-                <TextBlock Text="{loc:Tr 'Choisissez les tableaux à inclure. Le rapport est au format paysage.'}"
+                <TextBlock Text="{loc:Tr 'Choisissez les sections à inclure. Le rapport est au format paysage.'}"
                            TextWrapping="Wrap"
                            FontSize="12"
                            Foreground="{StaticResource TexteSecondaire}"
                            Margin="0,0,0,14" />
 
+                <CheckBox x:Name="CaseStatistiques"  IsChecked="True" Margin="0,0,0,8"
+                           Foreground="{StaticResource Texte}"
+                          Content="{loc:Tr 'Statistiques et graphiques'}" />
                 <CheckBox x:Name="CaseBloquees"     IsChecked="True" Margin="0,0,0,8"
                            Foreground="{StaticResource Texte}"
                           Content="{loc:Tr 'IP et processus bloqués'}" />
