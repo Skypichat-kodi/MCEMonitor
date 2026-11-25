@@ -268,36 +268,6 @@
         flex-wrap: wrap;
     }
 
-    /* Choix des tableaux pour l export PDF, sur une ligne discrete. */
-    .export-pdf {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        flex-wrap: wrap;
-        margin: -10px 0 20px;
-        padding: 8px 12px;
-        border: 1px solid #3C3C3C;
-        border-radius: 4px;
-        background: #252526;
-        font-size: 12px;
-        color: #C8C8C8;
-    }
-
-    .export-pdf-titre { font-weight: bold; color: #4CC2FF; }
-
-    .export-pdf label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
-
-    .export-pdf button {
-        padding: 4px 12px;
-        font-size: 12px;
-        cursor: pointer;
-        border-radius: 3px;
-        border: 1px solid #4CC2FF;
-        background: transparent;
-        color: #4CC2FF;
-    }
-
-    .export-pdf button:hover { background: #4CC2FF; color: #101820; }
 
     /* Bandeau d'actualisation suspendue : visible seulement quand un filtre, une
        recherche ou un tri a interrompu le rechargement automatique. */
@@ -725,6 +695,29 @@
     }
     .modal-btn.danger:hover { background: #E64D1A; }
 
+    /* Cases à cocher du rapport PDF, dans la modale. */
+    .pdf-cases {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        font-size: 13px;
+        color: #E5E5E5;
+    }
+    .pdf-cases label {
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        cursor: pointer;
+    }
+    .pdf-cases input { cursor: pointer; }
+    .modal-btn.pdf-valider {
+        background: #4CC2FF;
+        color: #101820;
+        border-color: #4CC2FF;
+        font-weight: 600;
+    }
+    .modal-btn.pdf-valider:hover { background: #6FD0FF; }
+
     /* ---- Grille de cartes de sévérité ---- */
     .severity-grid {
         display: flex;
@@ -864,18 +857,11 @@
     <a href="/" class="action-btn secondary">
         {{tr:Rafraîchir}}
     </a>
-    <!-- Export PDF : les cases choisissent les tableaux. Le formulaire envoie
-         plusieurs valeurs « sections », que le serveur relit jointes par des virgules. -->
-    <form method="get" action="/export-pdf" class="export-pdf">
-        <span class="export-pdf-titre">{{tr:Exporter PDF}} :</span>
-        <label><input type="checkbox" name="sections" value="Stats" checked> {{tr:Statistiques}}</label>
-        <label><input type="checkbox" name="sections" value="Blocked" checked> {{tr:IP bloquées}}</label>
-        <label><input type="checkbox" name="sections" value="Retries" checked> {{tr:Interceptions}}</label>
-        <label><input type="checkbox" name="sections" value="History" checked> {{tr:Historique}}</label>
-        <label><input type="checkbox" name="sections" value="Audit" checked> {{tr:Alertes ignorées}}</label>
-        <label><input type="checkbox" name="sections" value="Whitelist" checked> {{tr:Liste blanche}}</label>
-        <button type="submit">{{tr:Générer}}</button>
-    </form>
+    <!-- Le choix des sections vit dans une modale : une rangée de cases au
+         milieu de la barre d outils encombrait la page. -->
+    <button type="button" class="action-btn" onclick="openModal('modalPdf')">
+        📄 {{tr:Télécharger PDF}}
+    </button>
     <a href="/stats" class="action-btn">
         📊 {{tr:Statistiques}}
     </a>
@@ -2184,6 +2170,53 @@ async function submitPattern() {
         alert('Erreur de communication avec le service : ' + e.message);
     }
 }
+</script>
+
+<!-- MODALE : téléchargement du rapport PDF -->
+<div class="modal-overlay" id="modalPdf">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h3 class="modal-title">📄 {{tr:Télécharger PDF}}</h3>
+            <button type="button" class="modal-close" onclick="closeModal('modalPdf')">✖</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-subtitle">{{tr:Choisissez les sections à inclure. Le rapport est au format paysage.}}</p>
+            <div class="pdf-cases">
+                <label><input type="checkbox" class="pdf-section" value="Stats" checked> {{tr:Statistiques}}</label>
+                <label><input type="checkbox" class="pdf-section" value="Blocked" checked> {{tr:IP bloquées}}</label>
+                <label><input type="checkbox" class="pdf-section" value="Retries" checked> {{tr:Interceptions}}</label>
+                <label><input type="checkbox" class="pdf-section" value="History" checked> {{tr:Historique}}</label>
+                <label><input type="checkbox" class="pdf-section" value="Audit" checked> {{tr:Alertes ignorées}}</label>
+                <label><input type="checkbox" class="pdf-section" value="Whitelist" checked> {{tr:Liste blanche}}</label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel" onclick="closeModal('modalPdf')">{{tr:Annuler}}</button>
+            <button type="button" class="modal-btn pdf-valider" id="pdfValider"
+                    data-vide="{{tr:Cochez au moins une section à exporter.}}">
+                {{tr:Télécharger}}
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+// Rapport PDF : les cases cochées deviennent le paramètre « sections » attendu
+// par /export-pdf, jointes par des virgules.
+document.getElementById('pdfValider').addEventListener('click', function () {
+    var cochees = document.querySelectorAll('.pdf-section:checked');
+    var sections = [];
+
+    for (var i = 0; i < cochees.length; i++) sections.push(cochees[i].value);
+
+    if (sections.length === 0) {
+        alert(this.dataset.vide);
+        return;
+    }
+
+    closeModal('modalPdf');
+    window.location.href = '/export-pdf?sections=' + encodeURIComponent(sections.join(','));
+});
 </script>
 
 </body>
