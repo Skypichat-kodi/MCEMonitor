@@ -268,6 +268,37 @@
         flex-wrap: wrap;
     }
 
+    /* Choix des tableaux pour l export PDF, sur une ligne discrete. */
+    .export-pdf {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin: -10px 0 20px;
+        padding: 8px 12px;
+        border: 1px solid #3C3C3C;
+        border-radius: 4px;
+        background: #252526;
+        font-size: 12px;
+        color: #C8C8C8;
+    }
+
+    .export-pdf-titre { font-weight: bold; color: #4CC2FF; }
+
+    .export-pdf label { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; }
+
+    .export-pdf button {
+        padding: 4px 12px;
+        font-size: 12px;
+        cursor: pointer;
+        border-radius: 3px;
+        border: 1px solid #4CC2FF;
+        background: transparent;
+        color: #4CC2FF;
+    }
+
+    .export-pdf button:hover { background: #4CC2FF; color: #101820; }
+
     /* Bandeau d'actualisation suspendue : visible seulement quand un filtre, une
        recherche ou un tri a interrompu le rechargement automatique. */
     .auto-pause-bar {
@@ -833,9 +864,17 @@
     <a href="/" class="action-btn secondary">
         {{tr:Rafraîchir}}
     </a>
-    <a href="/export-pdf" class="action-btn secondary">
-        {{tr:Exporter PDF}}
-    </a>
+    <!-- Export PDF : les cases choisissent les tableaux. Le formulaire envoie
+         plusieurs valeurs « sections », que le serveur relit jointes par des virgules. -->
+    <form method="get" action="/export-pdf" class="export-pdf">
+        <span class="export-pdf-titre">{{tr:Exporter PDF}} :</span>
+        <label><input type="checkbox" name="sections" value="Blocked" checked> {{tr:IP bloquées}}</label>
+        <label><input type="checkbox" name="sections" value="Retries" checked> {{tr:Interceptions}}</label>
+        <label><input type="checkbox" name="sections" value="History" checked> {{tr:Historique}}</label>
+        <label><input type="checkbox" name="sections" value="Audit" checked> {{tr:Alertes ignorées}}</label>
+        <label><input type="checkbox" name="sections" value="Whitelist" checked> {{tr:Liste blanche}}</label>
+        <button type="submit">{{tr:Générer}}</button>
+    </form>
     <a href="/stats" class="action-btn">
         📊 {{tr:Statistiques}}
     </a>

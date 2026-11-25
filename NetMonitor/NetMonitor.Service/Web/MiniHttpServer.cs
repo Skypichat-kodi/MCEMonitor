@@ -674,11 +674,29 @@ namespace NetMonitor.Service.Web
                 }                
                 else if (path == "/export-pdf")
                 {
-                    var history = _engine.GetAlerts();
-                    var blocked = _engine.GetBlockedIps();
-                    var audit = _engine.GetAuditHistory();
+                    // La page web choisit ses sections par « ?sections=blocked,audit » ;
+                    // sans paramètre, le rapport est complet.
+                    string demandees = ctx.Request.QueryString["sections"] ?? "";
 
-                    byte[] pdfBytes = PdfExporter.GenerateReport(Environment.MachineName, history, blocked, audit);
+                    var sections = new List<PdfSection>();
+
+                    foreach (string morceau in demandees.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                    {
+                        if (Enum.TryParse<PdfSection>(morceau, ignoreCase: true, out var section) && !sections.Contains(section))
+                            sections.Add(section);
+                    }
+
+                    if (sections.Count == 0)
+                        sections = Enum.GetValues<PdfSection>().ToList();
+
+                    byte[] pdfBytes = PdfExporter.GenerateReport(
+                        Environment.MachineName,
+                        _engine.GetAlerts(),
+                        _engine.GetBlockedIps(),
+                        _engine.GetAuditHistory(),
+                        _engine.GetBlockedIpRetries(),
+                        _engine.GetWhitelistEntries(),
+                        sections);
 
                     ctx.Response.StatusCode = 200;
                     ctx.Response.ContentType = "application/pdf";

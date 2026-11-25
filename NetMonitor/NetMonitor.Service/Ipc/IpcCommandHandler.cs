@@ -36,6 +36,13 @@ namespace NetMonitor.Service.Ipc
                 HandleRevokeTrustedDevices(server);
                 return;
             }
+
+            // Export PDF restreint à certaines sections : « export-pdf blocked,audit ».
+            if (command.StartsWith("export-pdf ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleExportPdf(server, command.Substring("export-pdf ".Length));
+                return;
+            }
                     
             // ═══════════════════════════════════════════════════════════
             //  Commandes *-b64 (payload JSON encodé en base64)
@@ -1102,14 +1109,28 @@ namespace NetMonitor.Service.Ipc
         
         private void HandleExportPdf(NamedPipeServerStream server)
         {
+            HandleExportPdf(server, null);
+        }
+
+        /// <summary>
+        /// Export PDF. <paramref name="sectionsDemandees"/> est la liste transmise par
+        /// l appelant — « blocked,retries,history,audit,whitelist ». Vide ou nulle :
+        /// toutes les sections.
+        /// </summary>
+        private void HandleExportPdf(NamedPipeServerStream server, string? sectionsDemandees)
+        {
             try
             {
-                var history = _engine.GetAlerts();
-                var blocked = _engine.GetBlockedIps();
-                var audit = _engine.GetAuditHistory();
+                var sections = ParseSections(sectionsDemandees);
 
                 byte[] pdfBytes = PdfExporter.GenerateReport(
-                    Environment.MachineName, history, blocked, audit);
+                    Environment.MachineName,
+                    _engine.GetAlerts(),
+                    _engine.GetBlockedIps(),
+                    _engine.GetAuditHistory(),
+                    _engine.GetBlockedIpRetries(),
+                    _engine.GetWhitelistEntries(),
+                    sections);
 
                 // On renvoie le PDF encodé en Base64 pour passer dans le pipe
                 string base64 = Convert.ToBase64String(pdfBytes);
@@ -1120,6 +1141,26 @@ namespace NetMonitor.Service.Ipc
                 CoreLog.Write("Erreur HandleExportPdf : " + ex.Message);
                 IpcResponse.Error(server, ex.Message);
             }
+        }
+
+        /// <summary>
+        /// Traduit « blocked,audit » en sections. Une valeur inconnue est ignorée ;
+        /// une liste vide vaut « tout ».
+        /// </summary>
+        private static List<PdfSection> ParseSections(string? valeur)
+        {
+            if (string.IsNullOrWhiteSpace(valeur))
+                return Enum.GetValues<PdfSection>().ToList();
+
+            var trouvees = new List<PdfSection>();
+
+            foreach (string morceau in valeur.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (Enum.TryParse<PdfSection>(morceau, ignoreCase: true, out var section) && !trouvees.Contains(section))
+                    trouvees.Add(section);
+            }
+
+            return trouvees.Count > 0 ? trouvees : Enum.GetValues<PdfSection>().ToList();
         }
         
         private void HandleGetStats(NamedPipeServerStream server)

@@ -655,8 +655,11 @@ namespace NetMonitor.UI
         public static async Task<bool> ClearAuditAsync()
             => IsOk(await SendCommand("clear-audit"));
             
-        public static async Task<string?> ExportPdfAsync()
-            => await SendCommand("export-pdf");
+        /// <summary>Export PDF. Sans sections, le rapport est complet.</summary>
+        public static async Task<string?> ExportPdfAsync(string? sections = null)
+            => await SendCommand(string.IsNullOrWhiteSpace(sections)
+                ? "export-pdf"
+                : "export-pdf " + sections);
             
         // ---------- Statistiques (timeout long : GeoIP peut être lent au 1er appel) ----------
         public static async Task<GlobalStatsDto?> GetStatsAsync()

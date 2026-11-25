@@ -2,129 +2,555 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using PdfSharpCore;
 using PdfSharpCore.Drawing;
 using PdfSharpCore.Pdf;
 using NetMonitor.Service.Models;
 
 namespace NetMonitor.Service
 {
+    /// <summary>Sections exportables du rapport.</summary>
+    public enum PdfSection
+    {
+        Blocked,
+        Retries,
+        History,
+        Audit,
+        Whitelist
+    }
+
+    /// <summary>
+    /// Génère un rapport PDF composé d'un tableau par section demandée.
+    ///
+    /// Les colonnes sont placées à des abscisses fixes : un alignement par espaces
+    /// ne tient pas avec une police proportionnelle, ce qui rendait l'ancien rapport
+    /// illisible. Format A4 paysage — 786 points utiles —, avec les colonnes
+    /// essentielles de l'interface : celles qui défilent à l'écran ou qui répètent
+    /// la même information n'ont pas leur place sur une page imprimée.
+    /// </summary>
     public static class PdfExporter
     {
+        private const double MargeGauche = 28;
+        private const double MargeHaut   = 34;
+        private const double MargeBas    = 34;
+        private const double HauteurLigne = 13;
+
+        private static readonly XColor FondEntete  = XColor.FromArgb(0xE8, 0xE8, 0xE8);
+        private static readonly XColor TraitTableau = XColor.FromArgb(0xBB, 0xBB, 0xBB);
+        private static readonly XColor TraitLigne   = XColor.FromArgb(0xD8, 0xD8, 0xD8);
+
+        private static readonly XFont PoliceTitre     = new("Arial", 17, XFontStyle.Bold);
+        private static readonly XFont PoliceSoustitre = new("Arial", 9, XFontStyle.Regular);
+        private static readonly XFont PoliceSection   = new("Arial", 12, XFontStyle.Bold);
+        private static readonly XFont PoliceEntete    = new("Arial", 8, XFontStyle.Bold);
+        private static readonly XFont PoliceTexte     = new("Arial", 8, XFontStyle.Regular);
+        private static readonly XFont PolicePied      = new("Arial", 7, XFontStyle.Regular);
+
+        private sealed class Colonne
+        {
+            public string Titre = "";
+            public double Largeur;
+        }
+
+        private sealed class Tableau
+        {
+            public string Titre = "";
+            public Colonne[] Colonnes = Array.Empty<Colonne>();
+            public List<string[]> Lignes = new();
+            public List<XColor?> Couleurs = new();
+        }
+
         public static byte[] GenerateReport(
             string machineName,
             List<IntrusionEvent> history,
             List<BlockedIpInfo> blocked,
-            List<IntrusionEvent> audit)
+            List<IntrusionEvent> audit,
+            List<BlockedIpRetryInfo> retries,
+            List<ProcessTrustInfo> whitelist,
+            IEnumerable<PdfSection> sections)
         {
             using var document = new PdfDocument();
             document.Info.Title = "Rapport NetMonitor";
             document.Info.Author = "MCEMonitor";
 
-            var page = document.AddPage();
-            var gfx = XGraphics.FromPdfPage(page);
+            var tableaux = new List<Tableau>();
 
-            var fontTitle  = new XFont("Arial", 20, XFontStyle.Bold);
-            var fontSub    = new XFont("Arial", 12, XFontStyle.Regular);
-            var fontHeader = new XFont("Arial", 10, XFontStyle.Bold);
-            var fontText   = new XFont("Arial", 9, XFontStyle.Regular);
-
-            double y = 40;
-            double margin = 40;
-
-            // --- En-t�te ---
-            gfx.DrawString("Rapport NetMonitor", fontTitle, XBrushes.DarkBlue, new XPoint(margin, y));
-            y += 25;
-            gfx.DrawString($"Machine : {machineName}", fontSub, XBrushes.Black, new XPoint(margin, y));
-            y += 18;
-            gfx.DrawString($"G�n�r� le : {DateTime.Now:dd/MM/yyyy HH:mm:ss}", fontSub, XBrushes.Gray, new XPoint(margin, y));
-            y += 30;
-
-            // --- Tableau 1 : Historique des intrusions ---
-            gfx.DrawString($"Historique des intrusions ({history.Count})", fontHeader, XBrushes.Black, new XPoint(margin, y));
-            y += 15;
-
-            gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 15;   // ? FIX : 5 ? 15 (marge suffisante pour �viter le chevauchement)
-
-            foreach (var item in history.OrderByDescending(x => x.Timestamp).Take(30))
+            foreach (var section in sections.Distinct())
             {
-                if (y > page.Height - 50)
+                switch (section)
                 {
-                    page = document.AddPage();
-                    gfx = XGraphics.FromPdfPage(page);
-                    y = margin;
+                    case PdfSection.Blocked:   tableaux.Add(TableauIpBloquees(blocked));           break;
+                    case PdfSection.Retries:   tableaux.Add(TableauInterceptions(retries, blocked)); break;
+                    case PdfSection.History:   tableaux.Add(TableauHistorique(history));            break;
+                    case PdfSection.Audit:     tableaux.Add(TableauAudit(audit));                   break;
+                    case PdfSection.Whitelist: tableaux.Add(TableauListeBlanche(whitelist));        break;
                 }
-
-                string line = $"{item.Timestamp:dd/MM HH:mm} | {item.Severity,-8} | {item.Source,-15} | {item.RemoteIp} | {Truncate(item.Message, 60)}";
-                gfx.DrawString(line, fontText, XBrushes.Black, new XPoint(margin, y));
-                y += 14;
             }
+
+            double largeur = 842 - 2 * MargeGauche;   // A4 paysage
+
+            // Un XGraphics par page, conservé jusqu'à la fin : PdfSharpCore n'en
+            // autorise qu'un seul, et le pied de page se dessine dans le même.
+            var graphiques = new List<XGraphics>();
+
+            var page = NouvellePage(document);
+            var gfx  = XGraphics.FromPdfPage(page);
+            graphiques.Add(gfx);
+            double y = MargeHaut;
+
+            gfx.DrawString("Rapport NetMonitor", PoliceTitre, XBrushes.Black, new XPoint(MargeGauche, y));
             y += 20;
+            gfx.DrawString($"Machine : {machineName}", PoliceSoustitre, XBrushes.DimGray, new XPoint(MargeGauche, y));
+            gfx.DrawString($"Généré le {DateTime.Now:dd/MM/yyyy à HH:mm}", PoliceSoustitre, XBrushes.DimGray,
+                           new XPoint(MargeGauche + 240, y));
+            y += 24;
 
-            // --- Tableau 2 : IP Bloqu�es ---
-            if (y > page.Height - 100)
+            foreach (var tableau in tableaux)
             {
-                page = document.AddPage();
-                gfx = XGraphics.FromPdfPage(page);
-                y = margin;
-            }
-
-            gfx.DrawString($"IP Bloqu�es au pare-feu ({blocked.Count})", fontHeader, XBrushes.Black, new XPoint(margin, y));
-            y += 15;
-            gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 15;   // ? FIX : 5 ? 15
-
-            foreach (var item in blocked.OrderByDescending(x => x.BlockedAt).Take(20))
-            {
-                if (y > page.Height - 50)
+                if (y > page.Height - MargeBas - 90)
                 {
-                    page = document.AddPage();
-                    gfx = XGraphics.FromPdfPage(page);
-                    y = margin;
+                    page = NouvellePage(document);
+                    gfx  = XGraphics.FromPdfPage(page);
+                    graphiques.Add(gfx);
+                    y = MargeHaut;
                 }
 
-                string line = $"{item.BlockedAt.ToLocalTime():dd/MM HH:mm} | {item.Ip,-15} | {item.Source,-10} | {Truncate(item.Message, 50)}";
-                gfx.DrawString(line, fontText, XBrushes.DarkRed, new XPoint(margin, y));
-                y += 14;
+                y = DessinerTableau(ref gfx, ref page, tableau, largeur, y, document, graphiques);
             }
 
-            // --- Tableau 3 : Audit (Whitelist) ---
-            y += 20;
-            if (y > page.Height - 100)
-            {
-                page = document.AddPage();
-                gfx = XGraphics.FromPdfPage(page);
-                y = margin;
-            }
+            DessinerPieds(document, machineName, graphiques);
 
-            gfx.DrawString($"Alertes ignor�es (IP de confiance) ({audit.Count})", fontHeader, XBrushes.Black, new XPoint(margin, y));
-            y += 15;
-            gfx.DrawLine(XPens.Gray, margin, y, page.Width - margin, y);
-            y += 15;   // ? FIX : 5 ? 15
-
-            foreach (var item in audit.OrderByDescending(x => x.Timestamp).Take(20))
-            {
-                if (y > page.Height - 50)
-                {
-                    page = document.AddPage();
-                    gfx = XGraphics.FromPdfPage(page);
-                    y = margin;
-                }
-
-                string line = $"{item.Timestamp:dd/MM HH:mm} | {item.Source,-15} | {item.RemoteIp,-15} | {Truncate(item.Message, 50)}";
-                gfx.DrawString(line, fontText, XBrushes.Gray, new XPoint(margin, y));
-                y += 14;
-            }
+            foreach (var graphique in graphiques)
+                graphique.Dispose();
 
             using var ms = new MemoryStream();
             document.Save(ms, false);
             return ms.ToArray();
         }
 
-        private static string Truncate(string text, int maxLength)
+        private static PdfPage NouvellePage(PdfDocument document)
         {
-            if (string.IsNullOrEmpty(text)) return "";
-            return text.Length <= maxLength ? text : text.Substring(0, maxLength - 3) + "...";
+            var page = document.AddPage();
+            page.Size = PageSize.A4;
+            page.Orientation = PageOrientation.Landscape;
+            return page;
+        }
+
+        private static double DessinerTableau(ref XGraphics gfx, ref PdfPage page, Tableau tableau,
+                                              double largeur, double y, PdfDocument document,
+                                              List<XGraphics> graphiques)
+        {
+            gfx.DrawString(tableau.Titre, PoliceSection, XBrushes.Black, new XPoint(MargeGauche, y));
+            y += 16;
+
+            // Le cadre suit la portion du tableau dessinée sur la page courante :
+            // il est fermé avant chaque changement de page, puis rouvert.
+            var cadre = new XPen(TraitTableau, 0.8);
+            double yHaut = y - 9;
+
+            // Les pastilles de severite doivent s aligner verticalement : on reserve
+            // la largeur du plus long libelle du tableau, puis on centre ce bloc
+            // constant. Sans cela, « Safe » et « Critical » decalent le point.
+            double largeurSeverite = 0;
+
+            if (tableau.Colonnes.Length > 2)
+            {
+                foreach (var l in tableau.Lignes)
+                {
+                    if (l.Length <= 2) continue;
+                    double w = gfx.MeasureString(l[2], PoliceTexte).Width;
+                    if (w > largeurSeverite) largeurSeverite = w;
+                }
+            }
+
+            y = DessinerEntete(gfx, tableau, largeur, y);
+
+            foreach (var (ligne, couleur) in tableau.Lignes.Zip(tableau.Couleurs, (l, c) => (l, c)))
+            {
+                if (y > page.Height - MargeBas - HauteurLigne)
+                {
+                    gfx.DrawRectangle(cadre, MargeGauche, yHaut, largeur, (y - 9) - yHaut);
+
+                    page = NouvellePage(document);
+                    gfx  = XGraphics.FromPdfPage(page);
+                    graphiques.Add(gfx);
+                    y = MargeHaut;
+
+                    gfx.DrawString(tableau.Titre + " (suite)", PoliceSection, XBrushes.DimGray, new XPoint(MargeGauche, y));
+                    y += 16;
+
+                    yHaut = y - 9;
+                    y = DessinerEntete(gfx, tableau, largeur, y);
+                }
+
+                double x = MargeGauche;
+
+                for (int i = 0; i < tableau.Colonnes.Length; i++)
+                {
+                    string texte = i < ligne.Length ? ligne[i] : "";
+
+                    bool pastille = i == 2 && couleur != null;   // colonne « Sévérité »
+                    bool centre   = i == 0 || i == 2;            // « Sens » et « Sévérité »
+
+                    string affiche = Tronquer(gfx, texte, PoliceTexte,
+                                              tableau.Colonnes[i].Largeur - 6 - (pastille ? 9 : 0));
+
+                    double largeurTexte = gfx.MeasureString(affiche, PoliceTexte).Width;
+
+                    // Pour la severite, la largeur retenue est celle du plus long
+                    // libelle : les pastilles tombent ainsi toutes a la meme abscisse.
+                    double largeurGroupe = pastille ? 9 + largeurSeverite : largeurTexte;
+
+                    // Ces deux colonnes ne portent qu'un glyphe ou un mot court : les
+                    // centrer dans leur case évite un alignement à gauche qui les fait
+                    // flotter loin de leur en-tête.
+                    double xCellule = centre
+                        ? x + Math.Max(3, (tableau.Colonnes[i].Largeur - largeurGroupe) / 2)
+                        : x;
+
+                    if (pastille)
+                        gfx.DrawEllipse(new XSolidBrush(couleur!.Value), xCellule, y - 5, 5, 5);
+
+                    gfx.DrawString(affiche, PoliceTexte, XBrushes.Black,
+                                   new XPoint(xCellule + (pastille ? 9 : 0), y));
+
+                    x += tableau.Colonnes[i].Largeur;
+                }
+
+                // Quadrillage léger : sans lui, les lignes se lisent mal sur du texte
+                // continu. Trait horizontal sous chaque ligne, traits verticaux aux
+                // séparations de colonnes.
+                var pen = new XPen(TraitLigne);
+
+                gfx.DrawLine(pen, MargeGauche, y + 4, MargeGauche + largeur, y + 4);
+
+                double xSep = MargeGauche;
+                for (int i = 0; i < tableau.Colonnes.Length - 1; i++)
+                {
+                    xSep += tableau.Colonnes[i].Largeur;
+                    gfx.DrawLine(pen, xSep, y - 9, xSep, y + 4);
+                }
+
+                y += HauteurLigne;
+            }
+
+            gfx.DrawRectangle(cadre, MargeGauche, yHaut, largeur, (y - 9) - yHaut);
+
+            y += 18;
+            return y;
+        }
+
+        private static double DessinerEntete(XGraphics gfx, Tableau tableau, double largeur, double y)
+        {
+            gfx.DrawRectangle(new XSolidBrush(FondEntete), MargeGauche, y - 9, largeur, HauteurLigne + 3);
+
+            double x = MargeGauche;
+
+            for (int i = 0; i < tableau.Colonnes.Length; i++)
+            {
+                string titre = tableau.Colonnes[i].Titre;
+
+                // Les colonnes « Sens » et « Sévérité » ont leur contenu centré :
+                // leur en-tête suit, sinon il flotte au-dessus du vide.
+                double xTitre = (i == 0 || i == 2)
+                    ? x + Math.Max(2, (tableau.Colonnes[i].Largeur - gfx.MeasureString(titre, PoliceEntete).Width) / 2)
+                    : x;
+
+                gfx.DrawString(titre, PoliceEntete, XBrushes.Black, new XPoint(xTitre, y));
+                x += tableau.Colonnes[i].Largeur;
+            }
+
+            y += HauteurLigne;
+            gfx.DrawLine(new XPen(TraitTableau), MargeGauche, y - 9, MargeGauche + largeur, y - 9);
+
+            return y;
+        }
+
+        // ============================================================
+        //  Construction des tableaux
+        // ============================================================
+
+        private static Tableau TableauIpBloquees(List<BlockedIpInfo> blocked)
+        {
+            var t = new Tableau
+            {
+                Titre = $"IP et processus bloqués au pare-feu ({blocked.Count})",
+                Colonnes = new[]
+                {
+                    new Colonne { Titre = "Sens",           Largeur = 34 },
+                    new Colonne { Titre = "Date",           Largeur = 58 },
+                    new Colonne { Titre = "Sévérité",       Largeur = 52 },
+                    new Colonne { Titre = "Type",           Largeur = 46 },
+                    new Colonne { Titre = "IP / Processus", Largeur = 92 },
+                    new Colonne { Titre = "Pays",           Largeur = 82 },
+                    new Colonne { Titre = "FAI (ASN)",      Largeur = 72 },
+                    new Colonne { Titre = "Organisation",   Largeur = 78 },
+                    new Colonne { Titre = "Origine",        Largeur = 54 },
+                    new Colonne { Titre = "Détecteur",      Largeur = 58 },
+                    new Colonne { Titre = "Raison",         Largeur = 160 }
+                }
+            };
+
+            foreach (var b in blocked.OrderByDescending(x => x.BlockedAt))
+            {
+                t.Lignes.Add(new[]
+                {
+                    b.IsOutbound ? "→" : "←",
+                    b.BlockedAt.ToLocalTime().ToString("dd/MM HH:mm"),
+                    b.Severity,
+                    b.IsProcess ? "Processus" : "IP",
+                    b.IsProcess ? (b.ProcessPath ?? b.Ip) : b.Ip,
+                    string.IsNullOrWhiteSpace(b.Country) ? "-" : b.Country!,
+                    string.IsNullOrWhiteSpace(b.Isp) ? "-" : b.Isp!,
+                    string.IsNullOrWhiteSpace(b.Org) ? "-" : b.Org!,
+                    b.Origin.ToString(),
+                    b.Source,
+                    b.Message
+                });
+                t.Couleurs.Add(CouleurSeverite(b.Severity));
+            }
+
+            return t;
+        }
+
+        private static Tableau TableauInterceptions(List<BlockedIpRetryInfo> retries, List<BlockedIpInfo> blocked)
+        {
+            var t = new Tableau
+            {
+                Titre = $"Tentatives sur IP bloquée ({retries.Count})",
+                Colonnes = new[]
+                {
+                    new Colonne { Titre = "Sens",              Largeur = 34 },
+                    new Colonne { Titre = "IP",                Largeur = 78 },
+                    new Colonne { Titre = "Sévérité",          Largeur = 52 },
+                    new Colonne { Titre = "Détecteur initial", Largeur = 70 },
+                    new Colonne { Titre = "Pays",              Largeur = 80 },
+                    new Colonne { Titre = "FAI (ASN)",         Largeur = 70 },
+                    new Colonne { Titre = "Organisation",      Largeur = 76 },
+                    new Colonne { Titre = "Reverse DNS",       Largeur = 76 },
+                    new Colonne { Titre = "Bloquée le",        Largeur = 58 },
+                    new Colonne { Titre = "Origine",           Largeur = 52 },
+                    new Colonne { Titre = "Nb/T",              Largeur = 34 },
+                    new Colonne { Titre = "Dernière",          Largeur = 82 }
+                }
+            };
+
+            // Le pays, le FAI et l'organisation ne sont pas portés par la tentative :
+            // ils viennent des IP bloquées, jointes par adresse.
+            var infos = blocked
+                .GroupBy(b => b.Ip, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key,
+                              g => g.OrderByDescending(b => b.BlockedAt).First(),
+                              StringComparer.OrdinalIgnoreCase);
+
+            foreach (var r in retries.OrderByDescending(x => x.LastRetryAt))
+            {
+                infos.TryGetValue(r.Ip, out var info);
+
+                t.Lignes.Add(new[]
+                {
+                    (info?.IsOutbound ?? false) ? "→" : "←",
+                    r.Ip,
+                    info?.Severity ?? "-",
+                    r.OriginalDetector,
+                    string.IsNullOrWhiteSpace(info?.Country) ? "-" : info!.Country!,
+                    string.IsNullOrWhiteSpace(info?.Isp) ? "-" : info!.Isp!,
+                    string.IsNullOrWhiteSpace(info?.Org) ? "-" : info!.Org!,
+                    string.IsNullOrWhiteSpace(info?.ReverseDns) ? "-" : info!.ReverseDns!,
+                    r.BlockedAt == default ? "-" : r.BlockedAt.ToLocalTime().ToString("dd/MM HH:mm"),
+                    r.Origin.ToString(),
+                    r.RetryCount.ToString(),
+                    r.LastRetryAt == default ? "-" : r.LastRetryAt.ToLocalTime().ToString("dd/MM HH:mm")
+                });
+                t.Couleurs.Add(CouleurSeverite(info?.Severity ?? ""));
+            }
+
+            return t;
+        }
+
+        private static Tableau TableauHistorique(List<IntrusionEvent> history)
+        {
+            var t = new Tableau
+            {
+                Titre = $"Historique des intrusions ({history.Count})",
+                Colonnes = new[]
+                {
+                    new Colonne { Titre = "Sens",          Largeur = 34 },
+                    new Colonne { Titre = "Date",          Largeur = 58 },
+                    new Colonne { Titre = "Sévérité",      Largeur = 52 },
+                    new Colonne { Titre = "Origine",       Largeur = 52 },
+                    new Colonne { Titre = "Détecteur",     Largeur = 68 },
+                    new Colonne { Titre = "IP",            Largeur = 76 },
+                    new Colonne { Titre = "Pays",          Largeur = 80 },
+                    new Colonne { Titre = "FAI (ASN)",     Largeur = 70 },
+                    new Colonne { Titre = "Organisation",  Largeur = 76 },
+                    new Colonne { Titre = "Processus",     Largeur = 70 },
+                    new Colonne { Titre = "Détails",       Largeur = 150 }
+                }
+            };
+
+            foreach (var h in history.OrderByDescending(x => x.Timestamp))
+            {
+                t.Lignes.Add(new[]
+                {
+                    h.IsOutbound ? "→" : "←",
+                    h.Timestamp.ToLocalTime().ToString("dd/MM HH:mm"),
+                    h.Severity.ToString(),
+                    h.Origin.ToString(),
+                    h.Source,
+                    h.RemoteIp ?? "-",
+                    string.IsNullOrWhiteSpace(h.Country) ? "-" : h.Country!,
+                    string.IsNullOrWhiteSpace(h.Isp) ? "-" : h.Isp!,
+                    string.IsNullOrWhiteSpace(h.Org) ? "-" : h.Org!,
+                    string.IsNullOrWhiteSpace(h.ProcessName) ? "-" : h.ProcessName!,
+                    h.Message
+                });
+                t.Couleurs.Add(CouleurSeverite(h.Severity.ToString()));
+            }
+
+            return t;
+        }
+
+        private static Tableau TableauAudit(List<IntrusionEvent> audit)
+        {
+            var t = new Tableau
+            {
+                Titre = $"Alertes ignorées — IP de confiance ({audit.Count})",
+                Colonnes = new[]
+                {
+                    new Colonne { Titre = "Sens",         Largeur = 34 },
+                    new Colonne { Titre = "Date",         Largeur = 58 },
+                    new Colonne { Titre = "Sévérité",     Largeur = 52 },
+                    new Colonne { Titre = "Origine",      Largeur = 54 },
+                    new Colonne { Titre = "Liste",        Largeur = 46 },
+                    new Colonne { Titre = "Détecteur",    Largeur = 62 },
+                    new Colonne { Titre = "IP",           Largeur = 78 },
+                    new Colonne { Titre = "Pays",         Largeur = 82 },
+                    new Colonne { Titre = "FAI (ASN)",    Largeur = 74 },
+                    new Colonne { Titre = "Organisation", Largeur = 80 },
+                    new Colonne { Titre = "Raison",       Largeur = 166 }
+                }
+            };
+
+            foreach (var a in audit.OrderByDescending(x => x.Timestamp))
+            {
+                t.Lignes.Add(new[]
+                {
+                    a.IsOutbound ? "→" : "←",
+                    a.Timestamp.ToLocalTime().ToString("dd/MM HH:mm"),
+                    a.Severity.ToString(),
+                    a.Origin.ToString(),
+                    ListeConfiance(a),
+                    a.Source,
+                    a.RemoteIp ?? "-",
+                    string.IsNullOrWhiteSpace(a.Country) ? "-" : a.Country!,
+                    string.IsNullOrWhiteSpace(a.Isp) ? "-" : a.Isp!,
+                    string.IsNullOrWhiteSpace(a.Org) ? "-" : a.Org!,
+                    a.TrustReason ?? a.Message
+                });
+                t.Couleurs.Add(CouleurSeverite(a.Severity.ToString()));
+            }
+
+            return t;
+        }
+
+        private static Tableau TableauListeBlanche(List<ProcessTrustInfo> whitelist)
+        {
+            var t = new Tableau
+            {
+                Titre = $"Liste blanche des processus ({whitelist.Count})",
+                Colonnes = new[]
+                {
+                    new Colonne { Titre = "Nom",     Largeur = 110 },
+                    new Colonne { Titre = "Chemin",  Largeur = 470 },
+                    new Colonne { Titre = "Actif",   Largeur = 50 },
+                    new Colonne { Titre = "Éditeur", Largeur = 156 }
+                }
+            };
+
+            foreach (var w in whitelist.OrderBy(x => x.Name))
+            {
+                t.Lignes.Add(new[]
+                {
+                    w.Name,
+                    w.Path,
+                    w.Enabled ? "Oui" : "Non",
+                    string.IsNullOrWhiteSpace(w.Publisher) ? "-" : w.Publisher
+                });
+                t.Couleurs.Add(null);
+            }
+
+            return t;
+        }
+
+        // ============================================================
+        //  Utilitaires
+        // ============================================================
+
+        /// <summary>
+        /// Nom de la liste qui a fait ignorer l'alerte. Les entrées antérieures au
+        /// champ TrustedList ne le portent pas : on le déduit de l'origine, comme le
+        /// fait déjà l'interface, sinon la colonne sort vide sur tout l'historique.
+        /// </summary>
+        private static string ListeConfiance(IntrusionEvent evt)
+        {
+            if (!string.IsNullOrWhiteSpace(evt.TrustedList)) return evt.TrustedList!;
+
+            return evt.Origin switch
+            {
+                IpOrigin.Microsoft => "Microsoft",
+                IpOrigin.Bot       => "Google",
+                _                  => "-"
+            };
+        }
+
+        private static XColor? CouleurSeverite(string severite) => severite?.ToLowerInvariant() switch
+        {
+            "critical" => XColor.FromArgb(0xC6, 0x28, 0x28),
+            "high"     => XColor.FromArgb(0xE5, 0x39, 0x35),
+            "warning"  => XColor.FromArgb(0xF5, 0x9E, 0x0B),
+            "bot"      => XColor.FromArgb(0x5B, 0xC0, 0xEB),
+            "trusted"  => XColor.FromArgb(0x2E, 0x7D, 0x32),
+            "safe"     => XColor.FromArgb(0x43, 0xA0, 0x47),
+            _          => null
+        };
+
+        private static string Tronquer(XGraphics gfx, string texte, XFont police, double largeur)
+        {
+            if (string.IsNullOrEmpty(texte)) return "";
+
+            if (gfx.MeasureString(texte, police).Width <= largeur) return texte;
+
+            int longueur = texte.Length;
+
+            while (longueur > 1 && gfx.MeasureString(texte.Substring(0, longueur) + "…", police).Width > largeur)
+                longueur--;
+
+            return texte.Substring(0, longueur) + "…";
+        }
+
+        private static void DessinerPieds(PdfDocument document, string machineName, List<XGraphics> graphiques)
+        {
+            int total = document.PageCount;
+
+            for (int i = 0; i < total && i < graphiques.Count; i++)
+            {
+                var page = document.Pages[i];
+                var gfx  = graphiques[i];
+
+                double y = page.Height - 18;
+
+                gfx.DrawLine(new XPen(TraitTableau), MargeGauche, y - 10,
+                             page.Width - MargeGauche, y - 10);
+
+                gfx.DrawString($"NetMonitor — {machineName}", PolicePied, XBrushes.Gray,
+                               new XPoint(MargeGauche, y));
+
+                string pagination = $"Page {i + 1} / {total}";
+                double largeur = gfx.MeasureString(pagination, PolicePied).Width;
+                gfx.DrawString(pagination, PolicePied, XBrushes.Gray,
+                               new XPoint(page.Width - MargeGauche - largeur, y));
+            }
         }
     }
 }

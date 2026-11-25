@@ -2172,7 +2172,12 @@ namespace NetMonitor.UI
         {
             try
             {
-                string? base64 = await NetMonitorIpcClient.ExportPdfAsync();
+                // Choix des tableaux avant tout appel au service : inutile de
+                // générer un rapport complet pour n en garder qu une partie.
+                var choix = new ExportPdfWindow { Owner = this };
+                if (choix.ShowDialog() != true) return;
+
+                string? base64 = await NetMonitorIpcClient.ExportPdfAsync(string.Join(",", choix.Sections));
                 if (string.IsNullOrEmpty(base64))
                 {
                     Boite.Show(this, LanguageManager.Get("Erreur lors de la génération du PDF.") ?? "Erreur lors de la génération du PDF.", "NetMonitor", MessageBoxButton.OK, MessageBoxImage.Error);
