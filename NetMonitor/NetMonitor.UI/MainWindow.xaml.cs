@@ -384,6 +384,49 @@ namespace NetMonitor.UI
         // ------------------------------------------------------------
         //  Refresh principal
         // ------------------------------------------------------------
+        // ------------------------------------------------------------
+        //  Indicateur GeoIP
+        // ------------------------------------------------------------
+
+        /// <summary>
+        /// Pastille de la barre d'état : verte quand les résolutions passent, rouge
+        /// quand le quota de l'API est épuisé, grise quand la géolocalisation est
+        /// désactivée. L'infobulle donne la reprise ou le nombre d'IP en cache.
+        /// </summary>
+        private async Task RafraichirGeoIpAsync()
+        {
+            var statut = await NetMonitorIpcClient.GetGeoIpStatusAsync();
+
+            if (statut == null)
+            {
+                GeoIpDot.Fill = Brushes.Gray;
+                GeoIpText.ToolTip = LanguageManager.Get("État de la géolocalisation indisponible")
+                                    ?? "État de la géolocalisation indisponible";
+                return;
+            }
+
+            if (!statut.enabled)
+            {
+                GeoIpDot.Fill = Brushes.Gray;
+                GeoIpText.ToolTip = LanguageManager.Get("Géolocalisation désactivée") ?? "Géolocalisation désactivée";
+                return;
+            }
+
+            if (statut.quota)
+            {
+                GeoIpDot.Fill = Brushes.OrangeRed;
+                GeoIpText.ToolTip =
+                    (LanguageManager.Get("Quota épuisé — reprise") ?? "Quota épuisé — reprise") +
+                    $" {statut.resumeAt.ToLocalTime():dd/MM HH:mm}" + Environment.NewLine +
+                    string.Format(LanguageManager.Get("{0} IP en cache") ?? "{0} IP en cache", statut.cached);
+                return;
+            }
+
+            GeoIpDot.Fill = Brushes.LimeGreen;
+            GeoIpText.ToolTip = string.Format(LanguageManager.Get("Résolutions actives — {0} IP en cache")
+                                              ?? "Résolutions actives — {0} IP en cache", statut.cached);
+        }
+
         private async Task RefreshSafe()
         {
             if (_isRefreshing) return;
@@ -769,6 +812,8 @@ namespace NetMonitor.UI
                 }
 
                 txtLastUpdate.Text = $"Mise à jour : {DateTime.Now:HH:mm:ss}";
+
+                await RafraichirGeoIpAsync();
 
                 RestoreScrollAsync(ActiveIntrusionsGrid, activeOffset);
                 RestoreScrollAsync(BlockedIpsGrid, blockedOffset);

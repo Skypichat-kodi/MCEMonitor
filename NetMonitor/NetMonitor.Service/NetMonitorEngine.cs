@@ -1999,6 +1999,20 @@ namespace NetMonitor.Service
             }
         }
 
+        /// <summary>
+        /// État du service de géolocalisation, pour l indicateur de la barre d état :
+        /// actif, quota épuisé (et jusqu à quand), nombre d IP en cache.
+        /// </summary>
+        public (bool Actif, bool QuotaEpuise, DateTime Reprise, int EnCache) GetGeoIpStatus()
+        {
+            if (_geoIp == null) return (false, false, DateTime.MinValue, 0);
+
+            return (_geoIp.IsEnabled,
+                    _geoIp.IsQuotaExceeded,
+                    _geoIp.QuotaResumeAt,
+                    _geoIp.CacheCount);
+        }
+
         public List<PendingProcessInfo> GetPendingProcesses()
         {
             lock (_pendingLock) return _pendingProcesses.ToList();

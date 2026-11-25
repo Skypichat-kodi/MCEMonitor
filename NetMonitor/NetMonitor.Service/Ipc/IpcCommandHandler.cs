@@ -225,6 +225,7 @@ namespace NetMonitor.Service.Ipc
                 case "force-scan":                  HandleForceScan(server); break;
                 case "shutdown":                    HandleShutdown(server); break;
                 case "get-web-status":              HandleGetWebStatus(server); break;
+                case "get-geoip-status":            HandleGetGeoIpStatus(server); break;
                 case "get-active":                  HandleGetActiveIntrusions(server); break;
                 case "clear-active":                HandleClearActiveIntrusions(server); break;
                 case "get-blocked":                 HandleGetBlockedIps(server); break;
@@ -578,6 +579,24 @@ namespace NetMonitor.Service.Ipc
             catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
         }
         
+        /// <summary>État de la géolocalisation, pour l indicateur de la barre d état.</summary>
+        private void HandleGetGeoIpStatus(NamedPipeServerStream server)
+        {
+            try
+            {
+                var (actif, quotaEpuise, reprise, enCache) = _engine.GetGeoIpStatus();
+
+                IpcResponse.Json(server, new
+                {
+                    enabled     = actif,
+                    quota       = quotaEpuise,
+                    resumeAt    = reprise,
+                    cached      = enCache
+                });
+            }
+            catch (Exception ex) { IpcResponse.Error(server, ex.Message); }
+        }
+
         private void HandleGetWebStatus(NamedPipeServerStream server)
         {
             IpcResponse.Json(server, new

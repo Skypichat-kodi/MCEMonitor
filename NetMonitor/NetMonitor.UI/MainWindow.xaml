@@ -3679,9 +3679,24 @@
                          Width="12" Height="12" Fill="Gray"
                          Margin="0,0,8,0" VerticalAlignment="Center"/>
 
-                <TextBlock x:Name="StatusText" Grid.Column="1"
-                           Text="..." FontSize="12" Foreground="{StaticResource TexteSecondaire}"
-                           VerticalAlignment="Center"/>
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock x:Name="StatusText"
+                               Text="..." FontSize="12" Foreground="{StaticResource TexteSecondaire}"
+                               VerticalAlignment="Center"/>
+
+                    <!-- État de la géolocalisation : verte quand les résolutions passent,
+                         rouge quand le quota de l API est épuisé. -->
+                    <Ellipse x:Name="GeoIpDot"
+                             Width="8" Height="8" Fill="Gray"
+                             Margin="18,0,6,0" VerticalAlignment="Center"
+                             ToolTip="{loc:Tr 'État de la géolocalisation'}"/>
+                    <TextBlock x:Name="GeoIpText"
+                               Text="GeoIP"
+                               FontSize="11"
+                               Foreground="{StaticResource TexteSecondaire}"
+                               VerticalAlignment="Center"
+                               ToolTip="{loc:Tr 'État de la géolocalisation'}"/>
+                </StackPanel>
 
                 <!-- Signalé seulement quand l'actualisation automatique est en pause :
                      sans ce rappel, on croit l'application figée. -->

@@ -656,6 +656,18 @@ namespace NetMonitor.UI
             => IsOk(await SendCommand("clear-audit"));
             
         /// <summary>Export PDF. Sans sections, le rapport est complet.</summary>
+    /// <summary>État du service de géolocalisation, pour la barre d état.</summary>
+    public class GeoIpStatusDto
+    {
+        public bool enabled   { get; set; }
+        public bool quota     { get; set; }
+        public DateTime resumeAt { get; set; }
+        public int cached     { get; set; }
+    }
+
+        public static async Task<GeoIpStatusDto?> GetGeoIpStatusAsync()
+            => Deserialize<GeoIpStatusDto>(await SendCommand("get-geoip-status"));
+
         public static async Task<string?> ExportPdfAsync(string? sections = null)
             => await SendCommand(string.IsNullOrWhiteSpace(sections)
                 ? "export-pdf"

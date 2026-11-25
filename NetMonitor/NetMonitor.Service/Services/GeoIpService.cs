@@ -10,18 +10,37 @@ public sealed class GeoIpService : IDisposable
 {
     private readonly ConcurrentDictionary<string, GeoInfo> _cache = new();
     private readonly HttpClient _http = new() { Timeout = TimeSpan.FromSeconds(5) };
-    private readonly SemaphoreSlim _throttle = new(2, 2);   // était new(5, 5)
+    private readonly SemaphoreSlim _throttle = new(2, 2);   // ï¿½tait new(5, 5)
     private readonly string _providerTemplate;
     private readonly bool _enabled;
     private readonly bool _reverseDnsEnabled;
     private static readonly TimeSpan CacheTtl = TimeSpan.FromDays(7);
     private volatile bool _disposed;
 
+    // Cache persistant : sans lui, chaque redÃ©marrage redemandait la gÃ©oloc de
+    // toutes les IP dÃ©jÃ  rÃ©solues, et le quota de l API partait en fumÃ©e.
+    private static readonly string CachePath = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+        "MCEMonitor", "NetMonitor", "geoip_cache.json");
+
+    private const int CacheMaxEntrees = 5000;
+    private static readonly TimeSpan DelaiSauvegarde = TimeSpan.FromSeconds(10);
+
+    private readonly object _sauvegardeLock = new();
+    private DateTime _derniereSauvegarde = DateTime.MinValue;
+    private bool _cacheModifie;
+
     public bool IsEnabled => _enabled;
     
-    // Quota API épuisé (429) — partagé avec NetMonitorEngine pour reporter les lots
+    // Quota API ï¿½puisï¿½ (429) ï¿½ partagï¿½ avec NetMonitorEngine pour reporter les lots
     private DateTime _quotaExceededUntil = DateTime.MinValue;
-    public bool IsQuotaExceeded => DateTime.UtcNow < _quotaExceededUntil;    
+    public bool IsQuotaExceeded => DateTime.UtcNow < _quotaExceededUntil;
+
+    /// <summary>Date de reprise des resolutions, ou DateTime.MinValue si tout va bien.</summary>
+    public DateTime QuotaResumeAt => _quotaExceededUntil;
+
+    /// <summary>Nombre d entrees valides actuellement en cache (memoire).</summary>
+    public int CacheCount => _cache.Count;
     
     public GeoIpService(string providerTemplate, bool enabled, bool reverseDnsEnabled)
     {
@@ -30,6 +49,69 @@ public sealed class GeoIpService : IDisposable
             : providerTemplate;
         _enabled = enabled;
         _reverseDnsEnabled = reverseDnsEnabled;
+
+        ChargerCacheDisque();
+    }
+
+    /// <summary>
+    /// Relit le cache Ã©crit au dernier arrÃªt. Les entrÃ©es trop anciennes sont
+    /// ignorÃ©es : elles seront rÃ©solues Ã  nouveau au premier besoin.
+    /// </summary>
+    private void ChargerCacheDisque()
+    {
+        try
+        {
+            if (!File.Exists(CachePath)) return;
+
+            var entrees = JsonSerializer.Deserialize<Dictionary<string, GeoInfo>>(File.ReadAllText(CachePath));
+            if (entrees == null) return;
+
+            int reprises = 0;
+
+            foreach (var (ip, info) in entrees)
+            {
+                if (info == null || string.IsNullOrWhiteSpace(info.CountryCode)) continue;
+                if (DateTime.UtcNow - info.ResolvedAt >= CacheTtl) continue;
+
+                _cache[ip] = info;
+                reprises++;
+            }
+
+            if (reprises > 0)
+                CoreLog.Info($"[GEOIP] Cache disque : {reprises} IP(s) reprises");
+        }
+        catch (Exception ex) { CoreLog.Warn($"[GEOIP] Lecture du cache impossible : {ex.Message}"); }
+    }
+
+    /// <summary>
+    /// Ã‰crit le cache sur disque, au plus une fois toutes les dix secondes : une
+    /// rÃ©solution par IP ne doit pas se payer d une Ã©criture de fichier.
+    /// </summary>
+    private void SauvegarderCacheDisque(bool force = false)
+    {
+        lock (_sauvegardeLock)
+        {
+            if (!_cacheModifie) return;
+            if (!force && DateTime.UtcNow - _derniereSauvegarde < DelaiSauvegarde) return;
+
+            try
+            {
+                // On ne garde que les entrÃ©es valides, les plus rÃ©centes d abord.
+                var aGarder = _cache
+                    .Where(kv => !string.IsNullOrWhiteSpace(kv.Value.CountryCode)
+                              && DateTime.UtcNow - kv.Value.ResolvedAt < CacheTtl)
+                    .OrderByDescending(kv => kv.Value.ResolvedAt)
+                    .Take(CacheMaxEntrees)
+                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+
+                Directory.CreateDirectory(Path.GetDirectoryName(CachePath)!);
+                File.WriteAllText(CachePath, JsonSerializer.Serialize(aGarder));
+
+                _cacheModifie = false;
+                _derniereSauvegarde = DateTime.UtcNow;
+            }
+            catch (Exception ex) { CoreLog.Warn($"[GEOIP] Ã‰criture du cache impossible : {ex.Message}"); }
+        }
     }
 
     public GeoInfo? TryGetCached(string ip)
@@ -42,9 +124,9 @@ public sealed class GeoIpService : IDisposable
     }
     
     /// <summary>
-    /// Amorce le cache avec une géoloc déjà connue (typiquement lue depuis
-    /// blocked_ips.json ou alert_history.json au démarrage).
-    /// Ne fait rien si CountryCode est vide (pas de géoloc valide à seeder).
+    /// Amorce le cache avec une gï¿½oloc dï¿½jï¿½ connue (typiquement lue depuis
+    /// blocked_ips.json ou alert_history.json au dï¿½marrage).
+    /// Ne fait rien si CountryCode est vide (pas de gï¿½oloc valide ï¿½ seeder).
     /// </summary>
     public void SeedCache(string ip, GeoInfo info)
     {
@@ -54,8 +136,8 @@ public sealed class GeoIpService : IDisposable
     }
 
     /// <summary>
-    /// Invalide l'entrée de cache d'une IP (force un re-fetch au prochain ResolveAsync).
-    /// Utilisé par le refresh périodique.
+    /// Invalide l'entrï¿½e de cache d'une IP (force un re-fetch au prochain ResolveAsync).
+    /// Utilisï¿½ par le refresh pï¿½riodique.
     /// </summary>
     public void InvalidateCache(string ip)
     {
@@ -69,7 +151,7 @@ public sealed class GeoIpService : IDisposable
         if (!_enabled) return;
         if (string.IsNullOrWhiteSpace(ip)) return;
 
-        // Ne pas relancer si on a déjà une entrée valide (non expirée, avec CountryCode)
+        // Ne pas relancer si on a dï¿½jï¿½ une entrï¿½e valide (non expirï¿½e, avec CountryCode)
         if (_cache.TryGetValue(ip, out var existing) &&
             DateTime.UtcNow - existing.ResolvedAt < CacheTtl &&
             !string.IsNullOrEmpty(existing.CountryCode))
@@ -85,11 +167,11 @@ public sealed class GeoIpService : IDisposable
         if (string.IsNullOrWhiteSpace(ip))
             return new GeoInfo { Ip = ip, Country = "?", ResolvedAt = DateTime.UtcNow };
 
-        // Quota épuisé : ne pas appeler l'API, retourner un objet transitoire non caché
+        // Quota ï¿½puisï¿½ : ne pas appeler l'API, retourner un objet transitoire non cachï¿½
         if (DateTime.UtcNow < _quotaExceededUntil)
             return new GeoInfo { Ip = ip, Country = "?", CountryCode = "", ResolvedAt = DateTime.MinValue };
         
-        // Cache hit : seulement si CountryCode non vide (sinon = échec caché)
+        // Cache hit : seulement si CountryCode non vide (sinon = ï¿½chec cachï¿½)
         if (_cache.TryGetValue(ip, out var cached) &&
             DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
             !string.IsNullOrEmpty(cached.CountryCode))
@@ -115,7 +197,7 @@ public sealed class GeoIpService : IDisposable
 
         if (!_enabled)
         {
-            var disabled = new GeoInfo { Ip = ip, Country = "(désactivé)", ResolvedAt = DateTime.UtcNow };
+            var disabled = new GeoInfo { Ip = ip, Country = "(dï¿½sactivï¿½)", ResolvedAt = DateTime.UtcNow };
             _cache[ip] = disabled;
             return disabled;
         }
@@ -123,7 +205,7 @@ public sealed class GeoIpService : IDisposable
         await _throttle.WaitAsync();
         try
         {
-            // Re-check sous le sémaphore (un autre thread a pu résoudre entre-temps)
+            // Re-check sous le sï¿½maphore (un autre thread a pu rï¿½soudre entre-temps)
             if (_cache.TryGetValue(ip, out cached) &&
                 DateTime.UtcNow - cached.ResolvedAt < CacheTtl &&
                 !string.IsNullOrEmpty(cached.CountryCode))
@@ -136,15 +218,15 @@ public sealed class GeoIpService : IDisposable
 
             if (fetched == null)
             {
-                // ? Échec : on retourne un objet "transitoire" SANS le mettre en cache.
+                // ? ï¿½chec : on retourne un objet "transitoire" SANS le mettre en cache.
                 //    FinalizeBlockedIpGeoAsync le verra avec CountryCode vide et retentera.
-                //    (L'appelant peut différencier via ResolvedAt == DateTime.MinValue)
+                //    (L'appelant peut diffï¿½rencier via ResolvedAt == DateTime.MinValue)
                 return new GeoInfo
                 {
                     Ip = ip,
                     Country = "?",
                     CountryCode = "",
-                    ResolvedAt = DateTime.MinValue   // ? marqueur "pas résolu, pas caché"
+                    ResolvedAt = DateTime.MinValue   // ? marqueur "pas rï¿½solu, pas cachï¿½"
                 };
             }
 
@@ -154,7 +236,9 @@ public sealed class GeoIpService : IDisposable
             if (_reverseDnsEnabled && includeReverseDns)
                 fetched.ReverseDns = await TryReverseDnsAsync(ip);
 
-            _cache[ip] = fetched;   // ? cache uniquement sur succès
+            _cache[ip] = fetched;
+            _cacheModifie = true;
+            SauvegarderCacheDisque();   // ? cache uniquement sur succï¿½s
             return fetched;
         }
         finally { _throttle.Release(); }
@@ -169,14 +253,20 @@ public sealed class GeoIpService : IDisposable
 
                 if ((int)resp.StatusCode == 429)
                 {
-                    // ipwho.is : quota journalier ? pause de 24h par défaut
-                    // (Retry-After si présent, mais souvent absent ou court)
-                    var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromHours(24);
-                    if (retryAfter < TimeSpan.FromHours(24))
-                        retryAfter = TimeSpan.FromHours(24);   // forcer 24h minimum
+                    // ipwho.is : quota journalier ? pause de 24h par dï¿½faut
+                    // (Retry-After si prï¿½sent, mais souvent absent ou court)
+                    // On respecte le delai demande par l API : le plancher de 24 h
+                    // prolongeait la pause au-dela de ce qu elle reclame.
+                    var retryAfter = resp.Headers.RetryAfter?.Delta ?? TimeSpan.FromHours(1);
+
+                    if (retryAfter < TimeSpan.FromMinutes(5))
+                        retryAfter = TimeSpan.FromMinutes(5);
+
+                    if (retryAfter > TimeSpan.FromHours(48))
+                        retryAfter = TimeSpan.FromHours(48);
 
                     _quotaExceededUntil = DateTime.UtcNow + retryAfter;
-                    CoreLog.Warn($"[GEOIP] Quota épuisé — pause jusqu'à {_quotaExceededUntil.ToLocalTime():yyyy-MM-dd HH:mm}");
+                    CoreLog.Warn($"[GEOIP] Quota ï¿½puisï¿½ ï¿½ pause jusqu'ï¿½ {_quotaExceededUntil.ToLocalTime():yyyy-MM-dd HH:mm}");
                     return null;
                 }
 
@@ -187,7 +277,7 @@ public sealed class GeoIpService : IDisposable
             if (root.TryGetProperty("success", out var s) && s.ValueKind == JsonValueKind.False)
             {
                 string msg = GetStr(root, "message");
-                CoreLog.Warn($"[GEOIP] {ip} refusé par l'API : {(string.IsNullOrEmpty(msg) ? "raison inconnue" : msg)}");
+                CoreLog.Warn($"[GEOIP] {ip} refusï¿½ par l'API : {(string.IsNullOrEmpty(msg) ? "raison inconnue" : msg)}");
                 return null;   // ? PAS de cache
             }
 
@@ -203,12 +293,12 @@ public sealed class GeoIpService : IDisposable
                 org = GetStr(conn, "org");
             }
 
-            // ? Si le code pays est vide alors que l'API a répondu "success",
-            //    c'est suspect : on log mais on accepte (IP sans géoloc connue)
+            // ? Si le code pays est vide alors que l'API a rï¿½pondu "success",
+            //    c'est suspect : on log mais on accepte (IP sans gï¿½oloc connue)
             if (string.IsNullOrEmpty(code))
             {
-                CoreLog.Warn($"[GEOIP] {ip} succès mais country_code vide (country='{country}')");
-                return null;   // ? on préfère re-tenter plus tard
+                CoreLog.Warn($"[GEOIP] {ip} succï¿½s mais country_code vide (country='{country}')");
+                return null;   // ? on prï¿½fï¿½re re-tenter plus tard
             }
 
             return new GeoInfo
@@ -270,12 +360,14 @@ public sealed class GeoIpService : IDisposable
     public void Clear() => _cache.Clear();
     
     // ============================================================
-    //  IDisposable — libère le pool HTTP et le sémaphore
+    //  IDisposable ï¿½ libï¿½re le pool HTTP et le sï¿½maphore
     // ============================================================
     public void Dispose()
     {
         if (_disposed) return;
         _disposed = true;
+
+        SauvegarderCacheDisque(force: true);
 
         try { _http.Dispose(); }
         catch (Exception ex) { CoreLog.Warn($"GeoIpService.Dispose (http) : {ex.Message}"); }
@@ -283,6 +375,6 @@ public sealed class GeoIpService : IDisposable
         try { _throttle.Dispose(); }
         catch (Exception ex) { CoreLog.Warn($"GeoIpService.Dispose (throttle) : {ex.Message}"); }
 
-        CoreLog.Info("GeoIpService disposé");
+        CoreLog.Info("GeoIpService disposï¿½");
     }    
 }
