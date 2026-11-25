@@ -260,6 +260,38 @@ namespace SystemMonitor.Tray
             }
         }
 
+        /// <summary>
+        /// Acquitte un crash auprès du service : il quitte les alertes du Tray sans
+        /// quitter l'historique. Le service cesse de le signaler, et l'icône est
+        /// relue aussitôt pour retomber sans attendre le prochain passage du minuteur.
+        /// </summary>
+        private void AcknowledgeBsod(ProblemInfo probleme)
+        {
+            try
+            {
+                using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
+
+                client.Connect(1500);
+                if (!client.IsConnected) return;
+
+                string commande = $"ack-bsod {probleme.Timestamp.Ticks}|{probleme.Target}";
+                byte[] octets = Encoding.UTF8.GetBytes(commande);
+
+                client.Write(octets, 0, octets.Length);
+                client.Flush();
+
+                byte[] buffer = new byte[1024];
+                client.Read(buffer, 0, buffer.Length);
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine("[TRAY] Acquittement BSOD : " + ex.Message);
+                return;
+            }
+
+            CheckSeverity();   // l'icône retombe tout de suite
+        }
+
         // ------------------------------------------------------------
         //  Ouvrir MCEMonitor
         // ------------------------------------------------------------
@@ -412,6 +444,7 @@ namespace SystemMonitor.Tray
                 popup.OnOpenSystemMonitor += () => OpenSystemMonitorUI();
                 popup.OnOpenMCEMonitor += () => OpenMCEMonitor();
                 popup.OnQuit += () => Exit();
+                popup.OnAcknowledgeBsod += AcknowledgeBsod;
 
                 // Nettoyage automatique à la fermeture
                 popup.FormClosed += (s, e) => popup.Dispose();

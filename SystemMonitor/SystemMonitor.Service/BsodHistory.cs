@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -27,7 +27,7 @@ namespace SystemMonitor.Service
 
         public void Add(BsodInfo bsod)
         {
-            // �viter les doublons : m�me timestamp + m�me code d'arr�t
+            // Éviter les doublons : même timestamp + même code d'arrêt
             if (_bsods.Any(b => b.Timestamp == bsod.Timestamp && b.BugCheckCode == bsod.BugCheckCode))
                 return;
 
@@ -37,6 +37,40 @@ namespace SystemMonitor.Service
             CoreLog.Write($"[BSOD] {bsod.Timestamp:yyyy-MM-dd HH:mm:ss} | {bsod.BugCheckCode} | {bsod.BugCheckName}");
         }
 
+        /// <summary>
+        /// Marque un crash comme vu. Le dump et la ligne restent intacts : seul
+        /// l'acquittement est enregistré, et GetProblems cessera de le signaler.
+        /// </summary>
+        /// <returns>Vrai si le crash a été trouvé.</returns>
+        public bool Acknowledge(DateTime timestamp, string code)
+        {
+            try
+            {
+                // Tolérance d'une seconde sur l'horodatage : la date fait un aller-retour
+                // par le canal et le JSON, et une égalité stricte échouerait sur un arrondi.
+                var bsod = _bsods.FirstOrDefault(b =>
+                    Math.Abs((b.Timestamp - timestamp).TotalSeconds) < 1 &&
+                    string.Equals(b.BugCheckCode, code, StringComparison.OrdinalIgnoreCase));
+
+                if (bsod == null)
+                    return false;
+
+                if (bsod.AcknowledgedAt != null)
+                    return true;   // déjà acquitté : rien à faire
+
+                bsod.AcknowledgedAt = DateTime.Now;
+                Save();
+
+                CoreLog.Write($"[BSOD] Pris en connaissance : {timestamp:yyyy-MM-dd HH:mm:ss} | {code}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur Acknowledge BsodHistory : " + ex.Message);
+                return false;
+            }
+        }
+
         public void Clear()
         {
             try
@@ -44,7 +78,7 @@ namespace SystemMonitor.Service
                 _bsods.Clear();
                 Directory.CreateDirectory(Folder);
                 File.WriteAllText(FilePath, "[]");
-                CoreLog.Write("Historique BSOD purg�");
+                CoreLog.Write("Historique BSOD purgé");
             }
             catch (Exception ex)
             {

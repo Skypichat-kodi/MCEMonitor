@@ -30,6 +30,12 @@ namespace SystemMonitor.Service.Ipc
                 return;
             }
 
+            if (command.StartsWith("ack-bsod ", StringComparison.OrdinalIgnoreCase))
+            {
+                HandleAcknowledgeBsod(command, server);
+                return;
+            }
+
             // Commandes exactes
             switch (command)
             {
@@ -384,7 +390,50 @@ namespace SystemMonitor.Service.Ipc
                 IpcResponse.Error(server, ex.Message);
             }
         }
-        
+
+        /// <summary>
+        /// « ack-bsod &lt;ticks&gt;|&lt;code&gt; » : l'utilisateur a fermé la ligne du crash
+        /// dans la popup du Tray. Le crash quitte les alertes, pas l'historique.
+        /// </summary>
+        private void HandleAcknowledgeBsod(string command, NamedPipeServerStream server)
+        {
+            try
+            {
+                string argument = command.Substring("ack-bsod ".Length).Trim();
+                int barre = argument.IndexOf('|');
+
+                if (barre <= 0)
+                {
+                    IpcResponse.Error(server, "argument attendu : <ticks>|<code>");
+                    return;
+                }
+
+                string ticksTexte = argument.Substring(0, barre).Trim();
+                string code = argument.Substring(barre + 1).Trim();
+
+                if (!long.TryParse(ticksTexte, out long ticks))
+                {
+                    IpcResponse.Error(server, "horodatage illisible");
+                    return;
+                }
+
+                var quand = new DateTime(ticks, DateTimeKind.Local);
+                bool ok = _engine.AcknowledgeBsod(quand, code);
+
+                CoreLog.Write(ok
+                    ? $"IPC : prise en connaissance du BSOD {code} du {quand:yyyy-MM-dd HH:mm:ss}"
+                    : $"IPC : BSOD {code} du {quand:yyyy-MM-dd HH:mm:ss} inconnu");
+
+                if (ok) IpcResponse.Ok(server);
+                else    IpcResponse.Error(server, "bsod inconnu");
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Write("Erreur HandleAcknowledgeBsod : " + ex.Message);
+                IpcResponse.Error(server, ex.Message);
+            }
+        }
+
         private void HandleGetProblems(NamedPipeServerStream server)
         {
             try

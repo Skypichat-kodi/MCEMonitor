@@ -683,6 +683,13 @@ namespace SystemMonitor.Service
 
         public List<BsodInfo> GetBsods() => _bsodHistory.GetAll();
 
+        /// <summary>
+        /// Marque un crash comme vu : il quitte les alertes du Tray sans quitter
+        /// l'historique. Retourne faux si le crash n'est pas connu.
+        /// </summary>
+        public bool AcknowledgeBsod(DateTime timestamp, string code)
+            => _bsodHistory.Acknowledge(timestamp, code);
+
         public void ClearBsods()
         {
             _bsodHistory.Clear();
@@ -780,13 +787,16 @@ namespace SystemMonitor.Service
                     }
                 }
 
-                // --- BSOD récents (< 24h) ---
+                // --- BSOD récents (< 24h) et non acquittés ---
+                // Deux façons de faire tomber l'alerte : la croix de la popup du Tray
+                // (l'utilisateur a vu le crash), ou le simple écoulement des 24 heures
+                // s'il n'a rien fait. Le crash reste dans l'historique dans les deux cas.
                 var bsods = _bsodHistory.GetAll();
                 var bsodLimit = DateTime.Now.AddHours(-24);
 
                 if (bsods != null)
                 {
-                    foreach (var b in bsods.Where(x => x.Timestamp >= bsodLimit))
+                    foreach (var b in bsods.Where(x => x.Timestamp >= bsodLimit && x.AcknowledgedAt == null))
                     {
                         problems.Add(new ProblemItem
                         {

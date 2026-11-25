@@ -14,6 +14,12 @@ namespace SystemMonitor.Tray
         public event Action? OnOpenMCEMonitor;
         public event Action? OnQuit;
 
+        /// <summary>
+        /// L'utilisateur a fermé la ligne d'un crash : elle est acquittée côté service,
+        /// ce qui fait retomber l'alerte du Tray sans rien effacer de l'historique.
+        /// </summary>
+        public event Action<ProblemInfo>? OnAcknowledgeBsod;
+
         private const int PopupWidth = 340;
         private const int MaxProblemsShown = 5;
 
@@ -96,6 +102,8 @@ namespace SystemMonitor.Tray
 
                 foreach (var p in shown)
                 {
+                    bool acquittable = p.Category == "BSOD";
+
                     // Icône PNG selon la sévérité
                     var pic = new PictureBox
                     {
@@ -108,6 +116,9 @@ namespace SystemMonitor.Tray
                     this.Controls.Add(pic);
 
                     // Texte du problème (sans marqueur [!] / [?])
+                    // Une ligne de crash réserve la place de la croix.
+                    int largeurTexte = PopupWidth - 53 - (acquittable ? 22 : 0);
+
                     var lbl = new Label
                     {
                         Text = FormatProblemText(p),
@@ -116,11 +127,14 @@ namespace SystemMonitor.Tray
                             : Color.FromArgb(255, 185, 0),
                         Font = new Font("Segoe UI", 9F, FontStyle.Regular),
                         Location = new Point(38, y),
-                        Size = new Size(PopupWidth - 53, 22),
+                        Size = new Size(largeurTexte, 22),
                         TextAlign = ContentAlignment.MiddleLeft,
                         AutoEllipsis = true
                     };
                     this.Controls.Add(lbl);
+
+                    if (acquittable)
+                        this.Controls.Add(CreerCroix(p, y));
 
                     y += 24;
                 }
@@ -206,6 +220,39 @@ namespace SystemMonitor.Tray
                 if (readyToClose)
                     Close();
             };
+        }
+
+        /// <summary>
+        /// Croix de fermeture d'une ligne de crash : acquitte le BSOD et referme la
+        /// popup. C'est le geste par lequel l'utilisateur dit « j'en ai pris
+        /// connaissance » ; le crash reste dans l'historique de l'interface.
+        /// </summary>
+        private Control CreerCroix(ProblemInfo probleme, int y)
+        {
+            var croix = new Label
+            {
+                Text = "✕",
+                ForeColor = Color.FromArgb(170, 170, 170),
+                Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                Location = new Point(PopupWidth - 32, y),
+                Size = new Size(20, 22),
+                TextAlign = ContentAlignment.MiddleCenter,
+                Cursor = Cursors.Hand
+            };
+
+            croix.MouseEnter += (s, e) => croix.ForeColor = Color.FromArgb(255, 99, 71);
+            croix.MouseLeave += (s, e) => croix.ForeColor = Color.FromArgb(170, 170, 170);
+
+            croix.Click += (s, e) =>
+            {
+                OnAcknowledgeBsod?.Invoke(probleme);
+                Close();
+            };
+
+            new ToolTip().SetToolTip(croix,
+                LanguageManager.Get("J'ai pris connaissance de ce crash") ?? "J'ai pris connaissance de ce crash");
+
+            return croix;
         }
 
         private int AddActionButton(string text, int y, Action onClick)
