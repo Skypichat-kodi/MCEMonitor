@@ -710,6 +710,16 @@
         cursor: pointer;
     }
     .pdf-cases input { cursor: pointer; }
+    .pdf-cases label.pdf-indisponible {
+        color: #777;
+        cursor: default;
+    }
+    .pdf-cases label.pdf-indisponible input { cursor: default; }
+    .pdf-note {
+        font-size: 11px;
+        color: #666;
+        font-style: italic;
+    }
     .modal-btn.pdf-valider {
         background: #4CC2FF;
         color: #101820;
@@ -1893,23 +1903,37 @@ document.getElementById('btnReanalyzeBlocked').addEventListener('click', functio
 // ============================================================
 function openModal(id) {
     document.getElementById(id).classList.add('active');
+
+    // Une actualisation pendant qu on choisit rechargerait la page et fermerait
+    // la modale sous les doigts. Le minuteur est gele sans afficher de bandeau :
+    // la modale dit deja ce qu elle fait.
+    if (window.__pauseAutoRefresh) window.__pauseAutoRefresh();
 }
 function closeModal(id) {
     document.getElementById(id).classList.remove('active');
+
+    // On ne relance le minuteur que si plus aucune modale n est ouverte :
+    // elles peuvent se relayer, et la page ne doit pas se recharger entre deux.
+    if (!document.querySelector('.modal-overlay.active') && window.__resumeAutoRefresh)
+        window.__resumeAutoRefresh();
 }
+
+// Le clic sur le fond ferme la modale : il doit passer par closeModal, sinon
+// le minuteur resterait gele et la page cesserait de s actualiser.
+document.querySelectorAll('.modal-overlay').forEach(function (overlay) {
+    overlay.addEventListener('click', function (e) {
+        if (e.target === overlay) closeModal(overlay.id);
+    });
+});
 // Fermer avec ESC
 document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') {
-        document.querySelectorAll('.modal-overlay.active').forEach(function(m) {
-            m.classList.remove('active');
+        // Passer par closeModal : retirer la classe a la main laisserait le
+        // minuteur gele, et la page cesserait de s actualiser.
+        document.querySelectorAll('.modal-overlay.active').forEach(function (m) {
+            closeModal(m.id);
         });
     }
-});
-// Fermer en cliquant sur le fond
-document.querySelectorAll('.modal-overlay').forEach(function(overlay) {
-    overlay.addEventListener('click', function(e) {
-        if (e.target === overlay) overlay.classList.remove('active');
-    });
 });
 
 // ============================================================
@@ -2188,6 +2212,14 @@ async function submitPattern() {
                 <label><input type="checkbox" class="pdf-section" value="History" checked> {{tr:Historique}}</label>
                 <label><input type="checkbox" class="pdf-section" value="Audit" checked> {{tr:Alertes ignorées}}</label>
                 <label><input type="checkbox" class="pdf-section" value="Whitelist" checked> {{tr:Liste blanche}}</label>
+
+                <!-- La carte est dessinee par l interface (Mapsui) et deposee en PNG
+                     pour le service : depuis un navigateur, personne ne peut la produire.
+                     La case reste visible, desactivee, plutot que de laisser croire a un oubli. -->
+                <label class="pdf-indisponible" title="{{tr:Carte des pays d’origine}} : {{tr:Cette section n’est disponible que depuis l’interface NetMonitor.}}">
+                    <input type="checkbox" disabled> {{tr:Carte des pays d’origine}}
+                    <span class="pdf-note">{{tr:interface uniquement}}</span>
+                </label>
             </div>
         </div>
         <div class="modal-footer">
