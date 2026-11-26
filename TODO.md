@@ -120,6 +120,10 @@ _(rien)_
     `lego renew` puis `caddy reload`
 
   **Onglet « Accès distant » dans MCEMonitor.UI** :
+  - **Une coche d activation en tête du module.** Désactivée, tout le reste est grisé et les modules
+    continuent d être servis en HTTP, exactement comme aujourd hui. Le HTTPS est une option, jamais une
+    contrainte : qui n en veut pas ne doit voir changer ni ses ports, ni ses URL, ni son installation.
+    Décoche = aucun binaire lancé, aucune tâche planifiée, aucun port 443 ouvert
   - **Domaine** : nom racine, sous-domaines par module, état de la résolution DNS
   - **Certificat** : liste déroulante de fournisseurs, **champs générés selon le choix** (un jeton pour
     Infomaniak, trois clés pour OVH, deux pour Namecheap…), valeurs chiffrées en DPAPI comme le mot de passe
@@ -138,7 +142,8 @@ _(rien)_
   - exposition publique : vérifier la robustesse des logins par module (déjà protégés par mot de passe et
     OTP), et ajouter HSTS
 
-  **Découpage** : 1) onglet et stockage chiffré ; 2) obtention et renouvellement par `lego` + tâche
+  **Découpage** : 0) la coche et le mode HTTP préservé, pour que rien ne change tant que l option est
+  inactive ; 1) onglet et stockage chiffré ; 2) obtention et renouvellement par `lego` + tâche
   planifiée ; 3) passerelle Caddy et sous-domaines ; 4) diagnostic et finitions. Compter plusieurs jours,
   l essentiel du travail étant l interface et la supervision, pas le TLS lui-même
   - **Priorité** : 🟡 moyenne
