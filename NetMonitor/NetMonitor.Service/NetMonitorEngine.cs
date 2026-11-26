@@ -72,6 +72,11 @@ namespace NetMonitor.Service
         private Channel<RawPacket>? _packetChannel;
         private Task? _consumerTask;
 
+        // Exécutable en conflit avec le pilote (anti-cheat noyau), s'il y en a un.
+        private string? _conflitProcessus;
+        private readonly object _verrouCapture = new();
+        private System.Threading.Timer? _conflitTimer;
+
         private static readonly string BlockedIpsFile = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
             "MCEMonitor", "NetMonitor", "blocked_ips.json");
@@ -267,31 +272,157 @@ namespace NetMonitor.Service
                 TimeSpan.FromMinutes(5),
                 TimeSpan.FromMinutes(5));
 
-            // --- Initialisation de la capture WinDivert ---
-            _packetChannel = Channel.CreateBounded<RawPacket>(new BoundedChannelOptions(2000) { FullMode = BoundedChannelFullMode.DropOldest });
-            _capture = new PacketCaptureService("ip", _packetChannel.Writer);
-            _capture.OnError += (s, ex) =>
-            {
-                CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
-                ReportProblem(
-                    // ex.Source peut valoir "WinDivertRestart" (échec après retry) ou null (erreur générique)
-                    category: string.IsNullOrEmpty(ex.Source) ? "WinDivert" : ex.Source,
-                    message:  ex.Message,
-                    severity: "critical");
-            };
-            _capture.Start();
+            // --- Capture WinDivert (désactivable par configuration) ---
+            if (_settings.WinDivertEnabled)
+                DemarrerCapture();
+            else
+                CoreLog.Write("Capture WinDivert désactivée par configuration.");
 
-            _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
-            
-            // Timer de nettoyage des IPs auto-bloquées (toutes les 10 s)
+            // Surveillance des exécutables qui refusent un pilote de capture : les
+            // anti-cheats noyau (Ricochet pour Call of Duty) bloquent le jeu tant que
+            // WinDivert est chargé. La capture est suspendue le temps qu'ils tournent.
+            _conflitTimer = new System.Threading.Timer(
+                _ => VerifierConflitsPilote(),
+                null,
+                TimeSpan.FromSeconds(3),
+                TimeSpan.FromSeconds(3));
+
             _autoBlockCleanupTimer = new System.Threading.Timer(
                 _ => CleanupAutoBlockedIps(),
                 null,
                 TimeSpan.FromSeconds(10),
                 TimeSpan.FromSeconds(10));            
 
-            CoreLog.Write("NetMonitorEngine démarré (surveillance ETW + WinDivert).");
+            CoreLog.Write($"NetMonitorEngine démarré (surveillance ETW{(WinDivertActif ? " + WinDivert" : "")}).");
         }
+
+        // ------------------------------------------------------------------
+        //  Capture WinDivert : démarrage, suspension, reprise
+        // ------------------------------------------------------------------
+        /// <summary>
+        /// Ouvre la capture et relance la consommation des paquets.
+        ///
+        /// Appelée au démarrage, et de nouveau après une suspension pour conflit :
+        /// Stop() annule le jeton de la capture et ferme le canal, il faut donc tout
+        /// reconstruire plutôt que rappeler Start().
+        /// </summary>
+        private void DemarrerCapture()
+        {
+            lock (_verrouCapture)
+            {
+                if (_capture != null) return;
+
+                _packetChannel = Channel.CreateBounded<RawPacket>(
+                    new BoundedChannelOptions(2000) { FullMode = BoundedChannelFullMode.DropOldest });
+
+                _capture = new PacketCaptureService("ip", _packetChannel.Writer);
+                _capture.OnError += (s, ex) =>
+                {
+                    CoreLog.Error($"Erreur capture WinDivert : {ex.Message}");
+                    ReportProblem(
+                        category: string.IsNullOrEmpty(ex.Source) ? "WinDivert" : ex.Source,
+                        message:  ex.Message,
+                        severity: "critical");
+                };
+                _capture.Start();
+
+                _consumerTask = Task.Run(() => ConsumePacketsAsync(_packetChannel.Reader));
+            }
+        }
+
+        /// <summary>
+        /// Suspend la capture et décharge le pilote, le temps qu'un exécutable en
+        /// conflit tourne. Le pilote ne doit pas simplement être fermé : il resterait
+        /// chargé dans le noyau, et l'anti-cheat refuserait toujours le jeu.
+        /// </summary>
+        private void SuspendreCapture(string processus)
+        {
+            lock (_verrouCapture)
+            {
+                if (_capture == null) return;
+
+                CoreLog.Warn($"[CONFLIT] {processus} détecté : capture suspendue, pilote WinDivert déchargé.");
+
+                _capture.Stop();
+                _capture.Dispose();
+                _capture = null;
+
+                try { _packetChannel?.Writer.TryComplete(); } catch { }
+                _packetChannel = null;
+            }
+
+            _conflitProcessus = processus;
+        }
+
+        /// <summary>Rallume la capture une fois l'exécutable terminé.</summary>
+        private void ReprendreCapture()
+        {
+            CoreLog.Info($"[CONFLIT] {_conflitProcessus} terminé : capture WinDivert relancée.");
+
+            _conflitProcessus = null;
+            DemarrerCapture();
+        }
+
+        /// <summary>
+        /// Compare les processus en cours à la liste configurée. Suspend la capture au
+        /// premier conflit, la reprend quand plus aucun ne tourne.
+        /// </summary>
+        private void VerifierConflitsPilote()
+        {
+            try
+            {
+                if (!_settings.WinDivertEnabled)
+                {
+                    // Pilote coupé à la main : rien à surveiller.
+                    if (_capture != null) SuspendreCapture("configuration");
+                    return;
+                }
+
+                var cibles = _settings.DriverConflictProcesses;
+                string? enCours = null;
+
+                if (cibles != null && cibles.Length > 0)
+                {
+                    foreach (var processus in System.Diagnostics.Process.GetProcesses())
+                    {
+                        try
+                        {
+                            string nom = processus.ProcessName;
+
+                            if (cibles.Any(c => string.Equals(c, nom, StringComparison.OrdinalIgnoreCase) ||
+                                                string.Equals(c, nom + ".exe", StringComparison.OrdinalIgnoreCase)))
+                            {
+                                enCours = nom + ".exe";
+                                break;
+                            }
+                        }
+                        catch { /* processus terminé pendant l'énumération */ }
+                        finally { processus.Dispose(); }
+                    }
+                }
+
+                if (enCours != null && _conflitProcessus == null)
+                    SuspendreCapture(enCours);
+                else if (enCours == null && _conflitProcessus != null)
+                    ReprendreCapture();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("[CONFLIT] Surveillance impossible : " + ex.Message);
+            }
+        }
+
+        /// <summary>Capture en cours, hors conflit.</summary>
+        public bool WinDivertActif => _capture != null && _conflitProcessus == null;
+
+        /// <summary>Exécutable qui a fait suspendre la capture, s'il y en a un.</summary>
+        public string? ConflitProcessus => _conflitProcessus;
+
+        /// <summary>État lisible par les interfaces : actif, desactive ou conflit.</summary>
+        public string WinDivertStatus
+            => !_settings.WinDivertEnabled ? "desactive"
+             : _conflitProcessus != null ? "conflit"
+             : "actif";
 
         private void CleanupAutoBlockedIps()
         {
@@ -533,6 +664,8 @@ namespace NetMonitor.Service
             _capture?.Dispose();
 
             _evictTimer?.Dispose();
+            _conflitTimer?.Dispose();
+            _conflitTimer = null;
             _evictTimer = null;
 
             _autoBlockCleanupTimer?.Dispose();
@@ -1780,6 +1913,7 @@ namespace NetMonitor.Service
             bool oldGeoEnabled       = _settings.GeoIpEnabled;
             string oldGeoProvider    = _settings.GeoIpProvider;
             bool oldReverseDns       = _settings.ReverseDnsEnabled;
+            bool oldWinDivert        = _settings.WinDivertEnabled;
 
             _settings.Reload();
             _processTrust?.Reload();
@@ -1788,6 +1922,19 @@ namespace NetMonitor.Service
             //  1. Patterns scanners (toujours propagés, pas cher)
             // ============================================================
             _trustedScanners?.UpdatePatterns(_settings.ScannerPatterns);
+
+            // ============================================================
+            //  1 bis. Pilote de capture : coche modifiée depuis l'interface
+            // ============================================================
+            if (oldWinDivert != _settings.WinDivertEnabled)
+            {
+                CoreLog.Info($"[CONFIG] WinDivert : {oldWinDivert} → {_settings.WinDivertEnabled}");
+
+                if (!_settings.WinDivertEnabled)
+                    SuspendreCapture("configuration");
+                else if (_conflitProcessus == null)
+                    ReprendreCapture();
+            }
 
             // ============================================================
             //  2. Ranges Microsoft — reconstruire si toggle ou refreshHours changé

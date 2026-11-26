@@ -43,6 +43,13 @@ namespace NetMonitor.Service
         public bool   BlockBots                     { get; set; } = false;   // Robots officiels
         public bool   BlockCrawlers                 { get; set; } = true;    // Robots génériques
 
+        // --- Pilote de capture (WinDivert) ---
+        // Certains anti-cheats noyau refusent de tourner tant qu un pilote de capture
+        // est chargé : Ricochet bloque Call of Duty. Ces exécutables suspendent la
+        // capture le temps de leur exécution.
+        public bool WinDivertEnabled { get; set; } = true;
+        public string[] DriverConflictProcesses { get; set; } = new[] { "cod.exe" };
+
         // Patterns des robots génériques (Yandex, Baidu...)
         public string[] CrawlerPatterns { get; set; } = new[]
         {
@@ -176,6 +183,8 @@ namespace NetMonitor.Service
                             case "BlockBots"                    : if (bool.TryParse(value, out bool bb)) settings.BlockBots = bb; break;
                             case "BlockCrawlers"                : if (bool.TryParse(value, out bool bc)) settings.BlockCrawlers = bc; break;
                             case "CrawlerPatterns"              : settings.CrawlerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
+                            case "WinDivertEnabled"             : if (bool.TryParse(value, out bool wde)) settings.WinDivertEnabled = wde; break;
+                            case "DriverConflictProcesses"      : settings.DriverConflictProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                         }
                     }
                 }
@@ -290,6 +299,11 @@ namespace NetMonitor.Service
                     $"BlockBots={BlockBots.ToString().ToLower()}",
                     $"BlockCrawlers={BlockCrawlers.ToString().ToLower()}",
                     $"CrawlerPatterns={string.Join(",", CrawlerPatterns)}",
+
+                    "# --- Pilote de capture (WinDivert) ---",
+                    "# Desactive le pilote tant que ces executables tournent (anti-cheats).",
+                    $"WinDivertEnabled={WinDivertEnabled.ToString().ToLower()}",
+                    $"DriverConflictProcesses={string.Join(",", DriverConflictProcesses)}",
                     "",
                     "# --- Fichier Microsoft IP Ranges ---",
                     $"MicrosoftIpRangeEnabled={MicrosoftIpRangeEnabled.ToString().ToLower()}",
@@ -366,6 +380,8 @@ namespace NetMonitor.Service
                             case "BlockBots"                    : if (bool.TryParse(value, out bool bb3)) BlockBots = bb3; break;
                             case "BlockCrawlers"                : if (bool.TryParse(value, out bool bc3)) BlockCrawlers = bc3; break;
                             case "CrawlerPatterns"              : CrawlerPatterns = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;                            
+                            case "WinDivertEnabled"             : if (bool.TryParse(value, out bool wde2)) WinDivertEnabled = wde2; break;
+                            case "DriverConflictProcesses"      : DriverConflictProcesses = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "IgnoredNetworks"              : IgnoredNetworks = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); break;
                             case "DisableFilters"               : if (bool.TryParse(value, out bool df)) DisableFilters = df; break;
                             case "SuspiciousRemotePorts"        : if (value.Contains(',')) { var ports = value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries); if (ports.Length > 0) SuspiciousRemotePorts = Array.ConvertAll(ports, int.Parse); } break;

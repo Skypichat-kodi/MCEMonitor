@@ -29,6 +29,9 @@ namespace NetMonitor.Tray
         private System.Media.SoundPlayer? _warningPlayer;    
 
         private string _currentSeverity = "";
+
+        /// <summary>Exécutable affiché comme responsable d'un conflit de pilote.</summary>
+        private string? _conflitAffiche;
         private int _startupCheckCount = 0;
         private int _watchdogMisses = 0;
 
@@ -167,8 +170,42 @@ namespace NetMonitor.Tray
         {
             try
             {
-                string? severity = GetWorstSeverity();
-                if (severity == null) return;
+                var statut = GetStatus();
+                if (statut == null) return;
+
+                // --- Conflit de pilote : prioritaire sur la sévérité ---
+                // Un anti-cheat a fait suspendre la capture. L'utilisateur doit savoir
+                // pourquoi la surveillance est muette, sinon il croira à une panne.
+                string? conflitActuel = statut.WinDivert == "conflit" ? statut.Conflit : null;
+
+                if (conflitActuel != _conflitAffiche)
+                {
+                    _conflitAffiche = conflitActuel;
+
+                    if (conflitActuel != null)
+                    {
+                        string texte = $"NetMonitor - Capture suspendue ({conflitActuel})";
+                        if (texte.Length > 63) texte = texte.Substring(0, 63);   // limite Windows
+
+                        trayIcon.Icon = _warningIcon ?? _defaultIcon;
+                        trayIcon.Text = texte;
+                        PlayWarningAlarm();
+
+                        CoreLog.Info($"[CONFLIT] {conflitActuel} : capture suspendue, pilote déchargé");
+                    }
+                    else
+                    {
+                        CoreLog.Info("[CONFLIT] terminé : capture relancée");
+
+                        // Forcer la réévaluation : l'icône doit reprendre son état.
+                        _currentSeverity = "";
+                    }
+                }
+
+                // Pendant un conflit, l'icône reste celle de l'avertissement.
+                if (_conflitAffiche != null) return;
+
+                string severity = statut.Severity;
                 if (severity == _currentSeverity) return;
 
                 if (trayIcon != null && trayIcon.Visible)
@@ -323,6 +360,14 @@ namespace NetMonitor.Tray
 
         private string? GetWorstSeverity()
         {
+            return GetStatus()?.Severity;
+        }
+
+        /// <summary>État lu au service : sévérité, état du pilote et exécutable en conflit.</summary>
+        private sealed record StatutTray(string Severity, string WinDivert, string Conflit);
+
+        private StatutTray? GetStatus()
+        {
             try
             {
                 using var client = new NamedPipeClientStream(".", PIPE_NAME, PipeDirection.InOut);
@@ -340,10 +385,21 @@ namespace NetMonitor.Tray
                 string json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                 using var doc = JsonDocument.Parse(json);
 
-                if (doc.RootElement.TryGetProperty("worstSeverity", out var sev))
-                    return sev.GetString() ?? "ok";
+                string severity = doc.RootElement.TryGetProperty("worstSeverity", out var sev)
+                    ? sev.GetString() ?? "ok"
+                    : "ok";
 
-                return "ok";
+                // Champs ajoutés avec la surveillance des conflits : un service plus
+                // ancien ne les publie pas, et le Tray doit continuer de fonctionner.
+                string winDivert = doc.RootElement.TryGetProperty("winDivert", out var wd)
+                    ? wd.GetString() ?? ""
+                    : "";
+
+                string conflit = doc.RootElement.TryGetProperty("winDivertConflit", out var wc)
+                    ? wc.GetString() ?? ""
+                    : "";
+
+                return new StatutTray(severity, winDivert, conflit);
             }
             catch
             {

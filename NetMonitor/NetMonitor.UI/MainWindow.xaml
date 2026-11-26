@@ -2680,6 +2680,45 @@
                                 </StackPanel>
                             </Border>
 
+                            <!-- Pilote de capture -->
+                            <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
+                                <StackPanel>
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,5">
+                                        <TextBlock Text="🎮" FontSize="16" Margin="0,0,8,0"
+                                                   VerticalAlignment="Center"/>
+                                        <TextBlock Text="{loc:Tr 'Pilote de capture (WinDivert)'}" FontSize="14"
+                                                   FontWeight="Bold" Foreground="{StaticResource Accent}"
+                                                   VerticalAlignment="Center"/>
+                                    </StackPanel>
+
+                                    <TextBlock Style="{StaticResource DescriptionText}"
+                                               Text="{loc:Tr 'Certains anti-cheats refusent de tourner tant qu un pilote de capture est chargé : Ricochet bloque Call of Duty. La capture est suspendue pendant l exécution des programmes listés ci-dessous, puis relancée.'}"/>
+
+                                    <CheckBox x:Name="chkWinDivert"
+                                              Content="{loc:Tr 'Activer le pilote de capture (WinDivert)'}"
+                                              Foreground="{StaticResource Texte}"
+                                              Margin="0,0,0,14"/>
+
+                                    <TextBlock Text="{loc:Tr 'Exécutables en conflit (un par ligne) :'}"
+                                               Margin="0,0,0,6"/>
+
+                                    <TextBox x:Name="txtDriverConflicts"
+                                             Height="72"
+                                             AcceptsReturn="True"
+                                             TextWrapping="NoWrap"
+                                             VerticalScrollBarVisibility="Auto"
+                                             FontFamily="Consolas"
+                                             Background="{StaticResource Fond}"
+                                             Foreground="{StaticResource Texte}"
+                                             BorderBrush="{StaticResource Bordure}"/>
+
+                                    <TextBlock Text="{loc:Tr 'Exemple : cod.exe — Call of Duty (Ricochet).'}"
+                                               FontSize="11"
+                                               Foreground="{StaticResource TexteSecondaire}"
+                                               Margin="0,6,0,0"/>
+                                </StackPanel>
+                            </Border>
+
                             <!-- Beaconing -->
                             <Border Style="{StaticResource CardBorder}" Margin="0,0,0,15">
                                 <StackPanel>
@@ -3696,6 +3735,19 @@
                                Foreground="{StaticResource TexteSecondaire}"
                                VerticalAlignment="Center"
                                ToolTip="{loc:Tr 'État de la géolocalisation'}"/>
+
+                    <!-- État du pilote de capture : vert quand la capture tourne,
+                         gris quand elle est désactivée, orange pendant un conflit. -->
+                    <Ellipse x:Name="WinDivertDot"
+                             Width="12" Height="12" Fill="Gray"
+                             Margin="18,0,6,0" VerticalAlignment="Center"
+                             ToolTip="{loc:Tr 'État du pilote de capture'}"/>
+                    <TextBlock x:Name="WinDivertText"
+                               Text="WinDivert"
+                               FontSize="11"
+                               Foreground="{StaticResource TexteSecondaire}"
+                               VerticalAlignment="Center"
+                               ToolTip="{loc:Tr 'État du pilote de capture'}"/>
                 </StackPanel>
 
                 <!-- Signalé seulement quand l'actualisation automatique est en pause :

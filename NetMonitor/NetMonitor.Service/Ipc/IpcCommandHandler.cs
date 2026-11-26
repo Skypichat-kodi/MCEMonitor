@@ -348,7 +348,9 @@ namespace NetMonitor.Service.Ipc
                 lastUpdate = _engine.LastUpdateTime,
                 worstSeverity = _engine.WorstSeverity,
                 alertCount = _engine.GetAlerts().Count,
-                connectionCount = _engine.GetRecentConnections(1000).Count
+                connectionCount = _engine.GetRecentConnections(1000).Count,
+                winDivert = _engine.WinDivertStatus,
+                winDivertConflit = _engine.ConflitProcessus ?? ""
             });
         }
 
@@ -480,6 +482,10 @@ namespace NetMonitor.Service.Ipc
                 blockBots                       = _settings.BlockBots,
                 blockCrawlers                   = _settings.BlockCrawlers,
                 crawlerPatterns                 = _settings.CrawlerPatterns,
+
+                // Pilote de capture
+                winDivertEnabled                = _settings.WinDivertEnabled,
+                driverConflictProcesses         = _settings.DriverConflictProcesses,
 
                 // Scanners de recherche (Trusted)
                 scannerPatterns          = _settings.ScannerPatterns,

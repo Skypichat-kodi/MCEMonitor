@@ -211,6 +211,13 @@ namespace NetMonitor.UI
 
         private readonly DispatcherTimer    _refreshTimer           = null!;
         private bool                        _isRefreshing           = false;
+
+        /// <summary>
+        /// Vert commun aux trois pastilles de la barre d'état — service, GeoIP et
+        /// pilote. Une seule définition, pour qu'elles ne divergent plus.
+        /// </summary>
+        private static readonly SolidColorBrush VertStatut =
+            new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F));
         private DateTime                    _lastConfigWriteTime    = DateTime.MinValue;
         private long                        _lastConfigSize         = -1;
         private bool                        _loadingWebConfig       = false;
@@ -393,6 +400,43 @@ namespace NetMonitor.UI
         /// quand le quota de l'API est épuisé, grise quand la géolocalisation est
         /// désactivée. L'infobulle donne la reprise ou le nombre d'IP en cache.
         /// </summary>
+        // ------------------------------------------------------------
+        //  Indicateur WinDivert
+        // ------------------------------------------------------------
+
+        /// <summary>
+        /// Pastille du pilote de capture, à la suite de celle de GeoIP : verte quand
+        /// la capture tourne, grise quand elle est désactivée, orange pendant un
+        /// conflit avec un anti-cheat.
+        /// </summary>
+        private void RafraichirIndicateurWinDivert(NetStatus status)
+        {
+            switch (status.winDivert)
+            {
+                case "actif":
+                    WinDivertDot.Fill = VertStatut;
+                    WinDivertText.ToolTip = LanguageManager.Get("Capture par pilote active") ?? "Capture par pilote active";
+                    break;
+
+                case "conflit":
+                    WinDivertDot.Fill = Brushes.Orange;
+                    WinDivertText.ToolTip =
+                        (LanguageManager.Get("Capture suspendue — conflit avec") ?? "Capture suspendue — conflit avec")
+                        + " " + status.winDivertConflit;
+                    break;
+
+                case "desactive":
+                    WinDivertDot.Fill = Brushes.Gray;
+                    WinDivertText.ToolTip = LanguageManager.Get("Pilote de capture désactivé") ?? "Pilote de capture désactivé";
+                    break;
+
+                default:
+                    WinDivertDot.Fill = Brushes.Gray;
+                    WinDivertText.ToolTip = LanguageManager.Get("État du pilote de capture") ?? "État du pilote de capture";
+                    break;
+            }
+        }
+
         private async Task RafraichirGeoIpAsync()
         {
             var statut = await NetMonitorIpcClient.GetGeoIpStatusAsync();
@@ -422,7 +466,7 @@ namespace NetMonitor.UI
                 return;
             }
 
-            GeoIpDot.Fill = Brushes.LimeGreen;
+            GeoIpDot.Fill = VertStatut;
             GeoIpText.ToolTip = string.Format(LanguageManager.Get("Résolutions actives — {0} IP en cache")
                                               ?? "Résolutions actives — {0} IP en cache", statut.cached);
         }
@@ -455,12 +499,14 @@ namespace NetMonitor.UI
                 else
                 {
                     StatusDot.Fill = status.running
-                        ? new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F))
+                        ? VertStatut
                         : new SolidColorBrush(Colors.Orange);
 
                     StatusText.Text = status.running
                         ? $"Surveillance active  |  {_activeIntrusions.Count} active(s)  |  {_blockedIps.Count} bloquée(s)"
                         : "Surveillance arrêtée";
+
+                    RafraichirIndicateurWinDivert(status);
                 }
 
                 // ---- Problèmes persistants signalés par le service ----
@@ -1744,6 +1790,9 @@ namespace NetMonitor.UI
                     chkMicrosoftIpRange.IsChecked           = true;
                     txtMicrosoftIpRangeRefreshHours.Text    = "24";                                     
 
+                    chkWinDivert.IsChecked                  = true;
+                    txtDriverConflicts.Text                 = "cod.exe";
+
                     return;
                 }
 
@@ -1802,6 +1851,11 @@ namespace NetMonitor.UI
                 GridWhitelistPatterns.ItemsSource = (cfg.whitelistPatterns ?? Array.Empty<string>())
                     .Select(x => new PatternRow { Value = x })
                     .ToList();
+
+                // --- Pilote de capture ---
+                chkWinDivert.IsChecked   = cfg.winDivertEnabled;
+                txtDriverConflicts.Text  = string.Join(Environment.NewLine,
+                    cfg.driverConflictProcesses ?? Array.Empty<string>());
             }
             catch (Exception ex)
             {
@@ -1948,6 +2002,16 @@ namespace NetMonitor.UI
                     // --- Filtres Microsoft ---
                     ["MicrosoftIpRangeEnabled"]      = (chkMicrosoftIpRange.IsChecked == true).ToString().ToLower(),
                     ["MicrosoftIpRangeRefreshHours"] = txtMicrosoftIpRangeRefreshHours.Text.Trim(),
+
+                    // --- Pilote de capture ---
+                    // La liste est saisie une entrée par ligne ; le fichier attend une
+                    // liste séparée par des virgules.
+                    ["WinDivertEnabled"] = (chkWinDivert.IsChecked == true).ToString().ToLower(),
+                    ["DriverConflictProcesses"] = string.Join(",",
+                        txtDriverConflicts.Text
+                            .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                            .Select(x => x.Trim())
+                            .Where(x => x.Length > 0)),
 
                     // --- Filtres réseau ---
                     ["IgnoredNetworks"] = string.Join(",", ignoredNetworks),
@@ -3325,7 +3389,7 @@ namespace NetMonitor.UI
 
         private void ClearBusy()
         {
-            StatusDot.Fill = new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F)); // vert
+            StatusDot.Fill = VertStatut; // vert
             // Le prochain RefreshSafe réécrira StatusText de toute façon
         }
 

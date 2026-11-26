@@ -20,6 +20,12 @@ namespace NetMonitor.UI
         public string worstSeverity { get; set; } = "ok";
         public int alertCount { get; set; }
         public int connectionCount { get; set; }
+
+        /// <summary>actif, desactive ou conflit.</summary>
+        public string winDivert { get; set; } = "";
+
+        /// <summary>Exécutable qui a fait suspendre la capture, s'il y en a un.</summary>
+        public string winDivertConflit { get; set; } = "";
     }
 
     public class NetAlert
@@ -97,6 +103,10 @@ namespace NetMonitor.UI
         public string[] safePatterns            { get; set; } = Array.Empty<string>();
         public string[] criticalPatterns        { get; set; } = Array.Empty<string>();
         public string[] crawlerPatterns         { get; set; } = Array.Empty<string>();
+
+        // Pilote de capture
+        public bool winDivertEnabled            { get; set; } = true;
+        public string[] driverConflictProcesses { get; set; } = Array.Empty<string>();
         public string[] whitelistPatterns       { get; set; } = Array.Empty<string>();
     }
 
