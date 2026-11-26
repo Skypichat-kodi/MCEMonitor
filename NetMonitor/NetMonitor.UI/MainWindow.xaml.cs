@@ -218,6 +218,13 @@ namespace NetMonitor.UI
         /// </summary>
         private static readonly SolidColorBrush VertStatut =
             new SolidColorBrush(Color.FromRgb(0x6C, 0xCB, 0x5F));
+
+        /// <summary>
+        /// Ambre des alertes, déjà employé par les titres d'avertissement de
+        /// l'interface : la pastille d'un conflit de pilote prend la même teinte.
+        /// </summary>
+        private static readonly SolidColorBrush OrangeAlerte =
+            new SolidColorBrush(Color.FromRgb(0xFF, 0xB9, 0x00));
         private DateTime                    _lastConfigWriteTime    = DateTime.MinValue;
         private long                        _lastConfigSize         = -1;
         private bool                        _loadingWebConfig       = false;
@@ -419,7 +426,7 @@ namespace NetMonitor.UI
                     break;
 
                 case "conflit":
-                    WinDivertDot.Fill = Brushes.Orange;
+                    WinDivertDot.Fill = OrangeAlerte;
                     WinDivertText.ToolTip =
                         (LanguageManager.Get("Capture suspendue — conflit avec") ?? "Capture suspendue — conflit avec")
                         + " " + status.winDivertConflit;
