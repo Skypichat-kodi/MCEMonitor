@@ -1871,6 +1871,25 @@ namespace NetMonitor.UI
         }
 
         /// <summary>
+        /// Commentaires d'en-tête pour les clés que l'interface peut être amenée à
+        /// ajouter. Sans eux, une clé nouvelle atterrit en fin de fichier, collée au
+        /// bloc voisin et sans explication.
+        ///
+        /// L'en-tête est posé sur la première clé du groupe, et seulement si celle-ci
+        /// manque au fichier.
+        /// </summary>
+        private static readonly Dictionary<string, string[]> CommentairesSections =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ["WinDivertEnabled"] = new[]
+                {
+                    "",
+                    "# --- Pilote de capture (WinDivert) ---",
+                    "# Desactive le pilote tant que ces executables tournent (anti-cheats)."
+                }
+            };
+
+        /// <summary>
         /// Fusionne les modifications dans le fichier de config existant.
         ///
         /// Comportement :
@@ -1925,10 +1944,12 @@ namespace NetMonitor.UI
             // Ajouter les clés qui n'existaient pas encore
             foreach (var kv in updates)
             {
-                if (!keysWritten.Contains(kv.Key))
-                {
-                    lines.Add($"{kv.Key}={kv.Value}");
-                }
+                if (keysWritten.Contains(kv.Key)) continue;
+
+                if (CommentairesSections.TryGetValue(kv.Key, out var entete))
+                    lines.AddRange(entete);
+
+                lines.Add($"{kv.Key}={kv.Value}");
             }
 
             File.WriteAllLines(configPath, lines);
