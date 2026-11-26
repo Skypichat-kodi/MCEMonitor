@@ -96,6 +96,53 @@ _(rien)_
 
 ### 🟡 Planifié
 
+- [ ] **Accès distant HTTPS — onglet et passerelle** *(étudié le 2026-11-26)*
+  - **Objectif** : joindre les modules depuis n importe quel navigateur en HTTPS reconnu, sans certificat à
+    installer sur les clients. Aujourd hui l accès passe par un DDNS (Afraid.net) et du HTTP en clair
+  - **Pas d IP fixe nécessaire** : un certificat lie un nom, jamais une adresse. Le DDNS continue de tenir
+    l enregistrement A, le certificat s en moque
+  - **Validation par DNS-01** : le certificat s obtient sans ouvrir aucun port, et un wildcard
+    `*.mondomaine.fr` couvre tous les modules — y compris ceux qui n existent pas encore. Le HTTP-01 exigerait
+    le port 80 joignable, que beaucoup de box filtrent
+
+  **Architecture retenue** — `lego` pour les certificats, Caddy standard en façade :
+
+      navigateur → https://net.mondomaine.fr  (443, Caddy)
+                 → https://rom.mondomaine.fr
+                          ↓ HTTP local, inchangé
+                   NetMonitor 14003 · RomMonitor · MediaMonitor
+
+  - **aucune modification des quatre serveurs** : ils restent en HTTP sur localhost, Caddy termine le TLS
+  - `lego` plutôt que le module DNS de Caddy : Caddy demande **un module recompilé par fournisseur**, alors
+    que `lego` est **un seul binaire** qui parle à une centaine de fournisseurs
+  - **piège vérifié** : Caddy ne recharge pas un certificat chargé depuis un fichier quand celui-ci change
+    (« we only reload manual certs when you reload the config »). Le renouvellement doit donc enchaîner
+    `lego renew` puis `caddy reload`
+
+  **Onglet « Accès distant » dans MCEMonitor.UI** :
+  - **Domaine** : nom racine, sous-domaines par module, état de la résolution DNS
+  - **Certificat** : liste déroulante de fournisseurs, **champs générés selon le choix** (un jeton pour
+    Infomaniak, trois clés pour OVH, deux pour Namecheap…), valeurs chiffrées en DPAPI comme le mot de passe
+    SMTP, et injectées en variables d environnement — jamais en ligne de commande, où elles seraient visibles
+    dans la liste des processus. Email ACME, émetteur, expiration, jours restants, bouton d obtention
+  - **Passerelle** : état du processus Caddy, port d écoute, redirection 80 → 443, démarrage et arrêt
+  - **Diagnostic** : DNS résolu ? 443 joignable ? certificat valide ? dernières lignes du journal ACME
+  - **Extensible** : ajouter un fournisseur = une entrée dans la table (identifiant `lego`, champs, liens
+    d aide), sans recompiler quoi que ce soit
+
+  **À garder en tête** :
+  - les durées de certificat fondent — 90 jours aujourd hui, 64 en février 2027, 45 en 2028, avec une option
+    à 6 jours déjà disponible. Le renouvellement doit être irréprochable, et le rechargement à chaud avec
+  - dépendance nouvelle : un binaire `lego` et un binaire `Caddy` dans l installeur, comme WinDivert. Pas de
+    pilote noyau, mais deux composants tiers à suivre
+  - exposition publique : vérifier la robustesse des logins par module (déjà protégés par mot de passe et
+    OTP), et ajouter HSTS
+
+  **Découpage** : 1) onglet et stockage chiffré ; 2) obtention et renouvellement par `lego` + tâche
+  planifiée ; 3) passerelle Caddy et sous-domaines ; 4) diagnostic et finitions. Compter plusieurs jours,
+  l essentiel du travail étant l interface et la supervision, pas le TLS lui-même
+  - **Priorité** : 🟡 moyenne
+
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
   - Relevé du 2026-11-25 : 116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` ; 51 ont des
     accents **dans des chaînes** (messages de journal, textes d interface)
