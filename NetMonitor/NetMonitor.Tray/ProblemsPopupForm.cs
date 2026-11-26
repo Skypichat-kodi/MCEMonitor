@@ -17,12 +17,12 @@ namespace NetMonitor.Tray
         private const int PopupWidth = 340;
         private const int MaxProblemsShown = 5;
 
-        public ProblemsPopupForm(List<ProblemInfo> problems)
+        public ProblemsPopupForm(List<ProblemInfo> problems, string? conflitPilote = null)
         {
-            InitializeUI(problems);
+            InitializeUI(problems, conflitPilote);
         }
 
-        private void InitializeUI(List<ProblemInfo> problems)
+        private void InitializeUI(List<ProblemInfo> problems, string? conflitPilote)
         {
             // ------------------------------------------------------------
             //  Paramètres de la fenêtre
@@ -72,6 +72,41 @@ namespace NetMonitor.Tray
             };
             this.Controls.Add(sep1);
             y += 10;
+
+            // ------------------------------------------------------------
+            //  Conflit de pilote : la capture est suspendue le temps qu'un
+            //  anti-cheat tourne. Sans cette ligne, la popup n'aurait aucun
+            //  problème à montrer et laisserait croire que tout va bien.
+            // ------------------------------------------------------------
+            if (!string.IsNullOrWhiteSpace(conflitPilote))
+            {
+                var lblConflit = new Label
+                {
+                    Text = $"⏸ {LanguageManager.Get("Capture suspendue") ?? "Capture suspendue"} — {conflitPilote}",
+                    ForeColor = Color.FromArgb(255, 185, 0),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(15, y),
+                    Size = new Size(PopupWidth - 30, 20),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    AutoEllipsis = true
+                };
+                this.Controls.Add(lblConflit);
+                y += 19;
+
+                var lblDetail = new Label
+                {
+                    Text = LanguageManager.Get("Pilote déchargé pour laisser passer le jeu.")
+                           ?? "Pilote déchargé pour laisser passer le jeu.",
+                    ForeColor = Color.FromArgb(150, 150, 150),
+                    Font = new Font("Segoe UI", 8.5F, FontStyle.Italic),
+                    Location = new Point(15, y),
+                    Size = new Size(PopupWidth - 30, 18),
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    AutoEllipsis = true
+                };
+                this.Controls.Add(lblDetail);
+                y += 14;
+            }
 
             // ------------------------------------------------------------
             //  Liste des problèmes (max 5)

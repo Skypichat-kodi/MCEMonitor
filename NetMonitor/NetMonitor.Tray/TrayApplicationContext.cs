@@ -581,8 +581,12 @@ namespace NetMonitor.Tray
         {
             try
             {
+                // L'état peut avoir changé depuis le dernier passage du minuteur :
+                // on le relit pour que la popup dise la vérité à l'instant où elle s ouvre.
+                CheckSeverity();
+
                 var problems = GetProblems();
-                var popup = new ProblemsPopupForm(problems);
+                var popup = new ProblemsPopupForm(problems, _conflitAffiche);
 
                 popup.OnOpenNetMonitor += () => OpenNetMonitorUI();
                 popup.OnOpenMCEMonitor += () => OpenMCEMonitor();
