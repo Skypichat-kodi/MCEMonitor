@@ -28,6 +28,9 @@ namespace NetMonitor.Service.Capture
         private readonly string _filter;
         private readonly ChannelWriter<RawPacket> _writer;
         private readonly CancellationTokenSource _cts = new();
+
+        /// <summary>Arrêt déjà effectué : Stop() puis Dispose() ne ferment qu'une fois.</summary>
+        private bool _arrete;
         private Task? _captureTask;
         private IntPtr _handle = IntPtr.Zero;
 
@@ -173,6 +176,12 @@ namespace NetMonitor.Service.Capture
 
         public void Stop()
         {
+            // Stop() est appelé par l'arrêt du moteur, puis de nouveau par Dispose().
+            // Sans cette garde, chaque transition ferme deux fois et lance deux
+            // processus « sc stop » pour la même chose.
+            if (_arrete) return;
+            _arrete = true;
+
             _cts.Cancel();
             if (_handle != IntPtr.Zero)
             {
@@ -218,8 +227,7 @@ namespace NetMonitor.Service.Capture
             }
         }
 
-        public void Dispose() { Stop(); _cts.Dispose(); }
-    }
+        public void Dispose() { Stop(); _cts.Dispose(); }    }
 
     public record RawPacket(byte[] Data, DateTime Timestamp);
 }
