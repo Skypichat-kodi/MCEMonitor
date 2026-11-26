@@ -92,20 +92,7 @@ _(rien)_
 
 ### 🔴 Échéance datée
 
-- [ ] **Surveiller les conflits de pilote (WinDivert)** — *demandé le 2026-11-25, urgent*
-  - Ricochet, l anti-cheat de Call of Duty, refuse de tourner tant qu un pilote de capture est chargé :
-    `WinDivert64.sys` empêche le jeu de démarrer, même NetMonitor fermé. Le pilote est désormais déchargé à
-    l arrêt (`20c1b57`), mais on veut que le conflit soit géré tout seul
-  - **Réglage** : liste noire d exécutables dans les paramètres de NetMonitor.UI, `cod.exe` par défaut —
-    même mécanisme que `CrawlerPatterns` (tableau de chaînes en CSV dans `NetMonitor.config`)
-  - **Surveillance** : dans le moteur, toutes les trois secondes, comparaison des processus en cours aux
-    noms de la liste (insensible à la casse)
-  - **À la détection** : capture arrêtée, pilote déchargé, et le Tray prévient — **réutiliser les
-    notifications existantes du Tray**, sans nouvel icône ni nouveau mécanisme
-  - **À la disparition** : capture recréée, pilote rechargé (`Stop()` annule le jeton, il faut donc
-    réinstancier `PacketCaptureService`)
-  - **Hors périmètre** : rien à signaler côté clients — page web et Android inchangées
-  - **Priorité** : 🔴 urgente
+_(rien)_
 
 ### 🟡 Planifié
 
@@ -135,7 +122,7 @@ _(rien)_
   - **Priorité** : 🟢 basse
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 103 clés) et `en-GB` (1 104 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 117 clés) et `en-GB` (1 118 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -151,6 +138,59 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-26 — WinDivert, Ricochet et Call of Duty
+
+**Le symptôme.** Call of Duty refusait de démarrer. Ricochet, son anti-cheat noyau, ne tourne pas tant
+qu un pilote de capture réseau est chargé — la documentation d OpenNetLimit, qui embarque le même
+WinDivert, le dit noir sur blanc [1]. Le précédent GoodbyeDPI est identique : les joueurs devaient
+supprimer le service, pas seulement l arrêter. Or fermer NetMonitor laissait `WinDivert64.sys` en
+mémoire jusqu au redémarrage.
+
+**Trois défauts se cumulaient**, et le troisième était la cause première.
+
+- le pilote : `WinDivertClose` ferme le handle mais laisse le service noyau en place. `PacketCaptureService.Stop()`
+  lance désormais `sc stop WinDivert`, avec un délai court — ce code tourne dans le cleanup, qui ne
+  dispose que de deux secondes
+- le superviseur : MCEMonitor arrête ses modules par `Process.Kill`, qui ne laisse aucune chance au
+  service d exécuter son propre nettoyage. La décharge est donc aussi déclenchée côté MCEMonitor
+- la communication surtout : le Tray écrivait `shutdown` dans un tube ouvert **en écriture seule**, puis
+  le refermait aussitôt. Le service répondait — `Pipe is broken` —, l exception sortait du handler
+  **avant** la ligne qui planifie `Environment.Exit`, et le service ne s arrêtait donc jamais proprement.
+  Le Tray le tuait cinq secondes plus tard. L arrêt est maintenant planifié avant la réponse, l écriture
+  protégée, et le Tray ouvre le tube en lecture-écriture. Ce défaut existait depuis toujours : tout le
+  nettoyage d arrêt (fermeture de la capture, disposition de GeoIP) était silencieusement sauté
+
+**La gestion du conflit.** Une liste d exécutables surveillée par le service rend la chose automatique :
+
+- réglages `WinDivertEnabled` (défaut vrai) et `DriverConflictProcesses` (défaut `cod.exe`), même
+  mécanisme que `CrawlerPatterns`, modifiables à chaud
+- toutes les trois secondes, les processus en cours sont comparés à la liste. Au premier conflit la
+  capture est arrêtée et le pilote déchargé ; à la disparition du processus elle est reconstruite —
+  `Stop()` annulant le jeton et fermant le canal, il faut réinstancier `PacketCaptureService`
+- un module « Pilote de capture (WinDivert) » dans les Règles porte la coche et la liste, une entrée par
+  ligne
+- une pastille dans la barre d état, après celle de GeoIP : verte quand la capture tourne, ambre pendant
+  un conflit, grise quand le pilote est désactivé
+- le Tray prévient avec ses moyens existants — icône d avertissement, infobulle « Capture suspendue
+  (cod.exe) », son déjà en place. Aucun mécanisme nouveau. La lecture tolère l absence des champs, pour
+  qu un Tray à jour fonctionne avec un service plus ancien
+
+**Finitions.** Le vert des trois pastilles était écrit trois fois avec deux teintes : une constante
+`VertStatut` désormais. L ambre du conflit suit celui des titres d alerte (`#FFB900`) plutôt qu un orange
+vif étranger à l interface. `Stop()` appelé par `Dispose()` fermait deux fois et lançait deux `sc stop` :
+une garde règle cela. Enfin, les clés ajoutées au fichier de configuration portent leur commentaire de
+section, au lieu d échouer collées sous le bloc voisin.
+
+**Vérifié en conditions réelles** : quinze minutes de Call of Duty avec le pilote déchargé et le Tray en
+avertissement, puis reprise automatique à la fermeture du jeu — journal à l appui, pilote `RUNNING` de
+nouveau, `cod.exe` disparu.
+
+**Commits** : `20c1b57` (décharge du pilote), `8df298a` (surveillance des conflits), `de05040` (ambre),
+`c4b7e74` (double arrêt), `af849cc` (commentaires de section).
+
+[1] OpenNetLimit : « Some kernel anti-cheat systems, Riot Vanguard and Call of Duty s Ricochet among
+them, won t run while any packet driver is loaded ». Même constat documenté pour GoodbyeDPI.
 
 ### Session 2026-11-25 (publication) — version 3.1.0 et consolidation des notes
 
