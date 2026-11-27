@@ -2422,15 +2422,8 @@ namespace MCEMonitor.UI
         {
             try
             {
-                if (cmbHttpsFournisseur.Items.Count == 0)
-                {
-                    cmbHttpsFournisseur.Items.Add("Infomaniak");
-                    cmbHttpsFournisseur.Items.Add("Cloudflare");
-                    cmbHttpsFournisseur.Items.Add("OVH");
-                    cmbHttpsFournisseur.Items.Add("Gandi");
-                    cmbHttpsFournisseur.Items.Add("Namecheap");
-                    cmbHttpsFournisseur.SelectedIndex = 0;
-                }
+                cmbHttpsFournisseur.ItemsSource = Partage.FournisseursDns.Tous;
+                cmbHttpsFournisseur.DisplayMemberPath = "Nom";
 
                 var config = Partage.HttpsConfig.Charger();
 
@@ -2442,18 +2435,82 @@ namespace MCEMonitor.UI
                 txtHttpsSousMedia.Text      = config.SousMediaMonitor;
                 txtHttpsEmail.Text          = config.Email;
                 txtHttpsPort.Text           = config.Port.ToString();
-                txtHttpsJeton.Text          = config.Jeton;
 
-                if (!string.IsNullOrEmpty(config.Fournisseur) &&
-                    cmbHttpsFournisseur.Items.Contains(config.Fournisseur))
-                    cmbHttpsFournisseur.SelectedItem = config.Fournisseur;
+                cmbHttpsFournisseur.SelectedItem = Partage.FournisseursDns.ParId(config.Fournisseur);
+                _identifiantsDns = config.Identifiants ?? new Dictionary<string, string>();
 
+                AfficherChampsFournisseur();
                 AppliquerGrisageHttps();
             }
             catch (Exception ex)
             {
                 CoreLog.Error("HTTPS", $"ChargerConfigHttps : {ex.Message}");
             }
+        }
+
+        /// <summary>Identifiants saisis, indexés par variable d'environnement.</summary>
+        private Dictionary<string, string> _identifiantsDns = new();
+
+        /// <summary>Zones de saisie du fournisseur courant, pour relire les valeurs.</summary>
+        private readonly Dictionary<string, TextBox> _champsDns = new();
+
+        private void CmbHttpsFournisseur_Changed(object sender, SelectionChangedEventArgs e)
+            => AfficherChampsFournisseur();
+
+        /// <summary>
+        /// Reconstruit les champs selon le fournisseur choisi : un jeton pour
+        /// Cloudflare, trois clés pour OVH, deux pour Namecheap. Les valeurs déjà
+        /// saisies sont conservées d un fournisseur à l autre.
+        /// </summary>
+        private void AfficherChampsFournisseur()
+        {
+            // Mémoriser ce qui est affiché avant de le remplacer.
+            EnregistrerChampsAffiches();
+
+            PanneauChampsDns.Children.Clear();
+            _champsDns.Clear();
+
+            if (cmbHttpsFournisseur.SelectedItem is not Partage.FournisseurDns fournisseur)
+                return;
+
+            foreach (var champ in fournisseur.Champs)
+            {
+                var grille = new Grid { Margin = new Thickness(0, 0, 0, 8) };
+                grille.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(180) });
+                grille.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(320) });
+                grille.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+
+                var libelle = new TextBlock
+                {
+                    Text = LanguageManager.Get(champ.Libelle) ?? champ.Libelle,
+                    Style = (Style)FindResource("Libelle"),
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Margin = new Thickness(0)
+                };
+                Grid.SetColumn(libelle, 0);
+
+                var boite = new TextBox
+                {
+                    Style = (Style)FindResource("ChampParametre"),
+                    Text = _identifiantsDns.TryGetValue(champ.Cle, out var valeur) ? valeur : champ.Defaut
+                };
+                Grid.SetColumn(boite, 1);
+
+                grille.Children.Add(libelle);
+                grille.Children.Add(boite);
+                PanneauChampsDns.Children.Add(grille);
+
+                _champsDns[champ.Cle] = boite;
+            }
+
+            txtHttpsAide.Text = fournisseur.Aide;
+        }
+
+        /// <summary>Reporte les valeurs affichées dans le dictionnaire d identifiants.</summary>
+        private void EnregistrerChampsAffiches()
+        {
+            foreach (var (cle, boite) in _champsDns)
+                _identifiantsDns[cle] = boite.Text.Trim();
         }
 
         private void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
@@ -2491,15 +2548,17 @@ namespace MCEMonitor.UI
                     SousRomMonitor    = txtHttpsSousRom.Text.Trim(),
                     SousSystemMonitor = txtHttpsSousSystem.Text.Trim(),
                     SousMediaMonitor  = txtHttpsSousMedia.Text.Trim(),
-                    Fournisseur       = cmbHttpsFournisseur.SelectedItem?.ToString() ?? "Infomaniak",
+                    Fournisseur       = (cmbHttpsFournisseur.SelectedItem as Partage.FournisseurDns)?.Id ?? "cloudflare",
                     Email             = txtHttpsEmail.Text.Trim(),
-                    Jeton             = txtHttpsJeton.Text.Trim(),
                     Port              = port
                 };
 
+                EnregistrerChampsAffiches();
+                config.Identifiants = new Dictionary<string, string>(_identifiantsDns);
+
                 config.Enregistrer();
 
-                CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, domaine={config.Domaine})");
+                CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, fournisseur={config.Fournisseur}, domaine={config.Domaine})");
 
                 Boite.Show(this,
                     LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",

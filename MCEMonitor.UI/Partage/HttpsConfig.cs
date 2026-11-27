@@ -31,12 +31,16 @@ namespace MCEMonitor.UI.Partage
         public string SousSystemMonitor { get; set; } = "";
         public string SousMediaMonitor  { get; set; } = "";
 
-        public string Fournisseur { get; set; } = "Infomaniak";
+        public string Fournisseur { get; set; } = "cloudflare";
         public string Email       { get; set; } = "";
         public int    Port        { get; set; } = 443;
 
-        /// <summary>Jeton d'API en clair. Jamais écrit tel quel sur disque.</summary>
-        public string Jeton { get; set; } = "";
+        /// <summary>
+        /// Valeurs saisies pour les champs du fournisseur, indexées par nom de
+        /// variable d'environnement (CLOUDFLARE_DNS_API_TOKEN, OVH_APPLICATION_KEY…).
+        /// Elles sont secrètes : chiffrées en bloc sur disque.
+        /// </summary>
+        public Dictionary<string, string> Identifiants { get; set; } = new();
 
         // ============================================================
         //  Lecture / écriture
@@ -71,7 +75,7 @@ namespace MCEMonitor.UI.Partage
                         case "Fournisseur":             config.Fournisseur = valeur; break;
                         case "Email":                   config.Email = valeur; break;
                         case "Port":                    if (int.TryParse(valeur, out int p)) config.Port = p; break;
-                        case "Jeton":                   config.Jeton = ProtectionHttps.Dechiffrer(valeur) ?? ""; break;
+                        case "Identifiants":            config.Identifiants = LireIdentifiants(valeur); break;
                     }
                 }
             }
@@ -106,8 +110,8 @@ namespace MCEMonitor.UI.Partage
                     "# --- Certificat ---",
                     $"Fournisseur={Fournisseur}",
                     $"Email={Email}",
-                    "# Jeton chiffre (DPAPI machine), jamais en clair",
-                    $"Jeton={ProtectionHttps.Chiffrer(Jeton)}",
+                    "# Identifiants chiffres (DPAPI machine) : un objet JSON par fournisseur",
+                    $"Identifiants={EcrireIdentifiants()}",
                     "",
                     "# --- Passerelle ---",
                     $"Port={Port}",
@@ -121,13 +125,46 @@ namespace MCEMonitor.UI.Partage
                 CoreLog.Error("HTTPS", $"HttpsConfig.Enregistrer : {ex.Message}");
             }
         }
-    }
+        // ============================================================
+        //  Identifiants : un dictionnaire, chiffré en bloc
+        // ============================================================
+        private static readonly System.Text.Json.JsonSerializerOptions OptionsJson = new()
+        {
+            WriteIndented = false
+        };
 
-    /// <summary>
-    /// Chiffrement du jeton DNS. Entropie propre au module : les autres
-    /// fichiers de la suite ne doivent pas pouvoir le déchiffrer, et
-    /// réciproquement.
-    /// </summary>
+        private string EcrireIdentifiants()
+        {
+            try
+            {
+                string json = System.Text.Json.JsonSerializer.Serialize(Identifiants, OptionsJson);
+                return ProtectionHttps.Chiffrer(json);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", $"HttpsConfig.EcrireIdentifiants : {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        private static Dictionary<string, string> LireIdentifiants(string chiffre)
+        {
+            var vide = new Dictionary<string, string>();
+
+            try
+            {
+                string? json = ProtectionHttps.Dechiffrer(chiffre);
+                if (string.IsNullOrWhiteSpace(json)) return vide;
+
+                return System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(json) ?? vide;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", $"HttpsConfig.LireIdentifiants : {ex.Message}");
+                return vide;
+            }
+        }
+    }
     internal static class ProtectionHttps
     {
         private static readonly byte[] Entropie = Encoding.UTF8.GetBytes("MCEMonitor.accesdistant.v1");
