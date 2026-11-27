@@ -96,14 +96,13 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **Terminer l exposition d `mcemonitor.org`** *(relevé du 2026-11-27)*
-  - Le certificat, le renouvellement et la passerelle sont en place. Il reste deux opérations hors du code :
-    un **enregistrement A** (`net` → IP publique) dans la zone Infomaniak, et l **ouverture du port 443**
-    dans la box vers la machine qui héberge Caddy
-  - **DDNS** : l IP publique change. Afraid.net fait le travail pour l instant, mais l API Infomaniak permet
-    de mettre à jour l enregistrement A directement — le jeton est déjà dans la configuration
-  - Les autres machines n ont rien à configurer : la passerelle relaie vers leurs modules par le champ
-    « cible » (`192.168.x.y:port`)
+- [ ] **Ouvrir le 443 et ranger les accès** *(relevé du 2026-11-27)*
+  - Tout le reste est fait : domaine, certificat, renouvellement, passerelle, enregistrements A entretenus.
+    Il ne manque plus que **l ouverture du port 443 dans la box** vers la machine qui héberge Caddy, sans
+    quoi l accès reste local
+  - **À révoquer** : les jetons Infomaniak collés en clair pendant la mise au point
+  - **MyAutoDNS** n a plus de rôle : `skypichat.mooo.com` peut être abandonné, et le logiciel désinstallé une
+    fois l accès par `mcemonitor.org` confirmé
   - **Priorité** : 🟡 moyenne
 
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
@@ -132,7 +131,7 @@ _(rien)_
   - **Priorité** : 🟢 basse
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 179 clés) et `en-GB` (1 180 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 181 clés) et `en-GB` (1 182 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -205,6 +204,33 @@ une seule tâche de renouvellement — et les autres machines ne configurent rie
 
 **Vérifié** : certificat `CN=*.mcemonitor.org` présenté sur le 443, émetteur Let s Encrypt, HTTPS répond en
 local ; `MCEMonitor_Caddy` et `MCEMonitor_CertRenew` présentes dans le planificateur.
+
+**Suite — le DDNS, et la chaîne bouclée.** Afraid.org entretenait `skypichat.mooo.com` par une URL de mise
+à jour ; un nom acheté chez Infomaniak ne fonctionne pas ainsi, la zone appartenant au compte. Christophe
+bascule tout sur `mcemonitor.org` : `GestionnaireDdns` lit l IP publique, lit les enregistrements A de la
+zone en une requête, et ne réécrit que ceux qui ont changé. Tâche `MCEMonitor_Ddns` toutes les quinze
+minutes — plus fréquente que le renouvellement, un changement d IP coupant l accès immédiatement.
+
+Bug corrigé au passage : un nom complet saisi dans le champ sous-domaine produisait
+`net.mcemonitor.org.mcemonitor.org`, le domaine étant ajouté par-dessus. Les deux formes sont acceptées.
+
+**Une erreur de diagnostic, notée pour ne pas la refaire** : `/1/profile` ne sert pas de test « sans aucun
+droit ». Elle exige la portée `user_info`, que le jeton n a pas — et c est tant mieux. Un 403 sur cette
+route ne dit donc rien de la validité du jeton ; seul `401` signifie qu il est rejeté. Le bon test est
+`/2/zones/{zone}`, qui est aussi ce dont le module a besoin.
+
+**Vérifié de bout en bout** : quatre enregistrements A créés et propagés chez Google (`netmonitor`,
+`rommonitor`, `systemmonitor`, `mediamonitor` → IP publique), Caddy à l écoute sur le 443, et une requête
+TLS locale traversant tout :
+
+```
+HTTP/1.1 302 Found
+Location: /login?original=%2F
+Strict-Transport-Security: max-age=31536000; includeSubDomains
+login : 200
+```
+
+**Commit** : `cdc8e9a` (DDNS).
 
 **Commits** : `d47be05` (onglet inerte), `920fae3` (fournisseurs), `c17c329` (lego), `f1b887b`
 (certificat), `cfcfd84` (contrôle du jeton), `1ba792a` (portée nommée), `1a943ca` (renouvellement),
