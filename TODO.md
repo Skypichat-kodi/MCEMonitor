@@ -107,6 +107,32 @@ _(rien)_
     fois l accès par `mcemonitor.org` confirmé
   - **Priorité** : 🟡 moyenne
 
+- [ ] **Publier plusieurs machines derrière une seule passerelle** *(idée du 2026-11-27 au soir)*
+  - Christophe fait tourner **cinq NetMonitor** dans son LAN, plus les autres modules. Une seule machine,
+    MCE-SERVER, expose le 443 et porte le certificat : c est elle qui doit relayer les autres
+  - **Ce que la génération permet aujourd hui** : quatre sites fixes, une cible chacun. Le champ « cible »
+    accepte déjà une adresse du LAN, mais un nom ne désigne qu un seul endroit — publier le NetMonitor de
+    DEV retire celui de MCE-SERVER
+  - **Évolution voulue** : un bouton `+` dans l onglet, une fenêtre demandant le **nom de la machine**, le
+    module, l IP locale et le port, puis une liste des sites supplémentaires avec `−` pour retirer.
+    La cible devient une liste libre au lieu de quatre champs figés
+  - **Piège du certificat** : `*.mcemonitor.org` ne couvre qu un niveau.
+    `mce-server.netmonitor.mcemonitor.org` en compte deux et déclencherait une alerte. Trois voies :
+    1. **aplatir** en `netmonitor-mce-server.mcemonitor.org` — aucun certificat à retoucher (recommandé)
+    2. ajouter des SAN wildcards au même certificat (`*.netmonitor.mcemonitor.org`, …) : lego accepte
+       plusieurs `-d` dans une seule demande, et le défi DNS reste le même
+    3. un certificat par type de module — quatre certificats, quatre renouvellements : à écarter
+  - **Troisième étage** : chaque site veut un enregistrement A. `GestionnaireDdns` ne connaît que les
+    quatre noms fixes ; il devra parcourir la liste, créer les manquants et corriger les changés, sinon
+    le nom résoudrait dans le vide
+  - **À faire** : `HttpsConfig.SitesSupplementaires` (machine, module, cible, libellé ; sérialisée en JSON
+    à côté des champs actuels), génération des sites, boucle DDNS, interface. Les quatre champs existants
+    restent, pour ne pas casser les installations en place
+  - **Deux précautions d interface** : slugifier le nom saisi (`MCE-SERVER` → `mce-server`) et refuser les
+    doublons, sinon deux sites porteraient le même nom et Caddy refuserait son Caddyfile
+  - **Règle** : un seul Caddy sur le réseau. La passerelle ne s installe que sur la machine qui expose le 443
+  - **Priorité** : 🟡 moyenne
+
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
   - Relevé du 2026-11-25 : 116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` ; 51 ont des
     accents **dans des chaînes** (messages de journal, textes d interface)
