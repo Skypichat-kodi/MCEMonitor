@@ -103,7 +103,7 @@ namespace MCEMonitor.UI.Partage
 
                         throw new InvalidOperationException(
                             formulation + " Créez un nouveau token avec domain:read, dns:read et dns:write — "
-                                        + "les portées d un token existant ne se modifient pas.");
+                                        + "les portées d’un token existant ne se modifient pas.");
                     }
 
                     if (reponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)

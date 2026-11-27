@@ -201,7 +201,7 @@ namespace MCEMonitor.UI
                 }
                 catch (InvalidOperationException)
                 {
-                    // Le bouton a été relâché avant le début du glisser
+                    // Le bouton’a été relâché avant le début du glisser
                 }
             }
         }
@@ -2467,7 +2467,7 @@ namespace MCEMonitor.UI
         /// <summary>
         /// Reconstruit les champs selon le fournisseur choisi : un jeton pour
         /// Cloudflare, trois clés pour OVH, deux pour Namecheap. Les valeurs déjà
-        /// saisies sont conservées d un fournisseur à l autre.
+        /// saisies sont conservées d’un fournisseur à l autre.
         /// </summary>
         private void AfficherChampsFournisseur()
         {
@@ -2583,7 +2583,7 @@ namespace MCEMonitor.UI
                 CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, fournisseur={config.Fournisseur}, domaine={config.Domaine})");
 
                 // L'outil qui obtient les certificats n'est pas livré avec la suite :
-                // la configuration le réclame, et il est téléchargé ici, une fois,
+                // la configuration le réclame, et’il est téléchargé ici, une fois,
                 // dans une fenêtre qui montre sa progression. Rien n'est demandé à
                 // qui reste en HTTP.
                 if (config.Actif && !Partage.TelechargeurLego.EstInstalle)
@@ -2594,8 +2594,8 @@ namespace MCEMonitor.UI
                     if (!telechargement.Reussi)
                     {
                         Boite.Show(this,
-                            LanguageManager.Get("L accès distant est enregistré, mais lego n a pas pu être installé. Il sera redemandé au prochain enregistrement.")
-                            ?? "L accès distant est enregistré, mais lego n a pas pu être installé. Il sera redemandé au prochain enregistrement.",
+                            LanguageManager.Get("L’accès distant est enregistré, mais lego n’a pas pu être installé. Il sera redemandé au prochain enregistrement.")
+                            ?? "L’accès distant est enregistré, mais lego n’a pas pu être installé. Il sera redemandé au prochain enregistrement.",
                             LanguageManager.Get("Accès distant") ?? "Accès distant",
                             MessageBoxButton.OK, MessageBoxImage.Warning);
                         return;
@@ -2617,8 +2617,8 @@ namespace MCEMonitor.UI
                         if (!obtention.Reussi)
                         {
                             Boite.Show(this,
-                                LanguageManager.Get("L accès distant est enregistré, mais le certificat n a pas pu être obtenu.")
-                                ?? "L accès distant est enregistré, mais le certificat n a pas pu être obtenu.",
+                                LanguageManager.Get("L’accès distant est enregistré, mais le certificat n’a pas pu être obtenu.")
+                                ?? "L’accès distant est enregistré, mais le certificat n’a pas pu être obtenu.",
                                 LanguageManager.Get("Accès distant") ?? "Accès distant",
                                 MessageBoxButton.OK, MessageBoxImage.Warning);
                         }
@@ -2693,7 +2693,7 @@ namespace MCEMonitor.UI
                 if (config.Actif)
                 {
                     Boite.Show(this,
-                        LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
+                        LanguageManager.Get("Réglages de l’accès distant enregistrés.") ?? "Réglages de l’accès distant enregistrés.",
                         LanguageManager.Get("Accès distant") ?? "Accès distant",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -2711,7 +2711,7 @@ namespace MCEMonitor.UI
                         + "  • " + Partage.GenerateurCaddyfile.CheminCaddyfile + "\n"
                         + "  • " + Partage.TelechargeurLego.CheminLego + "\n"
                         + "  • " + Partage.TelechargeurCaddy.CheminCaddy + "\n\n"
-                        + (LanguageManager.Get("Supprimez le dossier Certs pour qu un prochain démarrage demande un nouveau certificat.") ?? "Supprimez le dossier Certs pour qu un prochain démarrage demande un nouveau certificat."),
+                        + (LanguageManager.Get("Supprimez le dossier Certs pour qu’un prochain démarrage demande un nouveau certificat.") ?? "Supprimez le dossier Certs pour qu’un prochain démarrage demande un nouveau certificat."),
                         LanguageManager.Get("Accès distant") ?? "Accès distant",
                         MessageBoxButton.OK, MessageBoxImage.Information);
                 }
@@ -2732,7 +2732,7 @@ namespace MCEMonitor.UI
         {
             if (string.IsNullOrWhiteSpace(txtHttpsDomaine.Text))
             {
-                txtHttpsEtat.Text = LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt";
+                txtHttpsEtat.Text = LanguageManager.Get("Passerelle à l’arrêt") ?? "Passerelle à l’arrêt";
                 return;
             }
 
@@ -2764,7 +2764,7 @@ namespace MCEMonitor.UI
                 ? (LanguageManager.Get("Accès distant désactivé") ?? "Accès distant désactivé")
                 : enMarche
                     ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
-                    : (LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt");
+                    : (LanguageManager.Get("Passerelle à l’arrêt") ?? "Passerelle à l’arrêt");
 
             // Module désactivé : les deux commandes sont grisées. Sinon, une seule est
             // proposée selon l'état, et sa couleur dit l'action — vert pour démarrer,
@@ -2788,7 +2788,7 @@ namespace MCEMonitor.UI
             catch (Exception ex)
             {
                 Boite.Show(this,
-                    (LanguageManager.Get("La passerelle n a pas pu démarrer :") ?? "La passerelle n a pas pu démarrer :")
+                    (LanguageManager.Get("La passerelle n’a pas pu démarrer :") ?? "La passerelle n’a pas pu démarrer :")
                     + "\n" + ex.Message,
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
                     MessageBoxButton.OK, MessageBoxImage.Warning);

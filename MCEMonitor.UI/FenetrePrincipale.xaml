@@ -52,7 +52,7 @@
       Fenêtre sans bordure, à la manière de MyAutoDNS.
 
       La transparence (AllowsTransparency) est employée ici parce que la fenêtre
-      n'est pas redimensionnable : on y gagne les coins arrondis et l'ombre
+      n'est pas redimensionnable : on’y gagne les coins arrondis et l'ombre
       portée, y compris sous Windows 10. La marge de 14 pixels autour du panneau
       est la place laissée à l'ombre.
     -->
@@ -353,7 +353,7 @@
 
                 <!-- ============ HTTPS ============ -->
                 <!-- Onglet inerte pour l instant : il enregistre sa configuration
-                     sans rien lancer. Aucun port n est ouvert, aucun binaire demarre. -->
+                     sans rien lancer. Aucun port n’est ouvert, aucun binaire demarre. -->
                 <TabItem x:Name="OngletHttps" Header="{loc:Tr 'HTTPS'}">
                     <ScrollViewer VerticalScrollBarVisibility="Auto"
                                   HorizontalScrollBarVisibility="Disabled">
@@ -492,12 +492,12 @@
                                                Text="{loc:Tr 'Laissez un sous-domaine vide pour ne pas publier ce module. Exemple de cible : 127.0.0.1:14003, ou 192.168.1.20:8085 pour une autre machine.'}" />
 
                                     <CheckBox x:Name="chkHttpsDdns"
-                                              Content="{loc:Tr 'Mettre à jour l adresse IP des sous-domaines (toutes les 15 minutes)'}"
+                                              Content="{loc:Tr 'Mettre à jour l’adresse IP des sous-domaines (toutes les 15 minutes)'}"
                                               Foreground="{StaticResource Texte}"
                                               Margin="0,12,0,0" />
 
                                     <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
-                                               Text="{loc:Tr 'Sans cela, un changement d adresse IP publique coupe l accès jusqu à ce qu on la corrige à la main. Remplace le DDNS d Afraid.org.'}" />
+                                               Text="{loc:Tr 'Sans cela, un changement d’adresse IP publique coupe l’accès jusqu’à ce qu’on la corrige à la main. Remplace le DDNS d’Afraid.org.'}" />
                                 </StackPanel>
                             </Border>
 
@@ -542,7 +542,7 @@
                                     </Grid>
 
                                     <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
-                                               Text="{loc:Tr 'Le jeton est chiffré sur la machine. Il sert à prouver la propriété du domaine, sans ouvrir de port.'}" />
+                                               Text="{loc:Tr 'Le jeton’est chiffré sur la machine. Il sert à prouver la propriété du domaine, sans ouvrir de port.'}" />
 
                                     <TextBlock x:Name="txtHttpsAide" Margin="0,0,0,0"
                                                FontSize="11" Foreground="{StaticResource Accent}"

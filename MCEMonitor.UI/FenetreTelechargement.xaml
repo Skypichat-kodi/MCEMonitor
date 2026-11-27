@@ -54,7 +54,7 @@
                            Foreground="{StaticResource TexteSecondaire}"
                            FontSize="12"
                            LineHeight="18"
-                           Text="{loc:Tr 'L obtention du certificat demande lego, l outil qui dialogue avec les fournisseurs DNS. Il n est pas livré avec MCEMonitor : il est téléchargé depuis la dernière version publiée par ses auteurs, puis installé ici. Cette opération ne se produit qu une fois, et seulement si l accès distant est utilisé.'}" />
+                           Text="{loc:Tr 'L’obtention du certificat demande lego, l’outil qui dialogue avec les fournisseurs DNS. Il n’est pas livré avec MCEMonitor : il est téléchargé depuis la dernière version publiée par ses auteurs, puis installé ici. Cette opération ne se produit qu’une fois, et seulement si l’accès distant est utilisé.'}" />
 
                 <ProgressBar x:Name="BarreProgression"
                              Height="14"

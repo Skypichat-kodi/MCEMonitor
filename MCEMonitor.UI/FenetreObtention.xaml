@@ -53,7 +53,7 @@
                            Foreground="{StaticResource TexteSecondaire}"
                            FontSize="12"
                            LineHeight="18"
-                           Text="{loc:Tr 'Le certificat est obtenu par un défi DNS : lego dépose un enregistrement temporaire dans la zone du domaine, le service de certification le vérifie, puis l enregistrement est effacé. Aucun port n est ouvert, et les enregistrements pointant vers votre machine ne sont pas encore nécessaires.'}" />
+                           Text="{loc:Tr 'Le certificat est obtenu par un défi DNS : lego dépose un enregistrement temporaire dans la zone du domaine, le service de certification le vérifie, puis l’enregistrement est effacé. Aucun port n’est ouvert, et les enregistrements pointant vers votre machine ne sont pas encore nécessaires.'}" />
 
                 <ProgressBar x:Name="BarreProgression"
                              Height="6"

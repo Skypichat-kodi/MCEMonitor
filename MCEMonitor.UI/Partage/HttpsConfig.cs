@@ -23,7 +23,7 @@ namespace MCEMonitor.UI.Partage
         /// <summary>Accès distant activé.</summary>
         public bool Actif { get; set; }
 
-        /// <summary>Mise à jour automatique de l enregistrement A.</summary>
+        /// <summary>Mise à jour automatique de l’enregistrement A.</summary>
         public bool Ddns { get; set; }
 
         public string Domaine        { get; set; } = "";
@@ -113,7 +113,7 @@ namespace MCEMonitor.UI.Partage
                 {
                     "# Acces distant (HTTPS) - module inerte tant que la passerelle n existe pas",
                     "",
-                    "# Actif=false : les modules restent servis en HTTP, rien n est lance",
+                    "# Actif=false : les modules restent servis en HTTP, rien n’est lance",
                     $"Actif={Actif.ToString().ToLower()}",
                     $"Ddns={Ddns.ToString().ToLower()}",
                     "",

@@ -134,7 +134,7 @@ namespace MCEMonitor.UI.Partage
 
         /// <summary>
         /// Recharge la configuration sans interrompre les connexions en cours.
-        /// C'est ce qui rend un certificat renouvelé immédiatement actif : Caddy ne
+        /// C'est ce qui rend’un certificat renouvelé immédiatement actif : Caddy ne
         /// relit pas un certificat fichier de lui-même.
         /// </summary>
         public static async Task RechargerAsync()
