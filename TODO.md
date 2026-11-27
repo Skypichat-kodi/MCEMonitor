@@ -268,6 +268,65 @@ répond `302` vers `/login` : certificat, relais et module fonctionnent.
 (certificat), `cfcfd84` (contrôle du jeton), `1ba792a` (portée nommée), `1a943ca` (renouvellement),
 `8f70436` (socle passerelle), `15d743e` (interface passerelle), `b9ba4c1` (démarrage sans attente).
 
+### Session 2026-11-27 (soir) — HTTPS public : le 443 disputé, trois pièges d asynchrone
+
+Le certificat était bon, la passerelle prête, et pourtant `https://netmonitor.mcemonitor.org` renvoyait
+`ERR_CERT_AUTHORITY_INVALID` depuis un navigateur extérieur.
+
+**Apache tenait le 443.** `netstat` désignait un PID écouteur, `tasklist` le nommait : `httpd.exe`, session
+Services. C était XAMPP, installé pour la base Kodi de Christophe. Le certificat présenté n était donc pas
+celui de Caddy mais l auto-signé d Apache, qui n avait jamais laissé la place.
+
+Distinction utile, et source d une fausse crainte : **la base Kodi tourne sous MariaDB** (`mysqld.exe`,
+port 3306), **pas sous Apache**. Arrêter Apache ne coupe pas Kodi. Apache est désactivé du démarrage
+XAMPP — `Apache=0` dans `[Autostart]` de `xampp-control.ini` — et le 443 est enfin libre.
+
+**Trois défauts d asynchrone, tous invisibles à la lecture.** Une fois Apache écarté, la passerelle
+démarrait bien à la main, mais jamais au démarrage de la machine. La cause a demandé trois corrections
+successives, chacune masquant la suivante.
+
+- **le tube brisé** : Caddy était lancé avec sa sortie redirigée, puis `--run-gateway` se terminait. Le tube
+  cassait, et Caddy mourait à sa première écriture de journal. Il démarrait, puis s arrêtait une seconde
+  plus tard. Plus aucune redirection : Caddy écrit dans le vide et survit à son parent. Contrepartie
+  assumée, ses messages d erreur ne vont plus dans notre journal
+- **le thread bloqué** : la boucle d attente appelait `EstEnMarche()` en synchrone, jusqu à trente fois,
+  chaque appel coûtant deux secondes de délai possible. Le bouton « Démarrer la passerelle » figeait la
+  fenêtre près d une minute. Tous les appels passent en `EstEnMarcheAsync`, y compris dans l arrêt et le
+  rechargement
+- **l interblocage** : `DemarrerAsync().GetAwaiter().GetResult()` depuis `OnStartup` bloque le thread de
+  l interface, sur lequel les continuations `await` veulent reprendre. Chacun attendait l autre. Le
+  processus ne finissait jamais, Caddy n était jamais lancé, et la tâche restait **« En cours »** (`0x41301`)
+  — donc jamais relancée. `Task.Run` sort du contexte, et `Environment.Exit(0)` garantit que la tâche voit
+  le processus se terminer
+
+**Vérifié** : `schtasks /Run` rend `Dernier résultat : 0`, puis un vrai redémarrage de MCE-SERVER donne les
+quatre sous-domaines en `302`, `TLS 0`, sans un clic. Le journal porte la ligne `Passerelle démarrée`, datée du démarrage de Windows.
+
+**Deux ajouts d interface, demandés en cours de route.**
+
+- **veille de l onglet** : l état n était lu qu à l ouverture de MCEMonitor. Une passerelle démarrée
+  entre-temps laissait le bouton « Démarrer » actif devant un service qui tournait déjà. Tant que l onglet
+  HTTPS est affiché, l état est interrogé toutes les cinq secondes, un seul appel à la fois, et la veille
+  s arrête dès qu on le quitte
+- **pastille « État de la passerelle »** à droite de la coche, pour éviter de descendre jusqu aux boutons :
+  gris quand l accès est désactivé, vert quand Caddy répond, ambre quand il est absent, avec infobulle
+
+**Le journal n archivait rien.** `DemarrerSession` vidait `MCEMonitor.log` à chaque ouverture de
+l interface — donc à la seconde où Christophe l ouvrait pour chercher ce qu avait fait la tâche au
+ démarrage. Le fichier précédent est désormais renommé `MCEMonitor.1.log`, et la session courante repart
+seule.
+
+**Deux écarts notés pour plus tard.** Ma boucle d attente annonce « quinze secondes » là où trente tours de
+2,5 s en autorisent soixante-quinze : sur MCE-SERVER, quarante-huit secondes se sont écoulées avant
+`Passerelle démarrée`. Sans conséquence — la veille de l onglet affiche l état — mais le message ment sur
+son propre délai. Et la surveillance continue de la passerelle a été écartée : un petit Tray serait le bon
+endroit, il tourne en permanence.
+
+**Releases** : la version compilée s annonce `3.5.1`. Le tag `v3.5.0` porte sur une version dont la
+passerelle ne démarrait pas seule — à ne pas publier.
+
+**Commits** : `988f90c` (tube, thread, archivage), `0f2284a` (interblocage), `00f59d9` (état et pastille).
+
 ### Session 2026-11-26 — WinDivert, Ricochet et Call of Duty
 
 **Le symptôme.** Call of Duty refusait de démarrer. Ricochet, son anti-cheat noyau, ne tourne pas tant
