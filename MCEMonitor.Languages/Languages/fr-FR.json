@@ -533,6 +533,7 @@
   "Jeton d’API": "Jeton d’API",
   "Jeton d’API :": "Jeton d’API :",
   "Jeton d’API (DNS:Edit)": "Jeton d’API (DNS:Edit)",
+  "Jeton d’API (dns:read, dns:write)": "Jeton d’API (dns:read, dns:write)",
   "Jeton de domaine": "Jeton de domaine",
   "Jitter max (%) :": "Jitter max (%) :",
   "Jouer un son sur alerte critique": "Jouer un son sur alerte critique",

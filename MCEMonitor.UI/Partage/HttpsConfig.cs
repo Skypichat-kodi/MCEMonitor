@@ -31,7 +31,7 @@ namespace MCEMonitor.UI.Partage
         public string SousSystemMonitor { get; set; } = "";
         public string SousMediaMonitor  { get; set; } = "";
 
-        public string Fournisseur { get; set; } = "cloudflare";
+        public string Fournisseur { get; set; } = "infomaniak";
         public string Email       { get; set; } = "";
         public int    Port        { get; set; } = 443;
 

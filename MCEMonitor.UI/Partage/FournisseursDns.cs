@@ -69,6 +69,12 @@ namespace MCEMonitor.UI.Partage
     {
         public static IReadOnlyList<FournisseurDns> Tous { get; } = new List<FournisseurDns>
         {
+            // En tête : c est le fournisseur de Christophe, et donc le choix par
+            // défaut quand le fichier ne dit rien.
+            new("infomaniak", "Infomaniak",
+                "https://manager.infomaniak.com/v3/ng/accounts/token/list",
+                new ChampDns("INFOMANIAK_ACCESS_TOKEN", "Jeton d’API (dns:read, dns:write)", "jeton créé dans le manager")),
+
             new("cloudflare", "Cloudflare",
                 "https://dash.cloudflare.com/profile/api-tokens",
                 new ChampDns("CLOUDFLARE_DNS_API_TOKEN", "Jeton d’API (DNS:Edit)", "jeton créé dans les profils API")),
