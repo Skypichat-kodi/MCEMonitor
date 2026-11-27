@@ -31,6 +31,14 @@ namespace MCEMonitor.UI.Partage
         public string SousSystemMonitor { get; set; } = "";
         public string SousMediaMonitor  { get; set; } = "";
 
+        // Cibles de la passerelle : où joindre chaque service. 127.0.0.1 quand le
+        // module tourne sur la même machine que la passerelle, sinon son adresse
+        // sur le réseau local. Les ports sont ceux par défaut de chaque module.
+        public string CibleNetMonitor    { get; set; } = "127.0.0.1:14003";
+        public string CibleRomMonitor    { get; set; } = "127.0.0.1:8085";
+        public string CibleSystemMonitor { get; set; } = "127.0.0.1:8083";
+        public string CibleMediaMonitor  { get; set; } = "127.0.0.1:8081";
+
         public string Fournisseur { get; set; } = "infomaniak";
         public string Email       { get; set; } = "";
         public int    Port        { get; set; } = 443;
@@ -72,6 +80,10 @@ namespace MCEMonitor.UI.Partage
                         case "SousRomMonitor":          config.SousRomMonitor = valeur; break;
                         case "SousSystemMonitor":       config.SousSystemMonitor = valeur; break;
                         case "SousMediaMonitor":        config.SousMediaMonitor = valeur; break;
+                        case "CibleNetMonitor":         config.CibleNetMonitor = valeur; break;
+                        case "CibleRomMonitor":         config.CibleRomMonitor = valeur; break;
+                        case "CibleSystemMonitor":      config.CibleSystemMonitor = valeur; break;
+                        case "CibleMediaMonitor":       config.CibleMediaMonitor = valeur; break;
                         case "Fournisseur":             config.Fournisseur = valeur; break;
                         case "Email":                   config.Email = valeur; break;
                         case "Port":                    if (int.TryParse(valeur, out int p)) config.Port = p; break;
@@ -106,6 +118,12 @@ namespace MCEMonitor.UI.Partage
                     $"SousRomMonitor={SousRomMonitor}",
                     $"SousSystemMonitor={SousSystemMonitor}",
                     $"SousMediaMonitor={SousMediaMonitor}",
+                    "",
+                    "# --- Cibles de la passerelle (hote:port) ---",
+                    $"CibleNetMonitor={CibleNetMonitor}",
+                    $"CibleRomMonitor={CibleRomMonitor}",
+                    $"CibleSystemMonitor={CibleSystemMonitor}",
+                    $"CibleMediaMonitor={CibleMediaMonitor}",
                     "",
                     "# --- Certificat ---",
                     $"Fournisseur={Fournisseur}",
