@@ -96,10 +96,12 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **Ouvrir le 443 et ranger les accès** *(relevé du 2026-11-27)*
-  - Tout le reste est fait : domaine, certificat, renouvellement, passerelle, enregistrements A entretenus.
-    Il ne manque plus que **l ouverture du port 443 dans la box** vers la machine qui héberge Caddy, sans
-    quoi l accès reste local
+- [ ] **Confirmer l accès public par mcemonitor.org** *(relevé du 2026-11-27 au soir)*
+  - La chaîne est complète et vérifiée en local sur MCE-SERVER : certificat, relais, redirection 301,
+    enregistrements A entretenus. Seule la **propagation DNS** manquait au moment du test — un domaine
+    acheté le jour même met de quelques heures à deux jours à être connu de tous les résolveurs
+  - **À vérifier demain** : les quatre sous-domaines répondent depuis un réseau extérieur (téléphone en
+    4G, Wi-Fi coupé), et `http://` bascule bien en `https://`
   - **À révoquer** : les jetons Infomaniak collés en clair pendant la mise au point
   - **MyAutoDNS** n a plus de rôle : `skypichat.mooo.com` peut être abandonné, et le logiciel désinstallé une
     fois l accès par `mcemonitor.org` confirmé
@@ -131,7 +133,7 @@ _(rien)_
   - **Priorité** : 🟢 basse
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 181 clés) et `en-GB` (1 182 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 192 clés) et `en-GB` (1 193 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -229,6 +231,36 @@ Location: /login?original=%2F
 Strict-Transport-Security: max-age=31536000; includeSubDomains
 login : 200
 ```
+
+**Suite — installation sur MCE-SERVER, cinq défauts trouvés en réel.** Le passage de la machine de
+développement au vrai serveur a révélé ce qu aucun essai local n avait montré.
+
+- **Caddy n était jamais téléchargé** : `TelechargeurCaddy` existait, mais aucun chemin du code ne
+  l appelait. Démarrer la passerelle répondait « Caddy n est pas installé ». Il est désormais installé à
+  l enregistrement, dans la même fenêtre que lego, généralisée pour servir les deux
+- **la liste des fournisseurs affichait le nom du type** — `MCEMonitor.UI.Partage.FournisseurDns` —
+  `DisplayMemberPath` posé en code après `ItemsSource` n étant pas appliqué. Déclaré dans le XAML, plus un
+  `ToString()` qui renvoie le nom : WPF l utilise en dernier recours, l affichage est donc garanti
+- **le jeton était effacé en passant** : le champ se vidait à la relecture sans rien dire, et l enregistrer
+  vide écrasait la valeur. Il suit maintenant la règle d un mot de passe — jamais réaffiché, mention
+  « enregistré » à côté, et une saisie vide conserve l existant
+- **aucune redirection HTTP vers HTTPS** : `auto_https off` désactive l automatisme de Caddy, y compris sa
+  redirection. Un bloc `http://` par site renvoie un 301 permanent, `{uri}` conservant chemin et paramètres
+- **ouverture plus lente** depuis l ajout de l onglet : `ChargerConfigHttps` interrogeait l API de Caddy en
+  synchrone sur le thread de l interface, avec deux secondes de délai possible, pendant le constructeur de
+  la fenêtre. `EstEnMarcheAsync` lève le blocage ; les clics, eux, attendent toujours
+
+**Apostrophes typographiques.** En écrivant les textes du module, les apostrophes avaient été supprimées au
+lieu d être remplacées par `’`, seule utilisable dans `{loc:Tr '…'}`. Dix fichiers corrigés, trente-trois
+clés dans chaque référentiel. Un remplacement avait frappé du code au passage : « l onglet » existait aussi
+dans `is TabControl onglets`. Leçon : un remplacement de texte français doit viser les chaînes visibles,
+jamais le fichier entier.
+
+**Migration réalisée** : DEV désactivé (passerelle arrêtée, trois tâches supprimées, dossier `Certs`
+conservé), certificat, clé et compte ACME copiés sur MCE-SERVER, passerelle relancée là-bas. Le test local
+répond `302` vers `/login` : certificat, relais et module fonctionnent.
+
+**Commit** : `879eb3a` et les cinq précédents de la soirée.
 
 **Commit** : `cdc8e9a` (DDNS).
 
