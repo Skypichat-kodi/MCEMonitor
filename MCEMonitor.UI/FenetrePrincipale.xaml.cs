@@ -2560,6 +2560,26 @@ namespace MCEMonitor.UI
 
                 CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, fournisseur={config.Fournisseur}, domaine={config.Domaine})");
 
+                // L'outil qui obtient les certificats n'est pas livré avec la suite :
+                // la configuration le réclame, et il est téléchargé ici, une fois,
+                // dans une fenêtre qui montre sa progression. Rien n'est demandé à
+                // qui reste en HTTP.
+                if (config.Actif && !Partage.TelechargeurLego.EstInstalle)
+                {
+                    var telechargement = new FenetreTelechargement { Owner = this };
+                    telechargement.ShowDialog();
+
+                    if (!telechargement.Reussi)
+                    {
+                        Boite.Show(this,
+                            LanguageManager.Get("L accès distant est enregistré, mais lego n a pas pu être installé. Il sera redemandé au prochain enregistrement.")
+                            ?? "L accès distant est enregistré, mais lego n a pas pu être installé. Il sera redemandé au prochain enregistrement.",
+                            LanguageManager.Get("Accès distant") ?? "Accès distant",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+                }
+
                 Boite.Show(this,
                     LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
