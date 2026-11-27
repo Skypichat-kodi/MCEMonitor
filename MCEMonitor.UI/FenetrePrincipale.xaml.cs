@@ -2726,7 +2726,7 @@ namespace MCEMonitor.UI
                 // Supprimer la tâche ne suffit pas : la passerelle en cours continue de
                 // publier des sites pour un accès qu'on vient de désactiver. Elle ne
                 // s'arrêterait qu'au prochain redémarrage.
-                if (!aPublier && Partage.GestionnairePasserelle.EstEnMarche())
+                if (!aPublier && await Partage.GestionnairePasserelle.EstEnMarcheAsync())
                 {
                     await Partage.GestionnairePasserelle.ArreterAsync();
                     CoreLog.Info("HTTPS", "Passerelle arrêtée (accès distant désactivé).");

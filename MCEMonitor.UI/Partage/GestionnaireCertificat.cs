@@ -257,7 +257,7 @@ namespace MCEMonitor.UI.Partage
 
                 // Caddy ne relit pas seul un certificat fichier : sans ce rechargement,
                 // il continuerait à servir l'ancien jusqu'au prochain redémarrage.
-                if (GestionnairePasserelle.EstEnMarche())
+                if (await GestionnairePasserelle.EstEnMarcheAsync())
                     await GestionnairePasserelle.RechargerAsync();
 
                 return etat.Present;

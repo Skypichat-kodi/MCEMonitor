@@ -8,12 +8,14 @@ namespace MCEMonitor.UI
     /// Journal de l'interface MCEMonitor, écrit avec ceux des autres modules dans
     /// %ProgramData%\MCEMonitor\Logs\MCEMonitor.log.
     ///
-    /// Le fichier est vidé à chaque OUVERTURE de l'interface : il ne contient donc
-    /// que la session courante. Un fichier qui ne se termine pas par « Fermeture »
-    /// signale que la session précédente a été interrompue.
+    /// À chaque OUVERTURE de l'interface, le fichier précédent est archivé en
+    /// MCEMonitor.1.log, et un nouveau commence : la session courante se lit seule,
+    /// et la précédente — où figurent les actions des tâches planifiées — reste
+    /// consultable. Un fichier qui ne se termine pas par « Fermeture » signale que
+    /// la session a été interrompue.
     ///
-    /// La tâche planifiée (--run-scheduled) écrit dans le même fichier sans le
-    /// vider : ses actions restent visibles après coup.
+    /// La tâche planifiée (--run-scheduled) écrit dans le fichier courant sans rien
+    /// archiver : ses actions restent visibles après coup.
     /// </summary>
     public static class CoreLog
     {
@@ -42,6 +44,19 @@ namespace MCEMonitor.UI
                 try
                 {
                     Directory.CreateDirectory(Dossier);
+
+                    // Archiver plutôt que vider : les tâches planifiées — passerelle,
+                    // renouvellement, mise à jour DNS — écrivent dans ce fichier avant
+                    // l ouverture de l interface. Les effacer rendait leur trace
+                    // introuvable au moment précis où on la cherche.
+                    if (File.Exists(Fichier) && new FileInfo(Fichier).Length > 0)
+                    {
+                        string ancien = Path.Combine(Dossier, "MCEMonitor.1.log");
+
+                        if (File.Exists(ancien)) File.Delete(ancien);
+                        File.Move(Fichier, ancien);
+                    }
+
                     File.WriteAllText(Fichier, string.Empty, Encoding.UTF8);
                 }
                 catch

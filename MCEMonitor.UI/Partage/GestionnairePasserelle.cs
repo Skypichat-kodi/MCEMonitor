@@ -62,7 +62,7 @@ namespace MCEMonitor.UI.Partage
                 throw new InvalidOperationException(
                     "Aucun sous-domaine n'est renseigné : il n'y a rien à publier.");
 
-            if (EstEnMarche())
+            if (await EstEnMarcheAsync())
             {
                 await RechargerAsync();
                 return "";
@@ -73,8 +73,12 @@ namespace MCEMonitor.UI.Partage
             // « caddy start » aurait rendu la main, mais reste attache sous Windows.
             var psi = new ProcessStartInfo(TelechargeurCaddy.CheminCaddy)
             {
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
+                // Pas de redirection : Caddy survit à MCEMonitor. Avec un tube
+                // redirigé, la sortie du parent qui se termine le fait mourir sur une
+                // écriture de journal (tube brisé) — il démarrait, puis s'arrêtait une
+                // seconde plus tard, et la tâche planifiée ne servait à rien.
+                RedirectStandardOutput = false,
+                RedirectStandardError = false,
                 UseShellExecute = false,
                 CreateNoWindow = true
             };
@@ -86,28 +90,12 @@ namespace MCEMonitor.UI.Partage
             var processus = Process.Start(psi)
                 ?? throw new InvalidOperationException("Caddy n'a pas pu démarrer.");
 
-            // Sans lecteur, le tampon de redirection se remplit et Caddy se fige.
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    // ReadLineAsync renvoie null en fin de flux : le type doit suivre.
-                    string? ligne;
-                    while ((ligne = await processus.StandardOutput.ReadLineAsync()) != null)
-                    {
-                        if (ligne.Contains("error", StringComparison.OrdinalIgnoreCase))
-                            CoreLog.Warn("Caddy", ligne);
-                    }
-                }
-                catch { }
-            });
-
             // Guetter l'API jusqu'à quinze secondes.
             for (int i = 0; i < 30; i++)
             {
                 await Task.Delay(500);
 
-                if (EstEnMarche())
+                if (await EstEnMarcheAsync())
                 {
                     CoreLog.Info("HTTPS", "Passerelle démarrée.");
                     return "";
@@ -117,26 +105,19 @@ namespace MCEMonitor.UI.Partage
                     break;
             }
 
-            string erreurs = "";
-
-            try
-            {
-                erreurs = (await processus.StandardError.ReadToEndAsync()).Trim();
-            }
-            catch { }
-
+            // Plus de sortie redirigée : Caddy écrit dans le vide, et les erreurs de
+            // configuration apparaissent au journal de Windows, plus au nôtre.
             try { if (!processus.HasExited) processus.Kill(entireProcessTree: true); } catch { }
 
             throw new InvalidOperationException(
                 "Caddy n'a pas répondu dans les quinze secondes. Le port 443 est peut-être occupé "
-                + "ou les droits administrateur manquent."
-                + (erreurs.Length > 0 ? "\n" + erreurs : ""));
+                + "ou les droits administrateur manquent.");
         }
 
         /// <summary>Arrête la passerelle en douceur, par son API d'administration.</summary>
         public static async Task ArreterAsync()
         {
-            if (!EstEnMarche()) return;
+            if (!await EstEnMarcheAsync()) return;
 
             await ExecuterAsync("stop");
 
@@ -150,7 +131,7 @@ namespace MCEMonitor.UI.Partage
         /// </summary>
         public static async Task RechargerAsync()
         {
-            if (!EstEnMarche()) return;
+            if (!await EstEnMarcheAsync()) return;
 
             string sortie = await ExecuterAsync("reload", "--config", GenerateurCaddyfile.CheminCaddyfile);
 
