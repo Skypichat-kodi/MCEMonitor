@@ -2441,6 +2441,7 @@ namespace MCEMonitor.UI
 
                 AfficherChampsFournisseur();
                 AppliquerGrisageHttps();
+                AfficherEtatCertificat();
             }
             catch (Exception ex)
             {
@@ -2580,6 +2581,31 @@ namespace MCEMonitor.UI
                     }
                 }
 
+                // Même logique pour le certificat : avec un domaine et sans certificat,
+                // la configuration le demande d'elle-même. Le défi étant DNS, aucun
+                // enregistrement pointant vers la machine n'est encore nécessaire.
+                if (config.Actif && !string.IsNullOrWhiteSpace(config.Domaine))
+                {
+                    var etat = Partage.GestionnaireCertificat.Lire(config.Domaine);
+
+                    if (!etat.Present)
+                    {
+                        var obtention = new FenetreObtention(config) { Owner = this };
+                        obtention.ShowDialog();
+
+                        if (!obtention.Reussi)
+                        {
+                            Boite.Show(this,
+                                LanguageManager.Get("L accès distant est enregistré, mais le certificat n a pas pu être obtenu.")
+                                ?? "L accès distant est enregistré, mais le certificat n a pas pu être obtenu.",
+                                LanguageManager.Get("Accès distant") ?? "Accès distant",
+                                MessageBoxButton.OK, MessageBoxImage.Warning);
+                        }
+                    }
+                }
+
+                AfficherEtatCertificat();
+
                 Boite.Show(this,
                     LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
@@ -2591,6 +2617,32 @@ namespace MCEMonitor.UI
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
+        }
+
+        /// <summary>
+        /// Affiche l'état du certificat dans la carte Passerelle : son absence, sa
+        /// provenance, sa date d'expiration et les jours restants.
+        /// </summary>
+        private void AfficherEtatCertificat()
+        {
+            if (string.IsNullOrWhiteSpace(txtHttpsDomaine.Text))
+            {
+                txtHttpsEtat.Text = LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt";
+                return;
+            }
+
+            var etat = Partage.GestionnaireCertificat.Lire(txtHttpsDomaine.Text);
+
+            if (!etat.Present)
+            {
+                txtHttpsEtat.Text = LanguageManager.Get("Aucun certificat installé") ?? "Aucun certificat installé";
+                return;
+            }
+
+            string modele = LanguageManager.Get("Certificat {0} — expire le {1} ({2} jours)")
+                            ?? "Certificat {0} — expire le {1} ({2} jours)";
+
+            txtHttpsEtat.Text = string.Format(modele, etat.Emetteur, etat.ExpireLe.ToString("dd/MM/yyyy"), etat.JoursRestants);
         }
 
         private void ChargerConfigArret()
