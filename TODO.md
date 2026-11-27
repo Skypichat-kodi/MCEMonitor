@@ -133,6 +133,28 @@ _(rien)_
   - **Règle** : un seul Caddy sur le réseau. La passerelle ne s installe que sur la machine qui expose le 443
   - **Priorité** : 🟡 moyenne
 
+- [ ] **Une seule passerelle par domaine : marqueur et garde-fou** *(idée du 2026-11-27 au soir)*
+  - Deux machines configurées en HTTPS se disputeraient le 443 public et les enregistrements A de la
+    zone. Or une box ne redirige le 443 que vers une seule machine : la seconde publierait dans le vide,
+    ou pire, écraserait les A de la première
+  - **Écarté** : balayer le 443 de 192.168.1.0/24. Des minutes de scan, les pare-feu qui s'alarment, et
+    rien sur les machines hors du sous-réseau
+  - **Retenu** : un enregistrement TXT qui déclare le propriétaire — `_passerelle.mcemonitor.org` →
+    `"mce-server ; 2026-11-27T21:49"`. Le module sait déjà écrire des TXT (lego le fait pour le défi ACME)
+    et le DDNS lit la zone en une requête
+  - **Contrôle à l activation** : lire le TXT ; s il porte notre nom, on continue ; s il porte celui d une
+    autre machine, on refuse en nommant le propriétaire et la date ; s il est absent, vérifier qu un
+    sous-domaine ne répond pas déjà — au cas où une passerelle tournerait sans s être déclarée. Libre,
+    on active puis on écrit le TXT
+  - **À la désactivation** : supprimer le TXT, mais seulement s il porte notre nom
+  - **Échappatoire obligatoire** : un bouton « Prendre le relais » qui écrase le marqueur après
+    confirmation. Sans lui, la mort de la machine propriétaire bloquerait tout le monde — une protection
+    qui enferme est pire que pas de protection
+  - **Limite assumée** : un garde-fou, pas une serrure. Une zone modifiée à la main, ou une installation
+    antérieure à cette fonction, passerait outre ; le test de disponibilité rattrape la plupart des cas
+  - **Nommage** : surtout pas `_acme-challenge`, où lego écrit et efface à chaque renouvellement
+  - **Priorité** : 🟡 moyenne
+
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
   - Relevé du 2026-11-25 : 116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` ; 51 ont des
     accents **dans des chaînes** (messages de journal, textes d interface)
