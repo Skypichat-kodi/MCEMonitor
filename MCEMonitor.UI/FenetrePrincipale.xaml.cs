@@ -2537,9 +2537,13 @@ namespace MCEMonitor.UI
             // laisserait croire le contraire.
             if (!actif)
                 chkHttpsDdns.IsChecked = false;
+
+            // Les commandes vivent en pied d'onglet, hors des cartes : elles doivent
+            // être grisées comme le reste du module.
+            RafraichirEtatPasserelle();
         }
 
-        private void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
+        private async void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
         {
             try
             {
@@ -2658,6 +2662,15 @@ namespace MCEMonitor.UI
                     CoreLog.Info("HTTPS", "Tâche de passerelle supprimée (rien à publier).");
                 }
 
+                // Supprimer la tâche ne suffit pas : la passerelle en cours continue de
+                // publier des sites pour un accès qu'on vient de désactiver. Elle ne
+                // s'arrêterait qu'au prochain redémarrage.
+                if (!aPublier && Partage.GestionnairePasserelle.EstEnMarche())
+                {
+                    await Partage.GestionnairePasserelle.ArreterAsync();
+                    CoreLog.Info("HTTPS", "Passerelle arrêtée (accès distant désactivé).");
+                }
+
                 // Mise à jour de l'enregistrement A, seul rôle des quinze minutes.
                 bool ddnsActif = config.Actif && config.Ddns && Partage.GenerateurCaddyfile.Sites(config).Count > 0;
 
@@ -2677,10 +2690,31 @@ namespace MCEMonitor.UI
 
                 RafraichirEtatPasserelle();
 
-                Boite.Show(this,
-                    LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
-                    LanguageManager.Get("Accès distant") ?? "Accès distant",
-                    MessageBoxButton.OK, MessageBoxImage.Information);
+                if (config.Actif)
+                {
+                    Boite.Show(this,
+                        LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
+                        LanguageManager.Get("Accès distant") ?? "Accès distant",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                else
+                {
+                    // Rien ne tourne plus, mais tout reste sur le disque : le dire
+                    // évite de croire à un ménage complet, ou de s'étonner qu'un
+                    // prochain démarrage ne redemande pas de certificat.
+                    Boite.Show(this,
+                        (LanguageManager.Get("Accès distant désactivé.") ?? "Accès distant désactivé.") + "\n\n"
+                        + (LanguageManager.Get("Passerelle arrêtée, et les trois tâches planifiées supprimées : démarrage automatique, renouvellement du certificat, mise à jour des adresses IP.") ?? "Passerelle arrêtée, et les trois tâches planifiées supprimées : démarrage automatique, renouvellement du certificat, mise à jour des adresses IP.") + "\n\n"
+                        + (LanguageManager.Get("Restent sur ce disque, non supprimés :") ?? "Restent sur ce disque, non supprimés :") + "\n"
+                        + "  • " + Partage.GestionnaireCertificat.DossierCerts
+                        + "  " + (LanguageManager.Get("(certificat, clé, compte ACME)") ?? "(certificat, clé, compte ACME)") + "\n"
+                        + "  • " + Partage.GenerateurCaddyfile.CheminCaddyfile + "\n"
+                        + "  • " + Partage.TelechargeurLego.CheminLego + "\n"
+                        + "  • " + Partage.TelechargeurCaddy.CheminCaddy + "\n\n"
+                        + (LanguageManager.Get("Supprimez le dossier Certs pour qu un prochain démarrage demande un nouveau certificat.") ?? "Supprimez le dossier Certs pour qu un prochain démarrage demande un nouveau certificat."),
+                        LanguageManager.Get("Accès distant") ?? "Accès distant",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
             }
             catch (Exception ex)
             {
@@ -2723,19 +2757,23 @@ namespace MCEMonitor.UI
         /// </summary>
         private void RafraichirEtatPasserelle()
         {
+            bool actif    = chkHttpsActif.IsChecked == true;
             bool enMarche = Partage.GestionnairePasserelle.EstEnMarche();
 
-            txtHttpsEtat.Text = enMarche
-                ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
-                : (LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt");
+            txtHttpsEtat.Text = !actif
+                ? (LanguageManager.Get("Accès distant désactivé") ?? "Accès distant désactivé")
+                : enMarche
+                    ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
+                    : (LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt");
 
-            // Une seule commande proposée selon l'état, et sa couleur dit l'action :
-            // vert pour démarrer, rouge pour arrêter.
-            BoutonDemarrerPasserelle.IsEnabled = !enMarche;
-            BoutonArreterPasserelle.IsEnabled = enMarche;
+            // Module désactivé : les deux commandes sont grisées. Sinon, une seule est
+            // proposée selon l'état, et sa couleur dit l'action — vert pour démarrer,
+            // rouge pour arrêter.
+            BoutonDemarrerPasserelle.IsEnabled = actif && !enMarche;
+            BoutonArreterPasserelle.IsEnabled  = actif && enMarche;
 
-            BoutonDemarrerPasserelle.Opacity = enMarche ? 0.4 : 1;
-            BoutonArreterPasserelle.Opacity = enMarche ? 1 : 0.4;
+            BoutonDemarrerPasserelle.Opacity = actif && !enMarche ? 1 : 0.4;
+            BoutonArreterPasserelle.Opacity  = actif && enMarche  ? 1 : 0.4;
         }
 
         private async void DemarrerPasserelle_Click(object sender, RoutedEventArgs e)
