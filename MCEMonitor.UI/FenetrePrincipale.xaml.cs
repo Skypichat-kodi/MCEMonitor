@@ -2433,6 +2433,10 @@ namespace MCEMonitor.UI
                 txtHttpsSousRom.Text        = config.SousRomMonitor;
                 txtHttpsSousSystem.Text     = config.SousSystemMonitor;
                 txtHttpsSousMedia.Text      = config.SousMediaMonitor;
+                txtHttpsCibleNet.Text       = config.CibleNetMonitor;
+                txtHttpsCibleRom.Text       = config.CibleRomMonitor;
+                txtHttpsCibleSystem.Text    = config.CibleSystemMonitor;
+                txtHttpsCibleMedia.Text     = config.CibleMediaMonitor;
                 txtHttpsEmail.Text          = config.Email;
                 txtHttpsPort.Text           = config.Port.ToString();
 
@@ -2442,6 +2446,7 @@ namespace MCEMonitor.UI
                 AfficherChampsFournisseur();
                 AppliquerGrisageHttps();
                 AfficherEtatCertificat();
+                RafraichirEtatPasserelle();
             }
             catch (Exception ex)
             {
@@ -2549,6 +2554,10 @@ namespace MCEMonitor.UI
                     SousRomMonitor    = txtHttpsSousRom.Text.Trim(),
                     SousSystemMonitor = txtHttpsSousSystem.Text.Trim(),
                     SousMediaMonitor  = txtHttpsSousMedia.Text.Trim(),
+                    CibleNetMonitor    = txtHttpsCibleNet.Text.Trim(),
+                    CibleRomMonitor    = txtHttpsCibleRom.Text.Trim(),
+                    CibleSystemMonitor = txtHttpsCibleSystem.Text.Trim(),
+                    CibleMediaMonitor  = txtHttpsCibleMedia.Text.Trim(),
                     Fournisseur       = (cmbHttpsFournisseur.SelectedItem as Partage.FournisseurDns)?.Id ?? "cloudflare",
                     Email             = txtHttpsEmail.Text.Trim(),
                     Port              = port
@@ -2623,6 +2632,26 @@ namespace MCEMonitor.UI
                     CoreLog.Info("HTTPS", "Tâche de renouvellement supprimée (accès distant inactif).");
                 }
 
+                // La passerelle doit reprendre au démarrage de la machine, sans quoi
+                // les modules cesseraient d'être joignables après un redémarrage.
+                bool aPublier = config.Actif && Partage.GenerateurCaddyfile.Sites(config).Count > 0;
+
+                if (aPublier)
+                {
+                    if (!MCEMonitor.Utils.TaskSchedulerHelper.CaddyTaskExists())
+                    {
+                        string resultat = MCEMonitor.Utils.TaskSchedulerHelper.CreateCaddyTask();
+                        CoreLog.Info("HTTPS", "Tâche de passerelle : " + resultat);
+                    }
+                }
+                else if (MCEMonitor.Utils.TaskSchedulerHelper.CaddyTaskExists())
+                {
+                    MCEMonitor.Utils.TaskSchedulerHelper.DeleteCaddyTask();
+                    CoreLog.Info("HTTPS", "Tâche de passerelle supprimée (rien à publier).");
+                }
+
+                RafraichirEtatPasserelle();
+
                 Boite.Show(this,
                     LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
@@ -2660,6 +2689,63 @@ namespace MCEMonitor.UI
                             ?? "Certificat {0} — expire le {1} ({2} jours)";
 
             txtHttpsEtat.Text = string.Format(modele, etat.Emetteur, etat.ExpireLe.ToString("dd/MM/yyyy"), etat.JoursRestants);
+        }
+
+        /// <summary>
+        /// Affiche l'état de la passerelle dans la carte : en marche, ou à l'arrêt.
+        /// Les deux boutons sont activés selon cet état, pour éviter de démarrer
+        /// deux fois ou d'arrêter ce qui ne tourne pas.
+        /// </summary>
+        private void RafraichirEtatPasserelle()
+        {
+            bool enMarche = Partage.GestionnairePasserelle.EstEnMarche();
+
+            txtHttpsEtat.Text = enMarche
+                ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
+                : (LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt");
+
+            BoutonDemarrerPasserelle.IsEnabled = !enMarche;
+            BoutonArreterPasserelle.IsEnabled = enMarche;
+        }
+
+        private async void DemarrerPasserelle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                BoutonDemarrerPasserelle.IsEnabled = false;
+
+                await Partage.GestionnairePasserelle.DemarrerAsync();
+                RafraichirEtatPasserelle();
+            }
+            catch (Exception ex)
+            {
+                Boite.Show(this,
+                    (LanguageManager.Get("La passerelle n a pas pu démarrer :") ?? "La passerelle n a pas pu démarrer :")
+                    + "\n" + ex.Message,
+                    LanguageManager.Get("Accès distant") ?? "Accès distant",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                RafraichirEtatPasserelle();
+            }
+        }
+
+        private async void ArreterPasserelle_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                BoutonArreterPasserelle.IsEnabled = false;
+
+                await Partage.GestionnairePasserelle.ArreterAsync();
+                RafraichirEtatPasserelle();
+            }
+            catch (Exception ex)
+            {
+                Boite.Show(this, ex.Message,
+                    LanguageManager.Get("Accès distant") ?? "Accès distant",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+
+                RafraichirEtatPasserelle();
+            }
         }
 
         private void ChargerConfigArret()

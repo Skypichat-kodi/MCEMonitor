@@ -117,6 +117,27 @@ namespace MCEMonitor.UI
                 return;
             }
 
+            // ============================================================
+            //  MODE PASSERELLE
+            //  Lancé au démarrage de la machine par la tâche MCEMonitor_Caddy.
+            // ============================================================
+            if (e.Args.Contains("--run-gateway"))
+            {
+                CoreLog.Info("HTTPS", "Démarrage de la passerelle demandé par la tâche planifiée.");
+
+                try
+                {
+                    Partage.GestionnairePasserelle.DemarrerAsync().GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Error("HTTPS", "Passerelle : " + ex.Message);
+                }
+
+                Shutdown();
+                return;
+            }
+
             // Une seule fenêtre de configuration à la fois : un second lancement
             // depuis le menu Démarrer s'arrête silencieusement.
             _mutex = new Mutex(true, MutexName, out bool createdNew);

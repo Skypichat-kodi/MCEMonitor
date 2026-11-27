@@ -255,6 +255,11 @@ namespace MCEMonitor.UI.Partage
                 CoreLog.Info("HTTPS", $"Renouvellement terminé : expire le {etat.ExpireLe:yyyy-MM-dd} "
                                      + $"({etat.JoursRestants} jours).");
 
+                // Caddy ne relit pas seul un certificat fichier : sans ce rechargement,
+                // il continuerait à servir l'ancien jusqu'au prochain redémarrage.
+                if (GestionnairePasserelle.EstEnMarche())
+                    await GestionnairePasserelle.RechargerAsync();
+
                 return etat.Present;
             }
             catch (Exception ex)

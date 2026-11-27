@@ -384,6 +384,33 @@ namespace MCEMonitor.Utils
         public static bool CertRenewTaskExists()
             => QueryTask(NomTacheCertRenew);
 
+        private const string NomTacheCaddy = "MCEMonitor_Caddy";
+
+        /// <summary>
+        /// Démarre la passerelle au boot, comme les services des modules. Caddy se
+        /// détache ensuite : la tâche n'a rien à surveiller.
+        /// </summary>
+        public static string CreateCaddyTask()
+        {
+            string exePath = Environment.ProcessPath ?? string.Empty;
+
+            if (!File.Exists(exePath))
+                return "ERREUR : MCEMonitor.exe introuvable.";
+
+            return RunAdmin(
+                $"schtasks /Create /TN \"{NomTacheCaddy}\" " +
+                "/SC ONSTART " +
+                $"/TR \"\\\"{exePath}\\\" --run-gateway\" " +
+                "/RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteCaddyTask()
+            => RunAdmin($"schtasks /Delete /TN \"{NomTacheCaddy}\" /F");
+
+        public static bool CaddyTaskExists()
+            => QueryTask(NomTacheCaddy);
+
         // ============================================================
         // OUTILS COMMUNS
         // ============================================================

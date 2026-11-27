@@ -403,7 +403,7 @@
                                 <StackPanel>
                                     <TextBlock Text="{loc:Tr 'Domaine'}" Style="{StaticResource TitreSection}" />
 
-                                    <Grid Margin="0,0,0,8">
+                                    <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="320" />
@@ -415,53 +415,81 @@
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
 
+                                    <!-- Chaque module publié : son sous-domaine, et où la
+                                         passerelle doit le joindre. 127.0.0.1 quand le module
+                                         tourne sur la même machine, son adresse LAN sinon. -->
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="1" Text="{loc:Tr 'Sous-domaine'}"
+                                                   Style="{StaticResource Libelle}" Margin="0,0,10,0" />
+                                        <TextBlock Grid.Column="2" Text="{loc:Tr 'Cible (hôte:port)'}"
+                                                   Style="{StaticResource Libelle}" />
+                                    </Grid>
+
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'Sous-domaine NetMonitor :'}" Style="{StaticResource Libelle}"
+                                        <TextBlock Text="{loc:Tr 'NetMonitor :'}" Style="{StaticResource Libelle}"
                                                    VerticalAlignment="Center" Margin="0" />
                                         <TextBox x:Name="txtHttpsSousNet" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
+                                        <TextBox x:Name="txtHttpsCibleNet" Grid.Column="2"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
-
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'Sous-domaine RomMonitor :'}" Style="{StaticResource Libelle}"
+                                        <TextBlock Text="{loc:Tr 'RomMonitor :'}" Style="{StaticResource Libelle}"
                                                    VerticalAlignment="Center" Margin="0" />
                                         <TextBox x:Name="txtHttpsSousRom" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
+                                        <TextBox x:Name="txtHttpsCibleRom" Grid.Column="2"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
-
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'Sous-domaine SystemMonitor :'}" Style="{StaticResource Libelle}"
+                                        <TextBlock Text="{loc:Tr 'SystemMonitor :'}" Style="{StaticResource Libelle}"
                                                    VerticalAlignment="Center" Margin="0" />
                                         <TextBox x:Name="txtHttpsSousSystem" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
+                                        <TextBox x:Name="txtHttpsCibleSystem" Grid.Column="2"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="150" />
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'MediaMonitor :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsSousMedia" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
+                                        <TextBox x:Name="txtHttpsCibleMedia" Grid.Column="2"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
 
-                                    <Grid>
-                                        <Grid.ColumnDefinitions>
-                                            <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="320" />
-                                            <ColumnDefinition Width="*" />
-                                        </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'Sous-domaine MediaMonitor :'}" Style="{StaticResource Libelle}"
-                                                   VerticalAlignment="Center" Margin="0" />
-                                        <TextBox x:Name="txtHttpsSousMedia" Grid.Column="1"
-                                                 Style="{StaticResource ChampParametre}" />
-                                    </Grid>
+                                    <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
+                                               Text="{loc:Tr 'Laissez un sous-domaine vide pour ne pas publier ce module. Exemple de cible : 127.0.0.1:14003, ou 192.168.1.20:8085 pour une autre machine.'}" />
                                 </StackPanel>
                             </Border>
 
@@ -540,6 +568,21 @@
                                                Text="{loc:Tr 'Passerelle à l’arrêt'}"
                                                Foreground="{StaticResource TexteSecondaire}"
                                                FontSize="12" Margin="0,0,0,10" />
+
+                                    <!-- Commandes de la passerelle. Le démarrage exige les
+                                         droits administrateur : c'est le cas de MCEMonitor. -->
+                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                        <Button x:Name="BoutonDemarrerPasserelle"
+                                                Content="{loc:Tr 'Démarrer la passerelle'}"
+                                                Style="{StaticResource BoutonAccent}"
+                                                Width="200"
+                                                Click="DemarrerPasserelle_Click" />
+                                        <Button x:Name="BoutonArreterPasserelle"
+                                                Content="{loc:Tr 'Arrêter la passerelle'}"
+                                                Style="{StaticResource BoutonSecondaire}"
+                                                Width="200" Margin="10,0,0,0"
+                                                Click="ArreterPasserelle_Click" />
+                                    </StackPanel>
 
                                     <Button x:Name="BoutonEnregistrerHttps"
                                             Content="{loc:Tr 'Enregistrer ces réglages'}"
