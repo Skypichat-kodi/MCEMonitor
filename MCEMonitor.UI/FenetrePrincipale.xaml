@@ -351,6 +351,212 @@
                     </ScrollViewer>
                 </TabItem>
 
+                <!-- ============ HTTPS ============ -->
+                <!-- Onglet inerte pour l instant : il enregistre sa configuration
+                     sans rien lancer. Aucun port n est ouvert, aucun binaire demarre. -->
+                <TabItem x:Name="OngletHttps" Header="{loc:Tr 'HTTPS'}">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel Margin="2,0,2,2">
+
+                            <!-- Encart d information -->
+                            <Border Background="{StaticResource Surface}"
+                                    BorderBrush="{StaticResource Bordure}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,9"
+                                    Margin="0,0,0,12">
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+
+                                    <TextBlock Grid.Column="0" Text="&#xE774;"
+                                               FontFamily="Segoe MDL2 Assets" FontSize="18"
+                                               Foreground="{StaticResource Accent}"
+                                               VerticalAlignment="Top" Margin="0,0,10,0" />
+
+                                    <TextBlock Grid.Column="1" Margin="0" FontStyle="Italic"
+                                               TextWrapping="Wrap" Foreground="{StaticResource TexteSecondaire}"
+                                               FontSize="13" LineHeight="19" VerticalAlignment="Center"
+                                               Text="{loc:Tr 'Permet de joindre les modules depuis n’importe quel navigateur en HTTPS reconnu, sans certificat à installer. Désactivé, rien ne change : les modules restent servis en HTTP sur leurs ports habituels.'}" />
+                                </Grid>
+                            </Border>
+
+                            <CheckBox x:Name="chkHttpsActif"
+                                      Content="{loc:Tr 'Activer l’accès distant (HTTPS)'}"
+                                      Foreground="{StaticResource Texte}"
+                                      FontWeight="SemiBold"
+                                      Margin="0,0,0,14"
+                                      Checked="ChkHttpsActif_Changed"
+                                      Unchecked="ChkHttpsActif_Changed" />
+
+                            <!-- ================= Domaine ================= -->
+                            <Border x:Name="GroupeHttpsDomaine"
+                                    Background="{StaticResource Surface}"
+                                    BorderBrush="{StaticResource Bordure}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,10"
+                                    Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{loc:Tr 'Domaine'}" Style="{StaticResource TitreSection}" />
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Nom de domaine :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsDomaine" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Sous-domaine NetMonitor :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsSousNet" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Sous-domaine RomMonitor :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsSousRom" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Sous-domaine SystemMonitor :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsSousSystem" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Sous-domaine MediaMonitor :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsSousMedia" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ================= Certificat ================= -->
+                            <Border x:Name="GroupeHttpsCertificat"
+                                    Background="{StaticResource Surface}"
+                                    BorderBrush="{StaticResource Bordure}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,10"
+                                    Margin="0,0,0,12">
+                                <StackPanel>
+                                    <TextBlock Text="{loc:Tr 'Certificat'}" Style="{StaticResource TitreSection}" />
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Fournisseur DNS :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <ComboBox x:Name="cmbHttpsFournisseur" Grid.Column="1" Height="22" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,8">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Jeton d’API :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsJeton" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="320" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Adresse email :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsEmail" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" />
+                                    </Grid>
+
+                                    <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
+                                               Text="{loc:Tr 'Le jeton est chiffré sur la machine. Il sert à prouver la propriété du domaine, sans ouvrir de port.'}" />
+                                </StackPanel>
+                            </Border>
+
+                            <!-- ================= Passerelle ================= -->
+                            <Border x:Name="GroupeHttpsPasserelle"
+                                    Background="{StaticResource Surface}"
+                                    BorderBrush="{StaticResource Bordure}"
+                                    BorderThickness="1"
+                                    CornerRadius="6"
+                                    Padding="12,10">
+                                <StackPanel>
+                                    <TextBlock Text="{loc:Tr 'Passerelle'}" Style="{StaticResource TitreSection}" />
+
+                                    <Grid Margin="0,0,0,10">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{loc:Tr 'Port d’écoute HTTPS :'}" Style="{StaticResource Libelle}"
+                                                   VerticalAlignment="Center" Margin="0" />
+                                        <TextBox x:Name="txtHttpsPort" Grid.Column="1"
+                                                 Style="{StaticResource ChampParametre}" Text="443" />
+                                    </Grid>
+
+                                    <TextBlock x:Name="txtHttpsEtat"
+                                               Text="{loc:Tr 'Passerelle à l’arrêt'}"
+                                               Foreground="{StaticResource TexteSecondaire}"
+                                               FontSize="12" Margin="0,0,0,10" />
+
+                                    <Button x:Name="BoutonEnregistrerHttps"
+                                            Content="{loc:Tr 'Enregistrer ces réglages'}"
+                                            Style="{StaticResource BoutonAccent}"
+                                            Width="220" HorizontalAlignment="Left"
+                                            Click="EnregistrerHttps_Click" />
+                                </StackPanel>
+                            </Border>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ============ On/Off ============ -->
+
                 <!-- ============ On/Off ============ -->
                 <TabItem x:Name="OngletOnOff" Header="{loc:Tr 'On/Off'}">
                     <Grid Margin="2,0,2,2">

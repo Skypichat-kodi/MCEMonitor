@@ -31,6 +31,7 @@ namespace MCEMonitor.UI
             AddHandler(Selector.SelectionChangedEvent, new RoutedEventHandler(JournaliserSelection), true);
 
             ChargerConfigEmail();
+            ChargerConfigHttps();
             ChargerAbout();
             ChargerMedia();
             ChargerRom();
@@ -2407,6 +2408,111 @@ namespace MCEMonitor.UI
 
         private string ModeArretChoisi() =>
             ChoixTypeArret.SelectedIndex == 1 ? ModeVeille : ModeArret;
+
+        // ------------------------------------------------------------
+        //  Accès distant (HTTPS)
+        // ------------------------------------------------------------
+
+        /// <summary>
+        /// Charge les réglages du module HTTPS. Tant que la coche est décochée,
+        /// les trois groupes restent grisés : le module enregistre des intentions
+        /// sans rien lancer, et les modules continuent d être servis en HTTP.
+        /// </summary>
+        private void ChargerConfigHttps()
+        {
+            try
+            {
+                if (cmbHttpsFournisseur.Items.Count == 0)
+                {
+                    cmbHttpsFournisseur.Items.Add("Infomaniak");
+                    cmbHttpsFournisseur.Items.Add("Cloudflare");
+                    cmbHttpsFournisseur.Items.Add("OVH");
+                    cmbHttpsFournisseur.Items.Add("Gandi");
+                    cmbHttpsFournisseur.Items.Add("Namecheap");
+                    cmbHttpsFournisseur.SelectedIndex = 0;
+                }
+
+                var config = Partage.HttpsConfig.Charger();
+
+                chkHttpsActif.IsChecked     = config.Actif;
+                txtHttpsDomaine.Text        = config.Domaine;
+                txtHttpsSousNet.Text        = config.SousNetMonitor;
+                txtHttpsSousRom.Text        = config.SousRomMonitor;
+                txtHttpsSousSystem.Text     = config.SousSystemMonitor;
+                txtHttpsSousMedia.Text      = config.SousMediaMonitor;
+                txtHttpsEmail.Text          = config.Email;
+                txtHttpsPort.Text           = config.Port.ToString();
+                txtHttpsJeton.Text          = config.Jeton;
+
+                if (!string.IsNullOrEmpty(config.Fournisseur) &&
+                    cmbHttpsFournisseur.Items.Contains(config.Fournisseur))
+                    cmbHttpsFournisseur.SelectedItem = config.Fournisseur;
+
+                AppliquerGrisageHttps();
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", $"ChargerConfigHttps : {ex.Message}");
+            }
+        }
+
+        private void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
+            => AppliquerGrisageHttps();
+
+        /// <summary>Décoché : tout le reste du module est grisé.</summary>
+        private void AppliquerGrisageHttps()
+        {
+            bool actif = chkHttpsActif.IsChecked == true;
+
+            GroupeHttpsDomaine.IsEnabled     = actif;
+            GroupeHttpsCertificat.IsEnabled  = actif;
+            GroupeHttpsPasserelle.IsEnabled  = actif;
+        }
+
+        private void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                int port = 443;
+                if (!int.TryParse(txtHttpsPort.Text.Trim(), out port) || port < 1 || port > 65535)
+                {
+                    Boite.Show(this,
+                        LanguageManager.Get("Port invalide : entier entre 1 et 65535.") ?? "Port invalide : entier entre 1 et 65535.",
+                        LanguageManager.Get("Valeur invalide") ?? "Valeur invalide",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
+
+                var config = new Partage.HttpsConfig
+                {
+                    Actif             = chkHttpsActif.IsChecked == true,
+                    Domaine           = txtHttpsDomaine.Text.Trim(),
+                    SousNetMonitor    = txtHttpsSousNet.Text.Trim(),
+                    SousRomMonitor    = txtHttpsSousRom.Text.Trim(),
+                    SousSystemMonitor = txtHttpsSousSystem.Text.Trim(),
+                    SousMediaMonitor  = txtHttpsSousMedia.Text.Trim(),
+                    Fournisseur       = cmbHttpsFournisseur.SelectedItem?.ToString() ?? "Infomaniak",
+                    Email             = txtHttpsEmail.Text.Trim(),
+                    Jeton             = txtHttpsJeton.Text.Trim(),
+                    Port              = port
+                };
+
+                config.Enregistrer();
+
+                CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, domaine={config.Domaine})");
+
+                Boite.Show(this,
+                    LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
+                    LanguageManager.Get("Accès distant") ?? "Accès distant",
+                    MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                Boite.Show(this, (LanguageManager.Get("Erreur :") ?? "Erreur :") + " " + ex.Message,
+                    LanguageManager.Get("Accès distant") ?? "Accès distant",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private void ChargerConfigArret()
         {
