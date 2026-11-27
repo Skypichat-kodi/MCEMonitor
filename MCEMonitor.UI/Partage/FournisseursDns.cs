@@ -62,6 +62,13 @@ namespace MCEMonitor.UI.Partage
             Aide = aide;
             Champs = champs;
         }
+
+        /// <summary>
+        /// WPF retombe sur ToString() quand il ne trouve pas la propriété demandée par
+        /// DisplayMemberPath — c est ainsi que la liste a affiché le nom du type. Ce
+        /// dernier mot rend l affichage correct quoi qu il arrive.
+        /// </summary>
+        public override string ToString() => Nom;
     }
 
     /// <summary>Catalogue des fournisseurs DNS proposés.</summary>
