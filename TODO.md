@@ -96,56 +96,14 @@ _(rien)_
 
 ### 🟡 Planifié
 
-- [ ] **Accès distant HTTPS — onglet et passerelle** *(étudié le 2026-11-26)*
-  - **Objectif** : joindre les modules depuis n importe quel navigateur en HTTPS reconnu, sans certificat à
-    installer sur les clients. Aujourd hui l accès passe par un DDNS (Afraid.net) et du HTTP en clair
-  - **Pas d IP fixe nécessaire** : un certificat lie un nom, jamais une adresse. Le DDNS continue de tenir
-    l enregistrement A, le certificat s en moque
-  - **Validation par DNS-01** : le certificat s obtient sans ouvrir aucun port, et un wildcard
-    `*.mondomaine.fr` couvre tous les modules — y compris ceux qui n existent pas encore. Le HTTP-01 exigerait
-    le port 80 joignable, que beaucoup de box filtrent
-
-  **Architecture retenue** — `lego` pour les certificats, Caddy standard en façade :
-
-      navigateur → https://net.mondomaine.fr  (443, Caddy)
-                 → https://rom.mondomaine.fr
-                          ↓ HTTP local, inchangé
-                   NetMonitor 14003 · RomMonitor · MediaMonitor
-
-  - **aucune modification des quatre serveurs** : ils restent en HTTP sur localhost, Caddy termine le TLS
-  - `lego` plutôt que le module DNS de Caddy : Caddy demande **un module recompilé par fournisseur**, alors
-    que `lego` est **un seul binaire** qui parle à une centaine de fournisseurs
-  - **piège vérifié** : Caddy ne recharge pas un certificat chargé depuis un fichier quand celui-ci change
-    (« we only reload manual certs when you reload the config »). Le renouvellement doit donc enchaîner
-    `lego renew` puis `caddy reload`
-
-  **Onglet « Accès distant » dans MCEMonitor.UI** :
-  - **Une coche d activation en tête du module.** Désactivée, tout le reste est grisé et les modules
-    continuent d être servis en HTTP, exactement comme aujourd hui. Le HTTPS est une option, jamais une
-    contrainte : qui n en veut pas ne doit voir changer ni ses ports, ni ses URL, ni son installation.
-    Décoche = aucun binaire lancé, aucune tâche planifiée, aucun port 443 ouvert
-  - **Domaine** : nom racine, sous-domaines par module, état de la résolution DNS
-  - **Certificat** : liste déroulante de fournisseurs, **champs générés selon le choix** (un jeton pour
-    Infomaniak, trois clés pour OVH, deux pour Namecheap…), valeurs chiffrées en DPAPI comme le mot de passe
-    SMTP, et injectées en variables d environnement — jamais en ligne de commande, où elles seraient visibles
-    dans la liste des processus. Email ACME, émetteur, expiration, jours restants, bouton d obtention
-  - **Passerelle** : état du processus Caddy, port d écoute, redirection 80 → 443, démarrage et arrêt
-  - **Diagnostic** : DNS résolu ? 443 joignable ? certificat valide ? dernières lignes du journal ACME
-  - **Extensible** : ajouter un fournisseur = une entrée dans la table (identifiant `lego`, champs, liens
-    d aide), sans recompiler quoi que ce soit
-
-  **À garder en tête** :
-  - les durées de certificat fondent — 90 jours aujourd hui, 64 en février 2027, 45 en 2028, avec une option
-    à 6 jours déjà disponible. Le renouvellement doit être irréprochable, et le rechargement à chaud avec
-  - dépendance nouvelle : un binaire `lego` et un binaire `Caddy` dans l installeur, comme WinDivert. Pas de
-    pilote noyau, mais deux composants tiers à suivre
-  - exposition publique : vérifier la robustesse des logins par module (déjà protégés par mot de passe et
-    OTP), et ajouter HSTS
-
-  **Découpage** : 0) la coche et le mode HTTP préservé, pour que rien ne change tant que l option est
-  inactive ; 1) onglet et stockage chiffré ; 2) obtention et renouvellement par `lego` + tâche
-  planifiée ; 3) passerelle Caddy et sous-domaines ; 4) diagnostic et finitions. Compter plusieurs jours,
-  l essentiel du travail étant l interface et la supervision, pas le TLS lui-même
+- [ ] **Terminer l exposition d `mcemonitor.org`** *(relevé du 2026-11-27)*
+  - Le certificat, le renouvellement et la passerelle sont en place. Il reste deux opérations hors du code :
+    un **enregistrement A** (`net` → IP publique) dans la zone Infomaniak, et l **ouverture du port 443**
+    dans la box vers la machine qui héberge Caddy
+  - **DDNS** : l IP publique change. Afraid.net fait le travail pour l instant, mais l API Infomaniak permet
+    de mettre à jour l enregistrement A directement — le jeton est déjà dans la configuration
+  - Les autres machines n ont rien à configurer : la passerelle relaie vers leurs modules par le champ
+    « cible » (`192.168.x.y:port`)
   - **Priorité** : 🟡 moyenne
 
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
@@ -174,7 +132,7 @@ _(rien)_
   - **Priorité** : 🟢 basse
 
 - [ ] **Traduire `de-DE` et `es-ES`** *(via Autotrad)*
-  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 117 clés) et `en-GB` (1 118 clés) sont complets
+  - Les deux fichiers sont vides (`{}`) ; `fr-FR` (1 179 clés) et `en-GB` (1 180 clés) sont complets
   - Autotrad remplit les JSON depuis les clés détectées dans le code (XAML, C#, HTML)
   - **Priorité** : 🟡 moyenne (dépend d'une passe Autotrad + clé API)
 
@@ -190,6 +148,67 @@ _(rien)_
 ---
 
 ## ✅ Terminé récent
+
+### Session 2026-11-27 — accès distant HTTPS, de bout en bout
+
+Objectif : joindre les modules depuis n importe quel navigateur en HTTPS reconnu, sans certificat à
+installer sur les clients, et sans rien changer pour qui reste en HTTP. Christophe a acheté
+`mcemonitor.org` dans la journée ; le soir, le certificat était émis, le renouvellement planifié et la
+passerelle en marche.
+
+**Le module, dans MCEMonitor.UI.** Un onglet « HTTPS » placé après Email et avant On/Off — dix onglets ne
+tenaient plus dans 860 px, la marge latérale du style est passée de 12 à 8 px. Il ne figure pas dans
+`OngletsModules` : il reste donc visible quand le SMTP ne répond pas, contrairement aux onglets des
+modules.
+
+- **une coche en tête** : décochée, tout le reste est grisé et les modules restent servis en HTTP. Aucun
+  fichier créé, aucun port ouvert, aucun binaire lancé
+- **six fournisseurs DNS** relevés sur la documentation de lego : Infomaniak (en tête, choix de Christophe),
+  Cloudflare, OVH, Gandi, Namecheap, deSEC, Hetzner. Les champs sont construits à l exécution selon le
+  fournisseur, et les valeurs déjà saisies survivent au changement
+- **identifiants chiffrés** en DPAPI, entropie propre au module, un dictionnaire JSON par fournisseur
+
+**lego, téléchargé à la demande.** Pas de bouton : c est l enregistrement des réglages qui déclenche le
+téléchargement, et seulement si l accès distant est actif et l outil absent. Fenêtre de progression,
+Annuler, et l échec affiché tel quel. Caddy suivra le même chemin.
+
+**Le certificat, par défi DNS.** Aucun port ouvert : lego dépose un TXT `_acme-challenge`, attend sa
+propagation, obtient le certificat, l efface. Wildcard `*.mcemonitor.org` **et** domaine racine, émis par
+Let s Encrypt, 90 jours, en 44 secondes.
+
+**Le renouvellement** : tâche `MCEMonitor_CertRenew`, quotidienne à 04:00 en SYSTEM. lego ne renouvelle
+que s il reste moins de trente jours. Une tâche planifiée ne transportant pas de variable d environnement,
+c est MCEMonitor lui-même qui est relancé en `--renew-cert` — traité avant le mutex, comme les actions
+planifiées.
+
+**La passerelle** : Caddy standard, téléchargé à la demande. Le Caddyfile est généré depuis les réglages —
+un site par sous-domaine, le même certificat wildcard, un relais vers la cible du module, HSTS. Tâche
+`MCEMonitor_Caddy` en ONSTART, pour que la passerelle reprenne au démarrage de la machine.
+
+**Une seule machine peut écouter sur le 443.** D où le champ « cible » par module : 127.0.0.1 quand le
+module tourne sur la machine de la passerelle, son adresse LAN sinon. Un seul certificat, un seul jeton,
+une seule tâche de renouvellement — et les autres machines ne configurent rien.
+
+**Cinq erreurs, toutes trouvées à l exécution.**
+
+- lego 5 a déplacé toutes ses options dans la commande `run` : `--accept-tos`, `--dns` et `--path` la
+  suivent obligatoirement, sinon « flag provided but not defined »
+- `example.com` est interdit comme email de contact chez Let s Encrypt (`invalidContact`)
+- le jeton doit porter **`domain:read`, `dns:read` et `dns:write`** — la documentation de lego annonce deux
+  portées là où libdns en exige trois. Infomaniak nomme d ailleurs la manquante dans `context.scopes`, ce
+  que le module exploite maintenant
+- `caddy start` **ne rend pas la main sous Windows** : l interface attendait sa fin, patientait trente
+  secondes puis annonçait un échec alors que la passerelle tournait. Remplacé par `caddy run` lancé sans
+  attente, puis surveillance de l API d administration
+- une sortie redirigée qu on ne consomme pas remplit son tampon et fige le processus : un lecteur tourne
+  désormais en tâche de fond
+
+**Vérifié** : certificat `CN=*.mcemonitor.org` présenté sur le 443, émetteur Let s Encrypt, HTTPS répond en
+local ; `MCEMonitor_Caddy` et `MCEMonitor_CertRenew` présentes dans le planificateur.
+
+**Commits** : `d47be05` (onglet inerte), `920fae3` (fournisseurs), `c17c329` (lego), `f1b887b`
+(certificat), `cfcfd84` (contrôle du jeton), `1ba792a` (portée nommée), `1a943ca` (renouvellement),
+`8f70436` (socle passerelle), `15d743e` (interface passerelle), `b9ba4c1` (démarrage sans attente).
 
 ### Session 2026-11-26 — WinDivert, Ricochet et Call of Duty
 
