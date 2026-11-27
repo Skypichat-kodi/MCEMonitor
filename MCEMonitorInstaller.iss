@@ -53,23 +53,24 @@ Name: "deletetasks"; \
 Name: "core";   Description: "MCEMonitor (application principale, services, tray, UI)"; Types: full
 
 ; Sous-composants décoratifs : ils listent ce qui est installé avec MCEMonitor.
-; « fixed » les rend toujours cochés et non décochables — on informe, on ne
-; propose pas de les retirer, puisque les modules en dépendent.
+; Leur case est cochée par défaut, puis désactivée par CurPageChanged : on garde
+; la coche visible pour dire « s'installe avec », sans permettre de la retirer
+; puisque les modules en dépendent.
 Name: "core\windivert"; \
     Description: "WinDivert — pilote de capture réseau, requis par NetMonitor"; \
-    Flags: fixed
+    Types: full
 
 Name: "core\pawnio"; \
     Description: "PawnIO — pilote de lecture des capteurs, requis par RomMonitor et SystemMonitor"; \
-    Flags: fixed
+    Types: full
 
 Name: "core\ffmpeg"; \
     Description: "ffmpeg — analyse des médias, requis par MediaMonitor"; \
-    Flags: fixed
+    Types: full
 
 Name: "core\lhm"; \
     Description: "LibreHardwareMonitor — températures et santé des disques"; \
-    Flags: fixed
+    Types: full
 
 Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MCE distants)"; Types: full
 
@@ -651,6 +652,31 @@ end;
 // ============================================================
 //  Appelé par Inno AVANT que les fichiers ne soient écrits
 //  → arrête les process, supprime les tâches, vérifie la RAM
+// ============================================================
+//  Page des composants : les additifs sont cochés, mais non décochables
+// ============================================================
+// Inno n'affiche aucune case pour un composant « fixed ». On garde donc des
+// composants ordinaires, cochés par défaut, dont la case est désactivée dès que
+// la page s'affiche : la coche grise dit « s'installe avec », sans laisser
+// croire qu'on peut s'en passer.
+procedure CurPageChanged(CurPageID: Integer);
+var
+  I: Integer;
+begin
+  if CurPageID = wpSelectComponents then
+  begin
+    for I := 0 to WizardForm.ComponentsList.Items.Count - 1 do
+    begin
+      // Niveau 0 = MCEMonitor et MCEMonitor Client, les seuls choix réels.
+      if WizardForm.ComponentsList.ItemLevel[I] > 0 then
+      begin
+        WizardForm.ComponentsList.Checked[I]  := True;
+        WizardForm.ComponentsList.ItemEnabled[I] := False;
+      end;
+    end;
+  end;
+end;
+
 // ============================================================
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 var
