@@ -21,6 +21,16 @@ namespace MCEMonitor.UI
 {
     public partial class FenetrePrincipale : Window
     {
+        /// <summary>
+        /// Interroge l'état de la passerelle tant que l'onglet HTTPS est affiché.
+        /// Sans lui, l'état n'était lu qu'au démarrage de MCEMonitor : une passerelle
+        /// démarrée entre-temps — par la tâche planifiée, par une autre fenêtre, ou à
+        /// la main — laissait le bouton « Démarrer » actif devant un service qui
+        /// tournait déjà.
+        /// </summary>
+        private System.Windows.Threading.DispatcherTimer? _minuteurPasserelle;
+
+        private bool _rafraichissementPasserelle;
         public FenetrePrincipale()
         {
             InitializeComponent();
@@ -106,6 +116,14 @@ namespace MCEMonitor.UI
                 }
 
                 CoreLog.Info("UI", "Onglet : " + titre);
+
+                // L'état de la passerelle peut changer sans nous. Tant que l'onglet
+                // est affiché, on l'interroge toutes les cinq secondes ; ailleurs, la
+                // veille s'arrête.
+                if (onglets.SelectedItem == OngletHttps)
+                    DemarrerVeillePasserelle();
+                else
+                    ArreterVeillePasserelle();
 
                 // Un message d'enregistrement décrit une action ponctuelle : il ne
                 // suit pas d'un module à l'autre.
@@ -2824,6 +2842,67 @@ namespace MCEMonitor.UI
         /// secondes de délai possible. On affiche d'abord ce qu'on sait, et l'état
         /// réel arrive quand il arrive.
         /// </summary>
+        /// <summary>
+        /// Démarre la surveillance de l'onglet HTTPS : un rafraîchissement immédiat,
+        /// puis un toutes les cinq secondes. Le tick est sur le thread de l'interface,
+        /// qui est aussi celui que touche l'affichage : rien à synchroniser.
+        /// </summary>
+        private void DemarrerVeillePasserelle()
+        {
+            if (_minuteurPasserelle == null)
+            {
+                _minuteurPasserelle = new System.Windows.Threading.DispatcherTimer
+                {
+                    Interval = TimeSpan.FromSeconds(5)
+                };
+
+                _minuteurPasserelle.Tick += async (_, _) =>
+                {
+                    // Un seul appel à la fois : deux requêtes qui se croisent
+                    // pourraient afficher le résultat de la plus lente.
+                    if (_rafraichissementPasserelle) return;
+
+                    _rafraichissementPasserelle = true;
+
+                    try { await RafraichirEtatPasserelleAsync(); }
+                    catch { }
+                    finally { _rafraichissementPasserelle = false; }
+                };
+            }
+
+            _ = RafraichirEtatPasserelleAsync();
+            _minuteurPasserelle.Start();
+        }
+
+        private void ArreterVeillePasserelle() => _minuteurPasserelle?.Stop();
+
+        private void AfficherPastillePasserelle(bool actif, bool enMarche)
+        {
+            if (!actif)
+            {
+                PastillePasserelle.Fill = (System.Windows.Media.Brush)
+                    (TryFindResource("TexteSecondaire") ?? System.Windows.Media.Brushes.Gray);
+                PastillePasserelle.ToolTip = LanguageManager.Get("Accès distant désactivé")
+                                            ?? "Accès distant désactivé";
+                return;
+            }
+
+            if (enMarche)
+            {
+                PastillePasserelle.Fill = (System.Windows.Media.Brush)
+                    (TryFindResource("Succes") ?? System.Windows.Media.Brushes.Green);
+                PastillePasserelle.ToolTip = LanguageManager.Get("Passerelle en marche")
+                                            ?? "Passerelle en marche";
+                return;
+            }
+
+            // Ambre : l'accès est voulu, mais Caddy ne répond pas.
+            PastillePasserelle.Fill = new System.Windows.Media.SolidColorBrush(
+                System.Windows.Media.Color.FromRgb(0xFF, 0xB9, 0x00));
+            PastillePasserelle.ToolTip = LanguageManager.Get("Passerelle à l’arrêt")
+                                        ?? "Passerelle à l’arrêt";
+        }
+
         private async Task RafraichirEtatPasserelleAsync()
         {
             bool actif = chkHttpsActif.IsChecked == true;
@@ -2833,6 +2912,7 @@ namespace MCEMonitor.UI
             if (!actif)
             {
                 txtHttpsEtat.Text = LanguageManager.Get("Accès distant désactivé") ?? "Accès distant désactivé";
+                AfficherPastillePasserelle(false, false);
                 BoutonDemarrerPasserelle.IsEnabled = false;
                 BoutonArreterPasserelle.IsEnabled  = false;
                 BoutonDemarrerPasserelle.Opacity = 0.4;
@@ -2845,6 +2925,8 @@ namespace MCEMonitor.UI
             txtHttpsEtat.Text = enMarche
                 ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
                 : (LanguageManager.Get("Passerelle à l’arrêt") ?? "Passerelle à l’arrêt");
+
+            AfficherPastillePasserelle(true, enMarche);
 
             // Une seule commande proposée selon l'état, et sa couleur dit l'action :
             // vert pour démarrer, rouge pour arrêter.

@@ -384,13 +384,40 @@
                                 </Grid>
                             </Border>
 
-                            <CheckBox x:Name="chkHttpsActif"
-                                      Content="{loc:Tr 'Activer l’accès distant (HTTPS)'}"
-                                      Foreground="{StaticResource Texte}"
-                                      FontWeight="SemiBold"
-                                      Margin="0,0,0,14"
-                                      Checked="ChkHttpsActif_Changed"
-                                      Unchecked="ChkHttpsActif_Changed" />
+                            <Grid Margin="0,0,0,14">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <CheckBox x:Name="chkHttpsActif"
+                                          Grid.Column="0"
+                                          Content="{loc:Tr 'Activer l’accès distant (HTTPS)'}"
+                                          Foreground="{StaticResource Texte}"
+                                          FontWeight="SemiBold"
+                                          Checked="ChkHttpsActif_Changed"
+                                          Unchecked="ChkHttpsActif_Changed" />
+
+                                <!-- Etat de la passerelle, lisible sans descendre jusqu'aux
+                                     boutons : gris quand l'accès est désactivé, vert quand
+                                     Caddy tourne, ambre quand il est absent. -->
+                                <StackPanel Grid.Column="2"
+                                            Orientation="Horizontal"
+                                            VerticalAlignment="Center">
+                                    <TextBlock Text="{loc:Tr 'État de la passerelle'}"
+                                               FontSize="11"
+                                               Margin="0,0,7,0"
+                                               VerticalAlignment="Center"
+                                               Foreground="{StaticResource TexteSecondaire}" />
+
+                                    <Ellipse x:Name="PastillePasserelle"
+                                             Width="11" Height="11"
+                                             VerticalAlignment="Center"
+                                             Fill="{StaticResource TexteSecondaire}"
+                                             ToolTip="{loc:Tr 'Passerelle à l’arrêt'}" />
+                                </StackPanel>
+                            </Grid>
 
                             <!-- ================= Domaine ================= -->
                             <Border x:Name="GroupeHttpsDomaine"
