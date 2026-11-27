@@ -2428,6 +2428,7 @@ namespace MCEMonitor.UI
                 var config = Partage.HttpsConfig.Charger();
 
                 chkHttpsActif.IsChecked     = config.Actif;
+                chkHttpsDdns.IsChecked      = config.Ddns;
                 txtHttpsDomaine.Text        = config.Domaine;
                 txtHttpsSousNet.Text        = config.SousNetMonitor;
                 txtHttpsSousRom.Text        = config.SousRomMonitor;
@@ -2549,6 +2550,7 @@ namespace MCEMonitor.UI
                 var config = new Partage.HttpsConfig
                 {
                     Actif             = chkHttpsActif.IsChecked == true,
+                    Ddns              = chkHttpsDdns.IsChecked == true,
                     Domaine           = txtHttpsDomaine.Text.Trim(),
                     SousNetMonitor    = txtHttpsSousNet.Text.Trim(),
                     SousRomMonitor    = txtHttpsSousRom.Text.Trim(),
@@ -2648,6 +2650,23 @@ namespace MCEMonitor.UI
                 {
                     MCEMonitor.Utils.TaskSchedulerHelper.DeleteCaddyTask();
                     CoreLog.Info("HTTPS", "Tâche de passerelle supprimée (rien à publier).");
+                }
+
+                // Mise à jour de l'enregistrement A, seul rôle des quinze minutes.
+                bool ddnsActif = config.Actif && config.Ddns && Partage.GenerateurCaddyfile.Sites(config).Count > 0;
+
+                if (ddnsActif)
+                {
+                    if (!MCEMonitor.Utils.TaskSchedulerHelper.DdnsTaskExists())
+                    {
+                        string resultat = MCEMonitor.Utils.TaskSchedulerHelper.CreateDdnsTask();
+                        CoreLog.Info("HTTPS", "Tâche de mise à jour DNS : " + resultat);
+                    }
+                }
+                else if (MCEMonitor.Utils.TaskSchedulerHelper.DdnsTaskExists())
+                {
+                    MCEMonitor.Utils.TaskSchedulerHelper.DeleteDdnsTask();
+                    CoreLog.Info("HTTPS", "Tâche de mise à jour DNS supprimée.");
                 }
 
                 RafraichirEtatPasserelle();

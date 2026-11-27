@@ -411,6 +411,34 @@ namespace MCEMonitor.Utils
         public static bool CaddyTaskExists()
             => QueryTask(NomTacheCaddy);
 
+        private const string NomTacheDdns = "MCEMonitor_Ddns";
+
+        /// <summary>
+        /// Mise à jour de l'enregistrement A toutes les quinze minutes. Plus fréquent
+        /// que le renouvellement : un changement d'IP publique coupe l'accès, et il
+        /// faut le rattraper vite.
+        /// </summary>
+        public static string CreateDdnsTask()
+        {
+            string exePath = Environment.ProcessPath ?? string.Empty;
+
+            if (!File.Exists(exePath))
+                return "ERREUR : MCEMonitor.exe introuvable.";
+
+            return RunAdmin(
+                $"schtasks /Create /TN \"{NomTacheDdns}\" " +
+                "/SC MINUTE /MO 15 " +
+                $"/TR \"\\\"{exePath}\\\" --update-ddns\" " +
+                "/RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteDdnsTask()
+            => RunAdmin($"schtasks /Delete /TN \"{NomTacheDdns}\" /F");
+
+        public static bool DdnsTaskExists()
+            => QueryTask(NomTacheDdns);
+
         // ============================================================
         // OUTILS COMMUNS
         // ============================================================

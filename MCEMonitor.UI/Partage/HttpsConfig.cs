@@ -23,6 +23,9 @@ namespace MCEMonitor.UI.Partage
         /// <summary>Accès distant activé.</summary>
         public bool Actif { get; set; }
 
+        /// <summary>Mise à jour automatique de l enregistrement A.</summary>
+        public bool Ddns { get; set; }
+
         public string Domaine        { get; set; } = "";
 
         // Sous-domaines, un par module. Vide = non publié.
@@ -75,6 +78,7 @@ namespace MCEMonitor.UI.Partage
                     switch (cle)
                     {
                         case "Actif":                   config.Actif = bool.TryParse(valeur, out bool a) && a; break;
+                        case "Ddns":                    config.Ddns = bool.TryParse(valeur, out bool d) && d; break;
                         case "Domaine":                 config.Domaine = valeur; break;
                         case "SousNetMonitor":          config.SousNetMonitor = valeur; break;
                         case "SousRomMonitor":          config.SousRomMonitor = valeur; break;
@@ -111,6 +115,7 @@ namespace MCEMonitor.UI.Partage
                     "",
                     "# Actif=false : les modules restent servis en HTTP, rien n est lance",
                     $"Actif={Actif.ToString().ToLower()}",
+                    $"Ddns={Ddns.ToString().ToLower()}",
                     "",
                     "# --- Domaine ---",
                     $"Domaine={Domaine}",

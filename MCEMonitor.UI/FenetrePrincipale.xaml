@@ -490,6 +490,14 @@
 
                                     <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
                                                Text="{loc:Tr 'Laissez un sous-domaine vide pour ne pas publier ce module. Exemple de cible : 127.0.0.1:14003, ou 192.168.1.20:8085 pour une autre machine.'}" />
+
+                                    <CheckBox x:Name="chkHttpsDdns"
+                                              Content="{loc:Tr 'Mettre à jour l adresse IP des sous-domaines (toutes les 15 minutes)'}"
+                                              Foreground="{StaticResource Texte}"
+                                              Margin="0,12,0,0" />
+
+                                    <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
+                                               Text="{loc:Tr 'Sans cela, un changement d adresse IP publique coupe l accès jusqu à ce qu on la corrige à la main. Remplace le DDNS d Afraid.org.'}" />
                                 </StackPanel>
                             </Border>
 

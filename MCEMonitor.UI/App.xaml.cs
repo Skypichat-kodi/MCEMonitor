@@ -118,6 +118,27 @@ namespace MCEMonitor.UI
             }
 
             // ============================================================
+            //  MODE MISE À JOUR DNS
+            //  Toutes les quinze minutes : l IP publique change, le nom doit suivre.
+            // ============================================================
+            if (e.Args.Contains("--update-ddns"))
+            {
+                try
+                {
+                    Partage.GestionnaireDdns.MettreAJourAsync(
+                        new Progress<string>(m => CoreLog.Info("DDNS", m)),
+                        CancellationToken.None).GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Error("DDNS", "Mise à jour : " + ex.Message);
+                }
+
+                Shutdown();
+                return;
+            }
+
+            // ============================================================
             //  MODE PASSERELLE
             //  Lancé au démarrage de la machine par la tâche MCEMonitor_Caddy.
             // ============================================================

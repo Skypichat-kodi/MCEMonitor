@@ -36,7 +36,14 @@ namespace MCEMonitor.UI.Partage
 
                 if (sous.Length == 0 || cible2.Length == 0) return;
 
-                sites.Add(new Site($"{sous}.{domaine}", cible2));
+                // Le champ tolère les deux formes : « net » comme
+                // « net.mcemonitor.org ». Sans cela, un nom complet saisi par
+                // l utilisateur donnait net.mcemonitor.org.mcemonitor.org.
+                string hote = sous == domaine || sous.EndsWith("." + domaine, StringComparison.Ordinal)
+                    ? sous
+                    : $"{sous}.{domaine}";
+
+                sites.Add(new Site(hote, cible2));
             }
 
             Ajouter(config.SousNetMonitor,    config.CibleNetMonitor);
