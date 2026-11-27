@@ -83,6 +83,17 @@ namespace MCEMonitor.UI.Partage
                 ""
             };
 
+            // Redirection HTTP vers HTTPS, un bloc par site. « auto_https off »
+            // désactive l automatisme de Caddy, y compris cette redirection : sans ces
+            // blocs, une adresse tapée en http:// s afficherait en clair.
+            foreach (var site in sites)
+            {
+                lignes.Add($"http://{site.Hote} {{");
+                lignes.Add($"\tredir https://{site.Hote}{{uri}} permanent");
+                lignes.Add("}");
+                lignes.Add("");
+            }
+
             foreach (var site in sites)
             {
                 lignes.Add($"{site.Hote} {{");
