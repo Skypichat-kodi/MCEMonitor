@@ -55,7 +55,79 @@ namespace MCEMonitor.UI.Partage
         }
 
         /// <summary>
-        /// Lance lego en défi DNS-01. Les identifiants passent par l'environnement du
+        /// Contrôle l'accès à la zone avant de lancer lego. Inutile d'engager un défi
+        /// DNS pour découvrir, trente secondes plus tard, que le jeton ne peut pas lire
+        /// la zone.
+        ///
+        /// Seul Infomaniak est contrôlé pour l'instant : l'appel est simple et c'est le
+        /// fournisseur utilisé. Les autres passeront directement à lego.
+        /// </summary>
+        private static async Task ControlerAccesAsync(HttpsConfig config, IProgress<string> etapes,
+                                                     CancellationToken jeton)
+        {
+            if (!string.Equals(config.Fournisseur, "infomaniak", StringComparison.OrdinalIgnoreCase))
+                return;
+
+            if (!config.Identifiants.TryGetValue("INFOMANIAK_ACCESS_TOKEN", out var token) ||
+                string.IsNullOrWhiteSpace(token))
+                return;
+
+            etapes.Report("Vérification de l’accès à la zone…");
+
+            using var client = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+            client.DefaultRequestHeaders.Authorization =
+                new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            try
+            {
+                // Endpoint réel de l'API Infomaniak : /2/zones/{zone}. Un jeton absent,
+                // révoqué ou mal porté répond 401 avec le code « not_authorized » —
+                // précisément ce que lego rapportait jusqu'ici sans explication.
+                string domaine = config.Domaine.Trim().ToLowerInvariant();
+                var reponse = await client.GetAsync($"https://api.infomaniak.com/2/zones/{domaine}", jeton);
+
+                if (reponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                {
+                    throw new InvalidOperationException(
+                        "Infomaniak refuse ce jeton (not_authorized). Il doit porter domain:read, dns:read "
+                        + "et dns:write, et ne pas avoir été révoqué.");
+                }
+
+                if (reponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    throw new InvalidOperationException(
+                        "Le jeton n'a pas la permission de lire cette zone. Vérifiez les portées domain:read, "
+                        + "dns:read et dns:write.");
+                }
+
+                if (reponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    throw new InvalidOperationException(
+                        $"La zone {domaine} est introuvable avec ce jeton. Vérifiez que le domaine est bien "
+                        + "hébergé chez Infomaniak, sous ce compte.");
+                }
+
+                if (!reponse.IsSuccessStatusCode)
+                {
+                    throw new InvalidOperationException(
+                        $"Infomaniak répond {(int)reponse.StatusCode} {reponse.ReasonPhrase}.");
+                }
+
+                CoreLog.Info("HTTPS", "Contrôle d'accès Infomaniak : zone accessible.");
+            }
+            catch (InvalidOperationException) { throw; }
+            catch (TaskCanceledException)
+            {
+                CoreLog.Warn("HTTPS", "Contrôle d'accès : délai dépassé, on laisse lego tenter.");
+            }
+            catch (Exception ex)
+            {
+                // Panne réseau, DNS, proxy : ce n'est pas une raison pour bloquer.
+                CoreLog.Warn("HTTPS", "Contrôle d'accès impossible : " + ex.Message);
+            }
+        }
+
+        /// <summary>Lance lego en défi DNS-01. Les identifiants passent par l'environnement du
         /// processus, jamais par la ligne de commande où ils seraient visibles dans la
         /// liste des processus.
         /// </summary>
@@ -70,6 +142,8 @@ namespace MCEMonitor.UI.Partage
                 throw new InvalidOperationException("Aucun nom de domaine n'est renseigné.");
 
             var fournisseur = FournisseursDns.ParId(config.Fournisseur);
+
+            await ControlerAccesAsync(config, etapes, jeton);
             var manquants = new List<string>();
 
             foreach (var champ in fournisseur.Champs)
@@ -127,8 +201,7 @@ namespace MCEMonitor.UI.Partage
             if (!File.Exists(fichier))
             {
                 CoreLog.Error("HTTPS", "lego n'a produit aucun certificat. Sortie : " + sortie);
-                throw new InvalidOperationException(
-                    "Aucun certificat produit. Dernière ligne de lego : " + DerniereLigne(sortie));
+                throw new InvalidOperationException(TraduireErreur(sortie));
             }
 
             etapes.Report("Certificat obtenu.");
@@ -177,6 +250,44 @@ namespace MCEMonitor.UI.Partage
             }
 
             return sortie.ToString().Trim();
+        }
+
+        /// <summary>
+        /// Traduit les erreurs de lego en explication utile. La sortie brute reste au
+        /// journal ; l'utilisateur, lui, reçoit ce qu'il doit corriger.
+        /// </summary>
+        private static string TraduireErreur(string sortie)
+        {
+            string s = sortie;
+
+            if (s.Contains("not_authorized", StringComparison.OrdinalIgnoreCase))
+                return "Le fournisseur refuse l'accès à la zone DNS. Le jeton doit porter domain:read, "
+                     + "dns:read et dns:write : créez-en un nouveau avec ces trois portées.";
+
+            if (s.Contains("invalidContact", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("forbidden domain", StringComparison.OrdinalIgnoreCase))
+                return "Adresse email refusée par Let's Encrypt. Utilisez une adresse réelle, sur un domaine "
+                     + "public (example.com est interdit).";
+
+            if (s.Contains("NXDOMAIN", StringComparison.OrdinalIgnoreCase))
+                return "La zone DNS ne répond pas encore : le domaine n'est peut-être pas encore actif, "
+                     + "ou ses serveurs de noms ne sont pas encore propagés.";
+
+            if (s.Contains("propagation", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("time limit exceeded", StringComparison.OrdinalIgnoreCase))
+                return "L'enregistrement de validation n'a pas été vu à temps par les serveurs DNS. "
+                     + "Réessayez dans quelques minutes.";
+
+            if (s.Contains("401", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("unauthorized", StringComparison.OrdinalIgnoreCase))
+                return "Le fournisseur rejette le jeton : vérifiez qu'il est complet et qu'il n'a pas été révoqué.";
+
+            if (s.Contains("rate limit", StringComparison.OrdinalIgnoreCase) ||
+                s.Contains("too many", StringComparison.OrdinalIgnoreCase))
+                return "Let's Encrypt limite les demandes pour ce domaine. Réessayez dans une heure : "
+                     + "le compteur est strict pour un domaine récent.";
+
+            return "Aucun certificat produit. Dernière ligne de lego : " + DerniereLigne(sortie);
         }
 
         private static string DerniereLigne(string sortie)

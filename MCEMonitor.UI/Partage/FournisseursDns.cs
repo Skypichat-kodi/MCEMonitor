@@ -72,7 +72,7 @@ namespace MCEMonitor.UI.Partage
             // En tête : c est le fournisseur de Christophe, et donc le choix par
             // défaut quand le fichier ne dit rien.
             new("infomaniak", "Infomaniak",
-                "https://manager.infomaniak.com/v3/ng/accounts/token/list",
+                "https://manager.infomaniak.com/v3/ng/profile/user/token/list",
                 new ChampDns("INFOMANIAK_ACCESS_TOKEN", "Jeton d’API (dns:read, dns:write)", "jeton créé dans le manager")),
 
             new("cloudflare", "Cloudflare",
