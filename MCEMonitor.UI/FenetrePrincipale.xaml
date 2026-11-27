@@ -521,6 +521,7 @@
                                         <TextBlock Text="{loc:Tr 'Fournisseur DNS :'}" Style="{StaticResource Libelle}"
                                                    VerticalAlignment="Center" Margin="0" />
                                         <ComboBox x:Name="cmbHttpsFournisseur" Grid.Column="1" Height="22"
+                                                  DisplayMemberPath="Nom"
                                                   SelectionChanged="CmbHttpsFournisseur_Changed" />
                                     </Grid>
 

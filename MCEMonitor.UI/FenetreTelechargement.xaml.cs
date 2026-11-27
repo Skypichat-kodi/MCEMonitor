@@ -17,13 +17,27 @@ namespace MCEMonitor.UI
     public partial class FenetreTelechargement : Window
     {
         private readonly CancellationTokenSource _annulation = new();
+        private readonly Func<IProgress<double>, CancellationToken, Task> _installation;
 
         /// <summary>Vrai si l'installation s'est déroulée jusqu'au bout.</summary>
         public bool Reussi { get; private set; }
 
         public FenetreTelechargement()
+            : this(LanguageManager.Get("Téléchargement de lego") ?? "Téléchargement de lego",
+                   TelechargeurLego.InstallerAsync)
+        { }
+
+        /// <summary>
+        /// Fenêtre générique : un titre, et l'installation à mener. Elle sert à lego
+        /// comme à Caddy, qui sont téléchargés au même moment et de la même façon.
+        /// </summary>
+        public FenetreTelechargement(string titre,
+                                     Func<IProgress<double>, CancellationToken, Task> installation)
         {
             InitializeComponent();
+
+            _installation = installation;
+            TexteTitre.Text = titre;
 
             // Le travail démarre dès que la fenêtre est visible : l'utilisateur
             // n'a rien d'autre à faire que regarder, ou annuler.
@@ -44,11 +58,11 @@ namespace MCEMonitor.UI
 
             try
             {
-                await TelechargeurLego.InstallerAsync(progression, _annulation.Token);
+                await _installation(progression, _annulation.Token);
 
                 Reussi = true;
                 BarreProgression.Value = 1.0;
-                TexteEtat.Text = LanguageManager.Get("lego installé.") ?? "lego installé.";
+                TexteEtat.Text = LanguageManager.Get("Installation terminée.") ?? "Installation terminée.";
                 BoutonAnnuler.Visibility = Visibility.Collapsed;
                 BoutonFermer.Visibility = Visibility.Visible;
             }

@@ -40,7 +40,8 @@
                     CornerRadius="12,12,0,0"
                     MouseLeftButtonDown="EnTete_MouseLeftButtonDown">
                 <Grid Margin="20,12,10,12">
-                    <TextBlock Text="{loc:Tr 'Téléchargement de lego'}"
+                    <TextBlock x:Name="TexteTitre"
+                               Text="{loc:Tr 'Téléchargement de lego'}"
                                VerticalAlignment="Center"
                                FontSize="14"
                                FontWeight="SemiBold" />

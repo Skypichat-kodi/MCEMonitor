@@ -2422,8 +2422,10 @@ namespace MCEMonitor.UI
         {
             try
             {
+                // DisplayMemberPath est déclaré dans le XAML : le poser ici, après
+                // ItemsSource, laissait parfois WPF afficher le ToString() des objets,
+                // c est-à-dire l identifiant technique du fournisseur.
                 cmbHttpsFournisseur.ItemsSource = Partage.FournisseursDns.Tous;
-                cmbHttpsFournisseur.DisplayMemberPath = "Nom";
 
                 var config = Partage.HttpsConfig.Charger();
 
@@ -2496,15 +2498,41 @@ namespace MCEMonitor.UI
                 };
                 Grid.SetColumn(libelle, 0);
 
+                var existe = _identifiantsDns.TryGetValue(champ.Cle, out var valeur) &&
+                             !string.IsNullOrWhiteSpace(valeur);
+
+                // Un secret n'est jamais réaffiché en clair : le champ reste vide, et
+                // une mention dit qu'une valeur est enregistrée. Laisser un champ vide
+                // sans rien dire laissait croire qu'il n'y avait plus de jeton.
                 var boite = new TextBox
                 {
                     Style = (Style)FindResource("ChampParametre"),
-                    Text = _identifiantsDns.TryGetValue(champ.Cle, out var valeur) ? valeur : champ.Defaut
+                    Text = champ.Secret
+                        ? ""
+                        : existe ? valeur : champ.Defaut
                 };
                 Grid.SetColumn(boite, 1);
 
                 grille.Children.Add(libelle);
                 grille.Children.Add(boite);
+
+                if (champ.Secret && existe)
+                {
+                    var mention = new TextBlock
+                    {
+                        Text = LanguageManager.Get("enregistré") ?? "enregistré",
+                        Foreground = (Brush)FindResource("Succes"),
+                        FontSize = 11,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(8, 0, 0, 0)
+                    };
+                    Grid.SetColumn(mention, 2);
+                    grille.Children.Add(mention);
+
+                    boite.ToolTip = LanguageManager.Get("Laissez vide pour conserver la valeur enregistrée.")
+                                    ?? "Laissez vide pour conserver la valeur enregistrée.";
+                }
+
                 PanneauChampsDns.Children.Add(grille);
 
                 _champsDns[champ.Cle] = boite;
@@ -2517,7 +2545,18 @@ namespace MCEMonitor.UI
         private void EnregistrerChampsAffiches()
         {
             foreach (var (cle, boite) in _champsDns)
-                _identifiantsDns[cle] = boite.Text.Trim();
+            {
+                string saisie = boite.Text.Trim();
+
+                // Un champ secret laissé vide conserve la valeur déjà enregistrée :
+                // c'est le comportement attendu d'un mot de passe, et cela évite
+                // d'effacer un jeton en passant simplement sur l'onglet.
+                if (saisie.Length == 0 && _identifiantsDns.TryGetValue(cle, out var ancienne) &&
+                    !string.IsNullOrWhiteSpace(ancienne))
+                    continue;
+
+                _identifiantsDns[cle] = saisie;
+            }
         }
 
         private void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
@@ -2642,6 +2681,28 @@ namespace MCEMonitor.UI
                 {
                     MCEMonitor.Utils.TaskSchedulerHelper.DeleteCertRenewTask();
                     CoreLog.Info("HTTPS", "Tâche de renouvellement supprimée (accès distant inactif).");
+                }
+
+                // Caddy sert le TLS : sans lui, la passerelle ne peut pas démarrer. Il
+                // est téléchargé ici, comme lego, au moment où il devient nécessaire —
+                // jamais pour qui reste en HTTP.
+                if (config.Actif && Partage.GenerateurCaddyfile.Sites(config).Count > 0 &&
+                    !Partage.TelechargeurCaddy.EstInstalle)
+                {
+                    var installation = new FenetreTelechargement(
+                        LanguageManager.Get("Téléchargement de Caddy") ?? "Téléchargement de Caddy",
+                        Partage.TelechargeurCaddy.InstallerAsync) { Owner = this };
+
+                    installation.ShowDialog();
+
+                    if (!installation.Reussi)
+                    {
+                        Boite.Show(this,
+                            LanguageManager.Get("Caddy n a pas pu être installé : la passerelle ne pourra pas démarrer.")
+                            ?? "Caddy n a pas pu être installé : la passerelle ne pourra pas démarrer.",
+                            LanguageManager.Get("Accès distant") ?? "Accès distant",
+                            MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
 
                 // La passerelle doit reprendre au démarrage de la machine, sans quoi
