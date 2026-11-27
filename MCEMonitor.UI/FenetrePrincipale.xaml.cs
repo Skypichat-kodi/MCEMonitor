@@ -2531,6 +2531,12 @@ namespace MCEMonitor.UI
             GroupeHttpsDomaine.IsEnabled     = actif;
             GroupeHttpsCertificat.IsEnabled  = actif;
             GroupeHttpsPasserelle.IsEnabled  = actif;
+
+            // Décocher l'accès distant désactive le DDNS : la tâche planifiée est
+            // supprimée à l'enregistrement, mais la case resterait cochée et
+            // laisserait croire le contraire.
+            if (!actif)
+                chkHttpsDdns.IsChecked = false;
         }
 
         private void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
@@ -2723,8 +2729,13 @@ namespace MCEMonitor.UI
                 ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
                 : (LanguageManager.Get("Passerelle à l arrêt") ?? "Passerelle à l arrêt");
 
+            // Une seule commande proposée selon l'état, et sa couleur dit l'action :
+            // vert pour démarrer, rouge pour arrêter.
             BoutonDemarrerPasserelle.IsEnabled = !enMarche;
             BoutonArreterPasserelle.IsEnabled = enMarche;
+
+            BoutonDemarrerPasserelle.Opacity = enMarche ? 0.4 : 1;
+            BoutonArreterPasserelle.Opacity = enMarche ? 1 : 0.4;
         }
 
         private async void DemarrerPasserelle_Click(object sender, RoutedEventArgs e)

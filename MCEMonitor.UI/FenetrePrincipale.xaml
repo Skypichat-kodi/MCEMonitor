@@ -576,29 +576,31 @@
                                                Text="{loc:Tr 'Passerelle à l’arrêt'}"
                                                Foreground="{StaticResource TexteSecondaire}"
                                                FontSize="12" Margin="0,0,0,10" />
-
-                                    <!-- Commandes de la passerelle. Le démarrage exige les
-                                         droits administrateur : c'est le cas de MCEMonitor. -->
-                                    <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                                        <Button x:Name="BoutonDemarrerPasserelle"
-                                                Content="{loc:Tr 'Démarrer la passerelle'}"
-                                                Style="{StaticResource BoutonAccent}"
-                                                Width="200"
-                                                Click="DemarrerPasserelle_Click" />
-                                        <Button x:Name="BoutonArreterPasserelle"
-                                                Content="{loc:Tr 'Arrêter la passerelle'}"
-                                                Style="{StaticResource BoutonSecondaire}"
-                                                Width="200" Margin="10,0,0,0"
-                                                Click="ArreterPasserelle_Click" />
-                                    </StackPanel>
-
-                                    <Button x:Name="BoutonEnregistrerHttps"
-                                            Content="{loc:Tr 'Enregistrer ces réglages'}"
-                                            Style="{StaticResource BoutonAccent}"
-                                            Width="220" HorizontalAlignment="Left"
-                                            Click="EnregistrerHttps_Click" />
                                 </StackPanel>
                             </Border>
+
+                            <!-- ============ Commandes, en pied d'onglet ============ -->
+                            <!-- Vert pour démarrer, rouge pour arrêter : la couleur dit
+                                 l'action, et l'état décide duquel des deux est proposé. -->
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,12">
+                                <Button x:Name="BoutonEnregistrerHttps"
+                                        Content="{loc:Tr 'Enregistrer ces réglages'}"
+                                        Style="{StaticResource BoutonAccent}"
+                                        Width="220"
+                                        Click="EnregistrerHttps_Click" />
+
+                                <Button x:Name="BoutonDemarrerPasserelle"
+                                        Content="{loc:Tr 'Démarrer la passerelle'}"
+                                        Style="{StaticResource BoutonSucces}"
+                                        Width="200" Margin="10,0,0,0"
+                                        Click="DemarrerPasserelle_Click" />
+
+                                <Button x:Name="BoutonArreterPasserelle"
+                                        Content="{loc:Tr 'Arrêter la passerelle'}"
+                                        Style="{StaticResource BoutonDanger}"
+                                        Width="200" Margin="10,0,0,0"
+                                        Click="ArreterPasserelle_Click" />
+                            </StackPanel>
 
                         </StackPanel>
                     </ScrollViewer>
