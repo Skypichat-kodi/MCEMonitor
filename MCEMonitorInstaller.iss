@@ -51,6 +51,26 @@ Name: "deletetasks"; \
 ; Choix des composants à installer
 [Components]
 Name: "core";   Description: "MCEMonitor (application principale, services, tray, UI)"; Types: full
+
+; Sous-composants décoratifs : ils listent ce qui est installé avec MCEMonitor.
+; « fixed » les rend toujours cochés et non décochables — on informe, on ne
+; propose pas de les retirer, puisque les modules en dépendent.
+Name: "core\windivert"; \
+    Description: "WinDivert — pilote de capture réseau, requis par NetMonitor"; \
+    Flags: fixed
+
+Name: "core\pawnio"; \
+    Description: "PawnIO — pilote de lecture des capteurs, requis par RomMonitor et SystemMonitor"; \
+    Flags: fixed
+
+Name: "core\ffmpeg"; \
+    Description: "ffmpeg — analyse des médias, requis par MediaMonitor"; \
+    Flags: fixed
+
+Name: "core\lhm"; \
+    Description: "LibreHardwareMonitor — températures et santé des disques"; \
+    Flags: fixed
+
 Name: "client"; Description: "MCEMonitor Client (surveillance de vos serveurs MCE distants)"; Types: full
 
 [InstallDelete]
