@@ -148,7 +148,14 @@ namespace MCEMonitor.UI
 
                 try
                 {
-                    Partage.GestionnairePasserelle.DemarrerAsync().GetAwaiter().GetResult();
+                    // Task.Run est indispensable : on est sur le thread de l'interface,
+                    // où un contexte de synchronisation WPF est installé. Appeler
+                    // directement GetResult() bloquait ce thread, et le premier await
+                    // de DemarrerAsync attendait ce même thread pour reprendre :
+                    // interblocage, processus jamais terminé, Caddy jamais lancé, et
+                    // une tâche planifiée qui restait « en cours » indéfiniment.
+                    Task.Run(() => Partage.GestionnairePasserelle.DemarrerAsync())
+                        .GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
@@ -156,6 +163,10 @@ namespace MCEMonitor.UI
                 }
 
                 Shutdown();
+
+                // Ceinture et bretelles : la tâche planifiée doit voir le processus
+                // se terminer, sinon elle reste « en cours » et ne sera pas relancée.
+                Environment.Exit(0);
                 return;
             }
 
