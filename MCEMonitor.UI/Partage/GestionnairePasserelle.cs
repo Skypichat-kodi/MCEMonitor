@@ -24,10 +24,21 @@ namespace MCEMonitor.UI.Partage
         /// </summary>
         public static bool EstEnMarche()
         {
+            // Version synchrone : réservée aux clics, où l'attente est acceptable.
+            // Au démarrage, utiliser EstEnMarcheAsync : un appel HTTP bloquant sur le
+            // thread de l'interface retarde l'ouverture de la fenêtre.
+            return EstEnMarcheAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
+        /// Interroge l'API d'administration sans bloquer l'appelant.
+        /// </summary>
+        public static async Task<bool> EstEnMarcheAsync()
+        {
             try
             {
                 using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(2) };
-                var reponse = client.GetAsync(ApiAdmin).GetAwaiter().GetResult();
+                var reponse = await client.GetAsync(ApiAdmin);
                 return reponse.IsSuccessStatusCode;
             }
             catch

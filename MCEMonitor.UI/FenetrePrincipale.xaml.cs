@@ -2449,7 +2449,7 @@ namespace MCEMonitor.UI
                 AfficherChampsFournisseur();
                 AppliquerGrisageHttps();
                 AfficherEtatCertificat();
-                RafraichirEtatPasserelle();
+                _ = RafraichirEtatPasserelleAsync();   // ne bloque pas l ouverture
             }
             catch (Exception ex)
             {
@@ -2579,7 +2579,7 @@ namespace MCEMonitor.UI
 
             // Les commandes vivent en pied d'onglet, hors des cartes : elles doivent
             // être grisées comme le reste du module.
-            RafraichirEtatPasserelle();
+            _ = RafraichirEtatPasserelleAsync();
         }
 
         private async void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
@@ -2749,7 +2749,7 @@ namespace MCEMonitor.UI
                     CoreLog.Info("HTTPS", "Tâche de mise à jour DNS supprimée.");
                 }
 
-                RafraichirEtatPasserelle();
+                await RafraichirEtatPasserelleAsync();
 
                 if (config.Actif)
                 {
@@ -2816,25 +2816,43 @@ namespace MCEMonitor.UI
         /// Les deux boutons sont activés selon cet état, pour éviter de démarrer
         /// deux fois ou d'arrêter ce qui ne tourne pas.
         /// </summary>
-        private void RafraichirEtatPasserelle()
+        /// <summary>
+        /// Met l'état de la passerelle à jour, sans bloquer l'interface.
+        ///
+        /// Au démarrage, la version synchrone retardait l'ouverture de la fenêtre :
+        /// l'API de Caddy était interrogée sur le thread de l'interface, avec deux
+        /// secondes de délai possible. On affiche d'abord ce qu'on sait, et l'état
+        /// réel arrive quand il arrive.
+        /// </summary>
+        private async Task RafraichirEtatPasserelleAsync()
         {
-            bool actif    = chkHttpsActif.IsChecked == true;
-            bool enMarche = Partage.GestionnairePasserelle.EstEnMarche();
+            bool actif = chkHttpsActif.IsChecked == true;
 
-            txtHttpsEtat.Text = !actif
-                ? (LanguageManager.Get("Accès distant désactivé") ?? "Accès distant désactivé")
-                : enMarche
-                    ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
-                    : (LanguageManager.Get("Passerelle à l’arrêt") ?? "Passerelle à l’arrêt");
+            // Avant la réponse, l'affichage ne prétend rien de faux : on montre
+            // l'état logique du module, sans interroger Caddy.
+            if (!actif)
+            {
+                txtHttpsEtat.Text = LanguageManager.Get("Accès distant désactivé") ?? "Accès distant désactivé";
+                BoutonDemarrerPasserelle.IsEnabled = false;
+                BoutonArreterPasserelle.IsEnabled  = false;
+                BoutonDemarrerPasserelle.Opacity = 0.4;
+                BoutonArreterPasserelle.Opacity  = 0.4;
+                return;
+            }
 
-            // Module désactivé : les deux commandes sont grisées. Sinon, une seule est
-            // proposée selon l'état, et sa couleur dit l'action — vert pour démarrer,
-            // rouge pour arrêter.
-            BoutonDemarrerPasserelle.IsEnabled = actif && !enMarche;
-            BoutonArreterPasserelle.IsEnabled  = actif && enMarche;
+            bool enMarche = await Partage.GestionnairePasserelle.EstEnMarcheAsync();
 
-            BoutonDemarrerPasserelle.Opacity = actif && !enMarche ? 1 : 0.4;
-            BoutonArreterPasserelle.Opacity  = actif && enMarche  ? 1 : 0.4;
+            txtHttpsEtat.Text = enMarche
+                ? (LanguageManager.Get("Passerelle en marche") ?? "Passerelle en marche")
+                : (LanguageManager.Get("Passerelle à l’arrêt") ?? "Passerelle à l’arrêt");
+
+            // Une seule commande proposée selon l'état, et sa couleur dit l'action :
+            // vert pour démarrer, rouge pour arrêter.
+            BoutonDemarrerPasserelle.IsEnabled = !enMarche;
+            BoutonArreterPasserelle.IsEnabled  = enMarche;
+
+            BoutonDemarrerPasserelle.Opacity = enMarche ? 0.4 : 1;
+            BoutonArreterPasserelle.Opacity  = enMarche ? 1 : 0.4;
         }
 
         private async void DemarrerPasserelle_Click(object sender, RoutedEventArgs e)
@@ -2844,7 +2862,7 @@ namespace MCEMonitor.UI
                 BoutonDemarrerPasserelle.IsEnabled = false;
 
                 await Partage.GestionnairePasserelle.DemarrerAsync();
-                RafraichirEtatPasserelle();
+                await RafraichirEtatPasserelleAsync();
             }
             catch (Exception ex)
             {
@@ -2854,7 +2872,7 @@ namespace MCEMonitor.UI
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
 
-                RafraichirEtatPasserelle();
+                await RafraichirEtatPasserelleAsync();
             }
         }
 
@@ -2865,7 +2883,7 @@ namespace MCEMonitor.UI
                 BoutonArreterPasserelle.IsEnabled = false;
 
                 await Partage.GestionnairePasserelle.ArreterAsync();
-                RafraichirEtatPasserelle();
+                await RafraichirEtatPasserelleAsync();
             }
             catch (Exception ex)
             {
@@ -2873,7 +2891,7 @@ namespace MCEMonitor.UI
                     LanguageManager.Get("Accès distant") ?? "Accès distant",
                     MessageBoxButton.OK, MessageBoxImage.Warning);
 
-                RafraichirEtatPasserelle();
+                await RafraichirEtatPasserelleAsync();
             }
         }
 
