@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -86,29 +87,45 @@ namespace MCEMonitor.UI.Partage
                 string domaine = config.Domaine.Trim().ToLowerInvariant();
                 var reponse = await client.GetAsync($"https://api.infomaniak.com/2/zones/{domaine}", jeton);
 
-                if (reponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    throw new InvalidOperationException(
-                        "Infomaniak refuse ce jeton (not_authorized). Il doit porter domain:read, dns:read "
-                        + "et dns:write, et ne pas avoir été révoqué.");
-                }
-
-                if (reponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
-                {
-                    throw new InvalidOperationException(
-                        "Le jeton n'a pas la permission de lire cette zone. Vérifiez les portées domain:read, "
-                        + "dns:read et dns:write.");
-                }
-
-                if (reponse.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    throw new InvalidOperationException(
-                        $"La zone {domaine} est introuvable avec ce jeton. Vérifiez que le domaine est bien "
-                        + "hébergé chez Infomaniak, sous ce compte.");
-                }
-
                 if (!reponse.IsSuccessStatusCode)
                 {
+                    string corps = await reponse.Content.ReadAsStringAsync(jeton);
+
+                    // Infomaniak nomme le scope manquant : { "code": "all_scopes",
+                    // "context": { "scopes": ["dns:read"] } }. Autant le dire tel quel.
+                    string manquants = LireScopesManquants(corps);
+
+                    if (!string.IsNullOrEmpty(manquants))
+                    {
+                        string formulation = manquants.Contains(',')
+                            ? "Il manque les portées " + manquants + "."
+                            : "Il manque la portée " + manquants + ".";
+
+                        throw new InvalidOperationException(
+                            formulation + " Créez un nouveau token avec domain:read, dns:read et dns:write — "
+                                        + "les portées d un token existant ne se modifient pas.");
+                    }
+
+                    if (reponse.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        throw new InvalidOperationException(
+                            "Infomaniak refuse ce jeton (not_authorized). Il est invalide, révoqué, ou incomplet.");
+                    }
+
+                    if (reponse.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                    {
+                        throw new InvalidOperationException(
+                            "Le jeton n'a pas la permission de lire cette zone. Vérifiez les portées domain:read, "
+                            + "dns:read et dns:write.");
+                    }
+
+                    if (reponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        throw new InvalidOperationException(
+                            $"La zone {domaine} est introuvable avec ce jeton. Vérifiez que le domaine est bien "
+                            + "hébergé chez Infomaniak, sous ce compte.");
+                    }
+
                     throw new InvalidOperationException(
                         $"Infomaniak répond {(int)reponse.StatusCode} {reponse.ReasonPhrase}.");
                 }
@@ -288,6 +305,38 @@ namespace MCEMonitor.UI.Partage
                      + "le compteur est strict pour un domaine récent.";
 
             return "Aucun certificat produit. Dernière ligne de lego : " + DerniereLigne(sortie);
+        }
+
+        /// <summary>
+        /// Extrait les portées réclamées par Infomaniak :
+        /// { "error": { "code": "all_scopes", "context": { "scopes": ["dns:read"] } } }.
+        /// Renvoie une chaîne vide si la réponse ne suit pas ce format.
+        /// </summary>
+        private static string LireScopesManquants(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+
+                if (!doc.RootElement.TryGetProperty("error", out var erreur)) return "";
+                if (!erreur.TryGetProperty("context", out var contexte)) return "";
+                if (!contexte.TryGetProperty("scopes", out var scopes)) return "";
+                if (scopes.ValueKind != JsonValueKind.Array) return "";
+
+                var liste = new List<string>();
+
+                foreach (var element in scopes.EnumerateArray())
+                {
+                    string? valeur = element.GetString();
+                    if (!string.IsNullOrWhiteSpace(valeur)) liste.Add(valeur!);
+                }
+
+                return string.Join(", ", liste);
+            }
+            catch
+            {
+                return "";
+            }
         }
 
         private static string DerniereLigne(string sortie)
