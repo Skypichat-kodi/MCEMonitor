@@ -80,7 +80,8 @@ namespace MCEMonitor.UI.Partage
             {
                 try
                 {
-                    string ligne;
+                    // ReadLineAsync renvoie null en fin de flux : le type doit suivre.
+                    string? ligne;
                     while ((ligne = await processus.StandardOutput.ReadLineAsync()) != null)
                     {
                         if (ligne.Contains("error", StringComparison.OrdinalIgnoreCase))
