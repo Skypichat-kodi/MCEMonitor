@@ -38,7 +38,7 @@ namespace MCEMonitor.UI.Partage
 
         /// <summary>
         /// Écrit le Caddyfile puis démarre Caddy. Renvoie le message de Caddy, ou
-        /// une chaîne vide en cas de succès silencieux.
+        /// une chaîne vide en cas de succès.
         /// </summary>
         public static async Task<string> DemarrerAsync()
         {
@@ -57,10 +57,68 @@ namespace MCEMonitor.UI.Partage
                 return "";
             }
 
-            string sortie = await ExecuterAsync("start", "--config", GenerateurCaddyfile.CheminCaddyfile);
+            // « caddy run » ne se termine pas : c'est le serveur lui-même. On le
+            // lance donc sans l'attendre, et on guette l'API d'administration.
+            // « caddy start » aurait rendu la main, mais reste attache sous Windows.
+            var psi = new ProcessStartInfo(TelechargeurCaddy.CheminCaddy)
+            {
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
 
-            CoreLog.Info("HTTPS", "Passerelle démarrée." + (sortie.Length > 0 ? " " + sortie : ""));
-            return sortie;
+            psi.ArgumentList.Add("run");
+            psi.ArgumentList.Add("--config");
+            psi.ArgumentList.Add(GenerateurCaddyfile.CheminCaddyfile);
+
+            var processus = Process.Start(psi)
+                ?? throw new InvalidOperationException("Caddy n'a pas pu démarrer.");
+
+            // Sans lecteur, le tampon de redirection se remplit et Caddy se fige.
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    string ligne;
+                    while ((ligne = await processus.StandardOutput.ReadLineAsync()) != null)
+                    {
+                        if (ligne.Contains("error", StringComparison.OrdinalIgnoreCase))
+                            CoreLog.Warn("Caddy", ligne);
+                    }
+                }
+                catch { }
+            });
+
+            // Guetter l'API jusqu'à quinze secondes.
+            for (int i = 0; i < 30; i++)
+            {
+                await Task.Delay(500);
+
+                if (EstEnMarche())
+                {
+                    CoreLog.Info("HTTPS", "Passerelle démarrée.");
+                    return "";
+                }
+
+                if (processus.HasExited)
+                    break;
+            }
+
+            string erreurs = "";
+
+            try
+            {
+                erreurs = (await processus.StandardError.ReadToEndAsync()).Trim();
+            }
+            catch { }
+
+            try { if (!processus.HasExited) processus.Kill(entireProcessTree: true); } catch { }
+
+            throw new InvalidOperationException(
+                "Caddy n'a pas répondu dans les quinze secondes. Le port 443 est peut-être occupé "
+                + "ou les droits administrateur manquent."
+                + (erreurs.Length > 0 ? "\n" + erreurs : ""));
         }
 
         /// <summary>Arrête la passerelle en douceur, par son API d'administration.</summary>
