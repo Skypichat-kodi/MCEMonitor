@@ -351,6 +351,40 @@ namespace MCEMonitor.Utils
                QueryTask("MCEMonitor_StopMonitor_Boot");
 
         // ============================================================
+        // RENOUVELLEMENT DU CERTIFICAT HTTPS
+        // ============================================================
+
+        private const string NomTacheCertRenew = "MCEMonitor_CertRenew";
+
+        /// <summary>
+        /// Tâche quotidienne qui relance lego : il ne renouvelle que s'il reste moins
+        /// de trente jours, donc une exécution quotidienne ne coûte rien.
+        ///
+        /// Elle tourne en SYSTEM, comme les autres : le jeton, chiffré en DPAPI
+        /// machine, reste déchiffrable par ce compte.
+        /// </summary>
+        public static string CreateCertRenewTask()
+        {
+            string exePath = Environment.ProcessPath ?? string.Empty;
+
+            if (!File.Exists(exePath))
+                return "ERREUR : MCEMonitor.exe introuvable.";
+
+            return RunAdmin(
+                $"schtasks /Create /TN \"{NomTacheCertRenew}\" " +
+                "/SC DAILY /ST 04:00 " +
+                $"/TR \"\\\"{exePath}\\\" --renew-cert\" " +
+                "/RU SYSTEM /RL HIGHEST /F"
+            );
+        }
+
+        public static string DeleteCertRenewTask()
+            => RunAdmin($"schtasks /Delete /TN \"{NomTacheCertRenew}\" /F");
+
+        public static bool CertRenewTaskExists()
+            => QueryTask(NomTacheCertRenew);
+
+        // ============================================================
         // OUTILS COMMUNS
         // ============================================================
         private static bool QueryTask(string taskName)

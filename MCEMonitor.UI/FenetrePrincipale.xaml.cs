@@ -2606,6 +2606,23 @@ namespace MCEMonitor.UI
 
                 AfficherEtatCertificat();
 
+                // Tâche de renouvellement : créée dès que l'accès distant est actif,
+                // supprimée quand on le désactive. Sans elle, le certificat expirerait
+                // au bout de quatre-vingt-dix jours sans que rien ne le signale.
+                if (config.Actif && !string.IsNullOrWhiteSpace(config.Domaine))
+                {
+                    if (!MCEMonitor.Utils.TaskSchedulerHelper.CertRenewTaskExists())
+                    {
+                        string resultat = MCEMonitor.Utils.TaskSchedulerHelper.CreateCertRenewTask();
+                        CoreLog.Info("HTTPS", "Tâche de renouvellement : " + resultat);
+                    }
+                }
+                else if (MCEMonitor.Utils.TaskSchedulerHelper.CertRenewTaskExists())
+                {
+                    MCEMonitor.Utils.TaskSchedulerHelper.DeleteCertRenewTask();
+                    CoreLog.Info("HTTPS", "Tâche de renouvellement supprimée (accès distant inactif).");
+                }
+
                 Boite.Show(this,
                     LanguageManager.Get("Réglages de l accès distant enregistrés.") ?? "Réglages de l accès distant enregistrés.",
                     LanguageManager.Get("Accès distant") ?? "Accès distant",

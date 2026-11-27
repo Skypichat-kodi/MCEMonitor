@@ -95,6 +95,28 @@ namespace MCEMonitor.UI
                 return;
             }
 
+            // ============================================================
+            //  MODE RENOUVELLEMENT DU CERTIFICAT
+            //  Également avant le mutex : MCEMonitor peut être ouvert, et le
+            //  renouvellement doit se faire quand même.
+            // ============================================================
+            if (e.Args.Contains("--renew-cert"))
+            {
+                CoreLog.Info("HTTPS", "Renouvellement du certificat demandé par la tâche planifiée.");
+
+                try
+                {
+                    Partage.GestionnaireCertificat.RenouvelerAsync().GetAwaiter().GetResult();
+                }
+                catch (Exception ex)
+                {
+                    CoreLog.Error("HTTPS", "Renouvellement : " + ex.Message);
+                }
+
+                Shutdown();
+                return;
+            }
+
             // Une seule fenêtre de configuration à la fois : un second lancement
             // depuis le menu Démarrer s'arrête silencieusement.
             _mutex = new Mutex(true, MutexName, out bool createdNew);

@@ -225,6 +225,45 @@ namespace MCEMonitor.UI.Partage
             CoreLog.Info("HTTPS", $"Certificat obtenu pour {domaine} : {fichier}");
         }
 
+        /// <summary>
+        /// Renouvellement lancé par la tâche planifiée. Sans interface : lit la
+        /// configuration, déchiffre le jeton, et laisse lego décider s'il y a lieu de
+        /// renouveler.
+        /// </summary>
+        /// <returns>Vrai si un certificat est présent à la fin.</returns>
+        public static async Task<bool> RenouvelerAsync()
+        {
+            try
+            {
+                var config = HttpsConfig.Charger();
+
+                if (!config.Actif || string.IsNullOrWhiteSpace(config.Domaine))
+                {
+                    CoreLog.Info("HTTPS", "Renouvellement ignoré : accès distant inactif.");
+                    return false;
+                }
+
+                if (!TelechargeurLego.EstInstalle)
+                {
+                    CoreLog.Warn("HTTPS", "Renouvellement ignoré : lego absent.");
+                    return false;
+                }
+
+                await ObtenirAsync(config, new Progress<string>(_ => { }), CancellationToken.None);
+
+                var etat = Lire(config.Domaine);
+                CoreLog.Info("HTTPS", $"Renouvellement terminé : expire le {etat.ExpireLe:yyyy-MM-dd} "
+                                     + $"({etat.JoursRestants} jours).");
+
+                return etat.Present;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", "Renouvellement : " + ex.Message);
+                return false;
+            }
+        }
+
         private static async Task<string> ExecuterAsync(string executable,
                                                         List<string> arguments,
                                                         Dictionary<string, string> environnement,
