@@ -54,7 +54,15 @@ namespace RomMonitor.Service
         //  Serveur Web (persistés dans RomMonitor.web.config)
         // ------------------------------------------------------------
         public bool WebEnabled { get; set; } = true;
-        public int WebPort { get; set; } = 8085;
+        public int WebPort { get; set; } = PortMin;
+
+        /// <summary>
+        /// Plage autorisée du serveur web. Chaque module de la suite occupe la sienne
+        /// (12000 pour RomMonitor) : la passerelle HTTPS les retrouve en balayant ces
+        /// plages, sans connaître le port exact choisi.
+        /// </summary>
+        public const int PortMin = 12000;
+        public const int PortMax = 12050;
         public string WebUsername { get; set; } = "admin";
         public string WebPassword { get; set; } = "changeme";
 
@@ -171,7 +179,16 @@ namespace RomMonitor.Service
                         }
                     }
                 }
-                
+
+                // Une valeur hors plage vient d un fichier modifié à la main ou d une
+                // installation antérieure : on la ramène au défaut, et on l enregistre.
+                if (settings.WebPort < PortMin || settings.WebPort > PortMax)
+                {
+                    CoreLog.Write($"[WEB] Port {settings.WebPort} hors plage {PortMin}-{PortMax} : ramené à {PortMin}.");
+                    settings.WebPort = PortMin;
+                    settings.SaveWeb();   // matérialise la correction, sinon le message reviendrait
+                }
+
                 // 4) Protéger le fichier *.web.config en lecture seule
                 EnsureWebConfigProtected();                
             }

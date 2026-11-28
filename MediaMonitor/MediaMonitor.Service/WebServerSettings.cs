@@ -8,8 +8,16 @@ namespace MediaMonitor.Service
 {
     public class WebServerSettings
     {
+        /// <summary>
+        /// Plage autorisée du serveur web. Chaque module de la suite occupe la sienne
+        /// (11000 pour MediaMonitor, 12000 pour RomMonitor, etc.) : la passerelle HTTPS
+        /// les retrouve en balayant ces plages, sans connaître le port exact choisi.
+        /// </summary>
+        public const int PortMin = 11000;
+        public const int PortMax = 11050;
+
         public bool Enabled { get; set; } = false;
-        public int Port { get; set; } = 8081;
+        public int Port { get; set; } = PortMin;
 
         public string Username { get; set; } = "admin";
         public string Password { get; set; } = "admin";
@@ -41,7 +49,7 @@ namespace MediaMonitor.Service
                 if (!File.Exists(path))
                 {
                     settings.Enabled = false;
-                    settings.Port = 8081;
+                    settings.Port = PortMin;
                     settings.Username = "admin";
                     settings.Password = "admin";
 
@@ -86,6 +94,16 @@ namespace MediaMonitor.Service
 
                     if (line.StartsWith("DvbViewerSwitch=", StringComparison.OrdinalIgnoreCase))
                         settings.DvbViewerSwitch = line.Split('=', 2)[1].Trim().Equals("true", StringComparison.OrdinalIgnoreCase);
+                }
+
+                // Une valeur hors plage vient d un fichier modifié à la main ou d une
+                // installation antérieure aux plages : on la ramène au défaut, et on
+                // l écrit, sinon le message reviendrait à chaque démarrage.
+                if (settings.Port < PortMin || settings.Port > PortMax)
+                {
+                    Console.WriteLine($"[WEB] Port {settings.Port} hors plage {PortMin}-{PortMax} : ramené à {PortMin}.");
+                    settings.Port = PortMin;
+                    settings.Save();
                 }
 
                 // Protège le fichier au démarrage (idempotent)

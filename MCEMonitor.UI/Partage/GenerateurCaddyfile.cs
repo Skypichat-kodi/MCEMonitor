@@ -21,6 +21,66 @@ namespace MCEMonitor.UI.Partage
         /// <summary>Un site : le nom complet et la cible à relayer.</summary>
         public sealed record Site(string Hote, string Cible);
 
+        /// <summary>
+        /// Aplatit un nom pour qu'il tienne dans un seul niveau de sous-domaine :
+        /// « MCE-SALON » et « MCE SALON » donnent tous deux « mce-salon ». Un
+        /// wildcard ne couvrant qu'un niveau, un nom composé casserait le certificat.
+        /// </summary>
+        public static string Slug(string valeur)
+        {
+            if (string.IsNullOrWhiteSpace(valeur)) return "";
+
+            string decompose = valeur.Trim().ToLowerInvariant()
+                .Normalize(System.Text.NormalizationForm.FormD);
+
+            var propre = new System.Text.StringBuilder();
+
+            foreach (char c in decompose)
+            {
+                // Accent détaché par la décomposition : on le jette.
+                if (System.Globalization.CharUnicodeInfo.GetUnicodeCategory(c)
+                    == System.Globalization.UnicodeCategory.NonSpacingMark)
+                    continue;
+
+                if ((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) propre.Append(c);
+                else if (c == ' ' || c == '_' || c == '.' || c == '-') propre.Append('-');
+            }
+
+            return System.Text.RegularExpressions.Regex
+                .Replace(propre.ToString(), "-{2,}", "-")
+                .Trim('-');
+        }
+
+        /// <summary>
+        /// Sous-domaines et cibles demandés, dans l'ordre : d'abord les quatre
+        /// modules de cette machine, puis les autres machines du réseau.
+        /// </summary>
+        private static IEnumerable<(string Sous, string Cible)> Candidats(HttpsConfig config)
+        {
+            if (config.PublierNetMonitor)    yield return (config.SousNetMonitor,    config.CibleNetMonitor);
+            if (config.PublierRomMonitor)    yield return (config.SousRomMonitor,    config.CibleRomMonitor);
+            if (config.PublierSystemMonitor) yield return (config.SousSystemMonitor, config.CibleSystemMonitor);
+            if (config.PublierMediaMonitor)  yield return (config.SousMediaMonitor,  config.CibleMediaMonitor);
+
+            foreach (var serveur in config.ServeursSupplementaires)
+            {
+                string machine = Slug(serveur.Machine);
+                string ip = serveur.Ip.Trim();
+
+                if (machine.Length == 0 || ip.Length == 0) continue;
+
+                foreach (var module in serveur.Modules)
+                {
+                    string prefixe = Slug(module.Module);
+                    if (prefixe.Length == 0 || module.Port <= 0) continue;
+
+                    // « netmonitor-mce-salon » plutôt que « mce-salon.netmonitor » :
+                    // un seul niveau, couvert par *.mcemonitor.org.
+                    yield return ($"{prefixe}-{machine}", $"{ip}:{module.Port}");
+                }
+            }
+        }
+
         /// <summary>Liste les sites à publier, d'après les sous-domaines renseignés.</summary>
         public static List<Site> Sites(HttpsConfig config)
         {
@@ -29,12 +89,12 @@ namespace MCEMonitor.UI.Partage
 
             if (domaine.Length == 0) return sites;
 
-            void Ajouter(string sousDomaine, string cible)
+            foreach (var (sousDomaine, cibleBrute) in Candidats(config))
             {
                 string sous = sousDomaine.Trim().Trim('.', ' ').ToLowerInvariant();
-                string cible2 = cible.Trim();
+                string cible = cibleBrute.Trim();
 
-                if (sous.Length == 0 || cible2.Length == 0) return;
+                if (sous.Length == 0 || cible.Length == 0) continue;
 
                 // Le champ tolère les deux formes : « net » comme
                 // « net.mcemonitor.org ». Sans cela, un nom complet saisi par
@@ -43,15 +103,41 @@ namespace MCEMonitor.UI.Partage
                     ? sous
                     : $"{sous}.{domaine}";
 
-                sites.Add(new Site(hote, cible2));
+                // Deux sites du même nom font échouer Caddy, qui refuse alors son
+                // fichier entier : on garde le premier, et Conflit() prévient l'UI.
+                if (sites.Any(s => string.Equals(s.Hote, hote, StringComparison.OrdinalIgnoreCase)))
+                    continue;
+
+                sites.Add(new Site(hote, cible));
             }
 
-            Ajouter(config.SousNetMonitor,    config.CibleNetMonitor);
-            Ajouter(config.SousRomMonitor,    config.CibleRomMonitor);
-            Ajouter(config.SousSystemMonitor, config.CibleSystemMonitor);
-            Ajouter(config.SousMediaMonitor,  config.CibleMediaMonitor);
-
             return sites;
+        }
+
+        /// <summary>
+        /// Premier nom réclamé deux fois, ou null. Sert à refuser l'enregistrement
+        /// avant d'écrire un Caddyfile que Caddy rejetterait en bloc.
+        /// </summary>
+        public static string? Conflit(HttpsConfig config)
+        {
+            string domaine = config.Domaine.Trim().TrimEnd('.').ToLowerInvariant();
+            if (domaine.Length == 0) return null;
+
+            var vus = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var (sousDomaine, cible) in Candidats(config))
+            {
+                string sous = sousDomaine.Trim().Trim('.', ' ').ToLowerInvariant();
+                if (sous.Length == 0 || cible.Trim().Length == 0) continue;
+
+                string hote = sous == domaine || sous.EndsWith("." + domaine, StringComparison.Ordinal)
+                    ? sous
+                    : $"{sous}.{domaine}";
+
+                if (!vus.Add(hote)) return hote;
+            }
+
+            return null;
         }
 
         /// <summary>

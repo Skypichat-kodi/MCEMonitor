@@ -22,6 +22,13 @@ namespace MCEMonitor.UI
     public partial class FenetrePrincipale : Window
     {
         /// <summary>
+        /// Autres machines du réseau, telles que déclarées dans la fenêtre dédiée.
+        /// Conservées en mémoire parce que l'enregistrement reconstruit la configuration
+        /// de zéro : sans ce champ, la liste serait perdue à chaque enregistrement.
+        /// </summary>
+        private List<Partage.ServeurSupplementaire> _serveursSupplementaires = new();
+
+        /// <summary>
         /// Interroge l'état de la passerelle tant que l'onglet HTTPS est affiché.
         /// Sans lui, l'état n'était lu qu'au démarrage de MCEMonitor : une passerelle
         /// démarrée entre-temps — par la tâche planifiée, par une autre fenêtre, ou à
@@ -2454,10 +2461,15 @@ namespace MCEMonitor.UI
                 txtHttpsSousRom.Text        = config.SousRomMonitor;
                 txtHttpsSousSystem.Text     = config.SousSystemMonitor;
                 txtHttpsSousMedia.Text      = config.SousMediaMonitor;
-                txtHttpsCibleNet.Text       = config.CibleNetMonitor;
-                txtHttpsCibleRom.Text       = config.CibleRomMonitor;
-                txtHttpsCibleSystem.Text    = config.CibleSystemMonitor;
-                txtHttpsCibleMedia.Text     = config.CibleMediaMonitor;
+
+                chkHttpsPublierNetMonitor.IsChecked    = config.PublierNetMonitor;
+                chkHttpsPublierRomMonitor.IsChecked    = config.PublierRomMonitor;
+                chkHttpsPublierSystemMonitor.IsChecked = config.PublierSystemMonitor;
+                chkHttpsPublierMediaMonitor.IsChecked  = config.PublierMediaMonitor;
+                txtHttpsCibleNet.Text       = PortDeCible(config.CibleNetMonitor);
+                txtHttpsCibleRom.Text       = PortDeCible(config.CibleRomMonitor);
+                txtHttpsCibleSystem.Text    = PortDeCible(config.CibleSystemMonitor);
+                txtHttpsCibleMedia.Text     = PortDeCible(config.CibleMediaMonitor);
                 txtHttpsEmail.Text          = config.Email;
                 txtHttpsPort.Text           = config.Port.ToString();
 
@@ -2467,6 +2479,10 @@ namespace MCEMonitor.UI
                 AfficherChampsFournisseur();
                 AppliquerGrisageHttps();
                 AfficherEtatCertificat();
+
+                _serveursSupplementaires = config.ServeursSupplementaires;
+                AfficherNombreServeurs();
+
                 _ = RafraichirEtatPasserelleAsync();   // ne bloque pas l ouverture
             }
             catch (Exception ex)
@@ -2589,6 +2605,13 @@ namespace MCEMonitor.UI
             GroupeHttpsCertificat.IsEnabled  = actif;
             GroupeHttpsPasserelle.IsEnabled  = actif;
 
+            // Un module non publié garde sa saisie, mais ne sert à rien : le
+            // sous-domaine et le port sont grisés, sans être effacés.
+            GriserModule(chkHttpsPublierNetMonitor,   txtHttpsSousNet,    txtHttpsCibleNet);
+            GriserModule(chkHttpsPublierRomMonitor,   txtHttpsSousRom,    txtHttpsCibleRom);
+            GriserModule(chkHttpsPublierSystemMonitor, txtHttpsSousSystem, txtHttpsCibleSystem);
+            GriserModule(chkHttpsPublierMediaMonitor, txtHttpsSousMedia,  txtHttpsCibleMedia);
+
             // Décocher l'accès distant désactive le DDNS : la tâche planifiée est
             // supprimée à l'enregistrement, mais la case resterait cochée et
             // laisserait croire le contraire.
@@ -2598,6 +2621,83 @@ namespace MCEMonitor.UI
             // Les commandes vivent en pied d'onglet, hors des cartes : elles doivent
             // être grisées comme le reste du module.
             _ = RafraichirEtatPasserelleAsync();
+        }
+
+        private static void GriserModule(System.Windows.Controls.CheckBox? caseModule,
+                                         params System.Windows.Controls.TextBox[] champs)
+        {
+            bool publie = caseModule?.IsChecked == true;
+
+            foreach (var champ in champs)
+            {
+                if (champ == null) continue;
+
+                champ.IsEnabled = publie;
+                champ.Opacity = publie ? 1 : 0.45;
+            }
+        }
+
+        private void ChkHttpsPublier_Changed(object sender, RoutedEventArgs e) => AppliquerGrisageHttps();
+
+        /// <summary>
+        /// Ouvre la fenêtre des autres machines. La configuration passée porte les
+        /// champs affichés — domaine et ports — pour que la détection et l'aperçu des
+        /// adresses correspondent à ce que l'utilisateur voit, même non enregistré.
+        /// </summary>
+        private void AutresServeurs_Click(object sender, RoutedEventArgs e)
+        {
+            var config = Partage.HttpsConfig.Charger();
+
+            config.Domaine                   = txtHttpsDomaine.Text.Trim();
+            config.CibleNetMonitor           = CibleLocale(txtHttpsCibleNet.Text);
+            config.CibleRomMonitor           = CibleLocale(txtHttpsCibleRom.Text);
+            config.CibleSystemMonitor        = CibleLocale(txtHttpsCibleSystem.Text);
+            config.CibleMediaMonitor         = CibleLocale(txtHttpsCibleMedia.Text);
+            config.ServeursSupplementaires   = _serveursSupplementaires;
+
+            var fenetre = new FenetreAutresServeurs(config) { Owner = this };
+
+            if (fenetre.ShowDialog() != true)
+                return;
+
+            _serveursSupplementaires = fenetre.Serveurs;
+            AfficherNombreServeurs();
+
+            CoreLog.Info("HTTPS", $"Autres serveurs : {_serveursSupplementaires.Count} machine(s) déclarée(s).");
+        }
+
+        /// <summary>Le bouton porte le nombre de machines déclarées, pour ne pas les oublier.</summary>
+        private void AfficherNombreServeurs()
+        {
+            string libelle = LanguageManager.Get("Autres serveurs") ?? "Autres serveurs";
+            int nombre = _serveursSupplementaires.Count;
+
+            BoutonAutresServeurs.Content = nombre == 0 ? libelle : $"{libelle} ({nombre})";
+        }
+
+        /// <summary>
+        /// Le port d'une cible « 127.0.0.1:14000 ». L'hôte n'est plus saisi : les
+        /// modules de cette machine sont joints sur 127.0.0.1, les autres passant
+        /// par la fenêtre des autres serveurs.
+        /// </summary>
+        private static string PortDeCible(string cible)
+        {
+            string valeur = (cible ?? "").Trim();
+            int deuxPoints = valeur.LastIndexOf(':');
+
+            return deuxPoints >= 0 ? valeur.Substring(deuxPoints + 1).Trim() : valeur;
+        }
+
+        /// <summary>Cible de la passerelle : cette machine, au port indiqué.</summary>
+        private static string CibleLocale(string port)
+        {
+            string valeur = (port ?? "").Trim();
+
+            if (valeur.Length == 0) return "";
+
+            // Tolère une saisie « hôte:port », au cas où elle viendrait d'une
+            // configuration antérieure.
+            return valeur.Contains(':') ? valeur : $"127.0.0.1:{valeur}";
         }
 
         private async void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
@@ -2614,23 +2714,44 @@ namespace MCEMonitor.UI
                     return;
                 }
 
-                var config = new Partage.HttpsConfig
+                var config = Partage.HttpsConfig.Charger();
+
+                config.Actif             = chkHttpsActif.IsChecked == true;
+                config.Ddns              = chkHttpsDdns.IsChecked == true;
+                config.Domaine           = txtHttpsDomaine.Text.Trim();
+                config.SousNetMonitor    = txtHttpsSousNet.Text.Trim();
+                config.SousRomMonitor    = txtHttpsSousRom.Text.Trim();
+                config.SousSystemMonitor = txtHttpsSousSystem.Text.Trim();
+                config.SousMediaMonitor  = txtHttpsSousMedia.Text.Trim();
+
+            config.PublierNetMonitor    = chkHttpsPublierNetMonitor.IsChecked == true;
+            config.PublierRomMonitor    = chkHttpsPublierRomMonitor.IsChecked == true;
+            config.PublierSystemMonitor = chkHttpsPublierSystemMonitor.IsChecked == true;
+            config.PublierMediaMonitor  = chkHttpsPublierMediaMonitor.IsChecked == true;
+                config.CibleNetMonitor    = CibleLocale(txtHttpsCibleNet.Text);
+                config.CibleRomMonitor    = CibleLocale(txtHttpsCibleRom.Text);
+                config.CibleSystemMonitor = CibleLocale(txtHttpsCibleSystem.Text);
+                config.CibleMediaMonitor  = CibleLocale(txtHttpsCibleMedia.Text);
+                config.Fournisseur       = (cmbHttpsFournisseur.SelectedItem as Partage.FournisseurDns)?.Id ?? "cloudflare";
+                config.Email             = txtHttpsEmail.Text.Trim();
+                config.Port              = port;
+
+                // Reprise depuis la fenêtre des autres serveurs.
+                config.ServeursSupplementaires = _serveursSupplementaires;
+
+                // Deux sites du même nom font échouer Caddy sur le fichier entier :
+                // mieux vaut refuser ici, en nommant le coupable.
+                string? conflit = Partage.GenerateurCaddyfile.Conflit(config);
+
+                if (conflit != null)
                 {
-                    Actif             = chkHttpsActif.IsChecked == true,
-                    Ddns              = chkHttpsDdns.IsChecked == true,
-                    Domaine           = txtHttpsDomaine.Text.Trim(),
-                    SousNetMonitor    = txtHttpsSousNet.Text.Trim(),
-                    SousRomMonitor    = txtHttpsSousRom.Text.Trim(),
-                    SousSystemMonitor = txtHttpsSousSystem.Text.Trim(),
-                    SousMediaMonitor  = txtHttpsSousMedia.Text.Trim(),
-                    CibleNetMonitor    = txtHttpsCibleNet.Text.Trim(),
-                    CibleRomMonitor    = txtHttpsCibleRom.Text.Trim(),
-                    CibleSystemMonitor = txtHttpsCibleSystem.Text.Trim(),
-                    CibleMediaMonitor  = txtHttpsCibleMedia.Text.Trim(),
-                    Fournisseur       = (cmbHttpsFournisseur.SelectedItem as Partage.FournisseurDns)?.Id ?? "cloudflare",
-                    Email             = txtHttpsEmail.Text.Trim(),
-                    Port              = port
-                };
+                    Boite.Show(this,
+                        string.Format(LanguageManager.Get("Deux sites demandent le même nom : {0}. Corrigez l’un des deux sous-domaines.")
+                                      ?? "Deux sites demandent le même nom : {0}. Corrigez l’un des deux sous-domaines.", conflit),
+                        LanguageManager.Get("Conflit de nom") ?? "Conflit de nom",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    return;
+                }
 
                 EnregistrerChampsAffiches();
                 config.Identifiants = new Dictionary<string, string>(_identifiantsDns);

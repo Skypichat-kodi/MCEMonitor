@@ -34,13 +34,20 @@ namespace MCEMonitor.UI.Partage
         public string SousSystemMonitor { get; set; } = "";
         public string SousMediaMonitor  { get; set; } = "";
 
-        // Cibles de la passerelle : où joindre chaque service. 127.0.0.1 quand le
-        // module tourne sur la même machine que la passerelle, sinon son adresse
-        // sur le réseau local. Les ports sont ceux par défaut de chaque module.
-        public string CibleNetMonitor    { get; set; } = "127.0.0.1:14003";
-        public string CibleRomMonitor    { get; set; } = "127.0.0.1:8085";
-        public string CibleSystemMonitor { get; set; } = "127.0.0.1:8083";
-        public string CibleMediaMonitor  { get; set; } = "127.0.0.1:8081";
+        // Publication de chaque module. Vrai par défaut : une configuration écrite
+        // avant l'ajout de ces cases doit rester publiée telle quelle.
+        public bool PublierNetMonitor    { get; set; } = true;
+        public bool PublierRomMonitor    { get; set; } = true;
+        public bool PublierSystemMonitor { get; set; } = true;
+        public bool PublierMediaMonitor  { get; set; } = true;
+
+        // Cibles de la passerelle : où joindre chaque service. Les quatre modules
+        // de cette machine sont joints sur 127.0.0.1, à leur port ; les autres
+        // machines du réseau passent par la fenêtre « Autres serveurs ».
+        public string CibleNetMonitor    { get; set; } = "127.0.0.1:14000";
+        public string CibleRomMonitor    { get; set; } = "127.0.0.1:12000";
+        public string CibleSystemMonitor { get; set; } = "127.0.0.1:13000";
+        public string CibleMediaMonitor  { get; set; } = "127.0.0.1:11000";
 
         public string Fournisseur { get; set; } = "infomaniak";
         public string Email       { get; set; } = "";
@@ -52,6 +59,13 @@ namespace MCEMonitor.UI.Partage
         /// Elles sont secrètes : chiffrées en bloc sur disque.
         /// </summary>
         public Dictionary<string, string> Identifiants { get; set; } = new();
+
+        /// <summary>
+        /// Autres machines du réseau local dont la passerelle relaie les modules.
+        /// Une seule machine expose le 443 et porte le certificat : les autres lui
+        /// sont connues par son adresse et leur port.
+        /// </summary>
+        public List<ServeurSupplementaire> ServeursSupplementaires { get; set; } = new();
 
         // ============================================================
         //  Lecture / écriture
@@ -84,6 +98,10 @@ namespace MCEMonitor.UI.Partage
                         case "SousRomMonitor":          config.SousRomMonitor = valeur; break;
                         case "SousSystemMonitor":       config.SousSystemMonitor = valeur; break;
                         case "SousMediaMonitor":        config.SousMediaMonitor = valeur; break;
+                        case "PublierNetMonitor":       config.PublierNetMonitor = bool.TryParse(valeur, out bool pn) && pn; break;
+                        case "PublierRomMonitor":       config.PublierRomMonitor = bool.TryParse(valeur, out bool pr) && pr; break;
+                        case "PublierSystemMonitor":    config.PublierSystemMonitor = bool.TryParse(valeur, out bool ps) && ps; break;
+                        case "PublierMediaMonitor":     config.PublierMediaMonitor = bool.TryParse(valeur, out bool pm) && pm; break;
                         case "CibleNetMonitor":         config.CibleNetMonitor = valeur; break;
                         case "CibleRomMonitor":         config.CibleRomMonitor = valeur; break;
                         case "CibleSystemMonitor":      config.CibleSystemMonitor = valeur; break;
@@ -92,6 +110,7 @@ namespace MCEMonitor.UI.Partage
                         case "Email":                   config.Email = valeur; break;
                         case "Port":                    if (int.TryParse(valeur, out int p)) config.Port = p; break;
                         case "Identifiants":            config.Identifiants = LireIdentifiants(valeur); break;
+                        case "ServeursSupplementaires":  config.ServeursSupplementaires = LireServeurs(valeur); break;
                     }
                 }
             }
@@ -123,6 +142,10 @@ namespace MCEMonitor.UI.Partage
                     $"SousRomMonitor={SousRomMonitor}",
                     $"SousSystemMonitor={SousSystemMonitor}",
                     $"SousMediaMonitor={SousMediaMonitor}",
+                    $"PublierNetMonitor={PublierNetMonitor.ToString().ToLower()}",
+                    $"PublierRomMonitor={PublierRomMonitor.ToString().ToLower()}",
+                    $"PublierSystemMonitor={PublierSystemMonitor.ToString().ToLower()}",
+                    $"PublierMediaMonitor={PublierMediaMonitor.ToString().ToLower()}",
                     "",
                     "# --- Cibles de la passerelle (hote:port) ---",
                     $"CibleNetMonitor={CibleNetMonitor}",
@@ -135,6 +158,9 @@ namespace MCEMonitor.UI.Partage
                     $"Email={Email}",
                     "# Identifiants chiffres (DPAPI machine) : un objet JSON par fournisseur",
                     $"Identifiants={EcrireIdentifiants()}",
+                    "",
+                    "# --- Autres machines du reseau local (JSON, sans secret) ---",
+                    $"ServeursSupplementaires={EcrireServeurs()}",
                     "",
                     "# --- Passerelle ---",
                     $"Port={Port}",
@@ -187,6 +213,64 @@ namespace MCEMonitor.UI.Partage
                 return vide;
             }
         }
+
+        // ============================================================
+        //  Autres machines du réseau : JSON en clair, aucun secret dedans
+        // ============================================================
+        private string EcrireServeurs()
+        {
+            try
+            {
+                return System.Text.Json.JsonSerializer.Serialize(ServeursSupplementaires, OptionsJson);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", $"HttpsConfig.EcrireServeurs : {ex.Message}");
+                return "[]";
+            }
+        }
+
+        private static List<ServeurSupplementaire> LireServeurs(string json)
+        {
+            var vide = new List<ServeurSupplementaire>();
+
+            if (string.IsNullOrWhiteSpace(json)) return vide;
+
+            try
+            {
+                return System.Text.Json.JsonSerializer.Deserialize<List<ServeurSupplementaire>>(json) ?? vide;
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Error("HTTPS", $"HttpsConfig.LireServeurs : {ex.Message}");
+                return vide;
+            }
+        }
+    }
+
+    /// <summary>Module d'une autre machine, relayé par la passerelle.</summary>
+    public class ModuleDistant
+    {
+        /// <summary>NetMonitor, RomMonitor, SystemMonitor ou MediaMonitor.</summary>
+        public string Module { get; set; } = "";
+
+        public int Port { get; set; }
+    }
+
+    /// <summary>
+    /// Machine du réseau local dont on publie les modules. Le nom sert à composer
+    /// l'adresse : netmonitor-mce-salon.mcemonitor.org. Il est aplati, un wildcard
+    /// ne couvrant qu'un niveau sous le domaine.
+    /// </summary>
+    public class ServeurSupplementaire
+    {
+        /// <summary>Nom court de la machine, sans domaine (mce-salon).</summary>
+        public string Machine { get; set; } = "";
+
+        /// <summary>Adresse de la machine sur le réseau local.</summary>
+        public string Ip { get; set; } = "";
+
+        public List<ModuleDistant> Modules { get; set; } = new();
     }
     internal static class ProtectionHttps
     {

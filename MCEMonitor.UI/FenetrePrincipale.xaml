@@ -428,7 +428,27 @@
                                     Padding="12,10"
                                     Margin="0,0,0,12">
                                 <StackPanel>
-                                    <TextBlock Text="{loc:Tr 'Domaine'}" Style="{StaticResource TitreSection}" />
+                                    <Grid Margin="0,0,0,4">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{loc:Tr 'Domaine'}"
+                                                   Style="{StaticResource TitreSection}"
+                                                   VerticalAlignment="Center" />
+
+                                        <!-- Les autres machines du réseau local que cette
+                                             passerelle relaie, sous des noms aplatis. -->
+                                        <Button Grid.Column="1"
+                                                x:Name="BoutonAutresServeurs"
+                                                Content="{loc:Tr 'Autres serveurs'}"
+                                                Style="{StaticResource BoutonSecondaire}"
+                                                Height="26" Padding="12,0"
+                                                ToolTip="{loc:Tr 'Déclarer les autres machines du réseau dont cette passerelle relaie les modules.'}"
+                                                Click="AutresServeurs_Click" />
+                                    </Grid>
 
                                     <Grid Margin="0,0,0,10">
                                         <Grid.ColumnDefinitions>
@@ -442,19 +462,19 @@
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
 
-                                    <!-- Chaque module publié : son sous-domaine, et où la
-                                         passerelle doit le joindre. 127.0.0.1 quand le module
-                                         tourne sur la même machine, son adresse LAN sinon. -->
+                                    <!-- Chaque module publié : son sous-domaine, et le port sur
+                                         lequel la passerelle le joint. Les modules de cette machine
+                                         sont sur 127.0.0.1 ; les autres passent par « Autres serveurs ». -->
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <TextBlock Grid.Column="1" Text="{loc:Tr 'Sous-domaine'}"
                                                    Style="{StaticResource Libelle}" Margin="0,0,10,0" />
-                                        <TextBlock Grid.Column="2" Text="{loc:Tr 'Cible (hôte:port)'}"
+                                        <TextBlock Grid.Column="2" Text="{loc:Tr 'Port'}"
                                                    Style="{StaticResource Libelle}" />
                                     </Grid>
 
@@ -462,11 +482,16 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'NetMonitor :'}" Style="{StaticResource Libelle}"
-                                                   VerticalAlignment="Center" Margin="0" />
+                                        <CheckBox x:Name="chkHttpsPublierNetMonitor"
+                                                  Content="{loc:Tr 'NetMonitor :'}"
+                                                  Foreground="{StaticResource Texte}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0"
+                                                  Checked="ChkHttpsPublier_Changed"
+                                                  Unchecked="ChkHttpsPublier_Changed" />
                                         <TextBox x:Name="txtHttpsSousNet" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
                                         <TextBox x:Name="txtHttpsCibleNet" Grid.Column="2"
@@ -476,11 +501,16 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'RomMonitor :'}" Style="{StaticResource Libelle}"
-                                                   VerticalAlignment="Center" Margin="0" />
+                                        <CheckBox x:Name="chkHttpsPublierRomMonitor"
+                                                  Content="{loc:Tr 'RomMonitor :'}"
+                                                  Foreground="{StaticResource Texte}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0"
+                                                  Checked="ChkHttpsPublier_Changed"
+                                                  Unchecked="ChkHttpsPublier_Changed" />
                                         <TextBox x:Name="txtHttpsSousRom" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
                                         <TextBox x:Name="txtHttpsCibleRom" Grid.Column="2"
@@ -490,11 +520,16 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'SystemMonitor :'}" Style="{StaticResource Libelle}"
-                                                   VerticalAlignment="Center" Margin="0" />
+                                        <CheckBox x:Name="chkHttpsPublierSystemMonitor"
+                                                  Content="{loc:Tr 'SystemMonitor :'}"
+                                                  Foreground="{StaticResource Texte}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0"
+                                                  Checked="ChkHttpsPublier_Changed"
+                                                  Unchecked="ChkHttpsPublier_Changed" />
                                         <TextBox x:Name="txtHttpsSousSystem" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
                                         <TextBox x:Name="txtHttpsCibleSystem" Grid.Column="2"
@@ -504,11 +539,16 @@
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
                                             <ColumnDefinition Width="150" />
-                                            <ColumnDefinition Width="180" />
+                                            <ColumnDefinition Width="90" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Text="{loc:Tr 'MediaMonitor :'}" Style="{StaticResource Libelle}"
-                                                   VerticalAlignment="Center" Margin="0" />
+                                        <CheckBox x:Name="chkHttpsPublierMediaMonitor"
+                                                  Content="{loc:Tr 'MediaMonitor :'}"
+                                                  Foreground="{StaticResource Texte}"
+                                                  VerticalAlignment="Center"
+                                                  Margin="0"
+                                                  Checked="ChkHttpsPublier_Changed"
+                                                  Unchecked="ChkHttpsPublier_Changed" />
                                         <TextBox x:Name="txtHttpsSousMedia" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
                                         <TextBox x:Name="txtHttpsCibleMedia" Grid.Column="2"
@@ -516,7 +556,7 @@
                                     </Grid>
 
                                     <TextBlock Style="{StaticResource Aide}" Margin="0,4,0,0"
-                                               Text="{loc:Tr 'Laissez un sous-domaine vide pour ne pas publier ce module. Exemple de cible : 127.0.0.1:14003, ou 192.168.1.20:8085 pour une autre machine.'}" />
+                                               Text="{loc:Tr 'Laissez un sous-domaine vide pour ne pas publier ce module. Les ports sont ceux des serveurs web de chaque module ; une autre machine se déclare par « Autres serveurs ».'}" />
 
                                     <CheckBox x:Name="chkHttpsDdns"
                                               Content="{loc:Tr 'Mettre à jour l’adresse IP des sous-domaines (toutes les 15 minutes)'}"

@@ -49,7 +49,15 @@ namespace SystemMonitor.Service
         //  Serveur Web (persistés dans SystemMonitor.web.config)
         // ============================================================
         public bool WebEnabled { get; set; } = true;
-        public int WebPort { get; set; } = 8083;
+        public int WebPort { get; set; } = PortMin;
+
+        /// <summary>
+        /// Plage autorisée du serveur web. Chaque module de la suite occupe la sienne
+        /// (13000 pour SystemMonitor) : la passerelle HTTPS les retrouve en balayant ces
+        /// plages, sans connaître le port exact choisi.
+        /// </summary>
+        public const int PortMin = 13000;
+        public const int PortMax = 13050;
         public string WebUsername { get; set; } = "admin";
         public string WebPassword { get; set; } = "changeme";
 
@@ -158,7 +166,16 @@ namespace SystemMonitor.Service
                         }
                     }
                 }
-                
+
+                // Une valeur hors plage vient d un fichier modifié à la main ou d une
+                // installation antérieure : on la ramène au défaut, et on l enregistre.
+                if (settings.WebPort < PortMin || settings.WebPort > PortMax)
+                {
+                    CoreLog.Write($"[WEB] Port {settings.WebPort} hors plage {PortMin}-{PortMax} : ramené à {PortMin}.");
+                    settings.WebPort = PortMin;
+                    settings.Save();
+                }
+
                 // Protéger le fichier *.web.config en lecture seule
                 EnsureWebConfigProtected();                
             }

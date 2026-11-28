@@ -22,6 +22,14 @@ namespace MediaMonitor.UI
 {
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// Plage autorisée du serveur web de MediaMonitor. Chaque module de la suite
+        /// occupe la sienne : la passerelle HTTPS les retrouve en balayant ces plages,
+        /// au lieu de deviner un port libre.
+        /// </summary>
+        private const int PortWebMin = 11000;
+        private const int PortWebMax = 11050;
+
         // ============================================================
         //  Barre de titre personnalisée (WindowStyle=None + WindowChrome)
         //  La barre Windows est supprimée ; Réduire / Agrandir / Fermer sont
@@ -505,10 +513,11 @@ namespace MediaMonitor.UI
 
         private async void btnApplyWebAll_Click(object sender, RoutedEventArgs e)
         {
-            if (!int.TryParse(txtWebPort.Text, out int port))
+            if (!int.TryParse(txtWebPort.Text, out int port) || port < PortWebMin || port > PortWebMax)
             {
                 Boite.Show(this, 
-                    LanguageManager.Get("Port invalide.") ?? "Port invalide.",
+                    string.Format(LanguageManager.Get("Port invalide : entier entre {0} et {1}.")
+                                  ?? "Port invalide : entier entre {0} et {1}.", PortWebMin, PortWebMax),
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);
@@ -573,10 +582,11 @@ namespace MediaMonitor.UI
 
         private void btnOpenBackup_Click(object sender, RoutedEventArgs e)
         {
-            if (!int.TryParse(txtWebPort.Text, out int port))
+            if (!int.TryParse(txtWebPort.Text, out int port) || port < PortWebMin || port > PortWebMax)
             {
                 Boite.Show(this, 
-                    LanguageManager.Get("Port Web invalide.") ?? "Port Web invalide.",
+                    string.Format(LanguageManager.Get("Port invalide : entier entre {0} et {1}.")
+                                  ?? "Port invalide : entier entre {0} et {1}.", PortWebMin, PortWebMax),
                     LanguageManager.Get("Erreur") ?? "Erreur",
                     MessageBoxButton.OK,
                     MessageBoxImage.Error);

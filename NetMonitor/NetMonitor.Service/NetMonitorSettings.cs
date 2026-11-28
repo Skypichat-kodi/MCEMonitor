@@ -63,7 +63,15 @@ namespace NetMonitor.Service
         //  Serveur Web
         // ============================================================
         public bool WebEnabled                      { get; set; } = true;
-        public int WebPort                          { get; set; } = 8086;
+        public int WebPort                          { get; set; } = PortMin;
+
+        /// <summary>
+        /// Plage autorisée du serveur web. Chaque module de la suite occupe la sienne
+        /// (14000 pour NetMonitor) : la passerelle HTTPS les retrouve en balayant ces
+        /// plages, sans connaître le port exact choisi.
+        /// </summary>
+        public const int PortMin = 14000;
+        public const int PortMax = 14050;
         public string WebUsername                   { get; set; } = "admin";
         public string WebPassword                   { get; set; } = "changeme";
 
@@ -210,6 +218,14 @@ namespace NetMonitor.Service
                             case "OtpSessionMinutes" : if (int.TryParse(value, out int osm)) settings.OtpSessionMinutes = osm; break;
                             case "OtpCodeLength"     : if (int.TryParse(value, out int ocl)) settings.OtpCodeLength = ocl; break;
                         }
+                    }
+                    // Une valeur hors plage vient d un fichier modifié à la main ou
+                    // d une installation antérieure : on la ramène au défaut.
+                    if (settings.WebPort < PortMin || settings.WebPort > PortMax)
+                    {
+                        CoreLog.Write($"[WEB] Port {settings.WebPort} hors plage {PortMin}-{PortMax} : ramené à {PortMin}.");
+                        settings.WebPort = PortMin;
+                        settings.SaveWeb();
                     }
                 }
                 else

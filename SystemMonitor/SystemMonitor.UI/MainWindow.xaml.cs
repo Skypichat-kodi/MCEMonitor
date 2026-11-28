@@ -21,6 +21,13 @@ namespace SystemMonitor.UI
 {
     public partial class MainWindow : Window
     {
+        /// <summary>
+        /// Plage autorisée du serveur web de SystemMonitor. Chaque module de la suite
+        /// occupe la sienne : la passerelle HTTPS les retrouve en balayant ces plages.
+        /// </summary>
+        private const int PortWebMin = 13000;
+        private const int PortWebMax = 13050;
+
         // ============================================================
         //  Barre de titre personnalisée (WindowStyle=None + WindowChrome)
         //  La barre Windows est supprimée ; Réduire / Agrandir / Fermer sont
@@ -687,9 +694,12 @@ namespace SystemMonitor.UI
         {
             try
             {
-                if (!int.TryParse(txtWebPort.Text, out int port))
+                if (!int.TryParse(txtWebPort.Text, out int port) || port < PortWebMin || port > PortWebMax)
                 {
-                    Boite.Show(this, LanguageManager.Get("Port invalide.") ?? "Port invalide.", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                    Boite.Show(this,
+                        string.Format(LanguageManager.Get("Port invalide : entier entre {0} et {1}.")
+                                      ?? "Port invalide : entier entre {0} et {1}.", PortWebMin, PortWebMax),
+                        "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
                     return false;
                 }
 

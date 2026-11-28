@@ -155,6 +155,18 @@ _(rien)_
   - **Nommage** : surtout pas `_acme-challenge`, où lego écrit et efface à chaque renouvellement
   - **Priorité** : 🟡 moyenne
 
+- [ ] **Nettoyer les noms de la zone devenus inutiles** *(question du 2026-11-28)*
+  - Le DDNS ne fait que lire, créer et modifier : `LireIpPubliqueAsync`, `LireEnregistrementsAAsync`,
+    `ModifierAsync`, `CreerAsync`. Aucun `DELETE`
+  - Conséquence : renommer un sous-domaine laisse l ancien A dans la zone. Il continue de résoudre vers
+    l IP publique, mais Caddy ne le sert plus — nom fantôme, erreur de certificat chez le visiteur
+  - **Pas de ménage automatique** : un A peut servir à tout autre chose (boîte mail, site, autre outil).
+    Supprimer ce que MCEMonitor ne publie pas effacerait des données qui ne le concernent pas
+  - **Retenu** : un bouton « Vérifier la zone » qui liste les A existants avec trois états — publié,
+    orphelin (ressemble à un ancien nom de module), étranger — des cases à cocher, une confirmation, et
+    la suppression seulement sur geste explicite
+  - **Priorité** : 🟢 basse
+
 - [ ] **Convertir les 124 fichiers Windows-1252 en UTF-8 avec BOM**
   - Relevé du 2026-11-25 : 116 `.cs`, 4 `.csproj`, 1 `.config`, 1 `.css`, 1 `.ps1`, 1 `.txt` ; 51 ont des
     accents **dans des chaînes** (messages de journal, textes d interface)

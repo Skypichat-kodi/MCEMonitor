@@ -1,0 +1,115 @@
+﻿<Window x:Class="MCEMonitor.UI.FenetreAutresServeurs"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:loc="clr-namespace:MCEMonitor.Languages;assembly=MCEMonitor.Languages"
+        Title="{loc:Tr 'Autres serveurs'}"
+        Width="860"
+        Height="620"
+        WindowStyle="None"
+        AllowsTransparency="True"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        Background="Transparent"
+        Foreground="{StaticResource Texte}"
+        FontFamily="Segoe UI"
+        FontSize="13"
+        UseLayoutRounding="True">
+
+    <Border Margin="14"
+            Background="{StaticResource Fond}"
+            BorderBrush="{StaticResource Bordure}"
+            BorderThickness="1"
+            CornerRadius="12">
+
+        <Border.Effect>
+            <DropShadowEffect BlurRadius="22" ShadowDepth="0" Opacity="0.5" Color="Black" />
+        </Border.Effect>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- En-tête -->
+            <Border Grid.Row="0"
+                    Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource Bordure}"
+                    BorderThickness="0,0,0,1"
+                    CornerRadius="12,12,0,0"
+                    MouseLeftButtonDown="EnTete_MouseLeftButtonDown">
+                <Grid Margin="20,12,10,12">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="{loc:Tr 'Autres serveurs'}"
+                                   FontSize="14"
+                                   FontWeight="SemiBold" />
+                        <TextBlock Text="{loc:Tr 'Machines du réseau local dont cette passerelle relaie les modules. Une seule machine expose le 443 : celle qui exécute MCEMonitor.'}"
+                                   FontSize="11"
+                                   Foreground="{StaticResource TexteSecondaire}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,2,0,0" />
+                    </StackPanel>
+
+                    <Button Content="✕"
+                            Style="{StaticResource BoutonFantome}"
+                            HorizontalAlignment="Right"
+                            VerticalAlignment="Center"
+                            Width="32" Height="28" Padding="0" FontSize="13"
+                            ToolTip="{loc:Tr 'Fermer'}"
+                            Click="SurFermer" />
+                </Grid>
+            </Border>
+
+            <!-- Blocs machines, construits à l'exécution : un par serveur. -->
+            <ScrollViewer Grid.Row="1"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Disabled"
+                          Margin="18,14,10,0">
+                <StackPanel x:Name="ZoneServeurs" Margin="0,0,8,0" />
+            </ScrollViewer>
+
+            <!-- Pied -->
+            <Border Grid.Row="2"
+                    Background="{StaticResource Surface}"
+                    BorderBrush="{StaticResource Bordure}"
+                    BorderThickness="0,1,0,0"
+                    CornerRadius="0,0,12,12"
+                    Padding="18,12">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+
+                    <Button Grid.Column="0"
+                            Content="{loc:Tr '+ Nouveau'}"
+                            Style="{StaticResource BoutonSecondaire}"
+                            Width="130" Height="30" Padding="0"
+                            Click="SurNouveau" />
+
+                    <TextBlock x:Name="TexteErreur"
+                               Grid.Column="1"
+                               Margin="14,0"
+                               VerticalAlignment="Center"
+                               FontSize="11"
+                               TextWrapping="Wrap"
+                               Foreground="{StaticResource Erreur}" />
+
+                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                        <Button Content="{loc:Tr 'Annuler'}"
+                                Style="{StaticResource BoutonSecondaire}"
+                                Width="110" Height="30" Padding="0"
+                                Click="SurFermer" />
+                        <Button Content="{loc:Tr 'Enregistrer'}"
+                                Style="{StaticResource BoutonAccent}"
+                                Width="140" Height="30"
+                                Margin="8,0,0,0" Padding="0"
+                                Click="SurValider" />
+                    </StackPanel>
+                </Grid>
+            </Border>
+        </Grid>
+    </Border>
+</Window>
