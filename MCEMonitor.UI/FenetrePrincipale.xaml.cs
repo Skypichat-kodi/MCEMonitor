@@ -29,6 +29,16 @@ namespace MCEMonitor.UI
         private List<Partage.ServeurSupplementaire> _serveursSupplementaires = new();
 
         /// <summary>
+        /// Sous-domaines des quatre modules de cette machine. Ils ne se saisissent plus :
+        /// le nom est fixe, seul le domaine décide de l adresse complète, et les autres
+        /// machines reçoivent le leur par la fenêtre des autres serveurs.
+        /// </summary>
+        private string _sousNet    = "netmonitor";
+        private string _sousRom    = "rommonitor";
+        private string _sousSystem = "systemmonitor";
+        private string _sousMedia  = "mediamonitor";
+
+        /// <summary>
         /// Interroge l'état de la passerelle tant que l'onglet HTTPS est affiché.
         /// Sans lui, l'état n'était lu qu'au démarrage de MCEMonitor : une passerelle
         /// démarrée entre-temps — par la tâche planifiée, par une autre fenêtre, ou à
@@ -2457,10 +2467,16 @@ namespace MCEMonitor.UI
                 chkHttpsActif.IsChecked     = config.Actif;
                 chkHttpsDdns.IsChecked      = config.Ddns;
                 txtHttpsDomaine.Text        = config.Domaine;
-                txtHttpsSousNet.Text        = config.SousNetMonitor;
-                txtHttpsSousRom.Text        = config.SousRomMonitor;
-                txtHttpsSousSystem.Text     = config.SousSystemMonitor;
-                txtHttpsSousMedia.Text      = config.SousMediaMonitor;
+                _sousNet    = ValeurOuDefaut(config.SousNetMonitor,    "netmonitor");
+                _sousRom    = ValeurOuDefaut(config.SousRomMonitor,    "rommonitor");
+                _sousSystem = ValeurOuDefaut(config.SousSystemMonitor, "systemmonitor");
+                _sousMedia  = ValeurOuDefaut(config.SousMediaMonitor,  "mediamonitor");
+
+                AfficherSousDomaines();
+
+                // Le sous-domaine n étant plus saisi, l adresse affichée doit suivre
+                // le domaine dès qu on le modifie.
+                txtHttpsDomaine.TextChanged += (_, _) => AfficherSousDomaines();
 
                 chkHttpsPublierNetMonitor.IsChecked    = config.PublierNetMonitor;
                 chkHttpsPublierRomMonitor.IsChecked    = config.PublierRomMonitor;
@@ -2624,7 +2640,7 @@ namespace MCEMonitor.UI
         }
 
         private static void GriserModule(System.Windows.Controls.CheckBox? caseModule,
-                                         params System.Windows.Controls.TextBox[] champs)
+                                         params System.Windows.FrameworkElement[] champs)
         {
             bool publie = caseModule?.IsChecked == true;
 
@@ -2632,6 +2648,7 @@ namespace MCEMonitor.UI
             {
                 if (champ == null) continue;
 
+                // Le sous-domaine n est plus saisissable : griser suffit.
                 champ.IsEnabled = publie;
                 champ.Opacity = publie ? 1 : 0.45;
             }
@@ -2655,6 +2672,8 @@ namespace MCEMonitor.UI
             config.CibleMediaMonitor         = CibleLocale(txtHttpsCibleMedia.Text);
             config.ServeursSupplementaires   = _serveursSupplementaires;
 
+            var serveursAvant = config.ServeursSupplementaires.ToList();
+
             var fenetre = new FenetreAutresServeurs(config) { Owner = this };
 
             if (fenetre.ShowDialog() != true)
@@ -2663,7 +2682,20 @@ namespace MCEMonitor.UI
             _serveursSupplementaires = fenetre.Serveurs;
             AfficherNombreServeurs();
 
-            CoreLog.Info("HTTPS", $"Autres serveurs : {_serveursSupplementaires.Count} machine(s) déclarée(s).");
+            // Ce qui a réellement changé, et non un simple décompte : ajout,
+            // retrait, port modifié, adresse corrigée.
+            JournaliserServeurs(serveursAvant, _serveursSupplementaires);
+
+            // La fenêtre a son propre bouton « Enregistrer » : personne ne devine
+            // qu il faut ensuite descendre jusqu au bas de l onglet pour un second
+            // enregistrement. La liste est donc écrite tout de suite.
+            var enregistree = Partage.HttpsConfig.Charger();
+            enregistree.ServeursSupplementaires = _serveursSupplementaires;
+            enregistree.Enregistrer();
+
+            int modules = _serveursSupplementaires.Sum(s => s.Modules.Count);
+
+            CoreLog.Info("HTTPS", $"Autres serveurs : {_serveursSupplementaires.Count} machine(s), {modules} module(s) enregistré(s).");
         }
 
         /// <summary>Le bouton porte le nombre de machines déclarées, pour ne pas les oublier.</summary>
@@ -2673,6 +2705,108 @@ namespace MCEMonitor.UI
             int nombre = _serveursSupplementaires.Count;
 
             BoutonAutresServeurs.Content = nombre == 0 ? libelle : $"{libelle} ({nombre})";
+        }
+
+        /// <summary>
+        /// Décrit les changements apportés aux autres machines : ajout, retrait,
+        /// adresse ou port modifiés. Un simple décompte ne disait pas ce qui avait bougé.
+        /// </summary>
+        private static void JournaliserServeurs(List<Partage.ServeurSupplementaire> anciens,
+                                                List<Partage.ServeurSupplementaire> nouveaux)
+        {
+            foreach (var serveur in nouveaux)
+            {
+                var ancien = anciens.FirstOrDefault(s =>
+                    string.Equals(s.Machine, serveur.Machine, StringComparison.OrdinalIgnoreCase));
+
+                if (ancien == null)
+                {
+                    CoreLog.Info("HTTPS", $"Machine ajoutée : {serveur.Machine} ({serveur.Ip}) — {DecrireModules(serveur)}.");
+                    continue;
+                }
+
+                if (!string.Equals(ancien.Ip, serveur.Ip, StringComparison.Ordinal))
+                    CoreLog.Info("HTTPS", $"Machine {serveur.Machine} : adresse {ancien.Ip} → {serveur.Ip}.");
+
+                foreach (var module in serveur.Modules)
+                {
+                    var avant = ancien.Modules.FirstOrDefault(m =>
+                        string.Equals(m.Module, module.Module, StringComparison.OrdinalIgnoreCase));
+
+                    if (avant == null)
+                        CoreLog.Info("HTTPS", $"Machine {serveur.Machine} : {module.Module} ajouté (port {module.Port}).");
+                    else if (avant.Port != module.Port)
+                        CoreLog.Info("HTTPS", $"Machine {serveur.Machine} : {module.Module} port {avant.Port} → {module.Port}.");
+                }
+
+                foreach (var avant in ancien.Modules)
+                    if (!serveur.Modules.Any(m => string.Equals(m.Module, avant.Module, StringComparison.OrdinalIgnoreCase)))
+                        CoreLog.Info("HTTPS", $"Machine {serveur.Machine} : {avant.Module} retiré (port {avant.Port}).");
+            }
+
+            foreach (var ancien in anciens)
+                if (!nouveaux.Any(s => string.Equals(s.Machine, ancien.Machine, StringComparison.OrdinalIgnoreCase)))
+                    CoreLog.Info("HTTPS", $"Machine retirée : {ancien.Machine} ({ancien.Ip}).");
+        }
+
+        private static string DecrireModules(Partage.ServeurSupplementaire serveur)
+            => serveur.Modules.Count == 0
+                ? "aucun module"
+                : string.Join(", ", serveur.Modules.Select(m => $"{m.Module} {m.Port}"));
+
+        /// <summary>Valeur conservée, ou le nom par défaut si elle est vide.</summary>
+        private static string ValeurOuDefaut(string valeur, string defaut)
+            => string.IsNullOrWhiteSpace(valeur) ? defaut : valeur.Trim();
+
+        /// <summary>
+        /// Affiche les adresses complètes des quatre modules. Le sous-domaine n est plus
+        /// saisi : il suit le domaine, sans risque de faute de frappe dans un nom.
+        /// </summary>
+        private void AfficherSousDomaines()
+        {
+            string domaine = txtHttpsDomaine.Text.Trim().TrimEnd('.').ToLowerInvariant();
+
+            txtHttpsSousNet.Text    = Adresse(_sousNet, domaine);
+            txtHttpsSousRom.Text    = Adresse(_sousRom, domaine);
+            txtHttpsSousSystem.Text = Adresse(_sousSystem, domaine);
+            txtHttpsSousMedia.Text  = Adresse(_sousMedia, domaine);
+        }
+
+        private static string Adresse(string sous, string domaine)
+        {
+            string valeur = (sous ?? "").Trim();
+
+            if (valeur.Length == 0) return "";
+            if (domaine.Length == 0) return valeur;
+
+            return valeur.EndsWith("." + domaine, StringComparison.Ordinal) ? valeur : $"{valeur}.{domaine}";
+        }
+
+        /// <summary>Signale un texte qui a changé, et rien s il est identique.</summary>
+        private static void ComparerTexte(string libelle, string avant, string apres)
+        {
+            if (!string.Equals((avant ?? "").Trim(), (apres ?? "").Trim(), StringComparison.OrdinalIgnoreCase))
+                CoreLog.Info("HTTPS", $"{libelle} : « {avant} » → « {apres} ».");
+        }
+
+        private static void ComparerBooleen(string libelle, bool avant, bool apres)
+        {
+            if (avant != apres)
+                CoreLog.Info("HTTPS", $"{libelle} : {(avant ? "activé" : "désactivé")} → {(apres ? "activé" : "désactivé")}.");
+        }
+
+        /// <summary>Publication et port d un module de cette machine.</summary>
+        private static void ComparerModule(string module, bool avantPublie, bool apresPublie,
+                                           string avantCible, string apresCible)
+        {
+            if (avantPublie != apresPublie)
+                CoreLog.Info("HTTPS", $"{module} : {(apresPublie ? "publié" : "non publié")}.");
+
+            string avantPort = PortDeCible(avantCible);
+            string apresPort = PortDeCible(apresCible);
+
+            if (!string.Equals(avantPort, apresPort, StringComparison.Ordinal))
+                CoreLog.Info("HTTPS", $"{module} : port {avantPort} → {apresPort}.");
         }
 
         /// <summary>
@@ -2714,20 +2848,37 @@ namespace MCEMonitor.UI
                     return;
                 }
 
+                var avant  = Partage.HttpsConfig.Charger();
                 var config = Partage.HttpsConfig.Charger();
 
                 config.Actif             = chkHttpsActif.IsChecked == true;
                 config.Ddns              = chkHttpsDdns.IsChecked == true;
                 config.Domaine           = txtHttpsDomaine.Text.Trim();
-                config.SousNetMonitor    = txtHttpsSousNet.Text.Trim();
-                config.SousRomMonitor    = txtHttpsSousRom.Text.Trim();
-                config.SousSystemMonitor = txtHttpsSousSystem.Text.Trim();
-                config.SousMediaMonitor  = txtHttpsSousMedia.Text.Trim();
+                config.SousNetMonitor    = _sousNet;
+                config.SousRomMonitor    = _sousRom;
+                config.SousSystemMonitor = _sousSystem;
+                config.SousMediaMonitor  = _sousMedia;
 
-            config.PublierNetMonitor    = chkHttpsPublierNetMonitor.IsChecked == true;
-            config.PublierRomMonitor    = chkHttpsPublierRomMonitor.IsChecked == true;
-            config.PublierSystemMonitor = chkHttpsPublierSystemMonitor.IsChecked == true;
-            config.PublierMediaMonitor  = chkHttpsPublierMediaMonitor.IsChecked == true;
+                config.PublierNetMonitor    = chkHttpsPublierNetMonitor.IsChecked == true;
+                config.PublierRomMonitor    = chkHttpsPublierRomMonitor.IsChecked == true;
+                config.PublierSystemMonitor = chkHttpsPublierSystemMonitor.IsChecked == true;
+                config.PublierMediaMonitor  = chkHttpsPublierMediaMonitor.IsChecked == true;
+
+                // Ce qui a changé, plutôt qu un simple « réglages enregistrés » : sans
+                // cela, impossible de savoir ce qu on vient de modifier.
+                ComparerBooleen("Accès distant", avant.Actif, config.Actif);
+                ComparerBooleen("DDNS", avant.Ddns, config.Ddns);
+                ComparerTexte("Domaine", avant.Domaine, config.Domaine);
+                ComparerTexte("Fournisseur DNS", avant.Fournisseur, config.Fournisseur);
+                ComparerTexte("Email du certificat", avant.Email, config.Email);
+
+                if (avant.Port != config.Port)
+                    CoreLog.Info("HTTPS", $"Port de la passerelle : {avant.Port} → {config.Port}.");
+
+                ComparerModule("NetMonitor",    avant.PublierNetMonitor,    config.PublierNetMonitor,    avant.CibleNetMonitor,    config.CibleNetMonitor);
+                ComparerModule("RomMonitor",    avant.PublierRomMonitor,    config.PublierRomMonitor,    avant.CibleRomMonitor,    config.CibleRomMonitor);
+                ComparerModule("SystemMonitor", avant.PublierSystemMonitor, config.PublierSystemMonitor, avant.CibleSystemMonitor, config.CibleSystemMonitor);
+                ComparerModule("MediaMonitor",  avant.PublierMediaMonitor,  config.PublierMediaMonitor,  avant.CibleMediaMonitor,  config.CibleMediaMonitor);
                 config.CibleNetMonitor    = CibleLocale(txtHttpsCibleNet.Text);
                 config.CibleRomMonitor    = CibleLocale(txtHttpsCibleRom.Text);
                 config.CibleSystemMonitor = CibleLocale(txtHttpsCibleSystem.Text);

@@ -468,21 +468,21 @@
                                     <Grid Margin="0,0,0,4">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
-                                        <TextBlock Grid.Column="1" Text="{loc:Tr 'Sous-domaine'}"
+                                        <TextBlock Grid.Column="2" Text="{loc:Tr 'Adresse publiée'}"
                                                    Style="{StaticResource Libelle}" Margin="0,0,10,0" />
-                                        <TextBlock Grid.Column="2" Text="{loc:Tr 'Port'}"
+                                        <TextBlock Grid.Column="1" Text="{loc:Tr 'Port'}"
                                                    Style="{StaticResource Libelle}" />
                                     </Grid>
 
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox x:Name="chkHttpsPublierNetMonitor"
@@ -492,16 +492,17 @@
                                                   Margin="0"
                                                   Checked="ChkHttpsPublier_Changed"
                                                   Unchecked="ChkHttpsPublier_Changed" />
-                                        <TextBox x:Name="txtHttpsSousNet" Grid.Column="1"
-                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
-                                        <TextBox x:Name="txtHttpsCibleNet" Grid.Column="2"
+                                        <TextBlock x:Name="txtHttpsSousNet" Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource Texte}" />
+                                        <TextBox x:Name="txtHttpsCibleNet" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox x:Name="chkHttpsPublierRomMonitor"
@@ -511,16 +512,17 @@
                                                   Margin="0"
                                                   Checked="ChkHttpsPublier_Changed"
                                                   Unchecked="ChkHttpsPublier_Changed" />
-                                        <TextBox x:Name="txtHttpsSousRom" Grid.Column="1"
-                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
-                                        <TextBox x:Name="txtHttpsCibleRom" Grid.Column="2"
+                                        <TextBlock x:Name="txtHttpsSousRom" Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource Texte}" />
+                                        <TextBox x:Name="txtHttpsCibleRom" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox x:Name="chkHttpsPublierSystemMonitor"
@@ -530,16 +532,17 @@
                                                   Margin="0"
                                                   Checked="ChkHttpsPublier_Changed"
                                                   Unchecked="ChkHttpsPublier_Changed" />
-                                        <TextBox x:Name="txtHttpsSousSystem" Grid.Column="1"
-                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
-                                        <TextBox x:Name="txtHttpsCibleSystem" Grid.Column="2"
+                                        <TextBlock x:Name="txtHttpsSousSystem" Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource Texte}" />
+                                        <TextBox x:Name="txtHttpsCibleSystem" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
                                     <Grid Margin="0,0,0,8">
                                         <Grid.ColumnDefinitions>
                                             <ColumnDefinition Width="180" />
-                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="150" />
                                             <ColumnDefinition Width="*" />
                                         </Grid.ColumnDefinitions>
                                         <CheckBox x:Name="chkHttpsPublierMediaMonitor"
@@ -549,9 +552,10 @@
                                                   Margin="0"
                                                   Checked="ChkHttpsPublier_Changed"
                                                   Unchecked="ChkHttpsPublier_Changed" />
-                                        <TextBox x:Name="txtHttpsSousMedia" Grid.Column="1"
-                                                 Style="{StaticResource ChampParametre}" Margin="0,0,10,0" />
-                                        <TextBox x:Name="txtHttpsCibleMedia" Grid.Column="2"
+                                        <TextBlock x:Name="txtHttpsSousMedia" Grid.Column="2"
+                                                   VerticalAlignment="Center"
+                                                   Foreground="{StaticResource Texte}" />
+                                        <TextBox x:Name="txtHttpsCibleMedia" Grid.Column="1"
                                                  Style="{StaticResource ChampParametre}" />
                                     </Grid>
 

@@ -89,6 +89,18 @@ namespace MCEMonitor.UI
                     AjouterBloc(serveur);
             else
                 AjouterBloc(null);
+
+            // À l ouverture, on vérifie ce qui répond réellement : une machine arrêtée
+            // ou un module déplacé se voit aussitôt, sans avoir à cliquer sur Détecter.
+            // Les blocs vides sont ignorés, et la détection ne décoche rien — elle
+            // ajoute seulement les marques de ce qui répond.
+            Loaded += async (_, _) =>
+            {
+                var renseignes = _blocs.Where(b => b.Ip.Text.Trim().Length > 0).ToList();
+
+                if (renseignes.Count > 0)
+                    await Task.WhenAll(renseignes.Select(DetecterAsync));
+            };
         }
 
         /// <summary>Le port d'une cible « hôte:port », ou le défaut du module.</summary>
@@ -573,6 +585,8 @@ namespace MCEMonitor.UI
         {
             TexteErreur.Text = "";
 
+            CoreLog.Info("HTTPS", $"Autres serveurs : validation de {_blocs.Count} bloc(s).");
+
             var liste = new List<ServeurSupplementaire>();
 
             foreach (var bloc in _blocs)
@@ -590,6 +604,8 @@ namespace MCEMonitor.UI
                     {
                         TexteErreur.Text = string.Format(
                             L("Le port de {0} n’est pas valide."), nom);
+
+                        CoreLog.Warn("HTTPS", $"Autres serveurs : port invalide pour {nom} (\"{ligne.Port.Text}\").");
                         return;
                     }
 
@@ -614,6 +630,7 @@ namespace MCEMonitor.UI
                 if (modules.Count == 0)
                 {
                     TexteErreur.Text = string.Format(L("Aucun module n’est coché pour {0}."), machine);
+                    CoreLog.Warn("HTTPS", $"Autres serveurs : aucun module coché pour {machine}.");
                     return;
                 }
 
@@ -636,6 +653,9 @@ namespace MCEMonitor.UI
             }
 
             Serveurs = liste;
+
+            CoreLog.Info("HTTPS", $"Autres serveurs : {liste.Count} machine(s) validée(s) dans la fenêtre.");
+
             DialogResult = true;
             Close();
         }
