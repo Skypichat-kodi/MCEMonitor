@@ -336,8 +336,35 @@ pour décider, et une popup « continuer quand même » qui ne faisait que dépl
 devant chaque module, et un voile sur chaque encart — commandes du pied comprises, sauf Enregistrer — quand
 l accès distant est décoché.
 
+**Mise en service réelle — quatre causes successives.** Les douze sites ne répondaient pas, et
+chacun des défauts suivants masquait le précédent. Ils sont notés dans l ordre où ils ont été trouvés, parce
+que c est cet ordre qui rend la lecture utile.
+
+- **les tâches planifiées se bloquaient.** `--update-ddns` et `--renew-cert` appelaient
+  `GetAwaiter().GetResult()` depuis `OnStartup`, exactement comme `--run-gateway` la veille — que j avais
+  corrigé seul, sans chercher le motif ailleurs. Interblocage : la tâche tournait toutes les quinze minutes
+  et n écrivait aucun enregistrement. Le renouvellement du certificat était condamné de la même façon, à
+  quatre-vingt-dix jours
+- **une instance fantôme empêchait la relance.** La tâche bloquée restait « En cours » indéfiniment, et
+  `schtasks /Run` répondait `ERROR_REQUEST_REFUSED` (`0x800710E0`). Il faut la terminer :
+  `schtasks /End` puis `taskkill /F /IM MCEMonitor.exe`. Même chose pour `MCEMonitor_CertRenew`, qui a
+  probablement son propre fantôme
+- **la fenêtre des autres serveurs écrivait la configuration sans régénérer le Caddyfile.** Caddy servait
+  donc les quatre anciens sites, et les nouveaux noms répondaient `200` avec **zéro octet** — ce que j ai
+  pris une fois pour un succès, trompé par le code HTTP. Un corps vide n est pas une page
+- **l enregistrement des réglages ne régénérait pas le Caddyfile non plus.** Seul le bouton « Démarrer la
+  passerelle » le faisait. Avec la cause précédente, cela voulait dire qu aucune modification de domaine,
+  de port ou de machine n avait d effet tant qu on ne cliquait pas sur Démarrer
+
+**Vérifié de bout en bout** : douze sites sur trois machines — les quatre de MCE-SERVER, les quatre de
+`mce11-salon`, les quatre de `w11-mel` — chacun servant la page de connexion de son propre module
+(`Connexion - NetMonitor`, `Connexion - RomMonitor`, …), avec un seul certificat et un seul port 443.
+
+**Toujours en suspens** : la box ne redirige pas le port 80, donc `http://` ne bascule pas vers `https://` —
+les blocs de redirection existent, ils ne reçoivent jamais la requête.
+
 **Commits** : `214c2cf` (sites, plages, fenêtre), `003f631` (journal, sous-domaines, vérification à
-l ouverture), `30866f1` (marqueur), `4674099` (voiles), `3424da5` (refus nom et port).
+l ouverture), `30866f1` (marqueur), `4674099` (voiles), `3424da5` (refus nom et port), `2ba3b7d` (tâches planifiées), `19caddb` (Caddyfile).
 
 ### Session 2026-11-27 (soir) — HTTPS public : le 443 disputé, trois pièges d asynchrone
 
