@@ -2676,7 +2676,7 @@ namespace MCEMonitor.UI
         /// champs affichés — domaine et ports — pour que la détection et l'aperçu des
         /// adresses correspondent à ce que l'utilisateur voit, même non enregistré.
         /// </summary>
-        private void AutresServeurs_Click(object sender, RoutedEventArgs e)
+        private async void AutresServeurs_Click(object sender, RoutedEventArgs e)
         {
             var config = Partage.HttpsConfig.Charger();
 
@@ -2706,7 +2706,35 @@ namespace MCEMonitor.UI
             // enregistrement. La liste est donc écrite tout de suite.
             var enregistree = Partage.HttpsConfig.Charger();
             enregistree.ServeursSupplementaires = _serveursSupplementaires;
+
+            // Les champs affichés priment sur le fichier : l aperçu de la fenêtre les
+            // utilisait, le Caddyfile doit s accorder avec ce qu on vient de voir.
+            enregistree.Domaine            = txtHttpsDomaine.Text.Trim();
+            enregistree.CibleNetMonitor    = CibleLocale(txtHttpsCibleNet.Text);
+            enregistree.CibleRomMonitor    = CibleLocale(txtHttpsCibleRom.Text);
+            enregistree.CibleSystemMonitor = CibleLocale(txtHttpsCibleSystem.Text);
+            enregistree.CibleMediaMonitor  = CibleLocale(txtHttpsCibleMedia.Text);
+
             enregistree.Enregistrer();
+
+            // Et le Caddyfile est régénéré dans la foulée : sans cela, Caddy continue
+            // de servir les anciens sites, et les nouveaux noms répondent dans le vide
+            // alors que leurs enregistrements A viennent d être créés.
+            try
+            {
+                if (enregistree.Actif && Partage.GenerateurCaddyfile.Ecrire(enregistree))
+                {
+                    if (await Partage.GestionnairePasserelle.EstEnMarcheAsync())
+                    {
+                        await Partage.GestionnairePasserelle.RechargerAsync();
+                        CoreLog.Info("HTTPS", "Passerelle rechargée avec les nouveaux sites.");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("HTTPS", $"Caddyfile non régénéré : {ex.Message}");
+            }
 
             int modules = _serveursSupplementaires.Sum(s => s.Modules.Count);
 
@@ -3173,6 +3201,26 @@ namespace MCEMonitor.UI
                 {
                     MCEMonitor.Utils.TaskSchedulerHelper.DeleteCaddyTask();
                     CoreLog.Info("HTTPS", "Tâche de passerelle supprimée (rien à publier).");
+                }
+
+                // Le Caddyfile doit suivre les réglages, sinon les sites ajoutés ou
+                // modifiés ne sont servis qu après un clic sur « Démarrer la passerelle »
+                // — et les noms répondent dans le vide en attendant.
+                if (aPublier)
+                {
+                    try
+                    {
+                        if (Partage.GenerateurCaddyfile.Ecrire(config)
+                            && await Partage.GestionnairePasserelle.EstEnMarcheAsync())
+                        {
+                            await Partage.GestionnairePasserelle.RechargerAsync();
+                            CoreLog.Info("HTTPS", "Passerelle rechargée.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        CoreLog.Warn("HTTPS", $"Caddyfile non régénéré : {ex.Message}");
+                    }
                 }
 
                 // Supprimer la tâche ne suffit pas : la passerelle en cours continue de
