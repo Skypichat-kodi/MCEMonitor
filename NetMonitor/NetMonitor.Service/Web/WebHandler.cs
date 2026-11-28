@@ -10,7 +10,7 @@ namespace NetMonitor.Service.Web
 {
     public static class WebHandler
     {
-        public static string BuildNetPage(NetMonitorEngine engine, NetMonitorSettings settings, string publicHost = "localhost")
+        public static string BuildNetPage(NetMonitorEngine engine, NetMonitorSettings settings, string publicHost = "localhost", bool https = false)
         {
             try
             {
@@ -400,7 +400,7 @@ namespace NetMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("NetPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost, https));
 
                 return html;
             }
@@ -450,7 +450,8 @@ namespace NetMonitor.Service.Web
         public static async System.Threading.Tasks.Task<string> BuildStatsPageAsync(
             NetMonitorEngine engine,
             NetMonitorSettings settings,
-            string publicHost = "localhost")
+            string publicHost = "localhost",
+            bool https = false)
         {
             try
             {
@@ -522,7 +523,7 @@ namespace NetMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("Stats.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost, https));
                 return html;
             }
             catch (Exception ex)
@@ -687,7 +688,7 @@ namespace NetMonitor.Service.Web
             }
         }
 
-        public static string BuildWhitelistPage(NetMonitorEngine engine, NetMonitorSettings settings, string publicHost = "localhost")
+        public static string BuildWhitelistPage(NetMonitorEngine engine, NetMonitorSettings settings, string publicHost = "localhost", bool https = false)
         {
             try
             {
@@ -742,7 +743,7 @@ namespace NetMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("WhitelistPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost, https));
                 return html;
             }
             catch (Exception ex)

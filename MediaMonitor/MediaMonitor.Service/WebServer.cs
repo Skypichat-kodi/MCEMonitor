@@ -67,7 +67,7 @@ namespace MediaMonitor.Service
         private void RegisterRoutes()
         {
             // Pages HTML            
-            _router.Map("/",         ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp, ctx.Http.Request.Url?.Host ?? "localhost")));
+            _router.Map("/",         ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp, ctx.Http.Request.Url?.Host ?? "localhost", EstHttps(ctx.Http))));
             _router.Map("/back",     ctx => HttpWriter.WriteHtml(ctx.Http, _homeHandler.Render(_requestCount, _lastRequestTime, _lastRequestIp, ctx.Http.Request.Url?.Host ?? "localhost")));
             _router.Map("/backup",   ctx => HttpWriter.WriteHtml(ctx.Http, _backupHandler.Render(BackupRequest.FromHttp(ctx.Http.Request))));
             _router.Map("/info",     ctx => _infoHandler.Show(ctx));
@@ -271,6 +271,15 @@ namespace MediaMonitor.Service
                 CoreLog.Write("WebServer ERROR: " + ex.Message);
             }
         }
+
+        /// <summary>
+        /// La requête arrive-t-elle en HTTPS ? Les modules ne servent que du HTTP :
+        /// c'est Caddy qui termine le TLS et l'annonce par X-Forwarded-Proto.
+        /// </summary>
+        private static bool EstHttps(HttpListenerContext ctx)
+            => ctx.Request.IsSecureConnection
+               || string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https",
+                                StringComparison.OrdinalIgnoreCase);
 
         private bool CheckAuth(HttpListenerContext ctx)
         {

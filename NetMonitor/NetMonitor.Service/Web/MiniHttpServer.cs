@@ -319,12 +319,12 @@ namespace NetMonitor.Service.Web
                 // ============================================================              
                 if (path == "/" || path == "/net")
                 {
-                    string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
+                    string html = WebHandler.BuildNetPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost", EstHttps(ctx));
                     SendHtml(ctx, html);
                 }
                 else if (path == "/stats")
                 {
-                    string html = await WebHandler.BuildStatsPageAsync(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
+                    string html = await WebHandler.BuildStatsPageAsync(_engine, _settings, ctx.Request.Url?.Host ?? "localhost", EstHttps(ctx));
                     SendHtml(ctx, html);
                 }
                 else if (path == "/map")
@@ -637,7 +637,7 @@ namespace NetMonitor.Service.Web
                 }                
                 else if (path == "/whitelist")
                 {
-                    string html = WebHandler.BuildWhitelistPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost");
+                    string html = WebHandler.BuildWhitelistPage(_engine, _settings, ctx.Request.Url?.Host ?? "localhost", EstHttps(ctx));
                     SendHtml(ctx, html);
                 }
                 else if (path == "/unwhitelist-process" && ctx.Request.HttpMethod == "POST")
@@ -972,6 +972,15 @@ namespace NetMonitor.Service.Web
             }
             catch (Exception ex) { CoreLog.Write("WebServer ERROR : " + ex.Message); }
         }
+
+        /// <summary>
+        /// La requête arrive-t-elle en HTTPS ? Les modules ne servent que du HTTP :
+        /// c'est Caddy qui termine le TLS et qui l'annonce par X-Forwarded-Proto.
+        /// </summary>
+        private static bool EstHttps(HttpListenerContext ctx)
+            => ctx.Request.IsSecureConnection
+               || string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https",
+                                StringComparison.OrdinalIgnoreCase);
 
         private bool CheckAuth(HttpListenerContext ctx)
         {

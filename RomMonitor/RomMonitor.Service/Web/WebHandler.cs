@@ -13,7 +13,8 @@ namespace RomMonitor.Service.Web
         public static string BuildRomPage(
             RomMonitorEngine engine,
             RomMonitorSettings settings,
-            string publicHost = "localhost")
+            string publicHost = "localhost",
+            bool https = false)
         {
             try
             {
@@ -200,7 +201,7 @@ namespace RomMonitor.Service.Web
                 try
                 {
                     html = html.Replace("<!--PEERBAR-->",
-                        PeerStatusService.BuildPeerBarHtml(publicHost ?? "localhost"));
+                        PeerStatusService.BuildPeerBarHtml(publicHost ?? "localhost", https));
                 }
                 catch (Exception ex)
                 {

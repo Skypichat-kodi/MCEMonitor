@@ -198,7 +198,7 @@ namespace SystemMonitor.Service.Web
                 if (path == "/" || path == "/system")
                 {
                     string publicHost = ctx.Request.Url?.Host ?? "localhost";
-                    string html = WebHandler.BuildSystemPage(_engine, _settings, publicHost);
+                    string html = WebHandler.BuildSystemPage(_engine, _settings, publicHost, EstHttps(ctx));
                     SendHtml(ctx, html);
                 }
                 else if (path == "/ping")
@@ -417,6 +417,15 @@ namespace SystemMonitor.Service.Web
                 catch { }
             }
         }
+
+        /// <summary>
+        /// La requête arrive-t-elle en HTTPS ? Les modules ne servent que du HTTP :
+        /// c'est Caddy qui termine le TLS et l'annonce par X-Forwarded-Proto.
+        /// </summary>
+        private static bool EstHttps(HttpListenerContext ctx)
+            => ctx.Request.IsSecureConnection
+               || string.Equals(ctx.Request.Headers["X-Forwarded-Proto"], "https",
+                                StringComparison.OrdinalIgnoreCase);
 
         private bool CheckAuth(HttpListenerContext ctx)
         {

@@ -13,7 +13,8 @@ namespace SystemMonitor.Service.Web
         public static string BuildSystemPage(
           SystemMonitorEngine engine,
           SystemMonitorSettings settings,
-          string publicHost = "localhost")
+          string publicHost = "localhost",
+          bool https = false)
         {
             try
             {
@@ -32,7 +33,7 @@ namespace SystemMonitor.Service.Web
 
                     string gpuUsageStr = g.UsagePercent.ToString("F1", CultureInfo.InvariantCulture);
                     string gpuTempStr = g.Temperature.HasValue
-                        ? g.Temperature.Value.ToString("F1", CultureInfo.InvariantCulture) + " °C"
+                        ? g.Temperature.Value.ToString("F1", CultureInfo.InvariantCulture) + " ï¿½C"
                         : "N/A";
                     string gpuVramStr = (g.VramUsedMB.HasValue && g.VramTotalMB.HasValue)
                         ? g.VramUsedMB.Value.ToString("F0", CultureInfo.InvariantCulture) + " / " +
@@ -49,7 +50,7 @@ namespace SystemMonitor.Service.Web
                 }
 
                 // ============================================================
-                //  Réseau (boucle)
+                //  Rï¿½seau (boucle)
                 // ============================================================
                 var netRows = new System.Text.StringBuilder();
 
@@ -82,7 +83,7 @@ namespace SystemMonitor.Service.Web
                                 : "ok";
 
                 // ============================================================
-                //  Cœurs CPU
+                //  Cï¿½urs CPU
                 // ============================================================
                 var coreBars = new System.Text.StringBuilder();
 
@@ -102,7 +103,7 @@ namespace SystemMonitor.Service.Web
                 }
 
                 // ============================================================
-                //  Cœurs CPU (barres verticales)
+                //  Cï¿½urs CPU (barres verticales)
                 // ============================================================
                 var cpuCoreBars = new System.Text.StringBuilder();
 
@@ -144,7 +145,7 @@ namespace SystemMonitor.Service.Web
                 string historyCountText = history.Count.ToString();
 
                 // ============================================================
-                //  Alertes récentes
+                //  Alertes rï¿½centes
                 // ============================================================
                 var alerts = engine.GetAlerts();
                 var alertRows = new System.Text.StringBuilder();
@@ -203,7 +204,7 @@ namespace SystemMonitor.Service.Web
                 int bsodCount = bsods?.Count ?? 0;
                                                                 
                 // ============================================================
-                //  Modèle
+                //  Modï¿½le
                 // ============================================================
                 var model = new Dictionary<string, object?>
                 {
@@ -258,7 +259,7 @@ namespace SystemMonitor.Service.Web
                 };
 
                 string html = ViewRenderer.Render("SystemPage.html", model);
-                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost));
+                html = html.Replace("<!--PEERBAR-->", PeerStatusService.BuildPeerBarHtml(publicHost, https));
                 return html;
             }
             catch (Exception ex)
@@ -270,8 +271,8 @@ namespace SystemMonitor.Service.Web
         }
 
         /// <summary>
-        /// Retourne une couleur hexadécimale selon un pourcentage.
-        /// Vert (0-60%), dégradé vers orange (60-85%), puis rouge (85-100%).
+        /// Retourne une couleur hexadï¿½cimale selon un pourcentage.
+        /// Vert (0-60%), dï¿½gradï¿½ vers orange (60-85%), puis rouge (85-100%).
         /// </summary>
         private static string GetColorForPercent(double percent)
         {
@@ -306,7 +307,7 @@ namespace SystemMonitor.Service.Web
         }
         
         /// <summary>
-        /// Génère un graphique SVG à partir d'une série de valeurs (0-100).
+        /// Gï¿½nï¿½re un graphique SVG ï¿½ partir d'une sï¿½rie de valeurs (0-100).
         /// </summary>
         private static string GenerateSvgChart(
             List<double> values,
@@ -316,10 +317,10 @@ namespace SystemMonitor.Service.Web
             double maxValue = 100)
         {
             if (values == null || values.Count < 2)
-                return "<div style='color:#888;padding:20px;text-align:center'>Pas assez de données</div>";
+                return "<div style='color:#888;padding:20px;text-align:center'>Pas assez de donnï¿½es</div>";
 
             var sb = new System.Text.StringBuilder();
-            var inv = CultureInfo.InvariantCulture;   // ? Important : force le point comme séparateur
+            var inv = CultureInfo.InvariantCulture;   // ? Important : force le point comme sï¿½parateur
 
             int padding = 10;
             int drawWidth = width - padding * 2;
@@ -338,7 +339,7 @@ namespace SystemMonitor.Service.Web
                 points.Add((x, y));
             }
 
-            // 2. Générer le SVG
+            // 2. Gï¿½nï¿½rer le SVG
             sb.Append($"<svg viewBox='0 0 {width} {height}' preserveAspectRatio='none' ");
             sb.Append($"style='width:100%;height:{height}px;background:#1A1A1A;border-radius:6px'>");
 
@@ -350,7 +351,7 @@ namespace SystemMonitor.Service.Web
                 sb.Append($"stroke='#2D2D30' stroke-width='1'/>");
             }
 
-            // 3. Zone remplie sous la courbe (path fermé)
+            // 3. Zone remplie sous la courbe (path fermï¿½)
             sb.Append("<path d='");
             sb.Append($"M {padding},{bottomY} ");
             sb.Append($"L {points[0].x.ToString("F1", inv)},{points[0].y.ToString("F1", inv)} ");

@@ -201,7 +201,26 @@ namespace NetMonitor.Service.Web
             }
         }
 
-        public static string BuildPeerBarHtml(string publicHost)
+        /// <summary>
+        /// Adresse d'un module voisin en HTTPS : même nom d'hôte, préfixe du module
+        /// remplacé. netmonitor-mce11-salon.mcemonitor.org devient
+        /// rommonitor-mce11-salon.mcemonitor.org. Le certificat wildcard couvre les deux.
+        /// </summary>
+        private static string VoisinHttps(string hote, string nomVoisin)
+        {
+            string propre = (_selfName ?? "").ToLowerInvariant().Replace(" ", "");
+
+            if (propre.Length > 0 && hote.ToLowerInvariant().StartsWith(propre))
+            {
+                string reste = hote.Substring(propre.Length);
+                return $"https://{nomVoisin.ToLowerInvariant().Replace(" ", "")}{reste}/";
+            }
+
+            // Hôte sans préfixe de module : on le garde tel quel, faute de mieux.
+            return $"https://{hote}/";
+        }
+
+        public static string BuildPeerBarHtml(string publicHost, bool https = false)
         {
             var peers = GetCachedPeers();
             var sb = new System.Text.StringBuilder();
@@ -227,7 +246,7 @@ namespace NetMonitor.Service.Web
 
                 if (isOnline)
                 {
-                    string href = $"http://{publicHost}:{p.Port}/";
+                    string href = https ? VoisinHttps(publicHost, p.Name) : $"http://{publicHost}:{p.Port}/";
                     string targetName = "mm_" + p.Name.Replace(" ", "_");
 
                     sb.Append($@"<a class=""peer-btn"" href=""{href}"" target=""{targetName}"" title=""{tooltip}"">{inner}</a>");
