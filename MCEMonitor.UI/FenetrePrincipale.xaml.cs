@@ -2834,6 +2834,82 @@ namespace MCEMonitor.UI
             return valeur.Contains(':') ? valeur : $"127.0.0.1:{valeur}";
         }
 
+        /// <summary>
+        /// Vérifie qu aucune autre machine ne détient déjà la passerelle du domaine.
+        /// Renvoie faux si l utilisateur refuse de prendre le relais : l accès distant
+        /// est alors décoché, et rien n est enregistré.
+        /// </summary>
+        private async Task<bool> VerifierProprietaireAsync(Partage.HttpsConfig config)
+        {
+            Partage.GestionnaireMarqueur.Proprietaire? proprietaire;
+
+            try
+            {
+                proprietaire = await Partage.GestionnaireMarqueur
+                    .LireAsync(config, System.Threading.CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                // Sans jeton ou sans réseau, on ne peut pas savoir : on ne bloque pas,
+                // sinon une machine sans jeton ne pourrait jamais s activer.
+                CoreLog.Warn("HTTPS", $"Marqueur de passerelle illisible : {ex.Message}");
+                return true;
+            }
+
+            if (proprietaire == null)
+                return true;
+
+            if (string.Equals(proprietaire.Machine, Partage.GestionnaireMarqueur.NomMachine,
+                              StringComparison.OrdinalIgnoreCase))
+                return true;
+
+            string message = string.Format(
+                LanguageManager.Get("Une autre instance HTTPS est déjà active sur « {0} » ({1}).\n\nIl n’est pas possible de l’activer ici. Prendre le relais effacera sa déclaration : à ne faire que si cette machine ne publie plus.")
+                ?? "Une autre instance HTTPS est déjà active sur « {0} » ({1}). Il n’est pas possible de l’activer ici.",
+                proprietaire.Machine, proprietaire.Date);
+
+            var reponse = Boite.Show(this,
+                message,
+                LanguageManager.Get("Passerelle déjà active") ?? "Passerelle déjà active",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+            if (reponse == MessageBoxResult.Yes)
+            {
+                CoreLog.Warn("HTTPS", $"Prise de relais sur {proprietaire.Machine}.");
+                return true;
+            }
+
+            chkHttpsActif.IsChecked = false;
+            AppliquerGrisageHttps();
+
+            CoreLog.Warn("HTTPS", $"Activation refusée : la passerelle appartient à {proprietaire.Machine}.");
+            return false;
+        }
+
+        private static async Task EcrireMarqueurAsync(Partage.HttpsConfig config)
+        {
+            try
+            {
+                await Partage.GestionnaireMarqueur.EcrireAsync(config, System.Threading.CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("HTTPS", $"Marqueur de passerelle non écrit : {ex.Message}");
+            }
+        }
+
+        private static async Task SupprimerMarqueurAsync(Partage.HttpsConfig config)
+        {
+            try
+            {
+                await Partage.GestionnaireMarqueur.SupprimerAsync(config, System.Threading.CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                CoreLog.Warn("HTTPS", $"Marqueur de passerelle non effacé : {ex.Message}");
+            }
+        }
+
         private async void EnregistrerHttps_Click(object sender, RoutedEventArgs e)
         {
             try
@@ -2907,7 +2983,19 @@ namespace MCEMonitor.UI
                 EnregistrerChampsAffiches();
                 config.Identifiants = new Dictionary<string, string>(_identifiantsDns);
 
+                // Une seule passerelle par domaine : une box ne redirige le 443 que vers
+                // une machine, et deux installations se disputeraient les enregistrements A.
+                if (config.Actif && !await VerifierProprietaireAsync(config))
+                    return;
+
                 config.Enregistrer();
+
+                // La declaration suit l enregistrement : inutile de marquer le domaine
+                // si le fichier n a pas pu etre ecrit.
+                if (config.Actif)
+                    await EcrireMarqueurAsync(config);
+                else if (avant.Actif)
+                    await SupprimerMarqueurAsync(config);
 
                 CoreLog.Info("HTTPS", $"Réglages enregistrés (actif={config.Actif}, fournisseur={config.Fournisseur}, domaine={config.Domaine})");
 
