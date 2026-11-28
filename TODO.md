@@ -356,6 +356,20 @@ que c est cet ordre qui rend la lecture utile.
   passerelle » le faisait. Avec la cause précédente, cela voulait dire qu aucune modification de domaine,
   de port ou de machine n avait d effet tant qu on ne cliquait pas sur Démarrer
 
+**Les liens entre modules suivent le schéma.** En HTTPS, les boutons de la barre de navigation
+renvoyaient vers `http://<hote>:<port>/` : un port interne, en clair, sur un nom qui ne correspond à aucun
+site publié. Cliquer d un module à l autre cassait l accès.
+
+Les quatre modules lisent désormais `X-Forwarded-Proto`, que Caddy place sur chaque requête relayée, et
+reprennent le nom d hôte reçu en remplaçant le préfixe du module :
+`netmonitor-mce11-salon.mcemonitor.org` devient `rommonitor-mce11-salon.mcemonitor.org`, nom que le
+certificat wildcard couvre déjà. Un paramètre `https` traverse les signatures, et la détection vit dans un
+`EstHttps(ctx)` par module.
+
+Rien ne change en HTTP : sans l en-tête, les liens restent `http://hote:port`, que l accès se fasse par IP,
+par nom local ou par localhost. **Cas non couvert, assumé** : un module publié sous un nom qui ne commence
+pas par le sien verrait tous ses boutons pointer vers la même adresse.
+
 **Vérifié de bout en bout** : douze sites sur trois machines — les quatre de MCE-SERVER, les quatre de
 `mce11-salon`, les quatre de `w11-mel` — chacun servant la page de connexion de son propre module
 (`Connexion - NetMonitor`, `Connexion - RomMonitor`, …), avec un seul certificat et un seul port 443.
@@ -364,7 +378,8 @@ que c est cet ordre qui rend la lecture utile.
 les blocs de redirection existent, ils ne reçoivent jamais la requête.
 
 **Commits** : `214c2cf` (sites, plages, fenêtre), `003f631` (journal, sous-domaines, vérification à
-l ouverture), `30866f1` (marqueur), `4674099` (voiles), `3424da5` (refus nom et port), `2ba3b7d` (tâches planifiées), `19caddb` (Caddyfile).
+l ouverture), `30866f1` (marqueur), `4674099` (voiles), `3424da5` (refus nom et port), `2ba3b7d` (tâches planifiées), `19caddb` (Caddyfile), `028ff9f`
+(liens entre modules).
 
 ### Session 2026-11-27 (soir) — HTTPS public : le 443 disputé, trois pièges d asynchrone
 
