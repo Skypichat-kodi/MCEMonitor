@@ -2609,8 +2609,21 @@ namespace MCEMonitor.UI
             }
         }
 
-        private void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
-            => AppliquerGrisageHttps();
+        private async void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
+        {
+            AppliquerGrisageHttps();
+
+            // Cocher déclenche la vérification tout de suite : attendre le prochain
+            // enregistrement pour apprendre qu une autre machine publie déjà serait
+            // trop tard, la case aurait déjà laissé croire le contraire.
+            if (chkHttpsActif.IsChecked != true) return;
+
+            var config = Partage.HttpsConfig.Charger();
+            config.Domaine = txtHttpsDomaine.Text.Trim();
+            config.Identifiants = new Dictionary<string, string>(_identifiantsDns);
+
+            await VerifierProprietaireAsync(config);
+        }
 
         /// <summary>Décoché : tout le reste du module est grisé.</summary>
         private void AppliquerGrisageHttps()
@@ -2620,6 +2633,16 @@ namespace MCEMonitor.UI
             GroupeHttpsDomaine.IsEnabled     = actif;
             GroupeHttpsCertificat.IsEnabled  = actif;
             GroupeHttpsPasserelle.IsEnabled  = actif;
+
+            // Un voile par-dessus chaque encart : grisé, le contenu pouvait encore
+            // sembler lisible. Le voile dit d un coup d œil que rien n est modifiable.
+            VoileHttpsDomaine.Visibility    = actif ? Visibility.Collapsed : Visibility.Visible;
+            VoileHttpsCertificat.Visibility = actif ? Visibility.Collapsed : Visibility.Visible;
+            VoileHttpsPasserelle.Visibility = actif ? Visibility.Collapsed : Visibility.Visible;
+
+            // Les commandes de passerelle vivent en pied d onglet, hors des encarts :
+            // elles ont leur propre voile, sans couvrir Enregistrer.
+            VoileCommandes.Visibility = actif ? Visibility.Collapsed : Visibility.Visible;
 
             // Un module non publié garde sa saisie, mais ne sert à rien : le
             // sous-domaine et le port sont grisés, sans être effacés.

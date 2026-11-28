@@ -48,6 +48,14 @@ namespace MCEMonitor.UI.Partage
         /// </summary>
         public static async Task<Proprietaire?> LireAsync(HttpsConfig config, CancellationToken jeton)
         {
+            if (Token(config) == null)
+            {
+                // Sans jeton, on ne peut pas savoir qui publie : le dire, plutôt que
+                // laisser croire que le domaine est libre.
+                CoreLog.Warn("HTTPS", "Marqueur de passerelle illisible : aucun jeton DNS enregistré sur cette machine.");
+                return null;
+            }
+
             var trouve = await ChercherAsync(config, jeton);
             return trouve?.Proprietaire;
         }
@@ -58,9 +66,16 @@ namespace MCEMonitor.UI.Partage
             string? token = Token(config);
             string zone = Zone(config);
 
-            if (token == null || zone.Length == 0) return;
+            if (token == null)
+            {
+                CoreLog.Warn("HTTPS", "Marqueur de passerelle non écrit : aucun jeton DNS enregistré sur cette machine.");
+                return;
+            }
+
+            if (zone.Length == 0) return;
 
             string valeur = $"{NomMachine} ; {DateTime.Now:yyyy-MM-dd HH:mm}";
+
             var existant = await ChercherAsync(config, jeton);
 
             using var client = Client(token);
