@@ -41,6 +41,9 @@ namespace MCEMonitor.UI.Partage
             }
         }
 
+        /// <summary>Un jeton est-il disponible pour interroger la zone ?</summary>
+        public static bool JetonDisponible(HttpsConfig config) => Token(config) != null;
+
         /// <summary>
         /// Propriétaire déclaré, ou null si le marqueur est absent, illisible, ou si
         /// le jeton manque. Un null n'est donc pas une preuve d absence : c'est à

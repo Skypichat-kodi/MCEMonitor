@@ -2609,20 +2609,12 @@ namespace MCEMonitor.UI
             }
         }
 
-        private async void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
+        private void ChkHttpsActif_Changed(object sender, RoutedEventArgs e)
         {
+            // Cocher ne déclenche aucun contrôle : la vérification a lieu à
+            // l enregistrement, sinon une case qu on recoche se décocherait aussitôt
+            // et l on ne pourrait plus rien corriger.
             AppliquerGrisageHttps();
-
-            // Cocher déclenche la vérification tout de suite : attendre le prochain
-            // enregistrement pour apprendre qu une autre machine publie déjà serait
-            // trop tard, la case aurait déjà laissé croire le contraire.
-            if (chkHttpsActif.IsChecked != true) return;
-
-            var config = Partage.HttpsConfig.Charger();
-            config.Domaine = txtHttpsDomaine.Text.Trim();
-            config.Identifiants = new Dictionary<string, string>(_identifiantsDns);
-
-            await VerifierProprietaireAsync(config);
         }
 
         /// <summary>Décoché : tout le reste du module est grisé.</summary>
@@ -2864,49 +2856,107 @@ namespace MCEMonitor.UI
         /// </summary>
         private async Task<bool> VerifierProprietaireAsync(Partage.HttpsConfig config)
         {
-            Partage.GestionnaireMarqueur.Proprietaire? proprietaire;
+            // Si la passerelle de cette machine tourne déjà, il n y a rien à vérifier :
+            // c est elle qui répond au nom de domaine, et l activation la concerne.
+            if (await Partage.GestionnairePasserelle.EstEnMarcheAsync())
+                return true;
+
+            // Le couple nom + port est-il déjà pris ? Un nom différent, ou un port
+            // différent, suffisent à cohabiter : c est le couple qui est unique.
+            if (await PortDejaOccupeAsync(config))
+            {
+                // Pas de décochage d office : la case disparaîtrait sans laisser le
+                // temps de corriger. On propose plutôt de désactiver le module.
+                var reponse = Boite.Show(this,
+                    (LanguageManager.Get("Le nom de domaine et le port sont déjà utilisés dans votre LAN.\n\nVous devez changer le nom de domaine et le port, puis enregistrer à nouveau.")
+                     ?? "Le nom de domaine et le port sont déjà utilisés dans votre LAN. Vous devez changer le nom de domaine et le port, puis enregistrer à nouveau.")
+                    + "\n\n"
+                    + (LanguageManager.Get("Souhaitez-vous désactiver le module ?")
+                       ?? "Souhaitez-vous désactiver le module ?"),
+                    LanguageManager.Get("Passerelle déjà active") ?? "Passerelle déjà active",
+                    MessageBoxButton.YesNo, MessageBoxImage.Warning);
+
+                if (reponse == MessageBoxResult.Yes)
+                {
+                    // Désactivation demandée : on repart des valeurs par défaut. Les
+                    // sous-domaines et les ports sont calculés, rien n est perdu à les
+                    // réinitialiser — les identifiants du fournisseur, eux, sont conservés.
+                    chkHttpsActif.IsChecked = false;
+                    txtHttpsDomaine.Text = "";
+
+                    _sousNet    = "netmonitor";
+                    _sousRom    = "rommonitor";
+                    _sousSystem = "systemmonitor";
+                    _sousMedia  = "mediamonitor";
+
+                    txtHttpsCibleNet.Text    = "14000";
+                    txtHttpsCibleRom.Text    = "12000";
+                    txtHttpsCibleSystem.Text = "13000";
+                    txtHttpsCibleMedia.Text  = "11000";
+
+                    AfficherSousDomaines();
+                    AppliquerGrisageHttps();
+
+                    config.Actif             = false;
+                    config.Domaine           = "";
+                    config.SousNetMonitor    = _sousNet;
+                    config.SousRomMonitor    = _sousRom;
+                    config.SousSystemMonitor = _sousSystem;
+                    config.SousMediaMonitor  = _sousMedia;
+                    config.CibleNetMonitor    = CibleLocale(txtHttpsCibleNet.Text);
+                    config.CibleRomMonitor    = CibleLocale(txtHttpsCibleRom.Text);
+                    config.CibleSystemMonitor = CibleLocale(txtHttpsCibleSystem.Text);
+                    config.CibleMediaMonitor  = CibleLocale(txtHttpsCibleMedia.Text);
+
+                    CoreLog.Warn("HTTPS", "Module désactivé après conflit de nom et de port : domaine vidé, ports et sous-domaines par défaut.");
+                    return true;
+                }
+
+                CoreLog.Warn("HTTPS", "Enregistrement refusé : nom et port déjà utilisés sur le réseau local.");
+                return false;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// Le couple nom + port répond-il déjà ? Une réponse, même avec un certificat
+        /// refusé, signifie qu un serveur occupe cette adresse : une autre machine
+        /// publie. Ne demande ni jeton, ni accès à la zone.
+        /// </summary>
+        private static async Task<bool> PortDejaOccupeAsync(Partage.HttpsConfig config)
+        {
+            var sites = Partage.GenerateurCaddyfile.Sites(config);
+            if (sites.Count == 0) return false;
+
+            string hote = sites[0].Hote;
+            int port = config.Port > 0 ? config.Port : 443;
+            string url = $"https://{hote}:{port}/";
+
+            // Le certificat est ignoré volontairement : il s agit de savoir si quelque
+            // chose écoute, pas si ce quelque chose présente le bon certificat.
+            var handler = new System.Net.Http.HttpClientHandler
+            {
+                ServerCertificateCustomValidationCallback = (_, _, _, _) => true
+            };
 
             try
             {
-                proprietaire = await Partage.GestionnaireMarqueur
-                    .LireAsync(config, System.Threading.CancellationToken.None);
+                using var client = new System.Net.Http.HttpClient(handler)
+                {
+                    Timeout = TimeSpan.FromSeconds(4)
+                };
+
+                using var reponse = await client.GetAsync(url);
+
+                CoreLog.Warn("HTTPS", $"{hote}:{port} répond déjà (HTTP {(int)reponse.StatusCode}) : nom et port occupés.");
+                return true;
             }
             catch (Exception ex)
             {
-                // Sans jeton ou sans réseau, on ne peut pas savoir : on ne bloque pas,
-                // sinon une machine sans jeton ne pourrait jamais s activer.
-                CoreLog.Warn("HTTPS", $"Marqueur de passerelle illisible : {ex.Message}");
-                return true;
+                CoreLog.Info("HTTPS", $"{hote}:{port} ne répond pas : libre ({ex.Message}).");
+                return false;
             }
-
-            if (proprietaire == null)
-                return true;
-
-            if (string.Equals(proprietaire.Machine, Partage.GestionnaireMarqueur.NomMachine,
-                              StringComparison.OrdinalIgnoreCase))
-                return true;
-
-            string message = string.Format(
-                LanguageManager.Get("Une autre instance HTTPS est déjà active sur « {0} » ({1}).\n\nIl n’est pas possible de l’activer ici. Prendre le relais effacera sa déclaration : à ne faire que si cette machine ne publie plus.")
-                ?? "Une autre instance HTTPS est déjà active sur « {0} » ({1}). Il n’est pas possible de l’activer ici.",
-                proprietaire.Machine, proprietaire.Date);
-
-            var reponse = Boite.Show(this,
-                message,
-                LanguageManager.Get("Passerelle déjà active") ?? "Passerelle déjà active",
-                MessageBoxButton.YesNo, MessageBoxImage.Warning);
-
-            if (reponse == MessageBoxResult.Yes)
-            {
-                CoreLog.Warn("HTTPS", $"Prise de relais sur {proprietaire.Machine}.");
-                return true;
-            }
-
-            chkHttpsActif.IsChecked = false;
-            AppliquerGrisageHttps();
-
-            CoreLog.Warn("HTTPS", $"Activation refusée : la passerelle appartient à {proprietaire.Machine}.");
-            return false;
         }
 
         private static async Task EcrireMarqueurAsync(Partage.HttpsConfig config)
@@ -3006,8 +3056,9 @@ namespace MCEMonitor.UI
                 EnregistrerChampsAffiches();
                 config.Identifiants = new Dictionary<string, string>(_identifiantsDns);
 
-                // Une seule passerelle par domaine : une box ne redirige le 443 que vers
-                // une machine, et deux installations se disputeraient les enregistrements A.
+                // Le nom et le port ne doivent pas déjà être servis par une autre machine
+                // du réseau : le contrôle a lieu ici, à l enregistrement, pour laisser le
+                // temps de corriger sans que la case se décoche sous les doigts.
                 if (config.Actif && !await VerifierProprietaireAsync(config))
                     return;
 
