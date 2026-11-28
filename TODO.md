@@ -107,54 +107,6 @@ _(rien)_
     fois l accès par `mcemonitor.org` confirmé
   - **Priorité** : 🟡 moyenne
 
-- [ ] **Publier plusieurs machines derrière une seule passerelle** *(idée du 2026-11-27 au soir)*
-  - Christophe fait tourner **cinq NetMonitor** dans son LAN, plus les autres modules. Une seule machine,
-    MCE-SERVER, expose le 443 et porte le certificat : c est elle qui doit relayer les autres
-  - **Ce que la génération permet aujourd hui** : quatre sites fixes, une cible chacun. Le champ « cible »
-    accepte déjà une adresse du LAN, mais un nom ne désigne qu un seul endroit — publier le NetMonitor de
-    DEV retire celui de MCE-SERVER
-  - **Évolution voulue** : un bouton `+` dans l onglet, une fenêtre demandant le **nom de la machine**, le
-    module, l IP locale et le port, puis une liste des sites supplémentaires avec `−` pour retirer.
-    La cible devient une liste libre au lieu de quatre champs figés
-  - **Piège du certificat** : `*.mcemonitor.org` ne couvre qu un niveau.
-    `mce-server.netmonitor.mcemonitor.org` en compte deux et déclencherait une alerte. Trois voies :
-    1. **aplatir** en `netmonitor-mce-server.mcemonitor.org` — aucun certificat à retoucher (recommandé)
-    2. ajouter des SAN wildcards au même certificat (`*.netmonitor.mcemonitor.org`, …) : lego accepte
-       plusieurs `-d` dans une seule demande, et le défi DNS reste le même
-    3. un certificat par type de module — quatre certificats, quatre renouvellements : à écarter
-  - **Troisième étage** : chaque site veut un enregistrement A. `GestionnaireDdns` ne connaît que les
-    quatre noms fixes ; il devra parcourir la liste, créer les manquants et corriger les changés, sinon
-    le nom résoudrait dans le vide
-  - **À faire** : `HttpsConfig.SitesSupplementaires` (machine, module, cible, libellé ; sérialisée en JSON
-    à côté des champs actuels), génération des sites, boucle DDNS, interface. Les quatre champs existants
-    restent, pour ne pas casser les installations en place
-  - **Deux précautions d interface** : slugifier le nom saisi (`MCE-SERVER` → `mce-server`) et refuser les
-    doublons, sinon deux sites porteraient le même nom et Caddy refuserait son Caddyfile
-  - **Règle** : un seul Caddy sur le réseau. La passerelle ne s installe que sur la machine qui expose le 443
-  - **Priorité** : 🟡 moyenne
-
-- [ ] **Une seule passerelle par domaine : marqueur et garde-fou** *(idée du 2026-11-27 au soir)*
-  - Deux machines configurées en HTTPS se disputeraient le 443 public et les enregistrements A de la
-    zone. Or une box ne redirige le 443 que vers une seule machine : la seconde publierait dans le vide,
-    ou pire, écraserait les A de la première
-  - **Écarté** : balayer le 443 de 192.168.1.0/24. Des minutes de scan, les pare-feu qui s'alarment, et
-    rien sur les machines hors du sous-réseau
-  - **Retenu** : un enregistrement TXT qui déclare le propriétaire — `_passerelle.mcemonitor.org` →
-    `"mce-server ; 2026-11-27T21:49"`. Le module sait déjà écrire des TXT (lego le fait pour le défi ACME)
-    et le DDNS lit la zone en une requête
-  - **Contrôle à l activation** : lire le TXT ; s il porte notre nom, on continue ; s il porte celui d une
-    autre machine, on refuse en nommant le propriétaire et la date ; s il est absent, vérifier qu un
-    sous-domaine ne répond pas déjà — au cas où une passerelle tournerait sans s être déclarée. Libre,
-    on active puis on écrit le TXT
-  - **À la désactivation** : supprimer le TXT, mais seulement s il porte notre nom
-  - **Échappatoire obligatoire** : un bouton « Prendre le relais » qui écrase le marqueur après
-    confirmation. Sans lui, la mort de la machine propriétaire bloquerait tout le monde — une protection
-    qui enferme est pire que pas de protection
-  - **Limite assumée** : un garde-fou, pas une serrure. Une zone modifiée à la main, ou une installation
-    antérieure à cette fonction, passerait outre ; le test de disponibilité rattrape la plupart des cas
-  - **Nommage** : surtout pas `_acme-challenge`, où lego écrit et efface à chaque renouvellement
-  - **Priorité** : 🟡 moyenne
-
 - [ ] **Nettoyer les noms de la zone devenus inutiles** *(question du 2026-11-28)*
   - Le DDNS ne fait que lire, créer et modifier : `LireIpPubliqueAsync`, `LireEnregistrementsAAsync`,
     `ModifierAsync`, `CreerAsync`. Aucun `DELETE`
@@ -327,6 +279,65 @@ répond `302` vers `/login` : certificat, relais et module fonctionnent.
 **Commits** : `d47be05` (onglet inerte), `920fae3` (fournisseurs), `c17c329` (lego), `f1b887b`
 (certificat), `cfcfd84` (contrôle du jeton), `1ba792a` (portée nommée), `1a943ca` (renouvellement),
 `8f70436` (socle passerelle), `15d743e` (interface passerelle), `b9ba4c1` (démarrage sans attente).
+
+### Session 2026-11-28 — publier les autres machines, brider les ports
+
+Objectif : une seule machine expose le 443, mais tout le réseau doit être joignable en HTTPS sous le
+même domaine. Christophe fait tourner cinq NetMonitor, plus les autres modules.
+
+**Le nom doit être aplati.** `*.mcemonitor.org` ne couvre qu un niveau : `mce-server.netmonitor.mcemonitor.org`,
+qui était l idée de départ, aurait déclenché une alerte de certificat. Les modules des autres machines sont
+donc publiés sous `netmonitor-mce-salon.mcemonitor.org`, et le nom saisi est slugifié
+(`MCE-SALON`, `Séjour.Accent` et `Çà-et-Là` donnent `mce-salon`, `sejour-accent`, `ca-et-la`).
+
+**La fenêtre « Autres serveurs »**, ouverte par un bouton dans l encart Domaine. Un bloc par machine : IP,
+nom, puis une ligne par module avec case de publication, port et aperçu de l adresse. « + Nouveau » en
+ajoute, ↻ relance après un démarrage de service.
+
+**Aucun identifiant n est nécessaire.** Le nom vient de la résolution inverse (`192.168.1.19` donne
+`serveur-mce.home`), et le type de module du realm annoncé par son 401 sans mot de passe :
+`Basic realm="NetMonitor"`. Les quatre modules le font, MediaMonitor compris via `HttpWriter.Write401`.
+
+**Les ports des serveurs web sont bridés**, pour que la passerelle sache où chercher : MediaMonitor
+11000-11050, RomMonitor 12000-12050, SystemMonitor 13000-13050, NetMonitor 14000-14050. Le service ramène
+au défaut toute valeur hors plage, l enregistre et la signale — sinon le message reviendrait à chaque
+démarrage. Les anciens défauts 8081, 8083, 8085 et 8086 disparaissent du code.
+
+**Six défauts, tous vus à l usage.**
+
+- le realm était mal extrait : `Trim('"')` sur `realm="NetMonitor"` donnait `realm="NetMonitor`, qui ne
+  correspondait à aucun module — donc aucune coche, aucun port rempli
+- la fenêtre avait son propre « Enregistrer » et l onglet le sien : la déclaration semblait perdue. La
+  liste est désormais écrite dès la validation
+- le balayage des quatre plages prenait 10,5 s : le pare-feu de Windows laisse tomber les paquets des
+  ports fermés au lieu de les rejeter. Ports probables d abord, 48 connexions en parallèle, 600 ms de
+  délai et arrêt dès que les quatre répondent : 609 ms
+- les sous-domaines se saisissaient encore, avec le risque d y glisser un nom à deux niveaux. Ils sont
+  calculés, affichés en entier, et suivent le domaine
+- le journal se contentait d un décompte. Il décrit maintenant les changements : machine ajoutée ou
+  retirée, adresse ou port modifiés, module ajouté ou retiré, et pour l onglet domaine, accès distant,
+  DDNS, fournisseur, publication et port de chaque module
+- à l ouverture, les machines déjà déclarées sont interrogées en parallèle : on voit ce qui répond sans
+  cliquer. Rien n est décoché, pour qu une machine éteinte ne fasse pas perdre sa déclaration
+
+**Une seule passerelle par nom et par port.** Le critère n est pas le nom seul : deux domaines différents
+cohabitent, et le même nom sur deux ports aussi. Le contrôle a lieu à l enregistrement — une case qui se
+décocherait d office empêcherait de corriger. Le test est une connexion à `https://<nom>:<port>/`,
+certificat ignoré, qui ne demande ni jeton ni accès à la zone. En cas de conflit, une popup explique puis
+propose « Souhaitez-vous désactiver le module ? » : répondre oui décoche, vide le domaine, remet ports et
+sous-domaines par défaut, et laisse l enregistrement supprimer les tâches et arrêter la passerelle. Les
+identifiants du fournisseur sont conservés.
+
+Deux pistes abandonnées en chemin, notées pour ne pas les reprendre : un marqueur TXT `_passerelle` lu
+pour décider, et une popup « continuer quand même » qui ne faisait que déplacer le problème d un cran.
+`GestionnaireMarqueur` ne sert plus qu à laisser une trace dans la zone.
+
+**Interface** : ports devant les adresses, colonne des adresses élargie à 260 px, case de publication
+devant chaque module, et un voile sur chaque encart — commandes du pied comprises, sauf Enregistrer — quand
+l accès distant est décoché.
+
+**Commits** : `214c2cf` (sites, plages, fenêtre), `003f631` (journal, sous-domaines, vérification à
+l ouverture), `30866f1` (marqueur), `4674099` (voiles), `3424da5` (refus nom et port).
 
 ### Session 2026-11-27 (soir) — HTTPS public : le 443 disputé, trois pièges d asynchrone
 
