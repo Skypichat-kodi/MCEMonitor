@@ -106,7 +106,11 @@ namespace MCEMonitor.UI
 
                 try
                 {
-                    Partage.GestionnaireCertificat.RenouvelerAsync().GetAwaiter().GetResult();
+                    // Task.Run : on est sur le thread de l interface, où un contexte de
+                    // synchronisation WPF est installé. GetResult() direct y bloquait les
+                    // continuations await, et le renouvellement ne se faisait jamais.
+                    Task.Run(() => Partage.GestionnaireCertificat.RenouvelerAsync())
+                        .GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
@@ -125,9 +129,11 @@ namespace MCEMonitor.UI
             {
                 try
                 {
-                    Partage.GestionnaireDdns.MettreAJourAsync(
+                    // Même précaution que pour la passerelle : sans Task.Run, la mise à
+                    // jour DNS se bloquait et aucun enregistrement n était créé.
+                    Task.Run(() => Partage.GestionnaireDdns.MettreAJourAsync(
                         new Progress<string>(m => CoreLog.Info("DDNS", m)),
-                        CancellationToken.None).GetAwaiter().GetResult();
+                        CancellationToken.None)).GetAwaiter().GetResult();
                 }
                 catch (Exception ex)
                 {
